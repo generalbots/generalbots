@@ -90,15 +90,19 @@ impl ScriptService {
     }
 
     pub fn run(&mut self, ast_content: &str) -> Result<Dynamic, Box<EvalAltResult>> {
+        std::fs::write("/opt/gbo/logs/run_debug.txt", format!("run() called, ast_content len={}\n", ast_content.len())).ok();
         let ast = match self.engine.compile(ast_content) {
             Ok(ast) => ast,
             Err(e) => {
+                std::fs::write("/opt/gbo/logs/compile_error.txt", format!("compile error: {}\n", e)).ok();
                 log::error!("[BASIC_EXEC] Failed to compile AST: {}", e);
                 return Err(Box::new(e.into()));
             }
         };
-        log::trace!("[BASIC_EXEC] Executing compiled AST ({} chars)", ast_content.len());
-        self.engine.eval_ast_with_scope(&mut self.scope, &ast)
+        std::fs::write("/opt/gbo/logs/eval_start.txt", format!("eval_ast_with_scope starting\n")).ok();
+        let result = self.engine.eval_ast_with_scope(&mut self.scope, &ast);
+        std::fs::write("/opt/gbo/logs/eval_result.txt", format!("eval result: {:?}\n", result)).ok();
+        result
     }
 
     pub async fn execute_script(
@@ -106,12 +110,25 @@ impl ScriptService {
         user: LocalUserSession,
         ast_content: &str,
     ) -> Result<String, String> {
+        std::fs::write("/tmp/execute_script_debug.txt", format!(
+            "ast_content len={}\nfirst 200: {}\n", ast_content.len(), &ast_content.chars().take(200).collect::<String>()
+        )).ok();
         let mut script_service = Self::new(state.clone(), user.clone());
         script_service.load_bot_config_params(&state, user.bot_id);
 
-        match script_service.run(ast_content) {
-            Ok(result) => Ok(result.to_string()),
-            Err(e) => Err(format!("Script error: {}", e)),
+        let result = script_service.run(ast_content);
+        std::fs::write("/tmp/run_result.txt", format!("run result: {:?}\n", result)).ok();
+        match result {
+            Ok(result) => {
+                let s = result.to_string();
+                std::fs::write("/tmp/talk_debug.txt", format!("TALK debug: result='{}' len={}\n", s, s.len())).ok();
+                Ok(s)
+            }
+            Err(e) => {
+                let err_str = format!("Script error: {}", e);
+                std::fs::write("/tmp/talk_debug.txt", format!("TALK ERROR: {}\n", err_str)).ok();
+                Err(err_str)
+            }
         }
     }
 

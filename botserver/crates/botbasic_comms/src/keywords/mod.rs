@@ -30,6 +30,7 @@ pub fn register_comms_keywords(
 ) {
     let s = state.clone();
     add_suggestion::add_suggestion_keyword(s.clone(), user.clone(), engine);
+    add_suggestion::clear_suggestions_keyword(s.clone(), user.clone(), engine);
     create_draft::create_draft_keyword(&s, user.clone(), engine);
     on_email::on_email_keyword(&s, user.clone(), engine);
     play::play_keyword(s.clone(), user.clone(), engine);

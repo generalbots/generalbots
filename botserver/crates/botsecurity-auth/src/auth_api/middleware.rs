@@ -43,11 +43,13 @@ pub async fn auth_middleware_with_providers(
     info!("Processing {} {}", method, path);
 
     if state.config.is_public_path(&path) || state.config.is_anonymous_allowed(&path) {
-        info!("Path is public/anonymous, skipping auth");
+        info!("Path is public/anonymous, skipping auth: {}", path);
         request
             .extensions_mut()
             .insert(AuthenticatedUser::anonymous());
-        return next.run(request).await;
+        let response = next.run(request).await;
+        info!("Public path response status: {}", response.status());
+        return response;
     }
 
     let auth_header = request

@@ -87,6 +87,10 @@ impl AuthConfig {
 
     pub fn is_public_path(&self, path: &str) -> bool {
         for public_path in &self.public_paths {
+            // Special case: "/" matches everything
+            if public_path == "/" {
+                return true;
+            }
             if path == public_path || path.starts_with(&format!("{}/", public_path)) {
                 return true;
             }

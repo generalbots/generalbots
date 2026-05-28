@@ -157,33 +157,35 @@ pub async fn index(
         .map(|s| s.to_string());
 
     if let Some(ref bot) = bot_name {
-        // Access Check
-        let mut has_token = false;
-        if let Some(cookie_header) = headers.get(axum::http::header::COOKIE) {
-            if let Ok(cookie_str) = cookie_header.to_str() {
-                if cookie_str.contains("gb-access-token") {
-                    has_token = true;
-                }
+        let has_token = headers.get(axum::http::header::COOKIE)
+            .and_then(|c| c.to_str().ok())
+            .is_some_and(|s| s.contains("gb-access-token"));
+
+        let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), bot);
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+
+        let mut req = client.get(&target_url);
+        for (k, v) in headers.iter() {
+            if k != axum::http::header::HOST {
+                req = req.header(k, v);
             }
         }
-        
-        if has_token && bot != "default" {
-            let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), bot);
-            let client = reqwest::Client::builder()
-                .danger_accept_invalid_certs(true)
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new());
-                
-            let mut req = client.get(&target_url);
-            for (k, v) in headers.iter() {
-                if k != axum::http::header::HOST {
-                    req = req.header(k, v);
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status() == axum::http::StatusCode::FORBIDDEN
+                    || resp.status() == axum::http::StatusCode::UNAUTHORIZED
+                {
+                    info!("index: Access denied for bot {}", bot);
+                    return axum::response::Redirect::to("/auth/login.html").into_response();
                 }
             }
-            
-            if let Ok(resp) = req.send().await {
-                if resp.status() == axum::http::StatusCode::FORBIDDEN || resp.status() == axum::http::StatusCode::UNAUTHORIZED {
-                    info!("index: Access denied for bot {}", bot);
+            Err(e) => {
+                warn!("index: Access check failed for bot {}: {}", bot, e);
+                if !has_token {
                     return axum::response::Redirect::to("/auth/login.html").into_response();
                 }
             }
@@ -924,6 +926,8 @@ async fn ws_proxy(
                 .map(|s| s.to_string())
         })
         .unwrap_or_else(|| "default".to_string());
+
+    // WebSocket auth is enforced by the botserver — allow connection attempt
 
     let params_with_bot = WsQuery {
         bot_name: Some(bot_name),

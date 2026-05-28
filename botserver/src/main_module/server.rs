@@ -662,7 +662,9 @@ let base_router = {
             .nest_service("/auth", ServeDir::new(format!("{}/auth", ui_path)))
             .nest_service("/suite", ServeDir::new(&ui_path))
             .nest_service("/themes", ServeDir::new(format!("{}/../themes", ui_path)))
-            .fallback_service(ServeDir::new(&ui_path))
+            .fallback_service(
+                tower_http::services::ServeFile::new(format!("{}/desktop.html", ui_path))
+            )
     } else if use_embedded_ui {
         base_router.merge(crate::embedded_ui::embedded_ui_router())
     } else {

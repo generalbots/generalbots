@@ -102,3 +102,5 @@ opt/
 *.fix
 *.bak
 .backups/
+.antigravitycli/
+*.orig
