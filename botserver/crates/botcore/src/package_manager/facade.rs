@@ -1193,6 +1193,8 @@ Store credentials in Vault:
         let mut archive = tar::Archive::new(tar);
         archive.unpack(bin_path)?;
 
+        collapse_single_subdirectory(bin_path)?;
+
         if !temp_file.to_string_lossy().contains("botserver-installers") {
             std::fs::remove_file(temp_file)?;
         }

@@ -287,8 +287,30 @@ pub fn extract_tar_gz(temp_file: &std::path::Path, bin_path: &std::path::Path) -
     let mut archive = tar::Archive::new(tar);
     archive.unpack(bin_path)?;
 
+    collapse_single_subdirectory(bin_path)?;
+
     if !temp_file.to_string_lossy().contains("botserver-installers") {
         std::fs::remove_file(temp_file)?;
+    }
+    Ok(())
+}
+
+fn collapse_single_subdirectory(bin_path: &std::path::Path) -> Result<()> {
+    let entries: Vec<_> = match std::fs::read_dir(bin_path) {
+        Ok(iter) => iter.flatten().collect(),
+        Err(_) => return Ok(()),
+    };
+    let dirs: Vec<_> = entries.iter().filter(|e| e.path().is_dir()).collect();
+    if dirs.len() == 1 && entries.len() == 1 {
+        let sub = dirs[0].path();
+        for entry in std::fs::read_dir(&sub).into_iter().flatten().flatten() {
+            let src = entry.path();
+            let name = src.file_name().unwrap_or_default();
+            let dst = bin_path.join(name);
+            let _ = std::fs::rename(&src, &dst);
+        }
+        let _ = std::fs::remove_dir(&sub);
+        trace!("Collapsed single subdirectory {:?} in {:?}", sub, bin_path);
     }
     Ok(())
 }
@@ -329,6 +351,9 @@ pub fn extract_zip(temp_file: &std::path::Path, bin_path: &std::path::Path) -> R
             }
         }
     }
+
+    collapse_single_subdirectory(bin_path)?;
+
     if !temp_file.to_string_lossy().contains("botserver-installers") {
         std::fs::remove_file(temp_file)?;
     }
