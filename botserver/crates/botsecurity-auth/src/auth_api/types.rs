@@ -243,6 +243,11 @@ pub struct AuthenticatedUser {
     pub metadata: HashMap<String, String>,
 }
 
+/// Marker extension inserted by auth middleware when a path is allowed as public/anonymous.
+/// RBAC middleware checks for this marker and skips route permission checks when present.
+#[derive(Debug, Clone)]
+pub struct PublicPathAllowed;
+
 impl Default for AuthenticatedUser {
     fn default() -> Self {
         Self::anonymous()

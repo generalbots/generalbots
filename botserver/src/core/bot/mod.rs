@@ -213,10 +213,11 @@ pub async fn check_access_handler(
         return axum::http::StatusCode::OK.into_response();
     }
 
-    // 2. Se não for público, exigimos o user_id (autenticação).
-    let user_id = match req.extensions().get::<Uuid>().copied() {
-        Some(id) => id,
-        None => return axum::http::StatusCode::UNAUTHORIZED.into_response(),
+    // 2. Se não for público, exigimos autenticação.
+    let user = req.extensions().get::<crate::security::auth_api::types::AuthenticatedUser>();
+    let user_id = match user {
+        Some(u) if u.is_authenticated() => u.user_id,
+        _ => return axum::http::StatusCode::UNAUTHORIZED.into_response(),
     };
 
     match check_bot_access(&state, &bot_name, user_id).await {

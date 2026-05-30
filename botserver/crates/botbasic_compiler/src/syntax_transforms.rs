@@ -466,11 +466,11 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         (r#"CLEAR\s+TOOLS"#, 0, 0, vec![]),
         (r#"CLEAR\s+WEBSITES"#, 0, 0, vec![]),
 
-        (r#"ADD_SUGGESTION_TOOL"#, 2, 2, vec!["tool", "text"]),
-        (r#"ADD_SUGGESTION_TEXT"#, 2, 2, vec!["value", "text"]),
-        (r#"ADD_SUGGESTION(?!\\s+TOOL|\\s+TEXT|_)"#, 2, 2, vec!["context", "text"]),
-        (r#"ADD_SWITCHER"#, 2, 2, vec!["switcher", "text"]),
-        (r#"ADD_MEMBER"#, 2, 2, vec!["name", "role"]),
+        (r#"ADD\s+SUGGESTION\s+TOOL"#, 2, 2, vec!["tool", "text"]),
+        (r#"ADD\s+SUGGESTION\s+TEXT"#, 2, 2, vec!["value", "text"]),
+        (r#"ADD\s+SUGGESTION(?!\s+TOOL|\s+TEXT|_)"#, 2, 2, vec!["context", "text"]),
+        (r#"ADD\s+SWITCHER"#, 2, 2, vec!["switcher", "text"]),
+        (r#"ADD\s+MEMBER"#, 2, 2, vec!["name", "role"]),
         (r#"ADD\s+MEMBER"#, 2, 2, vec!["name", "role"]),
 
         (r#"CREATE\s+TASK"#, 1, 1, vec!["task"]),

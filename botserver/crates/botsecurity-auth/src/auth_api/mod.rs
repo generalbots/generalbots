@@ -22,7 +22,7 @@ pub use middleware::{
     require_role, require_role_middleware, AuthMiddlewareState,
 };
 pub use types::{
-    AuthenticatedUser, BotAccess, Permission, Role,
+    AuthenticatedUser, BotAccess, Permission, PublicPathAllowed, Role,
 };
 pub use utils::{
     extract_bot_id_from_request, extract_session_from_cookies,

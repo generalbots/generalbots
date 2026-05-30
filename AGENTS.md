@@ -333,6 +333,7 @@ sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
 3. Type messages in chat input and send
 4. Verify bot responses, suggestion buttons, and tool execution results
 5. Take screenshots for evidence via `mcp__playwright__browser_take_screenshot`
+6. **🚨 NEVER close the browser** — keep it open for user inspection via `await new Promise(() => {})`
 
 **Summary — the three pillars for bot testing:**
 - **Drive (mc)** — all bot files come from MinIO, manipulated via `mc` with Vault credentials
@@ -1076,20 +1077,82 @@ BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info
 
 **When user requests to start YOLO mode with Playwright:**
 
-1. **Start the browser** - Use `mcp__playwright__browser_navigate` to open http://localhost:3000/{botname}
-2. **Take snapshot** - Use `mcp__playwright__browser_snapshot` to see current page state
-3. **Test user flows** - Use click, type, fill_form, etc.
-4. **Verify results** - Check for expected content, errors in console, network requests
-5. **Validate backend** - Check database and services to confirm process completion
-6. **Report findings** - Always include screenshot evidence with `browser_take_screenshot`
+### 0. DISCOVER DISPLAY (always do this first)
 
-**⚠️ IMPORTANT - Desktop UI Navigation:**
-- The desktop may have a maximized chat window covering other apps
-- To access CRM/sidebar icons, click the **middle button** (restore/down arrow) in the chat window header to minimize it
-- Or navigate directly via URL: http://localhost:3000/suite/crm (after login)
+Check if a VNC/desktop display is available for showing the browser:
+
+```bash
+# Check for existing VNC/X11 display
+echo $DISPLAY
+ps aux | grep -E "Xvfb|Xorg|vnc|VNC|Xtigervnc" | grep -v grep
+ls /tmp/.X11-unix/ 2>/dev/null
+ss -tlnp | grep 590  # VNC ports
+ss -tlnp | grep 6080 # noVNC web port
+```
+
+If VNC/noVNC is running:
+- User can connect via browser at `http://<host-ip>:6080` or via `https://desktop1.pragmatismo.com.br` (production)
+- Find browser: `which google-chrome chromium-browser firefox 2>/dev/null`
+- Start browser on VNC: `DISPLAY=:1 google-chrome --no-sandbox --start-maximized "URL"`
+- Use `--display=:1` or `export DISPLAY=:1` before launching
+
+If NO display:
+- Use `headless: true` in Playwright
+- Screenshots to `/tmp/` for later review
+
+### 1. LOCAL DEV TESTING (Playwright MCP - preferred when available)
+
+**Prerequisites:** Playwright MCP server is configured in `~/.config/opencode/opencode.json` as `@playwright/mcp@latest` and auto-started by opencode.
+
+**Workflow — USE THIS EVERY TIME (mandatory):**
+
+1. **Navigate to the bot** — Use `mcp__playwright__browser_navigate` to open `http://localhost:3000/{botname}`
+2. **Take snapshot** — Use `mcp__playwright__browser_snapshot` to see current page state
+3. **Test conversation** — Send messages via `mcp__playwright__browser_type` + click interactions
+4. **Verify responses** — Check WebSocket output, suggestion buttons, tool execution
+5. **Take screenshots** — Use `mcp__playwright__browser_take_screenshot` to save evidence to `/tmp/`
+6. **🚨 KEEP BROWSER OPEN** — NEVER close the browser at the end of the test. Use `await new Promise(() => {})` (or equivalent no-op) to keep the Node process alive so the browser stays visible. The user wants to inspect the final state themselves. Only close when the user explicitly says to.
+
+### 2. PRODUCTION TESTING (Node script via Playwright API)
+
+**When testing against `chat.pragmatismo.com.br` (no Playwright MCP available or production domain):**
+
+```bash
+# First check display availability
+echo $DISPLAY
+# If VNC available (e.g. :1), launch visible browser
+export DISPLAY=:1
+chromium-browser --no-sandbox --start-maximized "https://chat.pragmatismo.com.br/{botname}" &
+```
+
+**Node script pattern (headless with browser kept open for user):**
+```javascript
+import { chromium } from 'playwright';
+const browser = await chromium.launch({ headless: true });
+// ... test 10+ questions ...
+// ❌ DO NOT call browser.close()
+// ✅ Keep process alive for user inspection:
+await new Promise(() => {});
+```
+
+**Rules:**
+1. **headless: true** if no display available; **headless: false** + `DISPLAY=:1` if VNC running
+2. **10 questions minimum** — test conversation depth
+3. **Screenshots to /tmp/** — for later inspection
+4. **🚨 NEVER browser.close()** — leave process hanging so browser stays open
+5. **Log ALL responses** — print each Q&A to stdout
+6. **Capture ALL errors** — log all `console` and failed `response` events
 
 **Bot-Specific Testing URL Pattern:**
-`http://localhost:3000/<botname>`
+- Local dev: `http://localhost:3000/<botname>`
+- Production: `https://chat.pragmatismo.com.br/<botname>`
+
+**Example of launching visible browser on VNC display:**
+```bash
+export DISPLAY=:1
+google-chrome --no-sandbox --start-maximized "https://chat.pragmatismo.com.br/salesianos" &
+echo "Browser iniciado em DISPLAY=:1. Acesse https://desktop1.pragmatismo.com.br para ver."
+```
 
 **Backend Validation Checks:**
 After UI interactions, validate backend state via `psql` or `tail` logs.

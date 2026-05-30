@@ -1,7 +1,7 @@
 use super::{
     config::AuthConfig,
     error::AuthError,
-    types::{AuthenticatedUser, Permission, Role},
+    types::{AuthenticatedUser, Permission, PublicPathAllowed, Role},
     utils::{authenticate_with_extracted_data, ExtractedAuthData},
 };
 use axum::{
@@ -44,9 +44,8 @@ pub async fn auth_middleware_with_providers(
 
     if state.config.is_public_path(&path) || state.config.is_anonymous_allowed(&path) {
         info!("Path is public/anonymous, skipping auth: {}", path);
-        request
-            .extensions_mut()
-            .insert(AuthenticatedUser::anonymous());
+        request.extensions_mut().insert(AuthenticatedUser::anonymous());
+        request.extensions_mut().insert(PublicPathAllowed);
         let response = next.run(request).await;
         info!("Public path response status: {}", response.status());
         return response;

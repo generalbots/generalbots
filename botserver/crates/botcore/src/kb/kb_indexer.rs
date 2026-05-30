@@ -34,8 +34,13 @@ impl QdrantConfig {
         } else {
             let config_manager = ConfigManager::new(pool.clone());
             let url = config_manager
-                .get_config(bot_id, "vectordb-url", Some(""))
+                .get_config(bot_id, "vectordb-url", None)
                 .unwrap_or_else(|_| "".to_string());
+            let url = if url.is_empty() {
+                std::env::var("VECTORDB_URL").unwrap_or_default()
+            } else {
+                url
+            };
             (url, "".to_string(), "default".to_string())
         };
         Self {

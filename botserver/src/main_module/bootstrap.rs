@@ -1210,6 +1210,14 @@ fn create_bot_from_drive(
     use diesel::sql_query;
     use uuid::Uuid;
 
+    // CRITICAL: Respect LOAD_ONLY - never create bots not in the whitelist
+    if !botcore::bot_database::is_bot_allowed_by_load_only(bot_name) {
+        return Err(format!(
+            "Bot '{}' not allowed by LOAD_ONLY filter - refusing to create in database",
+            bot_name
+        ));
+    }
+
     let mut conn = pool.get().map_err(|e| e.to_string())?;
 
     sql_query(
