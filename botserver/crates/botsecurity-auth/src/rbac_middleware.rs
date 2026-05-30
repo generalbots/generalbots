@@ -14,7 +14,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, warn};
 use uuid::Uuid;
 
-use super::auth::{AuthenticatedUser, Permission, Role};
+use super::auth::{AuthenticatedUser, Permission, PublicPathAllowed, Role};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RbacConfig {
@@ -658,6 +658,12 @@ pub async fn rbac_middleware_fn(
     let path = request.uri().path().to_string();
     let method = request.method().to_string();
 
+    // If auth middleware already marked this path as public, skip RBAC check
+    if request.extensions().get::<PublicPathAllowed>().is_some() {
+        debug!("RBAC: path allowed as public/anonymous by auth middleware: {}", path);
+        return next.run(request).await;
+    }
+
     let user = request
         .extensions()
         .get::<AuthenticatedUser>()
@@ -999,6 +1005,9 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // WebSocket - anonymous for chat support
         RoutePermission::new("/ws", "GET", "").with_anonymous(true),
         RoutePermission::new("/ws/**", "GET", "").with_anonymous(true),
+
+        // Bot access check - anonymous so is_public bots can be accessed without login
+        RoutePermission::new("/api/bots/:bot_name/access", "GET", "").with_anonymous(true),
 
         // Chat - ANONYMOUS for customer support
         RoutePermission::new("/api/chat/**", "GET", "").with_anonymous(true),
