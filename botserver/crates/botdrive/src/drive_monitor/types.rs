@@ -4,7 +4,6 @@ use crate::drive_monitor::monitor::CHECK_INTERVAL_SECS;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::KnowledgeBaseManager;
 use chrono::Utc;
-use diesel::RunQueryDsl;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;

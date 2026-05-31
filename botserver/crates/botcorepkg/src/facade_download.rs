@@ -22,13 +22,6 @@ fn safe_brew(args: &[&str]) -> Option<std::process::Output> {
         .and_then(|cmd| cmd.execute().ok())
 }
 
-fn safe_tar(args: &[&str]) -> Option<std::process::Output> {
-    SafeCommand::new("tar")
-        .and_then(|c| c.args(args))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
-}
-
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
     let url = url.to_string();
     let output_path = output_path.to_string();

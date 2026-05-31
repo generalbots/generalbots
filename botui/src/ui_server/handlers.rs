@@ -55,8 +55,8 @@ pub async fn index(
             }
             
             if let Ok(resp) = req.send().await {
-                if resp.status() == axum::http::StatusCode::FORBIDDEN || resp.status() == axum::http::StatusCode::UNAUTHORIZED {
-                    info!("index: Access denied for bot {}", bot);
+                if has_token && (resp.status() == axum::http::StatusCode::FORBIDDEN || resp.status() == axum::http::StatusCode::UNAUTHORIZED) {
+                    info!("index: Access denied for bot {} (invalid token)", bot);
                     return axum::response::Redirect::to("/auth/login.html").into_response();
                 }
             }

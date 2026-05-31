@@ -605,7 +605,7 @@ pub async fn create_app_state(
     #[cfg(not(feature = "tasks"))]
     task_scheduler: None,
     #[cfg(feature = "llm")]
-        llm_provider: Some(Arc::new(crate::llm::BotlibLLMProviderWrapper(llm_provider.clone())) as Arc<dyn botlib::traits::LLMProvider>),
+        llm_provider: Some(Arc::new(crate::llm::BotlibLLMProviderWrapper::new(llm_provider.clone(), String::new(), String::new())) as Arc<dyn botlib::traits::LLMProvider>),
         #[cfg(feature = "llm")]
         dynamic_llm_provider: Some(dynamic_llm_provider.clone()),
         #[cfg(feature = "directory")]

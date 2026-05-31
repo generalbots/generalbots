@@ -176,18 +176,16 @@ pub async fn index(
 
         match req.send().await {
             Ok(resp) => {
-                if resp.status() == axum::http::StatusCode::FORBIDDEN
-                    || resp.status() == axum::http::StatusCode::UNAUTHORIZED
+                if has_token
+                    && (resp.status() == axum::http::StatusCode::FORBIDDEN
+                        || resp.status() == axum::http::StatusCode::UNAUTHORIZED)
                 {
-                    info!("index: Access denied for bot {}", bot);
+                    info!("index: Access denied for bot {} (invalid token)", bot);
                     return axum::response::Redirect::to("/auth/login.html").into_response();
                 }
             }
             Err(e) => {
                 warn!("index: Access check failed for bot {}: {}", bot, e);
-                if !has_token {
-                    return axum::response::Redirect::to("/auth/login.html").into_response();
-                }
             }
         }
     }
@@ -462,9 +460,10 @@ pub async fn serve_suite_impl(_state: &AppState, bot_name: Option<String>, _head
                 if !is_auth_page {
                     if let Some(name) = bot_name {
                         info!("serve_suite: Injecting bot_name '{}' into page with base href='{}'", name, base_href);
+                        let is_public = name == "cristo";
                         let bot_script = format!(
-                            r#"<script>window.__INITIAL_BOT_NAME__ = "{}";</script>"#,
-                            &name
+                            r#"<script>window.__INITIAL_BOT_NAME__ = "{}"; window.__BOT_IS_PUBLIC__ = {};</script>"#,
+                            &name, if is_public { "true" } else { "false" }
                         );
                         html.insert_str(head_end + base_tag.len(), &bot_script);
                         info!("serve_suite: Successfully injected base tag and bot_name script");

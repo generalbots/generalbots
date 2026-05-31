@@ -253,7 +253,7 @@ pub fn execute_sql_query(conn: &mut diesel::PgConnection, sql: &str) -> Result<V
         row_data: String,
     }
 
-    let safe_sql = sql.trim();
+    let safe_sql = sql.trim().trim_end_matches(';');
     let upper = safe_sql.to_uppercase();
     if !upper.starts_with("SELECT") && !upper.starts_with("WITH") {
         return Err("Only SELECT queries are allowed".to_string());
@@ -335,7 +335,7 @@ pub fn format_results_as_html_table(results: &[serde_json::Value]) -> String {
 }
 
 pub fn format_chart_html(chart_config: &serde_json::Value) -> Result<String, String> {
-    let chart_id = format!("chart-{}", Uuid::new_v4().to_string().split('-').next().unwrap_or("main"));
+    let chart_id = format!("chart_{}", Uuid::new_v4().to_string().split('-').next().unwrap_or("main"));
     let config_json = serde_json::to_string_pretty(chart_config)
         .map_err(|e| format!("Failed to serialize chart config: {}", e))?;
 
@@ -564,11 +564,10 @@ pub async fn generate_chart_response(
 
     let content = format!(
         "<div class=\"chart-mode-response\">\
-         <p><strong>Query:</strong> <code style=\"background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:13px;\">{}</code></p>\
          {}\
          {}\
          </div>",
-        escape_html(&sql), chart_html, table_html
+        chart_html, table_html
     );
 
     Ok(BotResponse {
@@ -597,7 +596,7 @@ async fn call_llm_for_text(
 
     let cfg = ConfigManager::new(state.conn.clone());
     let llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
-    let _llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
+    let llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
     let llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
 
     let provider: Arc<dyn botlib::traits::LLMProvider> = if !llm_url.is_empty() {
@@ -606,7 +605,7 @@ async fn call_llm_for_text(
             if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
             None, None,
         );
-        Arc::new(crate::llm::BotlibLLMProviderWrapper(inner)) as Arc<dyn botlib::traits::LLMProvider>
+        Arc::new(crate::llm::BotlibLLMProviderWrapper::new(inner, llm_model, llm_key)) as Arc<dyn botlib::traits::LLMProvider>
     } else if let Some(ref global) = state.llm_provider {
         global.clone()
     } else {

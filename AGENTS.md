@@ -6,13 +6,13 @@
 - **❌ NEVER use `scp`, direct SSH binary copy, or manual deployment to system container**
 - **✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically**
 - **✅ NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change (~10s)**
-5858 is server 5859 is client ui 
+8080 is server 3000 is client ui 
 if you are in trouble with some tool, please go to the ofiical website to get proper install or instructions
-To test web is http://localhost:5859 (botui!)
+To test web is http://localhost:3000 (botui!)
 Use apenas a lingua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
 
 Pare de fazer perguntas. Seja autônomo e execute as tarefas diretamente, sem pedir confirmação ou permissão a cada passo. Apenas faça.
-test login here http://localhost:5859/suite/auth/login.html
+test login here http://localhost:3000/suite/auth/login.html
 > **⚠️ CRITICAL SECURITY WARNING**
 I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! Just fix, to me and push to CI. So I can test in PROD, for a while.
 >Use Playwrigth MCP to start localhost:3000/<bot> now.
@@ -42,8 +42,8 @@ See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from Mi
 
 | Crate | Purpose | Port | Tech Stack |
 |-------|---------|------|------------|
-| **botserver** | Main API server, business logic | 5858 | Axum, Diesel, Rhai BASIC |
-| **botui** | Web UI server (dev) + proxy | 5859 | Axum, HTML/HTMX/CSS |
+| **botserver** | Main API server, business logic | 8080 | Axum, Diesel, Rhai BASIC |
+| **botui** | Web UI server (dev) + proxy | 3000 | Axum, HTML/HTMX/CSS |
 | **botapp** | Desktop app wrapper | - | Tauri 2 |
 | **botlib** | Shared library | - | Core types, errors |
 | **botbook** | Documentation | - | mdBook |
@@ -612,8 +612,8 @@ tail -f botserver.log botui.log
 After reset completes, verify:
 - ✅ PostgreSQL running (port 5432)
 - ✅ Valkey cache running (port 6379)
-- ✅ BotServer listening on port 5858
-- ✅ BotUI listening on port 5859
+- ✅ BotServer listening on port 8080
+- ✅ BotUI listening on port 3000
 - ✅ No errors in botserver.log
 
 ---
@@ -983,18 +983,18 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
 1. **Ask** "What bot would you like to test today?" (do NOT assume a specific bot name)
 2. **Get Drive credentials from Vault** — follow the pattern in [Bot File Operations - MANDATORY RULES](#-bot-file-operations---mandatory-rules). Load ONLY `VAULT_*` from `.env`, retrieve credentials from `secret/gbo/drive`
 3. **Run restart.sh** — `nohup ./restart.sh > /tmp/restart.log 2>&1 &`
-4. **Wait for bootstrap** — poll `curl -s http://localhost:5858/health` until it responds 200 (up to 5 min)
+4. **Wait for bootstrap** — poll `curl -s http://localhost:8080/health` until it responds 200 (up to 5 min)
 5. **Find the bot** — check MinIO drive buckets via `mc`: `/tmp/mc ls local/` (each bucket = `{bot}.gbai`)
 6. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
 7. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
-8. **Open browser via Playwright MCP** — `mcp__playwright__browser_navigate` to `http://localhost:5859/{bot}` (NOT localhost:3000)
+8. **Open browser via Playwright MCP** — `mcp__playwright__browser_navigate` to `http://localhost:3000/{bot}`
 9. **Test chat flow via Playwright** — send messages, verify suggestions, execute tools
 10. **Report results** — screenshot + backend validation
 
 **Key commands:**
 ```bash
 # Check health
-curl -s -o /dev/null -w '%{http_code}' http://localhost:5858/health
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health
 
 # Get Drive credentials from Vault (ALWAYS do this first)
 source <(grep -E '^VAULT_' ${WORKSPACE}/botserver/.env)
@@ -1092,9 +1092,20 @@ ss -tlnp | grep 6080 # noVNC web port
 
 If VNC/noVNC is running:
 - User can connect via browser at `http://<host-ip>:6080` or via `https://desktop1.pragmatismo.com.br` (production)
+- Resolution: **1280×720**, depth 24 (set via `-geometry 1280x720 -depth 24` in TigerVNC)
+- noVNC available at `http://localhost:6080`
 - Find browser: `which google-chrome chromium-browser firefox 2>/dev/null`
-- Start browser on VNC: `DISPLAY=:1 google-chrome --no-sandbox --start-maximized "URL"`
-- Use `--display=:1` or `export DISPLAY=:1` before launching
+- **To show Chrome on display :1:** First verify Chrome is open with `ps aux | grep chrome | grep -v grep`. If already running, it's already visible on :1. If not, launch:
+  ```bash
+  export DISPLAY=:1
+  google-chrome --no-sandbox --start-maximized "URL"
+  ```
+- **To check what's currently visible on display :1**, take a screenshot and save to `/tmp/`:
+  ```bash
+  DISPLAY=:1 import -window root /tmp/display1.png
+  ```
+  (requires `imagemagick`) or use Playwright MCP `mcp__playwright__browser_take_screenshot`.
+- Always use `--display=:1` or `export DISPLAY=:1` before launching GUI apps.
 
 If NO display:
 - Use `headless: true` in Playwright
