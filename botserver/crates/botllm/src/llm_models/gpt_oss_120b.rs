@@ -104,10 +104,7 @@ impl ModelHandler for GptOss120bHandler {
         strip_think_tags(content)
     }
 
-    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
-        // For streaming, we only receive actual content (reasoning is skipped by the caller).
-        // Just pass through the chunk — no thinking tags in content field.
-        state.push_str(chunk);
+    fn process_content_streaming(&self, chunk: &str, _state: &mut String) -> String {
         chunk.to_string()
     }
 

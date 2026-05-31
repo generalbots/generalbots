@@ -27,6 +27,8 @@ pub fn clear_suggestions_keyword(
     engine: &mut Engine,
 ) {
     let cache = state.cache_client().clone();
+    let cache2 = state.cache_client().clone();
+    let user_session2 = user_session.clone();
 
     engine
         .register_custom_syntax(["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
@@ -61,6 +63,17 @@ pub fn clear_suggestions_keyword(
             Ok(Dynamic::UNIT)
         })
         .expect("valid syntax registration");
+
+    engine
+        .register_fn("CLEAR_SUGGESTIONS", move || {
+            if let Some(cache_client) = &cache2 {
+                let redis_key = botlib::key_utils::build_key("", &["suggestions", &user_session2.bot_id.to_string(), &user_session2.id.to_string()]);
+                if let Some(mut conn) = get_redis_connection(cache_client) {
+                    let _: Result<i64, redis::RedisError> =
+                        redis::cmd("DEL").arg(&redis_key).query(&mut conn);
+                }
+            }
+        });
 }
 
 pub fn add_suggestion_keyword(

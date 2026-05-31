@@ -13,7 +13,7 @@ const STANDARD_SWITCHER_IDS: &[&str] = &[
 
 fn get_switcher_prompt_map() -> &'static [(&'static str, &'static str)] {
     &[
-        ("tables", "REGRAS DE FORMATO: SEMPRE retorne suas respostas em formato de tabela HTML usando <table>, <thead>, <tbody>, <tr>, <th>, <td>. Cada dado deve ser uma célula. Use cabeçalhos claros na primeira linha. Se houver dados numéricos, alinhe à direita. Se houver texto, alinhe à esquerda. Use cores sutis em linhas alternadas (nth-child). NÃO use markdown tables, use HTML puro."),
+        ("tables", "FORMAT RULES: Return your response using ONLY HTML <table> elements with <thead>, <tbody>, <tr>, <th>, <td>. Each data point must be in its own cell. Use clear headers on the first row. Right-align numbers, left-align text. Use subtle alternating row colors (nth-child). Do NOT use markdown tables — only pure HTML. Do NOT use <ul>, <li>, bullet points, or lists of any kind. ONLY <table> is allowed."),
         ("infographic", "REGRAS DE FORMATO: Crie representações visuais HTML usando SVG, progress bars, stat cards, e elementos gráficos. Use elementos como: <svg> para gráficos, <div style=\"width:X%;background:color\"> para barras de progresso, ícones emoji, badges coloridos. Organize informações visualmente com grids, flexbox, e espaçamento. Inclua legendas e rótulos visuais claros."),
         ("cards", "REGRAS DE FORMATO: Retorne informações em formato de cards HTML. Cada card deve ter: <div class=\"card\" style=\"border:1px solid #ddd;border-radius:8px;padding:16px;margin:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1)\">. Dentro do card use: título em <h3> ou <strong>, subtítulo em <p> style=\"color:#666\", ícone emoji ou ícone SVG no topo, badges de status. Organize cards em grid usando display:grid ou flex-wrap."),
         ("list", "REGRAS DE FORMATO: Use apenas listas HTML: <ul> para bullets e <ol> para números numerados. Cada item em <li>. Use sublistas aninhadas quando apropriado. NÃO use parágrafos de texto, converta tudo em itens de lista. Adicione ícones emoji no início de cada <li> quando possível. Use classes CSS para estilização: .list-item, .sub-list."),
@@ -48,6 +48,8 @@ pub fn clear_switchers_keyword(
     engine: &mut Engine,
 ) {
     let cache = state.cache_client().clone();
+    let cache2 = state.cache_client().clone();
+    let user_session2 = user_session.clone();
 
     engine
         .register_custom_syntax(["CLEAR", "SWITCHERS"], true, move |_context, _inputs| {
@@ -81,6 +83,17 @@ pub fn clear_switchers_keyword(
             Ok(Dynamic::UNIT)
         })
         .expect("valid syntax registration");
+
+    engine
+        .register_fn("CLEAR_SWITCHERS", move || {
+            if let Some(cache_client) = &cache2 {
+                let redis_key = format!("switchers:{}:{}", user_session2.bot_id, user_session2.id);
+                if let Some(mut conn) = get_redis_connection(cache_client) {
+                    let _: Result<i64, redis::RedisError> =
+                        redis::cmd("DEL").arg(&redis_key).query(&mut conn);
+                }
+            }
+        });
 }
 
 pub fn add_switcher_keyword(
@@ -271,7 +284,7 @@ mod tests {
     fn test_resolve_standard_prompt() {
         let prompt = resolve_switcher_prompt("tables");
         assert!(prompt.is_some());
-        assert!(prompt.unwrap().contains("tabela HTML"));
+        assert!(prompt.unwrap().contains("HTML <table>"));
     }
 
     #[test]

@@ -103,7 +103,7 @@ fn load_system_prompt(bot_name: &str) -> String {
         return p;
     }
 
-    "You are a helpful assistant. Responda APENAS com fragmentos HTML válidos. Não use markdown. Não use blocos de código. Use apenas: <p>, <h3>, <ul>, <li>, <strong>, <em>. Cada tag que você abrir DEVE ser fechada corretamente. Comece sua resposta diretamente com uma tag HTML, nunca com texto puro.".to_string()
+    "You are a helpful assistant. Respond only with valid HTML fragments. Do not use markdown. Do not use code blocks. Use only: <p>, <h3>, <ul>, <li>, <strong>, <em>. Every tag you open MUST be properly closed. Start your response directly with an HTML tag, never with plain text.".to_string()
 }
 
 fn load_bot_styles_css(bot_name: &str) -> String {
@@ -657,7 +657,7 @@ async fn handle_ws(
                             let llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
                             if !llm_url.is_empty() {
                                 let provider = crate::llm::create_llm_provider_from_url(&llm_url, if llm_model.is_empty() { None } else { Some(llm_model.clone()) }, None, None);
-                                Some((Arc::new(crate::llm::BotlibLLMProviderWrapper(provider)) as Arc<dyn botlib::traits::LLMProvider>, llm_key, llm_model))
+                                Some((Arc::new(crate::llm::BotlibLLMProviderWrapper::new(provider, llm_model.clone(), llm_key.clone())) as Arc<dyn botlib::traits::LLMProvider>, llm_key, llm_model))
                             } else {
                                 None
                             }

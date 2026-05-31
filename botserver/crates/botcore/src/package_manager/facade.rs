@@ -25,23 +25,6 @@ fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
     cmd_res.ok().and_then(|cmd| cmd.execute().ok())
 }
 
-fn safe_tar(args: &[&str]) -> Option<std::process::Output> {
-    let cmd = if cfg!(target_os = "windows") {
-        "tar.exe"
-    } else {
-        "tar"
-    };
-    let output = SafeCommand::new(cmd)
-        .and_then(|c| c.args(args))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok());
-
-    if output.is_none() {
-        error!("safe_tar: Failed to execute command '{}' with args {:?}", cmd, args);
-    }
-    output
-}
-
 fn safe_apt_get(args: &[&str]) -> Option<std::process::Output> {
     SafeCommand::new("apt-get")
         .and_then(|c| c.args(args))
