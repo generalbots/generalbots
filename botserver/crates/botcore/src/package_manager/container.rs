@@ -34,6 +34,8 @@ pub struct ContainerSettings {
     pub exec_cmd_args: Vec<String>,
     pub internal_ports: Vec<u16>,
     pub external_port: Option<u16>,
+    pub cert_name: String,
+    pub mtls_port: Option<u16>,
 }
 
 impl ContainerSettings {
@@ -58,7 +60,19 @@ impl ContainerSettings {
             exec_cmd_args: Vec::new(),
             internal_ports: Vec::new(),
             external_port: None,
+            cert_name: container_name.to_string(),
+            mtls_port: None,
         }
+    }
+
+    pub fn with_cert_name(mut self, name: &str) -> Self {
+        self.cert_name = name.to_string();
+        self
+    }
+
+    pub fn with_mtls_port(mut self, port: u16) -> Self {
+        self.mtls_port = Some(port);
+        self
     }
 
     pub fn with_group(mut self, group: &str) -> Self {
@@ -177,6 +191,19 @@ pub trait ContainerOperations {
         url: &str,
         binary_name: &str,
     ) -> impl std::future::Future<Output = Result<()>> + Send;
+
+    /// Provision TLS certificates to a container via incus file push
+    fn provision_certs_to_container(
+        &self,
+        container: &str,
+    ) -> impl std::future::Future<Output = Result<()>> + Send;
+
+    /// Provision TLS certificates to a container via SSH to remote host
+    fn provision_certs_to_container_ssh(
+        &self,
+        container: &str,
+        ssh_host: &str,
+    ) -> impl std::future::Future<Output = Result<()>> + Send;
 }
 
 impl ContainerOperations for PackageManager {
@@ -204,13 +231,16 @@ impl ContainerOperations for PackageManager {
         // 4. Fix permissions
         self.fix_permissions(container_name).await?;
 
-        // 5. Install and start service
+        // 5. Provision TLS certificates
+        self.provision_certs_to_container(container_name).await?;
+
+        // 6. Install and start service
         self.install_systemd_service(container_name).await?;
 
-        // 6. Configure NAT rules on host (ONLY iptables, never socat)
+        // 7. Configure NAT rules on host (ONLY iptables, never socat)
         self.configure_iptables_nat(container_name).await?;
 
-        // 7. Reload DNS if dns container
+        // 8. Reload DNS if dns container
         if container_name == "dns" {
             self.reload_dns_zones().await?;
         }
@@ -615,6 +645,140 @@ impl ContainerOperations for PackageManager {
         std::fs::remove_file(&temp_path).ok();
         Ok(())
     }
+
+    async fn provision_certs_to_container(&self, container: &str) -> Result<()> {
+        let cert_base = self.base_path.join("conf/system/certificates");
+        let ca_cert = cert_base.join("ca/ca.crt");
+        if !ca_cert.exists() {
+            info!("No CA found at {:?}, skipping cert provisioning for {container}", ca_cert);
+            return Ok(());
+        }
+
+        let settings = match self.components.get(container).and_then(|c| c.container.as_ref()) {
+            Some(s) => s,
+            None => {
+                trace!("No container settings for {container}, skipping certs");
+                return Ok(());
+            }
+        };
+
+        let cert_dir = cert_base.join(&settings.cert_name);
+
+        for (src, dest) in [
+            (&ca_cert, format!("/opt/gbo/conf/system/certificates/ca/ca.crt")),
+            (&cert_dir.join("server.crt"), format!("/opt/gbo/conf/system/certificates/{}/server.crt", settings.cert_name)),
+            (&cert_dir.join("server.key"), format!("/opt/gbo/conf/system/certificates/{}/server.key", settings.cert_name)),
+        ] {
+            if !src.exists() {
+                trace!("Cert file {:?} not found, skipping", src);
+                continue;
+            }
+            SafeCommand::new("incus")
+                .and_then(|c| c.arg("exec"))
+                .and_then(|c| c.arg(container))
+                .and_then(|c| c.arg("--"))
+                .and_then(|c| c.arg("mkdir"))
+                .and_then(|c| c.arg("-p"))
+                .and_then(|c| c.arg(std::path::Path::new(&dest).parent().unwrap().to_str().unwrap()))
+                .and_then(|cmd| cmd.execute())?;
+
+            SafeCommand::new("incus")
+                .and_then(|c| c.arg("file"))
+                .and_then(|c| c.arg("push"))
+                .and_then(|c| c.arg(src.to_str().unwrap()))
+                .and_then(|c| c.arg(format!("{container}:{dest}").as_str()))
+                .and_then(|cmd| cmd.execute())?;
+        }
+
+        info!("Provisioned certificates for {container}");
+        Ok(())
+    }
+
+    async fn provision_certs_to_container_ssh(&self, container: &str, ssh_host: &str) -> Result<()> {
+        let cert_base = self.base_path.join("conf/system/certificates");
+        let ca_cert = cert_base.join("ca/ca.crt");
+        if !ca_cert.exists() {
+            info!("No CA found at {:?}, skipping cert provisioning for {container}", ca_cert);
+            return Ok(());
+        }
+
+        let settings = match self.components.get(container).and_then(|c| c.container.as_ref()) {
+            Some(s) => s,
+            None => {
+                trace!("No container settings for {container}, skipping certs");
+                return Ok(());
+            }
+        };
+
+        let cert_dir = cert_base.join(&settings.cert_name);
+
+        // Copy certs to temp, then SCP to host, then incus push
+        for (src, dest) in [
+            (&ca_cert, format!("/opt/gbo/conf/system/certificates/ca/ca.crt")),
+            (&cert_dir.join("server.crt"), format!("/opt/gbo/conf/system/certificates/{}/server.crt", settings.cert_name)),
+            (&cert_dir.join("server.key"), format!("/opt/gbo/conf/system/certificates/{}/server.key", settings.cert_name)),
+        ] {
+            if !src.exists() {
+                trace!("Cert file {:?} not found, skipping", src);
+                continue;
+            }
+
+            let remote_tmp = format!("/tmp/{}-{}", container, src.file_name().unwrap().to_str().unwrap());
+            let scp_src = src.to_str().unwrap();
+            let scp_dest = format!("{}:{}", ssh_host, remote_tmp);
+
+            // SCP to host
+            SafeCommand::new("scp")
+                .and_then(|c| c.arg(scp_src))
+                .and_then(|c| c.arg(scp_dest.as_str()))
+                .and_then(|c| c.arg("-o"))
+                .and_then(|c| c.arg("StrictHostKeyChecking=no"))
+                .and_then(|c| c.arg("-o"))
+                .and_then(|c| c.arg("ConnectTimeout=10"))
+                .and_then(|cmd| cmd.execute())?;
+
+            // incus exec mkdir on host
+            SafeCommand::new("ssh")
+                .and_then(|c| c.arg(ssh_host))
+                .and_then(|c| c.arg("-o"))
+                .and_then(|c| c.arg("StrictHostKeyChecking=no"))
+                .and_then(|c| c.arg("sudo"))
+                .and_then(|c| c.arg("incus"))
+                .and_then(|c| c.arg("exec"))
+                .and_then(|c| c.arg(container))
+                .and_then(|c| c.arg("--"))
+                .and_then(|c| c.arg("mkdir"))
+                .and_then(|c| c.arg("-p"))
+                .and_then(|c| c.arg(std::path::Path::new(&dest).parent().unwrap().to_str().unwrap()))
+                .and_then(|cmd| cmd.execute())?;
+
+            // incus file push on host
+            let target = format!("{}:{}", container, dest);
+            SafeCommand::new("ssh")
+                .and_then(|c| c.arg(ssh_host))
+                .and_then(|c| c.arg("-o"))
+                .and_then(|c| c.arg("StrictHostKeyChecking=no"))
+                .and_then(|c| c.arg("sudo"))
+                .and_then(|c| c.arg("incus"))
+                .and_then(|c| c.arg("file"))
+                .and_then(|c| c.arg("push"))
+                .and_then(|c| c.arg(remote_tmp.as_str()))
+                .and_then(|c| c.arg(target.as_str()))
+                .and_then(|cmd| cmd.execute())?;
+
+            // Cleanup temp on host
+            let _ = SafeCommand::new("ssh")
+                .and_then(|c| c.arg(ssh_host))
+                .and_then(|c| c.arg("sudo"))
+                .and_then(|c| c.arg("rm"))
+                .and_then(|c| c.arg("-f"))
+                .and_then(|c| c.arg(remote_tmp.as_str()))
+                .and_then(|cmd| cmd.execute());
+        }
+
+        info!("Provisioned certificates for {container} via SSH");
+        Ok(())
+    }
 }
 
 /// Bootstrap an entire tenant
@@ -782,5 +946,19 @@ WantedBy=multi-user.target
 // CI trigger
 // CI trigger Fri Apr 17 17:34:16 -03 2026
 
-use log::info;
+use log::{info, trace};
 use std::path::Path;
+
+/// Service-to-container mapping for certificate provisioning
+pub const SERVICE_MAP: &[(&str, &str, &str, u16, u16)] = &[
+    ("cache",     "cache",     "10.0.0.5",  6379, 6380),
+    ("drive",     "drive",     "10.0.0.15", 9100, 9001),
+    ("directory", "directory", "10.0.0.4",  8080, 8443),
+    ("vectordb",  "vectordb",  "10.0.0.17", 6333, 6334),
+    ("alm",       "alm",       "10.0.0.13", 4747, 4748),
+    ("meet",      "meet",      "10.0.0.11", 7880, 7881),
+    ("vault",     "vault",     "10.0.0.6",  8200, 8201),
+    ("tables",    "tables",    "10.0.0.18", 5432, 5433),
+    ("api",       "bot",       "10.0.0.21", 5858, 8443),
+    ("llm",       "models",    "10.0.0.16", 8081, 8082),
+];

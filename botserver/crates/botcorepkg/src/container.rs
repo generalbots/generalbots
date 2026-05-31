@@ -28,6 +28,8 @@ pub struct ContainerSettings {
     pub exec_cmd_args: Vec<String>,
     pub internal_ports: Vec<u16>,
     pub external_port: Option<u16>,
+    pub cert_name: String,
+    pub mtls_port: Option<u16>,
 }
 
 impl ContainerSettings {
@@ -52,7 +54,19 @@ impl ContainerSettings {
             exec_cmd_args: Vec::new(),
             internal_ports: Vec::new(),
             external_port: None,
+            cert_name: container_name.to_string(),
+            mtls_port: None,
         }
+    }
+
+    pub fn with_cert_name(mut self, name: &str) -> Self {
+        self.cert_name = name.to_string();
+        self
+    }
+
+    pub fn with_mtls_port(mut self, port: u16) -> Self {
+        self.mtls_port = Some(port);
+        self
     }
 
     pub fn with_group(mut self, group: &str) -> Self {

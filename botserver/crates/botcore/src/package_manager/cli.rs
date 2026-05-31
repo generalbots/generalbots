@@ -1,3 +1,4 @@
+use crate::package_manager::certs_utils;
 use botcoresecrets::{SecretPaths, SecretsManager};
 use crate::package_manager::{get_all_components, InstallMode, PackageManager};
 // ProtectionInstaller/VerifyResult are in botsecurity which depends on botcore
@@ -235,6 +236,84 @@ pub async fn run() -> Result<()> {
                 eprintln!("This will rotate ALL secrets. Use with caution!");
             }
         }
+        "certs" => {
+            if args.len() < 3 {
+                print_certs_usage();
+                return Ok(());
+            }
+            let subcommand = &args[2];
+            match subcommand.as_str() {
+                "generate" => {
+                    let mode = if args.contains(&"--container".to_string()) {
+                        InstallMode::Container
+                    } else {
+                        InstallMode::Local
+                    };
+                    let tenant = args.iter().position(|a| a == "--tenant")
+                        .and_then(|i| args.get(i + 1).cloned());
+                    let pm = PackageManager::new(mode, tenant)?;
+                    println!("Generating all service certificates...");
+                    certs_utils::generate_all_certs(&pm.base_path)?;
+                    println!("* All certificates generated successfully");
+                }
+                "push" => {
+                    let ssh_host = if let Some(idx) = args.iter().position(|a| a == "--ssh-host") {
+                        args.get(idx + 1).map(|s| s.as_str())
+                    } else {
+                        Some("10.0.0.1")
+                    };
+                    if let Some(host) = ssh_host {
+                        let mode = if args.contains(&"--container".to_string()) {
+                            InstallMode::Container
+                        } else {
+                            InstallMode::Local
+                        };
+                        let tenant = args.iter().position(|a| a == "--tenant")
+                            .and_then(|i| args.get(i + 1).cloned());
+                        let pm = PackageManager::new(mode, tenant)?;
+                        println!("Pushing certificates to containers via SSH to {}...", host);
+                        certs_utils::push_all_certs_ssh(&pm.base_path, host)?;
+                        println!("* All certificates pushed successfully");
+                    } else {
+                        eprintln!("Usage: botserver certs push --ssh-host <host-ip>");
+                    }
+                }
+                "provision" => {
+                    let ssh_host = if let Some(idx) = args.iter().position(|a| a == "--ssh-host") {
+                        args.get(idx + 1).map(|s| s.as_str())
+                    } else {
+                        Some("10.0.0.1")
+                    };
+                    if let Some(host) = ssh_host {
+                        let mode = if args.contains(&"--container".to_string()) {
+                            InstallMode::Container
+                        } else {
+                            InstallMode::Local
+                        };
+                        let tenant = args.iter().position(|a| a == "--tenant")
+                            .and_then(|i| args.get(i + 1).cloned());
+                        let pm = PackageManager::new(mode, tenant)?;
+                        println!("=== mTLS Certificate Provisioning ===");
+                        println!("Phase 1: Generating certificates...");
+                        certs_utils::generate_all_certs(&pm.base_path)?;
+                        println!("Phase 2: Pushing to containers via SSH to {}...", host);
+                        certs_utils::push_all_certs_ssh(&pm.base_path, host)?;
+                        println!("* mTLS provisioning complete!");
+                        println!();
+                        println!("Next steps:");
+                        println!("  1. Restart each service to enable mTLS on dual ports");
+                        println!("  2. Update connection strings to use mTLS ports");
+                        println!("  3. Verify services still work on original ports");
+                    } else {
+                        eprintln!("Usage: botserver certs provision --ssh-host <host-ip>");
+                    }
+                }
+                _ => {
+                    eprintln!("Unknown certs command: {}", subcommand);
+                    print_certs_usage();
+                }
+            }
+        }
         "vault" => {
             if args.len() < 3 {
                 print_vault_usage();
@@ -305,6 +384,7 @@ fn print_usage() {
     println!("  stop                 Stop all components");
     println!("  restart              Restart all components");
     println!("  setup-env            Generate .env from running vault container");
+    println!("  certs <subcommand>   Manage mTLS certificates");
     println!("  vault <subcommand>   Manage Vault secrets");
     println!("  rotate-secret <comp> Rotate a component's credentials");
     println!("                      (tables, drive, cache, email, directory, encryption, jwt)");
@@ -318,6 +398,13 @@ fn print_usage() {
     println!("  --container-only     Create container only, don't complete installation");
     println!("  --tenant <name>      Specify tenant name");
     println!();
+    println!("Certs subcommands:");
+    println!("  certs generate       Generate TLS certificates for all services");
+    println!("  certs push           Push certificates to containers via SSH");
+    println!("  certs provision      Generate + push certificates (one-step)");
+    println!("  Options:");
+    println!("    --ssh-host <ip>    SSH host for incus operations (default: 10.0.0.1)");
+    println!();
     println!("Security Protection (requires root):");
     println!("  sudo botserver install protection   Install security tools + sudoers");
     println!("  sudo botserver remove protection    Remove sudoers configuration");
@@ -329,6 +416,22 @@ fn print_usage() {
     println!("  vault get <path>     Get secrets from Vault");
     println!("  vault list           List all secret paths");
     println!("  vault health         Check Vault health");
+}
+
+fn print_certs_usage() {
+    println!("Certificate Management");
+    println!();
+    println!("Usage: botserver certs <subcommand> [options]");
+    println!();
+    println!("Subcommands:");
+    println!("  generate             Generate CA and all service certificates");
+    println!("  push                 Push certificates to containers via SSH");
+    println!("  provision            Generate + push (full provisioning)");
+    println!();
+    println!("Options:");
+    println!("  --ssh-host <ip>      SSH host for incus push (default: 10.0.0.1)");
+    println!("  --container          Use container paths");
+    println!("  --tenant <name>      Tenant name");
 }
 
 fn install_protection() -> Result<()> {
