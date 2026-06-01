@@ -13,6 +13,62 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
+/// Query a single text field from a table using the same filter/WHERE clause as UPDATE.
+/// Returns None if no matching row is found.
+fn query_table_field(
+    conn: &mut diesel::PgConnection,
+    table: &str,
+    field: &str,
+    filter: &str,
+) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
+    let where_clause = parse_filter_clause(filter)?;
+    let query = format!(
+        "SELECT {} FROM {} WHERE {} LIMIT 1",
+        sanitize_identifier(field),
+        sanitize_identifier(table),
+        where_clause
+    );
+
+    #[derive(QueryableByName)]
+    struct FieldResult {
+        #[diesel(sql_type = Text)]
+        value: String,
+    }
+
+    match sql_query(&query).get_result::<FieldResult>(conn) {
+        Ok(row) => Ok(Some(row.value)),
+        Err(diesel::result::Error::NotFound) => Ok(None),
+        Err(e) => Err(e.into()),
+    }
+}
+
+/// Query a single text field from a table by id.
+fn query_table_field_by_id(
+    conn: &mut diesel::PgConnection,
+    table: &str,
+    field: &str,
+    id: &str,
+) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
+    let query = format!(
+        "SELECT {} FROM {} WHERE id = '{}' LIMIT 1",
+        sanitize_identifier(field),
+        sanitize_identifier(table),
+        sanitize_sql_value(id)
+    );
+
+    #[derive(QueryableByName)]
+    struct FieldResult {
+        #[diesel(sql_type = Text)]
+        value: String,
+    }
+
+    match sql_query(&query).get_result::<FieldResult>(conn) {
+        Ok(row) => Ok(Some(row.value)),
+        Err(diesel::result::Error::NotFound) => Ok(None),
+        Err(e) => Err(e.into()),
+    }
+}
+
 pub fn register_data_operations(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     register_save_keyword(state.clone(), user.clone(), engine);
     register_insert_keyword(state.clone(), user.clone(), engine);
@@ -191,6 +247,8 @@ let mut conn = match bot_pool {
                 let result = execute_insert(&mut conn, &table, &data)
                     .map_err(|e| format!("INSERT error: {}", e))?;
 
+                fire_table_triggers(&mut conn, &state_clone, &user_clone, &table, 2, None, None, None);
+
                 Ok(json_value_to_dynamic(&result))
             },
         )
@@ -199,6 +257,7 @@ let mut conn = match bot_pool {
 
 pub fn register_update_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
+    let user_clone = user.clone();
     let user_roles = UserRoles::from_user_session(&user);
 
     engine
@@ -225,10 +284,31 @@ pub fn register_update_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                     return Err(e.into());
                 }
 
-                let result = execute_update(&mut conn, &table, &filter, &data)
+                // Capture old status BEFORE the UPDATE (for trigger context)
+                let old_status = query_table_field(&mut conn, &table, "status", &filter)
+                    .map_err(|e| format!("Failed to query old status: {}", e))?;
+
+                let (row_count, ids) = execute_update(&mut conn, &table, &filter, &data)
                     .map_err(|e| format!("UPDATE error: {}", e))?;
 
-                Ok(Dynamic::from(result))
+                // Capture new status AFTER the UPDATE (from first updated record)
+                let new_status = ids
+                    .first()
+                    .and_then(|id| query_table_field_by_id(&mut conn, &table, "status", id).ok())
+                    .flatten();
+
+                fire_table_triggers(
+                    &mut conn,
+                    &state_clone,
+                    &user_clone,
+                    &table,
+                    1,
+                    ids.first().cloned(),
+                    old_status,
+                    new_status,
+                );
+
+                Ok(Dynamic::from(row_count))
             },
         )
         .expect("valid syntax registration");
@@ -588,6 +668,89 @@ fn execute_save(
     }))
 }
 
+fn fire_table_triggers(
+    conn: &mut diesel::PgConnection,
+    state: &Arc<dyn BasicRuntime>,
+    user: &botbasic_types::UserSession,
+    table: &str,
+    trigger_kind_val: i32,
+    record_id: Option<String>,
+    old_status: Option<String>,
+    new_status: Option<String>,
+) {
+    let query = "SELECT param FROM system_automations WHERE bot_id = $1::uuid AND kind = $2 AND target = $3 AND is_active = true";
+    let triggers: Vec<String> = match diesel::sql_query(query)
+        .bind::<diesel::sql_types::Text, _>(&user.bot_id.to_string())
+        .bind::<diesel::sql_types::Integer, _>(trigger_kind_val)
+        .bind::<diesel::sql_types::Text, _>(table)
+        .load::<TriggerRow>(conn)
+    {
+        Ok(rows) => rows.into_iter().map(|r| r.param).collect(),
+        Err(e) => {
+            log::warn!("Failed to query table triggers: {}", e);
+            return;
+        }
+    };
+
+    if triggers.is_empty() {
+        return;
+    }
+
+    let work_root = botbasic_core::utils::get_work_path();
+    for script_name in triggers {
+        // Build trigger context from record data
+        let mut ctx = serde_json::Map::new();
+        if let Some(ref rid) = record_id {
+            ctx.insert("trigger_record_id".to_string(), serde_json::Value::String(rid.clone()));
+        }
+        if let Some(ref os) = old_status {
+            ctx.insert("trigger_old_status".to_string(), serde_json::Value::String(os.clone()));
+        }
+        if let Some(ref ns) = new_status {
+            ctx.insert("trigger_new_status".to_string(), serde_json::Value::String(ns.clone()));
+        }
+
+        let mut trigger_user = user.clone();
+        if !ctx.is_empty() {
+            trigger_user.context_data = serde_json::Value::Object(ctx);
+        }
+
+        // Try .ast first (pre-compiled Rhai), fall back to .bas (raw BASIC source)
+        let ast_path = std::path::Path::new(&work_root).join(format!(
+            "{}.gbai/{}.gbdialog/{}.ast",
+            user.bot_id.to_string(),
+            user.bot_id.to_string(),
+            script_name
+        ));
+        let bas_path = std::path::Path::new(&work_root).join(format!(
+            "{}.gbai/{}.gbdialog/{}.bas",
+            user.bot_id.to_string(),
+            user.bot_id.to_string(),
+            script_name
+        ));
+
+        let content = std::fs::read_to_string(&ast_path)
+            .or_else(|_| std::fs::read_to_string(&bas_path));
+
+        match content {
+            Ok(script_content) if !script_content.is_empty() => {
+                if let Err(e) = state.execute_script(trigger_user, &script_content) {
+                    log::warn!("Table trigger '{}' execution failed: {}", script_name, e);
+                } else {
+                    log::info!("Table trigger '{}' executed successfully", script_name);
+                }
+            }
+            _ => log::warn!("Table trigger script not found: {:?} or {:?}", ast_path, bas_path),
+        }
+    }
+}
+
+#[derive(diesel::QueryableByName)]
+struct TriggerRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    param: String,
+}
+
 fn execute_insert(
     conn: &mut diesel::PgConnection,
     table: &str,
@@ -649,7 +812,7 @@ fn execute_update(
     table: &str,
     filter: &str,
     data: &Dynamic,
-) -> Result<i64, Box<dyn Error + Send + Sync>> {
+) -> Result<(i64, Vec<String>), Box<dyn Error + Send + Sync>> {
     let data_map = dynamic_to_map(data);
     let where_clause = parse_filter_clause(filter)?;
 
@@ -665,7 +828,7 @@ fn execute_update(
     }
 
     let query = format!(
-        "UPDATE {} SET {} WHERE {}",
+        "UPDATE {} SET {} WHERE {} RETURNING id",
         sanitize_identifier(table),
         update_sets.join(", "),
         where_clause
@@ -673,12 +836,21 @@ fn execute_update(
 
     trace!("Executing UPDATE query: {}", query);
 
-    let result = sql_query(&query).execute(conn).map_err(|e| {
+    #[derive(QueryableByName)]
+    struct UpdateResult {
+        #[diesel(sql_type = Text)]
+        id: String,
+    }
+
+    let rows: Vec<UpdateResult> = sql_query(&query).load(conn).map_err(|e| {
         log::error!("UPDATE SQL error: {}", e);
         e.to_string()
     })?;
 
-    Ok(result as i64)
+    let ids: Vec<String> = rows.into_iter().map(|r| r.id).collect();
+    let count = ids.len() as i64;
+
+    Ok((count, ids))
 }
 
 fn execute_delete(

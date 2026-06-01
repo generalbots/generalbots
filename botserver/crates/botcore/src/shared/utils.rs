@@ -26,13 +26,32 @@ pub async fn init_secrets_manager() -> anyhow::Result<()> { Ok(()) }
 
 
 pub fn get_database_url_sync() -> anyhow::Result<String> {
+    // Try Vault first via SecretsManager
+    if let Ok(manager) = botcoresecrets::SecretsManager::get_clone() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = match rt {
+                Ok(rt) => rt.block_on(manager.get_database_url()),
+                Err(e) => Err(anyhow::anyhow!("Failed to create runtime: {}", e)),
+            };
+            let _ = tx.send(result);
+        });
+        if let Ok(url) = rx.recv().map_err(|e| anyhow::anyhow!("Channel error: {}", e))? {
+            std::env::set_var("DATABASE_URL", &url);
+            return Ok(url);
+        }
+    }
+
+    // Fallback to environment variable
     std::env::var("DATABASE_URL")
         .or_else(|_| std::env::var("PG_URL"))
         .map_err(|_| anyhow::anyhow!("DATABASE_URL not set"))
 }
 
 
-pub fn get_secrets_manager() -> Option<()> { None }
 
 pub fn get_work_path() -> String {
     get_work_path_default()

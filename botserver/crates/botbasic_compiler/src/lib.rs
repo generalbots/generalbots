@@ -20,6 +20,7 @@ pub struct CompilerCallbacks {
     pub execute_use_website: Option<Box<dyn Fn(&mut PgConnection, &str, Uuid, &str) -> Result<(), String> + Send + Sync>>,
     pub process_table_definitions: Option<Box<dyn Fn(Arc<dyn BasicRuntime>, Uuid, &str) -> Result<(), String> + Send + Sync>>,
     pub create_runtime: Option<Box<dyn Fn(Arc<AppState>) -> Arc<dyn BasicRuntime> + Send + Sync>>,
+    pub execute_on_update: Option<Box<dyn Fn(&mut PgConnection, &str, &str, Uuid, i32) -> Result<(), String> + Send + Sync>>,
 }
 
 impl fmt::Debug for CompilerCallbacks {
@@ -30,6 +31,7 @@ impl fmt::Debug for CompilerCallbacks {
             .field("execute_use_website", &self.execute_use_website.is_some())
             .field("process_table_definitions", &self.process_table_definitions.is_some())
             .field("create_runtime", &self.create_runtime.is_some())
+            .field("execute_on_update", &self.execute_on_update.is_some())
             .finish()
     }
 }
@@ -42,6 +44,7 @@ impl CompilerCallbacks {
             execute_use_website: None,
             process_table_definitions: None,
             create_runtime: None,
+            execute_on_update: None,
         }
     }
 }
@@ -100,7 +103,7 @@ impl BasicCompiler {
                 _ => true,
             }
         } else {
-            true
+            false
         };
 
         if should_process_tables {
@@ -291,6 +294,24 @@ impl BasicCompiler {
                     }
                 } else {
                     log::warn!("Malformed WEBHOOK line ignored: {}", normalized);
+                }
+                continue;
+            }
+
+            if let Some(caps) = Regex::new(r#"(?i)^ON\s+UPDATE\s+OF\s+"([^"]+)"\s+DO\s+CALL\s+"([^"]+)"\s*$"#).ok().and_then(|re| re.captures(&normalized)) {
+                let table_name = caps.get(1).unwrap().as_str().to_string();
+                let script_to_call = caps.get(2).unwrap().as_str().to_string();
+                if let Some(ref cb) = self.callbacks.execute_on_update {
+                    let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+                    if let Err(e) = (cb)(&mut conn, &table_name, &script_to_call, bot_id, 2) {
+                        log::error!("Failed to register ON UPDATE OF (INSERT) trigger: {e}");
+                    }
+                    if let Err(e) = (cb)(&mut conn, &table_name, &script_to_call, bot_id, 1) {
+                        log::error!("Failed to register ON UPDATE OF (UPDATE) trigger: {e}");
+                    }
+                    if let Err(e) = (cb)(&mut conn, &table_name, &script_to_call, bot_id, 3) {
+                        log::error!("Failed to register ON UPDATE OF (DELETE) trigger: {e}");
+                    }
                 }
                 continue;
             }
