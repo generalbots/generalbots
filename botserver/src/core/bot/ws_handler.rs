@@ -103,7 +103,8 @@ fn load_system_prompt(bot_name: &str) -> String {
         return p;
     }
 
-    "You are a helpful assistant. Respond only with valid HTML fragments. Do not use markdown. Do not use code blocks. Use only: <p>, <h3>, <ul>, <li>, <strong>, <em>. Every tag you open MUST be properly closed. Start your response directly with an HTML tag, never with plain text.".to_string()
+    let now = chrono::Utc::now().format("%B %d, %Y").to_string();
+    format!("Today is {now}.\n\nYou are a helpful assistant. Respond only with valid HTML fragments. Do not use markdown. Do not use code blocks. Use only: <p>, <h3>, <ul>, <li>, <strong>, <em>. Every tag you open MUST be properly closed. Start your response directly with an HTML tag, never with plain text.")
 }
 
 fn load_bot_styles_css(bot_name: &str) -> String {
@@ -457,6 +458,8 @@ async fn handle_ws(
 
                         info!("ws_handler: delivered={}, user_text='{}'", delivered, user_text);
                         if delivered {
+                            // HEAR consumed the message. TALKs from the unblocked script are
+                            // forwarded to WebSocket via rx.recv() in the main select! (line 882).
                             continue;
                         }
 
@@ -735,10 +738,23 @@ async fn handle_ws(
                                     full_response.push_str(&style_tag);
                                 }
 
+                                // Load session tools for LLM function calling
+                                let session_tools = {
+                                    let sid: Uuid = match session_id_s.parse() {
+                                        Ok(id) => id,
+                                        Err(_) => Uuid::new_v4(),
+                                    };
+                                    crate::core::bot::tool_context::get_session_tools(
+                                        &state_clone.conn, &bot_name_clone, &sid,
+                                    ).ok().unwrap_or_default()
+                                };
+                                info!("Loaded {} tools for LLM session {}", session_tools.len(), session_id_s);
+
                                 // Spawn LLM streaming task
                                 let _stream_handle = tokio::spawn(async move {
                                     info!("LLM spawn task starting: model={}, key_len={}", llm_model_clone, llm_key_clone.len());
-                                    if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, None).await {
+                                    let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
+                                    if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, tools_arg.as_ref()).await {
                                         error!("LLM stream error: {}", e);
                                     } else {
                                         info!("LLM spawn task completed successfully");

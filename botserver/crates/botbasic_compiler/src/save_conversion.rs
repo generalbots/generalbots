@@ -47,6 +47,14 @@ impl BasicCompiler {
         }
 
         let content = &trimmed[4..].trim();
+
+        // Handle SAVE ... TO ... WHERE ... pattern
+        // Patterns: SAVE variable TO table WHERE id = expr
+        //           SAVE (key = val, ...) TO table WHERE id = expr
+        if upper.contains(" WHERE ") && upper.contains(" TO ") {
+            return self.convert_save_with_where(content, save_counter);
+        }
+
         let parts = self.parse_save_statement(content)?;
 
         if parts.len() <= 2 {
@@ -132,6 +140,74 @@ impl BasicCompiler {
         }
 
         Ok(parts)
+    }
+
+    /// Convert SAVE ... TO ... WHERE ... patterns to Rhai SAVE syntax
+    ///
+    /// Handles:
+    ///   SAVE (key = val, ...) TO table WHERE id = expr
+    ///     → let __save_data_N__ = #{key: val, ...}; SAVE "table", expr, __save_data_N__
+    ///
+    ///   SAVE variable TO table WHERE id = expr
+    ///     → SAVE "table", expr, variable
+    fn convert_save_with_where(
+        &self,
+        content: &str,
+        save_counter: &mut usize,
+    ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
+        let upper = content.to_uppercase();
+
+        let to_pos = upper.find(" TO ").ok_or_else(|| "No TO found")?;
+        let where_pos = upper.find(" WHERE ").ok_or_else(|| "No WHERE found")?;
+
+        let data_part = content[..to_pos].trim();
+        let table_part = content[to_pos + 4..where_pos].trim();
+        let condition_part = content[where_pos + 7..].trim();
+
+        let table_name = table_part.trim_matches('"');
+
+        // Extract id expression from condition (supports "id = expr" or "id=expr")
+        let cond_upper = condition_part.to_uppercase();
+        let id_expr = if cond_upper.starts_with("ID = ") || cond_upper.starts_with("ID=") {
+            let eq_pos = condition_part.find('=').unwrap_or(0);
+            condition_part[eq_pos + 1..].trim().to_string()
+        } else {
+            condition_part.to_string()
+        };
+
+        if data_part.starts_with('(') && data_part.ends_with(')') {
+            // Parenthesized map: (key1 = val1, key2 = val2)
+            // Split by commas respecting nested parens
+            let inner = &data_part[1..data_part.len() - 1];
+            let items = split_by_commas_outside_parens(inner);
+            let rhai_items: Vec<String> = items
+                .iter()
+                .map(|item| {
+                    let eq_pos = item.find('=').unwrap_or(0);
+                    let key = item[..eq_pos].trim();
+                    let val = item[eq_pos + 1..].trim();
+                    format!("{}: {}", key, val)
+                })
+                .collect();
+
+            let data_var = format!("__save_data_{}__", *save_counter);
+            *save_counter += 1;
+
+            Ok(Some(format!(
+                "let {} = #{{{}}}; SAVE \"{}\", {}, {}",
+                data_var,
+                rhai_items.join(", "),
+                table_name,
+                id_expr,
+                data_var
+            )))
+        } else {
+            // Variable name: SAVE var TO table WHERE id = expr
+            Ok(Some(format!(
+                "SAVE \"{}\", {}, {}",
+                table_name, id_expr, data_part
+            )))
+        }
     }
 
     fn get_table_columns_for_save(
@@ -401,4 +477,29 @@ impl BasicCompiler {
 
         Ok(columns)
     }
+}
+
+/// Split a string by commas that are not inside parentheses.
+fn split_by_commas_outside_parens(s: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+
+    for (i, c) in s.char_indices() {
+        match c {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                parts.push(s[start..i].trim());
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+
+    if start < s.len() {
+        parts.push(s[start..].trim());
+    }
+
+    parts
 }

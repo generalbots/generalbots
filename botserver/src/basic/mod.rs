@@ -2,8 +2,6 @@ use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use log::warn;
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
-use botlib::traits::ScriptRunner;
-
 pub use botcore::shared::UserSession;
 
 pub use botbasic_compiler as compiler;
@@ -231,10 +229,34 @@ impl BasicRuntime for AppStateBasicRuntime {
     }
 
     fn execute_script(&self, user: botbasic_types::UserSession, script: &str) -> Result<String, String> {
-        let lib_user = botcore::shared::UserSession { id: user.id, user_id: user.user_id, bot_id: user.bot_id, title: user.title, context_data: user.context_data, current_tool: user.current_tool, created_at: user.created_at, updated_at: user.updated_at };
-        let service = crate::basic::ScriptService::new(Arc::clone(&self.0), lib_user);
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| e.to_string())?;
-        rt.block_on(async { service.run_script(script, uuid::Uuid::nil(), "").await })
+        let lib_user = botcore::shared::UserSession {
+            id: user.id,
+            user_id: user.user_id,
+            bot_id: user.bot_id,
+            title: user.title.clone(),
+            context_data: user.context_data.clone(),
+            current_tool: user.current_tool.clone(),
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+        };
+        let mut service = crate::basic::ScriptService::new(Arc::clone(&self.0), lib_user);
+        service.load_bot_config_params(&self.0, user.bot_id);
+
+        // Inject trigger context variables from UserSession.context_data
+        if let Some(obj) = user.context_data.as_object() {
+            for key in &["trigger_record_id", "trigger_old_status", "trigger_new_status"] {
+                if let Some(val) = obj.get(*key).and_then(|v| v.as_str()) {
+                    let rhai_key = key.to_uppercase();
+                    let _ = service.set_variable(&rhai_key, val);
+                }
+            }
+        }
+
+        let result = service.run(script);
+        match result {
+            Ok(dynamic) => Ok(dynamic.to_string()),
+            Err(e) => Err(format!("Script execution error: {}", e)),
+        }
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

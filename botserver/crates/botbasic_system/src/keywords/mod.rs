@@ -7,6 +7,7 @@ pub mod file_operations;
 pub mod file_ops;
 pub mod on_change;
 pub mod on;
+pub mod on_update;
 pub mod security_protection;
 pub mod set_schedule;
 pub mod synchronize;

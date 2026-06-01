@@ -143,6 +143,7 @@ pub use botbasic_system::keywords::on_change;
 #[cfg(feature = "security")]
 pub use botbasic_system::keywords::security_protection;
 #[cfg(feature = "tasks")]
+pub use botbasic_system::keywords::on_update;
 pub use botbasic_system::keywords::set_schedule;
 #[cfg(feature = "automation")]
 pub use botbasic_system::keywords::synchronize;
