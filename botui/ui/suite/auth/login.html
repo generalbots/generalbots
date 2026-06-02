@@ -1231,6 +1231,19 @@
                 }, 1000);
             }
 
+            // SECURITY: Validate redirect URL is same-origin to prevent
+            // open redirect attacks where an attacker crafts a login URL
+            // with ?redirect=https://evil.com to steal the token (Issue #568).
+            function isSafeRedirect(url) {
+                if (!url) return false;
+                try {
+                    const parsed = new URL(url, window.location.origin);
+                    return parsed.origin === window.location.origin;
+                } catch (e) {
+                    return false;
+                }
+            }
+
             // Show error message
             function showError(message) {
                 const errorBox = document.getElementById("error-message");
@@ -1292,61 +1305,48 @@
                                 return;
                             }
 
-                            // Save token before redirect
-                            // ALWAYS use localStorage - sessionStorage doesn't persist across redirects properly
-                   if (response.access_token) {
-                       localStorage.setItem(
-                           "gb-access-token",
-                           response.access_token,
-                       );
-                       sessionStorage.setItem(
-                           "gb-access-token",
-                           response.access_token,
-                       );
-                       if (response.refresh_token) {
-                           localStorage.setItem(
-                               "gb-refresh-token",
-                               response.refresh_token,
-                           );
-                           sessionStorage.setItem(
-                               "gb-refresh-token",
-                               response.refresh_token,
-                           );
-                       }
-                       if (response.expires_in) {
-                           const expiresAt =
-                               Date.now() + response.expires_in * 1000;
-                           localStorage.setItem(
-                               "gb-token-expires",
-                               expiresAt.toString(),
-                           );
-                           sessionStorage.setItem(
-                               "gb-token-expires",
-                               expiresAt.toString(),
-                           );
-                       }
+                            // SECURITY: Store tokens via GBSecurity module-scoped
+                            // closure instead of localStorage/sessionStorage directly.
+                            // This prevents token exfiltration via XSS (Issue #575).
+                            // Access token stays in memory only; refresh token uses
+                            // sessionStorage (auto-clears on tab close). No localStorage.
+                            if (response.access_token && window.GBSecurity) {
+                                window.GBSecurity.setTokens(
+                                    response.access_token,
+                                    response.refresh_token || null,
+                                    response.expires_in || null,
+                                    document.querySelector('input[name="remember"]')?.checked || false,
+                                );
                                 console.log(
-                                    "[LOGIN] Token saved to localStorage:",
-                                    response.access_token.substring(0, 20) +
-                                        "...",
+                                    "[LOGIN] Token saved via GBSecurity:",
+                                    response.access_token.substring(0, 20) + "...",
                                 );
                             }
 
                             // Successful login - redirect
                             if (response.redirect || response.success) {
-                                // Check for redirect parameter in URL
                                 const urlParams = new URLSearchParams(window.location.search);
                                 const redirectUrl = urlParams.get('redirect') || response.redirect;
-                                window.location.href = redirectUrl ? redirectUrl : window.location.origin + "/#chat";
+                                // SECURITY: Only allow same-origin redirects to
+                                // prevent open redirect attacks (Issue #568).
+                                if (isSafeRedirect(redirectUrl)) {
+                                    window.location.href = redirectUrl;
+                                } else {
+                                    window.location.href = window.location.origin + "/#chat";
+                                }
                             }
                         } catch (e) {
-                            // If response is not JSON, check for redirect header
-                            if (event.detail.xhr.status === 200) {
-                                // Check for redirect parameter in URL
-                                const urlParams = new URLSearchParams(window.location.search);
-                                const redirectUrl = urlParams.get('redirect');
-                                window.location.href = redirectUrl ? redirectUrl : window.location.origin + "/#chat";
-                            }
+                                // If response is not JSON, check for redirect header
+                                if (event.detail.xhr.status === 200) {
+                                    const urlParams = new URLSearchParams(window.location.search);
+                                    const redirectUrl = urlParams.get('redirect');
+                                    // SECURITY: Only allow same-origin redirects (Issue #568).
+                                    if (isSafeRedirect(redirectUrl)) {
+                                        window.location.href = redirectUrl;
+                                    } else {
+                                        window.location.href = window.location.origin + "/#chat";
+                                    }
+                                }
                         }
                     } else {
                         // Show error

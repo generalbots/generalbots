@@ -11,8 +11,9 @@ use tower_http::trace::TraceLayer;
 use tower_http::services::ServeDir;
 use crate::security::{
     build_default_route_permissions, create_cors_layer, create_rate_limit_layer,
-    create_security_headers_layer, request_id_middleware, security_headers_middleware,
+    create_security_headers_layer, request_id_middleware, security_headers_middleware, csrf_middleware,
     AuthConfig, AuthMiddlewareState, AuthProviderBuilder, ApiKeyAuthProvider,
+    CsrfConfig, CsrfManager,
     HttpRateLimitConfig, JwtConfig, JwtKey, JwtManager, PanicHandlerConfig, RbacConfig,
     RbacManager, SecurityHeadersConfig,
 };
@@ -461,7 +462,35 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         PanicHandlerConfig::development()
     };
 
-    info!("Security middleware enabled: rate limiting, security headers, panic handler, request ID tracking, authentication");
+    let csrf_secret = std::env::var("CSRF_SECRET").unwrap_or_else(|_| {
+        info!("CSRF_SECRET not set, using default development secret");
+        "dev-csrf-secret-change-in-production-minimum-32-bytes".to_string()
+    });
+    let csrf_config = CsrfConfig {
+        exempt_paths: vec![
+            "/api/health".into(),
+            "/api/auth".into(),
+            "/api/auth/login".into(),
+            "/api/auth/refresh".into(),
+            "/api/auth/bootstrap".into(),
+            "/api/setup/status".into(),
+            "/api/product".into(),
+            "/api/manifest".into(),
+            "/api/i18n".into(),
+            "/api/client-errors".into(),
+            "/ws".into(),
+            "/ws/".into(),
+            "/webhook/whatsapp".into(),
+            "/webhook".into(),
+        ],
+        ..Default::default()
+    };
+    let csrf_manager = Arc::new(
+        CsrfManager::new(csrf_config, csrf_secret.as_bytes())
+            .expect("Failed to create CSRF manager"),
+    );
+
+    info!("Security middleware enabled: rate limiting, CSRF, security headers, panic handler, request ID tracking, authentication");
 
     // Path to UI files (botui) - use external folder or fallback to embedded
     let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| {
@@ -674,14 +703,51 @@ let base_router = {
     // Clone rbac_manager for use in middleware
     let rbac_manager_for_middleware = Arc::clone(&rbac_manager);
 
+    async fn csrf_cookie_injector(
+        manager: Arc<CsrfManager>,
+        request: axum::http::Request<axum::body::Body>,
+        next: axum::middleware::Next,
+    ) -> axum::response::Response {
+        let mut response = next.run(request).await;
+        let has_csrf = response
+            .headers()
+            .get_all(axum::http::header::SET_COOKIE)
+            .iter()
+            .any(|v| v.to_str().ok().map_or(false, |s| s.contains("csrf_token")));
+        if !has_csrf {
+            let token = manager.generate_signed_token();
+            let cookie = manager.build_cookie(&token);
+            if let Ok(cv) = cookie.parse::<axum::http::HeaderValue>() {
+                response.headers_mut().insert(axum::http::header::SET_COOKIE, cv);
+            }
+        }
+        response
+    }
+
     let app =
         app_with_ui
-            // Security middleware stack (order matters - last added is outermost/runs first)
+            // CSRF cookie injector — outermost so it runs last (on response) to set cookies
+            .layer(axum::middleware::from_fn({
+                let csrf_manager = csrf_manager.clone();
+                move |req, next| {
+                    let mgr = csrf_manager.clone();
+                    async move { csrf_cookie_injector(mgr, req, next).await }
+                }
+            }))
+            // Sec middleware stack (order matters — last added is outermost/runs first)
             .layer(axum::middleware::from_fn(security_headers_middleware))
             .layer(security_headers_extension)
             .layer(rate_limit_extension)
             // Request ID tracking for all requests
             .layer(axum::middleware::from_fn(request_id_middleware))
+            // CSRF validation middleware — runs before auth
+            .layer(axum::middleware::from_fn({
+                let csrf_manager = csrf_manager.clone();
+                move |req, next| {
+                    let mgr = csrf_manager.clone();
+                    async move { csrf_middleware(mgr, req, next).await }
+                }
+            }))
             // RBAC middleware - checks permissions AFTER authentication
             // NOTE: In Axum, layers run in reverse order (last added = first to run)
             // So RBAC is added BEFORE auth, meaning auth runs first, then RBAC

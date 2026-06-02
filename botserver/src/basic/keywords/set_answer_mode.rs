@@ -10,7 +10,7 @@ pub fn register_set_answer_mode_keyword(
 ) {
     let state_clone = state.clone();
     let session_id = user_session.id;
-    engine.register_custom_syntax(
+    let result = engine.register_custom_syntax(
         ["SET", "ANSWER", "MODE", "$expr$"],
         true,
         move |context, inputs| {
@@ -49,6 +49,8 @@ pub fn register_set_answer_mode_keyword(
                 Err(e) => Err(format!("Channel error: {}", e).into()),
             }
         },
-    )
-    .expect("valid SET ANSWER MODE syntax registration");
+    );
+    if let Err(e) = result {
+        log::error!("Failed to register SET ANSWER MODE syntax: {}", e);
+    }
 }

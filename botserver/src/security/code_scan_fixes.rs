@@ -12,9 +12,16 @@ pub fn sanitize_filename(name: &str) -> String {
 }
 
 /// Validates that a path doesn't escape the base directory.
+/// Returns false if canonicalization fails (defense in depth).
 pub fn is_safe_path(base: &std::path::Path, path: &std::path::Path) -> bool {
-    let canonical_base = base.canonicalize().unwrap_or_else(|_| base.to_path_buf());
+    let canonical_base = match base.canonicalize() {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
     let target = base.join(path);
-    let canonical_target = target.canonicalize().unwrap_or_else(|_| target);
+    let canonical_target = match target.canonicalize() {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
     canonical_target.starts_with(&canonical_base)
 }

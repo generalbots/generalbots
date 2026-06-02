@@ -37,7 +37,12 @@ pub fn get_session_tools(
         info!("Created work directory at: {:?}", work_root);
     }
 
-    let work_path = work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+    let rel_path_str = format!("{}.gbai/{}.gbdialog", bot_name, bot_name);
+    let rel_path = std::path::Path::new(&rel_path_str);
+    if !crate::security::code_scan_fixes::is_safe_path(&work_root, rel_path) {
+        return Err(format!("Path traversal detected for bot '{}'", bot_name).into());
+    }
+    let work_path = work_root.join(rel_path);
 
     info!(
         "Loading {} tools for session {} from {:?}",
