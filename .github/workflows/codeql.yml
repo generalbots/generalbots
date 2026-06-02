@@ -36,7 +36,8 @@ jobs:
           libgit2-dev \
           clang \
           libclang-dev \
-          libsqlite3-dev
+          libsqlite3-dev \
+          mold
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
