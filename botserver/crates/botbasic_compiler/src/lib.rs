@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::fmt;
 use uuid::Uuid;
 
+pub mod basic_errors;
 pub mod blocks;
 pub mod goto_transform;
 pub mod save_conversion;
@@ -204,6 +205,7 @@ impl BasicCompiler {
         let source = source.as_str();
 
         let source = syntax_transforms::preprocess_llm_keyword(source);
+        let mut found_directives = std::collections::HashSet::new();
         let mut has_schedule = false;
         let script_name = std::path::Path::new(source_path)
             .file_stem()
@@ -250,6 +252,7 @@ impl BasicCompiler {
                 .replace("ADD SWITCHER", "ADD_SWITCHER");
             if normalized.starts_with("SET SCHEDULE") || trimmed.starts_with("SET SCHEDULE") {
                 has_schedule = true;
+                found_directives.insert(basic_errors::Directive::SetSchedule);
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 3 {
                     if let Some(ref cb) = self.callbacks.execute_set_schedule {
@@ -273,6 +276,7 @@ impl BasicCompiler {
             }
 
             if normalized.starts_with("WEBHOOK") {
+                found_directives.insert(basic_errors::Directive::Webhook);
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 2 {
                     if let Some(ref cb) = self.callbacks.execute_webhook {
@@ -298,18 +302,36 @@ impl BasicCompiler {
                 continue;
             }
 
-            if let Some(caps) = Regex::new(r#"(?i)^ON\s+UPDATE\s+OF\s+"([^"]+)"\s+DO\s+CALL\s+"([^"]+)"\s*$"#).ok().and_then(|re| re.captures(&normalized)) {
-                let table_name = caps.get(1).unwrap().as_str().to_string();
-                let script_to_call = caps.get(2).unwrap().as_str().to_string();
+            if Regex::new(r#"(?i)^ON\s+UPDATE\s+OF\s+"([^"]+)"\s*$"#).ok().map_or(false, |re| re.is_match(&normalized)) {
+                found_directives.insert(basic_errors::Directive::OnUpdateOf);
+                let table_name = normalized
+                    .split('"')
+                    .nth(1)
+                    .map(|s| s.to_string())
+                    .unwrap_or_default();
                 if let Some(ref cb) = self.callbacks.execute_on_update {
                     let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {e}"))?;
-                    if let Err(e) = (cb)(&mut conn, &table_name, &script_to_call, bot_id, 2) {
+                    // Limpa registos antigos para esta tabela antes de inserir novos
+                    use botcore::shared::schema::system_automations;
+                    if let Err(e) = diesel::delete(
+                        system_automations::table
+                            .filter(system_automations::bot_id.eq(&bot_uuid))
+                            .filter(system_automations::target.eq(&table_name))
+                            .filter(system_automations::kind.eq_any(vec![1i32, 2i32, 3i32])),
+                    )
+                    .execute(&mut conn)
+                    {
+                        log::error!("Failed to clean old ON UPDATE OF triggers: {e}");
+                    }
+                    let call_bot_id = bot_uuid;
+                    // O script a executar é o PRÓPRIO ficheiro (param = script_name)
+                    if let Err(e) = (cb)(&mut conn, &table_name, &script_name, call_bot_id, 2) {
                         log::error!("Failed to register ON UPDATE OF (INSERT) trigger: {e}");
                     }
-                    if let Err(e) = (cb)(&mut conn, &table_name, &script_to_call, bot_id, 1) {
+                    if let Err(e) = (cb)(&mut conn, &table_name, &script_name, call_bot_id, 1) {
                         log::error!("Failed to register ON UPDATE OF (UPDATE) trigger: {e}");
                     }
-                    if let Err(e) = (cb)(&mut conn, &table_name, &script_to_call, bot_id, 3) {
+                    if let Err(e) = (cb)(&mut conn, &table_name, &script_name, call_bot_id, 3) {
                         log::error!("Failed to register ON UPDATE OF (DELETE) trigger: {e}");
                     }
                 }
@@ -317,6 +339,7 @@ impl BasicCompiler {
             }
 
             if trimmed.to_uppercase().starts_with("USE WEBSITE") {
+                found_directives.insert(basic_errors::Directive::UseWebsite);
                 if let Some(caps) = website_regex.captures(&normalized) {
                     if let Some(url_match) = caps.get(1) {
                         let url = url_match.as_str();
@@ -369,9 +392,14 @@ impl BasicCompiler {
             .ok();
         }
         if has_schedule {
-            self.previous_schedules.insert(script_name);
+            self.previous_schedules.insert(script_name.clone());
         } else {
             self.previous_schedules.remove(&script_name);
+        }
+
+        // Validate directive conflicts (e.g., SET SCHEDULE + ON UPDATE OF)
+        if let Err(e) = basic_errors::validate_directives(&found_directives) {
+            log::warn!("Conflict in '{}': {}", script_name, e);
         }
 
         let result = match self.convert_save_statements(&result, bot_id) {

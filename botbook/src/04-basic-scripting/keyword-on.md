@@ -36,6 +36,26 @@ TALK "A new order was added. Processing..."
 
 After execution, any new row inserted into the `orders` table will cause the session to be notified, allowing the script to handle the event.
 
+## File-Based Triggers (ON UPDATE OF)
+
+Além da sintaxe inline, o `ON UPDATE OF` pode ser declarado como **primeira linha de um arquivo `.bas`** dedicado:
+
+Arquivo: `{tabela}_update.bas`
+
+```basic
+ON UPDATE OF "pedidos"
+```
+
+Quando usado como declaração de arquivo:
+- O script é registrado automaticamente como gatilho pelo DriveMonitor
+- O nome do arquivo DEVE seguir o padrão `{tabela}_update.bas`
+- O script recebe as variáveis `TRIGGER_ROW_ID`, `TRIGGER_OPERATION` e `TRIGGER_TABLE`
+- Alterações no arquivo são detectadas em ~10s pelo DriveMonitor
+
+> **Nota:** A declaração `ON UPDATE OF` como primeira linha de arquivo é mutuamente exclusiva com `SET SCHEDULE`, `WEBHOOK`, `ON EMAIL FROM` e `ON CHANGE` no mesmo script (erro `E-BAS-0001`).
+
+Consulte a [documentação completa do ON UPDATE OF](./keyword-on-update-of.md) para mais detalhes, exemplos e lista de variáveis de gatilho.
+
 **Implementation Notes**
 
 - The keyword runs synchronously but performs the database insertion on a separate thread to avoid blocking.

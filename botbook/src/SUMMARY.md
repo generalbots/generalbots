@@ -97,6 +97,7 @@
    - [GET](./04-basic-scripting/keyword-get.md)
    - [SET](./04-basic-scripting/keyword-set.md)
    - [ON](./04-basic-scripting/keyword-on.md)
+   - [ON UPDATE OF](./04-basic-scripting/keyword-on-update-of.md)
    - [SET SCHEDULE](./04-basic-scripting/keyword-set-schedule.md)
    - [CREATE TASK](./04-basic-scripting/keyword-create-task.md)
    - [FOR EACH](./04-basic-scripting/keyword-for-each.md)

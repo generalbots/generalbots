@@ -90,10 +90,10 @@ pub fn register_save_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
     // SAVE with variable arguments: SAVE "table", id, field1, field2, ...
     // Each pattern: table + id + (1 to 64 fields)
     // Minimum: table + id + 1 field = 4 expressions total
-    register_save_variants(state.clone(), user_roles, engine);
+    register_save_variants(state.clone(), user.clone(), user_roles, engine);
 }
 
-fn register_save_variants(state: Arc<dyn BasicRuntime>, user_roles: UserRoles, engine: &mut Engine) {
+fn register_save_variants(state: Arc<dyn BasicRuntime>, user: UserSession, user_roles: UserRoles, engine: &mut Engine) {
     // Register positional saves FIRST (in descending order), so longer patterns
     // are tried before shorter ones. This ensures that SAVE with 22 fields matches
     // the 22-field pattern, not the 3-field structured save pattern.
@@ -175,6 +175,7 @@ fn register_save_variants(state: Arc<dyn BasicRuntime>, user_roles: UserRoles, e
     {
         let state_clone = Arc::clone(&state);
         let user_roles_clone = user_roles.clone();
+        let user_clone = user.clone();
         engine
             .register_custom_syntax(
                 ["SAVE", "$expr$", ",", "$expr$", ",", "$expr$"],
@@ -200,6 +201,19 @@ fn register_save_variants(state: Arc<dyn BasicRuntime>, user_roles: UserRoles, e
 
                     let result = execute_save(&mut conn, &table, &id, &data)
                         .map_err(|e| format!("SAVE error: {}", e))?;
+
+                    // Fire table triggers for SAVE (INSERT ... ON CONFLICT DO UPDATE)
+                    let rid = id.to_string();
+                    fire_table_triggers(
+                        &mut conn,
+                        &state_clone,
+                        &user_clone,
+                        &table,
+                        1,
+                        Some(rid),
+                        None,
+                        None,
+                    );
 
                     Ok(json_value_to_dynamic(&result))
                 },
@@ -678,12 +692,20 @@ fn fire_table_triggers(
     old_status: Option<String>,
     new_status: Option<String>,
 ) {
+    // Use main database connection to query system_automations (metadata)
+    let mut meta_conn = match state.db_pool().get() {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("Failed to get metadata connection for triggers: {}", e);
+            return;
+        }
+    };
     let query = "SELECT param FROM system_automations WHERE bot_id = $1::uuid AND kind = $2 AND target = $3 AND is_active = true";
     let triggers: Vec<String> = match diesel::sql_query(query)
         .bind::<diesel::sql_types::Text, _>(&user.bot_id.to_string())
         .bind::<diesel::sql_types::Integer, _>(trigger_kind_val)
         .bind::<diesel::sql_types::Text, _>(table)
-        .load::<TriggerRow>(conn)
+        .load::<TriggerRow>(&mut meta_conn)
     {
         Ok(rows) => rows.into_iter().map(|r| r.param).collect(),
         Err(e) => {
@@ -697,6 +719,17 @@ fn fire_table_triggers(
     }
 
     let work_root = botbasic_core::utils::get_work_path();
+
+    // Resolve bot name from bot_id to locate the correct work directory
+    let bot_name: String = diesel::sql_query(
+        "SELECT name FROM bots WHERE id = $1::uuid"
+    )
+    .bind::<diesel::sql_types::Text, _>(&user.bot_id.to_string())
+    .get_result::<BotNameRow>(conn)
+    .ok()
+    .map(|r| r.name)
+    .unwrap_or_else(|| user.bot_id.to_string());
+
     for script_name in triggers {
         // Build trigger context from record data
         let mut ctx = serde_json::Map::new();
@@ -718,15 +751,11 @@ fn fire_table_triggers(
         // Try .ast first (pre-compiled Rhai), fall back to .bas (raw BASIC source)
         let ast_path = std::path::Path::new(&work_root).join(format!(
             "{}.gbai/{}.gbdialog/{}.ast",
-            user.bot_id.to_string(),
-            user.bot_id.to_string(),
-            script_name
+            bot_name, bot_name, script_name
         ));
         let bas_path = std::path::Path::new(&work_root).join(format!(
             "{}.gbai/{}.gbdialog/{}.bas",
-            user.bot_id.to_string(),
-            user.bot_id.to_string(),
-            script_name
+            bot_name, bot_name, script_name
         ));
 
         let content = std::fs::read_to_string(&ast_path)
@@ -743,6 +772,12 @@ fn fire_table_triggers(
             _ => log::warn!("Table trigger script not found: {:?} or {:?}", ast_path, bas_path),
         }
     }
+}
+
+#[derive(diesel::QueryableByName)]
+struct BotNameRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    name: String,
 }
 
 #[derive(diesel::QueryableByName)]

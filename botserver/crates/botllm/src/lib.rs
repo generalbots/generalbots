@@ -539,6 +539,17 @@ impl LLMProvider for OpenAIClient {
             if !tools_value.is_empty() {
                 request_body["tools"] = serde_json::json!(tools_value);
                 info!("Added {} tools to LLM request", tools_value.len());
+
+                // Also add legacy "functions" format for models (e.g. NVIDIA NIM)
+                // that don't support the newer "tools" parameter
+                let legacy_functions: Vec<Value> = tools_value
+                    .iter()
+                    .filter_map(|t| t.get("function").cloned())
+                    .collect();
+                if !legacy_functions.is_empty() {
+                    request_body["functions"] = serde_json::json!(legacy_functions);
+                    trace!("Added {} legacy functions for compatibility", legacy_functions.len());
+                }
             }
         }
 
@@ -588,6 +599,8 @@ impl LLMProvider for OpenAIClient {
         let mut last_bytes = String::new();
         let mut total_size: usize = 0;
         let mut content_sent: usize = 0;
+        let mut tool_call_name = String::new();
+        let mut tool_call_args = String::new();
 
         info!("LLM stream starting for model: {}", model);
 
@@ -654,18 +667,50 @@ impl LLMProvider for OpenAIClient {
                             }
                         }
 
+                        // Handle modern tool_calls format (OpenAI tools API)
+                        // Accumulate across streaming chunks, don't send via tx
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
                             for tool_call in tool_calls {
                                 if let Some(func) = tool_call.get("function") {
+                                    if tool_call_name.is_empty() {
+                                        if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
+                                            tool_call_name = name.to_string();
+                                            tool_call_args.clear();
+                                        }
+                                    }
                                     if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
-                                        let _ = tx.send(args.to_string()).await;
+                                        tool_call_args.push_str(args);
                                     }
                                 }
+                            }
+                        }
+
+                        // Handle legacy function_call format (NVIDIA, some open-source models)
+                        if let Some(func_call) = data["choices"][0]["delta"]["function_call"].as_object() {
+                            if tool_call_name.is_empty() {
+                                if let Some(name) = func_call.get("name").and_then(|n| n.as_str()) {
+                                    tool_call_name = name.to_string();
+                                    tool_call_args.clear();
+                                }
+                            }
+                            if let Some(args) = func_call.get("arguments").and_then(|a| a.as_str()) {
+                                tool_call_args.push_str(args);
                             }
                         }
                     }
                 }
             }
+        }
+
+        // After streaming ends, if tool_calls were accumulated, send them to tx
+        if !tool_call_name.is_empty() && !tool_call_args.is_empty() {
+            let tool_call_msg = serde_json::json!({
+                "__tool_call__": true,
+                "name": tool_call_name,
+                "arguments": tool_call_args
+            });
+            let _ = tx.send(tool_call_msg.to_string()).await;
+            info!("LLM tool_call accumulated: {} with {} bytes args", tool_call_name, tool_call_args.len());
         }
 
         info!("LLM stream done: size={} bytes, content_sent={}, first={:?}, last={}",

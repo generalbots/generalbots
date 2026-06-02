@@ -42,7 +42,7 @@ pytesseract==0.3.10
 httpx==0.27.2
 aiofiles==24.1.0
 python-multipart>=0.0.27
-requests>=2.32.3
+requests>=2.33.0
 
 # Monitoring
 prometheus-client==0.21.0

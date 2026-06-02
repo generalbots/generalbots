@@ -550,12 +550,7 @@ impl JwtManager {
     }
 
     pub fn decode_without_validation(&self, token: &str) -> Result<Claims> {
-        let mut validation = Validation::new(self.config.algorithm.to_jsonwebtoken());
-        validation.insecure_disable_signature_validation();
-        validation.validate_exp = false;
-        validation.validate_aud = false;
-
-        let token_data = decode::<Claims>(token, &self.decoding_key, &validation)
+        let token_data = jsonwebtoken::dangerous::insecure_decode::<Claims>(&token)
             .map_err(|e| anyhow!("Failed to decode token: {e}"))?;
 
         Ok(token_data.claims)
