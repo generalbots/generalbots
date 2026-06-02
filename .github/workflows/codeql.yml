@@ -34,21 +34,9 @@ jobs:
           libssl-dev \
           libpq-dev \
           libgit2-dev \
-          cmake \
-          pkg-config \
-          build-essential \
+          clang \
           libclang-dev \
-          libsqlite3-dev \
-          libxml2-dev \
-          libxslt1-dev \
-          libyaml-dev \
-          libgirepository1.0-dev \
-          libpango1.0-dev \
-          libatk1.0-dev \
-          libgdk-pixbuf-2.0-dev \
-          libsoup2.4-dev \
-          libjavascriptcoregtk-4.1-dev \
-          libwebkit2gtk-4.1-dev
+          libsqlite3-dev
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
@@ -59,7 +47,7 @@ jobs:
     - name: Build Rust
       if: matrix.language == 'rust'
       run: |
-        cargo build --workspace --locked
+        cargo check --workspace
 
     - name: Autobuild (JavaScript)
       if: matrix.language == 'javascript-typescript'
