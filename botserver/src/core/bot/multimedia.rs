@@ -4,8 +4,48 @@ use botcore::shared::state::AppState;
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use std::net::{IpAddr, ToSocketAddrs};
 use std::sync::Arc;
 use uuid::Uuid;
+
+fn is_safe_url(url: &str) -> bool {
+    let parsed = match url::Url::parse(url) {
+        Ok(u) => u,
+        Err(_) => return false,
+    };
+    let host = match parsed.host_str() {
+        Some(h) => h,
+        None => return false,
+    };
+    if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" {
+        return false;
+    }
+    if host.ends_with(".local") || host.ends_with(".internal") {
+        return false;
+    }
+    if let Ok(addrs) = (host, 0).to_socket_addrs() {
+        for addr in addrs {
+            match addr.ip() {
+                IpAddr::V4(v4) => {
+                    if v4.is_loopback()
+                        || v4.is_private()
+                        || v4.is_link_local()
+                        || v4.is_unspecified()
+                        || v4.octets()[0] == 0
+                    {
+                        return false;
+                    }
+                }
+                IpAddr::V6(v6) => {
+                    if v6.is_loopback() || v6.is_unspecified() {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    true
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -200,22 +240,34 @@ impl MultimediaHandler for DefaultMultimediaHandler {
 
     async fn upload_media(&self, request: MediaUploadRequest) -> Result<MediaUploadResponse> {
         let media_id = Uuid::new_v4().to_string();
-        let key = format!("media/{}/{}/{}", request.user_id, request.session_id, request.file_name);
-        let local_path = format!("./media/{}", key);
-        if let Some(parent) = std::path::Path::new(&local_path).parent() {
+        let safe_filename: String = request
+            .file_name
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
+            .collect();
+        let key = format!("media/{}/{}", request.user_id, safe_filename);
+        let base = std::path::Path::new("./media");
+        let local_path = base.join(&key);
+        if let Some(parent) = local_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
         std::fs::write(&local_path, request.data)?;
         Ok(MediaUploadResponse {
             media_id,
-            url: format!("file://{}", local_path),
+            url: format!("file://{}", local_path.display()),
             thumbnail_url: None,
         })
     }
 
     async fn download_media(&self, url: &str) -> Result<Vec<u8>> {
         if url.starts_with("http://") || url.starts_with("https://") {
-            let response = reqwest::get(url).await?;
+            if !is_safe_url(url) {
+                return Err(anyhow::anyhow!("Blocked request to unsafe URL: {}", url));
+            }
+            let client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(10))
+                .build()?;
+            let response = client.get(url).send().await?;
             Ok(response.bytes().await?.to_vec())
         } else {
             Err(anyhow::anyhow!("Unsupported URL scheme: {}", url))

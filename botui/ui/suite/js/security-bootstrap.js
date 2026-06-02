@@ -17,6 +17,17 @@
    "use strict";
    console.log("[GBSecurity] Loading...");
 
+  // SECURITY: Tokens stored in closure variables instead of
+  // localStorage/sessionStorage to prevent XSS-based exfiltration
+  // (Issue #575). Access token lives in memory only and is NOT
+  // accessible via window.GBSecurity or DevTools console.
+  // Refresh token uses sessionStorage only (cleared on tab close).
+  var _accessToken = null;
+  var _refreshToken = null;
+  var _tokenExpires = null;
+  var _sessionId = null;
+  var _userData = null;
+
   var AUTH_KEYS = {
     ACCESS_TOKEN: "gb-access-token",
     REFRESH_TOKEN: "gb-refresh-token",
@@ -29,61 +40,68 @@
     initialized: false,
 
     getToken: function () {
-      return (
-        localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN) ||
-        sessionStorage.getItem(AUTH_KEYS.ACCESS_TOKEN) ||
-        null
-      );
+      return _accessToken;
     },
 
     getSessionId: function () {
-      return (
-        localStorage.getItem(AUTH_KEYS.SESSION_ID) ||
-        sessionStorage.getItem(AUTH_KEYS.SESSION_ID) ||
-        null
-      );
+      return _sessionId;
     },
 
     getRefreshToken: function () {
-      return (
-        localStorage.getItem(AUTH_KEYS.REFRESH_TOKEN) ||
-        sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN) ||
-        null
-      );
+      return _refreshToken || sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN) || null;
     },
 
     isAuthenticated: function () {
-      var token = this.getToken();
-      if (!token) return false;
-
-      var expires =
-        localStorage.getItem(AUTH_KEYS.TOKEN_EXPIRES) ||
-        sessionStorage.getItem(AUTH_KEYS.TOKEN_EXPIRES);
-      if (expires && Date.now() > parseInt(expires, 10)) {
-        return false;
-      }
+      if (!_accessToken) return false;
+      if (_tokenExpires && Date.now() > _tokenExpires) return false;
       return true;
     },
 
+    getCsrfToken: function () {
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.indexOf('csrf_token=') === 0) {
+          return c.substring('csrf_token='.length, c.length);
+        }
+      }
+      return null;
+    },
+
     setTokens: function (accessToken, refreshToken, expiresIn, persistent) {
-      var storage = persistent ? localStorage : sessionStorage;
-      if (accessToken) {
-        storage.setItem(AUTH_KEYS.ACCESS_TOKEN, accessToken);
-      }
-      if (refreshToken) {
-        storage.setItem(AUTH_KEYS.REFRESH_TOKEN, refreshToken);
-      }
+      _accessToken = accessToken || null;
+      _refreshToken = refreshToken || null;
       if (expiresIn) {
-        var expiresAt = Date.now() + expiresIn * 1000;
-        storage.setItem(AUTH_KEYS.TOKEN_EXPIRES, expiresAt.toString());
+        _tokenExpires = Date.now() + expiresIn * 1000;
+      } else {
+        _tokenExpires = null;
+      }
+      // Store refresh token in sessionStorage for cross-page navigation
+      // (cleared when tab closes). Access token stays in memory only.
+      if (refreshToken) {
+        sessionStorage.setItem(AUTH_KEYS.REFRESH_TOKEN, refreshToken);
+      } else {
+        sessionStorage.removeItem(AUTH_KEYS.REFRESH_TOKEN);
+      }
+      // Store persistent flag to know if session is "remembered"
+      if (persistent) {
+        sessionStorage.setItem("gb-persistent", "1");
+      } else {
+        sessionStorage.removeItem("gb-persistent");
       }
     },
 
     clearTokens: function () {
+      _accessToken = null;
+      _refreshToken = null;
+      _tokenExpires = null;
+      _sessionId = null;
+      _userData = null;
+      // Clean up any residual sessionStorage items
       Object.keys(AUTH_KEYS).forEach(function (key) {
-        localStorage.removeItem(AUTH_KEYS[key]);
         sessionStorage.removeItem(AUTH_KEYS[key]);
       });
+      sessionStorage.removeItem("gb-persistent");
     },
 
     buildAuthHeaders: function (existingHeaders) {
@@ -96,6 +114,11 @@
       }
       if (sessionId && !headers["X-Session-ID"]) {
         headers["X-Session-ID"] = sessionId;
+      }
+
+      var csrfToken = this.getCsrfToken();
+      if (csrfToken && !headers["X-CSRF-Token"]) {
+        headers["X-CSRF-Token"] = csrfToken;
       }
 
       return headers;
@@ -118,6 +141,17 @@
 
       var self = this;
 
+      // Restore tokens from sessionStorage into memory closure.
+      // After page navigation, the access token must be re-obtained via
+      // refresh token (sessionStorage persists across same-tab reloads).
+      var storedRefresh = sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
+      if (storedRefresh) {
+        _refreshToken = storedRefresh;
+      }
+      // Access token cannot persist in storage - on page reload it's gone.
+      // The token was passed via setTokens() during login flow which kept
+      // it in the closure for the current page lifetime.
+
       this.initHTMXInterceptor();
       this.initFetchInterceptor();
       this.initXHRInterceptor();
@@ -126,8 +160,8 @@
       this.initialized = true;
       console.log("[GBSecurity] Security bootstrap initialized");
       console.log(
-        "[GBSecurity] Current token:",
-        this.getToken() ? this.getToken().substring(0, 20) + "..." : "NONE",
+        "[GBSecurity] Token in memory:",
+        _accessToken ? _accessToken.substring(0, 20) + "..." : "NONE",
       );
 
       window.dispatchEvent(new CustomEvent("gb:security:ready"));

@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Query, State};
@@ -9,11 +10,45 @@ use serde::Deserialize;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
+use crate::security::code_scan_fixes::is_safe_path;
+
 #[derive(Deserialize)]
 pub struct WsQuery {
     pub session_id: Option<String>,
     pub user_id: Option<String>,
     pub bot_name: Option<String>,
+}
+
+fn validate_bot_name(input: &str) -> Result<String, String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err("Bot name cannot be empty".to_string());
+    }
+    if trimmed.len() > 255 {
+        return Err("Bot name too long".to_string());
+    }
+    if trimmed.contains('\0') {
+        return Err("Invalid bot name".to_string());
+    }
+    for c in trimmed.chars() {
+        if !c.is_alphanumeric() && c != '-' && c != '_' && c != '.' {
+            return Err("Invalid bot name".to_string());
+        }
+    }
+    if trimmed.starts_with('.') {
+        return Err("Invalid bot name".to_string());
+    }
+    if trimmed.contains("..") {
+        return Err("Invalid bot name".to_string());
+    }
+    Ok(trimmed.to_string())
+}
+
+fn verify_path_within_workdir(sub_path: &str) -> bool {
+    let work_dir = botcore::shared::utils::get_work_path();
+    let base = Path::new(&work_dir);
+    let path = Path::new(sub_path);
+    is_safe_path(base, path)
 }
 
 pub async fn websocket_handler(
@@ -24,10 +59,16 @@ pub async fn websocket_handler(
     let session_id = params.session_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
     let user_id = params.user_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
     let raw_bot_name = params.bot_name.clone().unwrap_or_else(|| "default".to_string());
-    let bot_name = botcore::shared::utils::sanitize_path_component(&raw_bot_name);
-    
+    let bot_name = match validate_bot_name(&raw_bot_name) {
+        Ok(name) => name,
+        Err(e) => {
+            warn!("Invalid bot_name in WS query: {}", e);
+            return (axum::http::StatusCode::BAD_REQUEST, "Invalid bot name").into_response();
+        }
+    };
+
     if let Err(e) = super::check_bot_access(&state, &bot_name, user_id).await {
-        log::warn!("WS access denied for bot {}: {}", bot_name, e);
+        warn!("WS access denied for bot {}: {}", bot_name, e);
         return axum::http::StatusCode::FORBIDDEN.into_response();
     }
 
@@ -47,16 +88,22 @@ pub async fn websocket_handler_with_bot(
     } else {
         bot_name
     };
-    let bot_name = botcore::shared::utils::sanitize_path_component(&raw_bot_name);
+    let bot_name = match validate_bot_name(&raw_bot_name) {
+        Ok(name) => name,
+        Err(e) => {
+            warn!("Invalid bot_name in WS path: {}", e);
+            return (axum::http::StatusCode::BAD_REQUEST, "Invalid bot name").into_response();
+        }
+    };
     params.bot_name = Some(bot_name.clone());
-    
+
     let user_id = params.user_id.as_ref().and_then(|s| Uuid::parse_str(s).ok()).unwrap_or_else(Uuid::new_v4);
-    
+
     if let Err(e) = super::check_bot_access(&state, &bot_name, user_id).await {
-        log::warn!("WS access denied for bot {}: {}", bot_name, e);
+        warn!("WS access denied for bot {}: {}", bot_name, e);
         return axum::http::StatusCode::FORBIDDEN.into_response();
     }
-    
+
     websocket_handler(ws, State(state), Query(params)).await
 }
 
@@ -89,11 +136,15 @@ fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
 }
 
 fn load_system_prompt(bot_name: &str) -> String {
-    // TODO(#500): sanitize bot_name to prevent path traversal
     let work_dir = botcore::shared::utils::get_work_path();
-    let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
+    let rel_path = format!("{}.gbai/{}.gbot/", bot_name, bot_name);
+    if !verify_path_within_workdir(&rel_path) {
+        error!("Path traversal detected in load_system_prompt for bot: {}", bot_name);
+        let now = chrono::Utc::now().format("%B %d, %Y").to_string();
+        return format!("Today is {now}.\n\nYou are a helpful assistant. Respond only with valid HTML fragments. Do not use markdown. Do not use code blocks. Use only: <p>, <h3>, <ul>, <li>, <strong>, <em>. Every tag you open MUST be properly closed. Start your response directly with an HTML tag, never with plain text.");
+    }
 
-    // TODO(#500): bot_name comes from user-controlled query param — sanitize before filesystem access
+    let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
     let prompt_from_file = std::fs::read_to_string(format!("{}PROMPT.md", gbot_dir))
         .or_else(|_| std::fs::read_to_string(format!("{}prompt.md", gbot_dir)))
         .or_else(|_| std::fs::read_to_string(format!("{}PROMPT.txt", gbot_dir)))
@@ -108,11 +159,15 @@ fn load_system_prompt(bot_name: &str) -> String {
 }
 
 fn load_bot_styles_css(bot_name: &str) -> String {
-    // TODO(#500): sanitize bot_name to prevent path traversal
     let work_dir = botcore::shared::utils::get_work_path();
+    let rel_path = format!("{}.gbai/{}.gbot/", bot_name, bot_name);
+    if !verify_path_within_workdir(&rel_path) {
+        error!("Path traversal detected in load_bot_styles_css for bot: {}", bot_name);
+        return String::new();
+    }
+
     let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
 
-    // Load global.css (Issue #508)
     let global_css_path = format!("{}global.css", gbot_dir);
     let mut combined_css = match std::fs::read_to_string(&global_css_path) {
         Ok(c) => {
@@ -124,7 +179,6 @@ fn load_bot_styles_css(bot_name: &str) -> String {
 
     let css_path = format!("{}styles.css", gbot_dir);
 
-    // TODO(#500): bot_name comes from user-controlled query param — sanitize before filesystem access
     let local_css = match std::fs::read_to_string(&css_path) {
         Ok(c) => {
             info!("styles.css loaded from {} ({} bytes)", css_path, c.len());
@@ -213,20 +267,16 @@ async fn run_start_bas_on_connect(
     user_id: Uuid,
     bot_name: &str,
 ) -> bool {
-    // Check in-memory guard first (fast path)
     {
         let guards = state.start_bas_guards.lock().await;
         if guards.contains_key(&session_id) {
             info!("start.bas execution skipped: session already initialized (in-memory guard)");
-            // Session already initialized - send stored suggestions/switchers for reconnect
             send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
             return false;
         }
         info!("start.bas execution proceeding: session not found in guard");
     }
 
-    // Clean any stale Redis key (from previous botserver instance that set it before file check)
-    // TODO(#477): Pass org when available (UserSession does not carry org yet)
     let session_init_key = botlib::key_utils::build_key("", &["start_bas_executed", &bot_uuid.to_string(), &session_id.to_string()]);
     if let Some(ref cache) = state.cache {
         if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
@@ -234,10 +284,14 @@ async fn run_start_bas_on_connect(
         }
     }
 
-    // TODO(#500): sanitize bot_name to prevent path traversal
     let work_path = botcore::shared::utils::get_work_path();
+    let rel_ast_path = format!("{}.gbai/{}.gbdialog/start.ast", bot_name, bot_name);
+    if !verify_path_within_workdir(&rel_ast_path) {
+        error!("Path traversal detected in run_start_bas_on_connect for bot: {}", bot_name);
+        return false;
+    }
+
     let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bot_name, bot_name);
-    // TODO(#500): bot_name is user-controlled — use sanitize_filename before building path
     let ast_content = match tokio::fs::read_to_string(&ast_path).await {
         Ok(c) if !c.is_empty() => c,
         _ => {
@@ -247,11 +301,9 @@ async fn run_start_bas_on_connect(
     };
 
     if ast_content.is_empty() {
-        // Files not ready yet (DriveMonitor still syncing) - caller retries on first message
         return false;
     }
 
-    // Mark as executed in memory (prevents re-execution within same process)
     {
         let mut guards = state.start_bas_guards.lock().await;
         guards.insert(session_id, true);
@@ -326,10 +378,8 @@ async fn handle_ws(
     });
     let _ = ws_sender.send(Message::Text(welcome.to_string().into())).await;
 
-    // Run start.bas immediately on connect (not waiting for first user message)
     let start_bas_ran = run_start_bas_on_connect(&state, &mut ws_sender, &mut rx, bot_uuid, session_id, user_id, &bot_name).await;
 
-    // Message loop
     loop {
         tokio::select! {
             msg = ws_receiver.next() => {
@@ -347,18 +397,15 @@ async fn handle_ws(
                             .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
                             .unwrap_or_default();
 
-                        // Ensure session exists in DB for FK constraints (KB, etc.)
                         {
                             let mut sm = state.session_manager.lock().await;
                             let _ = sm.get_or_create_session_by_id(session_id, user_id, bot_uuid, "");
                         }
 
-                        // Handle SYSTEM messages (type 7) - deprecated, just acknowledge
                         if msg_type == 7 {
                             continue;
                         }
 
-                        // Handle SWITCHER_TOGGLE (type 8) - re-process last message with switcher active
                         let mut is_switcher_replay = false;
                         if msg_type == 8 {
                             let last_user_msg = {
@@ -375,7 +422,6 @@ async fn handle_ws(
                             }
                         }
 
-                        // Legacy: Direct tool invocation via __TOOL__: prefix
                         if user_text.starts_with("__TOOL__:") {
                             let tool_name = user_text.trim_start_matches("__TOOL__:").trim().to_string();
                             if !tool_name.is_empty() {
@@ -394,13 +440,36 @@ async fn handle_ws(
                             continue;
                         }
 
-                        // Handle TOOL_EXEC (type 6) - bypass LLM
                         if msg_type == 6 {
                             let raw_tool_name = user_text.trim().to_string();
-                            let tool_name = botcore::shared::utils::sanitize_path_component(&raw_tool_name);
+                            let tool_name = match validate_bot_name(&raw_tool_name) {
+                                Ok(n) => n,
+                                Err(e) => {
+                                    warn!("TOOL_EXEC: invalid tool name '{}': {}", raw_tool_name, e);
+                                    let resp = serde_json::json!({
+                                        "bot_id": bot_uuid.to_string(),
+                                        "user_id": user_id.to_string(),
+                                        "session_id": session_id.to_string(),
+                                        "channel": "web",
+                                        "content": format!("<p>Invalid tool name: {}</p>", raw_tool_name),
+                                        "message_type": 2, "is_complete": true,
+                                        "suggestions": [], "switchers": [],
+                                        "context_length": 0, "context_max_length": 0,
+                                    });
+                                    let _ = ws_sender.send(Message::Text(resp.to_string().into())).await;
+                                    continue;
+                                }
+                            };
+
                             if !tool_name.is_empty() {
-                                info!("TOOL_EXEC: Direct tool execution: {} (sanitized from: {})", tool_name, raw_tool_name);
+                                info!("TOOL_EXEC: Direct tool execution: {} (validated from: {})", tool_name, raw_tool_name);
                                 let work_path = botcore::shared::utils::get_work_path();
+                                let rel_tool_path = format!("{}.gbai/{}.gbdialog/{}.ast", bot_name, bot_name, tool_name);
+                                if !verify_path_within_workdir(&rel_tool_path) {
+                                    error!("Path traversal detected in TOOL_EXEC for tool: {}", tool_name);
+                                    continue;
+                                }
+
                                 let ast_path = format!("{}/{}.gbai/{}.gbdialog/{}.ast", work_path, bot_name, bot_name, tool_name);
                                 let ast_content = match tokio::fs::read_to_string(&ast_path).await {
                                     Ok(c) if !c.is_empty() => c,
@@ -432,7 +501,6 @@ async fn handle_ws(
                                     }).await;
                                 }
 
-                                // Drain any TALK responses from tool execution
                                 for _ in 0..50 {
                                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                                     match rx.try_recv() {
@@ -449,7 +517,6 @@ async fn handle_ws(
                             continue;
                         }
 
-                        // Try to deliver to a waiting HEAR keyword first
                         let runtime: Arc<dyn botbasic_types::BasicRuntime> =
                             Arc::new(crate::basic::AppStateBasicRuntime(state.clone()));
                         let delivered = crate::basic::keywords::hearing::deliver_hear_input(
@@ -458,12 +525,9 @@ async fn handle_ws(
 
                         info!("ws_handler: delivered={}, user_text='{}'", delivered, user_text);
                         if delivered {
-                            // HEAR consumed the message. TALKs from the unblocked script are
-                            // forwarded to WebSocket via rx.recv() in the main select! (line 882).
                             continue;
                         }
 
-                        // Fallback: run start.bas now if it didn't run on connect (DriveMonitor wasn't ready)
                         if !start_bas_ran {
                             let guards = state.start_bas_guards.lock().await;
                             if !guards.contains_key(&session_id) {
@@ -477,8 +541,6 @@ async fn handle_ws(
                         let mut guards = state.start_bas_guards.lock().await;
                         guards.entry(session_id).or_insert(true);
 
-                        // Send suggestions AFTER start.bas has run (so suggestions are in Redis)
-                        // but BEFORE KB embedding (to prevent connection timeout)
                         let post_start_suggestions = {
                             #[cfg(feature = "chat")]
                             {
@@ -522,7 +584,6 @@ async fn handle_ws(
                             }).to_string().into())).await;
                         }
 
-                        // Send keepalive before KB embedding to prevent browser timeout
                         let _ = ws_sender.send(Message::Text(serde_json::json!({
                             "bot_id": bot_uuid.to_string(),
                             "user_id": user_id.to_string(),
@@ -537,7 +598,6 @@ async fn handle_ws(
                             "context_max_length": 0,
                         }).to_string().into())).await;
 
-                        // Build messages array: system prompt + KB context + history + user message
                         let base_system_prompt = load_system_prompt(&bot_name);
                         let system_prompt = if !active_switchers.is_empty() {
                             let switcher_prompts = crate::basic::keywords::switcher::resolve_active_switchers(
@@ -554,7 +614,6 @@ async fn handle_ws(
                         } else {
                             base_system_prompt
                         };
-                        // Inject session context data (bot memory)
                         let session_context = {
                             let sm = state.session_manager.lock().await;
                             sm.get_session_context_data(&session_id, &user_id).ok().unwrap_or_default()
@@ -564,14 +623,12 @@ async fn handle_ws(
                             serde_json::json!({"role": "system", "content": system_prompt.clone()})
                         ];
 
-                        // Add session context as system message if non-empty
                         if !session_context.is_empty() {
                             messages.push(serde_json::json!({
                                 "role": "system", "content": format!("Contexto da conversa:\n{}", session_context)
                             }));
                         }
 
-                        // Load recent conversation history (limit from bot config)
                         let history_limit: i64 = {
                             use botcore::config::ConfigManager;
                             let cfg = ConfigManager::new(state.conn.clone());
@@ -595,8 +652,6 @@ async fn handle_ws(
                             }
                         }
 
-                        // Send immediate keepalive BEFORE KB embedding to prevent browser
-                        // from closing connection during the embedding API calls (1-2s)
                         let _ = ws_sender.send(Message::Text(serde_json::json!({
                             "bot_id": bot_uuid.to_string(),
                             "user_id": user_id.to_string(),
@@ -611,7 +666,6 @@ async fn handle_ws(
                             "context_max_length": 0,
                         }).to_string().into())).await;
 
-                        // Inject KB and website context via Qdrant search
                         let user_query = user_text.clone();
                         let mut messages_val = serde_json::Value::Array(messages.clone());
     crate::core::bot::kb_context::inject_kb_context(
@@ -626,13 +680,11 @@ async fn handle_ws(
                             messages = arr.clone();
                         }
 
-                        // Save user message to history (skip for switcher replays)
                         if !is_switcher_replay {
                             let mut sm = state.session_manager.lock().await;
                             let _ = sm.save_message(session_id, user_id, 1, &user_text, 1);
                         }
 
-                        // Build flat prompt from messages for streaming
                         let mut full_prompt = String::new();
                         for msg in &messages {
                             let role = msg["role"].as_str().unwrap_or("user");
@@ -647,11 +699,9 @@ async fn handle_ws(
                         full_prompt.push_str(&format!("\nUser: {}", user_text));
                         full_prompt.push_str("\nAssistant: ");
 
-                        // Stream LLM response chunk by chunk
                         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
                         let mut full_response = String::new();
 
-                        // Look up bot-specific LLM config and create provider
                         let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> = {
                             use botcore::config::ConfigManager;
                             let cfg = ConfigManager::new(state.conn.clone());
@@ -666,7 +716,6 @@ async fn handle_ws(
                             }
                         };
 
-                        // Check answer mode (data/chart) — bypass normal LLM streaming
                         let answer_mode = {
                             #[cfg(feature = "chat")]
                             {
@@ -729,16 +778,12 @@ async fn handle_ws(
                                 let session_id_s = session_id.to_string();
                                 let bot_name_clone = bot_name.clone();
 
-                                // Suggestions already sent at message receipt time (see early_suggestions above)
-
-                                // Inject bot styles.css into full_response (sent with first streaming chunk)
                                 let style_css = load_bot_styles_css(&bot_name_clone);
                                 if !style_css.is_empty() {
                                     let style_tag = format!("<style>\n{}</style>\n", style_css);
                                     full_response.push_str(&style_tag);
                                 }
 
-                                // Load session tools for LLM function calling
                                 let session_tools = {
                                     let sid: Uuid = match session_id_s.parse() {
                                         Ok(id) => id,
@@ -750,7 +795,6 @@ async fn handle_ws(
                                 };
                                 info!("Loaded {} tools for LLM session {}", session_tools.len(), session_id_s);
 
-                                // Spawn LLM streaming task
                                 let _stream_handle = tokio::spawn(async move {
                                     info!("LLM spawn task starting: model={}, key_len={}", llm_model_clone, llm_key_clone.len());
                                     let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
@@ -761,8 +805,6 @@ async fn handle_ws(
                                     }
                                 });
 
-                                // Stream chunks to WebSocket with periodic keepalive
-                                // Send immediate thinking indicator before entering the loop
                                 let _ = ws_sender.send(Message::Text(serde_json::json!({
                                     "bot_id": bot_uuid_s,
                                     "user_id": user_id.to_string(),
@@ -829,8 +871,6 @@ async fn handle_ws(
                                     }
                                 }
 
-                                // Send is_complete IMMEDIATELY after stream ends (before any other ops)
-                                 // This prevents browser from closing connection between stream end and final message
                                  let final_resp = serde_json::json!({
                                      "bot_id": bot_uuid_s,
                                      "user_id": user_id.to_string(),
@@ -846,15 +886,28 @@ async fn handle_ws(
                                  });
                                  let _ = ws_sender.send(Message::Text(final_resp.to_string().into())).await;
 
-                                 // Check for tool_call in full_response and execute tool if present
                                  let tool_call_trigger = format!("\"__tool_call__\":");
                                  if full_response.contains(&tool_call_trigger) {
                                      if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(&full_response) {
-                                         let tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                                         let raw_tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
                                          let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
-                                         info!("LLM tool_call: executing tool '{}' with args: {}", tool_name, tool_args);
-                                         if !tool_name.is_empty() {
+                                         info!("LLM tool_call: executing tool '{}' with args: {}", raw_tool_name, tool_args);
+                                         if !raw_tool_name.is_empty() {
+                                             let tool_name = match validate_bot_name(&raw_tool_name) {
+                                                 Ok(n) => n,
+                                                 Err(e) => {
+                                                     warn!("LLM tool_call: invalid tool name '{}': {}", raw_tool_name, e);
+                                                     continue;
+                                                 }
+                                             };
+
                                              let work_path = botcore::shared::utils::get_work_path();
+                                             let rel_tool_path = format!("{}.gbai/{}.gbdialog/{}.ast", bot_name, bot_name, tool_name);
+                                             if !verify_path_within_workdir(&rel_tool_path) {
+                                                 error!("Path traversal detected in LLM tool_call for tool: {}", tool_name);
+                                                 continue;
+                                             }
+
                                              let ast_path = format!("{}/{}.gbai/{}.gbdialog/{}.ast", work_path, bot_name, bot_name, tool_name);
                                              let ast_content = match tokio::fs::read_to_string(&ast_path).await {
                                                  Ok(c) if !c.is_empty() => c,
@@ -868,7 +921,6 @@ async fn handle_ws(
                                                   let state_for_tool = state_clone.clone();
                                                   let tool_name_cl = tool_name.clone();
 
-                                                  // Parse tool arguments into context_data
                                                   let parsed_args: serde_json::Value = serde_json::from_str(tool_args).unwrap_or(serde_json::Value::Null);
                                                   let context_data = if parsed_args.is_object() {
                                                       parsed_args
@@ -895,7 +947,6 @@ async fn handle_ws(
                                                      }
                                                  }).await;
 
-                                                 // Drain TALK responses from tool execution
                                                  for _ in 0..50 {
                                                      tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                                                      match rx.try_recv() {
@@ -913,7 +964,6 @@ async fn handle_ws(
                                      }
                                  }
 
-                                  // Save assistant response to history (async, after is_complete sent)
                                   {
                                       let mut sm = state_clone.session_manager.lock().await;
                                       let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
@@ -926,7 +976,6 @@ async fn handle_ws(
                             let mut sm = state.session_manager.lock().await;
                                     let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
                                 }
-                                // Send fallback response
                                 let _ = ws_sender.send(Message::Text(serde_json::json!({
                                     "bot_id": bot_uuid.to_string(),
                                     "user_id": user_id.to_string(),

@@ -302,16 +302,20 @@ impl BasicCompiler {
                 continue;
             }
 
-            if Regex::new(r#"(?i)^ON\s+UPDATE\s+OF\s+"([^"]+)"\s*$"#).ok().map_or(false, |re| re.is_match(&normalized)) {
+            // Support: ON UPDATE OF "table" (uses current script as param)
+            // Support: ON UPDATE OF "table" DO CALL "script" (uses DO CALL script as param)
+            let on_update_base = r#"(?i)^ON\s+UPDATE\s+OF\s+"([^"]+)"\s*$"#;
+            let on_update_do_call = r#"(?i)^ON\s+UPDATE\s+OF\s+"([^"]+)"\s+DO\s+CALL\s+"([^"]+)"\s*$"#;
+            let do_call_re = Regex::new(on_update_do_call).ok();
+            let base_re = Regex::new(on_update_base).ok();
+
+            if do_call_re.as_ref().map_or(false, |re| re.is_match(&normalized)) {
                 found_directives.insert(basic_errors::Directive::OnUpdateOf);
-                let table_name = normalized
-                    .split('"')
-                    .nth(1)
-                    .map(|s| s.to_string())
-                    .unwrap_or_default();
+                let caps = do_call_re.unwrap().captures(&normalized).unwrap();
+                let table_name = caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
+                let trigger_script = caps.get(2).map(|m| m.as_str().to_string()).unwrap_or_else(|| script_name.clone());
                 if let Some(ref cb) = self.callbacks.execute_on_update {
                     let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {e}"))?;
-                    // Limpa registos antigos para esta tabela antes de inserir novos
                     use botcore::shared::schema::system_automations;
                     if let Err(e) = diesel::delete(
                         system_automations::table
@@ -324,7 +328,40 @@ impl BasicCompiler {
                         log::error!("Failed to clean old ON UPDATE OF triggers: {e}");
                     }
                     let call_bot_id = bot_uuid;
-                    // O script a executar é o PRÓPRIO ficheiro (param = script_name)
+                    if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 2) {
+                        log::error!("Failed to register ON UPDATE OF DO CALL (INSERT) trigger: {e}");
+                    }
+                    if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 1) {
+                        log::error!("Failed to register ON UPDATE OF DO CALL (UPDATE) trigger: {e}");
+                    }
+                    if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 3) {
+                        log::error!("Failed to register ON UPDATE OF DO CALL (DELETE) trigger: {e}");
+                    }
+                }
+                continue;
+            }
+
+            if base_re.as_ref().map_or(false, |re| re.is_match(&normalized)) {
+                found_directives.insert(basic_errors::Directive::OnUpdateOf);
+                let table_name = normalized
+                    .split('"')
+                    .nth(1)
+                    .map(|s| s.to_string())
+                    .unwrap_or_default();
+                if let Some(ref cb) = self.callbacks.execute_on_update {
+                    let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+                    use botcore::shared::schema::system_automations;
+                    if let Err(e) = diesel::delete(
+                        system_automations::table
+                            .filter(system_automations::bot_id.eq(&bot_uuid))
+                            .filter(system_automations::target.eq(&table_name))
+                            .filter(system_automations::kind.eq_any(vec![1i32, 2i32, 3i32])),
+                    )
+                    .execute(&mut conn)
+                    {
+                        log::error!("Failed to clean old ON UPDATE OF triggers: {e}");
+                    }
+                    let call_bot_id = bot_uuid;
                     if let Err(e) = (cb)(&mut conn, &table_name, &script_name, call_bot_id, 2) {
                         log::error!("Failed to register ON UPDATE OF (INSERT) trigger: {e}");
                     }

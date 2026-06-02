@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use std::net::{IpAddr, ToSocketAddrs};
 use uuid::Uuid;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -54,7 +55,44 @@ impl WebhookEvent {
         hex::encode(result.into_bytes())
     }
 
+    fn is_safe_webhook_url(url: &str) -> bool {
+        let parsed = match url::Url::parse(url) {
+            Ok(u) => u,
+            Err(_) => return false,
+        };
+        let host = match parsed.host_str() {
+            Some(h) => h,
+            None => return false,
+        };
+        if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" {
+            return false;
+        }
+        if host.ends_with(".local") || host.ends_with(".internal") {
+            return false;
+        }
+        if let Ok(addrs) = (host, 0).to_socket_addrs() {
+            for addr in addrs {
+                match addr.ip() {
+                    IpAddr::V4(v4) => {
+                        if v4.is_loopback() || v4.is_private() || v4.is_link_local() || v4.is_unspecified() {
+                            return false;
+                        }
+                    }
+                    IpAddr::V6(v6) => {
+                        if v6.is_loopback() || v6.is_unspecified() {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        true
+    }
+
     pub fn dispatch(&self, url: &str) -> Result<(), String> {
+        if !Self::is_safe_webhook_url(url) {
+            return Err("Blocked webhook to unsafe URL".to_string());
+        }
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()

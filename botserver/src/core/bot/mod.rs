@@ -112,14 +112,15 @@ pub fn get_default_bot() -> (String, String) { ("default".to_string(), "Default 
 pub async fn get_bot_config(
     axum::extract::State(state): axum::extract::State<Arc<botcore::shared::state::AppState>>,
     axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
-) -> impl IntoResponse {
+) -> Result<axum::Json<serde_json::Value>, crate::security::SafeErrorResponse> {
     use diesel::prelude::*;
-    let mut conn = match state.conn.get() {
-        Ok(c) => c,
-        Err(_) => return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "db error".to_string()),
-    };
     use botcore::shared::models::schema::bot_configuration::dsl::*;
     use botcore::shared::models::schema::bots;
+
+    let mut conn = state.conn.get().map_err(|e| {
+        log::error!("DB connection error in get_bot_config: {}", e);
+        crate::security::SafeErrorResponse::internal_error()
+    })?;
 
     let bot_uuid = if let Some(name) = params.get("bot_name") {
         bots::table
@@ -141,10 +142,17 @@ pub async fn get_bot_config(
             .select((config_key, config_value))
             .load(&mut conn)
     }
-    .unwrap_or_default();
+    .map_err(|e| {
+        log::error!("DB query error in get_bot_config: {}", e);
+        crate::security::SafeErrorResponse::internal_error()
+    })?;
 
-    let map: HashMap<String, String> = rows.into_iter().collect();
-    (axum::http::StatusCode::OK, serde_json::to_string(&map).unwrap_or_default())
+    let sensitive_prefixes = ["llm-key", "llm-url", "llm-server", "secret", "token", "password", "api-key"];
+    let map: HashMap<String, String> = rows
+        .into_iter()
+        .filter(|(k, _)| !sensitive_prefixes.iter().any(|prefix| k.to_lowercase().contains(prefix)))
+        .collect();
+    Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()))
 }
 
 pub async fn check_bot_access(state: &Arc<botcore::shared::state::AppState>, bot_name: &str, user_id: Uuid) -> Result<(), String> {

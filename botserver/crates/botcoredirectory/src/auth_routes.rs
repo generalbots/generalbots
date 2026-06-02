@@ -171,83 +171,13 @@ pub async fn login(
         admin_token
     };
 
-    let search_url = format!("{}/management/v1/users/_search", auth_service.api_url());
-    let search_body = serde_json::json!({
-        "queries": [{
-            "emailQuery": {
-                "emailAddress": req.email,
-                "method": "TEXT_QUERY_METHOD_EQUALS"
-            }
-        }]
-    });
-
-    let user_response = http_client
-        .post(&search_url)
-        .bearer_auth(&admin_token)
-        .json(&search_body)
-        .send()
-        .await
-        .map_err(|e| {
-            log::error!("Failed to search user: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Authentication service error".to_string(),
-                    details: None,
-                }),
-            )
-        })?;
-
-    if !user_response.status().is_success() {
-        let error_text = user_response.text().await.unwrap_or_default();
-        log::error!("User search failed: {}", error_text);
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            Json(ErrorResponse {
-                error: "Invalid email or password".to_string(),
-                details: None,
-            }),
-        ));
-    }
-
-    let user_data: serde_json::Value = user_response.json().await.map_err(|e| {
-        log::error!("Failed to parse user response: {}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Authentication service error".to_string(),
-                details: None,
-            }),
-        )
-    })?;
-
-    let user_id_str = user_data
-        .get("result")
-        .and_then(|r| r.as_array())
-        .and_then(|arr| arr.first())
-        .and_then(|u| u.get("id").or_else(|| u.get("userId")))
-        .and_then(|v| v.as_str())
-        .map(String::from);
-
-    let user_id_str = match user_id_str {
-        Some(id) => id,
-        None => {
-            log::error!("User not found: {}", req.email);
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                Json(ErrorResponse {
-                    error: "Invalid email or password".to_string(),
-                    details: None,
-                }),
-            ));
-        }
-    };
-
+    // Attempt authentication directly via Zitadel session API with loginName + password
+    // This avoids email enumeration by not searching for the user first
     let session_url = format!("{}/v2/sessions", auth_service.api_url());
     let session_body = serde_json::json!({
         "checks": {
             "user": {
-                "userId": user_id_str
+                "loginName": req.email
             },
             "password": {
                 "password": req.password
@@ -262,11 +192,11 @@ pub async fn login(
         .send()
         .await
         .map_err(|e| {
-            log::error!("Failed to create session: {}", e);
+            log::error!("Authentication request failed: {}", e);
             (
                 StatusCode::UNAUTHORIZED,
                 Json(ErrorResponse {
-                    error: "Authentication failed".to_string(),
+                    error: "Invalid email or password".to_string(),
                     details: None,
                 }),
             )
@@ -275,22 +205,11 @@ pub async fn login(
     if !session_response.status().is_success() {
         let status = session_response.status();
         let error_text = session_response.text().await.unwrap_or_default();
-        log::error!("Session creation failed: {} - {}", status, error_text);
-
-        if error_text.contains("password") || error_text.contains("invalid") {
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                Json(ErrorResponse {
-                    error: "Invalid email or password".to_string(),
-                    details: None,
-                }),
-            ));
-        }
-
+        log::error!("Authentication failed: {} - {}", status, error_text);
         return Err((
             StatusCode::UNAUTHORIZED,
             Json(ErrorResponse {
-                error: "Authentication failed".to_string(),
+                error: "Invalid email or password".to_string(),
                 details: None,
             }),
         ));
@@ -316,6 +235,24 @@ pub async fn login(
         .get("sessionToken")
         .and_then(|s| s.as_str())
         .map(String::from);
+
+    // Extract user ID from session factors instead of separate user search
+    let user_id_str = session_data
+        .get("factors")
+        .and_then(|f| f.get("user"))
+        .and_then(|u| u.get("userId").or_else(|| u.get("id")))
+        .and_then(|v| v.as_str())
+        .map(String::from)
+        .ok_or_else(|| {
+            log::error!("No user ID in session response for: {}", req.email);
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(ErrorResponse {
+                    error: "Invalid email or password".to_string(),
+                    details: None,
+                }),
+            )
+        })?;
 
     use uuid::Uuid;
     

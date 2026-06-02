@@ -247,7 +247,15 @@ pub fn convert_if_then_syntax(script: &str) -> String {
                 let trimmed_lower = trimmed.to_lowercase();
                 let in_block = !if_stack.is_empty() || while_depth > 0;
                 if !in_block && !trimmed_lower.starts_with("let ") {
-                    result.push_str("let ");
+                    let first_word = trimmed_lower.split_whitespace().next().unwrap_or("");
+                    let is_statement_keyword = matches!(first_word,
+                        "if" | "else" | "while" | "for" | "update" | "save" | "insert"
+                        | "delete" | "select" | "merge" | "talk" | "print" | "return"
+                        | "switch" | "match" | "throw" | "import" | "export" | "const"
+                    );
+                    if !is_statement_keyword {
+                        result.push_str("let ");
+                    }
                 }
             }
             result.push_str(&line_to_process);

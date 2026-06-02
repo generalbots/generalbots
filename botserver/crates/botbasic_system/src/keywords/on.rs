@@ -20,7 +20,7 @@ pub fn on_keyword(state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &mu
             move |context, inputs| {
                 let trigger_type = context.eval_expression_tree(&inputs[0])?.to_string();
                 let table = context.eval_expression_tree(&inputs[1])?.to_string();
-                let name = format!("{}_{}.rhai", table, trigger_type.to_lowercase());
+                let name = format!("{}_{}.bas", table, trigger_type.to_lowercase());
                 let kind = match trigger_type.to_uppercase().as_str() {
                     "UPDATE" => TriggerKind::TableUpdate,
                     "INSERT" => TriggerKind::TableInsert,
