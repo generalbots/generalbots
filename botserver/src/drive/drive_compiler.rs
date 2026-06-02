@@ -235,14 +235,12 @@ impl DriveCompiler {
                     .map_err(|e| e.to_string())
             }));
         }
-        #[cfg(feature = "tasks")]
-        {
-            callbacks.execute_on_update = Some(Box::new(|conn, table_name, script_name, bot_id, kind| {
-                crate::basic::keywords::on_update::execute_on_update_registration(conn, table_name, script_name, bot_id, kind)
-                    .map(|_| ())
-                    .map_err(|e| e.to_string())
-            }));
-        }
+        // ON UPDATE OF callback is always available (not behind tasks feature)
+        callbacks.execute_on_update = Some(Box::new(|conn, table_name, script_name, bot_id, kind| {
+            crate::basic::keywords::on_update::execute_on_update_registration(conn, table_name, script_name, bot_id, kind)
+                .map(|_| ())
+                .map_err(|e| e.to_string())
+        }));
         callbacks.execute_webhook = Some(Box::new(|conn, endpoint, script, bot_id| {
             crate::basic::keywords::webhook::execute_webhook_registration(conn, endpoint, script, bot_id)
                 .map(|_| ())

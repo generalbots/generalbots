@@ -737,18 +737,6 @@ fn validate_jwt(token: &str, secret: &str) -> Result<TokenClaims, AuthError> {
                     }
 
                     // Fallback: decode without validation for trusted internal tokens
-                    // Disabled in production - only dev mode
-                    if false {
-                        let mut insecure_validation = Validation::new(Algorithm::HS256);
-                        insecure_validation.insecure_disable_signature_validation();
-                        insecure_validation.validate_exp = true;
-                        insecure_validation.set_required_spec_claims(&["sub", "exp"]);
-
-                        if let Ok(token_data) = decode::<TokenClaims>(token, &DecodingKey::from_secret(&[]), &insecure_validation) {
-                            return Ok(token_data.claims);
-                        }
-                    }
-
                     Err(AuthError::InvalidToken(format!("Invalid signature: {}", e)))
                 }
                 jsonwebtoken::errors::ErrorKind::ExpiredSignature => {

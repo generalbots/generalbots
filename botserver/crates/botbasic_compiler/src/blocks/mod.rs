@@ -30,6 +30,12 @@ pub fn convert_begin_blocks(script: &str) -> String {
         }
 
         if upper == "END TALK" {
+            if !in_talk_block {
+                trace!("Starting END TALK free-text block");
+                in_talk_block = true;
+                talk_block_lines.clear();
+                continue;
+            }
             trace!(
                 "Converting END TALK statement, processing {} lines",
                 talk_block_lines.len()

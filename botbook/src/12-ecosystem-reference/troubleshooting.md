@@ -535,6 +535,29 @@ ss -tlnp | grep LISTEN
 | `too many open files` | ulimit too low | `ulimit -n 65536` |
 | `connection timed out` | Network/firewall | Check firewall rules |
 
+### E-BAS (BASIC Compiler) Error Codes
+
+Erros do compilador BASIC são prefixados com `E-BAS-` e ocorrem durante a compilação de scripts `.bas` pelo DriveMonitor.
+
+| Código | Descrição | Causa | Solução |
+|--------|-----------|-------|---------|
+| `E-BAS-0001` | Diretivas mutuamente exclusivas | Dois modos de gatilho conflitantes no mesmo script (ex: `SET SCHEDULE` + `ON UPDATE OF`) | Use apenas UMA diretiva de modo por arquivo `.bas`. Separe em arquivos distintos. |
+| `E-BAS-0002` | — reservado | — | — |
+| `E-BAS-0003` | — reservado | — | — |
+| `E-BAS-0004` | — reservado | — | — |
+| `E-BAS-0005` | — reservado | — | — |
+
+**Modos de gatilho mutuamente exclusivos:**
+
+| Directiva | Modo | Conflita com |
+|-----------|------|-------------|
+| `SET SCHEDULE` | Agendado (cron) | `ON UPDATE OF`, `WEBHOOK`, `ON EMAIL`, `ON CHANGE` |
+| `ON UPDATE OF` | Gatilho de tabela (DB) | `SET SCHEDULE`, `WEBHOOK`, `ON EMAIL`, `ON CHANGE` |
+| `WEBHOOK` | Webhook HTTP | `SET SCHEDULE`, `ON UPDATE OF`, `ON EMAIL`, `ON CHANGE` |
+| `ON EMAIL FROM` | Gatilho de email | `SET SCHEDULE`, `ON UPDATE OF`, `WEBHOOK`, `ON CHANGE` |
+| `ON CHANGE` | Gatilho de mudança | `SET SCHEDULE`, `ON UPDATE OF`, `WEBHOOK`, `ON EMAIL` |
+| `USE WEBSITE` | Scraping | Nenhum (coexiste com todos) |
+
 ---
 
 ## Getting Help

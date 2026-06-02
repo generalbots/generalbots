@@ -830,27 +830,94 @@ async fn handle_ws(
                                 }
 
                                 // Send is_complete IMMEDIATELY after stream ends (before any other ops)
-                                // This prevents browser from closing connection between stream end and final message
-                                let final_resp = serde_json::json!({
-                                    "bot_id": bot_uuid_s,
-                                    "user_id": user_id.to_string(),
-                                    "session_id": session_id_s,
-                                    "channel": "web",
-                                    "content": "",
-                                    "message_type": 2,
-                                    "is_complete": true,
-                                    "suggestions": [],
-                                    "switchers": [],
-                                    "context_length": 0,
-                                    "context_max_length": 0,
-                                });
-                                let _ = ws_sender.send(Message::Text(final_resp.to_string().into())).await;
+                                 // This prevents browser from closing connection between stream end and final message
+                                 let final_resp = serde_json::json!({
+                                     "bot_id": bot_uuid_s,
+                                     "user_id": user_id.to_string(),
+                                     "session_id": session_id_s,
+                                     "channel": "web",
+                                     "content": "",
+                                     "message_type": 2,
+                                     "is_complete": true,
+                                     "suggestions": [],
+                                     "switchers": [],
+                                     "context_length": 0,
+                                     "context_max_length": 0,
+                                 });
+                                 let _ = ws_sender.send(Message::Text(final_resp.to_string().into())).await;
 
-                                 // Save assistant response to history (async, after is_complete sent)
-                                 {
-                                     let mut sm = state_clone.session_manager.lock().await;
-                                     let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                                 // Check for tool_call in full_response and execute tool if present
+                                 let tool_call_trigger = format!("\"__tool_call__\":");
+                                 if full_response.contains(&tool_call_trigger) {
+                                     if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(&full_response) {
+                                         let tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                                         let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
+                                         info!("LLM tool_call: executing tool '{}' with args: {}", tool_name, tool_args);
+                                         if !tool_name.is_empty() {
+                                             let work_path = botcore::shared::utils::get_work_path();
+                                             let ast_path = format!("{}/{}.gbai/{}.gbdialog/{}.ast", work_path, bot_name, bot_name, tool_name);
+                                             let ast_content = match tokio::fs::read_to_string(&ast_path).await {
+                                                 Ok(c) if !c.is_empty() => c,
+                                                 _ => {
+                                                     let bas_path = ast_path.replace(".ast", ".bas");
+                                                     tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
+                                                 }
+                                             };
+
+                                              if !ast_content.is_empty() {
+                                                  let state_for_tool = state_clone.clone();
+                                                  let tool_name_cl = tool_name.clone();
+
+                                                  // Parse tool arguments into context_data
+                                                  let parsed_args: serde_json::Value = serde_json::from_str(tool_args).unwrap_or(serde_json::Value::Null);
+                                                  let context_data = if parsed_args.is_object() {
+                                                      parsed_args
+                                                  } else {
+                                                      serde_json::Value::Null
+                                                  };
+                                                  info!("Tool '{}' context_data: {:?}", tool_name, context_data);
+
+                                                  let session_for_tool = botlib::models::UserSession {
+                                                      id: session_id, user_id, bot_id: bot_uuid,
+                                                      title: String::new(),
+                                                      context_data,
+                                                      current_tool: None,
+                                                      created_at: chrono::Utc::now(),
+                                                      updated_at: chrono::Utc::now(),
+                                                  };
+                                                 let _ = tokio::task::spawn_blocking(move || {
+                                                     let mut svc = crate::basic::ScriptService::new(
+                                                         state_for_tool.clone(), session_for_tool,
+                                                     );
+                                                     svc.load_bot_config_params(&state_for_tool, bot_uuid);
+                                                     if let Err(e) = svc.run(&ast_content) {
+                                                         warn!("Tool '{}' execution error: {}", tool_name_cl, e);
+                                                     }
+                                                 }).await;
+
+                                                 // Drain TALK responses from tool execution
+                                                 for _ in 0..50 {
+                                                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                                     match rx.try_recv() {
+                                                         Ok(response) => {
+                                                             if let Ok(json) = serde_json::to_string(&response) {
+                                                                 let _ = ws_sender.send(Message::Text(json.into())).await;
+                                                             }
+                                                         }
+                                                         Err(tokio::sync::mpsc::error::TryRecvError::Empty) => continue,
+                                                         Err(_) => break,
+                                                     }
+                                                 }
+                                             }
+                                         }
+                                     }
                                  }
+
+                                  // Save assistant response to history (async, after is_complete sent)
+                                  {
+                                      let mut sm = state_clone.session_manager.lock().await;
+                                      let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                                  }
                             }
                             None => {
                                 info!("No LLM provider");

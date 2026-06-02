@@ -508,20 +508,25 @@ pub fn convert_multiword_keywords(script: &str) -> String {
             continue;
         }
 
+        // Check for multiword keywords in ANY position (not just start of line)
         for (pattern, min_params, max_params, _param_names) in &multiword_patterns {
+            // Use a regex that captures prefix (indent + any text before keyword) and params after keyword
             let regex_str = format!(
-                r#"(?i)^\s*{}\s*(.*?)(?:\s*)$"#,
+                r#"(?i)^(\s*)(.*?)\b{}\s+(.*)$"#,
                 pattern
             );
 
             if let Ok(re) = Regex::new(&regex_str) {
-                if let Some(caps) = re.captures(trimmed) {
-                    if let Some(params_str) = caps.get(1) {
-                        let params = parse_parameters(params_str.as_str());
+                if let Some(caps) = re.captures(line) {
+                    if let (Some(prefix_match), Some(params_match)) = (caps.get(2), caps.get(3)) {
+                        let indent = caps.get(1).map_or("", |m| m.as_str());
+                        let prefix = prefix_match.as_str();
+                        let params_str = params_match.as_str().trim();
+                        let params = parse_parameters(params_str);
                         let param_count = params.len();
 
                         if param_count >= *min_params && param_count <= *max_params {
-                            let keyword = pattern.replace(r"\s+", "_");
+                            let keyword = pattern.replace(r"\s+", "_").to_lowercase();
 
                             let output = if keyword == "ADD_SWITCHER" {
                                 let (switcher_id, label) = if params.len() == 2 {
@@ -531,14 +536,14 @@ pub fn convert_multiword_keywords(script: &str) -> String {
                                 } else {
                                     (params[0].clone(), params.last().cloned().unwrap_or_default())
                                 };
-                                format!("ADD_SWITCHER {} as {};", switcher_id, label)
+                                format!("{}{}{} {} as {};", indent, prefix, keyword, switcher_id, label)
                             } else {
-                                let params_str = if params.is_empty() {
+                                let param_str = if params.is_empty() {
                                     String::new()
                                 } else {
                                     params.join(", ")
                                 };
-                                format!("{}({});", keyword, params_str)
+                                format!("{}{}{}({});", indent, prefix, keyword, param_str)
                             };
 
                             result.push_str(&output);
@@ -565,9 +570,12 @@ fn parse_parameters(params_str: &str) -> Vec<String> {
     let mut current = String::new();
     let mut in_quotes = false;
     let mut quote_char = '"';
-    let chars = params_str.chars().peekable();
+    let mut paren_depth: i32 = 0;
+    let chars: Vec<char> = params_str.chars().collect();
+    let mut i = 0;
 
-    for c in chars {
+    while i < chars.len() {
+        let c = chars[i];
         match c {
             '"' | '\'' if !in_quotes => {
                 in_quotes = true;
@@ -578,13 +586,15 @@ fn parse_parameters(params_str: &str) -> Vec<String> {
                 in_quotes = false;
                 current.push(c);
             }
-            ' ' | '\t' if !in_quotes => {
-                if !current.is_empty() {
-                    params.push(current.trim().to_string());
-                    current = String::new();
-                }
+            '(' if !in_quotes => {
+                paren_depth += 1;
+                current.push(c);
             }
-            ',' if !in_quotes => {
+            ')' if !in_quotes => {
+                paren_depth -= 1;
+                current.push(c);
+            }
+            ',' if !in_quotes && paren_depth == 0 => {
                 if !current.is_empty() {
                     params.push(current.trim().to_string());
                     current = String::new();
@@ -594,6 +604,7 @@ fn parse_parameters(params_str: &str) -> Vec<String> {
                 current.push(c);
             }
         }
+        i += 1;
     }
 
     if !current.is_empty() {
