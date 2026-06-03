@@ -21,7 +21,8 @@ I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! 
 > - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.16.164.222")
 > - Use hostnames instead of IPs in configs and documentation
 See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from MinIO drive buckets (`.gbai` format). Bots are sourced exclusively from Drive (MinIO buckets), not from local filesystem paths.
-- ❌ **NEVER** use `cargo clean` - causes 30min rebuilds, use `./reset.sh` for database issues
+- ❌ **NEVER** create `.bak`, `.old`, or backup directories in the repository — use `/tmp/` for all backups
+- ❌ **NEVER** commit `*.bak`, `*.old`, or any temporary backup files to git
 
 >
 > Secret files MUST be placed in `/tmp/` only:
