@@ -98,10 +98,11 @@ pub use botsecurity_auth::password::{
     validate_password, verify_password,
 };
 pub use botsecurity_auth::rbac_middleware::{
-    AccessDecision, AccessDecisionResult, RbacConfig, RbacError, RbacManager, RbacMiddlewareState,
-    RequirePermission, RequireResourceAccess, RequireRole, ResourceAcl, ResourcePermission,
-    RoutePermission, build_default_route_permissions, create_admin_layer, create_permission_layer,
-    create_role_layer, rbac_middleware, rbac_middleware_fn, require_admin_middleware, require_super_admin_middleware,
+    match_wildcard, rbac_middleware_fn, rbac_middleware as rbac_middleware_layer,
+    require_permission_middleware, require_admin_middleware, require_super_admin_middleware,
+    RequirePermission, RequireRole, RequireResourceAccess,
+    RbacManager, ResourceAcl, ResourcePermission, AccessDecision, AccessDecisionResult,
+    RoutePermission, CacheEntry, build_default_route_permissions, RbacConfig, RbacError,
 };
 pub use botsecurity_auth::session::{
     DeviceInfo, InMemorySessionStore, SameSite, Session, SessionConfig, SessionManager,

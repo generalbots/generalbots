@@ -6,7 +6,7 @@ use botcore::shared::models::{
 };
 use botcore::shared::state::AppState;
 use axum::{
-    extract::{Extension, Path, Query, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -47,6 +47,8 @@ pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
         .route("/api/rbac/groups/{group_id}/roles", get(get_group_roles))
         .route("/api/rbac/groups/{group_id}/roles/{role_id}", post(assign_role_to_group).delete(remove_role_from_group))
         .route("/api/rbac/users/{user_id}/permissions", get(get_effective_permissions))
+        .route("/api/rbac/check", post(check_permission))
+        .route("/api/rbac/my-permissions", get(my_permissions))
         .route("/settings/rbac", get(rbac_settings_page))
         .route("/settings/rbac/users", get(rbac_users_list))
         .route("/settings/rbac/roles", get(rbac_roles_list))
@@ -1002,6 +1004,250 @@ async fn get_effective_permissions(
         }
         Err(e) => {
             let sanitized = log_and_sanitize_str(&e.to_string(), "get_effective_permissions", None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
+        }
+    }
+}
+
+fn user_has_db_permission(
+    user_id: Uuid,
+    permission_str: &str,
+    db_conn: &mut PgConnection,
+) -> Result<bool, String> {
+    use botcore::shared::models::schema::{
+        rbac_group_roles, rbac_permissions, rbac_role_permissions, rbac_user_groups,
+        rbac_user_roles,
+    };
+
+    let direct_role_ids: Vec<Uuid> = rbac_user_roles::table
+        .filter(rbac_user_roles::user_id.eq(user_id))
+        .select(rbac_user_roles::role_id)
+        .load(db_conn)
+        .map_err(|e| format!("Query error: {e}"))?;
+
+    let user_group_ids: Vec<Uuid> = rbac_user_groups::table
+        .filter(rbac_user_groups::user_id.eq(user_id))
+        .select(rbac_user_groups::group_id)
+        .load(db_conn)
+        .map_err(|e| format!("Query error: {e}"))?;
+
+    let mut all_group_ids: Vec<Uuid> = vec![];
+    let mut visited: Vec<Uuid> = vec![];
+    for gid in &user_group_ids {
+        let expanded = resolve_group_ids(*gid, db_conn, &mut visited)?;
+        all_group_ids.extend(expanded);
+    }
+    all_group_ids.sort();
+    all_group_ids.dedup();
+
+    let group_role_ids: Vec<Uuid> = rbac_group_roles::table
+        .filter(rbac_group_roles::group_id.eq_any(&all_group_ids))
+        .select(rbac_group_roles::role_id)
+        .load(db_conn)
+        .map_err(|e| format!("Query error: {e}"))?;
+
+    let mut all_role_ids: Vec<Uuid> = direct_role_ids;
+    all_role_ids.extend(group_role_ids);
+    all_role_ids.sort();
+    all_role_ids.dedup();
+
+    if all_role_ids.is_empty() {
+        return Ok(false);
+    }
+
+    let granted_perm_ids: Vec<Uuid> = rbac_role_permissions::table
+        .filter(rbac_role_permissions::role_id.eq_any(&all_role_ids))
+        .select(rbac_role_permissions::permission_id)
+        .load(db_conn)
+        .map_err(|e| format!("Query error: {e}"))?;
+
+    if granted_perm_ids.is_empty() {
+        return Ok(false);
+    }
+
+    let user_permissions: Vec<RbacPermission> = rbac_permissions::table
+        .filter(rbac_permissions::id.eq_any(&granted_perm_ids))
+        .load(db_conn)
+        .map_err(|e| format!("Query error: {e}"))?;
+
+    let req_lower = permission_str.to_lowercase();
+
+    // Check exact or wildcard match against:
+    // 1. PascalCase name (e.g., "DriveCanRead")
+    // 2. colon/dot format: resource_type:action (e.g., "drive:read:*")
+    // 3. colon/dot format: resource_type:action:name (e.g., "drive:read:files")
+    for perm in &user_permissions {
+        let perm_name_lower = perm.name.to_lowercase();
+
+        if botsecurity::match_wildcard(&perm_name_lower, &req_lower) {
+            return Ok(true);
+        }
+
+        let colon_alias = format!("{}:{}:*", perm.resource_type, perm.action);
+        if botsecurity::match_wildcard(&colon_alias, &req_lower) {
+            return Ok(true);
+        }
+
+        let colon_alias_full = format!("{}:{}:{}", perm.resource_type, perm.action, perm_name_lower);
+        if botsecurity::match_wildcard(&colon_alias_full, &req_lower) {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CheckPermissionRequest {
+    pub permission: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CheckPermissionResponse {
+    pub granted: bool,
+    pub permission: String,
+    pub source: String,
+}
+
+async fn check_permission(
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
+    Json(req): Json<CheckPermissionRequest>,
+) -> impl IntoResponse {
+    let permission_str = req.permission.to_lowercase();
+
+    if user.is_admin() || user.is_super_admin() {
+        return Json(CheckPermissionResponse {
+            granted: true,
+            permission: permission_str,
+            source: "admin_bypass".to_string(),
+        })
+        .into_response();
+    }
+
+    let conn = state.conn.clone();
+    let user_id = user.user_id;
+    let perm_str = permission_str.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
+        user_has_db_permission(user_id, &perm_str, &mut db_conn)
+    })
+    .await;
+
+    match result {
+        Ok(Ok(granted)) => Json(CheckPermissionResponse {
+            granted,
+            permission: permission_str,
+            source: if granted {
+                "db_role_permission"
+            } else {
+                "denied"
+            }
+            .to_string(),
+        })
+        .into_response(),
+        Ok(Err(e)) => {
+            let sanitized = log_and_sanitize_str(&e, "check_permission", None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
+        }
+        Err(e) => {
+            let sanitized = log_and_sanitize_str(&e.to_string(), "check_permission", None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
+        }
+    }
+}
+
+async fn my_permissions(
+    State(state): State<Arc<AppState>>,
+    user: AuthenticatedUser,
+) -> impl IntoResponse {
+    let conn = state.conn.clone();
+    let user_id = user.user_id;
+    let result = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
+        use botcore::shared::models::schema::{
+            rbac_group_roles, rbac_groups, rbac_permissions, rbac_role_permissions, rbac_roles,
+            rbac_user_groups, rbac_user_roles,
+        };
+
+        let direct_roles: Vec<RbacRole> = rbac_user_roles::table
+            .inner_join(rbac_roles::table)
+            .filter(rbac_user_roles::user_id.eq(user_id))
+            .filter(rbac_roles::is_active.eq(true))
+            .select(RbacRole::as_select())
+            .load(&mut db_conn)
+            .map_err(|e| format!("Query error: {e}"))?;
+
+        let user_group_ids: Vec<Uuid> = rbac_user_groups::table
+            .filter(rbac_user_groups::user_id.eq(user_id))
+            .select(rbac_user_groups::group_id)
+            .load(&mut db_conn)
+            .map_err(|e| format!("Query error: {e}"))?;
+
+        let mut all_group_ids: Vec<Uuid> = vec![];
+        let mut visited: Vec<Uuid> = vec![];
+        for gid in &user_group_ids {
+            let expanded = resolve_group_ids(*gid, &mut db_conn, &mut visited)?;
+            all_group_ids.extend(expanded);
+        }
+        all_group_ids.sort();
+        all_group_ids.dedup();
+
+        let groups: Vec<RbacGroup> = rbac_user_groups::table
+            .inner_join(rbac_groups::table)
+            .filter(rbac_user_groups::user_id.eq(user_id))
+            .filter(rbac_groups::is_active.eq(true))
+            .select(RbacGroup::as_select())
+            .load(&mut db_conn)
+            .map_err(|e| format!("Query error: {e}"))?;
+
+        let group_roles: Vec<RbacRole> = rbac_group_roles::table
+            .inner_join(rbac_roles::table)
+            .filter(rbac_group_roles::group_id.eq_any(&all_group_ids))
+            .filter(rbac_roles::is_active.eq(true))
+            .select(RbacRole::as_select())
+            .load(&mut db_conn)
+            .map_err(|e| format!("Query error: {e}"))?;
+
+        let mut all_role_ids: Vec<Uuid> = Vec::new();
+        for r in &direct_roles {
+            all_role_ids.push(r.id);
+        }
+        for r in &group_roles {
+            all_role_ids.push(r.id);
+        }
+        all_role_ids.sort();
+        all_role_ids.dedup();
+
+        let permission_ids: Vec<Uuid> = rbac_role_permissions::table
+            .filter(rbac_role_permissions::role_id.eq_any(&all_role_ids))
+            .select(rbac_role_permissions::permission_id)
+            .load(&mut db_conn)
+            .map_err(|e| format!("Query error: {e}"))?;
+
+        let permissions: Vec<RbacPermission> = rbac_permissions::table
+            .filter(rbac_permissions::id.eq_any(&permission_ids))
+            .load(&mut db_conn)
+            .map_err(|e| format!("Query error: {e}"))?;
+
+        Ok::<_, String>(serde_json::json!({
+            "user_id": user_id,
+            "direct_roles": direct_roles,
+            "group_roles": group_roles,
+            "groups": groups,
+            "permissions": permissions,
+        }))
+    })
+    .await;
+
+    match result {
+        Ok(Ok(data)) => Json(data).into_response(),
+        Ok(Err(e)) => {
+            let sanitized = log_and_sanitize_str(&e, "my_permissions", None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
+        }
+        Err(e) => {
+            let sanitized = log_and_sanitize_str(&e.to_string(), "my_permissions", None);
             (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }
