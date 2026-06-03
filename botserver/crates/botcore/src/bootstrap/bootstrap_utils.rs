@@ -376,7 +376,7 @@ pub fn drive_health_check() -> bool {
 
 /// Check if ALM (Forgejo) is healthy
 pub fn alm_health_check() -> bool {
-    let urls = ["https://localhost:3000"];
+    let urls = ["http://localhost:4747"];
 
     for url in &urls {
         if let Ok(output) = SafeCommand::new("curl")

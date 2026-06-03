@@ -27,14 +27,14 @@
             <input type="text"
                    placeholder="Search groups..."
                    name="q"
-                   hx-get="/groups/search"
+                   hx-get="/api/directory/groups/search"
                    hx-trigger="keyup changed delay:300ms"
                    hx-target="#groups-grid"
                    hx-swap="innerHTML">
         </div>
         <div class="filters">
             <select name="visibility"
-                    hx-get="/groups/list"
+                    hx-get="/api/directory/groups/list"
                     hx-trigger="change"
                     hx-target="#groups-grid"
                     hx-swap="innerHTML">
@@ -68,7 +68,7 @@
 
     <!-- Groups Grid -->
     <div class="groups-grid" id="groups-grid"
-         hx-get="/groups/list"
+         hx-get="/api/directory/groups/list"
          hx-trigger="load"
          hx-swap="innerHTML">
         <div class="loading-state">
@@ -79,7 +79,7 @@
 
     <!-- Pagination -->
     <div class="pagination" id="groups-pagination"
-         hx-get="/groups/list/pagination"
+         hx-get="/api/directory/groups/list/pagination"
          hx-trigger="load"
          hx-swap="innerHTML">
     </div>
@@ -121,7 +121,7 @@
                 </svg>
             </button>
         </div>
-        <form hx-post="/groups/create"
+        <form hx-post="/api/directory/groups/create"
               hx-target="#groups-grid"
               hx-swap="innerHTML"
               hx-on::after-request="if(event.detail.successful) { document.getElementById('create-group-modal').close(); showToast('Group created successfully'); }">
@@ -184,7 +184,7 @@
             </button>
         </div>
         <form id="add-member-form"
-              hx-post="/groups/{group_id}/members/add"
+              hx-post="/api/directory/groups/{group_id}/members/add"
               hx-target="#group-members-list"
               hx-swap="innerHTML"
               hx-on::after-request="if(event.detail.successful) { document.getElementById('add-member-modal').close(); showToast('Members added'); }">
@@ -194,7 +194,7 @@
                 <div class="user-search">
                     <input type="text"
                            placeholder="Search by name or email..."
-                           hx-get="/users/search"
+                           hx-get="/api/directory/users/search"
                            hx-trigger="keyup changed delay:300ms"
                            hx-target="#user-search-results"
                            hx-swap="innerHTML">
@@ -236,7 +236,7 @@
             </button>
         </div>
         <form id="send-invite-form"
-              hx-post="/groups/{group_id}/invites/send"
+              hx-post="/api/directory/groups/{group_id}/invites/send"
               hx-swap="none"
               hx-on::after-request="if(event.detail.successful) { document.getElementById('send-invite-modal').close(); showToast('Invites sent'); }">
             <input type="hidden" name="group_id" id="invite-group-id">
@@ -283,7 +283,7 @@
         <div class="modal-footer">
             <button type="button" class="btn-secondary" onclick="document.getElementById('delete-group-modal').close()">Cancel</button>
             <button type="button" class="btn-danger" id="confirm-delete-group-btn"
-                    hx-delete="/groups/{group_id}/delete"
+                    hx-delete="/api/directory/groups/{group_id}/delete"
                     hx-target="#groups-grid"
                     hx-swap="innerHTML"
                     hx-on::after-request="document.getElementById('delete-group-modal').close(); closeDetailPanel(); showToast('Group deleted');">
@@ -1037,7 +1037,7 @@
         panel.classList.add('open');
 
         // Load overview by default
-        htmx.ajax('GET', `/groups/${groupId}/overview`, {target: '#group-detail-content'});
+        htmx.ajax('GET', `/api/directory/groups/${groupId}/overview`, {target: '#group-detail-content'});
     }
 
     function closeDetailPanel() {
@@ -1050,14 +1050,14 @@
 
         const groupId = document.getElementById('group-detail-panel').dataset.groupId;
         if (groupId) {
-            htmx.ajax('GET', `/groups/${groupId}/${tab}`, {target: '#group-detail-content'});
+            htmx.ajax('GET', `/api/directory/groups/${groupId}/${tab}`, {target: '#group-detail-content'});
         }
     }
 
     function openAddMemberModal(groupId) {
         document.getElementById('add-member-group-id').value = groupId;
         const form = document.getElementById('add-member-form');
-        form.setAttribute('hx-post', `/groups/${groupId}/members/add`);
+        form.setAttribute('hx-post', `/api/directory/groups/${groupId}/members/add`);
         htmx.process(form);
         document.getElementById('add-member-modal').showModal();
     }
@@ -1065,7 +1065,7 @@
     function openInviteModal(groupId) {
         document.getElementById('invite-group-id').value = groupId;
         const form = document.getElementById('send-invite-form');
-        form.setAttribute('hx-post', `/groups/${groupId}/invites/send`);
+        form.setAttribute('hx-post', `/api/directory/groups/${groupId}/invites/send`);
         htmx.process(form);
         document.getElementById('send-invite-modal').showModal();
     }
@@ -1073,7 +1073,7 @@
     function confirmDeleteGroup(groupId, groupName) {
         document.getElementById('delete-group-name').textContent = groupName;
         const deleteBtn = document.getElementById('confirm-delete-group-btn');
-        deleteBtn.setAttribute('hx-delete', `/groups/${groupId}/delete`);
+        deleteBtn.setAttribute('hx-delete', `/api/directory/groups/${groupId}/delete`);
         htmx.process(deleteBtn);
         document.getElementById('delete-group-modal').showModal();
     }

@@ -636,7 +636,7 @@ impl PackageManager {
             "alm".to_string(),
             ComponentConfig {
                 name: "alm".to_string(),
-                ports: vec![3000],
+                ports: vec![4747],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
@@ -654,14 +654,14 @@ impl PackageManager {
                     ("HOME".to_string(), "{{DATA_PATH}}".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 3000 --cert {{CONF_PATH}}/system/certificates/alm/server.crt --key {{CONF_PATH}}/system/certificates/alm/server.key > {{LOGS_PATH}}/forgejo.log 2>&1 &".to_string(),
-                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:3000 >/dev/null 2>&1".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 4747 > {{LOGS_PATH}}/forgejo.log 2>&1 &".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:4747 >/dev/null 2>&1".to_string(),
             exec_cmd_windows: None,
             check_cmd_windows: None,
             container: None,
         },
     );
-}
+    }
 
     fn register_alm_ci(&mut self) {
         self.components.insert(

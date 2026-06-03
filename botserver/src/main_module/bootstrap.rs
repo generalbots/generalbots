@@ -299,25 +299,38 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         .or_else(|_| std::env::var("VALKEY_URL"))
         .ok();
 
-    // Build candidate URLs: try without password first, then with
+    // Build candidate URLs: try env first, then Vault with password if available
     let mut urls: Vec<String> = Vec::new();
-    if let Some(url) = env_url {
+    if let Some(url) = env_url.clone() {
         urls.push(url);
-    } else if let Ok(secrets) = SecretsManager::get() {
+    }
+    if let Ok(secrets) = SecretsManager::get() {
         if let Ok(data) = secrets.get_secret(SecretPaths::CACHE).await {
             let host = data.get("host").cloned().unwrap_or_else(|| "".into());
             let port = data.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379);
-            urls.push(format!("redis://{}:{}", host, port));
-            if let Some(pass) = data.get("password") {
-                urls.push(format!("redis://:{}@{}:{}", pass, host, port));
+            if let Some(url_val) = data.get("url").filter(|u| !u.is_empty() && u.contains("://")) {
+                urls.push(url_val.clone());
+                info!("Cache: using Vault URL with credentials");
+            } else {
+                if env_url.is_none() {
+                    urls.push(format!("redis://{}:{}", host, port));
+                }
+                if let Some(pass) = data.get("password").filter(|p| !p.is_empty()) {
+                    urls.push(format!("redis://:{}@{}:{}", pass, host, port));
+                    info!("Cache: built URL with Vault password");
+                }
             }
-        } else {
-urls.push(String::new());
+        } else if env_url.is_none() {
+            urls.push(String::new());
         }
-    } else {
+    } else if env_url.is_none() {
         urls.push("redis://localhost:6379".to_string());
     }
 
+    for u in &urls {
+        let masked = u.split('@').next_back().unwrap_or(u);
+        info!("Cache URL candidate: {}", masked);
+    }
     info!("Attempting to connect to cache, trying {} URL(s)", urls.len());
 
     let max_attempts = 12;

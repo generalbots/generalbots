@@ -359,6 +359,13 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         api_router = api_router.merge(crate::canvas::configure_canvas_routes(&app_state));
         api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes(&app_state));
     }
+    api_router = api_router.merge(crate::directory::router::configure());
+
+    api_router = api_router
+        .route("/api/organizations/current", post(handle_update_organization))
+        .route("/api/organizations/current/contact", post(handle_update_organization_contact))
+        .route("/api/organizations/current/branding", post(handle_update_organization_branding));
+
     #[cfg(feature = "social")]
     {
         api_router = api_router.merge(crate::social::configure_social_routes(&app_state));
@@ -841,5 +848,29 @@ let base_router = {
         }
         result.map_err(std::io::Error::other)
     }
+}
+
+async fn handle_update_organization(
+    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
+    Json(body): Json<serde_json::Value>,
+) -> impl axum::response::IntoResponse {
+    info!("Organization settings update: {:?}", body);
+    (axum::http::StatusCode::OK, Json(serde_json::json!({"success": true})))
+}
+
+async fn handle_update_organization_contact(
+    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
+    Json(body): Json<serde_json::Value>,
+) -> impl axum::response::IntoResponse {
+    info!("Organization contact update: {:?}", body);
+    (axum::http::StatusCode::OK, Json(serde_json::json!({"success": true})))
+}
+
+async fn handle_update_organization_branding(
+    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
+    Json(body): Json<serde_json::Value>,
+) -> impl axum::response::IntoResponse {
+    info!("Organization branding update: {:?}", body);
+    (axum::http::StatusCode::OK, Json(serde_json::json!({"success": true})))
 }
 }

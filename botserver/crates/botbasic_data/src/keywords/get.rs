@@ -1,12 +1,23 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
+use botbasic_core::security_utils::sanitize_identifier;
+use diesel::prelude::*;
+use diesel::sql_types::Text;
 use log::{error, trace};
 use reqwest::{self, Client};
 use rhai::{Dynamic, Engine};
+use serde_json::Value;
 use std::error::Error;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
+
+#[derive(QueryableByName)]
+struct JsonRow {
+    #[diesel(sql_type = Text)]
+    row_data: String,
+}
+
 pub fn register_get_keyword(state: Arc<dyn BasicRuntime>, user_session: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     engine
@@ -67,6 +78,90 @@ pub fn register_get_keyword(state: Arc<dyn BasicRuntime>, user_session: UserSess
         })
         .expect("valid syntax registration");
 }
+
+pub fn register_get_from_keyword(
+    state: Arc<dyn BasicRuntime>,
+    user_session: UserSession,
+    engine: &mut Engine,
+) {
+    let state_for_closure = state.clone();
+    let user_for_closure = user_session;
+    engine
+        .register_custom_syntax(
+            ["GET", "FROM", "$expr$", "WHERE", "$expr$"],
+            false,
+            move |context, inputs| {
+                let table = context.eval_expression_tree(&inputs[0])?.to_string();
+                let filter = context.eval_expression_tree(&inputs[1])?.to_string();
+                let bot_id = user_for_closure.bot_id;
+
+                let pool = state_for_closure.db_pool().clone();
+                let (tx, rx) = std::sync::mpsc::channel();
+                let table_clone = table.clone();
+                let filter_clone = filter.clone();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build();
+                    let result = match rt {
+                        Ok(rt) => rt.block_on(async move {
+                            execute_get_from(&pool, &table_clone, &filter_clone, bot_id)
+                        }),
+                        Err(e) => Err(format!("Failed to create runtime: {e}")),
+                    };
+                    let _ = tx.send(result);
+                });
+                let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
+
+                let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+                let first = results.into_iter().next().unwrap_or(Value::Null);
+                let dynamic = botbasic_core::utils::json_value_to_dynamic(&first);
+                Ok(dynamic)
+            },
+        )
+        .expect("valid syntax registration");
+}
+
+fn execute_get_from(
+    pool: &botlib::db_pool::DbPool,
+    table: &str,
+    filter: &str,
+    _bot_id: uuid::Uuid,
+) -> Result<Value, String> {
+    use botbasic_core::utils::parse_filter;
+
+    let safe_table = sanitize_identifier(table);
+    let (where_clause, params) = parse_filter(filter).map_err(|e| e.to_string())?;
+    let query = format!(
+        "SELECT row_to_json(t)::text as row_data FROM (SELECT * FROM {safe_table} WHERE {where_clause} LIMIT 1) t"
+    );
+
+    let mut conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+    let rows: Vec<JsonRow> = if params.is_empty() {
+        diesel::sql_query(&query)
+            .load(&mut conn)
+            .map_err(|e| format!("SQL error: {e}"))?
+    } else {
+        diesel::sql_query(&query)
+            .bind::<Text, _>(&params[0])
+            .load(&mut conn)
+            .map_err(|e| format!("SQL error: {e}"))?
+    };
+
+    let results: Vec<Value> = rows
+        .into_iter()
+        .filter_map(|row| serde_json::from_str(&row.row_data).ok())
+        .collect();
+
+    Ok(serde_json::json!({
+        "command": "get_from",
+        "table": table,
+        "filter": filter,
+        "results": results,
+        "count": results.len()
+    }))
+}
+
 fn is_safe_path(path: &str) -> bool {
     if path.starts_with("https://") || path.starts_with("http://") {
         if let Ok(parsed_url) = url::Url::parse(path) {

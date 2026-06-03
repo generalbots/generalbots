@@ -827,26 +827,28 @@ async fn handle_ws(
                                     tokio::select! {
                                         chunk = stream_rx.recv() => {
                                              match chunk {
-                                                  Some(chunk) => {
-                                                      stream_started = true;
-                                                      full_response.push_str(&chunk);
-                                                     let chunk_resp = serde_json::json!({
-                                                         "bot_id": bot_uuid_s,
-                                                        "user_id": user_id.to_string(),
-                                                        "session_id": session_id_s,
-                                                        "channel": "web",
-                                                        "content": chunk,
-                                                        "message_type": 2,
-                                                        "is_complete": false,
-                                                        "suggestions": [],
-                                                        "switchers": [],
-                                                        "context_length": 0,
-                                                        "context_max_length": 0,
-                                                    });
-                                                    if ws_sender.send(Message::Text(chunk_resp.to_string().into())).await.is_err() {
-                                                        break;
-                                                    }
-                                                }
+                                                   Some(chunk) => {
+                                                       stream_started = true;
+                                                       full_response.push_str(&chunk);
+                                                       if !chunk.contains("\"__tool_call__\"") {
+                                                           let chunk_resp = serde_json::json!({
+                                                               "bot_id": bot_uuid_s,
+                                                               "user_id": user_id.to_string(),
+                                                               "session_id": session_id_s,
+                                                               "channel": "web",
+                                                               "content": chunk,
+                                                               "message_type": 2,
+                                                               "is_complete": false,
+                                                               "suggestions": [],
+                                                               "switchers": [],
+                                                               "context_length": 0,
+                                                               "context_max_length": 0,
+                                                           });
+                                                           if ws_sender.send(Message::Text(chunk_resp.to_string().into())).await.is_err() {
+                                                               break;
+                                                           }
+                                                       }
+                                                 }
                                                 None => break,
                                             }
                                         }
@@ -917,35 +919,54 @@ async fn handle_ws(
                                                  }
                                              };
 
-                                              if !ast_content.is_empty() {
-                                                  let state_for_tool = state_clone.clone();
-                                                  let tool_name_cl = tool_name.clone();
+                                               if !ast_content.is_empty() {
+                                                   let state_for_tool = state_clone.clone();
+                                                   let tool_name_cl = tool_name.clone();
 
-                                                  let parsed_args: serde_json::Value = serde_json::from_str(tool_args).unwrap_or(serde_json::Value::Null);
-                                                  let context_data = if parsed_args.is_object() {
-                                                      parsed_args
-                                                  } else {
-                                                      serde_json::Value::Null
-                                                  };
-                                                  info!("Tool '{}' context_data: {:?}", tool_name, context_data);
+                                                   let parsed_args: serde_json::Value = serde_json::from_str(tool_args).unwrap_or(serde_json::Value::Null);
+                                                   let injected_args = parsed_args.clone();
+                                                   let context_data = if parsed_args.is_object() {
+                                                       parsed_args
+                                                   } else {
+                                                       serde_json::Value::Null
+                                                   };
+                                                   info!("Tool '{}' context_data: {:?}", tool_name, context_data);
 
-                                                  let session_for_tool = botlib::models::UserSession {
-                                                      id: session_id, user_id, bot_id: bot_uuid,
-                                                      title: String::new(),
-                                                      context_data,
-                                                      current_tool: None,
-                                                      created_at: chrono::Utc::now(),
-                                                      updated_at: chrono::Utc::now(),
-                                                  };
-                                                 let _ = tokio::task::spawn_blocking(move || {
-                                                     let mut svc = crate::basic::ScriptService::new(
-                                                         state_for_tool.clone(), session_for_tool,
-                                                     );
-                                                     svc.load_bot_config_params(&state_for_tool, bot_uuid);
-                                                     if let Err(e) = svc.run(&ast_content) {
-                                                         warn!("Tool '{}' execution error: {}", tool_name_cl, e);
-                                                     }
-                                                 }).await;
+                                                   let session_for_tool = botlib::models::UserSession {
+                                                       id: session_id, user_id, bot_id: bot_uuid,
+                                                       title: String::new(),
+                                                       context_data,
+                                                       current_tool: None,
+                                                       created_at: chrono::Utc::now(),
+                                                       updated_at: chrono::Utc::now(),
+                                                   };
+                                                  let _ = tokio::task::spawn_blocking(move || {
+                                                      let mut svc = crate::basic::ScriptService::new(
+                                                          state_for_tool.clone(), session_for_tool,
+                                                      );
+                                                      svc.load_bot_config_params(&state_for_tool, bot_uuid);
+                                                      // Inject LLM tool_call arguments into Rhai scope
+                                                      if let Some(obj) = injected_args.as_object() {
+                                                          for (key, value) in obj {
+                                                              let rhai_key = key.to_lowercase();
+                                                              match value {
+                                                                  serde_json::Value::String(s) => {
+                                                                      let _ = svc.set_variable(&rhai_key, s);
+                                                                  }
+                                                                  serde_json::Value::Number(n) => {
+                                                                      let _ = svc.set_variable(&rhai_key, &n.to_string());
+                                                                  }
+                                                                  serde_json::Value::Bool(b) => {
+                                                                      let _ = svc.set_variable(&rhai_key, if *b { "true" } else { "false" });
+                                                                  }
+                                                                  _ => {}
+                                                              }
+                                                          }
+                                                      }
+                                                      if let Err(e) = svc.run(&ast_content) {
+                                                          warn!("Tool '{}' execution error: {}", tool_name_cl, e);
+                                                      }
+                                                  }).await;
 
                                                  for _ in 0..50 {
                                                      tokio::time::sleep(std::time::Duration::from_millis(100)).await;
