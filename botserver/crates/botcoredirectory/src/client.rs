@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +21,7 @@ pub struct ZitadelClient {
     config: ZitadelConfig,
     http_client: reqwest::Client,
     access_token: Arc<RwLock<Option<String>>>,
+    token_expires_at: Arc<RwLock<Option<Instant>>>,
     pat_token: Option<String>,
     /// Username and password for password grant OAuth flow
     password_credentials: Option<(String, String)>,
@@ -36,6 +38,7 @@ impl ZitadelClient {
             config,
             http_client,
             access_token: Arc::new(RwLock::new(None)),
+            token_expires_at: Arc::new(RwLock::new(None)),
             pat_token: None,
             password_credentials: None,
         })
@@ -57,6 +60,7 @@ impl ZitadelClient {
             config,
             http_client,
             access_token: Arc::new(RwLock::new(None)),
+            token_expires_at: Arc::new(RwLock::new(None)),
             pat_token: None,
             password_credentials: Some((username, password)),
         })
@@ -72,6 +76,7 @@ impl ZitadelClient {
             config,
             http_client,
             access_token: Arc::new(RwLock::new(None)),
+            token_expires_at: Arc::new(RwLock::new(None)),
             pat_token: Some(pat_token),
             password_credentials: None,
         })
@@ -153,10 +158,16 @@ impl ZitadelClient {
             return Ok(pat.clone());
         }
 
+        // Check cached token with expiry
         {
             let token = self.access_token.read().await;
+            let expires = self.token_expires_at.read().await;
             if let Some(t) = token.as_ref() {
-                return Ok(t.clone());
+                let still_valid = expires.map(|e| Instant::now() < e).unwrap_or(true);
+                if still_valid {
+                    return Ok(t.clone());
+                }
+                log::info!("Cached access token expired, refreshing...");
             }
         }
 
@@ -178,7 +189,7 @@ impl ZitadelClient {
         } else {
             // Use client credentials flow
             params.push(("grant_type", "client_credentials".to_string()));
-            params.push(("scope", "openid profile email".to_string()));
+            params.push(("scope", "openid profile email urn:zitadel:iam:org:project:id:zitadel:aud".to_string()));
         }
 
         let response = self
@@ -200,9 +211,19 @@ impl ZitadelClient {
             .ok_or_else(|| anyhow!("No access token in response"))?
             .to_string();
 
+        // Calculate expiry with 60s safety margin
+        let expires_in = token_data
+            .get("expires_in")
+            .and_then(|t| t.as_i64())
+            .unwrap_or(3600);
+        let expires_at = Instant::now()
+            + std::time::Duration::from_secs(expires_in.max(60) as u64 - 60);
+
         {
             let mut token = self.access_token.write().await;
             *token = Some(access_token.clone());
+            let mut expires = self.token_expires_at.write().await;
+            *expires = Some(expires_at);
         }
 
         Ok(access_token)
@@ -215,10 +236,21 @@ impl ZitadelClient {
         last_name: &str,
         username: Option<&str>,
     ) -> Result<String> {
+        self.create_user_with_password(email, first_name, last_name, username, None).await
+    }
+
+    pub async fn create_user_with_password(
+        &self,
+        email: &str,
+        first_name: &str,
+        last_name: &str,
+        username: Option<&str>,
+        initial_password: Option<&str>,
+    ) -> Result<String> {
         let token = self.get_access_token().await?;
         let url = format!("{}/v2/users/human", self.config.api_url);
 
-        let body = serde_json::json!({
+        let mut body = serde_json::json!({
             "userName": username.unwrap_or(email),
             "profile": {
                 "givenName": first_name,
@@ -230,6 +262,15 @@ impl ZitadelClient {
                 "isVerified": true
             }
         });
+
+        if let Some(password) = initial_password {
+            if let Some(obj) = body.as_object_mut() {
+                obj.insert("password".to_string(), serde_json::json!({
+                    "password": password,
+                    "changeRequired": true
+                }));
+            }
+        }
 
         let response = self
             .http_client
@@ -546,12 +587,10 @@ impl ZitadelClient {
         resource: &str,
     ) -> Result<bool> {
         let token = self.get_access_token().await?;
-        let url = format!(
-            "{}/v2/users/{}/permissions/check",
-            self.config.api_url, user_id
-        );
+        let url = format!("{}/v2/permissions/check", self.config.api_url);
 
         let check_payload = serde_json::json!({
+            "userId": user_id,
             "permission": permission,
             "resource": resource,
             "namespace": self.config.project_id.clone()

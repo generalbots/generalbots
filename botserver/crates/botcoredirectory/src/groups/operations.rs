@@ -163,7 +163,6 @@ pub async fn list_groups(
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
-
     match auth_service
         .http_get(format!("{}/metadata/organization?limit={}&offset={}", auth_service.api_url(), per_page, (page - 1) * per_page))
         .await
@@ -176,30 +175,39 @@ pub async fn list_groups(
             let groups: Vec<GroupInfo> = metadata
                 .iter()
                 .filter_map(|item| {
-                    if let Some(key) = item.get("key").and_then(|k| k.as_str()) {
-                        if key.starts_with("group_") {
-                            if let Some(value_str) = item.get("value").and_then(|v| v.as_str()) {
-                                if let Ok(group_data) =
-                                    serde_json::from_str::<serde_json::Value>(value_str)
-                                {
-                                    return Some(GroupInfo {
-                                        id: key.to_string(),
-                                        name: group_data
-                                            .get("name")
-                                            .and_then(|n| n.as_str())
-                                            .unwrap_or("Unknown")
-                                            .to_string(),
-                                        description: group_data
-                                            .get("description")
-                                            .and_then(|d| d.as_str())
-                                            .map(|s| s.to_string()),
-                                        member_count: group_data
-                                            .get("members")
-                                            .and_then(|m| m.as_array())
-                                            .map(|a| a.len())
-                                            .unwrap_or(0),
-                                    });
-                                }
+                    let key = item.get("key").and_then(|k| k.as_str())?;
+                    if !key.starts_with("group_") {
+                        return None;
+                    }
+                    let value_str = item.get("value").and_then(|v| v.as_str())?;
+                    let group_data = serde_json::from_str::<serde_json::Value>(value_str).ok()?;
+                    Some(GroupInfo {
+                        id: key.to_string(),
+                        name: group_data.get("name").and_then(|n| n.as_str()).unwrap_or("Unknown").to_string(),
+                        description: group_data.get("description").and_then(|d| d.as_str()).map(|s| s.to_string()),
+                        member_count: group_data.get("members").and_then(|m| m.as_array()).map(|a| a.len()).unwrap_or(0),
+                    })
+                })
+                .collect();
+
+            info!("Found {} groups", groups.len());
+            let total = groups.len();
+            Ok(Json(GroupListResponse {
+                groups,
+                total,
+                page,
+                per_page,
+            }))
+        }
+        Err(e) => {
+            log::error!("Failed to list groups: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Failed to list groups".to_string(),
+                    details: Some(e.to_string()),
+                }),
+            ))
         }
     }
 }
@@ -267,12 +275,10 @@ pub async fn get_group_settings(
 
 
 pub async fn get_group_permissions(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     info!("Getting permissions for group: {}", group_id);
-
-    let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
     let permissions = serde_json::json!({
         "group_id": group_id,

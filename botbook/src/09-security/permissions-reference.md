@@ -497,6 +497,150 @@ Read-only access to:
 
 ---
 
+## Route-Level RBAC Permissions (API Gateway)
+
+The API Gateway enforces RBAC at the route level via middleware. Each route pattern is registered with an HTTP method and an optional set of required roles. Requests that match no route rule are **denied by default** (`default_deny = true`).
+
+### Public Routes (Anonymous Access)
+
+| Route Pattern | Method |
+|--------------|--------|
+| `/health`, `/healthz` | GET |
+| `/api/health`, `/api/version`, `/api/product` | GET |
+| `/api/bot/config` | GET |
+| `/api/i18n/**` | GET |
+| `/webhook/whatsapp/:bot_id` | GET, POST |
+| `/api/auth`, `/api/auth/login`, `/api/auth/bootstrap` | POST |
+| `/api/auth/refresh` | POST |
+| `/api/auth/me` | GET |
+| `/api/client-errors` | POST |
+| `/ws`, `/ws/**` | GET |
+| `/api/bots/:bot_name/access` | GET |
+| `/api/chat/**` | GET, POST |
+| `/api/sessions` | POST |
+| `/api/ui/tasks/**` | GET |
+
+### Authenticated Routes (Any Authenticated User)
+
+| Route Pattern | Method | Required Roles |
+|--------------|--------|----------------|
+| `/api/auth/logout` | POST | — |
+| `/api/auth/**` | GET, POST | — |
+| `/api/sessions` | GET | — |
+| `/api/sessions/**` | GET | — |
+| `/api/settings/**` | GET, POST, PUT | — |
+| `/api/bots`, `/api/bots/:id` | GET | — |
+| `/api/bots/:id/**` | GET | — |
+| `/api/user/**` | GET, PUT | — |
+| `/api/rbac/my-permissions` | GET | — |
+| `/api/rbac/check` | POST | — |
+| `/api/browser/**` | GET, POST | — |
+| `/api/people/**` | GET, POST, PUT, DELETE | — |
+
+### Application Routes (Authenticated)
+
+| Route Pattern | Methods |
+|--------------|---------|
+| `/api/drive/**` | GET, POST, PUT, DELETE |
+| `/api/files/**` | GET, POST, PUT, DELETE |
+| `/api/editor/**` | GET, POST, PUT, DELETE |
+| `/api/database/**` | GET, POST, PUT, DELETE |
+| `/api/git/**` | GET, POST, PUT, DELETE |
+| `/api/mail/**` | GET, POST, PUT, DELETE |
+| `/api/email/**` | GET, POST, PUT, DELETE |
+| `/api/calendar/**` | GET, POST, PUT, DELETE |
+| `/api/tasks/**` | GET, POST, PUT, PATCH, DELETE |
+| `/api/docs/**` | GET, POST, PUT, DELETE |
+| `/api/paper/**` | GET, POST, PUT, DELETE |
+| `/api/sheet/**` | GET, POST, PUT, DELETE |
+| `/api/slides/**` | GET, POST, PUT, DELETE |
+| `/api/meet/**` | GET, POST, PUT, DELETE |
+| `/api/research/**` | GET, POST, PUT, DELETE |
+| `/api/sources/**` | GET, POST, PUT, DELETE |
+| `/api/canvas/**` | GET, POST, PUT, DELETE |
+| `/api/video/**` | GET, POST |
+| `/api/player/**` | GET, POST |
+| `/api/workspaces/**` | GET, POST, PUT, DELETE |
+| `/api/projects/**` | GET, POST, PUT, DELETE |
+| `/api/goals/**` | GET, POST, PUT, DELETE |
+| `/api/designer/**` | GET, POST, PUT, DELETE |
+| `/api/dashboards/**` | GET, POST, PUT, DELETE |
+| `/api/db/**` | GET, POST, PUT, DELETE |
+| `/api/crm/**` | GET, POST, PUT, DELETE |
+| `/api/contacts/**` | GET, POST, PUT, DELETE |
+| `/api/marketing/**` | GET, POST, PUT, DELETE |
+| `/api/billing/**` | GET, POST |
+| `/api/products/**` | GET, POST, PUT, DELETE |
+| `/api/tickets/**` | GET, POST, PUT, DELETE |
+| `/api/learn/**` | GET, POST |
+| `/api/social/**` | GET, POST |
+| `/api/llm/**` | GET, POST |
+| `/api/telegram/**`, `/api/whatsapp/**` | GET, POST |
+| `/api/msteams/**`, `/api/instagram/**` | GET, POST |
+| `/api/pages/**` | GET, POST, PUT, DELETE |
+| `/api/insights/**` | GET, POST |
+| `/api/app-logs/**` | GET, POST |
+| `/api/autotask/**` | GET, POST, PUT, DELETE |
+
+### Admin Routes (Admin / SuperAdmin)
+
+| Route Pattern | Methods | Required Roles |
+|--------------|---------|----------------|
+| `/api/users` | GET, POST | Admin, SuperAdmin |
+| `/api/users/:id` | GET, PUT, DELETE | Admin, SuperAdmin |
+| `/api/users/**` | GET, POST, PUT, DELETE | Admin, SuperAdmin |
+| `/api/groups/**` | GET, POST, PUT, DELETE | Admin, SuperAdmin |
+| `/api/admin/**` | GET, POST, PUT, DELETE | Admin, SuperAdmin |
+| `/api/organizations/**` | GET, POST, PUT | Admin, SuperAdmin |
+| `/api/security/**` | GET, POST, PUT | Admin, SuperAdmin |
+| `/api/monitoring/**` | GET | Admin, SuperAdmin |
+| `/api/audit/**` | GET | Admin, SuperAdmin |
+| `/api/compliance/**` | GET, POST, PUT | Admin, SuperAdmin |
+| `/api/terminal/**` | GET, POST | Admin, SuperAdmin |
+| `/users/**` | GET, POST, PUT, DELETE | Admin, SuperAdmin |
+| `/groups/**` | GET, POST, PUT, DELETE | Admin, SuperAdmin |
+
+### Directory Management Routes (Admin / SuperAdmin)
+
+These routes manage users, groups, roles, memberships, permissions, 2FA, and invites via the Directory API:
+
+| Route Pattern | Methods | Required Roles |
+|--------------|---------|----------------|
+| `/api/directory/**` | GET, POST, PUT, DELETE | Admin, SuperAdmin |
+
+### SCIM 2.0 Routes (Admin / SuperAdmin)
+
+| Route Pattern | Methods | Required Roles |
+|--------------|---------|----------------|
+| `/scim/v2/**` | GET, POST, PUT, DELETE | Admin, SuperAdmin |
+
+### Analytics Routes (Admin / SuperAdmin / Moderator)
+
+| Route Pattern | Methods | Required Roles |
+|--------------|---------|----------------|
+| `/api/analytics/**` | GET | Admin, SuperAdmin, Moderator |
+| `/api/attendant/**` | GET, POST | Admin, SuperAdmin, Moderator |
+
+### RBAC Self-Service Routes (Authenticated Users)
+
+| Route Pattern | Methods |
+|--------------|---------|
+| `/api/rbac/my-permissions` | GET |
+| `/api/rbac/check` | POST |
+| `/api/rbac/users/{user_id}/permissions` | GET |
+
+### SuperAdmin-Only Routes
+
+| Route Pattern | Methods | Required Roles |
+|--------------|---------|----------------|
+| `/api/rbac/**` | GET, POST, PUT, DELETE | SuperAdmin |
+
+### Default Deny
+
+Any request that does not match one of the above route patterns is **denied** with `403 Forbidden`. This ensures that new endpoints are inaccessible until explicitly registered in the RBAC permission list.
+
+---
+
 ## See Also
 
 - [RBAC Overview](./rbac-overview.md) - Understanding role-based access control

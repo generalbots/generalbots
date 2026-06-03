@@ -210,7 +210,16 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
     fn list_organizations(
         &self,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>> {
-        Box::pin(async { Err("list_organizations: not implemented".to_string()) })
+        let client = self.clone();
+        Box::pin(async move {
+            let resp = client
+                .http_post(format!("{}/management/v1/orgs/_search", client.api_url()))
+                .await
+                .json(&serde_json::json!({}))
+                .send().await.map_err(|e| e.to_string())?;
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            Ok(data)
+        })
     }
 
     fn http_get(

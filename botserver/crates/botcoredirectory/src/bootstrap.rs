@@ -108,15 +108,14 @@ fn generate_secure_password() -> String {
 
 async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<BootstrapResult> {
     let email = format!("{}@localhost", ADMIN_USERNAME);
+    let initial_password = generate_secure_password();
 
     let user_id = client
-        .create_user(&email, "System", "Administrator", Some(ADMIN_USERNAME))
+        .create_user_with_password(&email, "System", "Administrator", Some(ADMIN_USERNAME), Some(&initial_password))
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create admin user: {}", e))?;
 
     info!("Created admin user with ID: {}", user_id);
-
-    let initial_password = generate_secure_password();
 
     if let Err(e) = client.set_user_password(&user_id, &initial_password, false).await {
         warn!("Failed to set initial password via API: {}. User may need to use password reset flow.", e);

@@ -359,7 +359,8 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         api_router = api_router.merge(crate::canvas::configure_canvas_routes(&app_state));
         api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes(&app_state));
     }
-    api_router = api_router.merge(crate::directory::router::configure());
+    api_router = api_router.nest("/api/directory", crate::directory::router::configure());
+    api_router = api_router.nest("/api/auth", crate::directory::auth_routes::configure());
     api_router = api_router.merge(crate::directory::scim::server::configure_scim_routes());
 
     api_router = api_router

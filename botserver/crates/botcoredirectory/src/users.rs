@@ -115,6 +115,14 @@ pub async fn create_user(
         }
     };
 
+    if let Some(password) = &req.password {
+        if let Err(e) = auth_service.set_user_password(&user_id, password).await {
+            error!("Failed to set initial password for user {}: {}", user_id, e);
+        } else {
+            info!("Initial password set for user {}", user_id);
+        }
+    }
+
     if let Some(ref org_id) = req.organization_id {
         let roles = req.roles.clone().unwrap_or_else(|| vec!["user".to_string()]);
 

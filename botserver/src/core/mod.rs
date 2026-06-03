@@ -15,7 +15,6 @@ pub use botcore::manifest;
 pub use botcore::middleware;
 pub use botcore::organization;
 pub use botcore::organization_invitations;
-pub use botcore::organization_rbac;
 pub use botcore::package_manager;
 pub use botcore::performance;
 pub use botcore::product;
