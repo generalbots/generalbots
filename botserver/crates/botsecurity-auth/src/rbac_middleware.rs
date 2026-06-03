@@ -572,9 +572,10 @@ impl RbacManager {
     }
 
     pub async fn invalidate_user_cache(&self, user_id: Uuid) {
-        let prefix = format!(":{user_id}");
+        let suffix = format!(":{user_id}");
+        let infix = format!(":{user_id}:");
         let mut cache = self.permission_cache.write().await;
-        cache.retain(|k, _| !k.ends_with(&prefix));
+        cache.retain(|k, _| !k.ends_with(&suffix) && !k.contains(&infix));
     }
 
     pub async fn clear_cache(&self) {
@@ -600,29 +601,86 @@ impl RbacManager {
     }
 
     pub async fn check_permission_string(&self, user: &AuthenticatedUser, permission_str: &str) -> bool {
-        let permission = match permission_str.to_lowercase().as_str() {
-            "read" => Permission::Read,
-            "write" => Permission::Write,
-            "delete" => Permission::Delete,
-            "admin" => Permission::Admin,
-            "manage_users" | "users.manage" => Permission::ManageUsers,
-            "manage_bots" | "bots.manage" => Permission::ManageBots,
-            "view_analytics" | "analytics.view" => Permission::ViewAnalytics,
-            "manage_settings" | "settings.manage" => Permission::ManageSettings,
-            "execute_tasks" | "tasks.execute" => Permission::ExecuteTasks,
-            "view_logs" | "logs.view" => Permission::ViewLogs,
-            "manage_secrets" | "secrets.manage" => Permission::ManageSecrets,
-            "access_api" | "api.access" => Permission::AccessApi,
-            "manage_files" | "files.manage" => Permission::ManageFiles,
-            "send_messages" | "messages.send" => Permission::SendMessages,
-            "view_conversations" | "conversations.view" => Permission::ViewConversations,
-            "manage_webhooks" | "webhooks.manage" => Permission::ManageWebhooks,
-            "manage_integrations" | "integrations.manage" => Permission::ManageIntegrations,
-            _ => return false,
+        let cache_key = format!("user_perm:{}:{}", user.user_id, permission_str);
+
+        if self.config.enable_permission_cache {
+            let cache = self.permission_cache.read().await;
+            if let Some(entry) = cache.get(&cache_key) {
+                if !entry.is_expired() {
+                    return entry.value.is_allowed();
+                }
+            }
+        }
+
+        if user.is_admin() || user.is_super_admin() {
+            return true;
+        }
+
+        // Helper to match wildcards (e.g. bot:* matches bot:create)
+        let match_wildcard = |pattern: &str, value: &str| -> bool {
+            let p_lower = pattern.to_lowercase();
+            let v_lower = value.to_lowercase();
+            
+            if p_lower == "*" || p_lower == "**" {
+                return true;
+            }
+            
+            let pattern_parts: Vec<&str> = p_lower.split(|c| c == ':' || c == '.').collect();
+            let value_parts: Vec<&str> = v_lower.split(|c| c == ':' || c == '.').collect();
+            
+            for (i, part) in pattern_parts.iter().enumerate() {
+                if *part == "*" || *part == "**" {
+                    return true;
+                }
+                if i >= value_parts.len() || *part != value_parts[i] {
+                    return false;
+                }
+            }
+            
+            pattern_parts.len() == value_parts.len()
         };
 
-        user.has_permission(&permission)
+        // Try parsing the requested permission
+        let req_permission = match Permission::from_alias(permission_str) {
+            Some(p) => p,
+            None => {
+                // If it can't be parsed directly to a variant, fall back to string-based wildcard matching
+                for role in &user.roles {
+                    for user_perm in role.permissions() {
+                        if match_wildcard(user_perm.as_alias(), permission_str) {
+                            let decision = AccessDecisionResult::allow("Wildcard match");
+                            self.cache_result(&cache_key, &decision).await;
+                            return true;
+                        }
+                    }
+                }
+                let decision = AccessDecisionResult::deny("No match found");
+                self.cache_result(&cache_key, &decision).await;
+                return false;
+            }
+        };
+
+        // If it resolved to a Permission enum, check direct user permissions with wildcard matching support
+        for role in &user.roles {
+            for user_perm in role.permissions() {
+                if user_perm == Permission::Admin {
+                    let decision = AccessDecisionResult::allow("Admin override");
+                    self.cache_result(&cache_key, &decision).await;
+                    return true;
+                }
+                if match_wildcard(user_perm.as_alias(), req_permission.as_alias()) {
+                    let decision = AccessDecisionResult::allow("Resolved wildcard match");
+                    self.cache_result(&cache_key, &decision).await;
+                    return true;
+                }
+            }
+        }
+
+        let decision = AccessDecisionResult::deny("No matching permission found");
+        self.cache_result(&cache_key, &decision).await;
+        false
     }
+
 
  pub fn config(&self) -> &RbacConfig {
  &self.config

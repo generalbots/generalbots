@@ -50,7 +50,7 @@ pub struct RateLimitSettings {
     pub enabled: bool,
     pub requests_per_minute: u32,
     pub burst_size: u32,
-    pub whitelist: Vec<String>,
+    pub safelist: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -215,7 +215,7 @@ async fn get_rate_limit_settings(
         enabled: true,
         requests_per_minute: 60,
         burst_size: 100,
-        whitelist: vec![],
+        safelist: vec![],
     };
     Ok(Json(settings))
 }

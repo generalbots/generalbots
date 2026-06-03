@@ -52,6 +52,9 @@ pub async fn handle_webhook(
 
     for entry in &payload.entry {
         for change in &entry.changes {
+            let phone_number_id = change.value.metadata.as_ref()
+                .and_then(|m| m.phone_number_id.clone());
+
             for message in &change.value.messages {
                 let phone_number = match &message.from {
                     Some(p) => p.clone(),
@@ -94,7 +97,7 @@ pub async fn handle_webhook(
                 };
 
                 if let Err(e) =
-                    process_incoming_message(&state, &phone_number, &content, message).await
+                    process_incoming_message(&state, &phone_number, &content, message, phone_number_id.clone()).await
                 {
                     log::error!("Failed to process message from {}: {}", phone_number, e);
                 }

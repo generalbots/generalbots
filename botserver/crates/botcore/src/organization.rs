@@ -77,7 +77,7 @@ pub struct OrganizationSettings {
     pub sso_enabled: bool,
     pub sso_provider: Option<String>,
     pub audit_log_retention_days: u32,
-    pub ip_whitelist: Vec<String>,
+    pub ip_safelist: Vec<String>,
     pub custom_branding: Option<CustomBranding>,
 }
 
@@ -92,7 +92,7 @@ impl Default for OrganizationSettings {
             sso_enabled: false,
             sso_provider: None,
             audit_log_retention_days: 90,
-            ip_whitelist: Vec::new(),
+            ip_safelist: Vec::new(),
             custom_branding: None,
         }
     }

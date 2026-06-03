@@ -13,7 +13,7 @@ pub async fn find_or_create_session(
     phone_number: &str,
     bot_id: &Uuid,
 ) -> Result<Uuid, String> {
-    let user_id = find_or_create_user(state, phone_number)?;
+    let user_id = find_or_create_user(state, phone_number).await?;
 
     let mut conn = state
         .pool
@@ -50,10 +50,16 @@ pub async fn find_or_create_session(
     Ok(new_session_id)
 }
 
-fn find_or_create_user(
+async fn find_or_create_user(
     state: &Arc<WhatsAppState>,
     phone_number: &str,
 ) -> Result<Uuid, String> {
+    if let Ok(Some(zitadel_user_id)) = (state.user_lookup)(phone_number).await {
+        let parsed = Uuid::parse_str(&zitadel_user_id)
+            .map_err(|e| format!("Invalid Zitadel user ID format: {}", e))?;
+        return Ok(parsed);
+    }
+
     let mut conn = state
         .pool
         .get()
