@@ -9,17 +9,17 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use botcore::shared::models::{
-    NewRbacGroup, NewRbacGroupRole, RbacGroup, RbacGroupRole,
+    NewRbacGroup, NewRbacGroupRole, RbacGroup, RbacGroupRole, RbacRole,
 };
 use botcore::shared::state::AppState;
 use botsecurity::error_sanitizer::log_and_sanitize_str;
 use diesel::prelude::*;
 
-use super::super::{CreateGroupRequest, PaginationParams};
+use super::super::CreateGroupRequest;
 
 pub async fn list_groups(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<Vec<RbacGroup>, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_groups;
         rbac_groups::table
@@ -43,7 +43,7 @@ pub async fn list_groups(State(state): State<Arc<AppState>>) -> impl IntoRespons
 
 pub async fn get_group(State(state): State<Arc<AppState>>, Path(group_id): Path<Uuid>) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacGroup, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_groups;
         rbac_groups::table
@@ -79,7 +79,7 @@ pub async fn create_group(State(state): State<Arc<AppState>>, Json(req): Json<Cr
         updated_at: now,
     };
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacGroup, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_groups;
         diesel::insert_into(rbac_groups::table)
@@ -110,7 +110,7 @@ pub async fn update_group(
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
     let now = Utc::now();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacGroup, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_groups;
         let _group: RbacGroup = rbac_groups::table
@@ -167,7 +167,7 @@ pub async fn delete_group(State(state): State<Arc<AppState>>, Path(group_id): Pa
 
 pub async fn get_group_roles(State(state): State<Arc<AppState>>, Path(group_id): Path<Uuid>) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::{rbac_group_roles, rbac_roles};
         let roles: Vec<RbacRole> = rbac_group_roles::table
@@ -197,15 +197,15 @@ pub async fn assign_role_to_group(
     Path((group_id, role_id)): Path<(Uuid, Uuid)>,
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacGroupRole, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_group_roles;
         let assignment = NewRbacGroupRole {
             id: Uuid::new_v4(),
             group_id,
             role_id,
-            assigned_by: None,
-            assigned_at: Utc::now(),
+            granted_by: None,
+            granted_at: Utc::now(),
         };
         diesel::insert_into(rbac_group_roles::table)
             .values(&assignment)

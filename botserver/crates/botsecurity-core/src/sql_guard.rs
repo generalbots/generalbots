@@ -105,7 +105,7 @@ impl std::fmt::Display for SqlGuardError {
 
 impl std::error::Error for SqlGuardError {}
 
-/// Validate table name - checks system tables whitelist only
+/// Validate table name - checks system tables safelist only
 /// For full validation including dynamic tables, use validate_table_name_with_conn
 pub fn validate_table_name(table: &str) -> Result<&str, SqlGuardError> {
     let sanitized = sanitize_identifier(table);
@@ -308,7 +308,7 @@ pub fn register_dynamic_table(table_name: &'static str) {
     log::info!("Dynamic table registration requested for: {}", table_name);
 }
 
-/// Check if table is in the system tables whitelist
+/// Check if table is in the system tables safelist
 pub fn is_system_table(table: &str) -> bool {
     let sanitized = sanitize_identifier(table);
     SYSTEM_TABLES.contains(sanitized.as_str())

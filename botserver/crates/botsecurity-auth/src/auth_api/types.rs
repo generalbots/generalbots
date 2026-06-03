@@ -1434,7 +1434,7 @@ impl Permission {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Role {
     #[default]
     Anonymous,

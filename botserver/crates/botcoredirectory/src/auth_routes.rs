@@ -626,6 +626,48 @@ pub async fn bootstrap_admin(
         } else {
             info!("Admin user added to organization with admin roles");
         }
+
+        let system_groups = vec![
+            ("everyone", "Everyone", vec!["basic:access", "kb:read:public"]),
+            ("admins", "Administrators", vec!["org:manage", "org:members", "org:settings", "org:billing", "bot:*", "kb:*", "app:*", "analytics:*"]),
+            ("managers", "Managers", vec!["org:members:view", "bot:create", "bot:edit", "bot:delete", "kb:read", "kb:write", "analytics:view"]),
+            ("developers", "Developers", vec!["bot:create", "bot:edit", "kb:write", "app:create"]),
+            ("human_resources", "Human Resources", vec!["people:manage", "kb:read", "org:members:view"]),
+            ("finance", "Finance", vec!["billing:view", "analytics:view", "kb:read"]),
+            ("marketing", "Marketing", vec!["campaigns:manage", "social:post", "analytics:view"]),
+            ("support", "Support Team", vec!["bot:view", "kb:read", "tickets:manage"]),
+            ("content_managers", "Content Managers", vec!["kb:write", "kb:admin", "docs:manage"]),
+            ("sales", "Sales", vec!["crm:view", "crm:manage", "analytics:view"]),
+            ("viewers", "Viewers (Read-Only)", vec!["bot:view", "kb:read", "app:view"]),
+            ("integration_services", "Integration Services", vec!["webhooks:manage", "api:access", "sources:connect"]),
+        ];
+
+        for (group_name, display_name, perms) in &system_groups {
+            let metadata_key = format!("group_{}", group_name);
+            let metadata_value = serde_json::json!({
+                "name": display_name,
+                "description": format!("Auto-provisioned {} group", display_name),
+                "permissions": perms,
+                "system": true,
+                "organization_id": oid
+            }).to_string();
+
+            let body = serde_json::json!({
+                "key": metadata_key,
+                "value": metadata_value
+            });
+
+            if let Err(e) = auth_service.http_post(
+                format!("{}/metadata/organization", auth_service.api_url()),
+                body,
+            ).await {
+                log::warn!("Failed to provision group {}: {}", group_name, e);
+            } else {
+                info!("Provisioned system group: {}", group_name);
+            }
+        }
+
+        info!("Auto-provisioned 12 system groups for organization {}", oid);
     }
 
     info!(

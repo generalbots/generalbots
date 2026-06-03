@@ -5,7 +5,6 @@ use axum::{
     Json,
 };
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -20,7 +19,7 @@ use super::super::{CreateRoleRequest, UpdateRolePermissionsRequest};
 
 pub async fn list_roles(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<Vec<RbacRole>, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_roles;
         rbac_roles::table
@@ -44,7 +43,7 @@ pub async fn list_roles(State(state): State<Arc<AppState>>) -> impl IntoResponse
 
 pub async fn get_role(State(state): State<Arc<AppState>>, Path(role_id): Path<Uuid>) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacRole, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_roles;
         rbac_roles::table
@@ -80,7 +79,7 @@ pub async fn create_role(State(state): State<Arc<AppState>>, Json(req): Json<Cre
         updated_at: now,
     };
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacRole, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_roles;
         diesel::insert_into(rbac_roles::table)
@@ -108,7 +107,7 @@ pub async fn update_role(
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
     let now = Utc::now();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacRole, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_roles;
         let role: RbacRole = rbac_roles::table
@@ -167,7 +166,7 @@ pub async fn delete_role(State(state): State<Arc<AppState>>, Path(role_id): Path
 
 pub async fn list_permissions(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<Vec<RbacPermission>, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_permissions;
         rbac_permissions::table
@@ -194,7 +193,7 @@ pub async fn get_role_permissions(
     Path(role_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::{rbac_permissions, rbac_role_permissions};
 

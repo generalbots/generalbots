@@ -4,6 +4,7 @@ pub mod auth_routes;
 pub mod bootstrap;
 pub mod client;
 pub mod router;
+pub mod scim;
 pub mod users;
 pub mod groups;
 
