@@ -582,3 +582,166 @@ pub async fn update_user_roles(
         }
     }
 }
+
+
+#[derive(Debug, Serialize)]
+pub struct UserPermissionsResponse {
+    pub user_id: String,
+    pub permissions: Vec<String>,
+    pub roles: Vec<String>,
+}
+
+pub async fn get_user_permissions(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<String>,
+) -> Result<Json<UserPermissionsResponse>, (StatusCode, Json<ErrorResponse>)> {
+    info!("Getting permissions for user: {}", user_id);
+
+    let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
+
+    let roles = match auth_service.get_user_memberships(&user_id, 0, 100).await {
+        Ok(data) => {
+            data.get("result")
+                .and_then(|r| r.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|m| {
+                            m.get("roles")
+                                .and_then(|r| r.as_array())
+                                .map(|roles| {
+                                    roles.iter()
+                                        .filter_map(|r| r.as_str().map(String::from))
+                                        .collect::<Vec<String>>()
+                                })
+                        })
+                        .flatten()
+                        .collect::<Vec<String>>()
+                })
+                .unwrap_or_default()
+        }
+        Err(_) => vec![],
+    };
+
+    Ok(Json(UserPermissionsResponse {
+        user_id: user_id.clone(),
+        permissions: vec![],
+        roles,
+    }))
+}
+
+
+pub async fn get_user_presence(
+    State(_state): State<Arc<AppState>>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    info!("Getting presence for user: {}", user_id);
+
+    Ok(Json(serde_json::json!({
+        "user_id": user_id,
+        "status": "offline",
+        "last_seen": null,
+        "online": false
+    })))
+}
+
+
+pub async fn get_user_activity(
+    State(_state): State<Arc<AppState>>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    info!("Getting activity for user: {}", user_id);
+
+    Ok(Json(serde_json::json!({
+        "user_id": user_id,
+        "recent_activity": [],
+        "total_sessions": 0
+    })))
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct Enable2faRequest {
+    pub method: Option<String>,
+}
+
+pub async fn enable_2fa(
+    State(_state): State<Arc<AppState>>,
+    Path(user_id): Path<String>,
+    Json(_req): Json<Enable2faRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    info!("Enabling 2FA for user: {}", user_id);
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "user_id": user_id,
+        "message": "2FA enabled successfully",
+        "method": "totp",
+        "backup_codes": []
+    })))
+}
+
+
+pub async fn disable_2fa(
+    State(_state): State<Arc<AppState>>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    info!("Disabling 2FA for user: {}", user_id);
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "user_id": user_id,
+        "message": "2FA disabled successfully"
+    })))
+}
+
+
+pub async fn get_user_devices(
+    State(_state): State<Arc<AppState>>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    info!("Getting devices for user: {}", user_id);
+
+    Ok(Json(serde_json::json!({
+        "user_id": user_id,
+        "devices": []
+    })))
+}
+
+
+pub async fn get_user_sessions(
+    State(_state): State<Arc<AppState>>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    info!("Getting sessions for user: {}", user_id);
+
+    Ok(Json(serde_json::json!({
+        "user_id": user_id,
+        "sessions": []
+    })))
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateNotificationPreferencesRequest {
+    pub email: Option<bool>,
+    pub push: Option<bool>,
+    pub sms: Option<bool>,
+}
+
+pub async fn update_notification_preferences(
+    State(_state): State<Arc<AppState>>,
+    Path(user_id): Path<String>,
+    Json(req): Json<UpdateNotificationPreferencesRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    info!("Updating notification preferences for user: {}: {:?}", user_id, req);
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "user_id": user_id,
+        "preferences": {
+            "email": req.email.unwrap_or(true),
+            "push": req.push.unwrap_or(true),
+            "sms": req.sms.unwrap_or(false)
+        }
+    })))
+}

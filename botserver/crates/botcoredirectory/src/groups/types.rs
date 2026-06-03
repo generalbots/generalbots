@@ -23,6 +23,12 @@ pub struct GroupQuery {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct UpdateMemberRolesRequest {
+    pub user_id: String,
+    pub roles: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct AddMemberRequest {
     pub user_id: String,
     pub roles: Option<Vec<String>>,
