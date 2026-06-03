@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use diesel::prelude::*;
+use uuid::Uuid;
 
 use crate::models::WhatsAppMessage;
 use crate::state::WhatsAppState;
@@ -12,19 +13,23 @@ pub async fn process_incoming_message(
     phone_number: &str,
     content: &str,
     _message: &WhatsAppMessage,
+    phone_number_id: Option<String>,
 ) -> Result<(), String> {
     let formatted_phone = format_phone_number(phone_number);
 
     log::info!("Processing message from {}: {}", formatted_phone, content);
 
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| format!("Pool error: {}", e))?;
-
-    let (bot_id, _bot_name) = (state.get_default_bot)(&mut conn);
-
-    drop(conn);
+    let (bot_id, _bot_name) = if let Some(ref pni) = phone_number_id {
+        (state.find_bot)(pni)
+    } else {
+        let mut conn = state
+            .pool
+            .get()
+            .map_err(|e| format!("Pool error: {}", e))?;
+        let result = (state.get_default_bot)(&mut conn);
+        drop(conn);
+        result
+    };
 
     let session_id = find_or_create_session(state, &formatted_phone, &bot_id).await?;
 

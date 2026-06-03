@@ -11,6 +11,7 @@ pub use client::{ZitadelClient, ZitadelConfig};
 pub type AuthService = ZitadelClient;
 
 use anyhow::Result;
+use botlib::traits::{BoxFutureUnit, BoxFutureValue, BoxFutureVecValue};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
@@ -233,6 +234,107 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
             let resp = client.http_post(url).await.json(&body).send().await.map_err(|e| e.to_string())?;
             let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
             Ok(data)
+        })
+    }
+
+    fn http_put(
+        &self,
+        url: String,
+        body: serde_json::Value,
+    ) -> BoxFutureValue {
+        let client = self.clone();
+        Box::pin(async move {
+            let resp = client.http_put(url).await.json(&body).send().await.map_err(|e| e.to_string())?;
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            Ok(data)
+        })
+    }
+
+    fn http_patch(
+        &self,
+        url: String,
+        body: serde_json::Value,
+    ) -> BoxFutureValue {
+        let client = self.clone();
+        Box::pin(async move {
+            let resp = client.http_patch(url).await.json(&body).send().await.map_err(|e| e.to_string())?;
+            let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            Ok(data)
+        })
+    }
+
+    fn http_delete(
+        &self,
+        url: String,
+    ) -> BoxFutureValue {
+        let client = self.clone();
+        Box::pin(async move {
+            let resp = client.http_delete(url).await.send().await.map_err(|e| e.to_string())?;
+            if resp.status().is_success() {
+                Ok(serde_json::Value::Null)
+            } else {
+                let text = resp.text().await.unwrap_or_default();
+                Err(format!("DELETE failed: {}", text))
+            }
+        })
+    }
+
+    fn get_user(
+        &self,
+        user_id: &str,
+    ) -> BoxFutureValue {
+        let client = self.clone();
+        let user_id = user_id.to_string();
+        Box::pin(async move {
+            client.get_user(&user_id).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn search_users(
+        &self,
+        query: &str,
+    ) -> BoxFutureVecValue {
+        let client = self.clone();
+        let query = query.to_string();
+        Box::pin(async move {
+            client.search_users(&query).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn get_user_memberships(
+        &self,
+        user_id: &str,
+        offset: i64,
+        limit: i64,
+    ) -> BoxFutureValue {
+        let client = self.clone();
+        let user_id = user_id.to_string();
+        Box::pin(async move {
+            client.get_user_memberships(&user_id, offset as u32, limit as u32).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn remove_org_member(
+        &self,
+        org_id: &str,
+        user_id: &str,
+    ) -> BoxFutureUnit {
+        let client = self.clone();
+        let org_id = org_id.to_string();
+        let user_id = user_id.to_string();
+        Box::pin(async move {
+            client.remove_org_member(&org_id, &user_id).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn get_org_members(
+        &self,
+        org_id: &str,
+    ) -> BoxFutureVecValue {
+        let client = self.clone();
+        let org_id = org_id.to_string();
+        Box::pin(async move {
+            client.get_org_members(&org_id).await.map_err(|e| e.to_string())
         })
     }
 }

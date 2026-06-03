@@ -818,7 +818,7 @@ let base_router = {
             .await
             .map_err(|e| {
                 error!("HTTPS server failed on {}: {}", addr, e);
-                e
+                std::io::Error::other(e)
             })
     } else {
         if disable_tls {
