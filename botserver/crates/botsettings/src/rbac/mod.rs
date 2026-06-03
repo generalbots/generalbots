@@ -2,7 +2,7 @@ pub mod handlers;
 pub mod utils;
 
 use axum::{
-    routing::{delete, get, post, put},
+    routing::{get, post},
     Router,
 };
 use chrono::Utc;

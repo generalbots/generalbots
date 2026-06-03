@@ -466,32 +466,6 @@ pub async fn list_group_invites(
         }
     }
 }
-                    None
-                })
-                .collect();
-
-            let total = groups.len();
-            info!("Found {} groups", total);
-
-            Ok(Json(GroupListResponse {
-                groups,
-                total,
-                page,
-                per_page,
-            }))
-        }
-        Err(e) => {
-            log::error!("Error listing groups: {}", e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("Internal error: {}", e),
-                    details: Some(e),
-                }),
-            ))
-        }
-    }
-}
 
 
 pub async fn get_group_members(

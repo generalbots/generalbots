@@ -19,7 +19,7 @@ use crate::rbac::AssignRoleRequest;
 
 pub async fn get_user_roles(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::{rbac_user_roles, rbac_roles};
         let roles: Vec<RbacRole> = rbac_user_roles::table
@@ -52,7 +52,7 @@ pub async fn assign_role_to_user(
     let conn = state.conn.clone();
     let expires_at = body.and_then(|b| b.expires_at);
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacUserRole, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_user_roles;
         let assignment = NewRbacUserRole {
@@ -113,7 +113,7 @@ pub async fn remove_role_from_user(
 
 pub async fn get_user_groups(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::{rbac_user_groups, rbac_groups};
         let groups: Vec<RbacGroup> = rbac_user_groups::table
@@ -143,15 +143,15 @@ pub async fn add_user_to_group(
     Path((user_id, group_id)): Path<(Uuid, Uuid)>,
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<RbacUserGroup, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::rbac_user_groups;
         let membership = NewRbacUserGroup {
             id: Uuid::new_v4(),
             user_id,
             group_id,
-            joined_by: None,
-            joined_at: Utc::now(),
+            added_by: None,
+            added_at: Utc::now(),
         };
         diesel::insert_into(rbac_user_groups::table)
             .values(&membership)

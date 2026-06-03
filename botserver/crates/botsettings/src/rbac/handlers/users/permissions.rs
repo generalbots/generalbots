@@ -27,35 +27,37 @@ pub async fn list_users_with_roles(
     let per_page = params.per_page.unwrap_or(20).clamp(1, 100);
     let search = params.search.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::{rbac_user_roles, rbac_roles, users};
 
-        let mut query = users::table
-            .filter(users::is_active.eq(true))
-            .into_boxed();
+        let offset_val = (page - 1) * per_page;
+        let pattern = match &search {
+            Some(term) => Some(format!("%{}%", term.to_lowercase())),
+            None => None,
+        };
 
-        if let Some(ref term) = search {
-            let pattern = format!("%{}%", term.to_lowercase());
-            query = query.filter(
-                users::fullname.ilike(&pattern)
-                    .or(users::email.ilike(&pattern)),
-            );
-        }
-
-        let total: i64 = query
-            .clone()
-            .count()
-            .get_result(&mut db_conn)
-            .map_err(|e| format!("Count error: {e}"))?;
-
-        let offset = (page - 1) * per_page;
-        let users_list: Vec<User> = query
-            .order(users::fullname.asc())
-            .offset(offset)
-            .limit(per_page)
-            .load(&mut db_conn)
-            .map_err(|e| format!("Query error: {e}"))?;
+        let users_list: Vec<User> = if let Some(ref pat) = pattern {
+            users::table
+                .filter(users::is_active.eq(true))
+                .filter(
+                    users::username.ilike(pat)
+                        .or(users::email.ilike(pat)),
+                )
+                .order(users::username.asc())
+                .offset(offset_val)
+                .limit(per_page)
+                .load(&mut db_conn)
+                .map_err(|e| format!("Query error: {e}"))?
+        } else {
+            users::table
+                .filter(users::is_active.eq(true))
+                .order(users::username.asc())
+                .offset(offset_val)
+                .limit(per_page)
+                .load(&mut db_conn)
+                .map_err(|e| format!("Query error: {e}"))?
+        };
 
         let users_with_roles: Vec<serde_json::Value> = users_list
             .into_iter()
@@ -70,7 +72,7 @@ pub async fn list_users_with_roles(
                 serde_json::json!({
                     "id": u.id,
                     "email": u.email,
-                    "fullname": u.fullname,
+                    "username": u.username,
                     "roles": user_roles,
                 })
             })
@@ -78,7 +80,6 @@ pub async fn list_users_with_roles(
 
         Ok(serde_json::json!({
             "users": users_with_roles,
-            "total": total,
             "page": page,
             "per_page": per_page,
         }))
@@ -101,7 +102,7 @@ pub async fn get_effective_permissions(
     Path(user_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<Vec<RbacPermission>, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::{
             rbac_group_roles, rbac_permissions, rbac_role_permissions, rbac_user_groups,
@@ -188,7 +189,7 @@ pub async fn check_permission(
     let conn = state.conn.clone();
     let user_id = user.user_id;
     let perm_str = permission_str.clone();
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<bool, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         utils::user_has_db_permission(user_id, &perm_str, &mut db_conn)
     })
@@ -216,7 +217,7 @@ pub async fn my_permissions(
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
     let user_id = user.user_id;
-    let result = tokio::task::spawn_blocking(move || {
+    let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
         use botcore::shared::models::schema::{
             rbac_group_roles, rbac_groups, rbac_permissions, rbac_role_permissions, rbac_roles,
