@@ -1463,6 +1463,66 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/ui/attendant/**", "GET", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
 
+        // Organization settings
+        RoutePermission::new("/api/organizations/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/organizations/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/organizations/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // Compliance
+        RoutePermission::new("/api/compliance/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/compliance/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/compliance/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // Browser
+        RoutePermission::new("/api/browser/**", "GET", ""),
+        RoutePermission::new("/api/browser/**", "POST", ""),
+
+        // Terminal
+        RoutePermission::new("/api/terminal/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/terminal/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // People / Directory
+        RoutePermission::new("/api/people/**", "GET", ""),
+        RoutePermission::new("/api/people/**", "POST", ""),
+        RoutePermission::new("/api/people/**", "PUT", ""),
+        RoutePermission::new("/api/people/**", "DELETE", ""),
+
+        // Directory / Users & Groups management
+        RoutePermission::new("/users/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/users/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/users/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/users/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/groups/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/groups/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/groups/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/groups/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
+        // SCIM 2.0 endpoints (Azure AD sync)
+        RoutePermission::new("/scim/v2/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/scim/v2/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/scim/v2/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/scim/v2/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
         // =====================================================================
         // RBAC SELF-SERVICE ROUTES (any authenticated user can check their own permissions)
         // =====================================================================
