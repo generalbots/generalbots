@@ -23,8 +23,9 @@ I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! 
 See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from MinIO drive buckets (`.gbai` format). Bots are sourced exclusively from Drive (MinIO buckets), not from local filesystem paths.
 - ❌ **NEVER** create `.bak`, `.old`, or backup directories in the repository — use `/tmp/` for all backups
 - ❌ **NEVER** commit `*.bak`, `*.old`, or any temporary backup files to git
-- ❌ **NEVER** commit `.bas` source files — only `.ast` (compiled) and `.json` files
-- ✅ `.bas` files belong in the `work/` folder (local development only)
+- ❌ **NEVER** commit `.bas` source files from production bots — only `.ast` (compiled) and `.json` files
+- ✅ `.bas` source files for production bots belong in the `work/` folder (local development only)
+- ✅ `.bas` template files in `bottemplates/` are part of the repository (source templates, not production)
 
 >
 > Secret files MUST be placed in `/tmp/` only:
