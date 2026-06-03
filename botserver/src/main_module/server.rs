@@ -822,7 +822,7 @@ let base_router = {
             .map_err(|e| {
                 error!("HTTPS server failed on {}: {}", addr, e);
                 std::io::Error::other(e)
-            })
+            })?;
     } else {
         if disable_tls {
             info!("TLS disabled via BOTSERVER_DISABLE_TLS environment variable");
@@ -849,8 +849,10 @@ let base_router = {
             Ok(()) => info!("HTTP server shut down gracefully"),
             Err(e) => error!("HTTP server shutdown with error: {}", e),
         }
-        result.map_err(std::io::Error::other)
+        result.map_err(std::io::Error::other)?;
     }
+
+    Ok(())
 }
 
 async fn handle_update_organization(
