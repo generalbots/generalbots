@@ -1,3 +1,0 @@
-subjectAltName = DNS:localhost,IP:127.0.0.1
-keyUsage = digitalSignature,keyEncipherment
-extendedKeyUsage = serverAuth
