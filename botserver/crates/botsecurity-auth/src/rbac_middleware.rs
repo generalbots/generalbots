@@ -1464,6 +1464,13 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
             .with_roles(vec!["Admin".into(), "SuperAdmin".into(), "Moderator".into()]),
 
         // =====================================================================
+        // RBAC SELF-SERVICE ROUTES (any authenticated user can check their own permissions)
+        // =====================================================================
+        RoutePermission::new("/api/rbac/my-permissions", "GET", ""),
+        RoutePermission::new("/api/rbac/check", "POST", ""),
+        RoutePermission::new("/api/rbac/users/{user_id}/permissions", "GET", ""),
+
+        // =====================================================================
         // SUPER ADMIN ONLY ROUTES
         // =====================================================================
         RoutePermission::new("/api/rbac/**", "GET", "")
