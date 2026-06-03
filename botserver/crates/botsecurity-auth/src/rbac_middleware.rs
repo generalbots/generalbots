@@ -1523,6 +1523,16 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/scim/v2/**", "DELETE", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
+        // Directory management (nested under /api/directory/)
+        RoutePermission::new("/api/directory/**", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/directory/**", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/directory/**", "PUT", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/directory/**", "DELETE", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
         // =====================================================================
         // RBAC SELF-SERVICE ROUTES (any authenticated user can check their own permissions)
         // =====================================================================

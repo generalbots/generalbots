@@ -18,7 +18,6 @@ pub mod manifest;
 pub mod middleware;
 pub mod organization;
 pub mod organization_invitations;
-pub mod organization_rbac;
 pub mod package_manager;
 pub mod performance;
 pub mod product;

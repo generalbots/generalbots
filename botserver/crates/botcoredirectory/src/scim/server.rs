@@ -97,23 +97,14 @@ async fn schemas() -> Json<serde_json::Value> {
 }
 
 async fn get_me(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<ScimUser>, (StatusCode, Json<ScimError>)> {
-    let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
-            schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
-            scim_type: None,
-            detail: "No auth service".to_string(),
-            status: 500,
-        })
-    })?.lock().await;
-
-    Err((StatusCode::NOT_IMPLEMENTED, ScimError {
+    Err((StatusCode::NOT_IMPLEMENTED, Json(ScimError {
         schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
         scim_type: None,
         detail: "GET /Me not supported - use specific user ID".to_string(),
         status: 501,
-    }))
+    })))
 }
 
 async fn list_users(
@@ -130,12 +121,12 @@ async fn list_users(
     info!("SCIM GET /Users startIndex={} count={}", start_index, count);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     let filter = params.get("filter").map(|s| s.as_str());
@@ -179,21 +170,21 @@ async fn get_user(
     info!("SCIM GET /Users/{}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     let user_data = auth_service.get_user(&user_id).await.map_err(|e| {
-        (StatusCode::NOT_FOUND, ScimError {
+        (StatusCode::NOT_FOUND, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: Some("invalidValue".to_string()),
             detail: format!("User not found: {}", e),
             status: 404,
-        })
+        }))
     })?;
 
     let memberships = auth_service.get_user_memberships(&user_id, 0, 100).await
@@ -225,12 +216,12 @@ async fn create_user(
     info!("SCIM POST /Users - creating: {}", scim_user.user_name);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     let body = scim_user.to_zitadel_json();
@@ -238,12 +229,12 @@ async fn create_user(
         format!("{}/v2/users", auth_service.api_url()),
         body,
     ).await.map_err(|e| {
-        (StatusCode::BAD_REQUEST, ScimError {
+        (StatusCode::BAD_REQUEST, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: format!("Failed to create user: {}", e),
             status: 400,
-        })
+        }))
     })?;
 
     let new_id = result.get("userId")
@@ -273,12 +264,12 @@ async fn update_user(
     info!("SCIM PUT /Users/{}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     let body = scim_user.to_zitadel_json();
@@ -286,12 +277,12 @@ async fn update_user(
         format!("{}/v2/users/{}", auth_service.api_url(), user_id),
         body,
     ).await.map_err(|e| {
-        (StatusCode::BAD_REQUEST, ScimError {
+        (StatusCode::BAD_REQUEST, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: format!("Failed to update user: {}", e),
             status: 400,
-        })
+        }))
     })?;
 
     let mut updated = scim_user;
@@ -314,23 +305,23 @@ async fn delete_user(
     info!("SCIM DELETE /Users/{}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     auth_service.http_delete(
         format!("{}/v2/users/{}", auth_service.api_url(), user_id),
     ).await.map_err(|e| {
-        (StatusCode::BAD_REQUEST, ScimError {
+        (StatusCode::BAD_REQUEST, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: format!("Failed to delete user: {}", e),
             status: 400,
-        })
+        }))
     })?;
 
     Ok(StatusCode::NO_CONTENT)
@@ -350,12 +341,12 @@ async fn list_groups(
     info!("SCIM GET /Groups startIndex={} count={}", start_index, count);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     let data = auth_service.http_get(
@@ -420,23 +411,23 @@ async fn get_group(
     info!("SCIM GET /Groups/{}", group_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     let metadata = auth_service.http_get(
         format!("{}/metadata/organization/{}", auth_service.api_url(), group_id),
     ).await.map_err(|e| {
-        (StatusCode::NOT_FOUND, ScimError {
+        (StatusCode::NOT_FOUND, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: Some("invalidValue".to_string()),
             detail: format!("Group not found: {}", e),
             status: 404,
-        })
+        }))
     })?;
 
     let value_str = metadata.get("value").and_then(|v| v.as_str()).unwrap_or("{}");
@@ -466,12 +457,12 @@ async fn create_group(
     info!("SCIM POST /Groups - creating: {}", scim_group.display_name);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     let member_ids: Vec<String> = scim_group.members.iter().map(|m| m.value.clone()).collect();
@@ -491,12 +482,12 @@ async fn create_group(
         format!("{}/metadata/organization", auth_service.api_url()),
         body,
     ).await.map_err(|e| {
-        (StatusCode::BAD_REQUEST, ScimError {
+        (StatusCode::BAD_REQUEST, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: format!("Failed to create group: {}", e),
             status: 400,
-        })
+        }))
     })?;
 
     let mut created = scim_group;
@@ -520,12 +511,12 @@ async fn update_group(
     info!("SCIM PUT /Groups/{}", group_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     let member_ids: Vec<String> = scim_group.members.iter().map(|m| m.value.clone()).collect();
@@ -543,12 +534,12 @@ async fn update_group(
         format!("{}/metadata/organization/{}", auth_service.api_url(), group_id),
         body,
     ).await.map_err(|e| {
-        (StatusCode::BAD_REQUEST, ScimError {
+        (StatusCode::BAD_REQUEST, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: format!("Failed to update group: {}", e),
             status: 400,
-        })
+        }))
     })?;
 
     let mut updated = scim_group;
@@ -571,23 +562,23 @@ async fn delete_group(
     info!("SCIM DELETE /Groups/{}", group_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (StatusCode::INTERNAL_SERVER_ERROR, ScimError {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: "No auth service".to_string(),
             status: 500,
-        })
+        }))
     })?.lock().await;
 
     auth_service.http_delete(
         format!("{}/metadata/organization/{}", auth_service.api_url(), group_id),
     ).await.map_err(|e| {
-        (StatusCode::BAD_REQUEST, ScimError {
+        (StatusCode::BAD_REQUEST, Json(ScimError {
             schemas: vec!["urn:ietf:params:scim:api:messages:2.0:Error".to_string()],
             scim_type: None,
             detail: format!("Failed to delete group: {}", e),
             status: 400,
-        })
+        }))
     })?;
 
     Ok(StatusCode::NO_CONTENT)
