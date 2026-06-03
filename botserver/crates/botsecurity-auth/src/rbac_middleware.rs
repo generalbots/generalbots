@@ -16,6 +16,32 @@ use uuid::Uuid;
 
 use super::auth::{AuthenticatedUser, Permission, PublicPathAllowed, Role};
 
+/// Match a wildcard pattern (e.g. `bot:*` matches `bot:create:messages`)
+/// against a value string. Supports `*` and `**` as wildcards.
+/// Splits on both `:` and `.` delimiters.
+pub fn match_wildcard(pattern: &str, value: &str) -> bool {
+    let p_lower = pattern.to_lowercase();
+    let v_lower = value.to_lowercase();
+
+    if p_lower == "*" || p_lower == "**" {
+        return true;
+    }
+
+    let pattern_parts: Vec<&str> = p_lower.split(|c| c == ':' || c == '.').collect();
+    let value_parts: Vec<&str> = v_lower.split(|c| c == ':' || c == '.').collect();
+
+    for (i, part) in pattern_parts.iter().enumerate() {
+        if *part == "*" || *part == "**" {
+            return true;
+        }
+        if i >= value_parts.len() || *part != value_parts[i] {
+            return false;
+        }
+    }
+
+    pattern_parts.len() == value_parts.len()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RbacConfig {
     pub cache_ttl_seconds: u64,
@@ -617,29 +643,6 @@ impl RbacManager {
         }
 
         // Helper to match wildcards (e.g. bot:* matches bot:create)
-        let match_wildcard = |pattern: &str, value: &str| -> bool {
-            let p_lower = pattern.to_lowercase();
-            let v_lower = value.to_lowercase();
-            
-            if p_lower == "*" || p_lower == "**" {
-                return true;
-            }
-            
-            let pattern_parts: Vec<&str> = p_lower.split(|c| c == ':' || c == '.').collect();
-            let value_parts: Vec<&str> = v_lower.split(|c| c == ':' || c == '.').collect();
-            
-            for (i, part) in pattern_parts.iter().enumerate() {
-                if *part == "*" || *part == "**" {
-                    return true;
-                }
-                if i >= value_parts.len() || *part != value_parts[i] {
-                    return false;
-                }
-            }
-            
-            pattern_parts.len() == value_parts.len()
-        };
-
         // Try parsing the requested permission
         let req_permission = match Permission::from_alias(permission_str) {
             Some(p) => p,
