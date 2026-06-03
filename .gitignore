@@ -104,3 +104,4 @@ opt/
 .backups/
 .antigravitycli/
 *.orig
+/*.old/
