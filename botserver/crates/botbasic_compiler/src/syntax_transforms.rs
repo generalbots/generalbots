@@ -107,6 +107,30 @@ pub fn convert_if_then_syntax(script: &str) -> String {
             continue;
         }
 
+        if upper.starts_with("ELSE IF ") && upper.contains(" THEN") {
+            let then_pos = match upper.find(" THEN") {
+                Some(pos) => pos,
+                None => continue,
+            };
+            let condition = &trimmed[7..then_pos].trim();
+            let condition = condition.replace(" NOT IN ", " !in ").replace(" not in ", " !in ");
+            let condition = condition.replace(" AND ", " && ").replace(" and ", " && ")
+                .replace(" OR ", " || ").replace(" or ", " || ");
+            let condition = if !condition.contains("==") && !condition.contains("!=")
+                && !condition.contains("<=") && !condition.contains(">=")
+                && !condition.contains("+=") && !condition.contains("-=")
+                && !condition.contains("*=") && !condition.contains("/=") {
+                condition.replace("=", "==")
+            } else {
+                condition.to_string()
+            };
+            log::trace!("Converting ELSE IF statement: condition='{}'", condition);
+            result.push_str("} else if ");
+            result.push_str(&condition);
+            result.push_str(" {\n");
+            continue;
+        }
+
         if upper == "ELSE" {
             log::trace!("Converting ELSE statement");
             result.push_str("} else {\n");
@@ -491,6 +515,7 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 
         (r#"SEND\s+MAIL"#, 4, 4, vec!["to", "subject", "body", "attachments"]),
 
+        (r#"HAS\s+ROLE"#, 1, 1, vec!["role"]),
         (r#"BOOK"#, 1, 1, vec!["event"]),
     ];
 

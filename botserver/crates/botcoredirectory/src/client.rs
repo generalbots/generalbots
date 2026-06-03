@@ -94,27 +94,57 @@ impl ZitadelClient {
     }
 
     pub async fn http_get(&self, url: String) -> reqwest::RequestBuilder {
-        let token = self.get_access_token().await.unwrap_or_default();
+        let token = match self.get_access_token().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("Failed to get access token for GET {}: {}", url, e);
+                String::new()
+            }
+        };
         self.http_client.get(url).bearer_auth(token)
     }
 
     pub async fn http_post(&self, url: String) -> reqwest::RequestBuilder {
-        let token = self.get_access_token().await.unwrap_or_default();
+        let token = match self.get_access_token().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("Failed to get access token for POST {}: {}", url, e);
+                String::new()
+            }
+        };
         self.http_client.post(url).bearer_auth(token)
     }
 
     pub async fn http_put(&self, url: String) -> reqwest::RequestBuilder {
-        let token = self.get_access_token().await.unwrap_or_default();
+        let token = match self.get_access_token().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("Failed to get access token for PUT {}: {}", url, e);
+                String::new()
+            }
+        };
         self.http_client.put(url).bearer_auth(token)
     }
 
     pub async fn http_patch(&self, url: String) -> reqwest::RequestBuilder {
-        let token = self.get_access_token().await.unwrap_or_default();
+        let token = match self.get_access_token().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("Failed to get access token for PATCH {}: {}", url, e);
+                String::new()
+            }
+        };
         self.http_client.patch(url).bearer_auth(token)
     }
 
     pub async fn http_delete(&self, url: String) -> reqwest::RequestBuilder {
-        let token = self.get_access_token().await.unwrap_or_default();
+        let token = match self.get_access_token().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("Failed to get access token for DELETE {}: {}", url, e);
+                String::new()
+            }
+        };
         self.http_client.delete(url).bearer_auth(token)
     }
 
@@ -540,7 +570,15 @@ impl ZitadelClient {
             return Ok(false);
         }
 
-        Ok(true)
+        let data: serde_json::Value = match response.json().await {
+            Ok(d) => d,
+            Err(e) => {
+                log::warn!("check_permission: failed to parse response body: {}", e);
+                return Ok(false);
+            }
+        };
+
+        Ok(data.get("result").and_then(|r| r.as_bool()).unwrap_or(false))
     }
 
     pub async fn set_user_password(&self, user_id: &str, password: &str, change_required: bool) -> Result<()> {

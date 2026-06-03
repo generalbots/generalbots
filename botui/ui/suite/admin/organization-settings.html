@@ -6,7 +6,7 @@
     <title>Organization Settings - General Bots</title>
     <link rel="stylesheet" href="/ui/suite/css/common.css">
     <link rel="stylesheet" href="/ui/suite/admin/admin.css">
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="/suite/js/vendor/htmx.min.js"></script>
     <style>
         .org-settings-container {
             max-width: 1200px;
@@ -689,6 +689,9 @@
             <button class="settings-tab active" data-tab="general">General</button>
             <button class="settings-tab" data-tab="branding">Branding</button>
             <button class="settings-tab" data-tab="members">Members</button>
+            <button class="settings-tab" data-tab="users">Users</button>
+            <button class="settings-tab" data-tab="groups">Groups</button>
+            <button class="settings-tab" data-tab="roles">Roles</button>
             <button class="settings-tab" data-tab="security">Security</button>
             <button class="settings-tab" data-tab="billing">Billing & Usage</button>
             <button class="settings-tab" data-tab="integrations">Integrations</button>
@@ -865,4 +868,77 @@
                     <div class="form-group">
                         <label for="custom-domain">Custom Domain</label>
                         <input type="text" id="custom-domain" name="custom_domain" class="form-input" placeholder="chat.yourdomain.com">
-                        <p class="hint">Point your
+                        <p class="hint">Point your</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="members-panel" class="settings-panel">
+            <div class="settings-section">
+                <h2>Organization Members</h2>
+                <div hx-get="/suite/admin/users.html" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state"><div class="spinner"></div><p>Loading members...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="users-panel" class="settings-panel">
+            <div hx-get="/suite/admin/users.html" hx-trigger="load" hx-swap="innerHTML">
+                <div class="loading-state"><div class="spinner"></div><p>Loading users...</p></div>
+            </div>
+        </div>
+
+        <div id="groups-panel" class="settings-panel">
+            <div hx-get="/suite/admin/groups.html" hx-trigger="load" hx-swap="innerHTML">
+                <div class="loading-state"><div class="spinner"></div><p>Loading groups...</p></div>
+            </div>
+        </div>
+
+        <div id="roles-panel" class="settings-panel">
+            <div hx-get="/suite/admin/roles.html" hx-trigger="load" hx-swap="innerHTML">
+                <div class="loading-state"><div class="spinner"></div><p>Loading roles...</p></div>
+            </div>
+        </div>
+
+        <div id="security-panel" class="settings-panel">
+            <div class="settings-section">
+                <h2>Security Settings</h2>
+                <p class="hint">Security configuration coming soon.</p>
+            </div>
+        </div>
+
+        <div id="billing-panel" class="settings-panel">
+            <div class="settings-section">
+                <h2>Billing & Usage</h2>
+                <p class="hint">Billing information coming soon.</p>
+            </div>
+        </div>
+
+        <div id="integrations-panel" class="settings-panel">
+            <div class="settings-section">
+                <h2>Integrations</h2>
+                <p class="hint">Integration settings coming soon.</p>
+            </div>
+        </div>
+
+        <div id="advanced-panel" class="settings-panel">
+            <div class="settings-section">
+                <h2>Advanced Settings</h2>
+                <p class="hint">Advanced configuration coming soon.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.settings-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(this.dataset.tab + '-panel').classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -27,14 +27,14 @@
             <input type="text"
                    placeholder="Search users..."
                    name="q"
-                   hx-get="/users/search"
+                   hx-get="/api/directory/users/search"
                    hx-trigger="keyup changed delay:300ms"
                    hx-target="#users-table-body"
                    hx-swap="innerHTML">
         </div>
         <div class="filters">
             <select name="role"
-                    hx-get="/users/list"
+                    hx-get="/api/directory/users/list"
                     hx-trigger="change"
                     hx-target="#users-table-body"
                     hx-swap="innerHTML"
@@ -45,7 +45,7 @@
                 <option value="user">User</option>
             </select>
             <select name="status"
-                    hx-get="/users/list"
+                    hx-get="/api/directory/users/list"
                     hx-trigger="change"
                     hx-target="#users-table-body"
                     hx-swap="innerHTML"
@@ -75,7 +75,7 @@
                 </tr>
             </thead>
             <tbody id="users-table-body"
-                   hx-get="/users/list"
+                   hx-get="/api/directory/users/list"
                    hx-trigger="load"
                    hx-swap="innerHTML">
                 <tr>
@@ -92,7 +92,7 @@
 
     <!-- Pagination -->
     <div class="pagination" id="users-pagination"
-         hx-get="/users/list/pagination"
+         hx-get="/api/directory/users/list/pagination"
          hx-trigger="load"
          hx-swap="innerHTML">
     </div>
@@ -133,7 +133,7 @@
                 </svg>
             </button>
         </div>
-        <form hx-post="/users/create"
+        <form hx-post="/api/directory/users/create"
               hx-target="#users-table-body"
               hx-swap="innerHTML"
               hx-on::after-request="if(event.detail.successful) { document.getElementById('create-user-modal').close(); showToast('User created successfully'); }">
@@ -242,7 +242,7 @@
         <div class="modal-footer">
             <button type="button" class="btn-secondary" onclick="document.getElementById('delete-user-modal').close()">Cancel</button>
             <button type="button" class="btn-danger" id="confirm-delete-btn"
-                    hx-delete="/users/{user_id}/delete"
+                    hx-delete="/api/directory/users/{user_id}/delete"
                     hx-target="#users-table-body"
                     hx-swap="innerHTML"
                     hx-on::after-request="document.getElementById('delete-user-modal').close(); showToast('User deleted');">
@@ -842,7 +842,7 @@
         panel.classList.add('open');
 
         // Load user profile by default
-        htmx.ajax('GET', `/users/${userId}/profile`, {target: '#user-detail-content'});
+        htmx.ajax('GET', `/api/directory/users/${userId}/profile`, {target: '#user-detail-content'});
     }
 
     function closeDetailPanel() {
@@ -857,19 +857,19 @@
         // Get current user ID from panel
         const userId = document.getElementById('user-detail-panel').dataset.userId;
         if (userId) {
-            htmx.ajax('GET', `/users/${userId}/${tab}`, {target: '#user-detail-content'});
+            htmx.ajax('GET', `/api/directory/users/${userId}/${tab}`, {target: '#user-detail-content'});
         }
     }
 
     function editUser(userId) {
-        htmx.ajax('GET', `/users/${userId}/edit`, {target: '#edit-user-form-container'});
+        htmx.ajax('GET', `/api/directory/users/${userId}/edit`, {target: '#edit-user-form-container'});
         document.getElementById('edit-user-modal').showModal();
     }
 
     function confirmDeleteUser(userId, userName) {
         document.getElementById('delete-user-name').textContent = userName;
         const deleteBtn = document.getElementById('confirm-delete-btn');
-        deleteBtn.setAttribute('hx-delete', `/users/${userId}/delete`);
+        deleteBtn.setAttribute('hx-delete', `/api/directory/users/${userId}/delete`);
         htmx.process(deleteBtn);
         document.getElementById('delete-user-modal').showModal();
     }

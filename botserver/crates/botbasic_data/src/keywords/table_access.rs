@@ -432,9 +432,13 @@ pub fn get_table_columns(conn: &mut PgConnection, table_name: &str) -> Vec<Strin
 
 pub fn register_table_keywords(
     _state: Arc<dyn BasicRuntime>,
-    _user: UserSession,
-    _engine: &mut rhai::Engine,
+    user: UserSession,
+    engine: &mut rhai::Engine,
 ) {
+    let user_roles = UserRoles::from_user_session(&user);
+    engine.register_fn("has_role", move |role: &str| {
+        user_roles.has_role(role)
+    });
 }
 
 #[cfg(test)]
