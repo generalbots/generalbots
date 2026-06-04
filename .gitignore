@@ -106,3 +106,6 @@ opt/
 *.orig
 /*.old/
 *.old
+
+session-*.md
+todo.tmp
