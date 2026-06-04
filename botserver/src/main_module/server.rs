@@ -361,6 +361,7 @@ pub async fn run_axum_server(
     {
         api_router = api_router.merge(crate::compliance::configure_compliance_routes(&app_state));
         api_router = api_router.merge(crate::compliance::configure_compliance_ui_routes(&app_state));
+        api_router = api_router.merge(crate::apps::configure_routes());
     }
     #[cfg(feature = "monitoring")]
     {

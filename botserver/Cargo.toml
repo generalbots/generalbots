@@ -320,6 +320,7 @@ botplayer = { workspace = true, optional = true }
 botmultimodal = { workspace = true, optional = true }
 botsearch = { workspace = true, optional = true }
 botdesktop = { workspace = true, optional = true }
+botapps = { workspace = true }
 botmodelsbridge = { workspace = true }
 
 [dev-dependencies]
