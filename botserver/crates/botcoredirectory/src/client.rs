@@ -98,59 +98,34 @@ impl ZitadelClient {
         self.config.client_secret.clone()
     }
 
-    pub async fn http_get(&self, url: String) -> reqwest::RequestBuilder {
-        let token = match self.get_access_token().await {
-            Ok(t) => t,
-            Err(e) => {
-                log::error!("Failed to get access token for GET {}: {}", url, e);
-                String::new()
-            }
-        };
-        self.http_client.get(url).bearer_auth(token)
+    pub async fn http_get(&self, url: String) -> Result<reqwest::RequestBuilder> {
+        let token = self.get_access_token().await
+            .map_err(|e| anyhow!("Token acquisition failed for GET {}: {}", url, e))?;
+        Ok(self.http_client.get(url).bearer_auth(token))
     }
 
-    pub async fn http_post(&self, url: String) -> reqwest::RequestBuilder {
-        let token = match self.get_access_token().await {
-            Ok(t) => t,
-            Err(e) => {
-                log::error!("Failed to get access token for POST {}: {}", url, e);
-                String::new()
-            }
-        };
-        self.http_client.post(url).bearer_auth(token)
+    pub async fn http_post(&self, url: String) -> Result<reqwest::RequestBuilder> {
+        let token = self.get_access_token().await
+            .map_err(|e| anyhow!("Token acquisition failed for POST {}: {}", url, e))?;
+        Ok(self.http_client.post(url).bearer_auth(token))
     }
 
-    pub async fn http_put(&self, url: String) -> reqwest::RequestBuilder {
-        let token = match self.get_access_token().await {
-            Ok(t) => t,
-            Err(e) => {
-                log::error!("Failed to get access token for PUT {}: {}", url, e);
-                String::new()
-            }
-        };
-        self.http_client.put(url).bearer_auth(token)
+    pub async fn http_put(&self, url: String) -> Result<reqwest::RequestBuilder> {
+        let token = self.get_access_token().await
+            .map_err(|e| anyhow!("Token acquisition failed for PUT {}: {}", url, e))?;
+        Ok(self.http_client.put(url).bearer_auth(token))
     }
 
-    pub async fn http_patch(&self, url: String) -> reqwest::RequestBuilder {
-        let token = match self.get_access_token().await {
-            Ok(t) => t,
-            Err(e) => {
-                log::error!("Failed to get access token for PATCH {}: {}", url, e);
-                String::new()
-            }
-        };
-        self.http_client.patch(url).bearer_auth(token)
+    pub async fn http_patch(&self, url: String) -> Result<reqwest::RequestBuilder> {
+        let token = self.get_access_token().await
+            .map_err(|e| anyhow!("Token acquisition failed for PATCH {}: {}", url, e))?;
+        Ok(self.http_client.patch(url).bearer_auth(token))
     }
 
-    pub async fn http_delete(&self, url: String) -> reqwest::RequestBuilder {
-        let token = match self.get_access_token().await {
-            Ok(t) => t,
-            Err(e) => {
-                log::error!("Failed to get access token for DELETE {}: {}", url, e);
-                String::new()
-            }
-        };
-        self.http_client.delete(url).bearer_auth(token)
+    pub async fn http_delete(&self, url: String) -> Result<reqwest::RequestBuilder> {
+        let token = self.get_access_token().await
+            .map_err(|e| anyhow!("Token acquisition failed for DELETE {}: {}", url, e))?;
+        Ok(self.http_client.delete(url).bearer_auth(token))
     }
 
     pub async fn get_access_token(&self) -> Result<String> {
@@ -239,12 +214,13 @@ impl ZitadelClient {
         self.create_user_with_password(email, first_name, last_name, username, None).await
     }
 
-    pub async fn create_user_with_password(
+    pub async fn create_user_with_phone(
         &self,
         email: &str,
         first_name: &str,
         last_name: &str,
         username: Option<&str>,
+        phone: Option<&str>,
         initial_password: Option<&str>,
     ) -> Result<String> {
         let token = self.get_access_token().await?;
@@ -262,6 +238,15 @@ impl ZitadelClient {
                 "isVerified": true
             }
         });
+
+        if let Some(phone_number) = phone {
+            if let Some(obj) = body.as_object_mut() {
+                obj.insert("phone".to_string(), serde_json::json!({
+                    "phone": phone_number,
+                    "isVerified": true
+                }));
+            }
+        }
 
         if let Some(password) = initial_password {
             if let Some(obj) = body.as_object_mut() {
@@ -298,6 +283,17 @@ impl ZitadelClient {
             .to_string();
 
         Ok(user_id)
+    }
+
+    pub async fn create_user_with_password(
+        &self,
+        email: &str,
+        first_name: &str,
+        last_name: &str,
+        username: Option<&str>,
+        initial_password: Option<&str>,
+    ) -> Result<String> {
+        self.create_user_with_phone(email, first_name, last_name, username, None, initial_password).await
     }
 
     pub async fn get_user(&self, user_id: &str) -> Result<serde_json::Value> {
@@ -399,6 +395,161 @@ impl ZitadelClient {
             .unwrap_or_default();
 
         Ok(users)
+    }
+
+    pub async fn search_users_by_phone(&self, phone: &str) -> Result<Vec<serde_json::Value>> {
+        let token = self.get_access_token().await?;
+        let url = format!("{}/management/v1/users/_search", self.config.api_url);
+
+        let body = serde_json::json!({
+            "queries": [{
+                "phoneQuery": {
+                    "phone": phone,
+                    "method": "TEXT_QUERY_METHOD_EQUALS"
+                }
+            }]
+        });
+
+        let response = self
+            .http_client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to search users by phone: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to search users by phone: {}", error_text));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| anyhow!("Failed to parse search response: {}", e))?;
+
+        let users = data
+            .get("result")
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        Ok(users)
+    }
+
+    pub async fn search_users_by_email(&self, email: &str) -> Result<Vec<serde_json::Value>> {
+        let token = self.get_access_token().await?;
+        let url = format!("{}/management/v1/users/_search", self.config.api_url);
+
+        let body = serde_json::json!({
+            "queries": [{
+                "emailQuery": {
+                    "email": email,
+                    "method": "TEXT_QUERY_METHOD_EQUALS"
+                }
+            }]
+        });
+
+        let response = self
+            .http_client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to search users by email: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to search users by email: {}", error_text));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| anyhow!("Failed to parse search response: {}", e))?;
+
+        let users = data
+            .get("result")
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        Ok(users)
+    }
+
+    pub async fn search_users_by_metadata(&self, key: &str, value: &str) -> Result<Vec<serde_json::Value>> {
+        let token = self.get_access_token().await?;
+        let url = format!("{}/management/v1/users/_search", self.config.api_url);
+
+        let body = serde_json::json!({
+            "queries": [{
+                "metadataQuery": {
+                    "key": key,
+                    "value": value,
+                    "method": "TEXT_QUERY_METHOD_EQUALS"
+                }
+            }]
+        });
+
+        let response = self
+            .http_client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to search users by metadata: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to search users by metadata: {}", error_text));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| anyhow!("Failed to parse search response: {}", e))?;
+
+        let users = data
+            .get("result")
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        Ok(users)
+    }
+
+    pub async fn find_or_create_user_by_phone(
+        &self,
+        phone: &str,
+        first_name: &str,
+        last_name: &str,
+    ) -> Result<String> {
+        let existing = self.search_users_by_phone(phone).await?;
+        if let Some(user) = existing.first() {
+            let user_id = user
+                .get("userId")
+                .or_else(|| user.get("id"))
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("No userId in search result"))?
+                .to_string();
+            return Ok(user_id);
+        }
+
+        let username = format!("phone_{}", phone.replace('+', ""));
+        let email = format!("{}@whatsapp.local", username);
+
+        self.create_user_with_phone(
+            &email,
+            first_name,
+            last_name,
+            Some(&username),
+            Some(phone),
+            None,
+        )
+        .await
     }
 
     pub async fn get_user_memberships(
@@ -643,6 +794,101 @@ impl ZitadelClient {
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
             return Err(anyhow!("Failed to set password: {}", error_text));
+        }
+
+        Ok(())
+    }
+
+    pub async fn list_organizations(&self, limit: u32, offset: u32) -> Result<Vec<serde_json::Value>> {
+        let token = self.get_access_token().await?;
+        let url = format!(
+            "{}/management/v1/orgs/_search?limit={}&offset={}",
+            self.config.api_url, limit, offset
+        );
+
+        let response = self
+            .http_client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&serde_json::json!({}))
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to list organizations: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to list organizations: {}", error_text));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| anyhow!("Failed to parse organizations response: {}", e))?;
+
+        let orgs = data
+            .get("result")
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        Ok(orgs)
+    }
+
+    pub async fn create_organization(&self, name: &str) -> Result<String> {
+        let token = self.get_access_token().await?;
+        let url = format!("{}/v2/organizations", self.config.api_url);
+
+        let body = serde_json::json!({ "name": name });
+
+        let response = self
+            .http_client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to create organization: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to create organization: {}", error_text));
+        }
+
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| anyhow!("Failed to parse organization response: {}", e))?;
+
+        let org_id = data
+            .get("organizationId")
+            .or_else(|| data.get("id"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow!("No organization ID in response"))?
+            .to_string();
+
+        Ok(org_id)
+    }
+
+    pub async fn update_organization_metadata(&self, org_id: &str, metadata: serde_json::Value) -> Result<()> {
+        let token = self.get_access_token().await?;
+        let url = format!("{}/v2/organizations/{}", self.config.api_url, org_id);
+
+        let body = serde_json::json!({
+            "metadata": metadata
+        });
+
+        let response = self
+            .http_client
+            .patch(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to update organization: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to update organization: {}", error_text));
         }
 
         Ok(())

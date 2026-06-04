@@ -1,0 +1,303 @@
+<link rel="stylesheet" href="compliance/compliance.css">
+<script src="compliance/compliance.js"></script>
+
+<div class="compliance-container">
+    <header class="compliance-header">
+        <h1>ISO 27001 Compliance</h1>
+        <div class="compliance-header-actions">
+            <button class="compliance-btn" onclick="window._compliance.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-6.22-8.56"/>
+                    <path d="M21 3v6h-6"/>
+                </svg>
+                Run Check
+            </button>
+            <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.exportReport()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Export Report
+            </button>
+        </div>
+    </header>
+
+    <div class="compliance-stats">
+        <div class="compliance-stat-card">
+            <span class="compliance-stat-label">Total Checks</span>
+            <span class="compliance-stat-value" id="stat-total">0</span>
+        </div>
+        <div class="compliance-stat-card">
+            <span class="compliance-stat-label">Passed</span>
+            <span class="compliance-stat-value green" id="stat-passed">0</span>
+        </div>
+        <div class="compliance-stat-card">
+            <span class="compliance-stat-label">Failed</span>
+            <span class="compliance-stat-value red" id="stat-failed">0</span>
+        </div>
+        <div class="compliance-stat-card">
+            <span class="compliance-stat-label">Warnings</span>
+            <span class="compliance-stat-value yellow" id="stat-warnings">0</span>
+        </div>
+        <div class="compliance-stat-card">
+            <span class="compliance-stat-label">Score</span>
+            <span class="compliance-stat-value blue" id="stat-score">0%</span>
+        </div>
+    </div>
+
+    <nav class="compliance-tabs">
+        <button class="compliance-tab active" data-tab="dashboard">Dashboard</button>
+        <button class="compliance-tab" data-tab="checks">Checks</button>
+        <button class="compliance-tab" data-tab="issues">Issues</button>
+        <button class="compliance-tab" data-tab="audit">Audit Log</button>
+        <button class="compliance-tab" data-tab="risks">Risk Matrix</button>
+        <button class="compliance-tab" data-tab="training">Training</button>
+    </nav>
+
+    <div class="compliance-content">
+        <div class="compliance-panel active" id="panel-dashboard">
+            <div class="compliance-dashboard-grid">
+                <div class="compliance-dashboard-card">
+                    <h3>Frameworks</h3>
+                    <div class="compliance-frameworks" id="frameworks-container"></div>
+                </div>
+                <div class="compliance-dashboard-card">
+                    <h3>Recent Activity</h3>
+                    <div class="compliance-activity-list" id="activity-container"></div>
+                </div>
+                <div class="compliance-dashboard-card">
+                    <h3>Compliance Score</h3>
+                    <div class="compliance-score-display" id="score-display"></div>
+                </div>
+                <div class="compliance-dashboard-card">
+                    <h3>Check Results</h3>
+                    <div class="compliance-chart-bar" id="score-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="compliance-panel" id="panel-checks">
+            <div class="compliance-table-wrapper">
+                <div class="compliance-table-header">
+                    <h3>Compliance Checks</h3>
+                    <button class="compliance-btn" onclick="window._compliance.loadAll()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 11-6.22-8.56"/>
+                            <path d="M21 3v6h-6"/>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                <div class="compliance-table-scroll">
+                    <table class="compliance-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Framework</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="checks-tbody">
+                            <tr><td colspan="5" class="compliance-empty">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="compliance-panel" id="panel-issues">
+            <div class="compliance-table-wrapper">
+                <div class="compliance-table-header">
+                    <h3>Issues</h3>
+                    <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.showModal('issue-modal')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Create Issue
+                    </button>
+                </div>
+                <div class="compliance-table-scroll">
+                    <table class="compliance-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Severity</th>
+                                <th>Status</th>
+                                <th>Assignee</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="issues-tbody">
+                            <tr><td colspan="6" class="compliance-empty">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="compliance-panel" id="panel-audit">
+            <div class="compliance-table-wrapper">
+                <div class="compliance-table-header">
+                    <h3>Audit Log</h3>
+                    <button class="compliance-btn" onclick="window._compliance.loadAll()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 11-6.22-8.56"/>
+                            <path d="M21 3v6h-6"/>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                <div class="compliance-table-scroll">
+                    <table class="compliance-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>User</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-tbody">
+                            <tr><td colspan="4" class="compliance-empty">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="compliance-panel" id="panel-risks">
+            <h3 class="compliance-section-title">Risk Matrix (Likelihood x Impact)</h3>
+            <div class="compliance-risk-matrix">
+                <div class="y-label">Likelihood</div>
+                <div class="compliance-risk-cell risk-1">1</div>
+                <div class="compliance-risk-cell risk-2">2</div>
+                <div class="compliance-risk-cell risk-3">3</div>
+                <div class="compliance-risk-cell risk-4">4</div>
+                <div class="compliance-risk-cell risk-5">5</div>
+
+                <div></div>
+                <div class="compliance-risk-cell risk-2">2</div>
+                <div class="compliance-risk-cell risk-4">4</div>
+                <div class="compliance-risk-cell risk-6">6</div>
+                <div class="compliance-risk-cell risk-8">8</div>
+                <div class="compliance-risk-cell risk-10">10</div>
+
+                <div></div>
+                <div class="compliance-risk-cell risk-3">3</div>
+                <div class="compliance-risk-cell risk-6">6</div>
+                <div class="compliance-risk-cell risk-9">9</div>
+                <div class="compliance-risk-cell risk-12">12</div>
+                <div class="compliance-risk-cell risk-15">15</div>
+
+                <div></div>
+                <div class="compliance-risk-cell risk-4">4</div>
+                <div class="compliance-risk-cell risk-8">8</div>
+                <div class="compliance-risk-cell risk-12">12</div>
+                <div class="compliance-risk-cell risk-16">16</div>
+                <div class="compliance-risk-cell risk-20">20</div>
+
+                <div></div>
+                <div class="compliance-risk-cell risk-5">5</div>
+                <div class="compliance-risk-cell risk-10">10</div>
+                <div class="compliance-risk-cell risk-15">15</div>
+                <div class="compliance-risk-cell risk-20">20</div>
+                <div class="compliance-risk-cell risk-25">25</div>
+
+                <div></div>
+                <div class="x-label">1</div>
+                <div class="x-label">2</div>
+                <div class="x-label">3</div>
+                <div class="x-label">4</div>
+                <div class="x-label">5</div>
+            </div>
+            <p class="compliance-section-title" style="text-align:center;color:var(--text-secondary);font-size:12px;font-weight:400">Impact &#8594;</p>
+            <div class="compliance-risk-cards" id="risks-cards"></div>
+        </div>
+
+        <div class="compliance-panel" id="panel-training">
+            <div class="compliance-table-wrapper">
+                <div class="compliance-table-header">
+                    <h3>Training Records</h3>
+                    <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.showModal('training-modal')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New Training
+                    </button>
+                </div>
+                <div style="padding:16px">
+                    <div class="compliance-training-list" id="training-list">
+                        <div class="compliance-empty">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="compliance-modal-overlay" id="issue-modal">
+    <div class="compliance-modal">
+        <div class="compliance-modal-header">
+            <h3>Create Issue</h3>
+            <button class="compliance-modal-close" onclick="window._compliance.hideModal('issue-modal')">&times;</button>
+        </div>
+        <div class="compliance-modal-body">
+            <div class="compliance-form-group">
+                <label>Title</label>
+                <input type="text" id="issue-title" placeholder="Issue title">
+            </div>
+            <div class="compliance-form-group">
+                <label>Severity</label>
+                <select id="issue-severity">
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            <div class="compliance-form-group">
+                <label>Assignee</label>
+                <input type="text" id="issue-assignee" placeholder="Assignee name">
+            </div>
+            <div class="compliance-form-group">
+                <label>Description</label>
+                <textarea id="issue-description" rows="3" placeholder="Describe the issue..."></textarea>
+            </div>
+            <div class="compliance-form-actions">
+                <button class="compliance-btn" onclick="window._compliance.hideModal('issue-modal')">Cancel</button>
+                <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.createIssue()">Create Issue</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="compliance-modal-overlay" id="training-modal">
+    <div class="compliance-modal">
+        <div class="compliance-modal-header">
+            <h3>New Training</h3>
+            <button class="compliance-modal-close" onclick="window._compliance.hideModal('training-modal')">&times;</button>
+        </div>
+        <div class="compliance-modal-body">
+            <div class="compliance-form-group">
+                <label>Title</label>
+                <input type="text" id="training-title" placeholder="Training title">
+            </div>
+            <div class="compliance-form-group">
+                <label>Assignee</label>
+                <input type="text" id="training-assignee" placeholder="Assignee name">
+            </div>
+            <div class="compliance-form-group">
+                <label>Due Date</label>
+                <input type="date" id="training-due">
+            </div>
+            <div class="compliance-form-actions">
+                <button class="compliance-btn" onclick="window._compliance.hideModal('training-modal')">Cancel</button>
+                <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.createTraining()">Create Training</button>
+            </div>
+        </div>
+    </div>
+</div>

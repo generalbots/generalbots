@@ -7,10 +7,15 @@ use std::sync::Arc;
 use botcore::shared::state::AppState;
 
 use super::groups;
+use super::organizations;
 use super::users;
 
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
+        // --- Organizations ---
+        .route("/organizations/list", get(organizations::list_organizations))
+        .route("/organizations/create", post(organizations::create_organization))
+        .route("/organizations/:org_id", get(organizations::get_organization))
         // --- Users CRUD ---
         .route("/users/create", post(users::create_user))
         .route("/users/:user_id/update", put(users::update_user))

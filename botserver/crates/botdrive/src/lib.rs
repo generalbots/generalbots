@@ -4,6 +4,7 @@ pub mod drive_monitor;
 pub mod drive_repository_impl;
 pub mod drive_types;
 pub mod drive_handlers;
+pub mod user_scope;
 pub mod vectordb;
 pub mod s3_repository;
 pub mod stream_processor;

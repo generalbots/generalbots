@@ -5,6 +5,10 @@ use axum::{
 use std::sync::Arc;
 
 use crate::handlers::*;
+use crate::unified_inbox;
+use crate::threading;
+use crate::search_handler;
+use crate::draft_handler;
 
 pub fn configure(state: Arc<crate::models::AppState>) -> Router {
     Router::new()
@@ -33,9 +37,11 @@ pub fn configure(state: Arc<crate::models::AppState>) -> Router {
         .route("/api/ui/email/signatures", get(htmx::list_signatures_htmx))
         .route("/api/ui/email/rules", get(htmx::list_rules_htmx))
         .route("/api/ui/email/search", get(htmx::search_emails_htmx))
-        .route("/api/ui/email/unified-list", get(unified::list_unified_htmx))
-        .route("/api/ui/email/search-all", get(unified::search_all_accounts))
-        .route("/api/ui/email/thread/{thread_id}", get(unified::get_thread_htmx))
+        .route("/api/ui/email/unified-list", get(unified_inbox::list_unified_inbox))
+        .route("/api/ui/email/unified-stats", get(unified_inbox::unified_stats))
+        .route("/api/ui/email/search-all", get(search_handler::search_emails))
+        .route("/api/ui/email/thread/{thread_id}", get(threading::get_thread))
+        .route("/api/email/draft/auto", post(draft_handler::upsert_draft))
         .route("/api/ui/email/auto-responder", post(htmx::save_auto_responder))
         .route("/api/features/{org_id}/enabled", get(integration::get_feature_flags))
         .route("/api/ai/extract-lead", post(integration::extract_lead_from_email))

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reconhecimento de Imagens - General Bots Suite</title>
+  <link rel="stylesheet" href="vision.css">
+</head>
+<body>
+  <header class="header">
+    <h1>Reconhecimento de Imagens</h1>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="ocr">OCR</button>
+    <button class="tab" data-tab="objects">Detecção de Objetos</button>
+    <button class="tab" data-tab="damage">Análise de Danos</button>
+    <button class="tab" data-tab="plates">Reconhecimento de Placas</button>
+  </div>
+
+  <div class="content">
+    <div class="upload-area" id="uploadArea">
+      <span class="icon">🖼️</span>
+      <span class="text">Arraste uma imagem ou clique para selecionar</span>
+      <span class="hint">Suporta JPG, PNG, WEBP (máx. 10MB)</span>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill"></div>
+    </div>
+
+    <div class="results-layout" id="resultsArea" style="display:none;">
+      <div class="results-panel">
+        <div class="results-header">
+          <h3 id="resultsTitle">Resultados</h3>
+          <button class="btn btn-sm" id="btnClearResults">Limpar</button>
+        </div>
+        <div class="results-body" id="resultsBody">
+          <div class="empty-state">Envie uma imagem para analisar</div>
+        </div>
+      </div>
+
+      <div class="history-panel">
+        <div class="history-header">
+          <h3>Histórico</h3>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="vision.js"></script>
+</body>
+</html>

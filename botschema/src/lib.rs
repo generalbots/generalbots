@@ -68,3 +68,7 @@ pub mod drive;
 pub use self::drive::*;
 pub mod email_integration;
 pub use self::email_integration::*;
+pub mod desktop;
+pub use self::desktop::*;
+pub mod database_manager;
+pub use self::database_manager::*;

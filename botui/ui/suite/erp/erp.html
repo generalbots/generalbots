@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>General Bots ERP</title>
+<link rel="stylesheet" href="erp.css">
+</head>
+<body>
+<div class="erp-app">
+<header class="app-header">
+<h1>Enterprise ERP</h1>
+<div class="header-actions">
+<span class="branch-label" id="currentBranch">All Branches</span>
+<button class="btn-refresh" id="refreshBtn">&#8635;</button>
+</div>
+</header>
+<nav class="tab-bar">
+<button class="tab active" data-tab="financial">Financial</button>
+<button class="tab" data-tab="inventory">Inventory</button>
+<button class="tab" data-tab="procurement">Procurement</button>
+<button class="tab" data-tab="branches">Multi-Branch</button>
+</nav>
+<main class="tab-content">
+<section class="tab-panel active" id="panel-financial">
+<div class="metrics-row">
+<div class="metric-card">
+<div class="metric-label">Revenue</div>
+<div class="metric-value" id="revenue">$0</div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Expenses</div>
+<div class="metric-value" id="expenses">$0</div>
+</div>
+<div class="metric-card profit">
+<div class="metric-label">Net Profit</div>
+<div class="metric-value" id="netProfit">$0</div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Margin</div>
+<div class="metric-value" id="margin">0%</div>
+</div>
+</div>
+<div class="table-section">
+<h2>Accounts Receivable</h2>
+<table class="data-table" id="arTable">
+<thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Due Date</th><th>Status</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="table-section">
+<h2>Accounts Payable</h2>
+<table class="data-table" id="apTable">
+<thead><tr><th>Bill</th><th>Vendor</th><th>Amount</th><th>Due Date</th><th>Status</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-inventory">
+<div class="table-section">
+<h2>Stock Levels</h2>
+<div class="table-toolbar">
+<input type="text" class="search-input" id="invSearch" placeholder="Search products...">
+<select class="filter-select" id="invStatusFilter">
+<option value="">All Status</option>
+<option value="in_stock">In Stock</option>
+<option value="low">Low Stock</option>
+<option value="out">Out of Stock</option>
+</select>
+</div>
+<table class="data-table" id="invTable">
+<thead><tr><th>Product</th><th>SKU</th><th>Quantity</th><th>Reorder Point</th><th>Status</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-procurement">
+<div class="table-section">
+<div class="section-header">
+<h2>Purchase Orders</h2>
+<button class="btn-primary" id="createPoBtn">Create PO</button>
+</div>
+<table class="data-table" id="poTable">
+<thead><tr><th>PO #</th><th>Vendor</th><th>Date</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="modal-overlay" id="poModal">
+<div class="modal">
+<div class="modal-header">
+<h3>New Purchase Order</h3>
+<button class="modal-close" id="closePoModal">&times;</button>
+</div>
+<form id="poForm">
+<div class="form-group">
+<label>Vendor</label>
+<select id="poVendor" required></select>
+</div>
+<div class="form-group">
+<label>Items</label>
+<div id="poItems">
+<div class="po-item-row">
+<select class="po-item-select" required></select>
+<input type="number" class="po-item-qty" value="1" min="1" required>
+<button type="button" class="btn-remove-item">&times;</button>
+</div>
+</div>
+<button type="button" class="btn-add-item" id="addItemBtn">+ Add Item</button>
+</div>
+<div class="form-group">
+<label>Notes</label>
+<textarea id="poNotes" rows="3"></textarea>
+</div>
+<div class="form-actions">
+<button type="button" class="btn-secondary" id="cancelPoBtn">Cancel</button>
+<button type="submit" class="btn-primary">Submit PO</button>
+</div>
+</form>
+</div>
+</div>
+</section>
+<section class="tab-panel" id="panel-branches">
+<div class="table-section">
+<h2>Branch Performance</h2>
+<table class="data-table" id="branchTable">
+<thead><tr><th>Branch</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Headcount</th><th>Tickets</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+</main>
+</div>
+<script src="erp.js"></script>
+</body>
+</html>

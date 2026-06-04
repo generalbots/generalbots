@@ -803,7 +803,7 @@
         <div id="branding-panel" class="settings-panel">
             <div class="settings-section">
                 <h2>Brand Identity</h2>
-                <form id="branding-form" hx-post="/api/organizations/current/branding" hx-swap="none" hx-encoding="multipart/form-data">
+                <form id="branding-form" hx-post="/api/organizations/current" hx-swap="none">
                     <div class="form-group">
                         <label>Organization Logo</label>
                         <div class="logo-upload">
@@ -868,9 +868,13 @@
                     <div class="form-group">
                         <label for="custom-domain">Custom Domain</label>
                         <input type="text" id="custom-domain" name="custom_domain" class="form-input" placeholder="chat.yourdomain.com">
-                        <p class="hint">Point your</p>
+                        <p class="hint">Point your CNAME record to proxy.generalbots.com. SSL certificates are provisioned automatically.</p>
                     </div>
-                </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">Save Branding</button>
+                        <button type="reset" class="btn btn-secondary">Reset</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -903,29 +907,184 @@
 
         <div id="security-panel" class="settings-panel">
             <div class="settings-section">
-                <h2>Security Settings</h2>
-                <p class="hint">Security configuration coming soon.</p>
+                <h2>Authentication</h2>
+                <form hx-post="/api/organizations/current" hx-swap="none">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="require_2fa" value="true"> Require Two-Factor Authentication for all members
+                        </label>
+                        <p class="hint">Enforce 2FA across the organization. Members will be prompted to set up 2FA on next login.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="session-timeout">Session Timeout (minutes)</label>
+                        <input type="number" id="session-timeout" name="session_timeout" class="form-input" value="60" min="5" max="1440">
+                        <p class="hint">Idle sessions will be automatically logged out after this duration.</p>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="enforce_password_policy" value="true" checked> Enforce strong password policy
+                        </label>
+                        <p class="hint">Minimum 12 characters, at least one uppercase, lowercase, number, and special character.</p>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">Save Security Settings</button>
+                    </div>
+                </form>
+            </div>
+            <div class="settings-section">
+                <h2>API Access</h2>
+                <form hx-post="/api/organizations/current" hx-swap="none">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="api_access_enabled" value="true" checked> Enable API access for this organization
+                        </label>
+                        <p class="hint">Allow organization members to generate API tokens for programmatic access.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="rate-limit">API Rate Limit (requests/minute)</label>
+                        <input type="number" id="rate-limit" name="rate_limit" class="form-input" value="100" min="10" max="10000">
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">Save API Settings</button>
+                    </div>
+                </form>
             </div>
         </div>
 
         <div id="billing-panel" class="settings-panel">
             <div class="settings-section">
-                <h2>Billing & Usage</h2>
-                <p class="hint">Billing information coming soon.</p>
+                <h2>Plan & Usage</h2>
+                <div class="quota-display">
+                    <div class="quota-item">
+                        <div class="quota-item-label">Users</div>
+                        <div class="quota-item-value" id="usage-users">-</div>
+                        <div class="quota-item-limit">of 10 included</div>
+                        <div class="quota-bar"><div class="quota-bar-fill" style="width: 0%"></div></div>
+                    </div>
+                    <div class="quota-item">
+                        <div class="quota-item-label">Bots</div>
+                        <div class="quota-item-value" id="usage-bots">-</div>
+                        <div class="quota-item-limit">of 5 included</div>
+                        <div class="quota-bar"><div class="quota-bar-fill" style="width: 0%"></div></div>
+                    </div>
+                    <div class="quota-item">
+                        <div class="quota-item-label">Knowledge Base Documents</div>
+                        <div class="quota-item-value" id="usage-kb">-</div>
+                        <div class="quota-item-limit">of 100 included</div>
+                        <div class="quota-bar"><div class="quota-bar-fill" style="width: 0%"></div></div>
+                    </div>
+                    <div class="quota-item">
+                        <div class="quota-item-label">Storage</div>
+                        <div class="quota-item-value" id="usage-storage">-</div>
+                        <div class="quota-item-limit">of 5 GB included</div>
+                        <div class="quota-bar"><div class="quota-bar-fill" style="width: 0%"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h2>Current Plan</h2>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: var(--bg-secondary, #f5f5f5); border-radius: 6px;">
+                    <div>
+                        <strong style="font-size: 1.1rem;">Free Plan</strong>
+                        <p class="hint" style="margin: 0.25rem 0 0 0;">Basic features for small teams</p>
+                    </div>
+                    <button class="btn btn-primary">Upgrade Plan</button>
+                </div>
             </div>
         </div>
 
         <div id="integrations-panel" class="settings-panel">
             <div class="settings-section">
-                <h2>Integrations</h2>
-                <p class="hint">Integration settings coming soon.</p>
+                <h2>API Keys</h2>
+                <p class="hint" style="margin-bottom: 1rem;">Manage API keys for programmatic access to your organization's resources.</p>
+                <div id="api-keys-list">
+                    <p class="hint">No API keys created yet.</p>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="alert('API key creation coming soon')">Create API Key</button>
+            </div>
+            <div class="settings-section">
+                <h2>Webhooks</h2>
+                <p class="hint" style="margin-bottom: 1rem;">Configure webhook endpoints to receive real-time event notifications.</p>
+                <div id="webhooks-list">
+                    <p class="hint">No webhooks configured yet.</p>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="alert('Webhook configuration coming soon')">Add Webhook</button>
+            </div>
+            <div class="settings-section">
+                <h2>Connected Services</h2>
+                <div class="form-group">
+                    <label>WhatsApp Business</label>
+                    <p class="hint">Connect your WhatsApp Business account for messaging integration.</p>
+                    <button class="btn btn-secondary" onclick="connectWhatsApp()">Connect WhatsApp</button>
+                </div>
+                <div class="form-group">
+                    <label>Email (SMTP)</label>
+                    <p class="hint">Configure outbound email delivery via SMTP or API.</p>
+                    <button class="btn btn-secondary" onclick="configureEmail()">Configure Email</button>
+                </div>
+                <div class="form-group">
+                    <label>Microsoft 365</label>
+                    <p class="hint">Sync users and groups from Azure Active Directory.</p>
+                    <div id="office365-config" style="display:none; margin-top: 0.5rem;">
+                        <div class="form-row">
+                            <input type="text" id="o365-tenant-id" class="form-input" placeholder="Tenant ID" style="flex:1; margin-right: 0.5rem;">
+                            <input type="text" id="o365-client-id" class="form-input" placeholder="Client ID" style="flex:1; margin-right: 0.5rem;">
+                            <input type="password" id="o365-client-secret" class="form-input" placeholder="Client Secret" style="flex:1;">
+                        </div>
+                        <div class="btn-group" style="margin-top: 0.5rem;">
+                            <button class="btn btn-primary" onclick="syncOffice365()">Sync Now</button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('office365-config').style.display='none'">Cancel</button>
+                        </div>
+                        <div id="o365-status" style="margin-top: 0.5rem;"></div>
+                    </div>
+                    <button class="btn btn-secondary" id="o365-connect-btn" onclick="document.getElementById('office365-config').style.display='block'">Connect Office 365</button>
+                </div>
             </div>
         </div>
 
         <div id="advanced-panel" class="settings-panel">
             <div class="settings-section">
-                <h2>Advanced Settings</h2>
-                <p class="hint">Advanced configuration coming soon.</p>
+                <h2>Organization ID</h2>
+                <div class="form-group">
+                    <label>Organization Identifier</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="text" id="org-id-display" class="form-input" value="" readonly style="font-family: monospace; background: var(--bg-secondary);">
+                        <button type="button" class="btn btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('org-id-display').value)">Copy</button>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h2>Data Export</h2>
+                <p class="hint" style="margin-bottom: 1rem;">Export all organization data including users, bots, knowledge bases, and configurations.</p>
+                <button class="btn btn-secondary" onclick="exportOrgData()">Export All Data</button>
+            </div>
+            <div class="settings-section">
+                <h2>Audit Log</h2>
+                <p class="hint" style="margin-bottom: 1rem;">View a chronological log of all administrative actions performed in this organization.</p>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table class="audit-log-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border-color);">Timestamp</th>
+                                <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border-color);">Actor</th>
+                                <th style="text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border-color);">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-log-body">
+                            <tr><td colspan="3" style="padding: 1rem; text-align: center; color: var(--text-secondary);">Audit log not yet available.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="settings-section danger-zone">
+                <h2>Danger Zone</h2>
+                <div class="danger-action">
+                    <div class="danger-action-info">
+                        <h4>Delete Organization</h4>
+                        <p>Permanently delete this organization and all associated data. This action cannot be undone.</p>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteOrganization()">Delete Organization</button>
+                </div>
             </div>
         </div>
     </div>
@@ -938,6 +1097,232 @@
                 this.classList.add('active');
                 document.getElementById(this.dataset.tab + '-panel').classList.add('active');
             });
+        });
+
+        function loadOrganizations() {
+            fetch('/api/directory/organizations/list')
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('current-org');
+                    select.innerHTML = '';
+                    if (data.organizations && data.organizations.length > 0) {
+                        data.organizations.forEach(org => {
+                            const opt = document.createElement('option');
+                            opt.value = org.id;
+                            opt.textContent = org.name;
+                            select.appendChild(opt);
+                        });
+                        loadOrgSettings(data.organizations[0].id);
+                    } else {
+                        const opt = document.createElement('option');
+                        opt.value = 'default';
+                        opt.textContent = 'Default Organization';
+                        select.appendChild(opt);
+                    }
+                })
+                .catch(() => {
+                    const select = document.getElementById('current-org');
+                    select.innerHTML = '<option value="default">Default Organization</option>';
+                });
+        }
+
+        function setFormValue(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.type === 'checkbox') {
+                el.checked = value === true || value === 'true' || value === 'on';
+            } else if (el.tagName === 'SELECT') {
+                const found = Array.from(el.options).find(o => o.value === String(value));
+                if (found) el.value = String(value);
+            } else {
+                el.value = value !== null && value !== undefined ? String(value) : '';
+            }
+        }
+
+        function loadOrgSettings(orgId) {
+            fetch('/api/organizations/current')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.id) document.getElementById('org-id-display').value = data.id;
+                    setFormValue('org-name', data.name || 'My Organization');
+                    setFormValue('org-description', data.description || '');
+                    setFormValue('org-industry', data.industry || '');
+                    setFormValue('org-size', data.size || '1-10');
+                    setFormValue('org-website', data.website || '');
+                    setFormValue('org-timezone', data.timezone || 'UTC');
+                    setFormValue('contact-email', data.contact_email || '');
+                    setFormValue('contact-phone', data.contact_phone || '');
+                    setFormValue('billing-email', data.billing_email || '');
+                    setFormValue('address', data.address || '');
+                })
+                .catch(() => {});
+
+            fetch('/api/organizations/current/settings')
+                .then(r => r.json())
+                .then(data => {
+                    setFormValue('primary-color', data.primary_color || '#0066cc');
+                    document.getElementById('primary-color-value').textContent = data.primary_color || '#0066cc';
+                    setFormValue('secondary-color', data.secondary_color || '#6c757d');
+                    document.getElementById('secondary-color-value').textContent = data.secondary_color || '#6c757d';
+                    setFormValue('custom-domain', data.custom_domain || '');
+                    setFormValue('session-timeout', data.session_timeout || '60');
+                    setFormValue('rate-limit', data.rate_limit || '100');
+                    setFormValue('enforce_password_policy', data.enforce_password_policy);
+                    setFormValue('api_access_enabled', data.api_access_enabled);
+                    setFormValue('require_2fa', data.require_2fa);
+
+                    if (data.plan_name) {
+                        const planSection = document.getElementById('billing-panel');
+                        const planNameEl = planSection?.querySelector('.settings-section:last-child strong');
+                        if (planNameEl) planNameEl.textContent = data.plan_name;
+                    }
+                })
+                .catch(() => {});
+
+            loadOrgStats();
+        }
+
+        function setQuotaBar(id, used, limit, label) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = used;
+            const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+            const bar = el.closest('.quota-item')?.querySelector('.quota-bar-fill');
+            if (bar) bar.style.width = pct + '%';
+            const limitEl = el.closest('.quota-item')?.querySelector('.quota-item-limit');
+            if (limitEl) limitEl.textContent = 'of ' + limit + ' ' + (label || 'included');
+        }
+
+        function loadOrgStats() {
+            fetch('/api/organizations/current/stats')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.users) setQuotaBar('usage-users', data.users.used, data.users.limit, 'included');
+                    if (data.bots) setQuotaBar('usage-bots', data.bots.used, data.bots.limit, 'included');
+                    if (data.kb_documents) setQuotaBar('usage-kb', data.kb_documents.used, data.kb_documents.limit, 'included');
+                    if (data.storage_mb) {
+                        const mb = data.storage_mb.used || 0;
+                        document.getElementById('usage-storage').textContent = (mb >= 1024) ? (mb/1024).toFixed(1) + ' GB' : mb + ' MB';
+                        const limit = data.storage_mb.limit || 5120;
+                        const pct = Math.min(100, (mb / limit) * 100);
+                        const bar = document.getElementById('usage-storage').closest('.quota-item')?.querySelector('.quota-bar-fill');
+                        if (bar) bar.style.width = pct + '%';
+                        const limitEl = document.getElementById('usage-storage').closest('.quota-item')?.querySelector('.quota-item-limit');
+                        if (limitEl) {
+                            const limitGb = (limit / 1024).toFixed(0);
+                            limitEl.textContent = 'of ' + limitGb + ' GB included';
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function connectWhatsApp() {
+            window.open('/suite/whatsapp.html', '_blank');
+        }
+
+        function configureEmail() {
+            window.open('/suite/email.html', '_blank');
+        }
+
+        function syncOffice365() {
+            const tenantId = document.getElementById('o365-tenant-id').value.trim();
+            const clientId = document.getElementById('o365-client-id').value.trim();
+            const clientSecret = document.getElementById('o365-client-secret').value.trim();
+            const statusEl = document.getElementById('o365-status');
+
+            if (!tenantId || !clientId || !clientSecret) {
+                statusEl.innerHTML = '<span style="color:var(--danger, #dc3545);">All fields are required.</span>';
+                return;
+            }
+
+            statusEl.innerHTML = '<span style="color:var(--text-secondary);">Syncing...</span>';
+
+            fetch('/api/admin/migrate/office365', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tenant_id: tenantId,
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    sync_mode: 'delta'
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    statusEl.innerHTML = '<span style="color:var(--success, #28a745);">Sync complete! Users: ' +
+                        (data.users_created || 0) + ' created, ' + (data.users_mapped || 0) + ' mapped.</span>';
+                } else {
+                    statusEl.innerHTML = '<span style="color:var(--danger, #dc3545);">Error: ' + (data.error || 'Unknown error') + '</span>';
+                }
+            })
+            .catch(e => {
+                statusEl.innerHTML = '<span style="color:var(--danger, #dc3545);">Request failed: ' + e.message + '</span>';
+            });
+        }
+
+        function deleteOrganization() {
+            if (!confirm('Are you absolutely sure? This action cannot be undone.')) return;
+            if (!confirm('ALL data including users, bots, and knowledge bases will be permanently deleted. Type "DELETE" to confirm.')) return;
+
+            fetch('/api/organizations/current', { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Organization deleted. You will be redirected.');
+                        window.location.href = '/';
+                    } else {
+                        alert('Failed: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(e => alert('Request failed: ' + e.message));
+        }
+
+        function exportOrgData() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Exporting...';
+
+            fetch('/api/organizations/current/export')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.download_url) {
+                        window.open(data.download_url, '_blank');
+                    } else {
+                        alert(data.message || 'Export started. You will receive a download link via email.');
+                    }
+                })
+                .catch(e => alert('Export failed: ' + e.message))
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Export All Data';
+                });
+        }
+
+        function loadAuditLog() {
+            fetch('/api/organizations/current/audit')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('audit-log-body');
+                    if (!data.entries || data.entries.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="padding: 1rem; text-align: center; color: var(--text-secondary);">No audit entries yet.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = data.entries.map(e =>
+                        '<tr><td>' + (e.timestamp || '-') + '</td><td>' + (e.actor || '-') + '</td><td>' + (e.action || '-') + '</td></tr>'
+                    ).join('');
+                })
+                .catch(() => {});
+        }
+
+        function switchOrganization(orgId) {
+            loadOrgSettings(orgId);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOrganizations();
+            loadAuditLog();
         });
     </script>
 </body>

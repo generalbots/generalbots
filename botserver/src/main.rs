@@ -92,6 +92,9 @@ pub mod video;
 #[cfg(feature = "workspaces")]
 pub mod workspaces;
 
+#[cfg(feature = "desktop")]
+pub mod desktop;
+
 #[cfg(feature = "attendant")]
 pub mod attendance;
 

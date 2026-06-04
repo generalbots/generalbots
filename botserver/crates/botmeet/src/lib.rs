@@ -16,11 +16,13 @@ use botcore::urls::ApiUrls;
 use botcore::shared::state::AppState;
 
 pub mod conversations;
+pub mod dashboard;
 pub mod recording;
 pub mod room_persistence;
 pub mod service;
 pub mod signaling;
 pub mod turn;
+pub mod turn_config;
 pub mod ui;
 pub mod webinar;
 pub mod webinar_api;
@@ -147,6 +149,18 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(
             "/conversations/:id/whiteboard/collaborate",
             post(conversations::collaborate_whiteboard),
+        )
+        .route(
+            ApiUrls::MEET_HTMX_DASHBOARD_STATS,
+            get(dashboard::dashboard_stats_htmx),
+        )
+        .route(
+            ApiUrls::MEET_HTMX_DASHBOARD_LIST,
+            get(dashboard::dashboard_list_htmx),
+        )
+        .route(
+            ApiUrls::MEET_HTMX_ROOM_CREATE,
+            post(dashboard::create_room_htmx),
         )
 }
 

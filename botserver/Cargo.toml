@@ -106,6 +106,7 @@ vibe = ["automation", "dep:botvibe", "botbasic_system/vibe"]
 kb = ["automation", "drive", "cache", "dep:botkb"]
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
 search = ["automation", "drive", "cache", "dep:botsearch"]
+desktop = ["automation", "drive", "cache", "dep:botdesktop"]
 
 # ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat"]
@@ -318,6 +319,7 @@ botsecurity = { workspace = true, optional = true }
 botplayer = { workspace = true, optional = true }
 botmultimodal = { workspace = true, optional = true }
 botsearch = { workspace = true, optional = true }
+botdesktop = { workspace = true, optional = true }
 botmodelsbridge = { workspace = true }
 
 [dev-dependencies]

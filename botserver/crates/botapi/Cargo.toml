@@ -18,6 +18,9 @@ futures-util = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "uuid"] }
+postgres = { version = "0.19", features = ["with-uuid-1", "with-chrono-0_4", "with-serde_json-1"] }
+chrono = { workspace = true, features = ["clock", "std"] }
+base64 = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
 
 [lints]

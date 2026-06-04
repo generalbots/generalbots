@@ -1,0 +1,53 @@
+<link rel="stylesheet" href="/suite/sales/sales.css">
+<div class="sales-container">
+    <header class="sales-header">
+        <div class="sales-header-left">
+            <h1>Sales CRM</h1>
+            <nav class="sales-tabs">
+                <button class="sales-tab active" data-view="pipeline">Pipeline</button>
+                <button class="sales-tab" data-view="contacts">Contacts</button>
+                <button class="sales-tab" data-view="activities">Activities</button>
+                <button class="sales-tab" data-view="forecast">Forecast</button>
+            </nav>
+        </div>
+        <div class="sales-header-right">
+            <div class="sales-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="salesSearch" placeholder="Search deals, contacts...">
+            </div>
+            <button class="btn-primary" onclick="SalesApp.showNewDeal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Deal
+            </button>
+        </div>
+    </header>
+
+    <div id="pipeline-view" class="sales-view active">
+        <div class="pipeline-container" id="pipeline-container">
+            <div class="loading-row"><div class="spinner"></div> Loading pipeline...</div>
+        </div>
+        <div class="pipeline-summary" id="pipeline-summary"></div>
+    </div>
+
+    <div id="contacts-view" class="sales-view">
+        <div class="banking-table-wrap" style="padding:24px">
+            <table class="sales-table">
+                <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Last Contact</th><th>Deal Value</th><th>Actions</th></tr></thead>
+                <tbody id="contacts-body"><tr><td colspan="6" class="loading-row"><div class="spinner"></div> Loading contacts...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="activities-view" class="sales-view">
+        <div class="activities-list" id="activities-list">
+            <div class="loading-row"><div class="spinner"></div> Loading activities...</div>
+        </div>
+    </div>
+
+    <div id="forecast-view" class="sales-view">
+        <div class="forecast-grid" id="forecast-grid">
+            <div class="loading-row"><div class="spinner"></div> Loading forecast...</div>
+        </div>
+    </div>
+</div>
+<script src="/suite/sales/sales.js"></script>

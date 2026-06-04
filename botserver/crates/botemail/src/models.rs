@@ -150,6 +150,58 @@ impl From<String> for EmailError {
     }
 }
 
+#[derive(Debug, QueryableByName, Serialize)]
+pub struct EmailMessageRow {
+    #[diesel(sql_type = DieselUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = DieselUuid)]
+    pub account_id: Uuid,
+    #[diesel(sql_type = Nullable<Varchar>)]
+    pub message_id_header: Option<String>,
+    #[diesel(sql_type = Nullable<Varchar>)]
+    pub in_reply_to: Option<String>,
+    #[diesel(sql_type = Text)]
+    pub subject: String,
+    #[diesel(sql_type = Text)]
+    pub normalized_subject: String,
+    #[diesel(sql_type = Varchar)]
+    pub from_address: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub to_addresses: Option<String>,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub body_text: Option<String>,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub body_html: Option<String>,
+    #[diesel(sql_type = Bool)]
+    pub has_attachments: bool,
+    #[diesel(sql_type = Varchar)]
+    pub folder: String,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    pub uid: i64,
+    #[diesel(sql_type = diesel::sql_types::Jsonb)]
+    pub flags: serde_json::Value,
+    #[diesel(sql_type = Bool)]
+    pub is_read: bool,
+    #[diesel(sql_type = Bool)]
+    pub is_flagged: bool,
+    #[diesel(sql_type = Timestamptz)]
+    pub received_at: DateTime<Utc>,
+    #[diesel(sql_type = Timestamptz)]
+    pub synced_at: DateTime<Utc>,
+}
+
+#[derive(Debug, QueryableByName, Serialize)]
+pub struct EmailAccountColorRow {
+    #[diesel(sql_type = DieselUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = Text)]
+    pub email: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub display_name: Option<String>,
+    #[diesel(sql_type = Bool)]
+    pub is_primary: bool,
+}
+
 pub struct EmailData {
     pub id: String,
     pub from_name: String,

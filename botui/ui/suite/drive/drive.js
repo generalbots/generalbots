@@ -7,6 +7,7 @@
 
   let currentBucket = "";
   let currentPath = "";
+  let currentScope = sessionStorage.getItem("drive-scope") || "user";
   let availableBuckets = [];
   let selectedFiles = new Set();
   let viewMode = "list";
@@ -126,6 +127,7 @@
     bindUploadButton();
     bindNewFolderButton();
     bindSearchInput();
+    bindScopeTabs();
 
     await discoverBuckets();
     loadStorageInfo();
@@ -287,6 +289,7 @@
       const params = new URLSearchParams();
       if (currentBucket) params.set("bucket", currentBucket);
       if (currentPath) params.set("path", currentPath);
+      params.set("scope", currentScope);
 
       const files = await apiRequest(`/list?${params.toString()}`);
       renderFiles(files);
@@ -450,7 +453,8 @@
     if (!breadcrumb) return;
 
     const parts = currentPath ? currentPath.split("/").filter(Boolean) : [];
-    let html = `<button class="breadcrumb-item" onclick="DriveModule.loadFiles('', '${currentBucket}')">My Drive</button>`;
+    const scopeLabel = currentScope === "bot" ? "Bot Files" : "My Files";
+    let html = `<button class="breadcrumb-item" onclick="DriveModule.loadFiles('', '${currentBucket}')">${escapeHtml(scopeLabel)}</button>`;
 
     let cumulativePath = "";
     parts.forEach((part, idx) => {
@@ -490,7 +494,10 @@
     content.innerHTML =
       '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
     try {
-      const files = await apiRequest("/recent");
+      const params = new URLSearchParams();
+      params.set("scope", currentScope);
+      if (currentBucket) params.set("bucket", currentBucket);
+      const files = await apiRequest(`/recent?${params.toString()}`);
       renderFiles(files);
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><h3>No recent files</h3></div>`;
@@ -505,7 +512,9 @@
     content.innerHTML =
       '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
     try {
-      const files = await apiRequest("/favorite");
+      const params = new URLSearchParams();
+      params.set("scope", currentScope);
+      const files = await apiRequest(`/favorite?${params.toString()}`);
       renderFiles(files);
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><h3>No starred files</h3></div>`;
@@ -520,7 +529,9 @@
     content.innerHTML =
       '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
     try {
-      const files = await apiRequest("/shared");
+      const params = new URLSearchParams();
+      params.set("scope", currentScope);
+      const files = await apiRequest(`/shared?${params.toString()}`);
       renderFiles(files);
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><h3>No shared files</h3></div>`;
@@ -598,6 +609,7 @@
             bucket: currentBucket,
             path: filePath,
             content: content,
+            scope: currentScope,
           }),
         });
         uploaded++;
@@ -807,6 +819,7 @@
           bucket: currentBucket,
           path: currentPath,
           name: name.trim(),
+          scope: currentScope,
         }),
       });
       showNotification(`Folder "${name}" created`, "success");
@@ -833,6 +846,27 @@
     });
   }
 
+  function bindScopeTabs() {
+    document.querySelectorAll(".scope-tab").forEach((tab) => {
+      tab.addEventListener("click", function () {
+        document.querySelectorAll(".scope-tab").forEach((t) => t.classList.remove("active"));
+        this.classList.add("active");
+        currentScope = this.dataset.scope;
+        sessionStorage.setItem("drive-scope", currentScope);
+        currentPath = "";
+        selectedFiles.clear();
+        updateSelectionBar();
+        loadFiles("", currentBucket);
+      });
+    });
+
+    const savedScope = sessionStorage.getItem("drive-scope") || "user";
+    currentScope = savedScope;
+    document.querySelectorAll(".scope-tab").forEach((t) => {
+      t.classList.toggle("active", t.dataset.scope === savedScope);
+    });
+  }
+
   async function searchFiles(query) {
     const content =
       document.getElementById("drive-content") ||
@@ -845,6 +879,7 @@
       const params = new URLSearchParams();
       params.set("query", query);
       if (currentBucket) params.set("bucket", currentBucket);
+      params.set("scope", currentScope);
       const files = await apiRequest(`/search?${params.toString()}`);
       renderFiles(files);
     } catch (err) {
@@ -855,7 +890,7 @@
     try {
       const response = await apiRequest("/download", {
         method: "POST",
-        body: JSON.stringify({ bucket: currentBucket, path: path }),
+        body: JSON.stringify({ bucket: currentBucket, path: path, scope: currentScope }),
       });
 
       const content = response.content;
@@ -897,7 +932,7 @@
     try {
       const response = await apiRequest("/open", {
         method: "POST",
-        body: JSON.stringify({ bucket: currentBucket, path: path }),
+        body: JSON.stringify({ bucket: currentBucket, path: path, scope: currentScope }),
       });
 
       const { app, url } = response;
@@ -1054,6 +1089,7 @@
           bucket: currentBucket,
           path: path,
           content: content,
+          scope: currentScope,
         }),
       });
 
@@ -1089,7 +1125,7 @@
     try {
       await apiRequest("/delete", {
         method: "POST",
-        body: JSON.stringify({ bucket: currentBucket, path: path }),
+        body: JSON.stringify({ bucket: currentBucket, path: path, scope: currentScope }),
       });
       showNotification("Item deleted", "success");
       selectedFiles.delete(path);
@@ -1110,7 +1146,7 @@
       try {
         await apiRequest("/delete", {
           method: "POST",
-          body: JSON.stringify({ bucket: currentBucket, path: path }),
+          body: JSON.stringify({ bucket: currentBucket, path: path, scope: currentScope }),
         });
         deleted++;
       } catch (err) {
@@ -1145,6 +1181,7 @@
           source_path: path,
           dest_bucket: currentBucket,
           dest_path: newPath,
+          scope: currentScope,
         }),
       });
       showNotification(`Renamed to "${newName}"`, "success");
@@ -1197,6 +1234,7 @@
             source_path: sourcePath,
             dest_bucket: currentBucket,
             dest_path: destPath,
+            scope: currentScope,
           }),
         });
         processed++;

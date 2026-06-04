@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>General Bots HR Management</title>
+<link rel="stylesheet" href="hr.css">
+</head>
+<body>
+<div class="hr-app">
+<header class="app-header">
+<h1>HR Management</h1>
+<button class="btn-refresh" id="refreshBtn">&#8635;</button>
+</header>
+<nav class="tab-bar">
+<button class="tab active" data-tab="employees">Employees</button>
+<button class="tab" data-tab="recruitment">Recruitment</button>
+<button class="tab" data-tab="attendance">Attendance</button>
+<button class="tab" data-tab="performance">Performance</button>
+</nav>
+<main class="tab-content">
+<section class="tab-panel active" id="panel-employees">
+<div class="section-header">
+<h2>Employee Directory</h2>
+<button class="btn-primary" id="addEmployeeBtn">Add Employee</button>
+</div>
+<div class="emp-toolbar">
+<input type="text" class="search-input" id="empSearch" placeholder="Search employees...">
+<select class="filter-select" id="empDeptFilter">
+<option value="">All Departments</option>
+<option value="engineering">Engineering</option>
+<option value="sales">Sales</option>
+<option value="marketing">Marketing</option>
+<option value="hr">HR</option>
+<option value="finance">Finance</option>
+<option value="operations">Operations</option>
+</select>
+<select class="filter-select" id="empStatusFilter">
+<option value="">All Status</option>
+<option value="active">Active</option>
+<option value="on_leave">On Leave</option>
+<option value="terminated">Terminated</option>
+</select>
+</div>
+<div class="employee-grid" id="employeeGrid"></div>
+<div class="modal-overlay" id="empModal">
+<div class="modal">
+<div class="modal-header">
+<h3 id="empModalTitle">Add Employee</h3>
+<button class="modal-close" id="closeEmpModal">&times;</button>
+</div>
+<form id="empForm">
+<div class="form-row">
+<div class="form-group">
+<label>First Name</label>
+<input type="text" id="empFirstName" required>
+</div>
+<div class="form-group">
+<label>Last Name</label>
+<input type="text" id="empLastName" required>
+</div>
+</div>
+<div class="form-group">
+<label>Email</label>
+<input type="email" id="empEmail" required>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Role</label>
+<input type="text" id="empRole" required>
+</div>
+<div class="form-group">
+<label>Department</label>
+<select id="empDept" required>
+<option value="engineering">Engineering</option>
+<option value="sales">Sales</option>
+<option value="marketing">Marketing</option>
+<option value="hr">HR</option>
+<option value="finance">Finance</option>
+<option value="operations">Operations</option>
+</select>
+</div>
+</div>
+<div class="form-group">
+<label>Hire Date</label>
+<input type="date" id="empHireDate" required>
+</div>
+<div class="form-actions">
+<button type="button" class="btn-secondary" id="cancelEmpBtn">Cancel</button>
+<button type="submit" class="btn-primary">Save</button>
+</div>
+</form>
+</div>
+</div>
+</section>
+<section class="tab-panel" id="panel-recruitment">
+<div class="section-header">
+<h2>Job Postings</h2>
+<button class="btn-primary" id="postJobBtn">Post Job</button>
+</div>
+<div class="job-list" id="jobList"></div>
+<div class="section-header" style="margin-top:24px">
+<h2>Pipeline Overview</h2>
+</div>
+<div class="pipeline-grid" id="pipelineGrid"></div>
+</section>
+<section class="tab-panel" id="panel-attendance">
+<div class="section-header">
+<h2>Today's Attendance</h2>
+<div class="attendance-stats" id="attendanceStats"></div>
+</div>
+<table class="data-table" id="attendanceTable">
+<thead><tr><th>Employee</th><th>Department</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+<tbody></tbody>
+</table>
+<div class="section-header" style="margin-top:24px">
+<h2>Department Summary</h2>
+</div>
+<div class="dept-summary-grid" id="deptSummaryGrid"></div>
+</section>
+<section class="tab-panel" id="panel-performance">
+<div class="section-header">
+<h2>Review Cycles</h2>
+</div>
+<div class="review-cycles" id="reviewCycles"></div>
+<div class="section-header" style="margin-top:24px">
+<h2>Goal Completion</h2>
+</div>
+<div class="goals-grid" id="goalsGrid"></div>
+</section>
+</main>
+</div>
+<script src="hr.js"></script>
+</body>
+</html>

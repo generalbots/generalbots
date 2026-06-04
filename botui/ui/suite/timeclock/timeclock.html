@@ -1,0 +1,82 @@
+<link rel="stylesheet" href="timeclock/timeclock.css">
+<script src="timeclock/timeclock.js"></script>
+
+<div class="tc-container">
+    <header class="tc-header">
+        <h1>Electronic Time Clock</h1>
+        <div class="tc-header-actions">
+            <button class="tc-btn" onclick="window._tc.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="tc-stats">
+        <div class="tc-stat-card"><span class="tc-stat-label">Today Hours</span><span class="tc-stat-value green" id="stat-today-hours">0h</span></div>
+        <div class="tc-stat-card"><span class="tc-stat-label">Week Hours</span><span class="tc-stat-value blue" id="stat-week-hours">0h</span></div>
+        <div class="tc-stat-card"><span class="tc-stat-label">Overtime</span><span class="tc-stat-value yellow" id="stat-overtime">0h</span></div>
+        <div class="tc-stat-card"><span class="tc-stat-label">Status</span><span class="tc-stat-value" id="stat-status">--</span></div>
+    </div>
+
+    <nav class="tc-tabs">
+        <button class="tc-tab active" data-tab="clock" onclick="window._tc.switchTab('clock',this)">Clock In/Out</button>
+        <button class="tc-tab" data-tab="records" onclick="window._tc.switchTab('records',this)">Records</button>
+        <button class="tc-tab" data-tab="overtime" onclick="window._tc.switchTab('overtime',this)">Overtime</button>
+        <button class="tc-tab" data-tab="reports" onclick="window._tc.switchTab('reports',this)">Reports</button>
+    </nav>
+
+    <div class="tc-content">
+        <div class="tc-panel active" id="panel-clock">
+            <div class="tc-clock-display">
+                <div class="tc-clock-time" id="live-clock">00:00:00</div>
+                <div class="tc-clock-date" id="live-date">Loading...</div>
+                <div class="tc-clock-employee" id="employee-name">Loading...</div>
+                <div class="tc-clock-gps">
+                    <div class="tc-clock-gps-dot" id="gps-dot"></div>
+                    <span id="gps-status">Checking GPS...</span>
+                </div>
+                <div class="tc-clock-actions">
+                    <button class="tc-btn tc-btn-success tc-btn-lg" id="btn-clock-in" onclick="window._tc.clockIn()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Clock In
+                    </button>
+                    <button class="tc-btn tc-btn-danger tc-btn-lg" id="btn-clock-out" onclick="window._tc.clockOut()" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Clock Out
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tc-panel" id="panel-records">
+            <div class="tc-table-wrapper">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                    <h3 style="font-size:14px;font-weight:600;margin:0">Time Records</h3>
+                    <div style="display:flex;gap:8px">
+                        <input type="month" id="records-month" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._tc.loadRecords()">
+                        <button class="tc-btn" onclick="window._tc.loadRecords()">Filter</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tc-table">
+                        <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+                        <tbody id="records-tbody"><tr><td colspan="5" class="tc-empty">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tc-panel" id="panel-overtime">
+            <div class="tc-ot-grid" id="overtime-grid">
+                <div class="tc-empty"><div class="tc-empty-icon">⏰</div><h3>Loading...</h3><p>Fetching overtime data</p></div>
+            </div>
+        </div>
+
+        <div class="tc-panel" id="panel-reports">
+            <div class="tc-report-grid" id="reports-grid">
+                <div class="tc-empty"><div class="tc-empty-icon">📊</div><h3>Loading...</h3><p>Fetching report data</p></div>
+            </div>
+        </div>
+    </div>
+</div>

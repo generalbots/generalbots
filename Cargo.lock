@@ -32,7 +32,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d122413f284cf2d62fb1b7db97e02edb8cda96d769b16e443a4f6195e35662b0"
 dependencies = [
- "crypto-common",
+ "crypto-common 0.1.7",
  "generic-array",
 ]
 
@@ -44,7 +44,7 @@ checksum = "b169f7a6d4742236a0a00c541b845991d0ac43e546831af1249753ab4c3aa3a0"
 dependencies = [
  "cfg-if",
  "cipher",
- "cpufeatures",
+ "cpufeatures 0.2.17",
 ]
 
 [[package]]
@@ -231,7 +231,7 @@ checksum = "3c3610892ee6e0cbce8ae2700349fcf8f98adb0dbfbee85aec3c9179d29cc072"
 dependencies = [
  "base64ct",
  "blake2",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "password-hash",
 ]
 
@@ -674,8 +674,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
 dependencies = [
  "async-trait",
- "axum-core",
- "axum-macros",
+ "axum-core 0.4.5",
+ "axum-macros 0.4.2",
  "base64 0.22.1",
  "bytes",
  "futures-util",
@@ -685,7 +685,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "itoa",
- "matchit",
+ "matchit 0.7.3",
  "memchr",
  "mime",
  "multer",
@@ -699,7 +699,44 @@ dependencies = [
  "sha1",
  "sync_wrapper",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.24.0",
+ "tower 0.5.3",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum"
+version = "0.8.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31b698c5f9a010f6573133b09e0de5408834d0c82f8d7475a89fc1867a71cd90"
+dependencies = [
+ "axum-core 0.5.6",
+ "axum-macros 0.5.1",
+ "base64 0.22.1",
+ "bytes",
+ "form_urlencoded",
+ "futures-util",
+ "http",
+ "http-body",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "itoa",
+ "matchit 0.8.4",
+ "memchr",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "serde_core",
+ "serde_json",
+ "serde_path_to_error",
+ "serde_urlencoded",
+ "sha1",
+ "sync_wrapper",
+ "tokio",
+ "tokio-tungstenite 0.29.0",
  "tower 0.5.3",
  "tower-layer",
  "tower-service",
@@ -728,13 +765,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-core"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08c78f31d7b1291f7ee735c1c6780ccde7785daae9a9206026862dab7d8792d1"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "http",
+ "http-body",
+ "http-body-util",
+ "mime",
+ "pin-project-lite",
+ "sync_wrapper",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
 name = "axum-extra"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c794b30c904f0a1c2fb7740f7df7f7972dfaa14ef6f57cb6178dc63e5dca2f04"
 dependencies = [
- "axum",
- "axum-core",
+ "axum 0.7.9",
+ "axum-core 0.4.5",
  "bytes",
  "fastrand",
  "futures-util",
@@ -756,6 +812,17 @@ name = "axum-macros"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57d123550fa8d071b7255cb0cc04dc302baa6c8c4a79f55701552684d8399bce"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7aa268c23bfbbd2c4363b9cd302a4f504fb2a9dfe7e3451d66f35dd392e20aca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -912,7 +979,7 @@ version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46502ad458c9a52b69d4d4d32775c788b7a1b85e8bc9d482d92250fc0e3f8efe"
 dependencies = [
- "digest",
+ "digest 0.10.7",
 ]
 
 [[package]]
@@ -922,6 +989,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
+]
+
+[[package]]
+name = "block-buffer"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdd35008169921d80bc60d3d0ab416eecb028c4cd653352907921d95084790be"
+dependencies = [
+ "hybrid-array",
 ]
 
 [[package]]
@@ -959,7 +1035,7 @@ dependencies = [
 name = "botanalytics"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "bigdecimal",
  "chrono",
  "diesel",
@@ -977,12 +1053,15 @@ name = "botapi"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
+ "base64 0.22.1",
  "botcore",
  "botsecurity",
+ "chrono",
  "diesel",
  "futures-util",
  "log",
+ "postgres",
  "serde",
  "serde_json",
  "tokio",
@@ -1018,18 +1097,18 @@ name = "botattendance"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "futures",
  "hex",
- "hmac",
+ "hmac 0.12.1",
  "log",
  "r2d2",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "tokio",
  "uuid",
 ]
@@ -1039,7 +1118,7 @@ name = "botattendant"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "log",
@@ -1054,7 +1133,7 @@ dependencies = [
 name = "botautotask"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -1077,7 +1156,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "botbasic_types",
  "botcore",
@@ -1098,7 +1177,7 @@ dependencies = [
  "scraper",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "tokio",
  "uuid",
 ]
@@ -1109,7 +1188,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "bigdecimal",
  "botbasic_core",
@@ -1181,7 +1260,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "botbasic_core",
  "botbasic_types",
  "botcore",
@@ -1206,7 +1285,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "botbasic_core",
  "botbasic_data",
@@ -1254,17 +1333,17 @@ name = "botbilling"
 version = "6.3.0"
 dependencies = [
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "bigdecimal",
  "chrono",
  "diesel",
  "hex",
- "hmac",
+ "hmac 0.12.1",
  "r2d2",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "tokio",
  "tracing",
  "uuid",
@@ -1275,7 +1354,7 @@ name = "botbrowser"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "chrono",
  "log",
  "serde",
@@ -1287,7 +1366,7 @@ dependencies = [
 name = "botcalendar"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "icalendar",
@@ -1303,7 +1382,7 @@ dependencies = [
 name = "botcanvas"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "r2d2",
@@ -1321,13 +1400,13 @@ dependencies = [
  "botchannels-core",
  "chrono",
  "hex",
- "hmac",
+ "hmac 0.12.1",
  "log",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
  "sha1",
- "sha2",
+ "sha2 0.10.9",
  "tokio",
  "urlencoding",
  "uuid",
@@ -1352,7 +1431,7 @@ name = "botcompliance"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "bigdecimal",
  "chrono",
  "csv",
@@ -1373,7 +1452,7 @@ name = "botcontacts"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "diesel_migrations",
@@ -1393,7 +1472,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "botbasic_types",
  "botcoresecrets",
@@ -1423,7 +1502,7 @@ dependencies = [
  "rhai",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "smartstring",
  "sysinfo",
  "tar",
@@ -1442,7 +1521,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "botlib",
  "chrono",
@@ -1468,7 +1547,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "argon2",
- "axum",
+ "axum 0.7.9",
  "botcore",
  "botlib",
  "botsecurity",
@@ -1491,7 +1570,7 @@ name = "botcoreoauth"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "chrono",
  "diesel",
@@ -1524,7 +1603,7 @@ dependencies = [
  "reqwest 0.12.28",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "tar",
  "tokio",
  "toml 0.8.2",
@@ -1551,7 +1630,7 @@ name = "botcoresession"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -1568,7 +1647,7 @@ dependencies = [
 name = "botdashboards"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "r2d2",
@@ -1583,7 +1662,7 @@ dependencies = [
 name = "botdeployment"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "git2",
@@ -1599,7 +1678,7 @@ dependencies = [
 name = "botdesigner"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "log",
@@ -1612,10 +1691,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "botdesktop"
+version = "0.1.0"
+dependencies = [
+ "axum 0.8.9",
+ "chrono",
+ "diesel",
+ "futures-util",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "botdocs"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -1639,7 +1736,8 @@ name = "botdrive"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
+ "base64 0.22.1",
  "botcore",
  "botlib",
  "botqdrant",
@@ -1648,7 +1746,7 @@ dependencies = [
  "chrono",
  "diesel",
  "hex",
- "hmac",
+ "hmac 0.12.1",
  "http",
  "log",
  "pdf-extract",
@@ -1657,7 +1755,7 @@ dependencies = [
  "rust-s3",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "time",
  "tokio",
  "tracing",
@@ -1671,7 +1769,7 @@ name = "botemail"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "axum-extra",
  "base64 0.22.1",
  "botlib",
@@ -1700,7 +1798,7 @@ name = "botinstagram"
 version = "6.3.0"
 dependencies = [
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "botlib",
  "log",
  "reqwest 0.12.28",
@@ -1730,7 +1828,7 @@ dependencies = [
 name = "botlearn"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "serde",
@@ -1742,7 +1840,7 @@ dependencies = [
 name = "botlegal"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "r2d2",
@@ -1797,7 +1895,7 @@ dependencies = [
  "scopeguard",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "tokio",
  "tracing",
  "url",
@@ -1808,7 +1906,7 @@ dependencies = [
 name = "botmaintenance"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "log",
@@ -1822,7 +1920,7 @@ dependencies = [
 name = "botmarketing"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "log",
@@ -1839,7 +1937,8 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
+ "axum 0.7.9",
+ "base64 0.22.1",
  "botcore",
  "botlib",
  "botschema",
@@ -1847,11 +1946,13 @@ dependencies = [
  "chrono",
  "diesel",
  "futures",
+ "hmac 0.12.1",
  "log",
  "png 0.18.1",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sha1",
  "tokio",
  "tracing",
  "urlencoding",
@@ -1877,7 +1978,7 @@ dependencies = [
 name = "botmonitoring"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "hex",
  "log",
@@ -1894,7 +1995,7 @@ name = "botmsteams"
 version = "6.3.0"
 dependencies = [
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -1932,7 +2033,7 @@ dependencies = [
 name = "botpaper"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "log",
@@ -1946,7 +2047,7 @@ dependencies = [
 name = "botpeople"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "bigdecimal",
  "chrono",
  "diesel",
@@ -1962,7 +2063,7 @@ name = "botplayer"
 version = "6.3.0"
 dependencies = [
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "serde",
  "serde_json",
  "tokio",
@@ -1972,7 +2073,7 @@ dependencies = [
 name = "botproducts"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "bigdecimal",
  "chrono",
  "diesel",
@@ -1987,7 +2088,7 @@ dependencies = [
 name = "botproject"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "log",
  "quick-xml 0.37.5",
@@ -2020,7 +2121,7 @@ dependencies = [
 name = "botresearch"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -2077,7 +2178,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "botlib",
  "botsecurity-core",
@@ -2086,7 +2187,7 @@ dependencies = [
  "futures-util",
  "governor",
  "hex",
- "hmac",
+ "hmac 0.12.1",
  "jsonwebtoken",
  "log",
  "rand 0.9.4",
@@ -2096,7 +2197,7 @@ dependencies = [
  "ring",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "thiserror 2.0.18",
  "time",
  "tokio",
@@ -2111,7 +2212,7 @@ name = "botsecurity-core"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "botlib",
  "chrono",
@@ -2119,7 +2220,7 @@ dependencies = [
  "futures-util",
  "governor",
  "hex",
- "hmac",
+ "hmac 0.12.1",
  "log",
  "rand 0.9.4",
  "regex",
@@ -2127,7 +2228,7 @@ dependencies = [
  "rustls",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "thiserror 2.0.18",
  "time",
  "tokio",
@@ -2156,7 +2257,7 @@ dependencies = [
  "rustls",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "tempfile",
  "thiserror 2.0.18",
  "time",
@@ -2172,7 +2273,7 @@ name = "botsecurity-protection"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "botcore",
  "botsecurity-core",
  "chrono",
@@ -2194,7 +2295,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "axum-server",
  "base64 0.22.1",
  "bigdecimal",
@@ -2227,6 +2328,7 @@ dependencies = [
  "botdashboards",
  "botdeployment",
  "botdesigner",
+ "botdesktop",
  "botdocs",
  "botdrive",
  "botemail",
@@ -2285,7 +2387,7 @@ dependencies = [
  "git2",
  "governor",
  "hex",
- "hmac",
+ "hmac 0.12.1",
  "html2md",
  "icalendar",
  "imap",
@@ -2322,7 +2424,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha1",
- "sha2",
+ "sha2 0.10.9",
  "smartstring",
  "sysinfo",
  "tar",
@@ -2350,7 +2452,7 @@ name = "botsettings"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "botcore",
  "botschema",
  "botsecurity",
@@ -2370,7 +2472,7 @@ name = "botsheet"
 version = "6.3.0"
 dependencies = [
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "botlib",
  "botsheet-core",
@@ -2408,7 +2510,7 @@ dependencies = [
 name = "botslides"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -2429,7 +2531,7 @@ dependencies = [
 name = "botsocial"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "r2d2",
@@ -2444,7 +2546,7 @@ dependencies = [
 name = "botsources"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "log",
@@ -2460,7 +2562,7 @@ dependencies = [
 name = "bottasks"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "cron",
  "diesel",
@@ -2477,7 +2579,7 @@ name = "bottelegram"
 version = "6.3.0"
 dependencies = [
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -2522,7 +2624,7 @@ dependencies = [
 name = "bottickets"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "r2d2",
@@ -2549,7 +2651,7 @@ name = "botui"
 version = "6.3.0"
 dependencies = [
  "anyhow",
- "axum",
+ "axum 0.7.9",
  "botlib",
  "futures-util",
  "http",
@@ -2561,7 +2663,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.24.0",
  "tower-http",
 ]
 
@@ -2569,7 +2671,7 @@ dependencies = [
 name = "botvibe"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "botautotask",
  "botcontacts",
  "botdeployment",
@@ -2579,6 +2681,7 @@ dependencies = [
  "futures",
  "log",
  "r2d2",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -2590,7 +2693,7 @@ dependencies = [
 name = "botvideo"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -2610,7 +2713,7 @@ dependencies = [
 name = "botweba"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "log",
  "serde",
@@ -2623,7 +2726,7 @@ dependencies = [
 name = "botwhatsapp"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "log",
@@ -2637,7 +2740,7 @@ dependencies = [
 name = "botworkspaces"
 version = "6.3.0"
 dependencies = [
- "axum",
+ "axum 0.7.9",
  "chrono",
  "diesel",
  "r2d2",
@@ -2916,6 +3019,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "chacha20"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f8d983286843e49675a4b7a2d174efe136dc93a18d69130dd18198a6c167601"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+ "rand_core 0.10.1",
+]
+
+[[package]]
 name = "charset"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3038,7 +3152,7 @@ version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773f3b9af64447d2ce9850330c473515014aa235e6a783b02db81ff39e4a3dad"
 dependencies = [
- "crypto-common",
+ "crypto-common 0.1.7",
  "inout",
 ]
 
@@ -3050,6 +3164,12 @@ checksum = "c0f78a02292a74a88ac736019ab962ece0bc380e3f977bf72e376c5d78ff0678"
 dependencies = [
  "cc",
 ]
+
+[[package]]
+name = "cmov"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a"
 
 [[package]]
 name = "codepage"
@@ -3177,6 +3297,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
+name = "const-oid"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
+
+[[package]]
 name = "const-random"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3295,6 +3421,15 @@ name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "cpufeatures"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b2a41393f66f16b0823bb79094d54ac5fbd34ab292ddafb9a0456ac9f87d201"
 dependencies = [
  "libc",
 ]
@@ -3431,6 +3566,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto-common"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce6e4c961d6cd6c9a86db418387425e8bdeaf05b3c8bc1411e6dca4c252f1453"
+dependencies = [
+ "hybrid-array",
+]
+
+[[package]]
 name = "csscolorparser"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3510,15 +3654,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctutils"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d5515a3834141de9eafb9717ad39eea8247b5674e6066c404e8c4b365d2a29e"
+dependencies = [
+ "cmov",
+]
+
+[[package]]
 name = "curve25519-dalek"
 version = "4.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fb8b7c4503de7d6ae7b42ab72a5a59857b4c937ec27a3d4539dba95b5ab2be"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "curve25519-dalek-derive",
- "digest",
+ "digest 0.10.7",
  "fiat-crypto",
  "rustc_version",
  "subtle",
@@ -3748,7 +3901,7 @@ version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7c1832837b905bbfb5101e07cc24c8deddf52f93225eee6ead5f4d63d53ddcb"
 dependencies = [
- "const-oid",
+ "const-oid 0.9.6",
  "pem-rfc7468",
  "zeroize",
 ]
@@ -3950,10 +4103,22 @@ version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
- "block-buffer",
- "const-oid",
- "crypto-common",
+ "block-buffer 0.10.4",
+ "const-oid 0.9.6",
+ "crypto-common 0.1.7",
  "subtle",
+]
+
+[[package]]
+name = "digest"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2"
+dependencies = [
+ "block-buffer 0.12.0",
+ "const-oid 0.10.2",
+ "crypto-common 0.2.2",
+ "ctutils",
 ]
 
 [[package]]
@@ -4200,7 +4365,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee27f32b5c5292967d2d4a9d7f1e0b0aed2c15daded5a60300e4abb9d8020bca"
 dependencies = [
  "der",
- "digest",
+ "digest 0.10.7",
  "elliptic-curve",
  "rfc6979",
  "signature",
@@ -4226,7 +4391,7 @@ dependencies = [
  "curve25519-dalek",
  "ed25519",
  "serde",
- "sha2",
+ "sha2 0.10.9",
  "subtle",
  "zeroize",
 ]
@@ -4251,7 +4416,7 @@ checksum = "b5e6043086bf7973472e0c7dff2142ea0b680d30e18d9cc40f267efbf222bd47"
 dependencies = [
  "base16ct",
  "crypto-bigint",
- "digest",
+ "digest 0.10.7",
  "ff",
  "generic-array",
  "group",
@@ -4481,6 +4646,12 @@ dependencies = [
  "indenter",
  "once_cell",
 ]
+
+[[package]]
+name = "fallible-iterator"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
 name = "fancy-regex"
@@ -4930,7 +5101,7 @@ dependencies = [
  "cfg-if",
  "js-sys",
  "libc",
- "wasi",
+ "wasi 0.11.1+wasi-snapshot-preview1",
  "wasm-bindgen",
 ]
 
@@ -4957,6 +5128,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "r-efi 6.0.0",
+ "rand_core 0.10.1",
  "wasip2",
  "wasip3",
 ]
@@ -5306,7 +5478,7 @@ version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b5f8eb2ad728638ea2c7d47a21db23b7b58a72ed6a38256b8a1849f15fbbdf7"
 dependencies = [
- "hmac",
+ "hmac 0.12.1",
 ]
 
 [[package]]
@@ -5315,7 +5487,16 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
 dependencies = [
- "digest",
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "hmac"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6303bc9732ae41b04cb554b844a762b4115a61bfaa81e3e83050991eeb56863f"
+dependencies = [
+ "digest 0.11.3",
 ]
 
 [[package]]
@@ -5440,6 +5621,15 @@ name = "httpdate"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
+
+[[package]]
+name = "hybrid-array"
+version = "0.4.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9155a582abd142abc056962c29e3ce5ff2ad5469f4246b537ed42c5deba857da"
+dependencies = [
+ "typenum",
+]
 
 [[package]]
 name = "hyper"
@@ -6102,7 +6292,7 @@ dependencies = [
  "base64 0.22.1",
  "ed25519-dalek",
  "getrandom 0.2.17",
- "hmac",
+ "hmac 0.12.1",
  "js-sys",
  "p256",
  "p384",
@@ -6111,7 +6301,7 @@ dependencies = [
  "rsa",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "signature",
  "simple_asn1",
  "zeroize",
@@ -6389,12 +6579,12 @@ dependencies = [
  "indexmap 2.14.0",
  "itoa",
  "log",
- "md-5",
+ "md-5 0.10.6",
  "nom 8.0.0",
  "nom_locate",
  "rand 0.9.4",
  "rangemap",
- "sha2",
+ "sha2 0.10.9",
  "stringprep",
  "thiserror 2.0.18",
  "ttf-parser",
@@ -6540,6 +6730,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 
 [[package]]
+name = "matchit"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
+
+[[package]]
 name = "maybe-async"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6567,7 +6763,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
 dependencies = [
  "cfg-if",
- "digest",
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "md-5"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69b6441f590336821bb897fb28fc622898ccceb1d6cea3fde5ea86b090c4de98"
+dependencies = [
+ "cfg-if",
+ "digest 0.11.3",
 ]
 
 [[package]]
@@ -6676,7 +6882,7 @@ checksum = "02bd0af71c67b473010cbbc60715ee815645a4dc942899111f494b4b737d6fda"
 dependencies = [
  "libc",
  "log",
- "wasi",
+ "wasi 0.11.1+wasi-snapshot-preview1",
  "windows-sys 0.61.2",
 ]
 
@@ -7202,6 +7408,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "objc2-system-configuration"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7216bd11cbda54ccabcab84d523dc93b858ec75ecfb3a7d89513fa22464da396"
+dependencies = [
+ "objc2-core-foundation",
+]
+
+[[package]]
 name = "objc2-ui-kit"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7466,7 +7681,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
- "sha2",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -7478,7 +7693,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
- "sha2",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -7570,8 +7785,8 @@ version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8ed6a7761f76e3b9f92dfb0a60a6a6477c61024b775147ff0973a02653abaf2"
 dependencies = [
- "digest",
- "hmac",
+ "digest 0.10.7",
+ "hmac 0.12.1",
 ]
 
 [[package]]
@@ -7656,7 +7871,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89815c69d36021a140146f26659a81d6c2afa33d216d736dd4be5381a7362220"
 dependencies = [
  "pest",
- "sha2",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -7888,7 +8103,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d1fe60d06143b2430aa532c94cfe9e29783047f06c0d7fd359a9a51b729fa25"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "opaque-debug",
  "universal-hash",
 ]
@@ -7912,6 +8127,53 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a106d1259c23fac8e543272398ae0e3c0b8d33c88ed73d0cc71b0f1d902618"
 dependencies = [
  "portable-atomic",
+]
+
+[[package]]
+name = "postgres"
+version = "0.19.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aacf632d0554ff75f58183694f41dc8999c8a3a43a386994d0ec2d034f1dfbe1"
+dependencies = [
+ "bytes",
+ "fallible-iterator",
+ "futures-util",
+ "log",
+ "tokio",
+ "tokio-postgres",
+]
+
+[[package]]
+name = "postgres-protocol"
+version = "0.6.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56201207dac53e2f38e848e31b4b91616a6bb6e0c7205b77718994a7f49e70fc"
+dependencies = [
+ "base64 0.22.1",
+ "byteorder",
+ "bytes",
+ "fallible-iterator",
+ "hmac 0.13.0",
+ "md-5 0.11.0",
+ "memchr",
+ "rand 0.10.1",
+ "sha2 0.11.0",
+ "stringprep",
+]
+
+[[package]]
+name = "postgres-types"
+version = "0.2.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8dc729a129e682e8d24170cd30ae1aa01b336b096cbb56df6d534ffec133d186"
+dependencies = [
+ "bytes",
+ "chrono",
+ "fallible-iterator",
+ "postgres-protocol",
+ "serde_core",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -8175,7 +8437,7 @@ dependencies = [
  "libc",
  "once_cell",
  "raw-cpuid",
- "wasi",
+ "wasi 0.11.1+wasi-snapshot-preview1",
  "web-sys",
  "winapi",
 ]
@@ -8351,6 +8613,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
+dependencies = [
+ "chacha20",
+ "getrandom 0.4.2",
+ "rand_core 0.10.1",
+]
+
+[[package]]
 name = "rand_chacha"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8387,6 +8660,12 @@ checksum = "76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c"
 dependencies = [
  "getrandom 0.3.4",
 ]
+
+[[package]]
+name = "rand_core"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
 name = "rangemap"
@@ -8774,7 +9053,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dd2a808d456c4a54e300a23e9f5a67e122c3024119acbfd73e3bf664491cb2"
 dependencies = [
- "hmac",
+ "hmac 0.12.1",
  "subtle",
 ]
 
@@ -8857,8 +9136,8 @@ version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8573f03f5883dcaebdfcf4725caa1ecb9c15b2ef50c43a07b816e06799bb12d"
 dependencies = [
- "const-oid",
- "digest",
+ "const-oid 0.9.6",
+ "digest 0.10.7",
  "num-bigint-dig",
  "num-integer",
  "num-traits",
@@ -8913,7 +9192,7 @@ version = "8.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5bcdef0be6fe7f6fa333b1073c949729274b05f123a0ad7efcb8efd878e5c3b1"
 dependencies = [
- "sha2",
+ "sha2 0.10.9",
  "walkdir",
 ]
 
@@ -8941,7 +9220,7 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "hex",
- "hmac",
+ "hmac 0.12.1",
  "http",
  "log",
  "maybe-async",
@@ -8953,7 +9232,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "sysinfo",
  "thiserror 2.0.18",
  "time",
@@ -9523,8 +9802,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
 dependencies = [
  "cfg-if",
- "cpufeatures",
- "digest",
+ "cpufeatures 0.2.17",
+ "digest 0.10.7",
 ]
 
 [[package]]
@@ -9540,8 +9819,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
  "cfg-if",
- "cpufeatures",
- "digest",
+ "cpufeatures 0.2.17",
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "sha2"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+ "digest 0.11.3",
 ]
 
 [[package]]
@@ -9605,7 +9895,7 @@ version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
- "digest",
+ "digest 0.10.7",
  "rand_core 0.6.4",
 ]
 
@@ -10152,7 +10442,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.9",
  "syn 2.0.117",
  "tauri-utils",
  "thiserror 2.0.18",
@@ -10505,7 +10795,7 @@ dependencies = [
  "pest",
  "pest_derive",
  "phf 0.11.3",
- "sha2",
+ "sha2 0.10.9",
  "signal-hook",
  "siphasher",
  "terminfo",
@@ -10703,6 +10993,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-postgres"
+version = "0.7.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4dd8df5ef180f6364759a6f00f7aadda4fbbac86cdee37480826a6ff9f3574ce"
+dependencies = [
+ "async-trait",
+ "byteorder",
+ "bytes",
+ "fallible-iterator",
+ "futures-channel",
+ "futures-util",
+ "log",
+ "parking_lot",
+ "percent-encoding",
+ "phf 0.13.1",
+ "pin-project-lite",
+ "postgres-protocol",
+ "postgres-types",
+ "rand 0.10.1",
+ "socket2 0.6.4",
+ "tokio",
+ "tokio-util",
+ "whoami",
+]
+
+[[package]]
 name = "tokio-rustls"
 version = "0.26.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10735,6 +11051,18 @@ dependencies = [
  "tokio",
  "tokio-native-tls",
  "tungstenite 0.24.0",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f72a05e828585856dacd553fba484c242c46e391fb0e58917c942ee9202915c"
+dependencies = [
+ "futures-util",
+ "log",
+ "tokio",
+ "tungstenite 0.29.0",
 ]
 
 [[package]]
@@ -10878,7 +11206,7 @@ checksum = "877c5b330756d856ffcc4553ab34a5684481ade925ecc54bcd1bf02b1d0d4d52"
 dependencies = [
  "async-stream",
  "async-trait",
- "axum",
+ "axum 0.7.9",
  "base64 0.22.1",
  "bytes",
  "flate2",
@@ -11110,6 +11438,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "tungstenite"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c01152af293afb9c7c2a57e4b559c5620b421f6d133261c60dd2d0cdb38e6b8"
+dependencies = [
+ "bytes",
+ "data-encoding",
+ "http",
+ "httparse",
+ "log",
+ "rand 0.9.4",
+ "sha1",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "type1-encoding-parser"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11163,14 +11507,14 @@ dependencies = [
  "encoding_rs",
  "fancy-regex 0.14.0",
  "getrandom 0.2.17",
- "hmac",
+ "hmac 0.12.1",
  "html_parser",
  "imagesize",
  "lazy_static",
- "md-5",
+ "md-5 0.10.6",
  "quick-xml 0.37.5",
  "regex",
- "sha2",
+ "sha2 0.10.9",
  "thin-vec",
  "thousands",
  "zip 2.4.2",
@@ -11291,7 +11635,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc1de2c688dc15305988b563c3854064043356019f97a4b46276fe734c4f07ea"
 dependencies = [
- "crypto-common",
+ "crypto-common 0.1.7",
  "subtle",
 ]
 
@@ -11492,6 +11836,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
+name = "wasi"
+version = "0.14.7+wasi-0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "883478de20367e224c0090af9cf5f9fa85bed63a95c1abf3afc5c083ebc06e8c"
+dependencies = [
+ "wasip2",
+]
+
+[[package]]
 name = "wasip2"
 version = "1.0.3+wasi-0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11507,6 +11860,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5428f8bf88ea5ddc08faddef2ac4a67e390b88186c703ce6dbd955e1c145aca5"
 dependencies = [
  "wit-bindgen 0.51.0",
+]
+
+[[package]]
+name = "wasite"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66fe902b4a6b8028a753d5424909b764ccf79b7a209eac9bf97e59cda9f71a42"
+dependencies = [
+ "wasi 0.14.7+wasi-0.2.4",
 ]
 
 [[package]]
@@ -11778,7 +12140,7 @@ checksum = "692daff6d93d94e29e4114544ef6d5c942a7ed998b37abdc19b17136ea428eb7"
 dependencies = [
  "getrandom 0.3.4",
  "mac_address",
- "sha2",
+ "sha2 0.10.9",
  "thiserror 1.0.69",
  "uuid",
 ]
@@ -11854,6 +12216,19 @@ dependencies = [
  "env_home",
  "rustix 1.1.4",
  "winsafe",
+]
+
+[[package]]
+name = "whoami"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "998767ef88740d1f5b0682a9c53c24431453923962269c2db68ee43788c5a40d"
+dependencies = [
+ "libc",
+ "libredox",
+ "objc2-system-configuration",
+ "wasite",
+ "web-sys",
 ]
 
 [[package]]
@@ -12579,7 +12954,7 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "raw-window-handle",
- "sha2",
+ "sha2 0.10.9",
  "soup3",
  "tao-macros",
  "thiserror 2.0.18",
@@ -12907,7 +13282,7 @@ dependencies = [
  "displaydoc",
  "flate2",
  "getrandom 0.3.4",
- "hmac",
+ "hmac 0.12.1",
  "indexmap 2.14.0",
  "lzma-rs",
  "memchr",

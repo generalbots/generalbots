@@ -1,64 +1,148 @@
-.botcoder-terminal-container {
+.term-root {
     display: flex;
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background-color: var(--surface-active, #0f172a);
-    color: var(--text, #f8fafc);
+    background: #0f172a;
+    color: #f8fafc;
+    font-family: "Fira Code", "Cascadia Code", monospace;
 }
 
-.botcoder-terminal-header {
+.term-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: var(--surface-hover, #334155);
-    border-bottom: 1px solid var(--border, #475569);
-    padding: 0;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    min-height: 36px;
+    flex-shrink: 0;
 }
 
-.botcoder-terminal-tabs {
+.term-tabs {
     display: flex;
+    align-items: center;
     overflow-x: auto;
+    flex: 1;
 }
 
-.botcoder-term-tab {
-    padding: 6px 16px;
-    font-size: 12px;
+.term-tab {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
     cursor: pointer;
-    border-right: 1px solid var(--border, #475569);
-    color: var(--text-muted, #94a3b8);
+    border-right: 1px solid #334155;
+    color: #94a3b8;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
 }
 
-.botcoder-term-tab.active {
-    background-color: var(--surface-active, #0f172a);
-    color: var(--text, #f8fafc);
-    border-bottom: 2px solid var(--accent, #3b82f6);
+.term-tab:hover {
+    background: rgba(255,255,255,0.05);
+    color: #f8fafc;
 }
 
-.close-tab {
+.term-tab.active {
+    background: #0f172a;
+    color: #f8fafc;
+    border-bottom: 2px solid #3b82f6;
+}
+
+.term-tab-label {
+    user-select: none;
+}
+
+.term-tab-close {
     font-size: 14px;
+    opacity: 0.5;
     cursor: pointer;
-    opacity: 0.6;
+    line-height: 1;
 }
-.close-tab:hover { opacity: 1; color: #ef4444; }
+.term-tab-close:hover {
+    opacity: 1;
+    color: #ef4444;
+}
 
-.botcoder-terminal-actions {
+.term-tab-add {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+.term-tab-add:hover {
+    background: rgba(255,255,255,0.1);
+    color: #f8fafc;
+}
+
+.term-actions {
     display: flex;
-    padding: 0 8px;
     gap: 4px;
+    padding: 0 8px;
 }
 
-.botcoder-terminal-body {
-    flex-grow: 1;
+.term-action-btn {
+    background: none;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+}
+.term-action-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: #f8fafc;
+    border-color: #475569;
+}
+
+.term-body {
+    flex: 1;
     position: relative;
-    padding: 8px;
     overflow: hidden;
 }
 
-.xterm-container {
-    width: 100%;
+.term-pane {
+    position: absolute;
+    inset: 0;
+    display: none;
+    padding: 4px;
+}
+
+.term-pane.active {
+    display: block;
+}
+
+.term-pane .xterm {
     height: 100%;
+}
+
+.term-statusbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px;
+    background: #1e293b;
+    border-top: 1px solid #334155;
+    font-size: 11px;
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.term-status-sep {
+    color: #334155;
+}
+
+.botcoder-terminal-container,
+.botcoder-terminal-header,
+.botcoder-terminal-tabs,
+.botcoder-term-tab,
+.botcoder-terminal-actions,
+.botcoder-terminal-body,
+.xterm-container {
+    /* Legacy class support - now handled by .term-* classes */
 }

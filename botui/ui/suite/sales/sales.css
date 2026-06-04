@@ -1,0 +1,87 @@
+.sales-container{display:flex;flex-direction:column;height:100%;background:var(--bg);color:var(--text)}
+.sales-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border,#2a2a2a);flex-shrink:0}
+.sales-header-left{display:flex;align-items:center;gap:24px}
+.sales-header h1{font-size:20px;font-weight:600;margin:0}
+.sales-tabs{display:flex;gap:4px}
+.sales-tab{padding:8px 16px;background:transparent;border:none;border-radius:6px;color:var(--text-secondary,#888);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease}
+.sales-tab:hover{background:var(--surface-hover,rgba(255,255,255,.05));color:var(--text,#f8fafc)}
+.sales-tab.active{background:var(--accent,var(--color1,#d4f505));color:var(--bg)}
+.sales-header-right{display:flex;align-items:center;gap:12px}
+.sales-search{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface,rgba(255,255,255,.05));border:1px solid var(--border,#2a2a2a);border-radius:8px;min-width:240px}
+.sales-search svg{color:var(--text-secondary,#888);flex-shrink:0}
+.sales-search input{flex:1;background:transparent;border:none;color:var(--text,#f8fafc);font-size:13px;outline:none}
+.sales-search input::placeholder{color:var(--text-secondary,#888)}
+.btn-primary{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--accent,#d4f505);color:var(--bg);border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s ease}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-secondary{padding:8px 16px;background:transparent;color:var(--text-secondary,#888);border:1px solid var(--border,#2a2a2a);border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease}
+.btn-secondary:hover{background:var(--surface-hover,rgba(255,255,255,.05));color:var(--text,#f8fafc)}
+.sales-view{display:none;flex:1;overflow:auto}
+.sales-view.active{display:flex;flex-direction:column}
+.pipeline-container{display:flex;gap:16px;padding:24px;overflow-x:auto;flex:1}
+.pipeline-column{flex:0 0 280px;display:flex;flex-direction:column;background:var(--surface,rgba(255,255,255,.02));border:1px solid var(--border,#2a2a2a);border-radius:12px;max-height:calc(100vh - 260px)}
+.pipeline-column.won{border-color:#22c55e;background:rgba(34,197,94,.05)}
+.pipeline-column.lost{border-color:#ef4444;background:rgba(239,68,68,.05)}
+.pipeline-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border,#2a2a2a)}
+.pipeline-title{font-size:14px;font-weight:600;color:var(--text,#f8fafc)}
+.pipeline-count{padding:2px 8px;background:var(--surface-hover,rgba(255,255,255,.1));border-radius:12px;font-size:12px;font-weight:500;color:var(--text-secondary,#888)}
+.pipeline-cards{flex:1;padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.pipeline-cards.drag-over{background:rgba(212,245,5,.05)}
+.deal-card{padding:12px;background:var(--bg,#0a0a0a);border:1px solid var(--border,#2a2a2a);border-radius:8px;cursor:grab;transition:all .15s ease}
+.deal-card:hover{border-color:var(--accent,#d4f505);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.deal-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.deal-card-title{font-size:13px;font-weight:600;color:var(--text,#f8fafc);margin:0}
+.deal-card-value{font-size:12px;font-weight:600;color:var(--accent,#d4f505)}
+.deal-card-company{font-size:12px;color:var(--text-secondary,#888);margin-bottom:8px}
+.deal-card-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary,#888)}
+.deal-card-owner{display:flex;align-items:center;gap:4px}
+.deal-card-avatar{width:18px;height:18px;border-radius:50%;background:var(--accent,#d4f505);color:var(--bg);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.pipeline-summary{display:flex;gap:16px;padding:16px 24px;border-top:1px solid var(--border,#2a2a2a);background:var(--surface,rgba(255,255,255,.02))}
+.summary-card{display:flex;flex-direction:column;gap:4px;padding:12px 16px;background:var(--bg,#0a0a0a);border:1px solid var(--border,#2a2a2a);border-radius:8px;min-width:150px}
+.summary-label{font-size:11px;color:var(--text-secondary,#888);text-transform:uppercase;letter-spacing:.5px}
+.summary-value{font-size:20px;font-weight:700;color:var(--text,#f8fafc)}
+.summary-value.success{color:#22c55e}
+.sales-table{width:100%;border-collapse:collapse}
+.sales-table th,.sales-table td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border,#2a2a2a)}
+.sales-table th{font-size:11px;font-weight:600;color:var(--text-secondary,#888);text-transform:uppercase;letter-spacing:.5px;background:var(--surface,rgba(255,255,255,.02));position:sticky;top:0}
+.sales-table td{font-size:13px;color:var(--text,#f8fafc)}
+.sales-table tbody tr{transition:background .15s ease}
+.sales-table tbody tr:hover{background:var(--surface-hover,rgba(255,255,255,.05))}
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase}
+.badge.lead{background:rgba(59,130,246,.15);color:#3b82f6}
+.badge.qualified{background:rgba(168,85,247,.15);color:#a855f7}
+.badge.proposal{background:rgba(251,191,36,.15);color:#fbbf24}
+.badge.negotiation{background:rgba(34,211,238,.15);color:#22d3ee}
+.badge.won{background:rgba(34,197,94,.15);color:#22c55e}
+.badge.lost{background:rgba(239,68,68,.15);color:#ef4444}
+.badge.call{background:rgba(96,165,250,.15);color:#60a5fa}
+.badge.meeting{background:rgba(168,85,247,.15);color:#a855f7}
+.badge.task{background:rgba(251,191,36,.15);color:#fbbf24}
+.badge.overdue{background:rgba(239,68,68,.15);color:#ef4444}
+.activities-list{padding:24px;display:flex;flex-direction:column;gap:12px}
+.activity-item{display:flex;gap:16px;padding:16px;background:var(--surface,rgba(255,255,255,.02));border:1px solid var(--border,#2a2a2a);border-radius:10px;transition:all .15s ease}
+.activity-item:hover{border-color:var(--accent,#d4f505)}
+.activity-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.activity-icon.call{background:rgba(96,165,250,.15);color:#60a5fa}
+.activity-icon.meeting{background:rgba(168,85,247,.15);color:#a855f7}
+.activity-icon.task{background:rgba(251,191,36,.15);color:#fbbf24}
+.activity-body{flex:1;display:flex;flex-direction:column;gap:4px}
+.activity-title{font-size:14px;font-weight:500;color:var(--text,#f8fafc)}
+.activity-meta{font-size:12px;color:var(--text-secondary,#888)}
+.activity-actions{display:flex;gap:8px;align-items:flex-start}
+.activity-actions button{padding:6px 12px;font-size:12px;border-radius:4px;border:1px solid var(--border,#2a2a2a);background:transparent;color:var(--text,#f8fafc);cursor:pointer;transition:all .15s ease}
+.activity-actions button:hover{border-color:var(--accent,#d4f505);color:var(--accent,#d4f505)}
+.forecast-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:24px}
+.forecast-card{background:var(--surface,rgba(255,255,255,.02));border:1px solid var(--border,#2a2a2a);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.forecast-card-title{font-size:12px;color:var(--text-secondary,#888);text-transform:uppercase;letter-spacing:.5px}
+.forecast-card-value{font-size:28px;font-weight:700;color:var(--text,#f8fafc)}
+.forecast-card-value.accent{color:var(--accent,#d4f505)}
+.forecast-card-value.success{color:#22c55e}
+.forecast-card-detail{font-size:13px;color:var(--text-secondary,#888)}
+.forecast-bar{height:6px;background:var(--border,#2a2a2a);border-radius:3px;overflow:hidden;margin-top:8px}
+.forecast-bar-fill{height:100%;border-radius:3px;transition:width .3s ease}
+.forecast-bar-fill.accent{background:var(--accent,#d4f505)}
+.forecast-bar-fill.success{background:#22c55e}
+.loading-row{display:flex;align-items:center;justify-content:center;padding:40px;gap:8px;color:var(--text-secondary,#888);font-size:13px}
+.spinner{width:20px;height:20px;border:2px solid var(--border,#2a2a2a);border-top-color:var(--accent,#d4f505);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.sales-header{flex-direction:column;gap:16px;align-items:stretch}.pipeline-container{flex-direction:column}.pipeline-column{flex:1;max-height:none}.pipeline-summary{flex-wrap:wrap}.forecast-grid{grid-template-columns:1fr}}

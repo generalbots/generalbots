@@ -140,8 +140,8 @@ async fn list_users(
         }
         _ => {
             match auth_service.list_users(count as i64, (start_index - 1) as i64).await {
-                Ok(data) => data.get("result")
-                    .and_then(|r| r.as_array())
+                Ok(data) => data
+                    .as_array()
                     .cloned()
                     .unwrap_or_default(),
                 Err(_) => vec![],

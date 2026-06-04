@@ -113,58 +113,22 @@
                     <div class="avatar-placeholder"></div>
                 </div>
                 <div class="composer-input" onclick="showNewPostModal()">
-                    <span data-i18n="social-whats-on-mind"
-                        >What's on your mind?</span
-                    >
+                    <span data-i18n="social-whats-on-mind">What's on your mind?</span>
                 </div>
                 <div class="composer-actions">
-                    <button class="composer-btn" title="Add image">
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <rect
-                                x="3"
-                                y="3"
-                                width="18"
-                                height="18"
-                                rx="2"
-                                ry="2"
-                            />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <polyline points="21 15 16 10 5 21" />
+                    <button class="composer-btn" title="Add image" onclick="event.stopPropagation();showNewPostModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                         </svg>
                     </button>
-                    <button class="composer-btn" title="Add poll">
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <line x1="18" y1="20" x2="18" y2="10" />
-                            <line x1="12" y1="20" x2="12" y2="4" />
-                            <line x1="6" y1="20" x2="6" y2="14" />
+                    <button class="composer-btn" title="Schedule post" onclick="event.stopPropagation();showNewPostModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                         </svg>
                     </button>
-                    <button class="composer-btn" title="Send praise">
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <path
-                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                            />
+                    <button class="composer-btn" title="Analytics" onclick="event.stopPropagation();showAnalytics()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
                         </svg>
                     </button>
                 </div>
@@ -254,68 +218,25 @@
             <div class="modal-footer">
                 <div class="post-tools">
                     <button type="button" class="tool-btn" title="Add image">
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <rect
-                                x="3"
-                                y="3"
-                                width="18"
-                                height="18"
-                                rx="2"
-                                ry="2"
-                            />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <polyline points="21 15 16 10 5 21" />
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                         </svg>
                     </button>
-                    <button
-                        type="button"
-                        class="tool-btn"
-                        title="Add poll"
-                        onclick="togglePollCreator()"
-                    >
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <line x1="18" y1="20" x2="18" y2="10" />
-                            <line x1="12" y1="20" x2="12" y2="4" />
-                            <line x1="6" y1="20" x2="6" y2="14" />
+                    <button type="button" class="tool-btn" title="Add poll" onclick="togglePollCreator()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
                         </svg>
                     </button>
-                    <button
-                        type="button"
-                        class="tool-btn"
-                        title="Mention someone"
-                    >
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <circle cx="12" cy="12" r="4" />
-                            <path
-                                d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"
-                            />
+                    <button type="button" class="tool-btn" title="Schedule">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                         </svg>
                     </button>
                 </div>
-                <button type="submit" class="btn-post">
-                    <span data-i18n="social-post">Post</span>
-                </button>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input type="datetime-local" name="scheduled_at" class="schedule-input" title="Schedule for later" style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-size:12px">
+                    <button type="submit" class="btn-post">Post</button>
+                </div>
             </div>
         </form>
     </div>
@@ -394,5 +315,72 @@
         window.handlePostCreated = handlePostCreated;
         window.togglePollCreator = togglePollCreator;
         window.addPollOption = addPollOption;
+
+        window.showAnalytics = function() {
+            var content = document.getElementById('social-content');
+            content.innerHTML = '<div class="analytics-dashboard">'
+                + '<h3 style="margin-bottom:16px">Social Analytics</h3>'
+                + '<div class="analytics-grid">'
+                + '<div class="analytics-card"><div class="analytics-value" id="analytics-posts">--</div><div class="analytics-label">Posts</div></div>'
+                + '<div class="analytics-card"><div class="analytics-value" id="analytics-engagement">--</div><div class="analytics-label">Engagement</div></div>'
+                + '<div class="analytics-card"><div class="analytics-value" id="analytics-reach">--</div><div class="analytics-label">Reach</div></div>'
+                + '<div class="analytics-card"><div class="analytics-value" id="analytics-followers">--</div><div class="analytics-label">Followers</div></div>'
+                + '</div>'
+                + '<div class="analytics-chart" style="margin-top:20px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px">'
+                + '<h4 style="margin-bottom:12px">Engagement Over Time</h4>'
+                + '<div id="engagement-chart" style="height:200px;display:flex;align-items:end;gap:4px"></div>'
+                + '</div>'
+                + '<div class="analytics-chart" style="margin-top:16px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px">'
+                + '<h4 style="margin-bottom:12px">Best Posting Times</h4>'
+                + '<div id="best-times" style="color:var(--text-secondary)">Analyzing your post data...</div>'
+                + '</div>'
+                + '</div>';
+            fetch('/api/social/analytics').then(function(r){return r.json()}).then(function(d){
+                document.getElementById('analytics-posts').textContent = d.total_posts || 0;
+                document.getElementById('analytics-engagement').textContent = d.engagement_rate || '0%';
+                document.getElementById('analytics-reach').textContent = d.reach || '0';
+                document.getElementById('analytics-followers').textContent = d.followers || 0;
+                var chart = document.getElementById('engagement-chart');
+                if (d.engagement_history && chart) {
+                    chart.innerHTML = d.engagement_history.map(function(v) {
+                        return '<div style="flex:1;background:var(--accent, #3b82f6);height:' + (v.value || 10) + '%;border-radius:2px 2px 0 0" title="' + v.label + ': ' + v.value + '"></div>';
+                    }).join('');
+                }
+                var bt = document.getElementById('best-times');
+                if (d.best_times && bt) bt.textContent = d.best_times;
+            }).catch(function(){});
+        };
+
+        window.likePost = function(postId) {
+            fetch('/api/social/posts/' + postId + '/like', {method:'POST'}).then(function(){
+                htmx.trigger('#social-content', 'refresh');
+            });
+        };
+
+        window.commentPost = function(postId) {
+            var input = document.getElementById('comment-input-' + postId);
+            if (!input || !input.value.trim()) return;
+            fetch('/api/social/posts/' + postId + '/comments', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({content: input.value.trim()})
+            }).then(function(){
+                input.value = '';
+                htmx.trigger('#social-content', 'refresh');
+            });
+        };
+
+        window.sharePost = function(postId) {
+            fetch('/api/social/posts/' + postId + '/share', {method:'POST'}).then(function(){
+                if (window.GBAlerts) window.GBAlerts.info('Social', 'Post shared!');
+            });
+        };
+
+        window.deletePost = function(postId) {
+            if (!confirm('Delete this post?')) return;
+            fetch('/api/social/posts/' + postId, {method:'DELETE'}).then(function(){
+                htmx.trigger('#social-content', 'refresh');
+            });
+        };
     })();
 </script>

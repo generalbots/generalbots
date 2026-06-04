@@ -1,0 +1,86 @@
+<link rel="stylesheet" href="templates-app/templates-app.css">
+<script src="templates-app/templates-app.js"></script>
+
+<div class="tpl-container">
+    <header class="tpl-header">
+        <h1>Bot Templates</h1>
+        <div class="tpl-header-actions">
+            <button class="tpl-btn" onclick="window._tpl.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="tpl-stats">
+        <div class="tpl-stat-card"><span class="tpl-stat-label">Total Templates</span><span class="tpl-stat-value blue" id="tpl-stat-total">0</span></div>
+        <div class="tpl-stat-card"><span class="tpl-stat-label">Business</span><span class="tpl-stat-value green" id="tpl-stat-business">0</span></div>
+        <div class="tpl-stat-card"><span class="tpl-stat-label">Service</span><span class="tpl-stat-value purple" id="tpl-stat-service">0</span></div>
+        <div class="tpl-stat-card"><span class="tpl-stat-label">Lifestyle</span><span class="tpl-stat-value orange" id="tpl-stat-lifestyle">0</span></div>
+    </div>
+
+    <nav class="tpl-tabs">
+        <button class="tpl-tab active" data-tab="all" onclick="window._tpl.switchTab('all',this)">All</button>
+        <button class="tpl-tab" data-tab="business" onclick="window._tpl.switchTab('business',this)">Business</button>
+        <button class="tpl-tab" data-tab="service" onclick="window._tpl.switchTab('service',this)">Service</button>
+        <button class="tpl-tab" data-tab="lifestyle" onclick="window._tpl.switchTab('lifestyle',this)">Lifestyle</button>
+        <button class="tpl-tab" data-tab="custom" onclick="window._tpl.switchTab('custom',this)">Custom</button>
+    </nav>
+
+    <div class="tpl-content">
+        <div class="tpl-panel active" id="tpl-panel-all">
+            <div class="tpl-grid" id="tpl-all-grid">
+                <div class="tpl-empty"><div class="tpl-empty-icon">🤖</div><h3>Loading...</h3><p>Fetching bot templates</p></div>
+            </div>
+        </div>
+        <div class="tpl-panel" id="tpl-panel-business">
+            <div class="tpl-grid" id="tpl-business-grid"></div>
+        </div>
+        <div class="tpl-panel" id="tpl-panel-service">
+            <div class="tpl-grid" id="tpl-service-grid"></div>
+        </div>
+        <div class="tpl-panel" id="tpl-panel-lifestyle">
+            <div class="tpl-grid" id="tpl-lifestyle-grid"></div>
+        </div>
+        <div class="tpl-panel" id="tpl-panel-custom">
+            <div class="tpl-grid" id="tpl-custom-grid"></div>
+        </div>
+    </div>
+</div>
+
+<div class="tpl-modal-overlay" id="tpl-preview-modal">
+    <div class="tpl-modal">
+        <div class="tpl-modal-header">
+            <h3 id="tpl-preview-title">Template Preview</h3>
+            <button class="tpl-modal-close" onclick="window._tpl.hideModal('tpl-preview-modal')">&times;</button>
+        </div>
+        <div class="tpl-modal-body" id="tpl-preview-body"></div>
+        <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:flex-end;gap:8px">
+            <button class="tpl-btn" onclick="window._tpl.hideModal('tpl-preview-modal')">Close</button>
+            <button class="tpl-btn tpl-btn-primary" onclick="window._tpl.showDeployModal()">Use Template</button>
+        </div>
+    </div>
+</div>
+
+<div class="tpl-modal-overlay" id="tpl-deploy-modal">
+    <div class="tpl-modal">
+        <div class="tpl-modal-header">
+            <h3>Deploy Bot from Template</h3>
+            <button class="tpl-modal-close" onclick="window._tpl.hideModal('tpl-deploy-modal')">&times;</button>
+        </div>
+        <div class="tpl-modal-body">
+            <div class="tpl-form-group">
+                <label>Bot Name</label>
+                <input type="text" id="tpl-bot-name" placeholder="my-awesome-bot">
+            </div>
+            <div class="tpl-form-group">
+                <label>Description</label>
+                <input type="text" id="tpl-bot-desc" placeholder="A short description">
+            </div>
+            <div class="tpl-form-actions">
+                <button class="tpl-btn" onclick="window._tpl.hideModal('tpl-deploy-modal')">Cancel</button>
+                <button class="tpl-btn tpl-btn-success" onclick="window._tpl.deployBot()">Deploy</button>
+            </div>
+        </div>
+    </div>
+</div>

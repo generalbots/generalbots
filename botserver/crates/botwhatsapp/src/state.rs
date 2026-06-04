@@ -27,6 +27,10 @@ pub type UserLookupFn = Arc<
     dyn Fn(&str) -> Pin<Box<dyn Future<Output = Result<Option<String>, String>> + Send>> + Send + Sync,
 >;
 
+pub type UserCreateFn = Arc<
+    dyn Fn(&str, &str, &str, Option<&str>) -> Pin<Box<dyn Future<Output = Result<String, String>> + Send>> + Send + Sync,
+>;
+
 pub struct WhatsAppState {
     pub pool: DbPool,
     pub send_message: SendMessageFn,
@@ -37,4 +41,5 @@ pub struct WhatsAppState {
     pub transcribe_audio: TranscribeAudioFn,
     pub process_message: ProcessMessageFn,
     pub user_lookup: UserLookupFn,
+    pub user_create: UserCreateFn,
 }

@@ -136,6 +136,9 @@ impl ApiUrls {
     pub const MEET_RECENT_HTMX: &'static str = "/api/ui/meet/recent";
     pub const MEET_SCHEDULED_HTMX: &'static str = "/api/ui/meet/scheduled";
     pub const MEET_DASHBOARD_LIST_HTMX: &'static str = "/api/ui/meet/dashboard/list";
+    pub const MEET_HTMX_DASHBOARD_STATS: &'static str = "/api/meet/htmx/dashboard/stats";
+    pub const MEET_HTMX_DASHBOARD_LIST: &'static str = "/api/meet/htmx/dashboard/list";
+    pub const MEET_HTMX_ROOM_CREATE: &'static str = "/api/meet/htmx/rooms/create";
 
     // Voice - JSON APIs
     pub const VOICE_START: &'static str = "/api/voice/start";
