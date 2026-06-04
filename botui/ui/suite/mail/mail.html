@@ -23,6 +23,27 @@
         <div class="folders-section">
             <div
                 class="nav-item active"
+                data-folder="unified"
+                hx-get="/api/ui/email/unified-list"
+                hx-target="#mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                <span>All Inboxes</span>
+                <span class="folder-badge unread" id="unified-count">0</span>
+            </div>
+            <div
+                class="nav-item"
                 data-folder="inbox"
                 hx-get="/api/ui/email/list?folder=inbox"
                 hx-target="#mail-list"
@@ -382,14 +403,28 @@
                     </svg>
                     <input
                         type="text"
-                        placeholder="Search emails..."
+                        placeholder="Search all emails..."
                         id="email-search"
-                        hx-get="/api/ui/email/search"
-                        hx-trigger="keyup changed delay:300ms"
+                        hx-get="/api/ui/email/search-all"
                         hx-target="#mail-list"
-                        hx-include="this"
+                        hx-include="#search-filters"
                         name="q"
                     />
+                    <button class="icon-btn search-filter-toggle" onclick="toggleSearchFilters()" title="Search filters">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="search-filters" id="search-filters" style="display: none;">
+                    <div class="filter-row">
+                        <label class="checkbox-label"><input type="checkbox" name="unread_only" value="true"/><span>Unread only</span></label>
+                        <label class="checkbox-label"><input type="checkbox" name="attachments_only" value="true"/><span>Has attachments</span></label>
+                    </div>
+                    <div class="filter-row">
+                        <label>From:</label><input type="date" name="date_from" class="filter-date"/>
+                        <label>To:</label><input type="date" name="date_to" class="filter-date"/>
+                    </div>
                 </div>
                 <button
                     class="icon-btn"
@@ -494,7 +529,7 @@
 
         <div
             id="mail-list"
-            hx-get="/api/ui/email/list?folder=inbox"
+            hx-get="/api/ui/email/unified-list"
             hx-trigger="load"
             hx-swap="innerHTML"
         >

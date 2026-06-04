@@ -125,9 +125,17 @@ impl ApiUrls {
     pub const MEET_TOKEN: &'static str = "/api/meet/token";
     pub const MEET_INVITE: &'static str = "/api/meet/invite";
     pub const MEET_TRANSCRIPTION: &'static str = "/api/meet/rooms/:id/transcription";
-    pub const MEET_PARTICIPANTS: &'static str = "/api/meet/participants";
-    pub const MEET_RECENT: &'static str = "/api/meet/recent";
-    pub const MEET_SCHEDULED: &'static str = "/api/meet/scheduled";
+    pub const MEET_TURN_CREDENTIALS: &'static str = "/api/meet/turn-credentials";
+    pub const MEET_SCHEDULE: &'static str = "/api/meet/schedule";
+    pub const MEET_DASHBOARD_STATS: &'static str = "/api/meet/dashboard/stats";
+    pub const WS_MEET_SIGNALING: &'static str = "/ws/meet/:room_id";
+
+    // Meet - HTMX/HTML APIs
+    pub const MEET_ROOMS_HTMX: &'static str = "/api/ui/meet/rooms";
+    pub const MEET_PARTICIPANTS_HTMX: &'static str = "/api/ui/meet/participants";
+    pub const MEET_RECENT_HTMX: &'static str = "/api/ui/meet/recent";
+    pub const MEET_SCHEDULED_HTMX: &'static str = "/api/ui/meet/scheduled";
+    pub const MEET_DASHBOARD_LIST_HTMX: &'static str = "/api/ui/meet/dashboard/list";
 
     // Voice - JSON APIs
     pub const VOICE_START: &'static str = "/api/voice/start";

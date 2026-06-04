@@ -904,7 +904,7 @@
                 </button>
 
                 <button class="toolbar-btn" id="btn-open"
-                        hx-get="/api/designer/files"
+                        hx-get="/api/ui/designer/files"
                         hx-target="#file-list-content"
                         hx-trigger="click"
                         onclick="showModal('open-modal')"
@@ -916,7 +916,7 @@
                 </button>
 
                 <button class="toolbar-btn primary" id="btn-save"
-                        hx-post="/api/designer/save"
+                        hx-post="/api/ui/designer/save"
                         hx-include="#designer-data"
                         hx-indicator="#save-spinner"
                         title="Save (Ctrl+S)">
@@ -948,7 +948,7 @@
                 <div class="toolbar-separator"></div>
 
                 <button class="toolbar-btn" id="btn-run"
-                        hx-post="/api/designer/validate"
+                        hx-post="/api/ui/designer/validate"
                         hx-include="#designer-data"
                         title="Validate Dialog">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -958,7 +958,7 @@
                 </button>
 
                 <button class="toolbar-btn" id="btn-export"
-                        hx-get="/api/designer/export"
+                        hx-get="/api/ui/designer/export"
                         hx-include="#designer-data"
                         title="Export as .bas">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1374,7 +1374,7 @@
             <div class="modal-footer">
                 <button class="toolbar-btn" onclick="hideModal('open-modal')">Cancel</button>
                 <button class="toolbar-btn primary" id="btn-open-selected"
-                        hx-get="/api/designer/load"
+                        hx-get="/api/ui/designer/load"
                         hx-include="#selected-file"
                         hx-target="#canvas-inner"
                         hx-swap="innerHTML"

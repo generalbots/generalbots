@@ -56,7 +56,7 @@
             <div
                 class="rooms-grid"
                 id="rooms-list"
-                hx-get="/api/meet/rooms"
+                hx-get="/api/ui/meet/rooms"
                 hx-trigger="load, every 10s"
                 hx-swap="innerHTML"
             >
@@ -76,7 +76,7 @@
             <div
                 class="scheduled-list"
                 id="scheduled-list"
-                hx-get="/api/meet/scheduled"
+                hx-get="/api/ui/meet/scheduled"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
@@ -92,7 +92,7 @@
             <div
                 class="recent-list"
                 id="recent-list"
-                hx-get="/api/meet/recent"
+                hx-get="/api/ui/meet/recent"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
@@ -110,15 +110,14 @@
                 <h2 id="room-title" data-i18n="meet-room-title">Meeting Room</h2>
                 <span class="room-id" id="room-id"></span>
                 <span class="room-timer" id="room-timer">00:00:00</span>
+                <span class="connection-status" id="connection-status">Connecting...</span>
             </div>
             <div class="room-controls-top">
                 <button
                     class="control-btn"
                     id="record-btn"
                     title="Record Meeting"
-                    hx-post="/api/meet/recording/start"
-                    hx-include="#room-id-input"
-                    hx-swap="none"
+                    onclick="showNotification('Recording feature coming soon')"
                 >
                     <svg
                         width="18"
@@ -142,9 +141,7 @@
                     class="control-btn active"
                     id="transcribe-btn"
                     title="Toggle Transcription"
-                    hx-post="/api/meet/transcription/toggle"
-                    hx-include="#room-id-input"
-                    hx-swap="none"
+                    onclick="showNotification('Transcription toggled')"
                 >
                     <svg
                         width="18"
@@ -290,7 +287,7 @@
                     <div
                         class="participants-list"
                         id="participants-list"
-                        hx-get="/api/meet/participants"
+                        hx-get="/api/ui/meet/participants"
                         hx-include="#room-id-input"
                         hx-trigger="load, every 5s"
                         hx-swap="innerHTML"
@@ -371,7 +368,7 @@
                     <div class="chat-messages" id="chat-messages">
                         <!-- Chat messages via WebSocket -->
                     </div>
-                    <form class="chat-form" ws-send>
+                    <form class="chat-form" onsubmit="event.preventDefault(); sendChatMessage();">
                         <input type="hidden" name="type" value="chat" />
                         <input
                             type="text"
@@ -488,9 +485,6 @@
                     class="control-btn-lg"
                     id="screen-btn"
                     title="Share Screen"
-                    hx-post="/api/meet/screen/share"
-                    hx-include="#room-id-input"
-                    hx-swap="none"
                     onclick="toggleScreenShare()"
                 >
                     <svg
@@ -1073,9 +1067,26 @@
     }
 
     .room-id,
-    .room-timer {
+    .room-timer,
+    .connection-status {
         font-size: 0.75rem;
         color: rgba(255, 255, 255, 0.6);
+    }
+
+    .connection-status {
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .connection-status.connected {
+        background: rgba(46, 125, 50, 0.3);
+        color: #81c784;
+    }
+
+    .connection-status.disconnected {
+        background: rgba(198, 40, 40, 0.3);
+        color: #ef9a9a;
     }
 
     .room-controls-top {
@@ -1562,192 +1573,28 @@
     }
 </style>
 
+<script src="meet/meet.js"></script>
 <script>
     // Guard against re-execution - check BEFORE any declarations
-    if (!window._meetModuleLoaded) {
-        window._meetModuleLoaded = true;
+    if (!window._meetInlineLoaded) {
+        window._meetInlineLoaded = true;
 
         // Use window object for all state to avoid redeclaration
         window._meetState = window._meetState || {
             localStream: null,
+            screenStream: null,
+            peerConnections: {},
+            signalingSocket: null,
+            roomId: null,
+            participantId: null,
+            participantName: null,
+            iceServers: [],
             isMuted: false,
             isCameraOff: false,
+            isScreenSharing: false,
+            isHandRaised: false,
             timerInterval: null,
             timerSeconds: 0
-        };
-
-        // Modal functions
-        window.showModal = function(id) {
-            var modal = document.getElementById(id);
-            if (modal) modal.showModal();
-        };
-
-        window.hideModal = function(id) {
-            var modal = document.getElementById(id);
-            if (modal) modal.close();
-        };
-
-        // Panel toggle
-        window.togglePanel = function(name) {
-            var panels = ["participants", "chat", "transcription"];
-            panels.forEach(function(p) {
-                var panel = document.getElementById(p + "-panel");
-                if (panel) {
-                    if (p === name) {
-                        panel.classList.toggle("hidden");
-                    } else {
-                        panel.classList.add("hidden");
-                    }
-                }
-            });
-        };
-
-        // Meeting functions
-        window.enterMeeting = function() {
-            var meetMain = document.querySelector(".meet-main");
-            var meetHeader = document.querySelector(".meet-header");
-            var meetingRoom = document.getElementById("meeting-room");
-            if (meetMain) meetMain.classList.add("hidden");
-            if (meetHeader) meetHeader.classList.add("hidden");
-            if (meetingRoom) meetingRoom.classList.remove("hidden");
-            window.startTimer();
-            window.initializeMedia();
-        };
-
-        window.leaveMeeting = function() {
-            var meetingRoom = document.getElementById("meeting-room");
-            var meetMain = document.querySelector(".meet-main");
-            var meetHeader = document.querySelector(".meet-header");
-            if (meetingRoom) meetingRoom.classList.add("hidden");
-            if (meetMain) meetMain.classList.remove("hidden");
-            if (meetHeader) meetHeader.classList.remove("hidden");
-            window.stopTimer();
-            window.stopMedia();
-        };
-
-        // Media controls
-        window.initializeMedia = async function() {
-            try {
-                window._meetState.localStream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: true,
-                });
-                var localVideo = document.getElementById("local-video");
-                if (localVideo) localVideo.srcObject = window._meetState.localStream;
-            } catch (err) {
-                console.error("Error accessing media devices:", err);
-            }
-        };
-
-        window.stopMedia = function() {
-            if (window._meetState.localStream) {
-                window._meetState.localStream.getTracks().forEach(function(track) { track.stop(); });
-                window._meetState.localStream = null;
-            }
-        };
-
-        window.toggleMic = function() {
-            if (window._meetState.localStream) {
-                var audioTrack = window._meetState.localStream.getAudioTracks()[0];
-                if (audioTrack) {
-                    audioTrack.enabled = !audioTrack.enabled;
-                    window._meetState.isMuted = !audioTrack.enabled;
-                    var btn = document.getElementById("mic-btn");
-                    if (btn) btn.classList.toggle("muted", window._meetState.isMuted);
-                }
-            }
-        };
-
-        window.toggleCamera = function() {
-            if (window._meetState.localStream) {
-                var videoTrack = window._meetState.localStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    videoTrack.enabled = !videoTrack.enabled;
-                    window._meetState.isCameraOff = !videoTrack.enabled;
-                    var btn = document.getElementById("camera-btn");
-                    if (btn) btn.classList.toggle("muted", window._meetState.isCameraOff);
-                }
-            }
-        };
-
-        window.toggleScreenShare = async function() {
-            try {
-                var screenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true,
-                });
-                // Handle screen share stream
-            } catch (err) {
-                console.error("Error sharing screen:", err);
-            }
-        };
-
-        // Timer
-        window.startTimer = function() {
-            window._meetState.timerInterval = setInterval(function() {
-                window._meetState.timerSeconds++;
-                var hours = Math.floor(window._meetState.timerSeconds / 3600);
-                var minutes = Math.floor((window._meetState.timerSeconds % 3600) / 60);
-                var seconds = window._meetState.timerSeconds % 60;
-                var display = [hours, minutes, seconds]
-                    .map(function(v) { return v.toString().padStart(2, "0"); })
-                    .join(":");
-                var timerEl = document.getElementById("room-timer");
-                if (timerEl) timerEl.textContent = display;
-            }, 1000);
-        };
-
-        window.stopTimer = function() {
-            if (window._meetState.timerInterval) {
-                clearInterval(window._meetState.timerInterval);
-                window._meetState.timerInterval = null;
-            }
-            window._meetState.timerSeconds = 0;
-        };
-
-        // Reactions
-        window.showReactions = function() {
-            var popup = document.getElementById("reactions-popup");
-            if (popup) popup.classList.toggle("hidden");
-        };
-
-        window.sendReaction = function(emoji) {
-            console.log("Sending reaction:", emoji);
-            var popup = document.getElementById("reactions-popup");
-            if (popup) popup.classList.add("hidden");
-        };
-
-        // Copy meeting link
-        window.copyMeetingLink = function() {
-            var input = document.getElementById("meeting-link");
-            if (input) {
-                input.select();
-                navigator.clipboard.writeText(input.value);
-            }
-        };
-
-        // Preview for join modal
-        window.testVideo = async function() {
-            try {
-                var stream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                });
-                var preview = document.getElementById("preview-video");
-                if (preview) preview.srcObject = stream;
-            } catch (err) {
-                console.error("Error testing video:", err);
-            }
-        };
-
-        window.testAudio = function() {
-            console.log("Testing audio...");
-        };
-
-        window.showMoreOptions = function() {
-            console.log("More options...");
-        };
-
-        window.showNotification = function(message) {
-            console.log("Notification:", message);
         };
     }
 </script>

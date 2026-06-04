@@ -315,13 +315,13 @@
                     <h2>Two-Factor Authentication</h2>
                     <p>Add an extra layer of security to your account</p>
                 </div>
-                <div class="setting-row" id="2fa-status" hx-get="/api/user/security/2fa/status" hx-trigger="load"
+                <div class="setting-row" id="2fa-status" hx-get="/api/ui/user/security/2fa/status" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="setting-info">
                         <span class="setting-title">Authenticator App</span>
                         <span class="setting-desc">Use an authenticator app for 2FA codes</span>
                     </div>
-                    <button class="btn-primary" hx-post="/api/user/security/2fa/enable" hx-swap="none">
+                    <button class="btn-primary" hx-post="/api/ui/user/security/2fa/enable" hx-swap="none">
                         Enable 2FA
                     </button>
                 </div>
@@ -333,14 +333,14 @@
                     <h2>Active Sessions</h2>
                     <p>Manage your active login sessions</p>
                 </div>
-                <div class="sessions-list" id="sessions-list" hx-get="/api/user/security/sessions" hx-trigger="load"
+                <div class="sessions-list" id="sessions-list" hx-get="/api/ui/user/security/sessions" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
                     </div>
                 </div>
                 <div class="card-footer">
-                    <button class="btn-danger-outline" hx-post="/api/user/security/sessions/revoke-all"
+                    <button class="btn-danger-outline" hx-post="/api/ui/user/security/sessions/revoke-all"
                         hx-confirm="Sign out of all other devices?"
                         hx-on::after-request="htmx.trigger('#sessions-list', 'load'); showToast('All other sessions revoked')">
                         Sign Out All Other Sessions
@@ -354,7 +354,7 @@
                     <h2>Connected Devices</h2>
                     <p>Devices that have accessed your account</p>
                 </div>
-                <div class="devices-list" id="devices-list" hx-get="/api/user/security/devices" hx-trigger="load"
+                <div class="devices-list" id="devices-list" hx-get="/api/ui/user/security/devices" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
@@ -855,7 +855,7 @@
                 <div class="card-header">
                     <h2>Storage Usage</h2>
                 </div>
-                <div class="storage-display" hx-get="/api/user/storage" hx-trigger="load" hx-swap="innerHTML">
+                <div class="storage-display" hx-get="/api/ui/user/storage" hx-trigger="load" hx-swap="innerHTML">
                     <div class="storage-bar-container">
                         <div class="storage-bar">
                             <div class="storage-bar-fill" style="width: 45%"></div>
@@ -932,7 +932,7 @@
                 <div class="card-header">
                     <h2>Connected Cloud Storage</h2>
                 </div>
-                <div class="connections-list" id="storage-connections" hx-get="/api/user/storage/connections"
+                <div class="connections-list" id="storage-connections" hx-get="/api/ui/user/storage/connections"
                     hx-trigger="load" hx-swap="innerHTML">
                     <div class="connection-item">
                         <div class="connection-icon google-drive">

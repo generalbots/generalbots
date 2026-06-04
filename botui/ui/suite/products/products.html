@@ -22,7 +22,7 @@
                 <input type="text"
                        placeholder="Search products, services..."
                        data-i18n-placeholder="products-search-placeholder"
-                       hx-get="/api/products/search"
+                       hx-get="/api/ui/products/search"
                        hx-trigger="keyup changed delay:300ms"
                        hx-target="#products-search-results">
             </div>
@@ -50,7 +50,7 @@
             </div>
             <div class="summary-info">
                 <span class="summary-label" data-i18n="products-total-products">Total Products</span>
-                <span class="summary-value" hx-get="/api/products/stats/total-products" hx-trigger="load">0</span>
+                <span class="summary-value" hx-get="/api/ui/products/stats/total-products" hx-trigger="load">0</span>
             </div>
         </div>
         <div class="summary-card">
@@ -62,7 +62,7 @@
             </div>
             <div class="summary-info">
                 <span class="summary-label" data-i18n="products-total-services">Total Services</span>
-                <span class="summary-value" hx-get="/api/products/stats/total-services" hx-trigger="load">0</span>
+                <span class="summary-value" hx-get="/api/ui/products/stats/total-services" hx-trigger="load">0</span>
             </div>
         </div>
         <div class="summary-card">
@@ -73,7 +73,7 @@
             </div>
             <div class="summary-info">
                 <span class="summary-label" data-i18n="products-active">Active Items</span>
-                <span class="summary-value active" hx-get="/api/products/stats/active" hx-trigger="load">0</span>
+                <span class="summary-value active" hx-get="/api/ui/products/stats/active" hx-trigger="load">0</span>
             </div>
         </div>
         <div class="summary-card">
@@ -84,7 +84,7 @@
             </div>
             <div class="summary-info">
                 <span class="summary-label" data-i18n="products-price-lists">Price Lists</span>
-                <span class="summary-value" hx-get="/api/products/stats/pricelists" hx-trigger="load">0</span>
+                <span class="summary-value" hx-get="/api/ui/products/stats/pricelists" hx-trigger="load">0</span>
             </div>
         </div>
     </div>
@@ -93,7 +93,7 @@
     <div id="products-catalog-view" class="products-view active">
         <div class="products-list-header">
             <div class="list-filters">
-                <select hx-get="/api/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="category">
+                <select hx-get="/api/ui/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="category">
                     <option value="all" data-i18n="products-cat-all">All Categories</option>
                     <option value="software" data-i18n="products-cat-software">Software</option>
                     <option value="hardware" data-i18n="products-cat-hardware">Hardware</option>
@@ -102,7 +102,7 @@
                     <option value="training" data-i18n="products-cat-training">Training</option>
                     <option value="support" data-i18n="products-cat-support">Support</option>
                 </select>
-                <select hx-get="/api/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="status">
+                <select hx-get="/api/ui/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="status">
                     <option value="active" data-i18n="products-status-active">Active</option>
                     <option value="all" data-i18n="products-status-all">All</option>
                     <option value="inactive" data-i18n="products-status-inactive">Inactive</option>
@@ -126,7 +126,7 @@
         </div>
 
         <!-- Products Grid -->
-        <div id="products-grid" class="products-grid" hx-get="/api/products/items" hx-trigger="load">
+        <div id="products-grid" class="products-grid" hx-get="/api/ui/products/items" hx-trigger="load">
             <!-- Products loaded via HTMX -->
         </div>
     </div>
@@ -135,7 +135,7 @@
     <div id="products-services-view" class="products-view">
         <div class="products-list-header">
             <div class="list-filters">
-                <select hx-get="/api/products/services" hx-trigger="change" hx-target="#services-table-body" hx-include="this" name="type">
+                <select hx-get="/api/ui/products/services" hx-trigger="change" hx-target="#services-table-body" hx-include="this" name="type">
                     <option value="all" data-i18n="products-type-all">All Types</option>
                     <option value="hourly" data-i18n="products-type-hourly">Hourly</option>
                     <option value="fixed" data-i18n="products-type-fixed">Fixed Price</option>
@@ -161,7 +161,7 @@
                     <th data-i18n="products-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="services-table-body" hx-get="/api/products/services" hx-trigger="load">
+            <tbody id="services-table-body" hx-get="/api/ui/products/services" hx-trigger="load">
             </tbody>
         </table>
     </div>
@@ -170,7 +170,7 @@
     <div id="products-pricelists-view" class="products-view">
         <div class="products-list-header">
             <div class="list-filters">
-                <select hx-get="/api/products/pricelists" hx-trigger="change" hx-target="#pricelists-table-body" hx-include="this" name="currency">
+                <select hx-get="/api/ui/products/pricelists" hx-trigger="change" hx-target="#pricelists-table-body" hx-include="this" name="currency">
                     <option value="all" data-i18n="products-currency-all">All Currencies</option>
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
@@ -198,7 +198,7 @@
                     <th data-i18n="products-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="pricelists-table-body" hx-get="/api/products/pricelists" hx-trigger="load">
+            <tbody id="pricelists-table-body" hx-get="/api/ui/products/pricelists" hx-trigger="load">
             </tbody>
         </table>
     </div>

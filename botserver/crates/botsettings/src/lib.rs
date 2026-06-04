@@ -21,22 +21,22 @@ use botcore::shared::state::AppState;
 
 pub fn configure_settings_routes() -> Router<Arc<AppState>> {
 Router::new()
-.route("/api/user/storage", get(get_storage_info))
-.route("/api/user/storage/connections", get(get_storage_connections))
-.route("/api/user/security/2fa/status", get(get_2fa_status))
-.route("/api/user/security/2fa/enable", post(enable_2fa))
-.route("/api/user/security/2fa/disable", post(disable_2fa))
-.route("/api/user/security/sessions", get(get_active_sessions))
+.route("/api/ui/user/storage", get(get_storage_info))
+.route("/api/ui/user/storage/connections", get(get_storage_connections))
+.route("/api/ui/user/security/2fa/status", get(get_2fa_status))
+.route("/api/ui/user/security/2fa/enable", post(enable_2fa))
+.route("/api/ui/user/security/2fa/disable", post(disable_2fa))
+.route("/api/ui/user/security/sessions", get(get_active_sessions))
 .route(
-"/api/user/security/sessions/revoke-all",
+"/api/ui/user/security/sessions/revoke-all",
 post(revoke_all_sessions),
 )
-.route("/api/user/security/devices", get(get_trusted_devices))
+.route("/api/ui/user/security/devices", get(get_trusted_devices))
 .route("/api/settings/search", post(save_search_settings))
 .route("/api/settings/smtp/test", post(test_smtp_connection))
-.route("/api/settings/accounts/social", get(get_accounts_social))
-.route("/api/settings/accounts/messaging", get(get_accounts_messaging))
-.route("/api/settings/accounts/email", get(get_accounts_email))
+.route("/api/ui/settings/accounts/social", get(get_accounts_social))
+.route("/api/ui/settings/accounts/messaging", get(get_accounts_messaging))
+.route("/api/ui/settings/accounts/email", get(get_accounts_email))
 .route("/api/settings/accounts/smtp", post(save_smtp_account))
 .route("/api/ops/health", get(get_ops_health))
 .route("/api/rbac/permissions", get(get_rbac_permissions))
