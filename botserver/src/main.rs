@@ -91,6 +91,7 @@ pub mod tickets;
 pub mod video;
 #[cfg(feature = "workspaces")]
 pub mod workspaces;
+pub mod apps;
 
 #[cfg(feature = "desktop")]
 pub mod desktop;

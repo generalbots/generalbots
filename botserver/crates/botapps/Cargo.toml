@@ -1,0 +1,12 @@
+[package]
+name = "botapps"
+version = "6.3.1"
+edition = "2021"
+
+[dependencies]
+axum = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true, features = ["serde", "clock"] }

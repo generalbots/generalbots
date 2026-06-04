@@ -11,6 +11,7 @@ members = [
   "botapp",
   "botserver/crates/botanalytics",
   "botserver/crates/botapi",
+  "botserver/crates/botapps",
   "botserver/crates/botattendance",
   "botserver/crates/botattendant",
   "botserver/crates/botautotask",
@@ -169,6 +170,7 @@ botbasic_compiler = { path = "botserver/crates/botbasic_compiler" }
 botschema = { path = "botschema" }
 botmodelsbridge = { path = "botserver/crates/botmodelsbridge" }
 botapi = { path = "botserver/crates/botapi" }
+botapps = { path = "botserver/crates/botapps" }
 botcore = { path = "botserver/crates/botcore" }
 botdrive = { path = "botserver/crates/botdrive" }
 botmeet = { path = "botserver/crates/botmeet" }
