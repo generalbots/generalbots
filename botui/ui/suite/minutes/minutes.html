@@ -1,0 +1,97 @@
+<link rel="stylesheet" href="minutes/minutes.css">
+<script src="minutes/minutes.js"></script>
+
+<div class="min-container">
+    <header class="min-header">
+        <h1>Meeting Minutes</h1>
+        <div class="min-header-actions">
+            <button class="min-btn" onclick="window._minutes.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="min-stats">
+        <div class="min-stat-card"><span class="min-stat-label">Upcoming</span><span class="min-stat-value blue" id="min-stat-upcoming">0</span></div>
+        <div class="min-stat-card"><span class="min-stat-label">Transcripts</span><span class="min-stat-value green" id="min-stat-transcripts">0</span></div>
+        <div class="min-stat-card"><span class="min-stat-label">Minutes</span><span class="min-stat-value purple" id="min-stat-documents">0</span></div>
+        <div class="min-stat-card"><span class="min-stat-label">Pending Sign</span><span class="min-stat-value orange" id="min-stat-pending-sign">0</span></div>
+    </div>
+
+    <nav class="min-tabs">
+        <button class="min-tab active" data-tab="upcoming" onclick="window._minutes.switchTab('upcoming',this)">Upcoming</button>
+        <button class="min-tab" data-tab="transcripts" onclick="window._minutes.switchTab('transcripts',this)">Transcripts</button>
+        <button class="min-tab" data-tab="minutes" onclick="window._minutes.switchTab('minutes',this)">Minutes</button>
+        <button class="min-tab" data-tab="signatures" onclick="window._minutes.switchTab('signatures',this)">Signatures</button>
+    </nav>
+
+    <div class="min-content">
+        <div class="min-panel active" id="min-panel-upcoming">
+            <div class="min-grid" id="min-upcoming-grid">
+                <div class="min-empty"><div class="min-empty-icon">📅</div><h3>Loading...</h3><p>Fetching upcoming meetings</p></div>
+            </div>
+        </div>
+
+        <div class="min-panel" id="min-panel-transcripts">
+            <div class="min-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="min-search-transcript" placeholder="Search within transcripts..." oninput="window._minutes.searchTranscripts(this.value)">
+            </div>
+            <div class="min-grid" id="min-transcripts-grid">
+                <div class="min-empty"><div class="min-empty-icon">📝</div><h3>Loading...</h3><p>Fetching transcripts</p></div>
+            </div>
+        </div>
+
+        <div class="min-panel" id="min-panel-minutes">
+            <div class="min-grid" id="min-documents-grid">
+                <div class="min-empty"><div class="min-empty-icon">📋</div><h3>Loading...</h3><p>Fetching minutes documents</p></div>
+            </div>
+        </div>
+
+        <div class="min-panel" id="min-panel-signatures">
+            <div class="min-table-wrapper">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                    <h3 style="font-size:14px;font-weight:600;margin:0">Documents Awaiting Signature</h3>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="min-table">
+                        <thead><tr><th>Document</th><th>Meeting</th><th>Required Signers</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody id="min-sign-tbody"><tr><td colspan="5" class="min-empty">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="min-sign-pad-area" style="margin-top:16px;display:none">
+                <div class="min-table-wrapper">
+                    <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                        <h3 style="font-size:14px;font-weight:600;margin:0">Digital Signature</h3>
+                        <div style="display:flex;gap:8px">
+                            <button class="min-btn" onclick="window._minutes.clearSignPad()">Clear</button>
+                            <button class="min-btn min-btn-primary" onclick="window._minutes.submitSign()">Sign</button>
+                        </div>
+                    </div>
+                    <div style="padding:16px;display:flex;justify-content:center">
+                        <canvas id="min-sign-canvas" width="500" height="150" style="background:#0f172a;border-radius:8px"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="min-edit-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
+    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:600px;max-height:80vh;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+            <h3 style="font-size:15px;font-weight:600;margin:0" id="min-edit-title">Edit Minutes</h3>
+            <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._minutes.hideModal('min-edit-modal')">&times;</button>
+        </div>
+        <div style="padding:16px;overflow-y:auto;max-height:60vh">
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">Content</label><textarea id="min-edit-content" rows="10" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px;font-family:inherit;resize:vertical"></textarea></div>
+        </div>
+        <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:flex-end;gap:8px">
+            <button class="min-btn" onclick="window._minutes.hideModal('min-edit-modal')">Cancel</button>
+            <button class="min-btn min-btn-primary" onclick="window._minutes.saveMinutes()">Save</button>
+            <button class="min-btn min-btn-success" onclick="window._minutes.approveMinutes()">Approve</button>
+        </div>
+    </div>
+</div>

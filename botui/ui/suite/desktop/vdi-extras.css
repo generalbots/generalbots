@@ -1,0 +1,87 @@
+.hidden {
+    display: none !important;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-sm {
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
+.btn-primary {
+    background: var(--vdi-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--vdi-primary-hover);
+}
+
+.btn-accent {
+    background: var(--vdi-accent);
+    color: white;
+}
+
+.btn-accent:hover {
+    background: #059669;
+}
+
+.btn-danger {
+    background: var(--vdi-danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--vdi-text-muted);
+    border-color: var(--vdi-border);
+}
+
+.btn-ghost:hover {
+    background: var(--vdi-bg-hover);
+    color: var(--vdi-text);
+}
+
+.input {
+    padding: 8px 12px;
+    border: 1px solid var(--vdi-border);
+    border-radius: 6px;
+    background: var(--vdi-bg);
+    color: var(--vdi-text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.input:focus {
+    border-color: var(--vdi-primary);
+}
+
+.input-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+select.input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 28px;
+}

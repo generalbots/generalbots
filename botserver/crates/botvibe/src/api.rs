@@ -1,3 +1,4 @@
+use crate::agent_loop::AgentLoop;
 use crate::prompt_manager::VibePromptManager;
 use crate::telemetry::VibeTelemetry;
 use crate::tool_executor::{ToolDescriptor, VibeToolExecutor};
@@ -169,6 +170,13 @@ async fn create_run(
 
     api.inner.telemetry.record_run_start(&run).await;
 
+    let agent_loop = Arc::new(AgentLoop::new(
+        api.inner.prompt_manager.clone(),
+        api.inner.tool_executor.clone(),
+        api.inner.telemetry.clone(),
+        api.inner.state.clone(),
+    ));
+
     {
         let mut runs = api.inner.runs.write().await;
         runs.insert(run_id, run);
@@ -177,6 +185,19 @@ async fn create_run(
     api.inner.state.broadcast_progress(
         VibeProgressEvent::started(run_id.to_string(), "Vibe run created", 3),
     );
+
+    let api_clone = api.clone();
+    tokio::spawn(async move {
+        let run_opt = {
+            let mut runs = api_clone.inner.runs.write().await;
+            runs.remove(&run_id)
+        };
+        if let Some(mut run) = run_opt {
+            agent_loop.execute_run(&mut run).await;
+            let mut runs = api_clone.inner.runs.write().await;
+            runs.insert(run_id, run);
+        }
+    });
 
     Json(CreateRunResponse {
         success: true,

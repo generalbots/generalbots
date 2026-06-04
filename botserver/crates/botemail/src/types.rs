@@ -320,3 +320,67 @@ pub struct EmailTrackingParams<'a> {
     pub bcc: Option<&'a str>,
     pub subject: &'a str,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct UnifiedListQuery {
+    pub folder: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SearchAllQuery {
+    pub q: String,
+    pub date_from: Option<String>,
+    pub date_to: Option<String>,
+    pub attachments_only: Option<bool>,
+    pub unread_only: Option<bool>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ThreadQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UnifiedEmailItem {
+    pub id: String,
+    pub account_id: String,
+    pub account_email: String,
+    pub from_address: String,
+    pub subject: String,
+    pub preview: String,
+    pub date: String,
+    pub is_read: bool,
+    pub is_flagged: bool,
+    pub has_attachments: bool,
+    pub folder: String,
+    pub account_color: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SearchResultItem {
+    pub id: String,
+    pub account_id: String,
+    pub from_address: String,
+    pub subject: String,
+    pub preview: String,
+    pub date: String,
+    pub is_read: bool,
+    pub has_attachments: bool,
+    pub match_context: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ThreadItem {
+    pub normalized_subject: String,
+    pub subject: String,
+    pub message_count: i64,
+    pub latest_date: String,
+    pub from_addresses: String,
+    pub has_unread: bool,
+    pub has_attachments: bool,
+}

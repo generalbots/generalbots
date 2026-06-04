@@ -7,12 +7,13 @@ pub mod router;
 pub mod scim;
 pub mod users;
 pub mod groups;
+pub mod organizations;
 
 pub use client::{ZitadelClient, ZitadelConfig};
 pub type AuthService = ZitadelClient;
 
 use anyhow::Result;
-use botlib::traits::{BoxFutureUnit, BoxFutureValue, BoxFutureVecValue};
+use botlib::traits::{BoxFutureString, BoxFutureUnit, BoxFutureValue, BoxFutureVecValue};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
@@ -203,7 +204,7 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
         let client = self.clone();
         Box::pin(async move {
             let users = client.list_users(limit as u32, offset as u32).await.map_err(|e| e.to_string())?;
-            Ok(serde_json::json!({ "result": users }))
+            Ok(serde_json::json!(users))
         })
     }
 
@@ -213,12 +214,34 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
         let client = self.clone();
         Box::pin(async move {
             let resp = client
-                .http_post(format!("{}/management/v1/orgs/_search", client.api_url()))
-                .await
+                .http_post(format!("{}/management/v1/orgs/_search", client.api_url())).await.map_err(|e| e.to_string())?
                 .json(&serde_json::json!({}))
                 .send().await.map_err(|e| e.to_string())?;
             let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-            Ok(data)
+            let orgs = data.get("result").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+            Ok(serde_json::json!(orgs))
+        })
+    }
+
+    fn get_organization(
+        &self,
+        org_id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>> {
+        let client = self.clone();
+        let org_id = org_id.to_string();
+        Box::pin(async move {
+            client.get_organization(&org_id).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn create_organization(
+        &self,
+        name: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {
+        let client = self.clone();
+        let name = name.to_string();
+        Box::pin(async move {
+            client.create_organization(&name).await.map_err(|e| e.to_string())
         })
     }
 
@@ -228,7 +251,7 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>> {
         let client = self.clone();
         Box::pin(async move {
-            let resp = client.http_get(url).await.send().await.map_err(|e| e.to_string())?;
+            let resp = client.http_get(url).await.map_err(|e| e.to_string())?.send().await.map_err(|e| e.to_string())?;
             let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
             Ok(data)
         })
@@ -241,7 +264,7 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>> {
         let client = self.clone();
         Box::pin(async move {
-            let resp = client.http_post(url).await.json(&body).send().await.map_err(|e| e.to_string())?;
+            let resp = client.http_post(url).await.map_err(|e| e.to_string())?.json(&body).send().await.map_err(|e| e.to_string())?;
             let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
             Ok(data)
         })
@@ -254,7 +277,7 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
     ) -> BoxFutureValue {
         let client = self.clone();
         Box::pin(async move {
-            let resp = client.http_put(url).await.json(&body).send().await.map_err(|e| e.to_string())?;
+            let resp = client.http_put(url).await.map_err(|e| e.to_string())?.json(&body).send().await.map_err(|e| e.to_string())?;
             let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
             Ok(data)
         })
@@ -267,7 +290,7 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
     ) -> BoxFutureValue {
         let client = self.clone();
         Box::pin(async move {
-            let resp = client.http_patch(url).await.json(&body).send().await.map_err(|e| e.to_string())?;
+            let resp = client.http_patch(url).await.map_err(|e| e.to_string())?.json(&body).send().await.map_err(|e| e.to_string())?;
             let data: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
             Ok(data)
         })
@@ -279,7 +302,7 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
     ) -> BoxFutureValue {
         let client = self.clone();
         Box::pin(async move {
-            let resp = client.http_delete(url).await.send().await.map_err(|e| e.to_string())?;
+            let resp = client.http_delete(url).await.map_err(|e| e.to_string())?.send().await.map_err(|e| e.to_string())?;
             if resp.status().is_success() {
                 Ok(serde_json::Value::Null)
             } else {
@@ -308,6 +331,56 @@ impl botlib::traits::AuthServiceTrait for client::ZitadelClient {
         let query = query.to_string();
         Box::pin(async move {
             client.search_users(&query).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn search_users_by_phone(
+        &self,
+        phone: &str,
+    ) -> BoxFutureVecValue {
+        let client = self.clone();
+        let phone = phone.to_string();
+        Box::pin(async move {
+            client.search_users_by_phone(&phone).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn search_users_by_email(
+        &self,
+        email: &str,
+    ) -> BoxFutureVecValue {
+        let client = self.clone();
+        let email = email.to_string();
+        Box::pin(async move {
+            client.search_users_by_email(&email).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn search_users_by_metadata(
+        &self,
+        key: &str,
+        value: &str,
+    ) -> BoxFutureVecValue {
+        let client = self.clone();
+        let key = key.to_string();
+        let value = value.to_string();
+        Box::pin(async move {
+            client.search_users_by_metadata(&key, &value).await.map_err(|e| e.to_string())
+        })
+    }
+
+    fn find_or_create_user_by_phone(
+        &self,
+        phone: &str,
+        first_name: &str,
+        last_name: &str,
+    ) -> BoxFutureString {
+        let client = self.clone();
+        let phone = phone.to_string();
+        let first_name = first_name.to_string();
+        let last_name = last_name.to_string();
+        Box::pin(async move {
+            client.find_or_create_user_by_phone(&phone, &first_name, &last_name).await.map_err(|e| e.to_string())
         })
     }
 

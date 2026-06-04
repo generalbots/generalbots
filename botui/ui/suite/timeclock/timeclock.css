@@ -1,0 +1,70 @@
+.tc-container{display:flex;flex-direction:column;height:100%;background:var(--bg-primary,#0f172a);color:var(--text-primary,#f8fafc);font-family:var(--font,'Segoe UI',system-ui,-apple-system,sans-serif)}
+.tc-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border-color,#1e293b);flex-shrink:0}
+.tc-header h1{font-size:20px;font-weight:600;margin:0}
+.tc-header-actions{display:flex;gap:8px}
+.tc-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:1px solid var(--border-color,#334155);border-radius:6px;background:var(--bg-secondary,#1e293b);color:var(--text-primary,#f8fafc);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease}
+.tc-btn:hover{background:var(--bg-tertiary,#334155);border-color:#475569}
+.tc-btn-primary{background:var(--primary-color,#3b82f6);border-color:var(--primary-color,#3b82f6);color:#fff}
+.tc-btn-primary:hover{background:#2563eb}
+.tc-btn-success{background:#22c55e;border-color:#22c55e;color:#000}
+.tc-btn-success:hover{background:#16a34a}
+.tc-btn-danger{background:#ef4444;border-color:#ef4444;color:#fff}
+.tc-btn-danger:hover{background:#dc2626}
+.tc-btn-lg{padding:16px 48px;font-size:18px;font-weight:600;border-radius:12px}
+.tc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 24px;flex-shrink:0}
+.tc-stat-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:4px}
+.tc-stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary,#94a3b8)}
+.tc-stat-value{font-size:24px;font-weight:700}
+.tc-stat-value.green{color:#22c55e}
+.tc-stat-value.yellow{color:#f59e0b}
+.tc-stat-value.red{color:#ef4444}
+.tc-stat-value.blue{color:#3b82f6}
+.tc-tabs{display:flex;gap:2px;padding:0 24px;border-bottom:1px solid var(--border-color,#1e293b);flex-shrink:0}
+.tc-tab{padding:10px 16px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary,#94a3b8);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease}
+.tc-tab:hover{color:var(--text-primary,#f8fafc);background:rgba(255,255,255,.03)}
+.tc-tab.active{color:var(--primary-color,#3b82f6);border-bottom-color:var(--primary-color,#3b82f6)}
+.tc-content{flex:1;overflow-y:auto;padding:20px 24px}
+.tc-panel{display:none}
+.tc-panel.active{display:block}
+.tc-clock-display{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 0}
+.tc-clock-time{font-size:72px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:2px;color:var(--text-primary,#f8fafc)}
+.tc-clock-date{font-size:18px;color:var(--text-secondary,#94a3b8);margin-top:8px}
+.tc-clock-employee{font-size:16px;font-weight:600;margin-top:24px;color:var(--primary-color,#3b82f6)}
+.tc-clock-gps{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:var(--text-secondary,#94a3b8)}
+.tc-clock-gps-dot{width:8px;height:8px;border-radius:50%;background:#22c55e}
+.tc-clock-gps-dot.offline{background:#ef4444}
+.tc-clock-actions{display:flex;gap:16px;margin-top:32px}
+.tc-table-wrapper{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;overflow:hidden}
+.tc-table{width:100%;border-collapse:collapse}
+.tc-table thead{background:rgba(255,255,255,.03)}
+.tc-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary,#94a3b8);border-bottom:1px solid var(--border-color,#334155)}
+.tc-table td{padding:12px 14px;font-size:13px;color:var(--text-primary,#f8fafc);border-bottom:1px solid var(--border-color,#1e293b)}
+.tc-table tbody tr:hover{background:rgba(255,255,255,.03)}
+.tc-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase}
+.tc-badge.normal{background:rgba(34,197,94,.15);color:#22c55e}
+.tc-badge.overtime{background:rgba(245,158,11,.15);color:#f59e0b}
+.tc-badge.absent{background:rgba(239,68,68,.15);color:#ef4444}
+.tc-badge.pending{background:rgba(59,130,246,.15);color:#3b82f6}
+.tc-badge.approved{background:rgba(34,197,94,.15);color:#22c55e}
+.tc-badge.rejected{background:rgba(239,68,68,.15);color:#ef4444}
+.tc-ot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.tc-ot-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;padding:16px}
+.tc-ot-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tc-ot-card-title{font-size:14px;font-weight:600}
+.tc-ot-card-body{display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text-secondary,#94a3b8)}
+.tc-ot-card-row{display:flex;justify-content:space-between;align-items:center}
+.tc-ot-card-row .label{font-weight:500;color:var(--text-primary,#f8fafc)}
+.tc-ot-card-actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color,#334155)}
+.tc-report-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.tc-report-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;padding:20px}
+.tc-report-card h3{font-size:14px;font-weight:600;margin:0 0 16px 0}
+.tc-report-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color,#334155);font-size:13px}
+.tc-report-row:last-child{border-bottom:none}
+.tc-report-row .label{color:var(--text-secondary,#94a3b8)}
+.tc-report-row .value{font-weight:600;color:var(--text-primary,#f8fafc)}
+.tc-empty{text-align:center;padding:60px 20px;color:var(--text-secondary,#94a3b8)}
+.tc-empty-icon{font-size:48px;margin-bottom:16px}
+.tc-empty h3{font-size:16px;font-weight:600;margin:0 0 8px 0;color:var(--text-primary,#f8fafc)}
+.tc-empty p{font-size:13px;margin:0}
+@media(max-width:768px){.tc-stats{grid-template-columns:1fr 1fr}.tc-clock-time{font-size:48px}}
+@media(max-width:480px){.tc-stats{grid-template-columns:1fr}}

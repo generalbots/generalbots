@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>General Bots ITSM</title>
+<link rel="stylesheet" href="itsm.css">
+</head>
+<body>
+<div class="itsm-app">
+<header class="app-header">
+<h1>IT Service Desk</h1>
+<button class="btn-refresh" id="refreshBtn">&#8635;</button>
+</header>
+<nav class="tab-bar">
+<button class="tab active" data-tab="incidents">Incidents</button>
+<button class="tab" data-tab="requests">Service Requests</button>
+<button class="tab" data-tab="cmdb">CMDB</button>
+<button class="tab" data-tab="kb">Knowledge Base</button>
+</nav>
+<main class="tab-content">
+<section class="tab-panel active" id="panel-incidents">
+<div class="section-header">
+<h2>Incidents</h2>
+<div class="header-actions">
+<select class="filter-select" id="priorityFilter">
+<option value="">All Priority</option>
+<option value="critical">Critical</option>
+<option value="high">High</option>
+<option value="medium">Medium</option>
+<option value="low">Low</option>
+</select>
+<select class="filter-select" id="statusFilter">
+<option value="">All Status</option>
+<option value="open">Open</option>
+<option value="in_progress">In Progress</option>
+<option value="resolved">Resolved</option>
+</select>
+</div>
+</div>
+<table class="data-table" id="incidentTable">
+<thead><tr><th>ID</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>SLA</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</section>
+<section class="tab-panel" id="panel-requests">
+<div class="section-header">
+<h2>Service Catalog</h2>
+</div>
+<div class="catalog-grid" id="catalogGrid"></div>
+<div class="modal-overlay" id="requestModal">
+<div class="modal">
+<div class="modal-header">
+<h3>Submit Request</h3>
+<button class="modal-close" id="closeRequestModal">&times;</button>
+</div>
+<form id="requestForm">
+<input type="hidden" id="requestTypeId">
+<div class="form-group">
+<label id="requestTypeLabel">Type</label>
+</div>
+<div class="form-group">
+<label>Description</label>
+<textarea id="requestDesc" rows="4" required placeholder="Describe your request..."></textarea>
+</div>
+<div class="form-group">
+<label>Priority</label>
+<select id="requestPriority" required>
+<option value="low">Low</option>
+<option value="medium" selected>Medium</option>
+<option value="high">High</option>
+</select>
+</div>
+<div class="form-actions">
+<button type="button" class="btn-secondary" id="cancelRequestBtn">Cancel</button>
+<button type="submit" class="btn-primary">Submit Request</button>
+</div>
+</form>
+</div>
+</div>
+</section>
+<section class="tab-panel" id="panel-cmdb">
+<div class="section-header">
+<h2>Configuration Items</h2>
+<button class="btn-primary" id="addCiBtn">Add CI</button>
+</div>
+<div class="tree-view" id="cmdbTree"></div>
+</section>
+<section class="tab-panel" id="panel-kb">
+<div class="kb-toolbar">
+<input type="text" class="search-input" id="kbSearch" placeholder="Search articles...">
+<select class="filter-select" id="kbCategoryFilter">
+<option value="">All Categories</option>
+<option value="networking">Networking</option>
+<option value="security">Security</option>
+<option value="software">Software</option>
+<option value="hardware">Hardware</option>
+<option value="procedures">Procedures</option>
+</select>
+</div>
+<div class="article-list" id="articleList"></div>
+</section>
+</main>
+</div>
+<script src="itsm.js"></script>
+</body>
+</html>

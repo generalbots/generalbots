@@ -1,0 +1,46 @@
+<link rel="stylesheet" href="/suite/handoff/handoff.css">
+<div class="handoff-container">
+    <header class="handoff-header">
+        <div class="handoff-header-left">
+            <h1>Chatbot Handoff & Analytics</h1>
+            <nav class="handoff-tabs">
+                <button class="handoff-tab active" data-view="queue">Handoff Queue</button>
+                <button class="handoff-tab" data-view="analytics">Analytics</button>
+                <button class="handoff-tab" data-view="channels">Channels</button>
+                <button class="handoff-tab" data-view="csat">CSAT</button>
+            </nav>
+        </div>
+        <div class="handoff-header-right">
+            <button class="btn-primary" onclick="HandoffApp.refresh()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div id="queue-view" class="handoff-view active">
+        <div class="handoff-summary" id="queue-summary"></div>
+        <div class="handoff-queue" id="queue-list">
+            <div class="loading-row"><div class="spinner"></div> Loading queue...</div>
+        </div>
+    </div>
+
+    <div id="analytics-view" class="handoff-view">
+        <div class="analytics-cards" id="analytics-cards">
+            <div class="loading-row"><div class="spinner"></div> Loading analytics...</div>
+        </div>
+    </div>
+
+    <div id="channels-view" class="handoff-view">
+        <div class="channels-grid" id="channels-grid">
+            <div class="loading-row"><div class="spinner"></div> Loading channels...</div>
+        </div>
+    </div>
+
+    <div id="csat-view" class="handoff-view">
+        <div class="csat-grid" id="csat-grid">
+            <div class="loading-row"><div class="spinner"></div> Loading CSAT...</div>
+        </div>
+    </div>
+</div>
+<script src="/suite/handoff/handoff.js"></script>

@@ -797,6 +797,14 @@ async fn bootstrap_directory_admin(zitadel_config: &crate::directory::ZitadelCon
             info!("Bootstrap check skipped until Zitadel is ready: {}", e);
         }
     }
+
+    if let Err(e) = bootstrap::ensure_default_organization(&bootstrap_client).await {
+        warn!("Failed to ensure default organization: {}", e);
+    }
+
+    if let Err(e) = bootstrap::ensure_admin_user(&bootstrap_client).await {
+        warn!("Failed to ensure admin user: {}", e);
+    }
 }
 
 #[cfg(feature = "llm")]

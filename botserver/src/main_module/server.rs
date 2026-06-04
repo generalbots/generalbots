@@ -186,7 +186,49 @@ pub async fn run_axum_server(
 
     #[cfg(feature = "drive")]
     {
-        // drive routes are handled by DriveMonitor, no HTTP routes needed
+        use axum::routing::{get as axum_get, post as axum_post};
+        api_router = api_router
+            .route("/api/files/list", axum_get(crate::drive::drive_handlers::list_files))
+            .route("/api/files/buckets", axum_get(crate::drive::drive_handlers::list_buckets))
+            .route("/api/files/quota", axum_get(crate::drive::drive_handlers::quota))
+            .route("/api/files/recent", axum_get(crate::drive::drive_handlers::recent_files))
+            .route("/api/files/search", axum_get(crate::drive::drive_handlers::search_files))
+            .route(
+                "/api/files/write",
+                axum_post(crate::drive::drive_handlers::upload_file_to_drive),
+            )
+            .route(
+                "/api/files/download",
+                axum_post(crate::drive::drive_handlers::download_file),
+            )
+            .route(
+                "/api/files/delete",
+                axum_post(crate::drive::drive_handlers::delete_file),
+            )
+            .route(
+                "/api/files/createFolder",
+                axum_post(crate::drive::drive_handlers::create_folder),
+            )
+            .route(
+                "/api/files/copy",
+                axum_post(crate::drive::drive_handlers::copy_file),
+            )
+            .route(
+                "/api/files/move",
+                axum_post(crate::drive::drive_handlers::move_file),
+            )
+            .route(
+                "/api/files/open",
+                axum_post(crate::drive::drive_handlers::open_file),
+            )
+            .route(
+                "/api/files/favorite",
+                axum_get(crate::drive::drive_handlers::list_favorites),
+            )
+            .route(
+                "/api/files/shared",
+                axum_get(crate::drive::drive_handlers::list_shared),
+            );
     }
 
     // Anonymous auth fallback — available regardless of directory feature
@@ -253,11 +295,10 @@ pub async fn run_axum_server(
                     "bot_name": bot_name,
                     "status": "anonymous"
                 })),
-            )
-        }
+        )
+    }
 
-    {
-        api_router = api_router.route(ApiUrls::AUTH, get(anonymous_auth_handler));
+    api_router = api_router.route(ApiUrls::AUTH, get(anonymous_auth_handler));
     }
 
     #[cfg(feature = "meet")]
@@ -359,14 +400,23 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
         api_router = api_router.merge(crate::canvas::configure_canvas_routes(&app_state));
         api_router = api_router.merge(crate::canvas::ui::configure_canvas_ui_routes(&app_state));
     }
+    #[cfg(feature = "desktop")]
+    {
+        let desktop_state = Arc::new(crate::desktop::AppState::new());
+        api_router = api_router.merge(crate::desktop::configure_routes().with_state(desktop_state));
+    }
     api_router = api_router.nest("/api/directory", crate::directory::router::configure());
     api_router = api_router.nest("/api/auth", crate::directory::auth_routes::configure());
     api_router = api_router.merge(crate::directory::scim::server::configure_scim_routes());
 
     api_router = api_router
-        .route("/api/organizations/current", post(handle_update_organization))
+        .route("/api/organizations/current", get(handle_get_organization).put(handle_update_organization).post(handle_update_organization).delete(handle_delete_organization))
+        .route("/api/organizations/current/settings", get(handle_get_org_settings))
+        .route("/api/organizations/current/stats", get(handle_get_org_stats))
         .route("/api/organizations/current/contact", post(handle_update_organization_contact))
         .route("/api/organizations/current/branding", post(handle_update_organization_branding))
+        .route("/api/organizations/current/audit", get(handle_get_org_audit))
+        .route("/api/organizations/current/export", get(handle_export_org_data))
         .route("/api/admin/migrate/office365", post(handle_office365_migration));
 
     #[cfg(feature = "social")]
@@ -436,8 +486,13 @@ api_router = api_router.merge(crate::analytics::goals::configure_goals_routes(&a
     api_router = api_router.merge(crate::api::database::configure_database_routes());
     api_router = api_router.merge(crate::api::git::configure_git_routes());
     api_router = api_router.merge(crate::api::system::configure_system_routes());
-    // TODO: fix BrowserState impl
-// api_router = api_router.merge(crate::browser::api::configure_browser_routes());
+    #[cfg(feature = "browser")]
+    {
+        api_router = api_router.merge(
+            crate::browser::api::configure_browser_routes::<crate::browser::AppStateBrowserState>()
+                .with_state(Arc::new(crate::browser::AppStateBrowserState(Arc::clone(&app_state)))),
+        );
+    }
     #[cfg(feature = "terminal")]
     {
         api_router = api_router.merge(crate::api::terminal::configure_terminal_routes());
@@ -580,8 +635,7 @@ let base_router = {
     let r = base_router;
     #[cfg(feature = "mail")]
     {
-        r.merge(crate::email::configure(app_state.clone()))
-        .merge(crate::email::configure_email_ui_routes(app_state.clone()))
+        r.merge(crate::email::routes::configure(app_state.clone()))
     }
     #[cfg(not(feature = "mail"))]
     r
@@ -855,28 +909,293 @@ let base_router = {
     Ok(())
 }
 
+async fn handle_get_organization(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let auth_service = state.auth_service.as_ref().ok_or_else(|| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+            "error": "No auth service"
+        })))
+    })?.lock().await;
+
+    match auth_service.list_organizations().await {
+        Ok(data) => {
+            let orgs = data.as_array().cloned().unwrap_or_default();
+            if let Some(org) = orgs.first() {
+                Ok(Json(org.clone()))
+            } else {
+                Ok(Json(serde_json::json!({
+                    "name": "Default Organization",
+                    "id": "default",
+                    "description": ""
+                })))
+            }
+        }
+        Err(e) => {
+            log::warn!("Failed to list organizations: {}", e);
+            Ok(Json(serde_json::json!({
+                "name": "Default Organization",
+                "id": "default",
+                "description": ""
+            })))
+        }
+    }
+}
+
+async fn handle_get_org_settings(
+    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let stack = botcore::shared::utils::get_stack_path();
+    let config_path = format!("{}/conf/directory/org-settings.json", stack);
+
+    let settings = std::fs::read_to_string(&config_path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+        .unwrap_or_else(|| serde_json::json!({}));
+
+    Ok(Json(settings))
+}
+
+async fn handle_get_org_stats(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let mut users_total: i64 = 0;
+    let mut bots_total: i64 = 0;
+
+    if let Some(auth) = state.auth_service.as_ref() {
+        let auth_service = auth.lock().await;
+        if let Ok(data) = auth_service.list_users(1000, 0).await {
+            users_total = data.as_array().map(|a| a.len() as i64).unwrap_or(0);
+        }
+    }
+
+    if let Ok(mut conn) = state.conn.get() {
+        use botcore::shared::models::schema::bots::dsl::*;
+        if let Ok(count) = bots.count().get_result::<i64>(&mut conn) {
+            bots_total = count;
+        }
+    }
+
+    let mut kb_total: i64 = 0;
+    let mut storage_bytes: i64 = 0;
+
+    if let Ok(mut conn) = state.conn.get() {
+        use botcore::shared::models::schema::drive_files::dsl::*;
+        if let Ok(count) = drive_files
+            .filter(file_type.eq("gbkb"))
+            .count()
+            .get_result::<i64>(&mut conn)
+        {
+            kb_total = count;
+        }
+        if let Ok(bytes) = drive_files
+            .filter(file_size.is_not_null())
+            .select(diesel::dsl::sql::<diesel::sql_types::BigInt>("COALESCE(SUM(file_size), 0)"))
+            .first::<i64>(&mut conn)
+        {
+            storage_bytes = bytes;
+        }
+    }
+
+    let storage_mb_val = storage_bytes / 1_048_576;
+
+    Ok(Json(serde_json::json!({
+        "users": { "used": users_total, "limit": 50 },
+        "bots": { "used": bots_total, "limit": 20 },
+        "kb_documents": { "used": kb_total, "limit": 500 },
+        "storage_mb": { "used": storage_mb_val, "limit": 5120 }
+    })))
+}
+
+async fn handle_delete_organization(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    info!("Organization deletion requested");
+
+    let auth = state.auth_service.as_ref().ok_or_else(|| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+            "error": "No auth service"
+        })))
+    })?;
+
+    let auth_service = auth.lock().await;
+
+    let orgs_data = auth_service.list_organizations().await
+        .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+            "error": format!("Failed to list organizations: {}", e)
+        }))))?;
+
+    let orgs = orgs_data.as_array().cloned().unwrap_or_default();
+    let org_id = orgs.first()
+        .and_then(|o| o.get("id").or_else(|| o.get("orgId")))
+        .and_then(|v| v.as_str())
+        .unwrap_or("default");
+
+    if org_id == "default" {
+        return Err((axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({
+            "error": "Cannot delete the default organization"
+        }))));
+    }
+
+    let _ = auth_service.http_delete(format!("{}/v2/organizations/{}", auth_service.api_url(), org_id)).await;
+
+    let stack = botcore::shared::utils::get_stack_path();
+    let settings_path = std::path::PathBuf::from(format!("{}/conf/directory/org-settings.json", stack));
+    let _ = std::fs::remove_file(settings_path);
+
+    Ok(Json(serde_json::json!({"success": true, "message": format!("Organization {} deleted", org_id)})))
+}
+
+async fn handle_get_org_audit(
+    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let stack = botcore::shared::utils::get_stack_path();
+    let log_path = std::path::PathBuf::from(format!("{}/conf/directory/audit-log.json", stack));
+
+    let entries: Vec<serde_json::Value> = std::fs::read_to_string(&log_path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+
+    let recent: Vec<serde_json::Value> = entries.into_iter().rev().take(50).collect();
+
+    Ok(Json(serde_json::json!({
+        "entries": recent,
+        "total": recent.len()
+    })))
+}
+
+async fn handle_export_org_data(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    info!("Organization data export requested");
+
+    let mut export = serde_json::json!({
+        "exported_at": chrono::Utc::now().to_rfc3339(),
+        "users": [],
+        "bots": [],
+        "settings": {}
+    });
+
+    if let Some(auth) = state.auth_service.as_ref() {
+        let auth_service = auth.lock().await;
+        if let Ok(data) = auth_service.list_users(1000, 0).await {
+            export["users"] = data;
+        }
+    }
+
+    if let Ok(mut conn) = state.conn.get() {
+        use botcore::shared::models::schema::bots::dsl::*;
+        if let Ok(bot_list) = bots.limit(100).load::<botcore::shared::models::core::Bot>(&mut conn) {
+            let bot_names: Vec<serde_json::Value> = bot_list.iter().map(|b| {
+                serde_json::json!({"id": b.id.to_string(), "name": b.name})
+            }).collect();
+            export["bots"] = serde_json::json!(bot_names);
+        }
+    }
+
+    let stack = botcore::shared::utils::get_stack_path();
+    let settings_path = format!("{}/conf/directory/org-settings.json", stack);
+    if let Ok(settings_str) = std::fs::read_to_string(&settings_path) {
+        if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&settings_str) {
+            export["settings"] = settings;
+        }
+    }
+
+    let export_path = format!("{}/tmp/org-export-{}.json", stack, chrono::Utc::now().timestamp());
+    let _ = std::fs::write(&export_path, serde_json::to_string_pretty(&export).unwrap_or_default());
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "message": "Export complete",
+        "download_url": format!("/api/files/download?path={}", export_path)
+    })))
+}
+
 async fn handle_update_organization(
     axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
     Json(body): Json<serde_json::Value>,
-) -> impl axum::response::IntoResponse {
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization settings update: {:?}", body);
-    (axum::http::StatusCode::OK, Json(serde_json::json!({"success": true})))
+
+    let stack = botcore::shared::utils::get_stack_path();
+    let config_path = format!("{}/conf/directory/org-settings.json", stack);
+
+    if let Some(parent) = std::path::Path::new(&config_path).parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            log::error!("Failed to create config directory: {}", e);
+        }
+    }
+
+    let existing = std::fs::read_to_string(&config_path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+        .unwrap_or_else(|| serde_json::json!({}));
+
+    let mut merged = existing;
+    if let (Some(obj), Some(patch)) = (merged.as_object_mut(), body.as_object()) {
+        for (k, v) in patch {
+            obj.insert(k.clone(), v.clone());
+        }
+    }
+
+    if let Err(e) = std::fs::write(&config_path, serde_json::to_string_pretty(&merged).unwrap_or_default()) {
+        log::error!("Failed to save organization settings: {}", e);
+        return Err((axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+            "error": "Failed to save settings"
+        }))));
+    }
+
+    append_audit_log("settings_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
+
+    Ok(Json(serde_json::json!({"success": true})))
+}
+
+fn append_audit_log(action: &str, detail: &str) {
+    let stack = botcore::shared::utils::get_stack_path();
+    let log_path = format!("{}/conf/directory/audit-log.json", stack);
+
+    if let Some(parent) = std::path::Path::new(&log_path).parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
+    let mut entries: Vec<serde_json::Value> = std::fs::read_to_string(&log_path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+
+    entries.push(serde_json::json!({
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "actor": "admin",
+        "action": action,
+        "detail": detail
+    }));
+
+    if entries.len() > 500 {
+        entries = entries.split_off(entries.len() - 500);
+    }
+
+    let _ = std::fs::write(&log_path, serde_json::to_string_pretty(&entries).unwrap_or_default());
 }
 
 async fn handle_update_organization_contact(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     Json(body): Json<serde_json::Value>,
-) -> impl axum::response::IntoResponse {
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization contact update: {:?}", body);
-    (axum::http::StatusCode::OK, Json(serde_json::json!({"success": true})))
+    let result = handle_update_organization(axum::extract::State(state), Json(body.clone())).await?;
+    append_audit_log("contact_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
+    Ok(result)
 }
 
 async fn handle_update_organization_branding(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     Json(body): Json<serde_json::Value>,
-) -> impl axum::response::IntoResponse {
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization branding update: {:?}", body);
-    (axum::http::StatusCode::OK, Json(serde_json::json!({"success": true})))
+    let result = handle_update_organization(axum::extract::State(state), Json(body.clone())).await?;
+    append_audit_log("branding_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
+    Ok(result)
 }
 
 #[derive(serde::Deserialize)]
@@ -937,5 +1256,4 @@ async fn handle_office365_migration(
             ))
         }
     }
-}
 }

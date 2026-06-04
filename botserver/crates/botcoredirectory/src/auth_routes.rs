@@ -551,8 +551,9 @@ pub async fn bootstrap_admin(
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
-    let existing_users = auth_service.list_users(1, 0).await.unwrap_or(serde_json::Value::Null);
-    if let Some(users_arr) = existing_users.as_array() {
+    let existing_data = auth_service.list_users(1, 0).await.unwrap_or(serde_json::Value::Null);
+    let existing_users = existing_data.as_array();
+    if let Some(users_arr) = existing_users {
         if !users_arr.is_empty() {
             let has_admin = users_arr.iter().any(|u| {
                 u.get("roles")
@@ -599,12 +600,12 @@ pub async fn bootstrap_admin(
         }
     };
 
-    if let Err(e) = set_user_password(&*auth_service, &new_user_id, &req.password).await {
+    if let Err(e) = auth_service.set_user_password(&new_user_id, &req.password).await {
         log::error!("Failed to set admin password: {}", e);
     }
 
     let org_name = req.organization_name.unwrap_or_else(|| "Default Organization".to_string());
-    let new_org_id = match create_organization(&*auth_service, &org_name).await {
+    let new_org_id = match auth_service.create_organization(&org_name).await {
         Ok(id) => {
             info!("Bootstrap organization created: {}", id);
             Some(id)
@@ -684,30 +685,6 @@ pub async fn bootstrap_admin(
         user_id: Some(new_user_id),
         organization_id: new_org_id,
     }))
-}
-
-async fn set_user_password(
-    auth_service: &dyn botlib::traits::AuthServiceTrait,
-    user_id: &str,
-    password: &str,
-) -> Result<(), String> {
-    auth_service.set_user_password(user_id, password).await
-}
-
-async fn create_organization(
-    auth_service: &dyn botlib::traits::AuthServiceTrait,
-    name: &str,
-) -> Result<String, String> {
-    let body = serde_json::json!({ "name": name });
-    let result = auth_service.http_post(format!("{}/management/v1/organizations", auth_service.api_url()), body).await?;
-
-    let org_id = result
-        .get("organizationId")
-        .or_else(|| result.get("id"))
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "No organization ID in response".to_string())?
-        .to_string();
-    Ok(org_id)
 }
 
 async fn get_oauth_token(

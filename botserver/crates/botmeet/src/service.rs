@@ -12,6 +12,24 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ParticipantInfo {
+    pub participant_id: String,
+    pub participant_name: String,
+    pub has_video: bool,
+    pub has_audio: bool,
+    pub is_screen_sharing: bool,
+    pub is_hand_raised: bool,
+    pub joined_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SignalingState {
+    pub participants: HashMap<String, ParticipantInfo>,
+    pub pending_offers: HashMap<String, serde_json::Value>,
+    pub pending_candidates: HashMap<String, Vec<serde_json::Value>>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Participant {
     pub id: String,

@@ -436,6 +436,22 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         Box::pin(async { Err("list_organizations: not implemented".to_string()) })
     }
 
+    fn get_organization(
+        &self,
+        org_id: &str,
+    ) -> BoxFutureValue {
+        let _ = org_id;
+        Box::pin(async { Err("get_organization: not implemented".to_string()) })
+    }
+
+    fn create_organization(
+        &self,
+        name: &str,
+    ) -> BoxFutureString {
+        let _ = name;
+        Box::pin(async { Err("create_organization: not implemented".to_string()) })
+    }
+
     fn http_get(
         &self,
         url: String,
@@ -467,6 +483,41 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
     ) -> BoxFutureVecValue {
         let _ = query;
         Box::pin(async { Err("search_users: not implemented".to_string()) })
+    }
+
+    fn search_users_by_phone(
+        &self,
+        phone: &str,
+    ) -> BoxFutureVecValue {
+        let _ = phone;
+        Box::pin(async { Err("search_users_by_phone: not implemented".to_string()) })
+    }
+
+    fn search_users_by_email(
+        &self,
+        email: &str,
+    ) -> BoxFutureVecValue {
+        let _ = email;
+        Box::pin(async { Err("search_users_by_email: not implemented".to_string()) })
+    }
+
+    fn search_users_by_metadata(
+        &self,
+        key: &str,
+        value: &str,
+    ) -> BoxFutureVecValue {
+        let _ = (key, value);
+        Box::pin(async { Err("search_users_by_metadata: not implemented".to_string()) })
+    }
+
+    fn find_or_create_user_by_phone(
+        &self,
+        phone: &str,
+        first_name: &str,
+        last_name: &str,
+    ) -> BoxFutureString {
+        let _ = (phone, first_name, last_name);
+        Box::pin(async { Err("find_or_create_user_by_phone: not implemented".to_string()) })
     }
 
     fn get_user_memberships(

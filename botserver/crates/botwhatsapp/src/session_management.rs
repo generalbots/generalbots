@@ -60,6 +60,18 @@ async fn find_or_create_user(
         return Ok(parsed);
     }
 
+    match (state.user_create)(phone_number, "WhatsApp", "User", Some(phone_number)).await {
+        Ok(zitadel_user_id) => {
+            let parsed = Uuid::parse_str(&zitadel_user_id)
+                .map_err(|e| format!("Invalid Zitadel user ID format: {}", e))?;
+            info!("Created Zitadel user {} for phone {}", parsed, phone_number);
+            return Ok(parsed);
+        }
+        Err(e) => {
+            log::warn!("Failed to create Zitadel user for phone {}: {}. Falling back to local database.", phone_number, e);
+        }
+    }
+
     let mut conn = state
         .pool
         .get()
@@ -89,7 +101,7 @@ async fn find_or_create_user(
         .execute(&mut conn)
         .map_err(|e| format!("Insert user error: {}", e))?;
 
-    info!("Created new user {} for phone {}", new_user_id, phone_number);
+    info!("Created new local user {} for phone {} (Zitadel unavailable)", new_user_id, phone_number);
 
     Ok(new_user_id)
 }

@@ -1,0 +1,19 @@
+[package]
+name = "botdesktop"
+version = "0.1.0"
+edition = "2021"
+description = "Desktop session proxy — WebSocket-to-TCP relay for remote desktop connections"
+
+[dependencies]
+axum = { version = "0.8", features = ["ws", "macros"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+diesel = { version = "2", features = ["postgres", "uuid", "chrono", "serde_json"] }
+reqwest = { version = "0.12", features = ["json"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+futures-util = "0.3"
+tracing = "0.1"
+thiserror = "2"

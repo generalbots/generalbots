@@ -1,19 +1,293 @@
-<div class="h-full flex flex-col bg-white overflow-hidden text-gray-800">
-    <div class="h-10 bg-gray-100 border-b border-gray-200 flex items-center px-4 space-x-2">
-        <button class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-arrow-left"></i></button>
-        <button class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-arrow-right"></i></button>
-        <button class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-rotate-right"></i></button>
-        <div class="flex-1 bg-white border border-gray-300 rounded px-3 py-1 flex items-center shadow-inner">
-            <i class="fa-solid fa-lock text-green-600 text-xs mr-2"></i>
-            <input type="text" class="flex-1 outline-none text-sm" value="https://generalbots.com" readonly>
+<link rel="stylesheet" href="/suite/css/browser.css">
+
+<div class="browser-root">
+    <div class="browser-toolbar">
+        <div class="browser-nav-group">
+            <button class="browser-nav-btn" id="btn-back" title="Back" disabled>&#8592;</button>
+            <button class="browser-nav-btn" id="btn-forward" title="Forward" disabled>&#8594;</button>
+            <button class="browser-nav-btn" id="btn-refresh" title="Refresh">&#8635;</button>
+            <button class="browser-nav-btn" id="btn-home" title="Home">&#8962;</button>
         </div>
-        <button class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-bars"></i></button>
+        <div class="browser-url-bar">
+            <span class="browser-protocol-icon" id="protocol-icon">&#128274;</span>
+            <input type="text" id="browser-url" class="browser-url-input" placeholder="Enter URL or search..." autocomplete="off" spellcheck="false">
+            <button class="browser-go-btn" id="btn-go">Go</button>
+        </div>
+        <div class="browser-toolbar-right">
+            <button class="browser-nav-btn" id="btn-screenshot" title="Screenshot">&#128247;</button>
+            <button class="browser-nav-btn" id="btn-bookmark" title="Bookmark">&#9734;</button>
+        </div>
     </div>
-    <div class="flex-1 flex items-center justify-center bg-[#fafdfa]">
-        <div class="text-center text-gray-400">
-            <i class="fa-regular fa-compass text-5xl mb-4 text-brand-300"></i>
-            <h2 class="text-xl font-medium text-gray-600">Browser</h2>
-            <p class="mt-2 text-sm">Internet access starting soon...</p>
+
+    <div class="browser-tabs-bar" id="browser-tabs-bar">
+        <div class="browser-tab active" data-idx="0">
+            <span class="browser-tab-title">New Tab</span>
+            <span class="browser-tab-close" onclick="GBBrowser.closeTab(0)">&times;</span>
         </div>
+        <button class="browser-tab-add" onclick="GBBrowser.addTab()">+</button>
+    </div>
+
+    <div class="browser-viewport" id="browser-viewport">
+        <div class="browser-page active" data-page="0">
+            <div class="browser-start-page">
+                <div class="browser-start-logo">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                </div>
+                <h2 class="browser-start-title">GB Browser</h2>
+                <div class="browser-search-box">
+                    <input type="text" id="browser-search" placeholder="Search the web or enter a URL..." class="browser-search-input">
+                    <button class="browser-search-btn" onclick="GBBrowser.navigateSearch()">Search</button>
+                </div>
+                <div class="browser-quick-links">
+                    <div class="browser-quick-link" onclick="GBBrowser.go('https://generalbots.com')">
+                        <div class="browser-quick-icon">GB</div>
+                        <span>General Bots</span>
+                    </div>
+                    <div class="browser-quick-link" onclick="GBBrowser.go('https://github.com')">
+                        <div class="browser-quick-icon">GH</div>
+                        <span>GitHub</span>
+                    </div>
+                    <div class="browser-quick-link" onclick="GBBrowser.go('https://docs.rs')">
+                        <div class="browser-quick-icon">DR</div>
+                        <span>docs.rs</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="browser-statusbar">
+        <span id="browser-status-text">Ready</span>
+        <span class="browser-status-sep">|</span>
+        <span id="browser-loading-indicator" style="display:none">
+            <span class="browser-spinner"></span> Loading...
+        </span>
+        <span id="browser-page-info"></span>
+        <span style="flex:1"></span>
+        <span id="browser-security-info"></span>
     </div>
 </div>
+
+<script>
+(function() {
+    'use strict';
+
+    var API_BASE = '/api/browser';
+    var pages = [];
+    var activePage = 0;
+    var history = [];
+    var historyIndex = -1;
+
+    var urlInput = document.getElementById('browser-url');
+    var viewport = document.getElementById('browser-viewport');
+    var tabsBar = document.getElementById('browser-tabs-bar');
+    var statusText = document.getElementById('browser-status-text');
+    var loadingIndicator = document.getElementById('browser-loading-indicator');
+    var pageInfo = document.getElementById('browser-page-info');
+    var securityInfo = document.getElementById('browser-security-info');
+    var protocolIcon = document.getElementById('protocol-icon');
+
+    function isUrl(str) {
+        return /^(https?:\/\/|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/i.test(str);
+    }
+
+    function sanitizeHtml(html) {
+        var div = document.createElement('div');
+        div.textContent = html;
+        return div.innerHTML;
+    }
+
+    function createPageContent(index) {
+        var page = document.createElement('div');
+        page.className = 'browser-page' + (index === activePage ? ' active' : '');
+        page.dataset.page = index;
+        page.innerHTML = '<iframe class="browser-canvas" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" src="about:blank"></iframe>';
+        viewport.appendChild(page);
+        return page;
+    }
+
+    function updateTabs() {
+        var html = '';
+        for (var i = 0; i < pages.length; i++) {
+            var cls = i === activePage ? ' active' : '';
+            var title = pages[i].title || 'New Tab';
+            html += '<div class="browser-tab' + cls + '" data-idx="' + i + '" onclick="GBBrowser.switchTab(' + i + ')">'
+                + '<span class="browser-tab-title">' + sanitizeHtml(title) + '</span>'
+                + '<span class="browser-tab-close" onclick="event.stopPropagation();GBBrowser.closeTab(' + i + ')">&times;</span>'
+                + '</div>';
+        }
+        if (pages.length < 10) {
+            html += '<button class="browser-tab-add" onclick="GBBrowser.addTab()">+</button>';
+        }
+        tabsBar.innerHTML = html;
+    }
+
+    function setLoading(loading) {
+        loadingIndicator.style.display = loading ? 'inline' : 'none';
+        statusText.textContent = loading ? 'Loading...' : 'Ready';
+    }
+
+    function setSecurityInfo(url) {
+        if (url && url.indexOf('https://') === 0) {
+            protocolIcon.textContent = '\uD83D\uDD12';
+            protocolIcon.style.color = '#22c55e';
+            securityInfo.textContent = 'Secure';
+            securityInfo.style.color = '#22c55e';
+        } else if (url && url.indexOf('http://') === 0) {
+            protocolIcon.textContent = '\u26A0\uFE0F';
+            protocolIcon.style.color = '#eab308';
+            securityInfo.textContent = 'Not secure';
+            securityInfo.style.color = '#eab308';
+        } else {
+            protocolIcon.textContent = '\uD83D\uDD10';
+            protocolIcon.style.color = '#64748b';
+            securityInfo.textContent = '';
+        }
+    }
+
+    function proxyUrl(targetUrl) {
+        return API_BASE + '/proxy?url=' + encodeURIComponent(targetUrl);
+    }
+
+    async function fetchViaProxy(url) {
+        try {
+            setLoading(true);
+            setSecurityInfo(url);
+            urlInput.value = url;
+
+            var resp = await fetch(API_BASE + '/proxy?url=' + encodeURIComponent(url));
+            if (!resp.ok) throw new Error('Proxy returned ' + resp.status);
+            var data = await resp.json();
+
+            var iframe = viewport.querySelector('.browser-page[data-page="' + activePage + '"] iframe');
+            if (iframe) {
+                iframe.srcdoc = data.content || data.html || '<p>No content available</p>';
+            }
+
+            pages[activePage].title = data.title || url;
+            pages[activePage].url = url;
+            updateTabs();
+
+            pageInfo.textContent = data.title || url;
+            statusText.textContent = 'Done';
+        } catch (e) {
+            statusText.textContent = 'Failed: ' + e.message;
+            var iframe2 = viewport.querySelector('.browser-page[data-page="' + activePage + '"] iframe');
+            if (iframe2) {
+                iframe2.srcdoc = '<div style="padding:40px;text-align:center;color:#666;font-family:sans-serif">'
+                    + '<h2>Unable to load page</h2>'
+                    + '<p>' + sanitizeHtml(e.message) + '</p>'
+                    + '<p style="font-size:13px;color:#999">URL: ' + sanitizeHtml(url) + '</p>'
+                    + '</div>';
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function navigateTo(url) {
+        if (!url) return;
+        if (!isUrl(url)) {
+            url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+        }
+        history.push(url);
+        historyIndex = history.length - 1;
+        document.getElementById('btn-back').disabled = historyIndex <= 0;
+        document.getElementById('btn-forward').disabled = true;
+        fetchViaProxy(url);
+    }
+
+    window.GBBrowser = {
+        go: function(url) { navigateTo(url); },
+
+        navigateSearch: function() {
+            var q = document.getElementById('browser-search').value.trim();
+            if (q) navigateTo(q);
+        },
+
+        addTab: function() {
+            if (pages.length >= 10) return;
+            var idx = pages.length;
+            var pageEl = createPageContent(idx);
+            pages.push({ title: 'New Tab', url: '', pageEl: pageEl });
+            GBBrowser.switchTab(idx);
+        },
+
+        closeTab: function(index) {
+            if (pages.length <= 1) return;
+            pages[index].pageEl.remove();
+            pages.splice(index, 1);
+            if (activePage >= pages.length) activePage = pages.length - 1;
+            for (var i = 0; i < pages.length; i++) {
+                pages[i].pageEl.dataset.page = i;
+            }
+            GBBrowser.switchTab(activePage);
+            updateTabs();
+        },
+
+        switchTab: function(index) {
+            if (index < 0 || index >= pages.length) return;
+            if (pages[activePage]) pages[activePage].pageEl.classList.remove('active');
+            activePage = index;
+            if (pages[activePage]) {
+                pages[activePage].pageEl.classList.add('active');
+                urlInput.value = pages[activePage].url || '';
+                setSecurityInfo(pages[activePage].url);
+            }
+            updateTabs();
+        }
+    };
+
+    urlInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            navigateTo(urlInput.value.trim());
+        }
+    });
+
+    document.getElementById('btn-go').addEventListener('click', function() {
+        navigateTo(urlInput.value.trim());
+    });
+
+    document.getElementById('btn-back').addEventListener('click', function() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            fetchViaProxy(history[historyIndex]);
+            document.getElementById('btn-forward').disabled = false;
+            document.getElementById('btn-back').disabled = historyIndex <= 0;
+        }
+    });
+
+    document.getElementById('btn-forward').addEventListener('click', function() {
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            fetchViaProxy(history[historyIndex]);
+            document.getElementById('btn-back').disabled = false;
+            document.getElementById('btn-forward').disabled = historyIndex >= history.length - 1;
+        }
+    });
+
+    document.getElementById('btn-refresh').addEventListener('click', function() {
+        if (pages[activePage] && pages[activePage].url) {
+            fetchViaProxy(pages[activePage].url);
+        }
+    });
+
+    document.getElementById('btn-home').addEventListener('click', function() {
+        var iframe = viewport.querySelector('.browser-page[data-page="' + activePage + '"] iframe');
+        if (iframe) iframe.srcdoc = '';
+        urlInput.value = '';
+        pages[activePage].url = '';
+        pages[activePage].title = 'New Tab';
+        setSecurityInfo('');
+        updateTabs();
+    });
+
+    pages.push({ title: 'New Tab', url: '', pageEl: viewport.querySelector('.browser-page[data-page="0"]') });
+    updateTabs();
+})();
+</script>
