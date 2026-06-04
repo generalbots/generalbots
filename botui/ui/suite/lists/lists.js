@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 let allLists = [];
 let currentFilter = 'all';
 let editingListId = null;
@@ -237,3 +239,4 @@ document.getElementById('list-form-type').addEventListener('change', function() 
 });
 
 loadLists();
+})();

@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 let allTemplates = [];
 let currentFilter = 'all';
 
@@ -214,3 +216,4 @@ document.getElementById('tpl-form-channel').addEventListener('change', function(
 });
 
 loadTemplates();
+})();

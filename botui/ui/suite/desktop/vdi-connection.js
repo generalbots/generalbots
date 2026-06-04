@@ -1,3 +1,5 @@
+(function() {
+'use strict';
     async function deleteSavedConnection(id) {
         if (!confirm("Delete this connection?")) return;
         try {
@@ -64,3 +66,4 @@
     };
 
     document.addEventListener("DOMContentLoaded", init);
+})();

@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const HandoffApp = {
     state: { queue: [], analytics: {}, channels: [], csat: {} },
 
@@ -245,3 +247,4 @@ const HandoffApp = {
 };
 
 document.addEventListener('DOMContentLoaded', () => HandoffApp.init());
+})();

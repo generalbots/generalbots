@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const API_BASE = '/api/tax';
 const state = {
   nfe: [],
@@ -368,3 +370,4 @@ document.getElementById('btnDownloadSpedFiscal').addEventListener('click', () =>
 
 loadAll();
 loadSpedStatus();
+})();
