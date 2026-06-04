@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const API_BASE = '/api/integrations';
 let currentTab = 'available';
 let connectorsData = [];
@@ -257,3 +259,4 @@ const div = document.createElement('div');
 div.textContent = String(str);
 return div.innerHTML;
 }
+})();

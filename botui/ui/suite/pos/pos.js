@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const PosApp = {
     state: { products: [], cart: [], paymentMethod: 'cash', categories: [], activeCategory: 'all' },
 
@@ -171,3 +173,4 @@ const PosApp = {
 };
 
 document.addEventListener('DOMContentLoaded', () => PosApp.init());
+})();

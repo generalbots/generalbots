@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const API_BASE = '/api/erp';
 let currentTab = 'financial';
 let financialData = null;
@@ -295,3 +297,4 @@ const div = document.createElement('div');
 div.textContent = String(str);
 return div.innerHTML;
 }
+})();

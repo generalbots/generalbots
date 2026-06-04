@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const BankingApp = {
     state: { transactions: [], platforms: [], reconcilePairs: [], selectedBank: null, selectedPlat: null },
 
@@ -251,3 +253,4 @@ const BankingApp = {
 };
 
 document.addEventListener('DOMContentLoaded', () => BankingApp.init());
+})();

@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 var activeSessions = new Map();
     var sessionCounter = 0;
     var MAX_SESSIONS = 3;
@@ -415,4 +417,4 @@ var activeSessions = new Map();
         }
     }
 
-
+})();

@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const API_BASE = '/api/hr';
 let currentTab = 'employees';
 let employeesData = [];
@@ -342,3 +344,4 @@ const div = document.createElement('div');
 div.textContent = String(str);
 return div.innerHTML;
 }
+})();

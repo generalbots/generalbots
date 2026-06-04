@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const API_BASE = '/api/vision';
 let currentTab = 'ocr';
 let selectedFile = null;
@@ -180,3 +182,4 @@ document.getElementById('btnClearResults').addEventListener('click', () => {
 });
 
 loadHistory();
+})();

@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const API_BASE = '/api/video';
 const state = { cameras: [], alerts: [], analytics: {} };
 
@@ -180,3 +182,4 @@ document.getElementById('btnRefreshAlerts').addEventListener('click', loadAlerts
 
 loadAll();
 setInterval(loadAlerts, 30000);
+})();

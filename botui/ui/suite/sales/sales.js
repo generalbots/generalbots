@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const SalesApp = {
     stages: ['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'],
     state: { deals: [], contacts: [], activities: [], forecast: {} },
@@ -243,3 +245,4 @@ const SalesApp = {
 };
 
 document.addEventListener('DOMContentLoaded', () => SalesApp.init());
+})();

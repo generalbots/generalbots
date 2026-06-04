@@ -1,3 +1,5 @@
+(function() {
+'use strict';
 const API_BASE = '/api/fraud';
 const state = { transactions: [], rules: [], blocklist: [], reports: [] };
 
@@ -406,3 +408,4 @@ document.getElementById('btnSaveBlocklist').addEventListener('click', saveBlockl
 document.getElementById('btnGerarRelatorio').addEventListener('click', gerarRelatorio);
 
 loadAll();
+})();
