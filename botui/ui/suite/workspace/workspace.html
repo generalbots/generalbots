@@ -12,7 +12,7 @@
                 class="btn-icon"
                 id="new-page-btn"
                 title="New Page"
-                hx-post="/api/workspaces/current/pages"
+                hx-post="/api/ui/workspaces/current/pages"
                 hx-vals='{"title": "Untitled"}'
                 hx-target="#page-tree"
                 hx-swap="beforeend"
@@ -26,7 +26,7 @@
                 type="search"
                 placeholder="Search pages..."
                 data-i18n-placeholder="workspace-search-pages"
-                hx-get="/api/workspaces/current/search"
+                hx-get="/api/ui/workspaces/current/search"
                 hx-trigger="keyup changed delay:300ms"
                 hx-target="#search-results"
                 hx-swap="innerHTML"
@@ -40,7 +40,7 @@
                 <h3 data-i18n="workspace-recent">Recent</h3>
                 <div
                     id="recent-pages"
-                    hx-get="/api/workspaces/current/pages?filter=recent"
+                    hx-get="/api/ui/workspaces/current/pages?filter=recent"
                     hx-trigger="load"
                     hx-swap="innerHTML"
                 >
@@ -52,7 +52,7 @@
                 <h3 data-i18n="workspace-favorites">Favorites</h3>
                 <div
                     id="favorite-pages"
-                    hx-get="/api/workspaces/current/pages?filter=favorites"
+                    hx-get="/api/ui/workspaces/current/pages?filter=favorites"
                     hx-trigger="load"
                     hx-swap="innerHTML"
                 >
@@ -64,7 +64,7 @@
                 <h3>Pages</h3>
                 <div
                     id="page-tree"
-                    hx-get="/api/workspaces/current/pages"
+                    hx-get="/api/ui/workspaces/current/pages"
                     hx-trigger="load, pageCreated from:body, pageDeleted from:body"
                     hx-swap="innerHTML"
                 >
@@ -84,7 +84,7 @@
             </button>
             <button
                 class="sidebar-btn"
-                hx-get="/api/workspaces/current/settings"
+                hx-get="/api/ui/workspaces/current/settings"
                 hx-target="#workspace-modal"
                 hx-swap="innerHTML"
                 data-i18n="workspace-settings"
@@ -121,7 +121,7 @@
                 <div
                     id="blocks-container"
                     class="blocks-container"
-                    hx-get="/api/pages/current/blocks"
+                    hx-get="/api/ui/pages/current/blocks"
                     hx-trigger="load"
                     hx-swap="innerHTML"
                 >
@@ -140,7 +140,7 @@
                     </div>
                     <div
                         class="slash-menu-items"
-                        hx-get="/api/workspaces/commands"
+                        hx-get="/api/ui/workspaces/commands"
                         hx-trigger="load"
                         hx-swap="innerHTML"
                     >
@@ -157,7 +157,7 @@
             <p>Your workspace pages will appear in the sidebar</p>
             <button
                 class="btn-primary"
-                hx-post="/api/workspaces/current/pages"
+                hx-post="/api/ui/workspaces/current/pages"
                 hx-vals='{"title": "Untitled"}'
                 hx-target="#page-tree"
                 hx-swap="beforeend"
@@ -176,7 +176,7 @@
             <h3 data-i18n="workspace-members">Members</h3>
             <div
                 id="members-list"
-                hx-get="/api/workspaces/current/members"
+                hx-get="/api/ui/workspaces/current/members"
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
@@ -184,7 +184,7 @@
             </div>
             <button
                 class="btn-secondary btn-sm"
-                hx-get="/api/workspaces/current/invite"
+                hx-get="/api/ui/workspaces/current/invite"
                 hx-target="#workspace-modal"
                 hx-swap="innerHTML"
             >

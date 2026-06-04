@@ -406,6 +406,51 @@
     }
   }
 
+  function toggleSearchFilters() {
+    var filters = document.getElementById("search-filters");
+    if (filters) {
+      var isVisible = filters.style.display !== "none";
+      filters.style.display = isVisible ? "none" : "block";
+    }
+  }
+
+  function loadUnifiedInbox() {
+    var mailList = document.getElementById("mail-list");
+    if (mailList && typeof htmx !== "undefined") {
+      htmx.ajax("GET", "/api/ui/email/unified-list", {
+        target: "#mail-list",
+        swap: "innerHTML",
+      });
+    }
+  }
+
+  function searchAllAccounts(query) {
+    if (!query || query.trim().length === 0) {
+      loadUnifiedInbox();
+      return;
+    }
+    var mailList = document.getElementById("mail-list");
+    if (mailList && typeof htmx !== "undefined") {
+      htmx.ajax("GET", "/api/ui/email/search-all?q=" + encodeURIComponent(query), {
+        target: "#mail-list",
+        swap: "innerHTML",
+        source: "#email-search",
+      });
+    }
+  }
+
+  var searchDebounceTimer = null;
+
+  function handleSearchInput(e) {
+    var query = e.target.value;
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
+    searchDebounceTimer = setTimeout(function () {
+      searchAllAccounts(query);
+    }, 300);
+  }
+
   function escapeHtml(text) {
     var div = document.createElement("div");
     div.textContent = text;
@@ -424,14 +469,20 @@
           currentFolder = this.dataset.folder;
         });
       });
+
+    var searchInput = document.getElementById("email-search");
+    if (searchInput) {
+      searchInput.removeEventListener("input", handleSearchInput);
+      searchInput.addEventListener("input", handleSearchInput);
+    }
   }
 
   function initMail() {
     initFolderHandlers();
 
-    var inboxItem = document.querySelector('.nav-item[data-folder="inbox"]');
-    if (inboxItem && typeof htmx !== "undefined") {
-      htmx.trigger(inboxItem, "click");
+    var unifiedItem = document.querySelector('.nav-item[data-folder="unified"]');
+    if (unifiedItem && typeof htmx !== "undefined") {
+      htmx.trigger(unifiedItem, "click");
     }
   }
 
@@ -475,6 +526,10 @@
   window.openAddAccount = openAddAccount;
   window.closeAddAccount = closeAddAccount;
   window.saveAccount = saveAccount;
+  window.toggleSearchFilters = toggleSearchFilters;
+  window.loadUnifiedInbox = loadUnifiedInbox;
+  window.searchAllAccounts = searchAllAccounts;
+  window.handleSearchInput = handleSearchInput;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initMail);

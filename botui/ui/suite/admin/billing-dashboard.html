@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <div class="metrics-overview" hx-get="/api/billing/dashboard/metrics" hx-trigger="load" hx-swap="innerHTML">
+    <div class="metrics-overview" hx-get="/api/ui/billing/dashboard/metrics" hx-trigger="load" hx-swap="innerHTML">
         <div class="metric-card spending">
             <div class="metric-icon">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
@@ -92,7 +92,7 @@
                     <button class="chart-btn" data-view="monthly">Monthly</button>
                 </div>
             </div>
-            <div class="chart-container" id="spendingChart" hx-get="/api/billing/dashboard/spending-chart" hx-trigger="load" hx-swap="innerHTML">
+            <div class="chart-container" id="spendingChart" hx-get="/api/ui/billing/dashboard/spending-chart" hx-trigger="load" hx-swap="innerHTML">
                 <div class="chart-placeholder">
                     <svg viewBox="0 0 400 200" class="spending-svg">
                         <defs>
@@ -142,7 +142,7 @@
                     </svg>
                 </button>
             </div>
-            <div class="breakdown-chart" hx-get="/api/billing/dashboard/cost-breakdown" hx-trigger="load" hx-swap="innerHTML">
+            <div class="breakdown-chart" hx-get="/api/ui/billing/dashboard/cost-breakdown" hx-trigger="load" hx-swap="innerHTML">
                 <div class="donut-chart">
                     <svg viewBox="0 0 100 100" class="donut-svg">
                         <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface-border)" stroke-width="8"></circle>
@@ -192,7 +192,7 @@
                     Settings
                 </button>
             </div>
-            <div class="quota-list" hx-get="/api/billing/dashboard/quotas" hx-trigger="load" hx-swap="innerHTML">
+            <div class="quota-list" hx-get="/api/ui/billing/dashboard/quotas" hx-trigger="load" hx-swap="innerHTML">
                 <div class="quota-item">
                     <div class="quota-header">
                         <div class="quota-info">
@@ -291,7 +291,7 @@
                     <option value="cost">Cost</option>
                 </select>
             </div>
-            <div class="bot-usage-list" hx-get="/api/billing/dashboard/bot-usage" hx-trigger="load" hx-swap="innerHTML">
+            <div class="bot-usage-list" hx-get="/api/ui/billing/dashboard/bot-usage" hx-trigger="load" hx-swap="innerHTML">
                 <div class="bot-usage-item">
                     <div class="bot-info">
                         <div class="bot-avatar">CS</div>
@@ -360,7 +360,7 @@
                 <h2>Recent Invoices</h2>
                 <a href="/admin/billing" class="view-all-link">View All</a>
             </div>
-            <div class="invoices-list" hx-get="/api/billing/dashboard/recent-invoices" hx-trigger="load" hx-swap="innerHTML">
+            <div class="invoices-list" hx-get="/api/ui/billing/dashboard/recent-invoices" hx-trigger="load" hx-swap="innerHTML">
                 <div class="invoice-item">
                     <div class="invoice-info">
                         <span class="invoice-id">INV-2025-0122</span>
@@ -420,7 +420,7 @@
                     Configure
                 </button>
             </div>
-            <div class="alerts-list" hx-get="/api/billing/dashboard/alerts" hx-trigger="load" hx-swap="innerHTML">
+            <div class="alerts-list" hx-get="/api/ui/billing/dashboard/alerts" hx-trigger="load" hx-swap="innerHTML">
                 <div class="alert-item warning">
                     <div class="alert-icon">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">

@@ -56,7 +56,7 @@
                     type="text"
                     placeholder="Search cases..."
                     data-i18n-placeholder="tickets-search-placeholder"
-                    hx-get="/api/tickets/search"
+                    hx-get="/api/ui/tickets/search"
                     hx-trigger="keyup changed delay:300ms"
                     hx-target="#tickets-search-results"
                 />
@@ -104,7 +104,7 @@
                 >
                 <span
                     class="summary-value open"
-                    hx-get="/api/tickets/stats/open"
+                    hx-get="/api/ui/tickets/stats/open"
                     hx-trigger="load"
                     >0</span
                 >
@@ -133,7 +133,7 @@
                 >
                 <span
                     class="summary-value urgent"
-                    hx-get="/api/tickets/stats/urgent"
+                    hx-get="/api/ui/tickets/stats/urgent"
                     hx-trigger="load"
                     >0</span
                 >
@@ -159,7 +159,7 @@
                 >
                 <span
                     class="summary-value resolved"
-                    hx-get="/api/tickets/stats/resolved-today"
+                    hx-get="/api/ui/tickets/stats/resolved-today"
                     hx-trigger="load"
                     >0</span
                 >
@@ -188,7 +188,7 @@
                 >
                 <span
                     class="summary-value ai"
-                    hx-get="/api/tickets/stats/ai-resolved"
+                    hx-get="/api/ui/tickets/stats/ai-resolved"
                     hx-trigger="load"
                     >0%</span
                 >
@@ -474,7 +474,7 @@
                     rows="5"
                     placeholder="Describe the issue in detail..."
                     data-i18n-placeholder="tickets-description-placeholder"
-                    hx-post="/api/tickets/ai-suggest"
+                    hx-post="/api/ui/tickets/ai-suggest"
                     hx-trigger="blur delay:500ms"
                     hx-target="#ai-suggestions"
                 ></textarea>

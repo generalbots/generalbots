@@ -49,7 +49,7 @@
                     type="text"
                     placeholder="Search invoices, quotes..."
                     data-i18n-placeholder="billing-search-placeholder"
-                    hx-get="/api/billing/search"
+                    hx-get="/api/ui/billing/search"
                     hx-trigger="keyup changed delay:300ms"
                     hx-target="#billing-search-results"
                 />
@@ -96,7 +96,7 @@
                 >
                 <span
                     class="summary-value"
-                    hx-get="/api/billing/stats/pending"
+                    hx-get="/api/ui/billing/stats/pending"
                     hx-trigger="load"
                     >$0</span
                 >
@@ -125,7 +125,7 @@
                 >
                 <span
                     class="summary-value overdue"
-                    hx-get="/api/billing/stats/overdue"
+                    hx-get="/api/ui/billing/stats/overdue"
                     hx-trigger="load"
                     >$0</span
                 >
@@ -151,7 +151,7 @@
                 >
                 <span
                     class="summary-value paid"
-                    hx-get="/api/billing/stats/paid-month"
+                    hx-get="/api/ui/billing/stats/paid-month"
                     hx-trigger="load"
                     >$0</span
                 >
@@ -179,7 +179,7 @@
                 >
                 <span
                     class="summary-value"
-                    hx-get="/api/billing/stats/revenue-month"
+                    hx-get="/api/ui/billing/stats/revenue-month"
                     hx-trigger="load"
                     >$0</span
                 >
@@ -192,7 +192,7 @@
         <div class="billing-list-header">
             <div class="list-filters">
                 <select
-                    hx-get="/api/billing/invoices"
+                    hx-get="/api/ui/billing/invoices"
                     hx-trigger="change"
                     hx-target="#invoices-table-body"
                     hx-include="this"
@@ -221,7 +221,7 @@
                     </option>
                 </select>
                 <select
-                    hx-get="/api/billing/invoices"
+                    hx-get="/api/ui/billing/invoices"
                     hx-trigger="change"
                     hx-target="#invoices-table-body"
                     hx-include="this"
@@ -244,7 +244,7 @@
             <div class="list-actions">
                 <button
                     class="action-btn"
-                    hx-get="/api/billing/invoices/export"
+                    hx-get="/api/ui/billing/invoices/export"
                     data-i18n="billing-export"
                 >
                     Export
@@ -265,7 +265,7 @@
             </thead>
             <tbody
                 id="invoices-table-body"
-                hx-get="/api/billing/invoices"
+                hx-get="/api/ui/billing/invoices"
                 hx-trigger="load"
             >
                 <!-- Invoices loaded via HTMX -->
@@ -278,7 +278,7 @@
         <div class="billing-list-header">
             <div class="list-filters">
                 <select
-                    hx-get="/api/billing/payments"
+                    hx-get="/api/ui/billing/payments"
                     hx-trigger="change"
                     hx-target="#payments-table-body"
                     hx-include="this"
@@ -338,7 +338,7 @@
             </thead>
             <tbody
                 id="payments-table-body"
-                hx-get="/api/billing/payments"
+                hx-get="/api/ui/billing/payments"
                 hx-trigger="load"
             ></tbody>
         </table>
@@ -349,7 +349,7 @@
         <div class="billing-list-header">
             <div class="list-filters">
                 <select
-                    hx-get="/api/billing/quotes"
+                    hx-get="/api/ui/billing/quotes"
                     hx-trigger="change"
                     hx-target="#quotes-table-body"
                     hx-include="this"
@@ -410,7 +410,7 @@
             </thead>
             <tbody
                 id="quotes-table-body"
-                hx-get="/api/billing/quotes"
+                hx-get="/api/ui/billing/quotes"
                 hx-trigger="load"
             ></tbody>
         </table>

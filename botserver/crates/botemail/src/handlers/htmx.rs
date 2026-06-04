@@ -191,7 +191,7 @@ pub async fn list_emails_htmx(
     use std::fmt::Write;
     for email in &emails {
         let unread_class = if !email.read { "unread" } else { "" };
-        let _ = write!(html, r##"<div class="mail-item {}" hx-get="/api/email/{}" hx-target="#mail-content" hx-swap="innerHTML"><div class="mail-header"><span>{}</span><span class="text-sm text-gray">{}</span></div><div class="mail-subject">{}</div><div class="mail-preview">{}</div></div>"##, unread_class, email.id, email.from_name, email.date, email.subject, email.preview);
+        let _ = write!(html, r##"<div class="mail-item {}" hx-get="/api/ui/email/content/{}" hx-target="#mail-content" hx-swap="innerHTML"><div class="mail-header"><span>{}</span><span class="text-sm text-gray">{}</span></div><div class="mail-subject">{}</div><div class="mail-preview">{}</div></div>"##, unread_class, email.id, email.from_name, email.date, email.subject, email.preview);
     }
 
     if html.is_empty() {
@@ -240,7 +240,7 @@ pub async fn list_folders_htmx(State(state): State<Arc<AppState>>) -> impl IntoR
         let count_badge = if **count > 0 { format!(r#"<span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">{}</span>"#, count) } else { String::new() };
         let display: String = folder_name.chars().next().unwrap_or_default().to_uppercase().collect::<String>() + &folder_name[1..];
         use std::fmt::Write;
-        let _ = write!(html, r##"<div class="nav-item {}" hx-get="/api/email/list?folder={}" hx-target="#mail-list" hx-swap="innerHTML"><span>{}</span> {} {}</div>"##, active, folder_name, "", display, count_badge);
+        let _ = write!(html, r##"<div class="nav-item {}" hx-get="/api/ui/email/list?folder={}" hx-target="#mail-list" hx-swap="innerHTML"><span>{}</span> {} {}</div>"##, active, folder_name, "", display, count_badge);
     }
 
     axum::response::Html(html)
@@ -279,7 +279,7 @@ pub async fn get_email_content_htmx(
     let config = make_config_from_account(&account);
     let email_content = fetch_email_by_id(&config, &id).map_err(|e| EmailError(format!("Failed to fetch email: {}", e)))?;
 
-    let html = format!(r##"<div class="mail-content-view"><div class="mail-actions"><button hx-get="/api/email/compose?reply_to={}" hx-target="#mail-content" hx-swap="innerHTML">Reply</button><button hx-get="/api/email/compose?forward={}" hx-target="#mail-content" hx-swap="innerHTML">Forward</button><button hx-delete="/api/email/{}" hx-target="#mail-list" hx-swap="innerHTML" hx-confirm="Delete this email?">Delete</button></div><h2>{}</h2><div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;"><div><div style="font-weight: 600;">{}</div><div class="text-sm text-gray">to: {}</div></div><div style="margin-left: auto;" class="text-sm text-gray">{}</div></div><div class="mail-body">{}</div></div>"##,
+    let html = format!(r##"<div class="mail-content-view"><div class="mail-actions"><button hx-get="/api/ui/email/compose?reply_to={}" hx-target="#mail-content" hx-swap="innerHTML">Reply</button><button hx-get="/api/ui/email/compose?forward={}" hx-target="#mail-content" hx-swap="innerHTML">Forward</button><button hx-delete="/api/ui/email/{}/delete" hx-target="#mail-list" hx-swap="innerHTML" hx-confirm="Delete this email?">Delete</button></div><h2>{}</h2><div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;"><div><div style="font-weight: 600;">{}</div><div class="text-sm text-gray">to: {}</div></div><div style="margin-left: auto;" class="text-sm text-gray">{}</div></div><div class="mail-body">{}</div></div>"##,
     id, id, id, email_content.subject, email_content.from_name, email_content.to, email_content.date, email_content.body);
 
     Ok(axum::response::Html(html))
@@ -383,7 +383,7 @@ pub async fn search_emails_htmx(
     for row in results {
         let preview: String = row.body_text.as_deref().unwrap_or("").chars().take(100).collect();
         let formatted_date = row.received_at.format("%b %d, %Y").to_string();
-        let _ = write!(html, r##"<div class="email-item" hx-get="/ui/mail/view/{}" hx-target="#email-content" hx-swap="innerHTML"><div class="email-sender">{}</div><div class="email-subject">{}</div><div class="email-preview">{}</div><div class="email-date">{}</div></div>"##, row.id, row.from_address, row.subject, preview, formatted_date);
+        let _ = write!(html, r##"<div class="email-item" hx-get="/api/ui/email/content/{}" hx-target="#email-content" hx-swap="innerHTML"><div class="email-sender">{}</div><div class="email-subject">{}</div><div class="email-preview">{}</div><div class="email-date">{}</div></div>"##, row.id, row.from_address, row.subject, preview, formatted_date);
     }
     html.push_str("</div>");
     axum::response::Html(html)
