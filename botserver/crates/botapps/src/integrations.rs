@@ -1,122 +1,158 @@
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    routing::{delete, get, post},
-    Json, Router,
-};
-use chrono::Utc;
-use serde::{Deserialize, Serialize};
+use axum::{extract::{State, Json, Path}, routing::{get, post}, Router};
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
+use chrono::Utc;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Connector {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
-    pub description: String,
-    pub category: String,
-    pub connected: bool,
-    pub last_sync: Option<String>,
+    pub connector_type: String,
+    pub endpoint: String,
+    pub auth_type: String,
+    pub status: String,
+    pub config: String,
+    pub last_sync_at: Option<String>,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EtlJob {
     pub id: Uuid,
     pub name: String,
-    pub source_connector: String,
+    pub source: String,
     pub destination: String,
+    pub transformation: String,
     pub schedule: String,
-    pub last_run_status: Option<String>,
+    pub status: String,
     pub last_run_at: Option<String>,
+    pub records_processed: u64,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateConnector {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub category: String,
-}
-
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct IntegrationsState {
-    pub connectors: HashMap<String, Connector>,
-    pub etl_jobs: Vec<EtlJob>,
+    pub connectors: HashMap<Uuid, Connector>,
+    pub etl_jobs: HashMap<Uuid, EtlJob>,
 }
 
-
-
-pub fn create_integrations_state() -> SharedIntegrationsState {
-    Arc::new(RwLock::new(IntegrationsState::default()))
-}
-
-async fn list_connectors(
-    State(state): State<SharedIntegrationsState>,
-) -> Result<Json<Vec<Connector>>, StatusCode> {
-    let data = state.read().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(data.connectors.values().cloned().collect()))
-}
-
-async fn connect_connector(
-    State(state): State<SharedIntegrationsState>,
-    Path(id): Path<String>,
-) -> Result<Json<Connector>, StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let connector = data.connectors.get_mut(&*id).ok_or(StatusCode::NOT_FOUND)?;
-    connector.connected = true;
-    connector.last_sync = Some(Utc::now().to_rfc3339());
-    Ok(Json(connector.clone()))
-}
-
-async fn create_connector(
-    State(state): State<SharedIntegrationsState>,
-    Json(input): Json<CreateConnector>,
-) -> Result<(StatusCode, Json<Connector>), StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let connector = Connector {
-        id: input.id.clone(),
-        name: input.name,
-        description: input.description,
-        category: input.category,
-        connected: false,
-        last_sync: None,
-    };
-    data.connectors.insert(input.id, connector.clone());
-    Ok((StatusCode::CREATED, Json(connector)))
-}
-
-async fn delete_connector(
-    State(state): State<SharedIntegrationsState>,
-    Path(id): Path<String>,
-) -> Result<StatusCode, StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    data.connectors.remove(&*id).ok_or(StatusCode::NOT_FOUND)?;
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn list_etl(
-    State(state): State<SharedIntegrationsState>,
-) -> Result<Json<Vec<EtlJob>>, StatusCode> {
-    let data = state.read().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(data.etl_jobs.clone()))
-}
-
-pub fn routes() -> Router {
-    let state = std::sync::Arc::new(std::sync::RwLock::new(Default::default()));
+pub fn routes() -> axum::Router {
+    let state = Arc::new(RwLock::new(IntegrationsState::default()));
     Router::new()
-        .route(
-            "/api/integrations/connectors",
-            get(list_connectors).post(create_connector),
-        )
-        .route(
-            "/api/integrations/connectors/{id}/connect",
-            post(connect_connector),
-        )
-        .route(
-            "/api/integrations/connectors/{id}",
-            delete(delete_connector),
-        )
-        .route("/api/integrations/etl", get(list_etl))
+        .route("/api/integrations/connectors", get(list_connectors).post(create_connector))
+        .route("/api/integrations/connectors/{id}", get(get_connector).put(update_connector).delete(delete_connector))
+        .route("/api/integrations/connectors/{id}/test", post(test_connector))
+        .route("/api/integrations/etl", get(list_etl_jobs).post(create_etl_job))
+        .route("/api/integrations/etl/{id}", get(get_etl_job).put(update_etl_job).delete(delete_etl_job))
+        .route("/api/integrations/etl/{id}/run", post(run_etl_job))
         .with_state(state)
+}
+
+async fn list_connectors(State(state): State<Arc<RwLock<IntegrationsState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Connector> = s.connectors.values().collect();
+    Json(serde_json::json!({"connectors": items}))
+}
+
+async fn create_connector(State(state): State<Arc<RwLock<IntegrationsState>>>, Json(mut connector): Json<Connector>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    connector.id = id;
+    connector.status = "Created".to_string();
+    connector.created_at = Utc::now().to_rfc3339();
+    s.connectors.insert(id, connector.clone());
+    Json(serde_json::json!({"connector": connector}))
+}
+
+async fn get_connector(State(state): State<Arc<RwLock<IntegrationsState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.connectors.get(&id) {
+        Some(c) => Json(serde_json::json!({"connector": c})),
+        None => Json(serde_json::json!({"error": "Connector not found"})),
+    }
+}
+
+async fn update_connector(State(state): State<Arc<RwLock<IntegrationsState>>>, Path(id): Path<Uuid>, Json(connector): Json<Connector>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.connectors.get_mut(&id) {
+        *existing = connector.clone();
+        existing.id = id;
+        Json(serde_json::json!({"connector": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Connector not found"}))
+    }
+}
+
+async fn delete_connector(State(state): State<Arc<RwLock<IntegrationsState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.connectors.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn test_connector(State(state): State<Arc<RwLock<IntegrationsState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    match s.connectors.get_mut(&id) {
+        Some(c) => {
+            c.status = "Connected".to_string();
+            c.last_sync_at = Some(Utc::now().to_rfc3339());
+            Json(serde_json::json!({"connector": c.clone(), "test_result": "success"}))
+        }
+        None => Json(serde_json::json!({"error": "Connector not found"})),
+    }
+}
+
+async fn list_etl_jobs(State(state): State<Arc<RwLock<IntegrationsState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&EtlJob> = s.etl_jobs.values().collect();
+    Json(serde_json::json!({"etl_jobs": items}))
+}
+
+async fn create_etl_job(State(state): State<Arc<RwLock<IntegrationsState>>>, Json(mut job): Json<EtlJob>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    job.id = id;
+    job.status = "Created".to_string();
+    job.created_at = Utc::now().to_rfc3339();
+    s.etl_jobs.insert(id, job.clone());
+    Json(serde_json::json!({"etl_job": job}))
+}
+
+async fn get_etl_job(State(state): State<Arc<RwLock<IntegrationsState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.etl_jobs.get(&id) {
+        Some(j) => Json(serde_json::json!({"etl_job": j})),
+        None => Json(serde_json::json!({"error": "ETL job not found"})),
+    }
+}
+
+async fn update_etl_job(State(state): State<Arc<RwLock<IntegrationsState>>>, Path(id): Path<Uuid>, Json(job): Json<EtlJob>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.etl_jobs.get_mut(&id) {
+        *existing = job.clone();
+        existing.id = id;
+        Json(serde_json::json!({"etl_job": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "ETL job not found"}))
+    }
+}
+
+async fn delete_etl_job(State(state): State<Arc<RwLock<IntegrationsState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.etl_jobs.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn run_etl_job(State(state): State<Arc<RwLock<IntegrationsState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    match s.etl_jobs.get_mut(&id) {
+        Some(j) => {
+            j.status = "Running".to_string();
+            j.last_run_at = Some(Utc::now().to_rfc3339());
+            j.records_processed += 100;
+            Json(serde_json::json!({"etl_job": j.clone(), "run_result": "success"}))
+        }
+        None => Json(serde_json::json!({"error": "ETL job not found"})),
+    }
 }

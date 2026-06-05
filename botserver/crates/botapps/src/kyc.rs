@@ -1,256 +1,176 @@
-use axum::{
-    extract::{Path, State as AxumState},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, put},
-    Json, Router,
-};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use axum::{extract::{State, Json, Path}, routing::get, Router};
+use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
+use chrono::Utc;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum DocumentType {
-    Cpf,
-    Rg,
-    Passport,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum KycStatus {
-    Pending,
-    Verified,
-    Failed,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum SignatureStatus {
-    Awaiting,
-    Signed,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KycVerification {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Verification {
     pub id: Uuid,
-    pub user_name: String,
-    pub document_type: DocumentType,
-    pub status: KycStatus,
-    pub liveness_score: Option<f64>,
-    pub created_at: DateTime<Utc>,
+    pub user_id: String,
+    pub document_type: String,
+    pub document_number: String,
+    pub full_name: String,
+    pub status: String,
+    pub rejection_reason: Option<String>,
+    pub verified_at: Option<String>,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DigitalSignature {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Signature {
     pub id: Uuid,
-    pub document_name: String,
+    pub verification_id: Uuid,
+    pub signer_name: String,
     pub signer_email: String,
-    pub status: SignatureStatus,
-    pub signed_at: Option<DateTime<Utc>>,
+    pub document_url: String,
+    pub signed: bool,
+    pub signed_at: Option<String>,
+    pub ip_address: Option<String>,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Certificate {
     pub id: Uuid,
-    pub subject: String,
+    pub verification_id: Uuid,
+    pub cert_type: String,
     pub issuer: String,
-    pub not_before: DateTime<Utc>,
-    pub not_after: DateTime<Utc>,
+    pub subject: String,
+    pub valid_from: String,
+    pub valid_until: String,
+    pub serial_number: String,
+    pub status: String,
+    pub created_at: String,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreateKycRequest {
-    pub user_name: String,
-    pub document_type: DocumentType,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateKycRequest {
-    pub status: Option<KycStatus>,
-    pub liveness_score: Option<f64>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreateSignatureRequest {
-    pub document_name: String,
-    pub signer_email: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SignDocumentRequest {
-    pub signed: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ApiResponse<T: Serialize> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub error: Option<String>,
-}
-
-#[derive(Clone)]
+#[derive(Default)]
 pub struct KycState {
-    pub verifications: Arc<RwLock<Vec<KycVerification>>>,
-    pub signatures: Arc<RwLock<Vec<DigitalSignature>>>,
-    pub certificates: Arc<RwLock<Vec<Certificate>>>,
+    pub verifications: HashMap<Uuid, Verification>,
+    pub signatures: HashMap<Uuid, Signature>,
+    pub certificates: HashMap<Uuid, Certificate>,
 }
 
-impl KycState {
-    pub fn new() -> Self {
-        Self {
-            verifications: Arc::new(RwLock::new(Vec::new())),
-            signatures: Arc::new(RwLock::new(Vec::new())),
-            certificates: Arc::new(RwLock::new(Vec::new())),
-        }
-    }
-}
-
-pub fn routes() -> Router {
-    let state = KycState::new();
+pub fn routes() -> axum::Router {
+    let state = Arc::new(RwLock::new(KycState::default()));
     Router::new()
         .route("/api/kyc/verifications", get(list_verifications).post(create_verification))
-        .route("/api/kyc/verifications/:id", put(update_verification))
+        .route("/api/kyc/verifications/{id}", get(get_verification).put(update_verification))
         .route("/api/kyc/signatures", get(list_signatures).post(create_signature))
-        .route("/api/kyc/signatures/:id/sign", put(sign_document))
-        .route("/api/kyc/certificates", get(list_certificates))
+        .route("/api/kyc/signatures/{id}", get(get_signature).put(update_signature))
+        .route("/api/kyc/certificates", get(list_certificates).post(create_certificate))
+        .route("/api/kyc/certificates/{id}", get(get_certificate).put(update_certificate).delete(delete_certificate))
         .with_state(state)
 }
 
-async fn list_verifications(
-    AxumState(state): AxumState<KycState>,
-) -> Result<Json<ApiResponse<Vec<KycVerification>>>, StatusCode> {
-    let verifications = state
-        .verifications
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(verifications.clone()),
-        error: None,
-    }))
+async fn list_verifications(State(state): State<Arc<RwLock<KycState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Verification> = s.verifications.values().collect();
+    Json(serde_json::json!({"verifications": items}))
 }
 
-async fn create_verification(
-    AxumState(state): AxumState<KycState>,
-    Json(payload): Json<CreateKycRequest>,
-) -> Result<(StatusCode, Json<ApiResponse<KycVerification>>), StatusCode> {
-    let verification = KycVerification {
-        id: Uuid::new_v4(),
-        user_name: payload.user_name,
-        document_type: payload.document_type,
-        status: KycStatus::Pending,
-        liveness_score: None,
-        created_at: Utc::now(),
-    };
-    let mut verifications = state
-        .verifications
-        .write()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    verifications.push(verification.clone());
-    Ok((StatusCode::CREATED, Json(ApiResponse {
-        success: true,
-        data: Some(verification),
-        error: None,
-    })))
+async fn create_verification(State(state): State<Arc<RwLock<KycState>>>, Json(mut v): Json<Verification>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    v.id = id;
+    v.status = "Pending".to_string();
+    v.created_at = Utc::now().to_rfc3339();
+    s.verifications.insert(id, v.clone());
+    Json(serde_json::json!({"verification": v}))
 }
 
-async fn update_verification(
-    AxumState(state): AxumState<KycState>,
-    Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateKycRequest>,
-) -> Result<Json<ApiResponse<KycVerification>>, StatusCode> {
-    let mut verifications = state
-        .verifications
-        .write()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let verification = verifications
-        .iter_mut()
-        .find(|v| v.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    if let Some(status) = payload.status {
-        verification.status = status;
+async fn get_verification(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.verifications.get(&id) {
+        Some(v) => Json(serde_json::json!({"verification": v})),
+        None => Json(serde_json::json!({"error": "Verification not found"})),
     }
-    if let Some(score) = payload.liveness_score {
-        verification.liveness_score = Some(score);
+}
+
+async fn update_verification(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>, Json(v): Json<Verification>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.verifications.get_mut(&id) {
+        *existing = v.clone();
+        existing.id = id;
+        Json(serde_json::json!({"verification": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Verification not found"}))
     }
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(verification.clone()),
-        error: None,
-    }))
 }
 
-async fn list_signatures(
-    AxumState(state): AxumState<KycState>,
-) -> Result<Json<ApiResponse<Vec<DigitalSignature>>>, StatusCode> {
-    let signatures = state
-        .signatures
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(signatures.clone()),
-        error: None,
-    }))
+async fn list_signatures(State(state): State<Arc<RwLock<KycState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Signature> = s.signatures.values().collect();
+    Json(serde_json::json!({"signatures": items}))
 }
 
-async fn create_signature(
-    AxumState(state): AxumState<KycState>,
-    Json(payload): Json<CreateSignatureRequest>,
-) -> Result<(StatusCode, Json<ApiResponse<DigitalSignature>>), StatusCode> {
-    let signature = DigitalSignature {
-        id: Uuid::new_v4(),
-        document_name: payload.document_name,
-        signer_email: payload.signer_email,
-        status: SignatureStatus::Awaiting,
-        signed_at: None,
-    };
-    let mut signatures = state
-        .signatures
-        .write()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    signatures.push(signature.clone());
-    Ok((StatusCode::CREATED, Json(ApiResponse {
-        success: true,
-        data: Some(signature),
-        error: None,
-    })))
+async fn create_signature(State(state): State<Arc<RwLock<KycState>>>, Json(mut sig): Json<Signature>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    sig.id = id;
+    sig.signed = false;
+    sig.created_at = Utc::now().to_rfc3339();
+    s.signatures.insert(id, sig.clone());
+    Json(serde_json::json!({"signature": sig}))
 }
 
-async fn sign_document(
-    AxumState(state): AxumState<KycState>,
-    Path(id): Path<Uuid>,
-    Json(payload): Json<SignDocumentRequest>,
-) -> Result<Json<ApiResponse<DigitalSignature>>, StatusCode> {
-    let mut signatures = state
-        .signatures
-        .write()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let signature = signatures
-        .iter_mut()
-        .find(|s| s.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    if payload.signed {
-        signature.status = SignatureStatus::Signed;
-        signature.signed_at = Some(Utc::now());
+async fn get_signature(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.signatures.get(&id) {
+        Some(sig) => Json(serde_json::json!({"signature": sig})),
+        None => Json(serde_json::json!({"error": "Signature not found"})),
     }
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(signature.clone()),
-        error: None,
-    }))
 }
 
-async fn list_certificates(
-    AxumState(state): AxumState<KycState>,
-) -> Result<Json<ApiResponse<Vec<Certificate>>>, StatusCode> {
-    let certificates = state
-        .certificates
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(certificates.clone()),
-        error: None,
-    }))
+async fn update_signature(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>, Json(sig): Json<Signature>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.signatures.get_mut(&id) {
+        *existing = sig.clone();
+        existing.id = id;
+        Json(serde_json::json!({"signature": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Signature not found"}))
+    }
+}
+
+async fn list_certificates(State(state): State<Arc<RwLock<KycState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Certificate> = s.certificates.values().collect();
+    Json(serde_json::json!({"certificates": items}))
+}
+
+async fn create_certificate(State(state): State<Arc<RwLock<KycState>>>, Json(mut cert): Json<Certificate>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    cert.id = id;
+    cert.status = "Active".to_string();
+    cert.created_at = Utc::now().to_rfc3339();
+    s.certificates.insert(id, cert.clone());
+    Json(serde_json::json!({"certificate": cert}))
+}
+
+async fn get_certificate(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.certificates.get(&id) {
+        Some(c) => Json(serde_json::json!({"certificate": c})),
+        None => Json(serde_json::json!({"error": "Certificate not found"})),
+    }
+}
+
+async fn update_certificate(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>, Json(cert): Json<Certificate>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.certificates.get_mut(&id) {
+        *existing = cert.clone();
+        existing.id = id;
+        Json(serde_json::json!({"certificate": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Certificate not found"}))
+    }
+}
+
+async fn delete_certificate(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.certificates.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
 }

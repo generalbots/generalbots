@@ -1,214 +1,181 @@
+use axum::{extract::{State, Json, Path}, routing::get, Router};
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-
-use axum::extract::{Path, State as AxumState};
-use axum::routing::{get, post, put};
-use axum::{Json, Router};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use chrono::Utc;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum EmployeeStatus {
-    Active,
-    OnLeave,
-    Terminated,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum JobStatus {
-    Open,
-    Closed,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Employee {
     pub id: Uuid,
-    pub first_name: String,
-    pub last_name: String,
+    pub name: String,
     pub email: String,
     pub department: String,
-    pub role: String,
-    pub status: EmployeeStatus,
-    pub hired_at: DateTime<Utc>,
+    pub position: String,
+    pub hire_date: String,
+    pub status: String,
+    pub manager_id: Option<Uuid>,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JobPosting {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Recruitment {
     pub id: Uuid,
-    pub title: String,
+    pub position: String,
     pub department: String,
-    pub candidates_count: i32,
-    pub status: JobStatus,
+    pub description: String,
+    pub salary_range: String,
+    pub status: String,
+    pub candidates_count: u32,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AttendanceRecord {
-    pub employee_email: String,
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Attendance {
+    pub id: Uuid,
+    pub employee_id: Uuid,
     pub date: String,
     pub clock_in: String,
     pub clock_out: Option<String>,
+    pub hours_worked: f64,
+    pub overtime_hours: f64,
+    pub status: String,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateEmployee {
-    pub first_name: String,
-    pub last_name: String,
-    pub email: String,
-    pub department: String,
-    pub role: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateEmployee {
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub email: Option<String>,
-    pub department: Option<String>,
-    pub role: Option<String>,
-    pub status: Option<EmployeeStatus>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateJobPosting {
-    pub title: String,
-    pub department: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClockInRequest {
-    pub employee_email: String,
-    pub date: String,
-    pub clock_in: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClockOutRequest {
-    pub employee_email: String,
-    pub date: String,
-    pub clock_out: String,
-}
-
-#[derive(Clone)]
+#[derive(Default)]
 pub struct HrState {
-    pub employees: Arc<RwLock<HashMap<Uuid, Employee>>>,
-    pub job_postings: Arc<RwLock<HashMap<Uuid, JobPosting>>>,
-    pub attendance: Arc<RwLock<HashMap<String, AttendanceRecord>>>,
+    pub employees: HashMap<Uuid, Employee>,
+    pub recruitments: HashMap<Uuid, Recruitment>,
+    pub attendance: HashMap<Uuid, Attendance>,
 }
 
-impl HrState {
-    pub fn new() -> Self {
-        Self {
-            employees: Arc::new(RwLock::new(HashMap::new())),
-            job_postings: Arc::new(RwLock::new(HashMap::new())),
-            attendance: Arc::new(RwLock::new(HashMap::new())),
-        }
+pub fn routes() -> axum::Router {
+    let state = Arc::new(RwLock::new(HrState::default()));
+    Router::new()
+        .route("/api/hr/employees", get(list_employees).post(create_employee))
+        .route("/api/hr/employees/{id}", get(get_employee).put(update_employee).delete(delete_employee))
+        .route("/api/hr/recruitment", get(list_recruitments).post(create_recruitment))
+        .route("/api/hr/recruitment/{id}", get(get_recruitment).put(update_recruitment).delete(delete_recruitment))
+        .route("/api/hr/attendance", get(list_attendance).post(create_attendance))
+        .route("/api/hr/attendance/{id}", get(get_attendance).put(update_attendance))
+        .with_state(state)
+}
+
+async fn list_employees(State(state): State<Arc<RwLock<HrState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Employee> = s.employees.values().collect();
+    Json(serde_json::json!({"employees": items}))
+}
+
+async fn create_employee(State(state): State<Arc<RwLock<HrState>>>, Json(mut emp): Json<Employee>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    emp.id = id;
+    emp.status = "Active".to_string();
+    emp.created_at = Utc::now().to_rfc3339();
+    s.employees.insert(id, emp.clone());
+    Json(serde_json::json!({"employee": emp}))
+}
+
+async fn get_employee(State(state): State<Arc<RwLock<HrState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.employees.get(&id) {
+        Some(e) => Json(serde_json::json!({"employee": e})),
+        None => Json(serde_json::json!({"error": "Employee not found"})),
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct ApiResponse<T: Serialize> {
-    pub success: bool,
-    pub data: T,
+async fn update_employee(State(state): State<Arc<RwLock<HrState>>>, Path(id): Path<Uuid>, Json(emp): Json<Employee>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.employees.get_mut(&id) {
+        *existing = emp.clone();
+        existing.id = id;
+        Json(serde_json::json!({"employee": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Employee not found"}))
+    }
 }
 
-async fn list_employees(AxumState(state): AxumState<HrState>) -> Json<ApiResponse<Vec<Employee>>> {
-    let employees = state.employees.read().unwrap().values().cloned().collect();
-    Json(ApiResponse { success: true, data: employees })
+async fn delete_employee(State(state): State<Arc<RwLock<HrState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.employees.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
 }
 
-async fn create_employee(
-    AxumState(state): AxumState<HrState>,
-    Json(payload): Json<CreateEmployee>,
-) -> Json<ApiResponse<Employee>> {
-    let employee = Employee {
-        id: Uuid::new_v4(),
-        first_name: payload.first_name,
-        last_name: payload.last_name,
-        email: payload.email,
-        department: payload.department,
-        role: payload.role,
-        status: EmployeeStatus::Active,
-        hired_at: Utc::now(),
-    };
-    state.employees.write().unwrap().insert(employee.id, employee.clone());
-    Json(ApiResponse { success: true, data: employee })
+async fn list_recruitments(State(state): State<Arc<RwLock<HrState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Recruitment> = s.recruitments.values().collect();
+    Json(serde_json::json!({"recruitments": items}))
 }
 
-async fn update_employee(
-    AxumState(state): AxumState<HrState>,
-    Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateEmployee>,
-) -> Json<ApiResponse<Employee>> {
-    let mut employees = state.employees.write().unwrap();
-    let employee = employees.get_mut(&id).expect("Employee not found");
-    if let Some(first_name) = payload.first_name { employee.first_name = first_name; }
-    if let Some(last_name) = payload.last_name { employee.last_name = last_name; }
-    if let Some(email) = payload.email { employee.email = email; }
-    if let Some(department) = payload.department { employee.department = department; }
-    if let Some(role) = payload.role { employee.role = role; }
-    if let Some(status) = payload.status { employee.status = status; }
-    Json(ApiResponse { success: true, data: employee.clone() })
+async fn create_recruitment(State(state): State<Arc<RwLock<HrState>>>, Json(mut rec): Json<Recruitment>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    rec.id = id;
+    rec.status = "Open".to_string();
+    rec.candidates_count = 0;
+    rec.created_at = Utc::now().to_rfc3339();
+    s.recruitments.insert(id, rec.clone());
+    Json(serde_json::json!({"recruitment": rec}))
 }
 
-async fn list_recruitment(AxumState(state): AxumState<HrState>) -> Json<ApiResponse<Vec<JobPosting>>> {
-    let postings = state.job_postings.read().unwrap().values().cloned().collect();
-    Json(ApiResponse { success: true, data: postings })
+async fn get_recruitment(State(state): State<Arc<RwLock<HrState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.recruitments.get(&id) {
+        Some(r) => Json(serde_json::json!({"recruitment": r})),
+        None => Json(serde_json::json!({"error": "Recruitment not found"})),
+    }
 }
 
-async fn create_job_posting(
-    AxumState(state): AxumState<HrState>,
-    Json(payload): Json<CreateJobPosting>,
-) -> Json<ApiResponse<JobPosting>> {
-    let posting = JobPosting {
-        id: Uuid::new_v4(),
-        title: payload.title,
-        department: payload.department,
-        candidates_count: 0,
-        status: JobStatus::Open,
-    };
-    state.job_postings.write().unwrap().insert(posting.id, posting.clone());
-    Json(ApiResponse { success: true, data: posting })
+async fn update_recruitment(State(state): State<Arc<RwLock<HrState>>>, Path(id): Path<Uuid>, Json(rec): Json<Recruitment>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.recruitments.get_mut(&id) {
+        *existing = rec.clone();
+        existing.id = id;
+        Json(serde_json::json!({"recruitment": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Recruitment not found"}))
+    }
 }
 
-async fn list_attendance(AxumState(state): AxumState<HrState>) -> Json<ApiResponse<Vec<AttendanceRecord>>> {
-    let records = state.attendance.read().unwrap().values().cloned().collect();
-    Json(ApiResponse { success: true, data: records })
+async fn delete_recruitment(State(state): State<Arc<RwLock<HrState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.recruitments.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
 }
 
-async fn clock_in(
-    AxumState(state): AxumState<HrState>,
-    Json(payload): Json<ClockInRequest>,
-) -> Json<ApiResponse<AttendanceRecord>> {
-    let key = format!("{}:{}", payload.employee_email, payload.date);
-    let record = AttendanceRecord {
-        employee_email: payload.employee_email,
-        date: payload.date,
-        clock_in: payload.clock_in,
-        clock_out: None,
-    };
-    state.attendance.write().unwrap().insert(key, record.clone());
-    Json(ApiResponse { success: true, data: record })
+async fn list_attendance(State(state): State<Arc<RwLock<HrState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Attendance> = s.attendance.values().collect();
+    Json(serde_json::json!({"attendance": items}))
 }
 
-async fn clock_out(
-    AxumState(state): AxumState<HrState>,
-    Json(payload): Json<ClockOutRequest>,
-) -> Json<ApiResponse<AttendanceRecord>> {
-    let key = format!("{}:{}", payload.employee_email, payload.date);
-    let mut attendance = state.attendance.write().unwrap();
-    let record = attendance.get_mut(&key).expect("No clock-in record found");
-    record.clock_out = Some(payload.clock_out);
-    Json(ApiResponse { success: true, data: record.clone() })
+async fn create_attendance(State(state): State<Arc<RwLock<HrState>>>, Json(mut att): Json<Attendance>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    att.id = id;
+    att.status = "Active".to_string();
+    att.created_at = Utc::now().to_rfc3339();
+    s.attendance.insert(id, att.clone());
+    Json(serde_json::json!({"attendance": att}))
 }
 
-pub fn routes() -> Router {
-    let state = HrState::new();
-    Router::new()
-        .route("/api/hr/employees", get(list_employees).post(create_employee))
-        .route("/api/hr/employees/{id}", put(update_employee))
-        .route("/api/hr/recruitment", get(list_recruitment).post(create_job_posting))
-        .route("/api/hr/attendance", get(list_attendance).post(clock_in))
-        .route("/api/hr/attendance/clock-out", post(clock_out))
-        .with_state(state)
+async fn get_attendance(State(state): State<Arc<RwLock<HrState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.attendance.get(&id) {
+        Some(a) => Json(serde_json::json!({"attendance": a})),
+        None => Json(serde_json::json!({"error": "Attendance record not found"})),
+    }
+}
+
+async fn update_attendance(State(state): State<Arc<RwLock<HrState>>>, Path(id): Path<Uuid>, Json(att): Json<Attendance>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.attendance.get_mut(&id) {
+        *existing = att.clone();
+        existing.id = id;
+        Json(serde_json::json!({"attendance": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Attendance record not found"}))
+    }
 }
