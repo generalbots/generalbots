@@ -192,15 +192,17 @@ pub async fn ws_proxy_handler(
 // Axum router builder
 // ---------------------------------------------------------------------------
 
+const PREFIX: &str = "/api/desktop";
+
 pub fn router(state: AppState) -> axum::Router {
     axum::Router::new()
-        .route("/connections", axum::routing::post(create_connection))
-        .route("/connections", axum::routing::get(list_connections))
-        .route("/connections/{id}", axum::routing::get(get_connection))
-        .route("/connections/{id}", axum::routing::delete(delete_connection))
-        .route("/health", axum::routing::get(health_check))
-        .route("/health/tcp", axum::routing::post(health_check_tcp))
-        .route("/ws/{session_id}", axum::routing::get(ws_proxy_handler))
+        .route(&format!("{PREFIX}/connections"), axum::routing::post(create_connection))
+        .route(&format!("{PREFIX}/connections"), axum::routing::get(list_connections))
+        .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::get(get_connection))
+        .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::delete(delete_connection))
+        .route(&format!("{PREFIX}/health"), axum::routing::get(health_check))
+        .route(&format!("{PREFIX}/health/tcp"), axum::routing::post(health_check_tcp))
+        .route(&format!("{PREFIX}/ws/proxy/{{session_id}}"), axum::routing::get(ws_proxy_handler))
         .with_state(state)
 }
 
@@ -216,13 +218,13 @@ impl AppState {
 
 pub fn configure_routes() -> axum::Router<Arc<AppState>> {
     axum::Router::new()
-        .route("/connections", axum::routing::post(create_connection))
-        .route("/connections", axum::routing::get(list_connections))
-        .route("/connections/{id}", axum::routing::get(get_connection))
-        .route("/connections/{id}", axum::routing::delete(delete_connection))
-        .route("/health", axum::routing::get(health_check))
-        .route("/health/tcp", axum::routing::post(health_check_tcp))
-        .route("/ws/{session_id}", axum::routing::get(ws_proxy_handler))
+        .route(&format!("{PREFIX}/connections"), axum::routing::post(create_connection))
+        .route(&format!("{PREFIX}/connections"), axum::routing::get(list_connections))
+        .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::get(get_connection))
+        .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::delete(delete_connection))
+        .route(&format!("{PREFIX}/health"), axum::routing::get(health_check))
+        .route(&format!("{PREFIX}/health/tcp"), axum::routing::post(health_check_tcp))
+        .route(&format!("{PREFIX}/ws/proxy/{{session_id}}"), axum::routing::get(ws_proxy_handler))
 }
 
 use std::sync::Arc;

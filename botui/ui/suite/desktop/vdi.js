@@ -139,7 +139,7 @@ var activeSessions = new Map();
 
         var sessionId = "vdi-" + ++sessionCounter;
         var wsProto = location.protocol === "https:" ? "wss:" : "ws:";
-        var wsUrl = wsProto + "//" + location.host + "/api/desktop/ws/proxy";
+        var wsUrl = wsProto + "//" + location.host + "/api/desktop/ws/proxy/" + sessionId;
 
         var statusEl = document.getElementById("connection-status");
         var infoEl = document.getElementById("connection-info");
