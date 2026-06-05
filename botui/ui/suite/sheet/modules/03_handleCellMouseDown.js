@@ -265,7 +265,12 @@
 
     state.isEditing = true;
     const data = getCellData(row, col);
-
+    if (window.SheetValidationEnforcement) {
+      const rule = window.SheetValidationEnforcement.checkCell(row, col, "").rule;
+      if (rule && rule.showInputMessage && rule.inputMessage) {
+        window.SheetValidationEnforcement.showInputTooltip(row, col, rule.inputMessage);
+      }
+    }
     const input = document.createElement("input");
     input.type = "text";
     input.className = "cell-input";
@@ -329,11 +334,16 @@
       addChatMessage("system", "You don't have permission to edit this sheet");
       return;
     }
-
+    if (window.SheetValidation && window.SheetValidationEnforcement) {
+      const r = window.SheetValidationEnforcement.checkCell(row, col, value);
+      if (!r.valid) {
+        window.SheetValidationEnforcement.showValidationError(row, col, r.message);
+        if (!r.rule || !r.rule.errorStyle || r.rule.errorStyle === "stop") return;
+      }
+    }
     const ws = state.worksheets[state.activeWorksheet];
     const key = `${row},${col}`;
     const oldValue = ws.data[key]?.value || ws.data[key]?.formula || '';
-
     saveToHistory();
 
     if (!value) {
@@ -434,3 +444,7 @@
     return values.length ? Math.max(...values) : 0;
   }
 
+  window.setCellValue = setCellValue;
+  window.finishEditing = finishEditing;
+  window.startEditing = startEditing;
+  window.evaluateFormula = evaluateFormula;

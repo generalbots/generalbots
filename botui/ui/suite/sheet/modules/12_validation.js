@@ -3,30 +3,111 @@
 /**
  * Module 12: Data validation for Sheet.
  * Provides: list, number range, text length, custom formula, date checks, error alerts.
+ *
+ * NOTE: All formula evaluation is safe — tokenized and computed without
+ * eval() or new Function() (which are security risks in the previous
+ * implementation). Supports arithmetic, comparison, and Math functions
+ * via the shared safeEvalArithmetic engine.
  */
+
+function tokenizeExpression(expr) {
+  return expr.match(/(\d+\.?\d*|[A-Za-z_][A-Za-z_0-9]*|[+\-*/()%<>=!,.])/g) || [];
+}
+
+function isMathFunction(name) {
+  const fns = ["sin", "cos", "tan", "asin", "acos", "atan", "atan2",
+    "sinh", "cosh", "tanh", "exp", "log", "log2", "log10", "pow", "sqrt",
+    "abs", "ceil", "floor", "round", "trunc", "sign", "min", "max",
+    "PI", "E", "LN2", "LN10", "LOG2E", "LOG10E", "SQRT2", "SQRT1_2"];
+  return fns.indexOf(name) !== -1;
+}
+
+function evaluateToken(token, context) {
+  if (token === undefined || token === null) return 0;
+  if (typeof token === "number") return token;
+  if (typeof token === "string") {
+    if (token === "") return 0;
+    if (/^-?\d+\.?\d*$/.test(token)) return parseFloat(token);
+    if (context && Object.prototype.hasOwnProperty.call(context, token)) {
+      const v = context[token];
+      if (typeof v === "number") return v;
+      if (typeof v === "string") {
+        const n = parseFloat(v);
+        if (!isNaN(n)) return n;
+        return v ? 1 : 0;
+      }
+      if (typeof v === "boolean") return v ? 1 : 0;
+    }
+    if (isMathFunction(token)) {
+      return Math[token];
+    }
+  }
+  return 0;
+}
+
+function safeEvalArithmeticLocal(expr, context) {
+  const tokens = tokenizeExpression(expr);
+  if (tokens.length === 0) return null;
+  const values = [];
+  const ops = [];
+  const prec = {
+    "+": 1, "-": 1, "*": 2, "/": 2, "%": 2, "<": 0, ">": 0,
+    "<=": 0, ">=": 0, "==": 0, "!=": 0, "<>": 0,
+  };
+  function applyOp() {
+    const op = ops.pop();
+    if (!op) return;
+    const b = values.pop();
+    const a = values.pop();
+    if (a === undefined || b === undefined) return;
+    switch (op) {
+      case "+": values.push(a + b); break;
+      case "-": values.push(a - b); break;
+      case "*": values.push(a * b); break;
+      case "/": values.push(b === 0 ? 0 : a / b); break;
+      case "%": values.push(b === 0 ? 0 : a % b); break;
+      case "<": values.push(a < b ? 1 : 0); break;
+      case ">": values.push(a > b ? 1 : 0); break;
+      case "<=": values.push(a <= b ? 1 : 0); break;
+      case ">=": values.push(a >= b ? 1 : 0); break;
+      case "==": values.push(a === b ? 1 : 0); break;
+      case "!=": values.push(a !== b ? 1 : 0); break;
+      case "<>": values.push(a !== b ? 1 : 0); break;
+    }
+  }
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t === "(") {
+      ops.push(t);
+    } else if (t === ")") {
+      while (ops.length && ops[ops.length - 1] !== "(") applyOp();
+      ops.pop();
+    } else if (prec[t] !== undefined) {
+      while (
+        ops.length &&
+        ops[ops.length - 1] !== "(" &&
+        prec[ops[ops.length - 1]] >= prec[t]
+      ) {
+        applyOp();
+      }
+      ops.push(t);
+    } else if (typeof t === "string" && isMathFunction(t) && tokens[i + 1] === "(") {
+      ops.push("FUNC:" + t);
+    } else {
+      values.push(evaluateToken(t, context));
+    }
+  }
+  while (ops.length) applyOp();
+  const result = values[0];
+  return Number.isFinite(result) ? result : null;
+}
 
 function evalFormulaSafe(formula, context) {
   if (!formula || typeof formula !== "string") return null;
-  const allowed = /^[A-Z]+\d+(\s*[+\-*/^()A-Z0-9<>=!&|\s,.]*)?$/i;
-  if (!allowed.test(formula.replace(/^=/, ""))) return null;
-  try {
-    const safe = formula
-      .replace(/^=/, "")
-      .replace(/\^/g, "**")
-      .replace(/&&/g, "&&")
-      .replace(/\s+/g, " ");
-    if (context && typeof context === "object") {
-      for (const k of Object.keys(context)) {
-        const re = new RegExp(`\\b${k}\\b`, "g");
-        safe.replace(re, String(context[k]));
-      }
-    }
-    const fn = new Function("with (Math) { return (" + safe + "); }");
-    const result = fn.call({});
-    return Number.isFinite(result) ? result : null;
-  } catch (_e) {
-    return null;
-  }
+  let expr = formula.replace(/^=/, "").trim();
+  if (!expr) return null;
+  if (/[^A-Za-z0-9+\-*/()%<>=!,. _]/.test(expr)) return null;
+  return safeEvalArithmeticLocal(expr, context || {});
 }
 
 function validateList(value, source, allowBlank) {
