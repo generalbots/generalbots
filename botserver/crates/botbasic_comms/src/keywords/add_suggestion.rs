@@ -287,7 +287,7 @@ fn add_tool_suggestion(
         let redis_key = botlib::key_utils::build_key("", &["suggestions", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
         info!("Adding suggestion to Redis key: {}", redis_key);
 
-        let prompt_for_params = params.is_some() && !params.as_ref().unwrap().is_empty();
+        let prompt_for_params = params.as_ref().is_some_and(|p| !p.is_empty());
         let action_obj = json!({
             "type": "invoke_tool",
             "tool": tool_name,

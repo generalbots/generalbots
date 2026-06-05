@@ -776,11 +776,29 @@
     }
   }
 
-  function exportAsDocx(title, content) {
-    addChatMessage(
-      "assistant",
-      "DOCX export requires server-side processing. Feature coming soon!",
-    );
+  async function exportAsDocx(title, content) {
+    try {
+      addChatMessage("assistant", "Generating DOCX...");
+      const response = await fetch("/api/docs/export/docx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content, documentId: state.documentId }),
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = (title || "document") + ".docx";
+        a.click();
+        URL.revokeObjectURL(url);
+        addChatMessage("assistant", "DOCX exported successfully!");
+      } else {
+        addChatMessage("assistant", "DOCX export failed. Try again later.");
+      }
+    } catch (e) {
+      addChatMessage("assistant", "DOCX export failed: " + e.message);
+    }
   }
 
   function exportAsHTML(title, content) {

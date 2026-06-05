@@ -1269,13 +1269,6 @@
     return data.value || "";
   }
 
-  function getCellValue(row, col) {
-    const data = getCellData(row, col);
-    if (!data) return "";
-    if (data.formula) return evaluateFormula(data.formula, row, col);
-    return data.value || "";
-  }
-
   function evaluateFormula(formula, sourceRow, sourceCol) {
     if (!formula.startsWith("=")) return formula;
 
@@ -1304,7 +1297,7 @@
         return evaluateIf(expr);
       }
 
-      const result = new Function("return " + expr)();
+      const result = safeEvalArithmetic(expr);
       return typeof result === "number"
         ? Math.round(result * 1000000) / 1000000
         : result;
@@ -1350,14 +1343,76 @@
     return values.length ? Math.min(...values) : 0;
   }
 
+  function safeEvalArithmetic(expr) {
+    expr = expr.trim();
+    if (/[^0-9+\-*/().%\s<>=!&|]/.test(expr)) return "#ERROR";
+    const tokens = expr.match(/(\d+\.?\d*|[+\-*/().%<>=!&|]+)/g);
+    if (!tokens) return "#ERROR";
+    function evalTokens(tokens) {
+      const values = [];
+      const ops = [];
+      const prec = { "+": 1, "-": 1, "*": 2, "/": 2, "%": 2, "<": 0, ">": 0, "<=": 0, ">=": 0, "==": 0, "!=": 0 };
+      function applyOp() {
+        const op = ops.pop();
+        const b = values.pop();
+        const a = values.pop();
+        switch (op) {
+          case "+": values.push(a + b); break;
+          case "-": values.push(a - b); break;
+          case "*": values.push(a * b); break;
+          case "/": values.push(b === 0 ? "#DIV/0!" : a / b); break;
+          case "%": values.push(b === 0 ? "#DIV/0!" : a % b); break;
+          case "<": values.push(a < b ? 1 : 0); break;
+          case ">": values.push(a > b ? 1 : 0); break;
+          case "<=": values.push(a <= b ? 1 : 0); break;
+          case ">=": values.push(a >= b ? 1 : 0); break;
+          case "==": values.push(a === b ? 1 : 0); break;
+          case "!=": values.push(a !== b ? 1 : 0); break;
+        }
+      }
+      for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+        if (t === "(") { ops.push(t); }
+        else if (t === ")") { while (ops.length && ops[ops.length - 1] !== "(") applyOp(); ops.pop(); }
+        else if (t in prec) {
+          while (ops.length && ops[ops.length - 1] !== "(" && prec[ops[ops.length - 1]] >= prec[t]) applyOp();
+          ops.push(t);
+        } else { values.push(parseFloat(t) || 0); }
+      }
+      while (ops.length) applyOp();
+      return values[0];
+    }
+    return evalTokens(tokens);
+  }
+
+  function safeEvalCondition(expr) {
+    expr = expr.trim();
+    const m = expr.match(/^(.+?)\s*(>=|<=|!=|>|<|==)\s*(.+)$/);
+    if (m) {
+      const a = safeEvalArithmetic(m[1]);
+      const b = safeEvalArithmetic(m[3]);
+      if (typeof a === "string" && a.startsWith("#")) return false;
+      if (typeof b === "string" && b.startsWith("#")) return false;
+      switch (m[2]) {
+        case ">": return a > b;
+        case "<": return a < b;
+        case ">=": return a >= b;
+        case "<=": return a <= b;
+        case "==": return a === b;
+        case "!=": return a !== b;
+      }
+    }
+    return !!safeEvalArithmetic(expr);
+  }
+
   function evaluateIf(expr) {
     const match = expr.match(/IF\(([^,]+),([^,]+),([^)]+)\)/i);
     if (!match) return "#ERROR";
     try {
-      const condition = new Function("return " + match[1])();
+      const condition = safeEvalCondition(match[1]);
       return condition
-        ? new Function("return " + match[2])()
-        : new Function("return " + match[3])();
+        ? safeEvalArithmetic(match[2])
+        : safeEvalArithmetic(match[3]);
     } catch {
       return "#ERROR";
     }
@@ -2141,8 +2196,8 @@
     
     try {
       if (!state.sheetId) {
-        const response = await saveSheet();
-        if (!response.ok) throw new Error('Failed to save first');
+        await saveSheet();
+        if (!state.sheetId) throw new Error('Failed to save sheet before export');
       }
       
       const response = await fetch('/api/sheet/export', {

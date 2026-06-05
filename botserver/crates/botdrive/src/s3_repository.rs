@@ -232,8 +232,10 @@ impl S3Repository {
             .map_err(|e| anyhow::anyhow!("long date: {}", e))?;
 
         let mut headers = http::HeaderMap::new();
-        headers.insert("host", endpoint.parse().unwrap());
-        headers.insert("x-amz-date", long_date.parse().unwrap());
+        headers.insert("host", endpoint.parse()
+            .map_err(|e| anyhow::anyhow!("invalid host header: {}", e))?);
+        headers.insert("x-amz-date", long_date.parse()
+            .map_err(|e| anyhow::anyhow!("invalid date header: {}", e))?);
         headers.insert("x-amz-content-sha256", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".parse().unwrap());
         headers.insert("x-amz-acl", "private".parse().unwrap());
 
@@ -297,7 +299,8 @@ impl S3Repository {
             sh = signed_hdrs,
             sig = signature,
         );
-        headers.insert("authorization", auth.parse().unwrap());
+        headers.insert("authorization", auth.parse()
+            .map_err(|e| anyhow::anyhow!("invalid auth header: {}", e))?);
 
         let client = reqwest::Client::new();
         let resp = client.put(&url_str)

@@ -133,7 +133,9 @@ pub async fn track_email_click(
     *response.status_mut() = StatusCode::FOUND;
     response.headers_mut().insert(
         header::LOCATION,
-        destination.parse().unwrap(),
+        destination.parse::<header::HeaderValue>().unwrap_or_else(|_| {
+            header::HeaderValue::from_static("/")
+        }),
     );
     response
 }
