@@ -1,0 +1,193 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .green-text { fill: #22c55e; font-family: system-ui, -apple-system, sans-serif; }
+    .red-text { fill: #ef4444; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card-bg { fill: #f8fafc; }
+    .tab-active { fill: #eff6ff; }
+    .status-matched { fill: #dcfce7; }
+    .status-unmatched { fill: #fee2e2; }
+    .status-pending { fill: #fef3c7; }
+    .row-alt { fill: #f8fafc; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .green-text { fill: #4ade80; }
+      .red-text { fill: #f87171; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card-bg { fill: #1e293b; }
+      .tab-active { fill: #1e3a5f; }
+      .status-matched { fill: #14532d; }
+      .status-unmatched { fill: #450a0a; }
+      .status-pending { fill: #451a03; }
+      .row-alt { fill: #1e293b; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Banking Reconciliation</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(30, 40)">
+    <rect x="0" y="0" width="840" height="42" class="panel-bg"/>
+    <line x1="0" y1="42" x2="840" y2="42" class="border"/>
+    <g transform="translate(20, 0)">
+      <rect x="0" y="2" width="110" height="38" rx="6" class="tab-active"/>
+      <text x="55" y="26" text-anchor="middle" font-size="13" font-weight="500" class="accent-text">Transactions</text>
+    </g>
+    <g transform="translate(145, 0)">
+      <text x="50" y="26" text-anchor="middle" font-size="13" class="secondary-text">Platforms</text>
+    </g>
+    <g transform="translate(260, 0)">
+      <text x="70" y="26" text-anchor="middle" font-size="13" class="secondary-text">Reconciliation</text>
+    </g>
+    <g transform="translate(410, 0)">
+      <text x="45" y="26" text-anchor="middle" font-size="13" class="secondary-text">Reports</text>
+    </g>
+  </g>
+
+  <!-- Stats Cards -->
+  <g transform="translate(50, 100)">
+    <!-- Total Transactions -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="250" height="80" rx="10" class="card-bg"/>
+      <rect x="0" y="0" width="250" height="80" rx="10" class="border"/>
+      <rect x="15" y="15" width="40" height="40" rx="10" fill="url(#accentGrad)"/>
+      <text x="35" y="42" text-anchor="middle" font-size="18" class="white-text">📊</text>
+      <text x="70" y="32" font-size="12" class="secondary-text">Total Transactions</text>
+      <text x="70" y="58" font-size="22" font-weight="700" class="main-text">1,247</text>
+    </g>
+
+    <!-- Matched -->
+    <g transform="translate(275, 0)">
+      <rect x="0" y="0" width="250" height="80" rx="10" class="card-bg"/>
+      <rect x="0" y="0" width="250" height="80" rx="10" class="border"/>
+      <rect x="15" y="15" width="40" height="40" rx="10" fill="url(#greenGrad)"/>
+      <text x="35" y="42" text-anchor="middle" font-size="18" class="white-text">✓</text>
+      <text x="70" y="32" font-size="12" class="secondary-text">Matched</text>
+      <text x="70" y="58" font-size="22" font-weight="700" class="green-text">1,182</text>
+      <text x="230" y="58" font-size="12" class="green-text">94.8%</text>
+    </g>
+
+    <!-- Unmatched -->
+    <g transform="translate(550, 0)">
+      <rect x="0" y="0" width="250" height="80" rx="10" class="card-bg"/>
+      <rect x="0" y="0" width="250" height="80" rx="10" class="border"/>
+      <rect x="15" y="15" width="40" height="40" rx="10" fill="#ef4444"/>
+      <text x="35" y="42" text-anchor="middle" font-size="18" class="white-text">!</text>
+      <text x="70" y="32" font-size="12" class="secondary-text">Unmatched</text>
+      <text x="70" y="58" font-size="22" font-weight="700" class="red-text">65</text>
+      <text x="230" y="58" font-size="12" class="red-text">5.2%</text>
+    </g>
+  </g>
+
+  <!-- Transactions Table -->
+  <g transform="translate(50, 200)">
+    <rect x="0" y="0" width="750" height="310" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="750" height="310" rx="10" class="border"/>
+    <text x="20" y="28" font-size="14" font-weight="600" class="main-text">Transactions</text>
+
+    <!-- Table Header -->
+    <line x1="10" y1="42" x2="740" y2="42" class="border"/>
+    <text x="20" y="58" font-size="11" font-weight="600" class="muted-text">DATE</text>
+    <text x="130" y="58" font-size="11" font-weight="600" class="muted-text">DESCRIPTION</text>
+    <text x="380" y="58" font-size="11" font-weight="600" class="muted-text">AMOUNT</text>
+    <text x="500" y="58" font-size="11" font-weight="600" class="muted-text">PLATFORM</text>
+    <text x="620" y="58" font-size="11" font-weight="600" class="muted-text">STATUS</text>
+
+    <!-- Row 1 -->
+    <g transform="translate(0, 65)">
+      <rect x="0" y="0" width="750" height="40" class="row-alt"/>
+      <text x="20" y="25" font-size="12" class="main-text">2026-06-04</text>
+      <text x="130" y="25" font-size="12" class="main-text">Payment to Supplier Inc.</text>
+      <text x="380" y="25" font-size="12" font-weight="500" class="main-text">-$12,450.00</text>
+      <text x="500" y="25" font-size="12" class="secondary-text">Stripe</text>
+      <rect x="620" y="8" width="65" height="22" rx="4" class="status-matched"/>
+      <text x="652" y="24" text-anchor="middle" font-size="10" class="green-text">Matched</text>
+    </g>
+
+    <!-- Row 2 -->
+    <g transform="translate(0, 105)">
+      <text x="20" y="25" font-size="12" class="main-text">2026-06-04</text>
+      <text x="130" y="25" font-size="12" class="main-text">Customer refund #4821</text>
+      <text x="380" y="25" font-size="12" font-weight="500" class="main-text">-$340.00</text>
+      <text x="500" y="25" font-size="12" class="secondary-text">PayPal</text>
+      <rect x="620" y="8" width="65" height="22" rx="4" class="status-unmatched"/>
+      <text x="652" y="24" text-anchor="middle" font-size="10" class="red-text">Unmatched</text>
+    </g>
+
+    <!-- Row 3 -->
+    <g transform="translate(0, 145)">
+      <rect x="0" y="0" width="750" height="40" class="row-alt"/>
+      <text x="20" y="25" font-size="12" class="main-text">2026-06-03</text>
+      <text x="130" y="25" font-size="12" class="main-text">Subscription revenue</text>
+      <text x="380" y="25" font-size="12" font-weight="500" class="green-text">+$8,920.00</text>
+      <text x="500" y="25" font-size="12" class="secondary-text">Stripe</text>
+      <rect x="620" y="8" width="65" height="22" rx="4" class="status-matched"/>
+      <text x="652" y="24" text-anchor="middle" font-size="10" class="green-text">Matched</text>
+    </g>
+
+    <!-- Row 4 -->
+    <g transform="translate(0, 185)">
+      <text x="20" y="25" font-size="12" class="main-text">2026-06-03</text>
+      <text x="130" y="25" font-size="12" class="main-text">Bank transfer fee</text>
+      <text x="380" y="25" font-size="12" font-weight="500" class="main-text">-$25.00</text>
+      <text x="500" y="25" font-size="12" class="secondary-text">Wire</text>
+      <rect x="620" y="8" width="72" height="22" rx="4" class="status-pending"/>
+      <text x="656" y="24" text-anchor="middle" font-size="10" class="accent-text">Pending</text>
+    </g>
+
+    <!-- Row 5 -->
+    <g transform="translate(0, 225)">
+      <rect x="0" y="0" width="750" height="40" class="row-alt"/>
+      <text x="20" y="25" font-size="12" class="main-text">2026-06-02</text>
+      <text x="130" y="25" font-size="12" class="main-text">Invoice payment #1089</text>
+      <text x="380" y="25" font-size="12" font-weight="500" class="green-text">+$3,200.00</text>
+      <text x="500" y="25" font-size="12" class="secondary-text">Bank</text>
+      <rect x="620" y="8" width="65" height="22" rx="4" class="status-matched"/>
+      <text x="652" y="24" text-anchor="middle" font-size="10" class="green-text">Matched</text>
+    </g>
+
+    <!-- Row 6 -->
+    <g transform="translate(0, 265)">
+      <text x="20" y="25" font-size="12" class="main-text">2026-06-02</text>
+      <text x="130" y="25" font-size="12" class="main-text">AWS infrastructure</text>
+      <text x="380" y="25" font-size="12" font-weight="500" class="main-text">-$1,847.32</text>
+      <text x="500" y="25" font-size="12" class="secondary-text">Credit Card</text>
+      <rect x="620" y="8" width="65" height="22" rx="4" class="status-matched"/>
+      <text x="652" y="24" text-anchor="middle" font-size="10" class="green-text">Matched</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 560)">
+    <text x="0" y="0" font-size="10" class="muted-text">R = Refresh | M = Auto-match | E = Export | F = Filter</text>
+  </g>
+</svg>

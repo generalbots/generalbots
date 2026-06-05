@@ -1,0 +1,154 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .nav-active { fill: #eff6ff; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .connected-badge { fill: #22c55e; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .nav-active { fill: #1e3a5f; }
+      .card { fill: #1e293b; stroke: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Microsoft 365 Integration</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Top Bar -->
+  <g transform="translate(50, 55)">
+    <text x="0" y="15" font-size="18" font-weight="600" class="main-text">Microsoft 365</text>
+    <rect x="700" y="-8" width="70" height="24" rx="12" fill="#dcfce7"/>
+    <text x="735" y="8" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Connected</text>
+  </g>
+
+  <line x1="30" y1="85" x2="870" y2="85" class="border"/>
+
+  <!-- Stats Row -->
+  <g transform="translate(50, 95)">
+    <!-- SharePoint Sites -->
+    <rect x="0" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="16" y="12" width="40" height="40" rx="8" fill="#0078d4" opacity="0.15"/>
+    <text x="36" y="38" text-anchor="middle" font-size="14">🌐</text>
+    <text x="68" y="30" font-size="11" class="muted-text">SharePoint Sites</text>
+    <text x="68" y="52" font-size="22" font-weight="700" class="accent-text">8</text>
+
+    <!-- Calendar Events -->
+    <rect x="200" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="216" y="12" width="40" height="40" rx="8" fill="#22c55e" opacity="0.15"/>
+    <text x="236" y="38" text-anchor="middle" font-size="14">📅</text>
+    <text x="268" y="30" font-size="11" class="muted-text">Calendar Events</text>
+    <text x="268" y="52" font-size="22" font-weight="700" fill="#22c55e">24</text>
+
+    <!-- OneDrive Files -->
+    <rect x="400" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="416" y="12" width="40" height="40" rx="8" fill="#8b5cf6" opacity="0.15"/>
+    <text x="436" y="38" text-anchor="middle" font-size="14">📁</text>
+    <text x="468" y="30" font-size="11" class="muted-text">OneDrive Files</text>
+    <text x="468" y="52" font-size="22" font-weight="700" fill="#8b5cf6">1.2K</text>
+
+    <!-- Status -->
+    <rect x="600" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="616" y="12" width="40" height="40" rx="8" fill="#dcfce7"/>
+    <text x="636" y="38" text-anchor="middle" font-size="14">✅</text>
+    <text x="668" y="30" font-size="11" class="muted-text">Status</text>
+    <text x="668" y="52" font-size="22" font-weight="700" fill="#22c55e">Active</text>
+  </g>
+
+  <line x1="30" y1="180" x2="870" y2="180" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(50, 190)">
+    <rect x="0" y="0" width="90" height="32" rx="6" class="nav-active"/>
+    <text x="45" y="21" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">SharePoint</text>
+    <text x="155" y="21" text-anchor="middle" font-size="12" class="secondary-text">Calendar</text>
+    <text x="260" y="21" text-anchor="middle" font-size="12" class="secondary-text">OneDrive</text>
+    <text x="365" y="21" text-anchor="middle" font-size="12" class="secondary-text">Settings</text>
+  </g>
+
+  <line x1="30" y1="235" x2="870" y2="235" class="border"/>
+
+  <!-- SharePoint Sites Grid (2x2) -->
+  <g transform="translate(50, 250)">
+    <!-- Site 1 -->
+    <rect x="0" y="0" width="380" height="100" rx="8" class="card"/>
+    <rect x="16" y="16" width="44" height="44" rx="8" fill="#0078d4"/>
+    <text x="38" y="44" text-anchor="middle" font-size="16" class="white-text">🌐</text>
+    <text x="72" y="30" font-size="14" font-weight="600" class="main-text">Engineering Team</text>
+    <rect x="310" y="12" width="50" height="20" rx="10" fill="#dbeafe"/>
+    <text x="335" y="26" text-anchor="middle" font-size="9" font-weight="500" fill="#2563eb">Active</text>
+    <text x="72" y="48" font-size="12" class="secondary-text">142 documents</text>
+    <text x="72" y="68" font-size="11" class="muted-text">Last modified: 2 hours ago</text>
+    <text x="72" y="84" font-size="11" class="muted-text">https://contoso.sharepoint.com/eng</text>
+
+    <!-- Site 2 -->
+    <rect x="410" y="0" width="380" height="100" rx="8" class="card"/>
+    <rect x="426" y="16" width="44" height="44" rx="8" fill="#22c55e"/>
+    <text x="448" y="44" text-anchor="middle" font-size="16" class="white-text">🌐</text>
+    <text x="482" y="30" font-size="14" font-weight="600" class="main-text">Marketing Hub</text>
+    <rect x="720" y="12" width="50" height="20" rx="10" fill="#dbeafe"/>
+    <text x="745" y="26" text-anchor="middle" font-size="9" font-weight="500" fill="#2563eb">Active</text>
+    <text x="482" y="48" font-size="12" class="secondary-text">89 documents</text>
+    <text x="482" y="68" font-size="11" class="muted-text">Last modified: 1 day ago</text>
+    <text x="482" y="84" font-size="11" class="muted-text">https://contoso.sharepoint.com/mkt</text>
+
+    <!-- Site 3 -->
+    <rect x="0" y="115" width="380" height="100" rx="8" class="card"/>
+    <rect x="16" y="131" width="44" height="44" rx="8" fill="#8b5cf6"/>
+    <text x="38" y="159" text-anchor="middle" font-size="16" class="white-text">🌐</text>
+    <text x="72" y="145" font-size="14" font-weight="600" class="main-text">HR Department</text>
+    <rect x="310" y="127" width="50" height="20" rx="10" fill="#dbeafe"/>
+    <text x="335" y="141" text-anchor="middle" font-size="9" font-weight="500" fill="#2563eb">Active</text>
+    <text x="72" y="163" font-size="12" class="secondary-text">56 documents</text>
+    <text x="72" y="183" font-size="11" class="muted-text">Last modified: 3 days ago</text>
+    <text x="72" y="199" font-size="11" class="muted-text">https://contoso.sharepoint.com/hr</text>
+
+    <!-- Site 4 -->
+    <rect x="410" y="115" width="380" height="100" rx="8" class="card"/>
+    <rect x="426" y="131" width="44" height="44" rx="8" fill="#f97316"/>
+    <text x="448" y="159" text-anchor="middle" font-size="16" class="white-text">🌐</text>
+    <text x="482" y="145" font-size="14" font-weight="600" class="main-text">Finance Portal</text>
+    <rect x="720" y="127" width="50" height="20" rx="10" fill="#dcfce7"/>
+    <text x="745" y="141" text-anchor="middle" font-size="9" font-weight="500" fill="#16a34a">Private</text>
+    <text x="482" y="163" font-size="12" class="secondary-text">203 documents</text>
+    <text x="482" y="183" font-size="11" class="muted-text">Last modified: 5 hours ago</text>
+    <text x="482" y="199" font-size="11" class="muted-text">https://contoso.sharepoint.com/fin</text>
+  </g>
+
+  <!-- Bottom Status -->
+  <line x1="30" y1="480" x2="870" y2="480" class="border"/>
+  <text x="50" y="500" font-size="11" class="muted-text">Tenant: contoso.onmicrosoft.com</text>
+  <text x="830" y="500" text-anchor="end" font-size="11" class="accent-text">Manage Permissions →</text>
+</svg>

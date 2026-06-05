@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #1a1a2e; }
+        .panel-bg { fill: #16213e; }
+        .card-bg { fill: #0f3460; }
+        .main-text { fill: #e0e0e0; }
+        .secondary-text { fill: #b0b0b0; }
+        .muted-text { fill: #808080; }
+        .white-text { fill: #ffffff; }
+        .accent-text { fill: #3b82f6; }
+        .border { stroke: #2a2a4a; stroke-width: 1; fill: none; }
+        .card-border { stroke: #2a2a4a; stroke-width: 1; fill: #0f3460; }
+        .tab-active { fill: #3b82f6; }
+        .tab-inactive { fill: #2a2a4a; }
+        .stat-card { fill: #0f3460; }
+        .badge-business { fill: #22c55e; }
+        .badge-service { fill: #8b5cf6; }
+        .badge-lifestyle { fill: #f97316; }
+        .badge-custom { fill: #06b6d4; }
+        .btn-use { fill: #3b82f6; }
+      }
+      @media (prefers-color-scheme: light) {
+        .bg { fill: #f5f5f5; }
+        .panel-bg { fill: #ffffff; }
+        .card-bg { fill: #f8fafc; }
+        .main-text { fill: #1e293b; }
+        .secondary-text { fill: #475569; }
+        .muted-text { fill: #94a3b8; }
+        .white-text { fill: #ffffff; }
+        .accent-text { fill: #2563eb; }
+        .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+        .card-border { stroke: #e2e8f0; stroke-width: 1; fill: #f8fafc; }
+        .tab-active { fill: #2563eb; }
+        .tab-inactive { fill: #e2e8f0; }
+        .stat-card { fill: #f8fafc; }
+        .badge-business { fill: #16a34a; }
+        .badge-service { fill: #7c3aed; }
+        .badge-lifestyle { fill: #ea580c; }
+        .badge-custom { fill: #0891b2; }
+        .btn-use { fill: #2563eb; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="900" height="600" rx="0"/>
+
+  <!-- Title -->
+  <text x="450" y="40" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="main-text">Bot Templates</text>
+
+  <!-- Main Panel -->
+  <rect class="panel-bg" x="20" y="60" width="860" height="520" rx="8" stroke-width="1"/>
+  <rect class="border" x="20" y="60" width="860" height="520" rx="8"/>
+
+  <!-- Stats Row -->
+  <rect class="stat-card" x="40" y="80" width="195" height="60" rx="6"/>
+  <rect class="border" x="40" y="80" width="195" height="60" rx="6"/>
+  <text x="60" y="103" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Total</text>
+  <text x="60" y="127" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="accent-text">24</text>
+
+  <rect class="stat-card" x="250" y="80" width="195" height="60" rx="6"/>
+  <rect class="border" x="250" y="80" width="195" height="60" rx="6"/>
+  <text x="270" y="103" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Business</text>
+  <text x="270" y="127" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="badge-business">10</text>
+
+  <rect class="stat-card" x="460" y="80" width="195" height="60" rx="6"/>
+  <rect class="border" x="460" y="80" width="195" height="60" rx="6"/>
+  <text x="480" y="103" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Service</text>
+  <text x="480" y="127" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="badge-service">8</text>
+
+  <rect class="stat-card" x="670" y="80" width="195" height="60" rx="6"/>
+  <rect class="border" x="670" y="80" width="195" height="60" rx="6"/>
+  <text x="690" y="103" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Lifestyle</text>
+  <text x="690" y="127" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="badge-lifestyle">6</text>
+
+  <!-- Tab Bar -->
+  <rect class="tab-active" x="40" y="155" width="70" height="28" rx="6"/>
+  <text x="75" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="white-text">All</text>
+  <rect class="tab-inactive" x="120" y="155" width="90" height="28" rx="6"/>
+  <text x="165" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Business</text>
+  <rect class="tab-inactive" x="220" y="155" width="80" height="28" rx="6"/>
+  <text x="260" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Service</text>
+  <rect class="tab-inactive" x="310" y="155" width="90" height="28" rx="6"/>
+  <text x="355" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Lifestyle</text>
+  <rect class="tab-inactive" x="410" y="155" width="80" height="28" rx="6"/>
+  <text x="450" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Custom</text>
+
+  <!-- Template Grid - Row 1 -->
+  <!-- Card 1 -->
+  <rect class="card-border" x="40" y="200" width="260" height="155" rx="6"/>
+  <rect class="card-bg" x="41" y="201" width="258" height="153" rx="5"/>
+  <rect class="badge-business" x="55" y="215" width="60" height="18" rx="9"/>
+  <text x="85" y="228" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" class="white-text">Business</text>
+  <text x="55" y="258" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" class="main-text">Sales Assistant</text>
+  <text x="55" y="278" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">CRM integration with pipeline management</text>
+  <text x="55" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">KB docs: 5 | Tools: 8</text>
+  <rect class="btn-use" x="55" y="318" width="230" height="26" rx="5"/>
+  <text x="170" y="336" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="white-text">Use Template</text>
+
+  <!-- Card 2 -->
+  <rect class="card-border" x="320" y="200" width="260" height="155" rx="6"/>
+  <rect class="card-bg" x="321" y="201" width="258" height="153" rx="5"/>
+  <rect class="badge-service" x="335" y="215" width="55" height="18" rx="9"/>
+  <text x="362" y="228" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" class="white-text">Service</text>
+  <text x="335" y="258" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" class="main-text">Support Bot</text>
+  <text x="335" y="278" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Help desk with ticketing integration</text>
+  <text x="335" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">KB docs: 12 | Tools: 6</text>
+  <rect class="btn-use" x="335" y="318" width="230" height="26" rx="5"/>
+  <text x="450" y="336" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="white-text">Use Template</text>
+
+  <!-- Card 3 -->
+  <rect class="card-border" x="600" y="200" width="260" height="155" rx="6"/>
+  <rect class="card-bg" x="601" y="201" width="258" height="153" rx="5"/>
+  <rect class="badge-lifestyle" x="615" y="215" width="65" height="18" rx="9"/>
+  <text x="647" y="228" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" class="white-text">Lifestyle</text>
+  <text x="615" y="258" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" class="main-text">Fitness Coach</text>
+  <text x="615" y="278" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Workout plans and nutrition tracking</text>
+  <text x="615" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">KB docs: 3 | Tools: 4</text>
+  <rect class="btn-use" x="615" y="318" width="230" height="26" rx="5"/>
+  <text x="730" y="336" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="white-text">Use Template</text>
+
+  <!-- Template Grid - Row 2 -->
+  <!-- Card 4 -->
+  <rect class="card-border" x="40" y="370" width="260" height="155" rx="6"/>
+  <rect class="card-bg" x="41" y="371" width="258" height="153" rx="5"/>
+  <rect class="badge-business" x="55" y="385" width="60" height="18" rx="9"/>
+  <text x="85" y="398" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" class="white-text">Business</text>
+  <text x="55" y="428" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" class="main-text">Invoice Manager</text>
+  <text x="55" y="448" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Automated billing and payment tracking</text>
+  <text x="55" y="468" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">KB docs: 2 | Tools: 10</text>
+  <rect class="btn-use" x="55" y="488" width="230" height="26" rx="5"/>
+  <text x="170" y="506" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="white-text">Use Template</text>
+
+  <!-- Card 5 -->
+  <rect class="card-border" x="320" y="370" width="260" height="155" rx="6"/>
+  <rect class="card-bg" x="321" y="371" width="258" height="153" rx="5"/>
+  <rect class="badge-service" x="335" y="385" width="55" height="18" rx="9"/>
+  <text x="362" y="398" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" class="white-text">Service</text>
+  <text x="335" y="428" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" class="main-text">HR Assistant</text>
+  <text x="335" y="448" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Employee onboarding and policies</text>
+  <text x="335" y="468" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">KB docs: 8 | Tools: 5</text>
+  <rect class="btn-use" x="335" y="488" width="230" height="26" rx="5"/>
+  <text x="450" y="506" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="white-text">Use Template</text>
+
+  <!-- Card 6 -->
+  <rect class="card-border" x="600" y="370" width="260" height="155" rx="6"/>
+  <rect class="card-bg" x="601" y="371" width="258" height="153" rx="5"/>
+  <rect class="badge-lifestyle" x="615" y="385" width="65" height="18" rx="9"/>
+  <text x="647" y="398" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" class="white-text">Lifestyle</text>
+  <text x="615" y="428" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" class="main-text">Travel Planner</text>
+  <text x="615" y="448" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Itinerary builder with booking APIs</text>
+  <text x="615" y="468" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">KB docs: 4 | Tools: 7</text>
+  <rect class="btn-use" x="615" y="488" width="230" height="26" rx="5"/>
+  <text x="730" y="506" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="white-text">Use Template</text>
+</svg>

@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel-bg { fill: #ffffff; }
+      .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+      .secondary-text { fill: #475569; font-family: system-ui, -apple-system, sans-serif; }
+      .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+      .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+      .accent-text { fill: #ef4444; font-family: system-ui, -apple-system, sans-serif; }
+      .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+      .icon-btn { fill: #f1f5f9; rx: 6; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #0f172a; }
+        .panel-bg { fill: #1e293b; }
+        .main-text { fill: #f1f5f9; }
+        .secondary-text { fill: #cbd5e1; }
+        .muted-text { fill: #64748b; }
+        .white-text { fill: #f1f5f9; }
+        .accent-text { fill: #f87171; }
+        .border { stroke: #334155; }
+        .icon-btn { fill: #334155; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="600" class="bg" rx="0"/>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" class="main-text" font-size="18" font-weight="600">Motor Anti-Fraude</text>
+
+  <!-- Main Card -->
+  <rect x="16" y="52" width="868" height="536" rx="8" class="panel-bg"/>
+  <rect x="16" y="52" width="868" height="536" rx="8" class="border"/>
+
+  <!-- Stats Row -->
+  <!-- Bloqueados -->
+  <rect x="28" y="68" width="200" height="64" rx="8" class="panel-bg"/>
+  <rect x="28" y="68" width="200" height="64" rx="8" class="border"/>
+  <text x="44" y="92" class="muted-text" font-size="11">Bloqueados</text>
+  <text x="44" y="118" class="accent-text" font-size="22" font-weight="700">23</text>
+
+  <!-- Fila Revisão -->
+  <rect x="240" y="68" width="200" height="64" rx="8" class="panel-bg"/>
+  <rect x="240" y="68" width="200" height="64" rx="8" class="border"/>
+  <text x="256" y="92" class="muted-text" font-size="11">Fila Revisão</text>
+  <text x="256" y="118" fill="#f59e0b" font-size="22" font-weight="700" font-family="system-ui, -apple-system, sans-serif">8</text>
+
+  <!-- Falso Positivo -->
+  <rect x="452" y="68" width="200" height="64" rx="8" class="panel-bg"/>
+  <rect x="452" y="68" width="200" height="64" rx="8" class="border"/>
+  <text x="468" y="92" class="muted-text" font-size="11">Falso Positivo</text>
+  <text x="468" y="118" fill="#22c55e" font-size="22" font-weight="700" font-family="system-ui, -apple-system, sans-serif">2.1%</text>
+
+  <!-- Analisadas -->
+  <rect x="664" y="68" width="200" height="64" rx="8" class="panel-bg"/>
+  <rect x="664" y="68" width="200" height="64" rx="8" class="border"/>
+  <text x="680" y="92" class="muted-text" font-size="11">Analisadas</text>
+  <text x="680" y="118" class="main-text" font-size="22" font-weight="700">1,247</text>
+
+  <!-- Tab Bar -->
+  <rect x="28" y="148" width="100" height="32" rx="6" fill="#ef4444" opacity="0.1"/>
+  <text x="44" y="169" class="accent-text" font-size="12" font-weight="500">Transações</text>
+  <text x="148" y="169" class="secondary-text" font-size="12">Regras</text>
+  <text x="224" y="169" class="secondary-text" font-size="12">Bloqueio</text>
+  <text x="312" y="169" class="secondary-text" font-size="12">Relatórios</text>
+
+  <!-- Table Header -->
+  <rect x="28" y="194" width="840" height="32" rx="6" fill="#f1f5f9"/>
+  <text x="44" y="214" class="secondary-text" font-size="12" font-weight="600">Transaction ID</text>
+  <text x="180" y="214" class="secondary-text" font-size="12" font-weight="600">User</text>
+  <text x="320" y="214" class="secondary-text" font-size="12" font-weight="600">Amount</text>
+  <text x="440" y="214" class="secondary-text" font-size="12" font-weight="600">Risk Score</text>
+  <text x="560" y="214" class="secondary-text" font-size="12" font-weight="600">Time</text>
+  <text x="720" y="214" class="secondary-text" font-size="12" font-weight="600">Status</text>
+
+  <!-- Row 1 - Approved -->
+  <line x1="28" y1="234" x2="868" y2="234" class="border"/>
+  <text x="44" y="252" class="secondary-text" font-size="12" font-family="monospace">TXN-8842</text>
+  <text x="180" y="252" class="secondary-text" font-size="12">user_1827</text>
+  <text x="320" y="252" class="secondary-text" font-size="12" font-weight="500">$420.00</text>
+  <text x="440" y="252" fill="#22c55e" font-size="12" font-family="system-ui, -apple-system, sans-serif">12</text>
+  <text x="560" y="252" class="muted-text" font-size="12">14:32:01</text>
+  <rect x="720" y="238" width="76" height="20" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="728" y="252" fill="#22c55e" font-size="11" font-family="system-ui, -apple-system, sans-serif">Aprovado</text>
+
+  <!-- Row 2 - Review -->
+  <line x1="28" y1="268" x2="868" y2="268" class="border"/>
+  <text x="44" y="286" class="secondary-text" font-size="12" font-family="monospace">TXN-8843</text>
+  <text x="180" y="286" class="secondary-text" font-size="12">user_3941</text>
+  <text x="320" y="286" class="secondary-text" font-size="12" font-weight="500">$2,850.00</text>
+  <text x="440" y="286" fill="#f59e0b" font-size="12" font-family="system-ui, -apple-system, sans-serif">67</text>
+  <text x="560" y="286" class="muted-text" font-size="12">14:28:45</text>
+  <rect x="720" y="272" width="68" height="20" rx="4" fill="#f59e0b" opacity="0.15"/>
+  <text x="730" y="286" fill="#f59e0b" font-size="11" font-family="system-ui, -apple-system, sans-serif">Revisão</text>
+
+  <!-- Row 3 - Blocked -->
+  <line x1="28" y1="302" x2="868" y2="302" class="border"/>
+  <text x="44" y="320" class="secondary-text" font-size="12" font-family="monospace">TXN-8844</text>
+  <text x="180" y="320" class="secondary-text" font-size="12">user_5502</text>
+  <text x="320" y="320" class="secondary-text" font-size="12" font-weight="500">$15,200.00</text>
+  <text x="440" y="320" class="accent-text" font-size="12" font-family="system-ui, -apple-system, sans-serif">94</text>
+  <text x="560" y="320" class="muted-text" font-size="12">14:25:12</text>
+  <rect x="720" y="306" width="82" height="20" rx="4" fill="#ef4444" opacity="0.15"/>
+  <text x="728" y="320" fill="#ef4444" font-size="11" font-family="system-ui, -apple-system, sans-serif">Bloqueado</text>
+
+  <!-- Row 4 - Approved -->
+  <line x1="28" y1="336" x2="868" y2="336" class="border"/>
+  <text x="44" y="354" class="secondary-text" font-size="12" font-family="monospace">TXN-8845</text>
+  <text x="180" y="354" class="secondary-text" font-size="12">user_7714</text>
+  <text x="320" y="354" class="secondary-text" font-size="12" font-weight="500">$85.00</text>
+  <text x="440" y="354" fill="#22c55e" font-size="12" font-family="system-ui, -apple-system, sans-serif">8</text>
+  <text x="560" y="354" class="muted-text" font-size="12">14:22:33</text>
+  <rect x="720" y="340" width="76" height="20" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="728" y="354" fill="#22c55e" font-size="11" font-family="system-ui, -apple-system, sans-serif">Aprovado</text>
+
+  <!-- Row 5 - Review -->
+  <line x1="28" y1="370" x2="868" y2="370" class="border"/>
+  <text x="44" y="388" class="secondary-text" font-size="12" font-family="monospace">TXN-8846</text>
+  <text x="180" y="388" class="secondary-text" font-size="12">user_2298</text>
+  <text x="320" y="388" class="secondary-text" font-size="12" font-weight="500">$3,400.00</text>
+  <text x="440" y="388" fill="#f59e0b" font-size="12" font-family="system-ui, -apple-system, sans-serif">58</text>
+  <text x="560" y="388" class="muted-text" font-size="12">14:19:07</text>
+  <rect x="720" y="374" width="68" height="20" rx="4" fill="#f59e0b" opacity="0.15"/>
+  <text x="730" y="388" fill="#f59e0b" font-size="11" font-family="system-ui, -apple-system, sans-serif">Revisão</text>
+
+  <line x1="28" y1="404" x2="868" y2="404" class="border"/>
+</svg>

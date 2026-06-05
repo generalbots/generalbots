@@ -1,0 +1,164 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .row-hover { fill: #f1f5f9; }
+    .row-selected { fill: #eff6ff; }
+    .nav-active { fill: #eff6ff; }
+    .stat-bg { fill: #f0f9ff; }
+    .green-dot { fill: #22c55e; }
+    .yellow-dot { fill: #f59e0b; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .row-hover { fill: #1e293b; }
+      .row-selected { fill: #1e3a5f; }
+      .nav-active { fill: #1e3a5f; }
+      .stat-bg { fill: #1e293b; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Monitoring</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Sidebar Panel -->
+  <rect x="30" y="40" width="160" height="530" class="panel-bg"/>
+  <line x1="190" y1="40" x2="190" y2="570" class="border"/>
+
+  <!-- Sidebar Navigation -->
+  <g transform="translate(45, 60)">
+    <rect x="-10" y="-8" width="150" height="36" rx="6" class="nav-active"/>
+    <text x="0" y="14" font-size="14">📊</text>
+    <text x="25" y="14" font-size="14" class="accent-text">Dashboard</text>
+
+    <text x="0" y="54" font-size="14">🖥️</text>
+    <text x="25" y="54" font-size="14" class="secondary-text">Services</text>
+
+    <text x="0" y="94" font-size="14">📈</text>
+    <text x="25" y="94" font-size="14" class="secondary-text">Metrics</text>
+
+    <text x="0" y="134" font-size="14">📋</text>
+    <text x="25" y="134" font-size="14" class="secondary-text">Logs</text>
+
+    <text x="0" y="174" font-size="14">⚠️</text>
+    <text x="25" y="174" font-size="14" class="secondary-text">Alerts</text>
+
+    <text x="0" y="214" font-size="14">💾</text>
+    <text x="25" y="214" font-size="14" class="secondary-text">Resources</text>
+  </g>
+
+  <!-- Main Content -->
+  <rect x="190" y="40" width="680" height="530" class="bg"/>
+
+  <!-- Stat Cards Row -->
+  <g transform="translate(210, 60)">
+    <!-- CPU Card -->
+    <rect x="0" y="0" width="150" height="90" rx="8" class="stat-bg"/>
+    <rect x="0" y="0" width="150" height="90" rx="8" class="border"/>
+    <text x="15" y="22" font-size="12" font-weight="500" class="muted-text">CPU Usage</text>
+    <text x="15" y="55" font-size="28" font-weight="700" class="accent-text">23%</text>
+    <text x="15" y="75" font-size="11" class="secondary-text">4 cores active</text>
+
+    <!-- Memory Card -->
+    <rect x="165" y="0" width="150" height="90" rx="8" class="stat-bg"/>
+    <rect x="165" y="0" width="150" height="90" rx="8" class="border"/>
+    <text x="180" y="22" font-size="12" font-weight="500" class="muted-text">Memory</text>
+    <text x="180" y="55" font-size="28" font-weight="700" class="accent-text">67%</text>
+    <text x="180" y="75" font-size="11" class="secondary-text">5.4 / 8.0 GB</text>
+
+    <!-- Disk Card -->
+    <rect x="330" y="0" width="150" height="90" rx="8" class="stat-bg"/>
+    <rect x="330" y="0" width="150" height="90" rx="8" class="border"/>
+    <text x="345" y="22" font-size="12" font-weight="500" class="muted-text">Disk</text>
+    <text x="345" y="55" font-size="28" font-weight="700" class="accent-text">45%</text>
+    <text x="345" y="75" font-size="11" class="secondary-text">180 / 400 GB</text>
+
+    <!-- Network Card -->
+    <rect x="495" y="0" width="150" height="90" rx="8" class="stat-bg"/>
+    <rect x="495" y="0" width="150" height="90" rx="8" class="border"/>
+    <text x="510" y="22" font-size="12" font-weight="500" class="muted-text">Network</text>
+    <text x="510" y="55" font-size="28" font-weight="700" class="accent-text">12ms</text>
+    <text x="510" y="75" font-size="11" class="secondary-text">Avg latency</text>
+  </g>
+
+  <line x1="210" y1="175" x2="845" y2="175" class="border"/>
+
+  <!-- Service Status Section -->
+  <g transform="translate(210, 195)">
+    <text x="0" y="12" font-size="15" font-weight="600" class="main-text">Service Status</text>
+  </g>
+
+  <!-- Service List -->
+  <g transform="translate(220, 220)">
+    <!-- Service 1 -->
+    <circle cx="8" cy="12" r="5" class="green-dot"/>
+    <text x="22" y="16" font-size="13" font-weight="500" class="main-text">BotServer API</text>
+    <text x="400" y="16" font-size="12" class="secondary-text">Port 8080</text>
+    <text x="550" y="16" font-size="12" class="muted-text">Uptime: 14d 6h</text>
+
+    <!-- Service 2 -->
+    <circle cx="8" cy="52" r="5" class="green-dot"/>
+    <text x="22" y="56" font-size="13" font-weight="500" class="main-text">PostgreSQL</text>
+    <text x="400" y="56" font-size="12" class="secondary-text">Port 5432</text>
+    <text x="550" y="56" font-size="12" class="muted-text">Uptime: 14d 6h</text>
+
+    <!-- Service 3 -->
+    <circle cx="8" cy="92" r="5" class="green-dot"/>
+    <text x="22" y="96" font-size="13" font-weight="500" class="main-text">MinIO Drive</text>
+    <text x="400" y="96" font-size="12" class="secondary-text">Port 9100</text>
+    <text x="550" y="96" font-size="12" class="muted-text">Uptime: 14d 6h</text>
+
+    <!-- Service 4 -->
+    <circle cx="8" cy="132" r="5" class="green-dot"/>
+    <text x="22" y="136" font-size="13" font-weight="500" class="main-text">Valkey Cache</text>
+    <text x="400" y="136" font-size="12" class="secondary-text">Port 6379</text>
+    <text x="550" y="136" font-size="12" class="muted-text">Uptime: 14d 6h</text>
+
+    <!-- Service 5 -->
+    <circle cx="8" cy="172" r="5" class="yellow-dot"/>
+    <text x="22" y="176" font-size="13" font-weight="500" class="main-text">Qdrant VectorDB</text>
+    <text x="400" y="176" font-size="12" class="secondary-text">Port 6333</text>
+    <text x="550" y="176" font-size="12" class="muted-text">High memory</text>
+
+    <!-- Service 6 -->
+    <circle cx="8" cy="212" r="5" class="green-dot"/>
+    <text x="22" y="216" font-size="13" font-weight="500" class="main-text">Zitadel Directory</text>
+    <text x="400" y="216" font-size="12" class="secondary-text">Port 9000</text>
+    <text x="550" y="216" font-size="12" class="muted-text">Uptime: 14d 6h</text>
+
+    <!-- Service 7 -->
+    <circle cx="8" cy="252" r="5" class="green-dot"/>
+    <text x="22" y="256" font-size="13" font-weight="500" class="main-text">BotUI Proxy</text>
+    <text x="400" y="256" font-size="12" class="secondary-text">Port 3000</text>
+    <text x="550" y="256" font-size="12" class="muted-text">Uptime: 14d 6h</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(210, 505)">
+    <line x1="0" y1="-10" x2="640" y2="-10" class="border"/>
+    <text x="0" y="10" font-size="10" class="muted-text">Auto-refresh: 10s | Last check: Just now | 7/7 services healthy</text>
+  </g>
+</svg>

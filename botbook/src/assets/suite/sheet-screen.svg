@@ -1,0 +1,296 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #22c55e; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .toolbar-active { fill: #f0fdf4; }
+    .input-bg { fill: #f8fafc; }
+    .grid-border { stroke: #e2e8f0; stroke-width: 0.5; fill: none; }
+    .col-header { fill: #f8fafc; }
+    .row-header { fill: #f8fafc; }
+    .selected-cell { stroke: #22c55e; stroke-width: 2; fill: none; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #4ade80; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .toolbar-active { fill: #14532d; }
+      .input-bg { fill: #1e293b; }
+      .grid-border { stroke: #334155; stroke-width: 0.5; }
+      .col-header { fill: #1e293b; }
+      .row-header { fill: #1e293b; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Untitled Spreadsheet</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Toolbar -->
+  <rect x="30" y="40" width="840" height="44" class="panel-bg"/>
+  <line x1="30" y1="84" x2="870" y2="84" class="border"/>
+
+  <g transform="translate(45, 55)">
+    <rect x="0" y="0" width="100" height="28" rx="4" class="icon-btn"/>
+    <rect x="0" y="0" width="100" height="28" rx="4" class="border"/>
+    <text x="10" y="19" font-size="12" class="main-text">Arial</text>
+
+    <rect x="110" y="0" width="45" height="28" rx="4" class="icon-btn"/>
+    <rect x="110" y="0" width="45" height="28" rx="4" class="border"/>
+    <text x="120" y="19" font-size="12" class="main-text">11</text>
+
+    <line x1="175" y1="2" x2="175" y2="26" class="border"/>
+
+    <rect x="185" y="0" width="28" height="28" rx="4" class="toolbar-active"/>
+    <text x="199" y="20" text-anchor="middle" font-size="13" font-weight="700" class="accent-text">B</text>
+
+    <rect x="221" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="235" y="20" text-anchor="middle" font-size="13" font-style="italic" class="main-text">I</text>
+
+    <rect x="257" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="271" y="20" text-anchor="middle" font-size="13" class="main-text">U</text>
+
+    <line x1="300" y1="2" x2="300" y2="26" class="border"/>
+
+    <rect x="310" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="324" y="20" text-anchor="middle" font-size="12">#</text>
+
+    <rect x="346" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <rect x="350" y="6" width="20" height="16" rx="2" fill="#f59e0b"/>
+    <text x="360" y="18" text-anchor="middle" font-size="10" class="white-text">%</text>
+
+    <line x1="390" y1="2" x2="390" y2="26" class="border"/>
+
+    <rect x="400" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="414" y="20" text-anchor="middle" font-size="12">+</text>
+
+    <rect x="436" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="450" y="20" text-anchor="middle" font-size="12">-</text>
+  </g>
+
+  <!-- Formula Bar -->
+  <g transform="translate(30, 85)">
+    <rect x="0" y="0" width="70" height="26" class="col-header"/>
+    <rect x="0" y="0" width="70" height="26" class="border"/>
+    <text x="35" y="17" text-anchor="middle" font-size="12" font-weight="500" class="main-text">A1</text>
+
+    <text x="80" y="17" font-size="14" class="muted-text">fx</text>
+
+    <rect x="100" y="0" width="740" height="26" class="input-bg"/>
+    <rect x="100" y="0" width="740" height="26" class="border"/>
+    <text x="115" y="17" font-size="12" class="main-text">=SUM(B2:B10)</text>
+  </g>
+
+  <line x1="30" y1="111" x2="870" y2="111" class="border"/>
+
+  <!-- Column Headers -->
+  <g transform="translate(60, 112)">
+    <rect x="0" y="0" width="100" height="22" class="col-header"/>
+    <rect x="0" y="0" width="100" height="22" class="grid-border"/>
+    <text x="50" y="16" text-anchor="middle" font-size="11" font-weight="500" class="secondary-text">A</text>
+
+    <rect x="100" y="0" width="100" height="22" class="col-header"/>
+    <rect x="100" y="0" width="100" height="22" class="grid-border"/>
+    <text x="150" y="16" text-anchor="middle" font-size="11" font-weight="500" class="secondary-text">B</text>
+
+    <rect x="200" y="0" width="100" height="22" class="col-header"/>
+    <rect x="200" y="0" width="100" height="22" class="grid-border"/>
+    <text x="250" y="16" text-anchor="middle" font-size="11" font-weight="500" class="secondary-text">C</text>
+
+    <rect x="300" y="0" width="100" height="22" class="col-header"/>
+    <rect x="300" y="0" width="100" height="22" class="grid-border"/>
+    <text x="350" y="16" text-anchor="middle" font-size="11" font-weight="500" class="secondary-text">D</text>
+
+    <rect x="400" y="0" width="100" height="22" class="col-header"/>
+    <rect x="400" y="0" width="100" height="22" class="grid-border"/>
+    <text x="450" y="16" text-anchor="middle" font-size="11" font-weight="500" class="secondary-text">E</text>
+
+    <rect x="500" y="0" width="100" height="22" class="col-header"/>
+    <rect x="500" y="0" width="100" height="22" class="grid-border"/>
+    <text x="550" y="16" text-anchor="middle" font-size="11" font-weight="500" class="secondary-text">F</text>
+
+    <rect x="600" y="0" width="100" height="22" class="col-header"/>
+    <rect x="600" y="0" width="100" height="22" class="grid-border"/>
+    <text x="650" y="16" text-anchor="middle" font-size="11" font-weight="500" class="secondary-text">G</text>
+
+    <rect x="700" y="0" width="100" height="22" class="col-header"/>
+    <rect x="700" y="0" width="100" height="22" class="grid-border"/>
+    <text x="750" y="16" text-anchor="middle" font-size="11" font-weight="500" class="secondary-text">H</text>
+  </g>
+
+  <!-- Row Headers & Grid -->
+  <g transform="translate(30, 134)">
+    <!-- Row numbers column -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="30" height="27" class="row-header"/>
+      <rect x="0" y="0" width="30" height="27" class="grid-border"/>
+      <text x="15" y="18" text-anchor="middle" font-size="11" class="secondary-text">1</text>
+
+      <rect x="0" y="27" width="30" height="27" class="row-header"/>
+      <rect x="0" y="27" width="30" height="27" class="grid-border"/>
+      <text x="15" y="45" text-anchor="middle" font-size="11" class="secondary-text">2</text>
+
+      <rect x="0" y="54" width="30" height="27" class="row-header"/>
+      <rect x="0" y="54" width="30" height="27" class="grid-border"/>
+      <text x="15" y="72" text-anchor="middle" font-size="11" class="secondary-text">3</text>
+
+      <rect x="0" y="81" width="30" height="27" class="row-header"/>
+      <rect x="0" y="81" width="30" height="27" class="grid-border"/>
+      <text x="15" y="99" text-anchor="middle" font-size="11" class="secondary-text">4</text>
+
+      <rect x="0" y="108" width="30" height="27" class="row-header"/>
+      <rect x="0" y="108" width="30" height="27" class="grid-border"/>
+      <text x="15" y="126" text-anchor="middle" font-size="11" class="secondary-text">5</text>
+
+      <rect x="0" y="135" width="30" height="27" class="row-header"/>
+      <rect x="0" y="135" width="30" height="27" class="grid-border"/>
+      <text x="15" y="153" text-anchor="middle" font-size="11" class="secondary-text">6</text>
+
+      <rect x="0" y="162" width="30" height="27" class="row-header"/>
+      <rect x="0" y="162" width="30" height="27" class="grid-border"/>
+      <text x="15" y="180" text-anchor="middle" font-size="11" class="secondary-text">7</text>
+
+      <rect x="0" y="189" width="30" height="27" class="row-header"/>
+      <rect x="0" y="189" width="30" height="27" class="grid-border"/>
+      <text x="15" y="207" text-anchor="middle" font-size="11" class="secondary-text">8</text>
+
+      <rect x="0" y="216" width="30" height="27" class="row-header"/>
+      <rect x="0" y="216" width="30" height="27" class="grid-border"/>
+      <text x="15" y="234" text-anchor="middle" font-size="11" class="secondary-text">9</text>
+
+      <rect x="0" y="243" width="30" height="27" class="row-header"/>
+      <rect x="0" y="243" width="30" height="27" class="grid-border"/>
+      <text x="15" y="261" text-anchor="middle" font-size="11" class="secondary-text">10</text>
+
+      <rect x="0" y="270" width="30" height="27" class="row-header"/>
+      <rect x="0" y="270" width="30" height="27" class="grid-border"/>
+      <text x="15" y="288" text-anchor="middle" font-size="11" class="secondary-text">11</text>
+
+      <rect x="0" y="297" width="30" height="27" class="row-header"/>
+      <rect x="0" y="297" width="30" height="27" class="grid-border"/>
+      <text x="15" y="315" text-anchor="middle" font-size="11" class="secondary-text">12</text>
+
+      <rect x="0" y="324" width="30" height="27" class="row-header"/>
+      <rect x="0" y="324" width="30" height="27" class="grid-border"/>
+      <text x="15" y="342" text-anchor="middle" font-size="11" class="secondary-text">13</text>
+
+      <rect x="0" y="351" width="30" height="27" class="row-header"/>
+      <rect x="0" y="351" width="30" height="27" class="grid-border"/>
+      <text x="15" y="369" text-anchor="middle" font-size="11" class="secondary-text">14</text>
+
+      <rect x="0" y="378" width="30" height="27" class="row-header"/>
+      <rect x="0" y="378" width="30" height="27" class="grid-border"/>
+      <text x="15" y="396" text-anchor="middle" font-size="11" class="secondary-text">15</text>
+    </g>
+
+    <!-- Grid cells with data -->
+    <g transform="translate(30, 0)">
+      <!-- Row 1 - Headers -->
+      <rect x="0" y="0" width="100" height="27" fill="#f0fdf4"/>
+      <rect x="0" y="0" width="100" height="27" class="grid-border"/>
+      <text x="10" y="18" font-size="12" font-weight="600" class="accent-text">Product</text>
+
+      <rect x="100" y="0" width="100" height="27" fill="#f0fdf4"/>
+      <rect x="100" y="0" width="100" height="27" class="grid-border"/>
+      <text x="110" y="18" font-size="12" font-weight="600" class="accent-text">Q1 Sales</text>
+
+      <rect x="200" y="0" width="100" height="27" fill="#f0fdf4"/>
+      <rect x="200" y="0" width="100" height="27" class="grid-border"/>
+      <text x="210" y="18" font-size="12" font-weight="600" class="accent-text">Q2 Sales</text>
+
+      <rect x="300" y="0" width="100" height="27" fill="#f0fdf4"/>
+      <rect x="300" y="0" width="100" height="27" class="grid-border"/>
+      <text x="310" y="18" font-size="12" font-weight="600" class="accent-text">Total</text>
+
+      <!-- Row 2 -->
+      <rect x="0" y="27" width="100" height="27"/>
+      <rect x="0" y="27" width="100" height="27" class="grid-border"/>
+      <text x="10" y="45" font-size="12" class="main-text">Widget A</text>
+
+      <rect x="100" y="27" width="100" height="27"/>
+      <rect x="100" y="27" width="100" height="27" class="grid-border"/>
+      <text x="190" y="45" text-anchor="end" font-size="12" class="main-text">$12,450</text>
+
+      <rect x="200" y="27" width="100" height="27"/>
+      <rect x="200" y="27" width="100" height="27" class="grid-border"/>
+      <text x="290" y="45" text-anchor="end" font-size="12" class="main-text">$15,230</text>
+
+      <rect x="300" y="27" width="100" height="27"/>
+      <rect x="300" y="27" width="100" height="27" class="grid-border"/>
+      <text x="390" y="45" text-anchor="end" font-size="12" font-weight="500" class="main-text">$27,680</text>
+
+      <!-- Row 3 - Selected cell -->
+      <rect x="0" y="54" width="100" height="27"/>
+      <rect x="0" y="54" width="100" height="27" class="grid-border"/>
+      <text x="10" y="72" font-size="12" class="main-text">Widget B</text>
+
+      <rect x="100" y="54" width="100" height="27"/>
+      <rect x="100" y="54" width="100" height="27" class="selected-cell"/>
+      <text x="190" y="72" text-anchor="end" font-size="12" class="main-text">$8,900</text>
+
+      <rect x="200" y="54" width="100" height="27"/>
+      <rect x="200" y="54" width="100" height="27" class="grid-border"/>
+      <text x="290" y="72" text-anchor="end" font-size="12" class="main-text">$11,400</text>
+
+      <rect x="300" y="54" width="100" height="27"/>
+      <rect x="300" y="54" width="100" height="27" class="grid-border"/>
+      <text x="390" y="72" text-anchor="end" font-size="12" font-weight="500" class="main-text">$20,300</text>
+
+      <!-- Row 4 -->
+      <rect x="0" y="81" width="100" height="27"/>
+      <rect x="0" y="81" width="100" height="27" class="grid-border"/>
+      <text x="10" y="99" font-size="12" class="main-text">Widget C</text>
+
+      <rect x="100" y="81" width="100" height="27"/>
+      <rect x="100" y="81" width="100" height="27" class="grid-border"/>
+      <text x="190" y="99" text-anchor="end" font-size="12" class="main-text">$6,200</text>
+
+      <rect x="200" y="81" width="100" height="27"/>
+      <rect x="200" y="81" width="100" height="27" class="grid-border"/>
+      <text x="290" y="99" text-anchor="end" font-size="12" class="main-text">$7,800</text>
+
+      <rect x="300" y="81" width="100" height="27"/>
+      <rect x="300" y="81" width="100" height="27" class="grid-border"/>
+      <text x="390" y="99" text-anchor="end" font-size="12" font-weight="500" class="main-text">$14,000</text>
+
+      <!-- Empty rows 5-15 -->
+      <g opacity="0.4">
+        <line x1="0" y1="108" x2="800" y2="108" class="grid-border"/>
+        <line x1="0" y1="135" x2="800" y2="135" class="grid-border"/>
+        <line x1="0" y1="162" x2="800" y2="162" class="grid-border"/>
+        <line x1="0" y1="189" x2="800" y2="189" class="grid-border"/>
+        <line x1="0" y1="216" x2="800" y2="216" class="grid-border"/>
+        <line x1="0" y1="243" x2="800" y2="243" class="grid-border"/>
+        <line x1="0" y1="270" x2="800" y2="270" class="grid-border"/>
+        <line x1="0" y1="297" x2="800" y2="297" class="grid-border"/>
+        <line x1="0" y1="324" x2="800" y2="324" class="grid-border"/>
+        <line x1="0" y1="351" x2="800" y2="351" class="grid-border"/>
+        <line x1="0" y1="378" x2="800" y2="378" class="grid-border"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(35, 560)">
+    <text x="0" y="0" font-size="10" class="muted-text">Sheet 1 | Rows: 15 | Columns: 8 | Sum: $61,980</text>
+  </g>
+</svg>

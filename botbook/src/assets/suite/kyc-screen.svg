@@ -1,0 +1,149 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .nav-active { fill: #eff6ff; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .stat-pending { fill: #eab308; }
+    .stat-verified { fill: #22c55e; }
+    .stat-failed { fill: #ef4444; }
+    .stat-total { fill: #3b82f6; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .nav-active { fill: #1e3a5f; }
+      .card { fill: #1e293b; stroke: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">KYC Dashboard</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Top Bar -->
+  <g transform="translate(50, 55)">
+    <text x="0" y="15" font-size="18" font-weight="600" class="main-text">Know Your Customer</text>
+    <text x="730" y="15" font-size="12" class="muted-text">Last 30 days</text>
+    <rect x="540" y="-5" width="100" height="30" rx="6" fill="url(#accentGrad)"/>
+    <text x="590" y="15" text-anchor="middle" font-size="12" font-weight="500" class="white-text">+ New KYC</text>
+  </g>
+
+  <line x1="30" y1="85" x2="870" y2="85" class="border"/>
+
+  <!-- Stats Row -->
+  <g transform="translate(50, 95)">
+    <!-- Pending -->
+    <rect x="0" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="16" y="12" width="40" height="40" rx="8" fill="#fef9c3"/>
+    <text x="36" y="38" text-anchor="middle" font-size="16">⏳</text>
+    <text x="68" y="30" font-size="11" class="muted-text">Pending</text>
+    <text x="68" y="52" font-size="22" font-weight="700" class="stat-pending">12</text>
+
+    <!-- Verified -->
+    <rect x="200" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="216" y="12" width="40" height="40" rx="8" fill="#dcfce7"/>
+    <text x="236" y="38" text-anchor="middle" font-size="16">✅</text>
+    <text x="268" y="30" font-size="11" class="muted-text">Verified</text>
+    <text x="268" y="52" font-size="22" font-weight="700" class="stat-verified">156</text>
+
+    <!-- Failed -->
+    <rect x="400" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="416" y="12" width="40" height="40" rx="8" fill="#fee2e2"/>
+    <text x="436" y="38" text-anchor="middle" font-size="16">❌</text>
+    <text x="468" y="30" font-size="11" class="muted-text">Failed</text>
+    <text x="468" y="52" font-size="22" font-weight="700" class="stat-failed">3</text>
+
+    <!-- Total -->
+    <rect x="600" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="616" y="12" width="40" height="40" rx="8" fill="#dbeafe"/>
+    <text x="636" y="38" text-anchor="middle" font-size="16">📊</text>
+    <text x="668" y="30" font-size="11" class="muted-text">Total</text>
+    <text x="668" y="52" font-size="22" font-weight="700" class="stat-total">171</text>
+  </g>
+
+  <line x1="30" y1="180" x2="870" y2="180" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(50, 190)">
+    <rect x="0" y="0" width="110" height="32" rx="6" class="nav-active"/>
+    <text x="55" y="21" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">Verifications</text>
+    <text x="175" y="21" text-anchor="middle" font-size="12" class="secondary-text">Signatures</text>
+    <text x="305" y="21" text-anchor="middle" font-size="12" class="secondary-text">Certificates</text>
+  </g>
+
+  <line x1="30" y1="235" x2="870" y2="235" class="border"/>
+
+  <!-- Verification Cards Grid (2x2) -->
+  <g transform="translate(50, 250)">
+    <!-- Card 1: Pending Review -->
+    <rect x="0" y="0" width="380" height="110" rx="8" class="card"/>
+    <rect x="16" y="16" width="40" height="40" rx="8" fill="#fef9c3"/>
+    <text x="36" y="42" text-anchor="middle" font-size="14">⏳</text>
+    <text x="68" y="30" font-size="14" font-weight="600" class="main-text">Maria Oliveira</text>
+    <rect x="280" y="12" width="60" height="22" rx="10" fill="#fef9c3"/>
+    <text x="310" y="27" text-anchor="middle" font-size="10" font-weight="500" fill="#ca8a04">Pending</text>
+    <text x="68" y="48" font-size="12" class="secondary-text">CPF: ***.456.789-**</text>
+    <text x="68" y="70" font-size="11" class="muted-text">Submitted: Jun 2, 2026</text>
+    <text x="68" y="88" font-size="11" class="muted-text">Type: Individual - New Account</text>
+
+    <!-- Card 2: Verified -->
+    <rect x="410" y="0" width="380" height="110" rx="8" class="card"/>
+    <rect x="426" y="16" width="40" height="40" rx="8" fill="#dcfce7"/>
+    <text x="446" y="42" text-anchor="middle" font-size="14">✅</text>
+    <text x="478" y="30" font-size="14" font-weight="600" class="main-text">TechCorp Ltda</text>
+    <rect x="690" y="12" width="60" height="22" rx="10" fill="#dcfce7"/>
+    <text x="720" y="27" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Verified</text>
+    <text x="478" y="48" font-size="12" class="secondary-text">CNPJ: **.***.***/****-**</text>
+    <text x="478" y="70" font-size="11" class="muted-text">Completed: Jun 1, 2026</text>
+    <text x="478" y="88" font-size="11" class="muted-text">Type: Corporate - Annual Renewal</text>
+
+    <!-- Card 3: Failed -->
+    <rect x="0" y="125" width="380" height="110" rx="8" class="card"/>
+    <rect x="16" y="141" width="40" height="40" rx="8" fill="#fee2e2"/>
+    <text x="36" y="167" text-anchor="middle" font-size="14">❌</text>
+    <text x="68" y="155" font-size="14" font-weight="600" class="main-text">João Pereira</text>
+    <rect x="280" y="137" width="50" height="22" rx="10" fill="#fee2e2"/>
+    <text x="305" y="152" text-anchor="middle" font-size="10" font-weight="500" class="stat-failed">Failed</text>
+    <text x="68" y="173" font-size="12" class="secondary-text">CPF: ***.789.123-**</text>
+    <text x="68" y="195" font-size="11" class="muted-text">Submitted: May 30, 2026</text>
+    <text x="68" y="213" font-size="11" class="muted-text">Reason: Document mismatch</text>
+
+    <!-- Card 4: In Review -->
+    <rect x="410" y="125" width="380" height="110" rx="8" class="card"/>
+    <rect x="426" y="141" width="40" height="40" rx="8" fill="#dbeafe"/>
+    <text x="446" y="167" text-anchor="middle" font-size="14">🔍</text>
+    <text x="478" y="155" font-size="14" font-weight="600" class="main-text">StartupXYZ SA</text>
+    <rect x="690" y="137" width="70" height="22" rx="10" fill="#dbeafe"/>
+    <text x="725" y="152" text-anchor="middle" font-size="10" font-weight="500" fill="#2563eb">In Review</text>
+    <text x="478" y="173" font-size="12" class="secondary-text">CNPJ: **.***.***/****-**</text>
+    <text x="478" y="195" font-size="11" class="muted-text">Submitted: Jun 3, 2026</text>
+    <text x="478" y="213" font-size="11" class="muted-text">Type: Corporate - New Entity</text>
+  </g>
+
+  <!-- Bottom Status Bar -->
+  <line x1="30" y1="500" x2="870" y2="500" class="border"/>
+  <text x="50" y="520" font-size="11" class="muted-text">Showing 4 of 171 records</text>
+  <text x="830" y="520" text-anchor="end" font-size="11" class="accent-text">View All →</text>
+</svg>

@@ -1,0 +1,148 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <style>
+    .bg { fill: #1e1b4b; }
+    .panel-bg { fill: #312e81; }
+    .main-text { fill: #e2e8f0; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .secondary-text { fill: #94a3b8; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .muted-text { fill: #64748b; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .white-text { fill: #ffffff; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .accent-text { fill: #22c55e; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .border { stroke: #4338ca; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #312e81; }
+    .prompt-text { fill: #22c55e; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .warning-text { fill: #f59e0b; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .error-text { fill: #ef4444; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .info-text { fill: #3b82f6; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .tab-active { fill: #1e1b4b; }
+    .tab-inactive { fill: #312e81; }
+    .status-bar { fill: #312e81; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f0d2e; }
+      .panel-bg { fill: #1e1b4b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #4ade80; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #1e1b4b; }
+      .tab-active { fill: #0f0d2e; }
+      .tab-inactive { fill: #1e1b4b; }
+      .status-bar { fill: #1e1b4b; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Terminal 1</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(30, 40)">
+    <rect x="0" y="0" width="840" height="36" class="panel-bg"/>
+    <line x1="0" y1="36" x2="840" y2="36" class="border"/>
+
+    <!-- Active Tab -->
+    <rect x="10" y="4" width="120" height="28" rx="6" class="tab-active"/>
+    <rect x="10" y="4" width="120" height="28" rx="6" class="border"/>
+    <circle cx="28" cy="18" r="5" fill="#22c55e"/>
+    <text x="40" y="22" font-size="11" class="accent-text">Terminal 1</text>
+
+    <!-- Inactive Tab -->
+    <rect x="140" y="4" width="120" height="28" rx="6" class="tab-inactive"/>
+    <rect x="140" y="4" width="120" height="28" rx="6" class="border"/>
+    <circle cx="158" cy="18" r="5" fill="#f59e0b"/>
+    <text x="170" y="22" font-size="11" class="secondary-text">Terminal 2</text>
+
+    <!-- New Tab -->
+    <text x="280" y="22" font-size="16" class="muted-text">+</text>
+  </g>
+
+  <!-- Terminal Content Area -->
+  <rect x="30" y="76" width="840" height="474" class="bg"/>
+
+  <!-- Terminal Output -->
+  <g transform="translate(50, 100)">
+    <!-- Line 1: Prompt + Command -->
+    <text x="0" y="0" font-size="13" class="prompt-text">user@generalbots:~$ </text>
+    <text x="195" y="0" font-size="13" class="main-text">botserver --status</text>
+
+    <!-- Line 2: Output -->
+    <text x="0" y="22" font-size="13" class="info-text">ℹ</text>
+    <text x="20" y="22" font-size="13" class="secondary-text">Checking BotServer status...</text>
+
+    <!-- Line 3: Output -->
+    <text x="0" y="44" font-size="13" class="accent-text">✓</text>
+    <text x="20" y="44" font-size="13" class="secondary-text">BotServer is running on port 8080</text>
+
+    <!-- Line 4: Output -->
+    <text x="0" y="66" font-size="13" class="accent-text">✓</text>
+    <text x="20" y="66" font-size="13" class="secondary-text">PostgreSQL connected (5432)</text>
+
+    <!-- Line 5: Output -->
+    <text x="0" y="88" font-size="13" class="accent-text">✓</text>
+    <text x="20" y="88" font-size="13" class="secondary-text">Valkey cache active (6379)</text>
+
+    <!-- Line 6: Warning -->
+    <text x="0" y="110" font-size="13" class="warning-text">⚠</text>
+    <text x="20" y="110" font-size="13" class="warning-text">Warning: LLM service on fallback mode</text>
+
+    <!-- Line 7: Empty -->
+    <text x="0" y="132" font-size="13" class="main-text"></text>
+
+    <!-- Line 8: Prompt + Command -->
+    <text x="0" y="154" font-size="13" class="prompt-text">user@generalbots:~$ </text>
+    <text x="195" y="154" font-size="13" class="main-text">docker ps --format "table {{.Names}}\t{{.Status}}"</text>
+
+    <!-- Line 9: Table Header -->
+    <text x="0" y="176" font-size="13" class="main-text">NAMES                 STATUS</text>
+    <line x1="0" y1="184" x2="400" y2="184" class="border"/>
+
+    <!-- Line 10-13: Table Rows -->
+    <text x="0" y="200" font-size="13" class="accent-text">system              </text>
+    <text x="150" y="200" font-size="13" class="secondary-text">Up 2 hours</text>
+    <text x="0" y="220" font-size="13" class="accent-text">tables              </text>
+    <text x="150" y="220" font-size="13" class="secondary-text">Up 2 hours</text>
+    <text x="0" y="240" font-size="13" class="accent-text">drive               </text>
+    <text x="150" y="240" font-size="13" class="secondary-text">Up 2 hours</text>
+    <text x="0" y="260" font-size="13" class="accent-text">cache               </text>
+    <text x="150" y="260" font-size="13" class="secondary-text">Up 2 hours</text>
+
+    <!-- Line 14: Empty -->
+    <text x="0" y="282" font-size="13" class="main-text"></text>
+
+    <!-- Line 15: Prompt -->
+    <text x="0" y="304" font-size="13" class="prompt-text">user@generalbots:~$ </text>
+    <text x="195" y="304" font-size="13" class="main-text">_</text>
+    <!-- Blinking cursor -->
+    <rect x="195" y="292" width="8" height="16" fill="#22c55e">
+      <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- Status Bar -->
+  <rect x="30" y="550" width="840" height="20" class="status-bar"/>
+  <line x1="30" y1="550" x2="870" y2="550" class="border"/>
+  <g transform="translate(50, 564)">
+    <circle cx="0" cy="-4" r="4" fill="#22c55e"/>
+    <text x="12" y="0" font-size="11" class="accent-text">Connected</text>
+    <text x="110" y="0" font-size="11" class="secondary-text">|</text>
+    <text x="130" y="0" font-size="11" class="secondary-text">80x24</text>
+    <text x="190" y="0" font-size="11" class="secondary-text">|</text>
+    <text x="210" y="0" font-size="11" class="secondary-text">WebSocket</text>
+    <text x="300" y="0" font-size="11" class="secondary-text">|</text>
+    <text x="320" y="0" font-size="11" class="secondary-text">UTF-8</text>
+  </g>
+</svg>

@@ -1,0 +1,148 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .nav-active { fill: #eff6ff; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .search-bg { fill: #f1f5f9; }
+    .priority-critical { fill: #ef4444; }
+    .priority-high { fill: #f97316; }
+    .priority-medium { fill: #eab308; }
+    .priority-low { fill: #22c55e; }
+    .status-open { fill: #dcfce7; }
+    .status-progress { fill: #dbeafe; }
+    .status-resolved { fill: #f3e8ff; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .nav-active { fill: #1e3a5f; }
+      .card { fill: #1e293b; stroke: #334155; }
+      .search-bg { fill: #334155; }
+      .status-open { fill: #064e3b; }
+      .status-progress { fill: #1e3a5f; }
+      .status-resolved { fill: #3b0764; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">IT Service Desk</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Top Bar -->
+  <g transform="translate(50, 55)">
+    <text x="0" y="15" font-size="18" font-weight="600" class="main-text">Incidents</text>
+    <text x="730" y="15" font-size="12" class="muted-text">4 incidents</text>
+    <rect x="540" y="-5" width="100" height="30" rx="6" fill="url(#accentGrad)"/>
+    <text x="590" y="15" text-anchor="middle" font-size="12" font-weight="500" class="white-text">+ New</text>
+  </g>
+
+  <line x1="30" y1="85" x2="870" y2="85" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(50, 95)">
+    <rect x="0" y="0" width="90" height="32" rx="6" class="nav-active"/>
+    <text x="45" y="21" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">Incidents</text>
+    <text x="155" y="21" text-anchor="middle" font-size="12" class="secondary-text">Service Requests</text>
+    <text x="310" y="21" text-anchor="middle" font-size="12" class="secondary-text">CMDB</text>
+    <text x="415" y="21" text-anchor="middle" font-size="12" class="secondary-text">Knowledge Base</text>
+  </g>
+
+  <line x1="30" y1="140" x2="870" y2="140" class="border"/>
+
+  <!-- Filters Row -->
+  <g transform="translate(50, 150)">
+    <rect x="0" y="0" width="140" height="32" rx="6" class="search-bg"/>
+    <text x="14" y="21" font-size="12" class="secondary-text">Priority: All ▾</text>
+    <rect x="155" y="0" width="140" height="32" rx="6" class="search-bg"/>
+    <text x="169" y="21" font-size="12" class="secondary-text">Status: All ▾</text>
+    <rect x="310" y="0" width="200" height="32" rx="8" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="324" y="21" font-size="12" class="muted-text">🔍 Search incidents...</text>
+  </g>
+
+  <!-- Incidents Table -->
+  <g transform="translate(50, 200)">
+    <!-- Table Header -->
+    <line x1="0" y1="0" x2="790" y2="0" class="border"/>
+    <text x="0" y="18" font-size="11" font-weight="600" class="muted-text">ID</text>
+    <text x="70" y="18" font-size="11" font-weight="600" class="muted-text">TITLE</text>
+    <text x="340" y="18" font-size="11" font-weight="600" class="muted-text">PRIORITY</text>
+    <text x="440" y="18" font-size="11" font-weight="600" class="muted-text">STATUS</text>
+    <text x="550" y="18" font-size="11" font-weight="600" class="muted-text">ASSIGNEE</text>
+    <text x="680" y="18" font-size="11" font-weight="600" class="muted-text">SLA</text>
+    <line x1="0" y1="26" x2="790" y2="26" class="border"/>
+
+    <!-- Row 1 -->
+    <text x="0" y="50" font-size="12" class="accent-text">#INC-4521</text>
+    <text x="70" y="50" font-size="13" class="main-text">Server unreachable in production</text>
+    <rect x="340" y="38" width="56" height="20" rx="10" fill="#fee2e2"/>
+    <text x="368" y="52" text-anchor="middle" font-size="10" font-weight="500" class="priority-critical">Critical</text>
+    <rect x="440" y="38" width="60" height="20" rx="10" class="status-progress"/>
+    <text x="470" y="52" text-anchor="middle" font-size="10" font-weight="500" fill="#2563eb">In Progress</text>
+    <text x="550" y="50" font-size="12" class="secondary-text">Carlos Lima</text>
+    <text x="680" y="50" font-size="12" class="priority-critical">2h remaining</text>
+    <line x1="0" y1="62" x2="790" y2="62" class="border"/>
+
+    <!-- Row 2 -->
+    <text x="0" y="86" font-size="12" class="accent-text">#INC-4520</text>
+    <text x="70" y="86" font-size="13" class="main-text">VPN connection drops intermittently</text>
+    <rect x="340" y="74" width="44" height="20" rx="10" fill="#ffedd5"/>
+    <text x="362" y="88" text-anchor="middle" font-size="10" font-weight="500" class="priority-high">High</text>
+    <rect x="440" y="74" width="56" height="20" rx="10" fill="#dcfce7"/>
+    <text x="468" y="88" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Open</text>
+    <text x="550" y="86" font-size="12" class="secondary-text">Maria Santos</text>
+    <text x="680" y="86" font-size="12" class="priority-high">4h remaining</text>
+    <line x1="0" y1="98" x2="790" y2="98" class="border"/>
+
+    <!-- Row 3 -->
+    <text x="0" y="122" font-size="12" class="accent-text">#INC-4519</text>
+    <text x="70" y="122" font-size="13" class="main-text">Email delivery delays reported</text>
+    <rect x="340" y="110" width="56" height="20" rx="10" fill="#fef9c3"/>
+    <text x="368" y="124" text-anchor="middle" font-size="10" font-weight="500" class="priority-medium">Medium</text>
+    <rect x="440" y="110" width="60" height="20" rx="10" class="status-progress"/>
+    <text x="470" y="124" text-anchor="middle" font-size="10" font-weight="500" fill="#2563eb">In Progress</text>
+    <text x="550" y="122" font-size="12" class="secondary-text">Paulo Mendes</text>
+    <text x="680" y="122" font-size="12" class="priority-medium">6h remaining</text>
+    <line x1="0" y1="134" x2="790" y2="134" class="border"/>
+
+    <!-- Row 4 -->
+    <text x="0" y="158" font-size="12" class="accent-text">#INC-4518</text>
+    <text x="70" y="158" font-size="13" class="main-text">Printer offline on 3rd floor</text>
+    <rect x="340" y="146" width="44" height="20" rx="10" fill="#dcfce7"/>
+    <text x="362" y="160" text-anchor="middle" font-size="10" font-weight="500" class="priority-low">Low</text>
+    <rect x="440" y="146" width="66" height="20" rx="10" fill="#f3e8ff"/>
+    <text x="473" y="160" text-anchor="middle" font-size="10" font-weight="500" fill="#9333ea">Resolved</text>
+    <text x="550" y="158" font-size="12" class="secondary-text">Ana Costa</text>
+    <text x="680" y="158" font-size="12" class="priority-low">Closed</text>
+  </g>
+
+  <!-- Bottom Stats -->
+  <line x1="30" y1="380" x2="870" y2="380" class="border"/>
+  <g transform="translate(50, 395)">
+    <text x="0" y="12" font-size="12" class="muted-text">Open: 2</text>
+    <text x="80" y="12" font-size="12" class="muted-text">In Progress: 2</text>
+    <text x="190" y="12" font-size="12" class="muted-text">Resolved: 1</text>
+    <text x="790" y="12" text-anchor="end" font-size="12" class="accent-text">Export Report →</text>
+  </g>
+</svg>
