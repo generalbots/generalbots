@@ -1,176 +1,92 @@
-use axum::{extract::{State, Json, Path}, routing::get, Router};
+use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use uuid::Uuid;
-use chrono::Utc;
+use std::sync::{Arc, RwLock, OnceLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Verification {
-    pub id: Uuid,
+    pub id: String,
     pub user_id: String,
-    pub document_type: String,
-    pub document_number: String,
-    pub full_name: String,
+    pub kind: String,
     pub status: String,
-    pub rejection_reason: Option<String>,
-    pub verified_at: Option<String>,
+    pub documents: Vec<String>,
+    pub reviewed_by: Option<String>,
     pub created_at: String,
+    pub completed_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Signature {
-    pub id: Uuid,
-    pub verification_id: Uuid,
+    pub id: String,
+    pub document_id: String,
     pub signer_name: String,
     pub signer_email: String,
-    pub document_url: String,
-    pub signed: bool,
+    pub status: String,
     pub signed_at: Option<String>,
-    pub ip_address: Option<String>,
     pub created_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Certificate {
-    pub id: Uuid,
-    pub verification_id: Uuid,
-    pub cert_type: String,
-    pub issuer: String,
+    pub id: String,
     pub subject: String,
+    pub issuer: String,
+    pub serial: String,
     pub valid_from: String,
     pub valid_until: String,
-    pub serial_number: String,
     pub status: String,
-    pub created_at: String,
 }
 
 #[derive(Default)]
-pub struct KycState {
-    pub verifications: HashMap<Uuid, Verification>,
-    pub signatures: HashMap<Uuid, Signature>,
-    pub certificates: HashMap<Uuid, Certificate>,
+struct AppState {
+    verifications: HashMap<String, Verification>,
+    signatures: HashMap<String, Signature>,
+    certificates: HashMap<String, Certificate>,
 }
 
-pub fn routes() -> axum::Router {
-    let state = Arc::new(RwLock::new(KycState::default()));
-    Router::new()
-        .route("/api/kyc/verifications", get(list_verifications).post(create_verification))
-        .route("/api/kyc/verifications/{id}", get(get_verification).put(update_verification))
-        .route("/api/kyc/signatures", get(list_signatures).post(create_signature))
-        .route("/api/kyc/signatures/{id}", get(get_signature).put(update_signature))
-        .route("/api/kyc/certificates", get(list_certificates).post(create_certificate))
-        .route("/api/kyc/certificates/{id}", get(get_certificate).put(update_certificate).delete(delete_certificate))
-        .with_state(state)
+fn state() -> &'static Arc<RwLock<AppState>> {
+    static S: OnceLock<Arc<RwLock<AppState>>> = OnceLock::new();
+    S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-async fn list_verifications(State(state): State<Arc<RwLock<KycState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
+pub async fn list_verifications() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
     let items: Vec<&Verification> = s.verifications.values().collect();
-    Json(serde_json::json!({"verifications": items}))
+    Json(serde_json::json!({"items": items}))
 }
 
-async fn create_verification(State(state): State<Arc<RwLock<KycState>>>, Json(mut v): Json<Verification>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    v.id = id;
-    v.status = "Pending".to_string();
-    v.created_at = Utc::now().to_rfc3339();
-    s.verifications.insert(id, v.clone());
-    Json(serde_json::json!({"verification": v}))
-}
-
-async fn get_verification(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.verifications.get(&id) {
-        Some(v) => Json(serde_json::json!({"verification": v})),
-        None => Json(serde_json::json!({"error": "Verification not found"})),
-    }
-}
-
-async fn update_verification(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>, Json(v): Json<Verification>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
+pub async fn update_verification(Path(id): Path<String>, Json(item): Json<Verification>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
     if let Some(existing) = s.verifications.get_mut(&id) {
-        *existing = v.clone();
-        existing.id = id;
-        Json(serde_json::json!({"verification": existing.clone()}))
+        existing.status = item.status;
+        existing.reviewed_by = item.reviewed_by;
+        existing.documents = item.documents;
+        Json(serde_json::json!({"item": existing}))
     } else {
         Json(serde_json::json!({"error": "Verification not found"}))
     }
 }
 
-async fn list_signatures(State(state): State<Arc<RwLock<KycState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
+pub async fn list_signatures() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
     let items: Vec<&Signature> = s.signatures.values().collect();
-    Json(serde_json::json!({"signatures": items}))
+    Json(serde_json::json!({"items": items}))
 }
 
-async fn create_signature(State(state): State<Arc<RwLock<KycState>>>, Json(mut sig): Json<Signature>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    sig.id = id;
-    sig.signed = false;
-    sig.created_at = Utc::now().to_rfc3339();
-    s.signatures.insert(id, sig.clone());
-    Json(serde_json::json!({"signature": sig}))
-}
-
-async fn get_signature(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.signatures.get(&id) {
-        Some(sig) => Json(serde_json::json!({"signature": sig})),
+pub async fn sign_document(Path(id): Path<String>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
+    match s.signatures.get_mut(&id) {
+        Some(sig) => {
+            sig.status = "signed".to_string();
+            sig.signed_at = Some(chrono::Utc::now().to_rfc3339());
+            Json(serde_json::json!({"item": sig}))
+        }
         None => Json(serde_json::json!({"error": "Signature not found"})),
     }
 }
 
-async fn update_signature(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>, Json(sig): Json<Signature>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    if let Some(existing) = s.signatures.get_mut(&id) {
-        *existing = sig.clone();
-        existing.id = id;
-        Json(serde_json::json!({"signature": existing.clone()}))
-    } else {
-        Json(serde_json::json!({"error": "Signature not found"}))
-    }
-}
-
-async fn list_certificates(State(state): State<Arc<RwLock<KycState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
+pub async fn list_certificates() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
     let items: Vec<&Certificate> = s.certificates.values().collect();
-    Json(serde_json::json!({"certificates": items}))
-}
-
-async fn create_certificate(State(state): State<Arc<RwLock<KycState>>>, Json(mut cert): Json<Certificate>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    cert.id = id;
-    cert.status = "Active".to_string();
-    cert.created_at = Utc::now().to_rfc3339();
-    s.certificates.insert(id, cert.clone());
-    Json(serde_json::json!({"certificate": cert}))
-}
-
-async fn get_certificate(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.certificates.get(&id) {
-        Some(c) => Json(serde_json::json!({"certificate": c})),
-        None => Json(serde_json::json!({"error": "Certificate not found"})),
-    }
-}
-
-async fn update_certificate(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>, Json(cert): Json<Certificate>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    if let Some(existing) = s.certificates.get_mut(&id) {
-        *existing = cert.clone();
-        existing.id = id;
-        Json(serde_json::json!({"certificate": existing.clone()}))
-    } else {
-        Json(serde_json::json!({"error": "Certificate not found"}))
-    }
-}
-
-async fn delete_certificate(State(state): State<Arc<RwLock<KycState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    s.certificates.remove(&id);
-    Json(serde_json::json!({"deleted": true}))
+    Json(serde_json::json!({"items": items}))
 }

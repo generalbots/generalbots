@@ -1,175 +1,83 @@
-use axum::{extract::{State, Json, Path}, routing::get, Router};
+use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use uuid::Uuid;
-use chrono::Utc;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CameraStatus { Online, Offline, Maintenance }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AlertSeverity { Low, Medium, High, Critical }
+use std::sync::{Arc, RwLock, OnceLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Camera {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
     pub url: String,
     pub location: String,
     pub status: String,
-    pub resolution: String,
     pub created_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct VideoAlert {
-    pub id: Uuid,
-    pub camera_id: Uuid,
-    pub alert_type: String,
+pub struct Alert {
+    pub id: String,
+    pub camera_id: String,
+    pub kind: String,
     pub severity: String,
     pub message: String,
+    pub triggered_at: String,
     pub acknowledged: bool,
-    pub created_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct VideoAnalytic {
-    pub id: Uuid,
-    pub camera_id: Uuid,
-    pub analytic_type: String,
-    pub result: String,
-    pub confidence: f64,
-    pub metadata: String,
-    pub created_at: String,
+pub struct Analytics {
+    pub camera_id: String,
+    pub period: String,
+    pub detections: u64,
+    pub alerts: u64,
+    pub uptime_pct: f64,
 }
 
 #[derive(Default)]
-pub struct VideoState {
-    pub cameras: HashMap<Uuid, Camera>,
-    pub alerts: HashMap<Uuid, VideoAlert>,
-    pub analytics: HashMap<Uuid, VideoAnalytic>,
+struct AppState {
+    cameras: HashMap<String, Camera>,
+    alerts: Vec<Alert>,
+    analytics: Vec<Analytics>,
 }
 
-pub fn routes() -> axum::Router {
-    let state = Arc::new(RwLock::new(VideoState::default()));
-    Router::new()
-        .route("/api/video/cameras", get(list_cameras).post(create_camera))
-        .route("/api/video/cameras/{id}", get(get_camera).put(update_camera).delete(delete_camera))
-        .route("/api/video/alerts", get(list_alerts).post(create_alert))
-        .route("/api/video/alerts/{id}", get(get_alert).put(update_alert).delete(delete_alert))
-        .route("/api/video/analytics", get(list_analytics).post(create_analytic))
-        .route("/api/video/analytics/{id}", get(get_analytic).delete(delete_analytic))
-        .with_state(state)
+fn state() -> &'static Arc<RwLock<AppState>> {
+    static S: OnceLock<Arc<RwLock<AppState>>> = OnceLock::new();
+    S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-async fn list_cameras(State(state): State<Arc<RwLock<VideoState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
+pub async fn list_cameras() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
     let items: Vec<&Camera> = s.cameras.values().collect();
-    Json(serde_json::json!({"cameras": items}))
+    Json(serde_json::json!({"items": items}))
 }
 
-async fn create_camera(State(state): State<Arc<RwLock<VideoState>>>, Json(mut cam): Json<Camera>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    cam.id = id;
-    cam.status = "Online".to_string();
-    cam.created_at = Utc::now().to_rfc3339();
-    s.cameras.insert(id, cam.clone());
-    Json(serde_json::json!({"camera": cam}))
+pub async fn create_camera(Json(item): Json<Camera>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    let mut new_item = item;
+    new_item.id = id.clone();
+    new_item.created_at = chrono::Utc::now().to_rfc3339();
+    new_item.status = "active".to_string();
+    s.cameras.insert(id.clone(), new_item.clone());
+    Json(serde_json::json!({"item": new_item}))
 }
 
-async fn get_camera(State(state): State<Arc<RwLock<VideoState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.cameras.get(&id) {
-        Some(cam) => Json(serde_json::json!({"camera": cam})),
+pub async fn delete_camera(Path(id): Path<String>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
+    match s.cameras.remove(&id) {
+        Some(_) => Json(serde_json::json!({"deleted": true})),
         None => Json(serde_json::json!({"error": "Camera not found"})),
     }
 }
 
-async fn update_camera(State(state): State<Arc<RwLock<VideoState>>>, Path(id): Path<Uuid>, Json(cam): Json<Camera>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    if let Some(existing) = s.cameras.get_mut(&id) {
-        *existing = cam.clone();
-        existing.id = id;
-        Json(serde_json::json!({"camera": existing.clone()}))
-    } else {
-        Json(serde_json::json!({"error": "Camera not found"}))
-    }
+pub async fn list_alerts() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
+    let items: Vec<&Alert> = s.alerts.iter().collect();
+    Json(serde_json::json!({"items": items}))
 }
 
-async fn delete_camera(State(state): State<Arc<RwLock<VideoState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    s.cameras.remove(&id);
-    Json(serde_json::json!({"deleted": true}))
-}
-
-async fn list_alerts(State(state): State<Arc<RwLock<VideoState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    let items: Vec<&VideoAlert> = s.alerts.values().collect();
-    Json(serde_json::json!({"alerts": items}))
-}
-
-async fn create_alert(State(state): State<Arc<RwLock<VideoState>>>, Json(mut alert): Json<VideoAlert>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    alert.id = id;
-    alert.acknowledged = false;
-    alert.created_at = Utc::now().to_rfc3339();
-    s.alerts.insert(id, alert.clone());
-    Json(serde_json::json!({"alert": alert}))
-}
-
-async fn get_alert(State(state): State<Arc<RwLock<VideoState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.alerts.get(&id) {
-        Some(alert) => Json(serde_json::json!({"alert": alert})),
-        None => Json(serde_json::json!({"error": "Alert not found"})),
-    }
-}
-
-async fn update_alert(State(state): State<Arc<RwLock<VideoState>>>, Path(id): Path<Uuid>, Json(alert): Json<VideoAlert>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    if let Some(existing) = s.alerts.get_mut(&id) {
-        *existing = alert.clone();
-        existing.id = id;
-        Json(serde_json::json!({"alert": existing.clone()}))
-    } else {
-        Json(serde_json::json!({"error": "Alert not found"}))
-    }
-}
-
-async fn delete_alert(State(state): State<Arc<RwLock<VideoState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    s.alerts.remove(&id);
-    Json(serde_json::json!({"deleted": true}))
-}
-
-async fn list_analytics(State(state): State<Arc<RwLock<VideoState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    let items: Vec<&VideoAnalytic> = s.analytics.values().collect();
-    Json(serde_json::json!({"analytics": items}))
-}
-
-async fn create_analytic(State(state): State<Arc<RwLock<VideoState>>>, Json(mut analytic): Json<VideoAnalytic>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    analytic.id = id;
-    analytic.created_at = Utc::now().to_rfc3339();
-    s.analytics.insert(id, analytic.clone());
-    Json(serde_json::json!({"analytic": analytic}))
-}
-
-async fn get_analytic(State(state): State<Arc<RwLock<VideoState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.analytics.get(&id) {
-        Some(a) => Json(serde_json::json!({"analytic": a})),
-        None => Json(serde_json::json!({"error": "Analytic not found"})),
-    }
-}
-
-async fn delete_analytic(State(state): State<Arc<RwLock<VideoState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    s.analytics.remove(&id);
-    Json(serde_json::json!({"deleted": true}))
+pub async fn list_analytics() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
+    let items: Vec<&Analytics> = s.analytics.iter().collect();
+    Json(serde_json::json!({"items": items}))
 }

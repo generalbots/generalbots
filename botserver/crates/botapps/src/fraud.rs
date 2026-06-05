@@ -1,31 +1,24 @@
-use axum::{extract::{State, Json, Path}, routing::get, Router};
+use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use uuid::Uuid;
-use chrono::Utc;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TransactionStatus { Normal, Suspicious, Blocked, UnderReview }
+use std::sync::{Arc, RwLock, OnceLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct FraudTransaction {
-    pub id: Uuid,
+pub struct Transaction {
+    pub id: String,
     pub user_id: String,
     pub amount: f64,
     pub currency: String,
-    pub merchant: String,
-    pub country: String,
     pub status: String,
-    pub risk_score: f64,
+    pub risk_score: Option<f64>,
     pub created_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FraudRule {
-    pub id: Uuid,
+    pub id: String,
     pub name: String,
-    pub rule_type: String,
+    pub kind: String,
     pub condition: String,
     pub action: String,
     pub enabled: bool,
@@ -34,134 +27,92 @@ pub struct FraudRule {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BlocklistEntry {
-    pub id: Uuid,
-    pub entity_type: String,
-    pub entity_value: String,
+    pub id: String,
+    pub identifier: String,
+    pub kind: String,
     pub reason: String,
-    pub expires_at: Option<String>,
-    pub created_at: String,
+    pub added_at: String,
 }
 
 #[derive(Default)]
-pub struct FraudState {
-    pub transactions: HashMap<Uuid, FraudTransaction>,
-    pub rules: HashMap<Uuid, FraudRule>,
-    pub blocklist: HashMap<Uuid, BlocklistEntry>,
+struct AppState {
+    transactions: HashMap<String, Transaction>,
+    rules: HashMap<String, FraudRule>,
+    blocklist: HashMap<String, BlocklistEntry>,
 }
 
-pub fn routes() -> axum::Router {
-    let state = Arc::new(RwLock::new(FraudState::default()));
-    Router::new()
-        .route("/api/fraud/transactions", get(list_transactions).post(create_transaction))
-        .route("/api/fraud/transactions/{id}", get(get_transaction).put(update_transaction))
-        .route("/api/fraud/rules", get(list_rules).post(create_rule))
-        .route("/api/fraud/rules/{id}", get(get_rule).put(update_rule).delete(delete_rule))
-        .route("/api/fraud/blocklist", get(list_blocklist).post(add_blocklist))
-        .route("/api/fraud/blocklist/{id}", get(get_blocklist_entry).delete(remove_blocklist))
-        .with_state(state)
+fn state() -> &'static Arc<RwLock<AppState>> {
+    static S: OnceLock<Arc<RwLock<AppState>>> = OnceLock::new();
+    S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-async fn list_transactions(State(state): State<Arc<RwLock<FraudState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    let items: Vec<&FraudTransaction> = s.transactions.values().collect();
-    Json(serde_json::json!({"transactions": items}))
+pub async fn list_transactions() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
+    let items: Vec<&Transaction> = s.transactions.values().collect();
+    Json(serde_json::json!({"items": items}))
 }
 
-async fn create_transaction(State(state): State<Arc<RwLock<FraudState>>>, Json(mut tx): Json<FraudTransaction>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    tx.id = id;
-    tx.status = "Normal".to_string();
-    tx.created_at = Utc::now().to_rfc3339();
-    s.transactions.insert(id, tx.clone());
-    Json(serde_json::json!({"transaction": tx}))
+pub async fn create_transaction(Json(item): Json<Transaction>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    let mut new_item = item;
+    new_item.id = id.clone();
+    new_item.created_at = chrono::Utc::now().to_rfc3339();
+    new_item.status = "pending".to_string();
+    s.transactions.insert(id.clone(), new_item.clone());
+    Json(serde_json::json!({"item": new_item}))
 }
 
-async fn get_transaction(State(state): State<Arc<RwLock<FraudState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.transactions.get(&id) {
-        Some(tx) => Json(serde_json::json!({"transaction": tx})),
-        None => Json(serde_json::json!({"error": "Transaction not found"})),
-    }
-}
-
-async fn update_transaction(State(state): State<Arc<RwLock<FraudState>>>, Path(id): Path<Uuid>, Json(tx): Json<FraudTransaction>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    if let Some(existing) = s.transactions.get_mut(&id) {
-        *existing = tx.clone();
-        existing.id = id;
-        Json(serde_json::json!({"transaction": existing.clone()}))
-    } else {
-        Json(serde_json::json!({"error": "Transaction not found"}))
-    }
-}
-
-async fn list_rules(State(state): State<Arc<RwLock<FraudState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
+pub async fn list_rules() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
     let items: Vec<&FraudRule> = s.rules.values().collect();
-    Json(serde_json::json!({"rules": items}))
+    Json(serde_json::json!({"items": items}))
 }
 
-async fn create_rule(State(state): State<Arc<RwLock<FraudState>>>, Json(mut rule): Json<FraudRule>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    rule.id = id;
-    rule.enabled = true;
-    rule.created_at = Utc::now().to_rfc3339();
-    s.rules.insert(id, rule.clone());
-    Json(serde_json::json!({"rule": rule}))
+pub async fn create_rule(Json(item): Json<FraudRule>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    let mut new_item = item;
+    new_item.id = id.clone();
+    new_item.created_at = chrono::Utc::now().to_rfc3339();
+    s.rules.insert(id.clone(), new_item.clone());
+    Json(serde_json::json!({"item": new_item}))
 }
 
-async fn get_rule(State(state): State<Arc<RwLock<FraudState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.rules.get(&id) {
-        Some(r) => Json(serde_json::json!({"rule": r})),
-        None => Json(serde_json::json!({"error": "Rule not found"})),
-    }
-}
-
-async fn update_rule(State(state): State<Arc<RwLock<FraudState>>>, Path(id): Path<Uuid>, Json(rule): Json<FraudRule>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
+pub async fn update_rule(Path(id): Path<String>, Json(item): Json<FraudRule>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
     if let Some(existing) = s.rules.get_mut(&id) {
-        *existing = rule.clone();
-        existing.id = id;
-        Json(serde_json::json!({"rule": existing.clone()}))
+        existing.name = item.name;
+        existing.kind = item.kind;
+        existing.condition = item.condition;
+        existing.action = item.action;
+        existing.enabled = item.enabled;
+        Json(serde_json::json!({"item": existing}))
     } else {
         Json(serde_json::json!({"error": "Rule not found"}))
     }
 }
 
-async fn delete_rule(State(state): State<Arc<RwLock<FraudState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    s.rules.remove(&id);
-    Json(serde_json::json!({"deleted": true}))
-}
-
-async fn list_blocklist(State(state): State<Arc<RwLock<FraudState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
+pub async fn list_blocklist() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
     let items: Vec<&BlocklistEntry> = s.blocklist.values().collect();
-    Json(serde_json::json!({"blocklist": items}))
+    Json(serde_json::json!({"items": items}))
 }
 
-async fn add_blocklist(State(state): State<Arc<RwLock<FraudState>>>, Json(mut entry): Json<BlocklistEntry>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    entry.id = id;
-    entry.created_at = Utc::now().to_rfc3339();
-    s.blocklist.insert(id, entry.clone());
-    Json(serde_json::json!({"blocklist_entry": entry}))
+pub async fn add_blocklist(Json(item): Json<BlocklistEntry>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    let mut new_item = item;
+    new_item.id = id.clone();
+    new_item.added_at = chrono::Utc::now().to_rfc3339();
+    s.blocklist.insert(id.clone(), new_item.clone());
+    Json(serde_json::json!({"item": new_item}))
 }
 
-async fn get_blocklist_entry(State(state): State<Arc<RwLock<FraudState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.blocklist.get(&id) {
-        Some(e) => Json(serde_json::json!({"blocklist_entry": e})),
+pub async fn remove_blocklist(Path(id): Path<String>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
+    match s.blocklist.remove(&id) {
+        Some(_) => Json(serde_json::json!({"deleted": true})),
         None => Json(serde_json::json!({"error": "Blocklist entry not found"})),
     }
-}
-
-async fn remove_blocklist(State(state): State<Arc<RwLock<FraudState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    s.blocklist.remove(&id);
-    Json(serde_json::json!({"deleted": true}))
 }

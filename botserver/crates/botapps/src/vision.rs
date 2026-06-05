@@ -1,101 +1,56 @@
-use axum::{extract::{State, Json, Path}, routing::{get, post}, Router};
+use axum::extract::Json;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use uuid::Uuid;
-use chrono::Utc;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AnalysisType { ObjectDetection, FaceRecognition, Ocr, SceneClassification }
+use std::sync::{Arc, RwLock, OnceLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct VisionAnalysis {
-    pub id: Uuid,
-    pub input_type: String,
-    pub input_url: String,
-    pub analysis_type: String,
-    pub result: String,
-    pub confidence: f64,
-    pub processing_time_ms: u64,
-    pub created_at: String,
+pub struct AnalysisRequest {
+    pub image_url: String,
+    pub kind: String,
+    pub parameters: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct VisionHistoryEntry {
-    pub id: Uuid,
-    pub analysis_id: Uuid,
-    pub action: String,
-    pub details: String,
+pub struct AnalysisResult {
+    pub id: String,
+    pub image_url: String,
+    pub kind: String,
+    pub status: String,
+    pub labels: Vec<String>,
+    pub confidence: f64,
+    pub metadata: Option<HashMap<String, String>>,
     pub created_at: String,
 }
 
 #[derive(Default)]
-pub struct VisionState {
-    pub analyses: HashMap<Uuid, VisionAnalysis>,
-    pub history: HashMap<Uuid, VisionHistoryEntry>,
+struct AppState {
+    results: HashMap<String, AnalysisResult>,
 }
 
-pub fn routes() -> axum::Router {
-    let state = Arc::new(RwLock::new(VisionState::default()));
-    Router::new()
-        .route("/api/vision/analyze", post(create_analysis))
-        .route("/api/vision/analyze/{id}", get(get_analysis).delete(delete_analysis))
-        .route("/api/vision/history", get(list_history))
-        .route("/api/vision/history/{id}", get(get_history_entry))
-        .with_state(state)
+fn state() -> &'static Arc<RwLock<AppState>> {
+    static S: OnceLock<Arc<RwLock<AppState>>> = OnceLock::new();
+    S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-async fn create_analysis(State(state): State<Arc<RwLock<VisionState>>>, Json(mut analysis): Json<VisionAnalysis>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    let id = Uuid::new_v4();
-    analysis.id = id;
-    analysis.created_at = Utc::now().to_rfc3339();
-    s.analyses.insert(id, analysis.clone());
-    let history_id = Uuid::new_v4();
-    let entry = VisionHistoryEntry {
-        id: history_id,
-        analysis_id: id,
-        action: "created".to_string(),
-        details: format!("Analysis of type {} created", analysis.analysis_type),
-        created_at: Utc::now().to_rfc3339(),
+pub async fn analyze_image(Json(req): Json<AnalysisRequest>) -> Json<serde_json::Value> {
+    let mut s = state().write().unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    let result = AnalysisResult {
+        id: id.clone(),
+        image_url: req.image_url,
+        kind: req.kind,
+        status: "completed".to_string(),
+        labels: vec!["detected".to_string()],
+        confidence: 0.95,
+        metadata: req.parameters,
+        created_at: chrono::Utc::now().to_rfc3339(),
     };
-    s.history.insert(history_id, entry);
-    Json(serde_json::json!({"analysis": analysis}))
+    s.results.insert(id, result.clone());
+    Json(serde_json::json!({"result": result}))
 }
 
-async fn get_analysis(State(state): State<Arc<RwLock<VisionState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.analyses.get(&id) {
-        Some(a) => Json(serde_json::json!({"analysis": a})),
-        None => Json(serde_json::json!({"error": "Analysis not found"})),
-    }
-}
-
-async fn delete_analysis(State(state): State<Arc<RwLock<VisionState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let mut s = state.write().unwrap();
-    s.analyses.remove(&id);
-    let history_id = Uuid::new_v4();
-    let entry = VisionHistoryEntry {
-        id: history_id,
-        analysis_id: id,
-        action: "deleted".to_string(),
-        details: "Analysis deleted".to_string(),
-        created_at: Utc::now().to_rfc3339(),
-    };
-    s.history.insert(history_id, entry);
-    Json(serde_json::json!({"deleted": true}))
-}
-
-async fn list_history(State(state): State<Arc<RwLock<VisionState>>>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    let items: Vec<&VisionHistoryEntry> = s.history.values().collect();
-    Json(serde_json::json!({"history": items}))
-}
-
-async fn get_history_entry(State(state): State<Arc<RwLock<VisionState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
-    let s = state.read().unwrap();
-    match s.history.get(&id) {
-        Some(e) => Json(serde_json::json!({"entry": e})),
-        None => Json(serde_json::json!({"error": "History entry not found"})),
-    }
+pub async fn list_history() -> Json<serde_json::Value> {
+    let s = state().read().unwrap();
+    let items: Vec<&AnalysisResult> = s.results.values().collect();
+    Json(serde_json::json!({"items": items}))
 }

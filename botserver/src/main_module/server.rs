@@ -301,6 +301,8 @@ pub async fn run_axum_server(
     api_router = api_router.route(ApiUrls::AUTH, get(anonymous_auth_handler));
     }
 
+    api_router = crate::apps::register(api_router);
+
     #[cfg(feature = "meet")]
     {
         api_router = api_router.merge(crate::meet::configure());
@@ -361,7 +363,6 @@ pub async fn run_axum_server(
     {
         api_router = api_router.merge(crate::compliance::configure_compliance_routes(&app_state));
         api_router = api_router.merge(crate::compliance::configure_compliance_ui_routes(&app_state));
-        api_router = api_router.merge(crate::apps::configure_routes());
     }
     #[cfg(feature = "monitoring")]
     {
