@@ -1,5 +1,6 @@
 pub mod advisor;
 pub mod ai;
+pub mod campaign;
 pub mod campaigns;
 pub mod email;
 pub mod ip_router;
