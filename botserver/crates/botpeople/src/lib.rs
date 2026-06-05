@@ -1,3 +1,7 @@
+pub mod models;
+pub mod employee;
+pub mod attendance;
+pub mod payroll;
 pub mod ui;
 
 use axum::{

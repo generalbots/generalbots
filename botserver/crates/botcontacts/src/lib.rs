@@ -66,6 +66,10 @@ pub(crate) mod contacts_api_helpers;
 pub mod handlers;
 pub mod ui;
 pub mod routes;
+pub mod sales_funnel;
+pub mod forecast;
+pub mod email_integration;
+pub mod routes_sales;
 
 #[cfg(feature = "calendar")]
 pub mod calendar_types;

@@ -15,6 +15,8 @@ use std::sync::Arc;
 use botcore::urls::ApiUrls;
 use botcore::shared::state::AppState;
 
+pub mod transcription;
+pub mod minutes;
 pub mod conversations;
 pub mod dashboard;
 pub mod recording;
