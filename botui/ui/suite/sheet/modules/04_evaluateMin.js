@@ -352,11 +352,15 @@
       rowData.forEach((cellData, cOffset) => {
         const targetRow = row + rOffset;
         const targetCol = col + cOffset;
-        const key = `${targetRow},${targetCol}`;
-        if (cellData) {
+        if (!cellData) return;
+        if (typeof window.setCellValue === "function") {
+          const v = cellData.formula ? cellData.formula : (cellData.value != null ? String(cellData.value) : "");
+          window.setCellValue(targetRow, targetCol, v, { skipHistory: true });
+        } else {
+          const key = `${targetRow},${targetCol}`;
           ws.data[key] = { ...cellData };
+          renderCell(targetRow, targetCol);
         }
-        renderCell(targetRow, targetCol);
       });
     });
     if (state.clipboardMode === "cut") {
@@ -477,3 +481,8 @@
     state.isDirty = true;
     scheduleAutoSave();
   }
+
+  window.pasteSelection = pasteSelection;
+  window.cutSelection = cutSelection;
+  window.getSelectionData = getSelectionData;
+  window.clearCells = clearCells;
