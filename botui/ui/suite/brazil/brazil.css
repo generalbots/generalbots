@@ -1,0 +1,17 @@
+/* Brazilian tax compliance app styles */
+.gb-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.gb-kpi { background: var(--gb-surface, #1f2933); padding: 1rem; border-radius: 8px; }
+.gb-kpi-label { display: block; font-size: 0.8rem; opacity: 0.7; }
+.gb-kpi-value { display: block; font-size: 1.6rem; font-weight: 600; }
+.gb-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.gb-tab { padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--gb-border, #2a323d); color: inherit; cursor: pointer; border-radius: 6px; }
+.gb-tab.active { background: var(--gb-primary, #2b6cb0); border-color: transparent; }
+.gb-tab-pane { display: none; padding: 1rem; background: var(--gb-surface, #1f2933); border-radius: 8px; }
+.gb-tab-pane.active { display: block; }
+.gb-form fieldset { border: 1px solid var(--gb-border, #2a323d); border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+.gb-form label { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem; }
+.gb-form input, .gb-form select { padding: 0.4rem; border-radius: 4px; border: 1px solid var(--gb-border, #2a323d); background: var(--gb-input, #0f1419); color: inherit; }
+.gb-primary { padding: 0.5rem 1.2rem; background: var(--gb-primary, #2b6cb0); color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+.gb-action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; }
+.gb-action { padding: 0.75rem; border-radius: 6px; border: 1px solid var(--gb-border, #2a323d); background: transparent; color: inherit; cursor: pointer; }
+.gb-output { display: block; margin-top: 1rem; padding: 0.75rem; background: var(--gb-input, #0f1419); border-radius: 6px; font-family: monospace; white-space: pre-wrap; }

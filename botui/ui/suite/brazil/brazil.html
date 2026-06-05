@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brazilian Tax Compliance · GB</title>
+  <link rel="stylesheet" href="../base-layout.css" />
+  <link rel="stylesheet" href="./brazil.css" />
+</head>
+<body>
+  <header class="gb-suite-header">
+    <h1>Compliance Fiscal Brasileiro</h1>
+    <p>Emissão, validação e consulta de NFe, NFSe, CTe, MDFe, EFD e SPED.</p>
+  </header>
+
+  <nav class="gb-tabs" id="tax-tabs">
+    <button class="gb-tab active" data-tab="dashboard">Visão Geral</button>
+    <button class="gb-tab" data-tab="nfe">NFe</button>
+    <button class="gb-tab" data-tab="nfse">NFSe</button>
+    <button class="gb-tab" data-tab="cte">CTe / MDFe</button>
+    <button class="gb-tab" data-tab="sped">EFD / SPED</button>
+    <button class="gb-tab" data-tab="validators">Validadores</button>
+  </nav>
+
+  <main>
+    <section id="tab-dashboard" class="gb-tab-pane active">
+      <div class="gb-kpi-grid">
+        <div class="gb-kpi"><span class="gb-kpi-label">Notas hoje</span><span class="gb-kpi-value" data-counter="today">0</span></div>
+        <div class="gb-kpi"><span class="gb-kpi-label">Autorizadas</span><span class="gb-kpi-value" data-counter="authorized">0</span></div>
+        <div class="gb-kpi"><span class="gb-kpi-label">Rejeitadas</span><span class="gb-kpi-value" data-counter="rejected">0</span></div>
+        <div class="gb-kpi"><span class="gb-kpi-label">Em digitação</span><span class="gb-kpi-value" data-counter="draft">0</span></div>
+      </div>
+      <div class="gb-card">
+        <h2>Atalhos</h2>
+        <div class="gb-action-grid">
+          <button class="gb-action" data-shortcut="nfe">+ Nova NFe</button>
+          <button class="gb-action" data-shortcut="nfse">+ Nova NFSe</button>
+          <button class="gb-action" data-shortcut="cte">+ Novo CTe</button>
+          <button class="gb-action" data-shortcut="mdfe">+ Novo MDFe</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-nfe" class="gb-tab-pane">
+      <form id="nfe-form" class="gb-form">
+        <fieldset>
+          <legend>Emissor</legend>
+          <label>CNPJ <input name="issuer_cnpj" data-mask="cnpj" required /></label>
+          <label>IE <input name="issuer_ie" data-mask="ie" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Destinatário</legend>
+          <label>CNPJ/CPF <input name="recipient_tax_id" data-mask="cnpj_cpf" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Produto (linha 1)</legend>
+          <label>SKU <input name="sku" /></label>
+          <label>Descrição <input name="description" required /></label>
+          <label>NCM <input name="ncm" /></label>
+          <label>CFOP <input name="cfop" /></label>
+          <label>Quantidade <input name="quantity" type="number" min="0" step="0.01" value="1" /></label>
+          <label>Valor unitário <input name="unit_price" type="number" min="0" step="0.01" value="0" /></label>
+        </fieldset>
+        <button type="submit" class="gb-primary">Gerar chave de acesso</button>
+        <output id="nfe-key-output" class="gb-output"></output>
+      </form>
+    </section>
+
+    <section id="tab-nfse" class="gb-tab-pane">
+      <form id="nfse-form" class="gb-form">
+        <label>Município <select name="city" data-source="municipalities"></select></label>
+        <label>Valor do serviço <input name="amount" type="number" min="0" step="0.01" required /></label>
+        <label>Número do RPS <input name="rps" type="number" value="1" min="1" /></label>
+        <button type="submit" class="gb-primary">Gerar RPS</button>
+        <output id="nfse-output" class="gb-output"></output>
+      </form>
+    </section>
+
+    <section id="tab-cte" class="gb-tab-pane">
+      <form id="cte-form" class="gb-form">
+        <label>Modal
+          <select name="modal">
+            <option value="Road">Rodoviário</option>
+            <option value="Air">Aéreo</option>
+            <option value="Water">Aquaviário</option>
+            <option value="Rail">Ferroviário</option>
+            <option value="Pipeline">Dutoviário</option>
+          </select>
+        </label>
+        <label>Placa do veículo <input name="plate" pattern="[A-Z]{3}[0-9][A-Z0-9][0-9]{2}" required /></label>
+        <label>Origem (cód. IBGE) <input name="origin" pattern="[0-9]{7}" required /></label>
+        <label>Destino (cód. IBGE) <input name="destination" pattern="[0-9]{7}" required /></label>
+        <button type="submit" class="gb-primary">Montar CT-e</button>
+        <output id="cte-output" class="gb-output"></output>
+      </form>
+    </section>
+
+    <section id="tab-sped" class="gb-tab-pane">
+      <form id="sped-form" class="gb-form">
+        <label>Perfil
+          <select name="profile">
+            <option value="Fiscal">SPED Fiscal</option>
+            <option value="Contribuicoes">SPED Contribuições</option>
+            <option value="Contabil">SPED Contábil</option>
+            <option value="ECD">ECD</option>
+            <option value="ECF">ECF</option>
+          </select>
+        </label>
+        <label>CNPJ <input name="cnpj" data-mask="cnpj" required /></label>
+        <label>Início do período <input name="start" type="date" required /></label>
+        <label>Fim do período <input name="end" type="date" required /></label>
+        <button type="submit" class="gb-primary">Gerar arquivo EFD</button>
+        <output id="sped-output" class="gb-output"></output>
+      </form>
+    </section>
+
+    <section id="tab-validators" class="gb-tab-pane">
+      <form id="validators-form" class="gb-form">
+        <label>CNPJ <input name="cnpj" data-mask="cnpj" placeholder="00.000.000/0000-00" /></label>
+        <label>CPF <input name="cpf" data-mask="cpf" placeholder="000.000.000-00" /></label>
+        <label>CEP <input name="cep" data-mask="cep" placeholder="00000-000" /></label>
+        <label>UF <select name="uf"><option>SP</option><option>RJ</option><option>MG</option><option>DF</option></select></label>
+        <label>IE <input name="ie" /></label>
+        <button type="submit" class="gb-primary">Validar</button>
+        <output id="validators-output" class="gb-output"></output>
+      </form>
+    </section>
+  </main>
+
+  <script type="module" src="./brazil.js"></script>
+</body>
+</html>
