@@ -1,6 +1,10 @@
+pub mod cmdb;
 pub mod handlers;
+pub mod incident;
+pub mod knowledge;
 pub mod models;
 pub mod routes;
+pub mod routes_itsm;
 pub mod schema;
 pub mod ui;
 
@@ -18,3 +22,5 @@ pub struct AttendantConfig {
 pub use routes::configure_attendant_routes;
 pub use models::*;
 pub use ui::configure_attendant_ui_routes;
+pub use routes_itsm::configure_itsm_routes;
+pub use routes_itsm::ItsmState;
