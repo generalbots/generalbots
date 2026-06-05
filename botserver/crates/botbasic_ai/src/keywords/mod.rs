@@ -17,6 +17,7 @@ pub mod llm_keyword;
 pub mod llm_macros;
 pub mod mcp_client;
 pub mod mcp_directory;
+pub mod m365;
 pub mod model_routing;
 pub mod multimodal;
 pub mod on_form_submit;
@@ -49,6 +50,7 @@ pub fn register_ai_keywords(
     inventory::register_inventory_keywords(state.clone(), user.clone(), engine);
     kyc::register_kyc_keywords(state.clone(), user.clone(), engine);
     time_clock::register_time_clock_keywords(state.clone(), user.clone(), engine);
+    m365::register_m365_keywords(state.clone(), user.clone(), engine);
     episodic_memory::register_episodic_memory_keywords(engine);
     http_operations::register_http_operations(state.clone(), user.clone(), engine);
     human_approval::register_approval_keywords(engine);
