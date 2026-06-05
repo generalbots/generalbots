@@ -791,7 +791,7 @@ match x {
 When a file grows beyond this limit:
 
 1. **Identify logical groups** - Find related functions
-2. **Create subdirectory module** - e.g., `handlers/`
+2. **Create subdirectory module** - e.g., `handlers/` (Rust) or `modules/` (JS)
 3. **Split by responsibility:**
    - `types.rs` - Structs, enums, type definitions
    - `handlers.rs` - HTTP handlers and routes
@@ -802,6 +802,30 @@ When a file grows beyond this limit:
 5. **Update mod.rs** - Re-export all public items
 
 **NEVER let a single file exceed 450 lines - split proactively at 350 lines**
+
+### JS Frontend Module Pattern
+
+App JS files in `botui/ui/suite/<app>/` that exceed 450 lines are split into `modules/` subdirectory:
+
+```
+botui/ui/suite/<app>/
+├── <app>.html          # Loads modules via <script> tags
+├── <app>.js.orig       # Original monolithic file (backup)
+└── modules/
+    ├── 01_state.js     # Config, state, constants
+    ├── 02_render.js    # Rendering logic
+    ├── 03_events.js    # Event handlers
+    ├── ...
+    └── 99_init.js      # Startup/init code
+```
+
+**Rules:**
+- Each module is a plain `<script>` file (NOT ES module) — functions are globally visible across modules via load order
+- Module scripts are ordered in HTML from lowest-numbered to `99_init.js`
+- `99_init.js` contains only the `DOMContentLoaded`/`init()` call
+- Original monolithic file preserved as `<app>.js.orig`
+- Each module file MUST begin with `"use strict";` after the header comment
+- Module naming: `{order}_{firstFunctionName}.js`
 
 ---
 
