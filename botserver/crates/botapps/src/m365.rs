@@ -2,6 +2,7 @@ use axum::extract::Json;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SharePointItem {
@@ -55,28 +56,28 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_sharepoint() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_sharepoint() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&SharePointItem> = s.sharepoint.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_calendar() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_calendar() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&CalendarEvent> = s.calendar.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_onedrive() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_onedrive() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&OneDriveFile> = s.onedrive.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn get_settings() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn get_settings() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match &s.settings {
-        Some(settings) => Json(serde_json::json!({"settings": settings})),
-        None => Json(serde_json::json!({"settings": null})),
+        Some(settings) => Ok(Json(serde_json::json!({"settings": settings}))),
+        None => Ok(Json(serde_json::json!({"settings": null}))),
     }
 }

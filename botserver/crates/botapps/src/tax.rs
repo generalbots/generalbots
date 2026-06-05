@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NFe {
@@ -61,71 +62,71 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_nfe() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_nfe() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&NFe> = s.nfe.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_nfe(Json(item): Json<NFe>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn create_nfe(Json(item): Json<NFe>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut new_item = item;
     new_item.id = id.clone();
     new_item.created_at = chrono::Utc::now().to_rfc3339();
     new_item.status = "pending".to_string();
     s.nfe.insert(id.clone(), new_item.clone());
-    Json(serde_json::json!({"item": new_item}))
+    Ok(Json(serde_json::json!({"item": new_item})))
 }
 
-pub async fn authorize_nfe(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn authorize_nfe(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.nfe.get_mut(&id) {
         Some(item) => {
             item.status = "authorized".to_string();
             item.authorized_at = Some(chrono::Utc::now().to_rfc3339());
-            Json(serde_json::json!({"item": item}))
+            Ok(Json(serde_json::json!({"item": item})))
         }
-        None => Json(serde_json::json!({"error": "NFe not found"})),
+        None => Err((StatusCode::NOT_FOUND, "NFe not found".to_string())),
     }
 }
 
-pub async fn list_nfse() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_nfse() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&NFSe> = s.nfse.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_nfse(Json(item): Json<NFSe>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn create_nfse(Json(item): Json<NFSe>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut new_item = item;
     new_item.id = id.clone();
     new_item.created_at = chrono::Utc::now().to_rfc3339();
     new_item.status = "pending".to_string();
     s.nfse.insert(id.clone(), new_item.clone());
-    Json(serde_json::json!({"item": new_item}))
+    Ok(Json(serde_json::json!({"item": new_item})))
 }
 
-pub async fn list_cte() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_cte() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&CTe> = s.cte.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_cte(Json(item): Json<CTe>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn create_cte(Json(item): Json<CTe>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut new_item = item;
     new_item.id = id.clone();
     new_item.created_at = chrono::Utc::now().to_rfc3339();
     new_item.status = "pending".to_string();
     s.cte.insert(id.clone(), new_item.clone());
-    Json(serde_json::json!({"item": new_item}))
+    Ok(Json(serde_json::json!({"item": new_item})))
 }
 
-pub async fn list_sped() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_sped() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Sped> = s.sped.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }

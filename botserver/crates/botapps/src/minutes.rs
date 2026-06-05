@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Meeting {
@@ -48,33 +49,33 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_meetings() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_meetings() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Meeting> = s.meetings.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_transcripts() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_transcripts() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Transcript> = s.transcripts.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_documents() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_documents() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Document> = s.documents.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn update_document(Path(id): Path<String>, Json(item): Json<Document>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn update_document(Path(id): Path<String>, Json(item): Json<Document>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     if let Some(existing) = s.documents.get_mut(&id) {
         existing.title = item.title;
         existing.content = item.content;
         existing.version += 1;
         existing.updated_at = chrono::Utc::now().to_rfc3339();
-        Json(serde_json::json!({"item": existing}))
+        Ok(Json(serde_json::json!({"item": existing})))
     } else {
-        Json(serde_json::json!({"error": "Document not found"}))
+        Err((StatusCode::NOT_FOUND, "Document not found".to_string()))
     }
 }

@@ -17,6 +17,7 @@ chrono = { workspace = true, features = ["serde", "clock"] }
 hex = { workspace = true }
 log = { workspace = true }
 rand = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls"], default-features = false }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sysinfo = { workspace = true, optional = true }

@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Camera {
@@ -45,39 +46,39 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_cameras() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_cameras() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Camera> = s.cameras.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_camera(Json(item): Json<Camera>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn create_camera(Json(item): Json<Camera>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut new_item = item;
     new_item.id = id.clone();
     new_item.created_at = chrono::Utc::now().to_rfc3339();
     new_item.status = "active".to_string();
     s.cameras.insert(id.clone(), new_item.clone());
-    Json(serde_json::json!({"item": new_item}))
+    Ok(Json(serde_json::json!({"item": new_item})))
 }
 
-pub async fn delete_camera(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn delete_camera(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.cameras.remove(&id) {
-        Some(_) => Json(serde_json::json!({"deleted": true})),
-        None => Json(serde_json::json!({"error": "Camera not found"})),
+        Some(_) => Ok(Json(serde_json::json!({"deleted": true}))),
+        None => Err((StatusCode::NOT_FOUND, "Camera not found".to_string())),
     }
 }
 
-pub async fn list_alerts() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_alerts() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Alert> = s.alerts.iter().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_analytics() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_analytics() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Analytics> = s.analytics.iter().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }

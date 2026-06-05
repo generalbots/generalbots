@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Deal {
@@ -57,25 +58,25 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_deals() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_deals() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Deal> = s.deals.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_deal(Json(item): Json<Deal>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn create_deal(Json(item): Json<Deal>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut new_item = item;
     new_item.id = id.clone();
     new_item.created_at = chrono::Utc::now().to_rfc3339();
     new_item.status = "open".to_string();
     s.deals.insert(id.clone(), new_item.clone());
-    Json(serde_json::json!({"item": new_item}))
+    Ok(Json(serde_json::json!({"item": new_item})))
 }
 
-pub async fn update_deal(Path(id): Path<String>, Json(item): Json<Deal>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn update_deal(Path(id): Path<String>, Json(item): Json<Deal>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     if let Some(existing) = s.deals.get_mut(&id) {
         existing.title = item.title;
         existing.contact_id = item.contact_id;
@@ -83,26 +84,26 @@ pub async fn update_deal(Path(id): Path<String>, Json(item): Json<Deal>) -> Json
         existing.stage = item.stage;
         existing.status = item.status;
         existing.probability = item.probability;
-        Json(serde_json::json!({"item": existing}))
+        Ok(Json(serde_json::json!({"item": existing})))
     } else {
-        Json(serde_json::json!({"error": "Deal not found"}))
+        Err((StatusCode::NOT_FOUND, "Deal not found".to_string()))
     }
 }
 
-pub async fn list_contacts() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_contacts() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Contact> = s.contacts.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_activities() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_activities() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Activity> = s.activities.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn get_forecast() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn get_forecast() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Forecast> = s.forecast.iter().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
