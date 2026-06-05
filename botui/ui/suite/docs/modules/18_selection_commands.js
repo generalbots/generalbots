@@ -243,10 +243,11 @@
       const range = getRange();
       if (!range) return false;
       range.deleteContents();
-      const div = document.createElement("div");
-      div.innerHTML = String(value);
+      const safe = sanitizeHtmlFragment(String(value));
+      const tmp = document.createElement("div");
+      tmp.appendChild(safe);
       const frag = document.createDocumentFragment();
-      while (div.firstChild) frag.appendChild(div.firstChild);
+      while (tmp.firstChild) frag.appendChild(tmp.firstChild);
       range.insertNode(frag);
       return true;
     }
@@ -339,5 +340,40 @@
     setTimeout(attach, 50);
   }
 
-  window.DocsSelection = { exec, getRange, isCollapsed, getActiveFormats, queryCommandState, wrapRangeInSpan, unwrapRange };
+  function sanitizeHtmlFragment(html) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    const blocked = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "LINK", "META", "BASE", "FORM", "INPUT", "TEXTAREA", "SELECT", "BUTTON"]);
+    const walk = (node) => {
+      const children = Array.from(node.childNodes);
+      for (const child of children) {
+        if (child.nodeType === 1) {
+          if (blocked.has(child.tagName)) {
+            child.remove();
+            continue;
+          }
+          for (const attr of Array.from(child.attributes)) {
+            const n = attr.name.toLowerCase();
+            if (n.startsWith("on") || n === "srcdoc" || n === "xlink:href" || n === "formaction") {
+              child.removeAttribute(attr.name);
+              continue;
+            }
+            if ((n === "href" || n === "src") && /^\s*javascript:/i.test(attr.value)) {
+              child.removeAttribute(attr.name);
+            }
+          }
+          if (child.tagName === "A" && child.getAttribute("href") && !/^(https?:|mailto:|tel:|#|\/)/i.test(child.getAttribute("href"))) {
+            child.removeAttribute("href");
+          }
+          walk(child);
+        } else if (child.nodeType === 8) {
+          child.remove();
+        }
+      }
+    };
+    walk(tmp);
+    return tmp;
+  }
+
+  window.DocsSelection = { exec, getRange, isCollapsed, getActiveFormats, queryCommandState, wrapRangeInSpan, unwrapRange, sanitizeHtmlFragment };
 })();

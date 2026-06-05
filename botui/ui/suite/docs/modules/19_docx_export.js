@@ -314,7 +314,13 @@
   }
 
   function exportDoc(title) {
-    const buf = getExportBuffer(title);
+    let buf;
+    try {
+      buf = getExportBuffer(title);
+    } catch (e) {
+      if (window.console && window.console.error) window.console.error("DOCX export failed:", e);
+      return false;
+    }
     if (!buf) return false;
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
     const url = URL.createObjectURL(blob);
