@@ -26,52 +26,6 @@ use botcore::shared::models::schema::bot_configuration::dsl::*;
 
 use super::{health_check, health_check_simple, receive_client_errors, shutdown_signal};
 
-#[cfg(feature = "monitoring")]
-async fn distributed_tracing_middleware(
-    req: axum::http::Request<axum::body::Body>,
-    next: axum::middleware::Next,
-) -> axum::response::Response {
-    use botmonitoring::{DistributedTracingService, SpanKind, SpanStatus, TraceContext};
-
-    let extensions = req.extensions();
-    let tracer: Option<Arc<DistributedTracingService>> = if let Some(ext) = extensions.get::<Arc<botcore::shared::state::Extensions>>() {
-        ext.get::<DistributedTracingService>().await
-    } else {
-        None
-    };
-
-    let mut active_span = if let Some(ref tracer) = tracer {
-        let traceparent = req.headers()
-            .get("traceparent")
-            .and_then(|v| v.to_str().ok())
-            .and_then(TraceContext::from_w3c_traceparent);
-
-        let operation = format!("{} {}", req.method(), req.uri().path());
-        let mut builder = tracer.span(&operation)
-            .with_kind(SpanKind::Server);
-
-        if let Some(parent_ctx) = traceparent {
-            builder = builder.with_parent(parent_ctx);
-        }
-
-        Some(builder.start(tracer))
-    } else {
-        None
-    };
-
-    let response = next.run(req).await;
-
-    if let Some(mut span) = active_span {
-        let status = response.status();
-        if !status.is_success() {
-            span.set_status(SpanStatus::Error, Some(&format!("HTTP {}", status.as_u16())));
-        }
-        span.end().await;
-    }
-
-    response
-}
-
 pub async fn run_axum_server(
     app_state: Arc<AppState>,
     port: u16,
@@ -848,6 +802,16 @@ let base_router = {
 
     let app =
         app_with_ui
+            // W3C Distributed Tracing middleware — injects/parses traceparent headers
+            .layer(axum::middleware::from_fn({
+                let name = app_state.config.as_ref()
+                    .map(|c| format!("botserver:{}", c.server.host))
+                    .unwrap_or_else(|| "botserver".to_string());
+                move |req, next| {
+                    let name = name.clone();
+                    async move { botcore::tracing::tracing_middleware_fn(name, req, next).await }
+                }
+            }))
             // CSRF cookie injector — outermost so it runs last (on response) to set cookies
             .layer(axum::middleware::from_fn({
                 let csrf_manager = csrf_manager.clone();
@@ -898,9 +862,6 @@ let base_router = {
             .layer(axum::Extension(app_state.clone()))
             .layer(cors)
             .layer(TraceLayer::new_for_http());
-
-        #[cfg(feature = "monitoring")]
-        let api_router = api_router.layer(axum::middleware::from_fn(distributed_tracing_middleware));
 
     let stack = botcore::shared::utils::get_stack_path();
     let cert_dir = std::path::PathBuf::from(format!("{}/conf/system/certificates", stack));

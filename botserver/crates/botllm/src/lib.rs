@@ -7,12 +7,18 @@ pub mod llm_models;
 pub mod rate_limiter;
 pub mod vertex;
 pub mod cache;
+pub mod ci_gate;
 pub mod episodic_memory;
+pub mod evaluation;
 pub mod local;
 pub mod smart_router;
 pub mod observability;
 pub mod pipeline;
 
+pub use ci_gate::{CiGateConfig, CiGateReport, CiGateRunner, RegressionSummary};
+pub use evaluation::{
+    EvaluationCriterion, EvaluationGate, EvaluationResult, Evaluator, RegressionReport,
+};
 pub use rate_limiter::{ApiRateLimiter, RateLimits};
 pub use hallucination_detector::HallucinationDetector;
 pub use llm_models::get_handler;

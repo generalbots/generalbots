@@ -60,30 +60,22 @@ fn safe_nvcc_version() -> Option<std::process::Output> {
 }
 
 fn safe_sh_command(script: &str) -> Option<std::process::Output> {
-    let child = if cfg!(unix) {
-        SafeCommand::new("sh")
-            .and_then(|c| c.arg("-c"))
-            .and_then(|c| c.trusted_shell_script_arg(script))
-    } else {
-        SafeCommand::new("cmd")
-            .and_then(|c| c.arg("/c"))
-            .and_then(|c| c.trusted_shell_script_arg(script))
-    };
-    child.ok().and_then(|cmd| cmd.execute().ok())
-
-}
-
-#[cfg(unix)]
-fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
-    SafeCommand::new("pgrep")
-        .and_then(|c| c.args(args))
+    let abs = crate::os_abstraction::get_abstraction();
+    let (shell, flag) = abs.shell_command();
+    SafeCommand::new(shell)
+        .and_then(|c| c.arg(flag))
+        .and_then(|c| c.trusted_shell_script_arg(script))
         .ok()
         .and_then(|cmd| cmd.execute().ok())
 }
 
-#[cfg(windows)]
-fn safe_pgrep(_args: &[&str]) -> Option<std::process::Output> {
-    None // Simplificação inicial
+fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
+    let abs = crate::os_abstraction::get_abstraction();
+    let cmd_name = abs.process_grep_command();
+    SafeCommand::new(cmd_name)
+        .and_then(|c| c.args(args))
+        .ok()
+        .and_then(|cmd| cmd.execute().ok())
 }
 
 const LLAMA_CPP_VERSION: &str = "b7345";
@@ -1302,13 +1294,10 @@ EOF"#.to_string(),
                 rendered_cmd
             );
             trace!("Working dir: {}", bin_path.display());
-            let child = if cfg!(unix) {
-                SafeCommand::new("sh")
-                    .and_then(|c| c.arg("-c"))
-            } else {
-                SafeCommand::new("cmd")
-                    .and_then(|c| c.arg("/c"))
-            }
+            let abs = crate::os_abstraction::get_abstraction();
+            let (shell, flag) = abs.shell_command();
+            let child = SafeCommand::new(shell)
+                .and_then(|c| c.arg(flag))
                 .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
                 .and_then(|c| c.working_dir(&bin_path))
                 .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs));
@@ -1618,13 +1607,10 @@ VAULT_CACERT={}
 
         std::fs::write(&unseal_keys_file, keys_content)?;
 
-        #[cfg(unix)]
         {
-            let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&unseal_keys_file);
-        }
-        #[cfg(not(unix))]
-        {
-            let _ = &unseal_keys_file; // suppress unused warning
+            let abs = crate::os_abstraction::get_abstraction();
+            let _ = abs.set_readonly_owner(&unseal_keys_file)
+                .map_err(|e| warn!("Failed to set permissions on {}: {}", unseal_keys_file.display(), e));
         }
         info!("Created {} (chmod 600)", unseal_keys_file.display());
 
