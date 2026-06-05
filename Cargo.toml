@@ -20,6 +20,9 @@ members = [
   "botserver/crates/botbiometry",
   "botserver/crates/botclock",
   "botserver/crates/boteval",
+  "botserver/crates/botfraud",
+  "botserver/crates/botgl",
+  "botserver/crates/botinventory",
   "botserver/crates/botbasic_ai",
   "botserver/crates/botbasic_comms",
   "botserver/crates/botbasic_compiler",
@@ -111,6 +114,9 @@ http = "1.0"
 botanalytics = { path = "botserver/crates/botanalytics" }
 botbrazil = { path = "botserver/crates/botbrazil" }
 boteval = { path = "botserver/crates/boteval" }
+botfraud = { path = "botserver/crates/botfraud" }
+botgl = { path = "botserver/crates/botgl" }
+botinventory = { path = "botserver/crates/botinventory" }
 botattendance = { path = "botserver/crates/botattendance" }
 botattendant = { path = "botserver/crates/botattendant" }
 botbilling = { path = "botserver/crates/botbilling" }
