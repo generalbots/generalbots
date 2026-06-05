@@ -1,0 +1,60 @@
+<!-- Advanced Search partial for People app -->
+<div class="people-advanced-search" id="people-advanced-search">
+  <h3>Advanced Search</h3>
+  <form class="adv-search-form" onsubmit="return false;">
+    <div class="form-row">
+      <label for="adv-search-name">Name contains</label>
+      <input type="text" id="adv-search-name" placeholder="e.g. Maria" />
+    </div>
+    <div class="form-row">
+      <label for="adv-search-email">Email</label>
+      <input type="email" id="adv-search-email" placeholder="maria@acme.com" />
+    </div>
+    <div class="form-row">
+      <label for="adv-search-company">Company</label>
+      <input type="text" id="adv-search-company" />
+    </div>
+    <div class="form-row">
+      <label for="adv-search-title">Job title</label>
+      <input type="text" id="adv-search-title" />
+    </div>
+    <div class="form-row">
+      <label for="adv-search-tags">Tags (comma separated)</label>
+      <input type="text" id="adv-search-tags" placeholder="vip, partner, lead" />
+    </div>
+    <div class="form-row">
+      <label for="adv-search-source">Source</label>
+      <select id="adv-search-source">
+        <option value="">Any</option>
+        <option value="manual">Manual</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="import">CSV import</option>
+        <option value="crm">CRM sync</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Enrichment</label>
+      <label class="checkbox"><input type="checkbox" id="adv-search-enriched" /> Has enrichment</label>
+    </div>
+    <div class="form-actions">
+      <button type="reset" class="btn-secondary">Clear</button>
+      <button type="button" id="adv-search-run" class="btn-primary">Search</button>
+    </div>
+  </form>
+  <div class="adv-search-actions">
+    <button class="btn-secondary" id="adv-search-export-csv">Export CSV</button>
+    <button class="btn-secondary" id="adv-search-import-csv">Import CSV</button>
+    <input type="file" id="adv-search-import-input" accept=".csv" hidden />
+    <button class="btn-secondary" id="adv-search-enrich">Enrich selection</button>
+  </div>
+  <table class="data-table" id="adv-search-results">
+    <thead>
+      <tr>
+        <th>Name</th><th>Email</th><th>Company</th><th>Title</th><th>Tags</th><th>Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" class="empty">Run a search to see results.</td></tr>
+    </tbody>
+  </table>
+</div>

@@ -47,6 +47,20 @@
             </button>
             <button
                 class="social-tab"
+                data-tab="analytics"
+                hx-get="/api/ui/social/analytics"
+                hx-target="#social-content"
+                hx-swap="innerHTML"
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <span data-i18n="social-analytics">Analytics</span>
+            </button>
+            <button
+                class="social-tab"
                 data-tab="announcements"
                 hx-get="/api/ui/social/announcements"
                 hx-target="#social-content"
