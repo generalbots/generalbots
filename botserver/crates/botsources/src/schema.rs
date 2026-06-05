@@ -91,6 +91,73 @@ table! {
     }
 }
 
+table! {
+    delivery_transactions (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        platform -> Text,
+        platform_order_id -> Text,
+        order_date -> Date,
+        customer_name -> Nullable<Text>,
+        items -> Nullable<Jsonb>,
+        subtotal -> Numeric,
+        delivery_fee -> Numeric,
+        platform_commission -> Numeric,
+        net_value -> Numeric,
+        payment_method -> Nullable<Text>,
+        status -> Text,
+        reconciled -> Bool,
+        reconciled_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+    }
+}
+
+table! {
+    bank_transactions (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        bank -> Nullable<Text>,
+        account -> Nullable<Text>,
+        transaction_date -> Date,
+        description -> Text,
+        amount -> Numeric,
+        balance -> Nullable<Numeric>,
+        category -> Nullable<Text>,
+        reconciled -> Bool,
+        reconciled_at -> Nullable<Timestamptz>,
+        matched_delivery_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+    }
+}
+
+table! {
+    reconciliation_rules (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        name -> Text,
+        match_field -> Text,
+        match_operator -> Text,
+        match_value -> Text,
+        category -> Nullable<Text>,
+        auto_reconcile -> Bool,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+table! {
+    reconciliation_runs (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        status -> Text,
+        matched_count -> Integer,
+        unmatched_count -> Integer,
+        total_amount_matched -> Numeric,
+        started_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+    }
+}
+
 allow_tables_to_appear_in_same_query!(
     knowledge_sources,
     knowledge_chunks,
@@ -98,4 +165,8 @@ allow_tables_to_appear_in_same_query!(
     connectors,
     connector_endpoints,
     connector_sync_logs,
+    delivery_transactions,
+    bank_transactions,
+    reconciliation_rules,
+    reconciliation_runs,
 );

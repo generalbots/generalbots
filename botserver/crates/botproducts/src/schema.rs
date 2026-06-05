@@ -170,4 +170,113 @@ diesel::allow_tables_to_appear_in_same_query!(
     product_variants,
     organizations,
     bots,
+    product_variations,
+    product_stock,
+    product_price_lists,
+    product_prices,
+    product_promotions,
+    pos_sessions,
+    pos_sales,
 );
+
+diesel::table! {
+    product_variations (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        product_id -> Uuid,
+        sku -> Text,
+        name -> Text,
+        attributes -> Jsonb,
+        price -> Numeric,
+        cost_price -> Nullable<Numeric>,
+        barcode -> Nullable<Text>,
+        weight -> Nullable<Numeric>,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    product_stock (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        product_id -> Uuid,
+        variation_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
+        quantity -> Numeric,
+        reserved -> Numeric,
+        reorder_point -> Nullable<Numeric>,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    product_price_lists (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        name -> Text,
+        currency -> Text,
+        is_default -> Bool,
+        valid_from -> Nullable<Date>,
+        valid_until -> Nullable<Date>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    product_prices (id) {
+        id -> Uuid,
+        price_list_id -> Uuid,
+        product_id -> Uuid,
+        variation_id -> Nullable<Uuid>,
+        price -> Numeric,
+        min_quantity -> Numeric,
+    }
+}
+
+diesel::table! {
+    product_promotions (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        name -> Text,
+        discount_type -> Text,
+        discount_value -> Numeric,
+        product_ids -> Nullable<Jsonb>,
+        min_purchase -> Nullable<Numeric>,
+        valid_from -> Date,
+        valid_until -> Date,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    pos_sessions (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        branch_id -> Uuid,
+        operator_id -> Uuid,
+        started_at -> Timestamptz,
+        closed_at -> Nullable<Timestamptz>,
+        opening_amount -> Numeric,
+        closing_amount -> Nullable<Numeric>,
+        status -> Text,
+    }
+}
+
+diesel::table! {
+    pos_sales (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        session_id -> Uuid,
+        sale_number -> Integer,
+        items -> Jsonb,
+        subtotal -> Numeric,
+        discount -> Nullable<Numeric>,
+        tax -> Nullable<Numeric>,
+        total -> Numeric,
+        payment_method -> Text,
+        nfse_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+    }
+}
