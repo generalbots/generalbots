@@ -1,4 +1,8 @@
+pub mod biometric;
+pub mod digital_signature;
 pub mod integration;
+pub mod kyc;
+pub mod routes_security;
 
 pub use botsecurity_auth::*;
 pub use botsecurity_core::*;

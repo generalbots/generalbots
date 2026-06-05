@@ -1,3 +1,7 @@
+pub mod inventory;
+pub mod pos;
+pub mod pricing;
+pub mod routes;
 pub mod schema;
 
 use axum::{

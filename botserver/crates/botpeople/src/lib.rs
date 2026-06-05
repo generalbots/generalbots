@@ -2,6 +2,7 @@ pub mod models;
 pub mod employee;
 pub mod attendance;
 pub mod payroll;
+pub mod time_clock;
 pub mod ui;
 
 use axum::{
