@@ -1,0 +1,168 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #8b5cf6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card-bg { fill: #f8fafc; }
+    .tab-active { fill: #f5f3ff; stroke: #8b5cf6; stroke-width: 1.5; }
+    .badge-active { fill: #dcfce7; }
+    .badge-draft { fill: #fef3c7; }
+    .badge-completed { fill: #e0e7ff; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #a78bfa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card-bg { fill: #1e293b; }
+      .tab-active { fill: #2d1f5e; stroke: #8b5cf6; }
+      .badge-active { fill: #14532d; }
+      .badge-draft { fill: #451a03; }
+      .badge-completed { fill: #1e1b4b; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Campaigns</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(50, 55)">
+    <rect x="0" y="0" width="100" height="34" rx="8" class="tab-active"/>
+    <text x="50" y="22" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">All Campaigns</text>
+
+    <rect x="110" y="0" width="60" height="34" rx="8" class="icon-btn"/>
+    <rect x="110" y="0" width="60" height="34" rx="8" class="border"/>
+    <text x="140" y="22" text-anchor="middle" font-size="12" class="secondary-text">Lists</text>
+
+    <rect x="180" y="0" width="80" height="34" rx="8" class="icon-btn"/>
+    <rect x="180" y="0" width="80" height="34" rx="8" class="border"/>
+    <text x="220" y="22" text-anchor="middle" font-size="12" class="secondary-text">Templates</text>
+
+    <rect x="270" y="0" width="65" height="34" rx="8" class="icon-btn"/>
+    <rect x="270" y="0" width="65" height="34" rx="8" class="border"/>
+    <text x="302" y="22" text-anchor="middle" font-size="12" class="secondary-text">Email</text>
+
+    <rect x="345" y="0" width="90" height="34" rx="8" class="icon-btn"/>
+    <rect x="345" y="0" width="90" height="34" rx="8" class="border"/>
+    <text x="390" y="22" text-anchor="middle" font-size="12" class="secondary-text">WhatsApp</text>
+
+    <rect x="445" y="0" width="65" height="34" rx="8" class="icon-btn"/>
+    <rect x="445" y="0" width="65" height="34" rx="8" class="border"/>
+    <text x="477" y="22" text-anchor="middle" font-size="12" class="secondary-text">Social</text>
+  </g>
+
+  <!-- New Campaign Button -->
+  <g transform="translate(720, 55)">
+    <rect x="0" y="0" width="130" height="34" rx="8" fill="url(#purpleGrad)"/>
+    <text x="65" y="22" text-anchor="middle" font-size="12" font-weight="500" class="white-text">+ New Campaign</text>
+  </g>
+
+  <!-- Campaign Cards Grid -->
+  <!-- Card 1: Active -->
+  <g transform="translate(50, 105)">
+    <rect x="0" y="0" width="390" height="140" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="390" height="140" rx="10" class="border"/>
+    <rect x="15" y="15" width="40" height="40" rx="10" fill="url(#purpleGrad)"/>
+    <text x="35" y="40" text-anchor="middle" font-size="18" class="white-text">📧</text>
+    <text x="65" y="32" font-size="14" font-weight="600" class="main-text">Welcome Series</text>
+    <text x="65" y="50" font-size="12" class="secondary-text">Email drip campaign • 3 steps</text>
+    <rect x="15" y="90" width="56" height="22" rx="11" class="badge-active"/>
+    <text x="43" y="105" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Active</text>
+    <text x="15" y="128" font-size="11" class="muted-text">Sent 2,847 • Opened 68%</text>
+    <text x="360" y="128" font-size="11" class="accent-text">View →</text>
+  </g>
+
+  <!-- Card 2: Draft -->
+  <g transform="translate(460, 105)">
+    <rect x="0" y="0" width="390" height="140" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="390" height="140" rx="10" class="border"/>
+    <rect x="15" y="15" width="40" height="40" rx="10" fill="url(#orangeGrad)"/>
+    <text x="35" y="40" text-anchor="middle" font-size="18" class="white-text">📱</text>
+    <text x="65" y="32" font-size="14" font-weight="600" class="main-text">Flash Sale Alert</text>
+    <text x="65" y="50" font-size="12" class="secondary-text">WhatsApp broadcast • 1 message</text>
+    <rect x="15" y="90" width="52" height="22" rx="11" class="badge-draft"/>
+    <text x="41" y="105" text-anchor="middle" font-size="10" font-weight="500" fill="#d97706">Draft</text>
+    <text x="15" y="128" font-size="11" class="muted-text">Scheduled for Jun 10</text>
+    <text x="360" y="128" font-size="11" class="accent-text">Edit →</text>
+  </g>
+
+  <!-- Card 3: Active -->
+  <g transform="translate(50, 260)">
+    <rect x="0" y="0" width="390" height="140" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="390" height="140" rx="10" class="border"/>
+    <rect x="15" y="15" width="40" height="40" rx="10" fill="#22c55e"/>
+    <text x="35" y="40" text-anchor="middle" font-size="18" class="white-text">🎉</text>
+    <text x="65" y="32" font-size="14" font-weight="600" class="main-text">Product Launch</text>
+    <text x="65" y="50" font-size="12" class="secondary-text">Multi-channel • Email + Social</text>
+    <rect x="15" y="90" width="56" height="22" rx="11" class="badge-active"/>
+    <text x="43" y="105" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Active</text>
+    <text x="15" y="128" font-size="11" class="muted-text">Reach 12.4k • Clicks 3.2%</text>
+    <text x="360" y="128" font-size="11" class="accent-text">View →</text>
+  </g>
+
+  <!-- Card 4: Completed -->
+  <g transform="translate(460, 260)">
+    <rect x="0" y="0" width="390" height="140" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="390" height="140" rx="10" class="border"/>
+    <rect x="15" y="15" width="40" height="40" rx="10" fill="#3b82f6"/>
+    <text x="35" y="40" text-anchor="middle" font-size="18" class="white-text">🏆</text>
+    <text x="65" y="32" font-size="14" font-weight="600" class="main-text">Q1 Review Campaign</text>
+    <text x="65" y="50" font-size="12" class="secondary-text">Email sequence • 5 steps</text>
+    <rect x="15" y="90" width="76" height="22" rx="11" class="badge-completed"/>
+    <text x="53" y="105" text-anchor="middle" font-size="10" font-weight="500" fill="#4338ca">Completed</text>
+    <text x="15" y="128" font-size="11" class="muted-text">Sent 5,102 • Opened 72%</text>
+    <text x="360" y="128" font-size="11" class="accent-text">Report →</text>
+  </g>
+
+  <!-- Summary Stats -->
+  <g transform="translate(50, 420)">
+    <rect x="0" y="0" width="800" height="70" rx="10" class="panel-bg"/>
+    <rect x="0" y="0" width="800" height="70" rx="10" class="border"/>
+    <text x="20" y="25" font-size="12" font-weight="600" class="main-text">Overview</text>
+    <text x="20" y="50" font-size="12" class="secondary-text">Total Sent</text>
+    <text x="120" y="50" font-size="14" font-weight="600" class="main-text">18,427</text>
+    <text x="220" y="50" font-size="12" class="secondary-text">Open Rate</text>
+    <text x="310" y="50" font-size="14" font-weight="600" fill="#22c55e">68.4%</text>
+    <text x="410" y="50" font-size="12" class="secondary-text">Click Rate</text>
+    <text x="500" y="50" font-size="14" font-weight="600" fill="#3b82f6">4.2%</text>
+    <text x="590" y="50" font-size="12" class="secondary-text">Conversions</text>
+    <text x="690" y="50" font-size="14" font-weight="600" fill="#8b5cf6">312</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 505)">
+    <text x="0" y="0" font-size="10" class="muted-text">N = New Campaign | F = Filter | E = Export | R = Reports</text>
+  </g>
+</svg>

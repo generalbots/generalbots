@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel-bg { fill: #ffffff; }
+      .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+      .secondary-text { fill: #475569; font-family: system-ui, -apple-system, sans-serif; }
+      .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+      .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+      .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+      .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+      .icon-btn { fill: #f1f5f9; rx: 6; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #0f172a; }
+        .panel-bg { fill: #1e293b; }
+        .main-text { fill: #f1f5f9; }
+        .secondary-text { fill: #cbd5e1; }
+        .muted-text { fill: #64748b; }
+        .white-text { fill: #f1f5f9; }
+        .accent-text { fill: #60a5fa; }
+        .border { stroke: #334155; }
+        .icon-btn { fill: #334155; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="600" class="bg" rx="0"/>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" class="main-text" font-size="18" font-weight="600">Chatbot Handoff &amp; Analytics</text>
+
+  <!-- Main Card -->
+  <rect x="16" y="52" width="868" height="536" rx="8" class="panel-bg"/>
+  <rect x="16" y="52" width="868" height="536" rx="8" class="border"/>
+
+  <!-- Tab Bar -->
+  <rect x="16" y="52" width="130" height="36" rx="6" fill="#3b82f6" opacity="0.1"/>
+  <text x="32" y="75" class="accent-text" font-size="12" font-weight="500">Handoff Queue</text>
+  <text x="164" y="75" class="secondary-text" font-size="12">Analytics</text>
+  <text x="248" y="75" class="secondary-text" font-size="12">Channels</text>
+  <text x="330" y="75" class="secondary-text" font-size="12">CSAT</text>
+
+  <!-- Stats Row -->
+  <!-- Queue -->
+  <rect x="28" y="104" width="200" height="64" rx="8" class="panel-bg"/>
+  <rect x="28" y="104" width="200" height="64" rx="8" class="border"/>
+  <text x="44" y="128" class="muted-text" font-size="11">Queue</text>
+  <text x="44" y="152" class="accent-text" font-size="22" font-weight="700">5</text>
+
+  <!-- Avg Wait -->
+  <rect x="240" y="104" width="200" height="64" rx="8" class="panel-bg"/>
+  <rect x="240" y="104" width="200" height="64" rx="8" class="border"/>
+  <text x="256" y="128" class="muted-text" font-size="11">Avg Wait</text>
+  <text x="256" y="152" class="main-text" font-size="22" font-weight="700">2m</text>
+
+  <!-- Resolved Today -->
+  <rect x="452" y="104" width="200" height="64" rx="8" class="panel-bg"/>
+  <rect x="452" y="104" width="200" height="64" rx="8" class="border"/>
+  <text x="468" y="128" class="muted-text" font-size="11">Resolved Today</text>
+  <text x="468" y="152" fill="#22c55e" font-size="22" font-weight="700" font-family="system-ui, -apple-system, sans-serif">42</text>
+
+  <!-- Queue List Label -->
+  <text x="28" y="200" class="secondary-text" font-size="13" font-weight="600">Waiting Conversations</text>
+
+  <!-- Conversation 1 -->
+  <rect x="28" y="212" width="840" height="64" rx="8" class="panel-bg"/>
+  <rect x="28" y="212" width="840" height="64" rx="8" class="border"/>
+  <circle cx="64" cy="244" r="18" fill="#3b82f6" opacity="0.15"/>
+  <text x="56" y="249" class="accent-text" font-size="13" font-weight="600">MC</text>
+  <text x="92" y="234" class="main-text" font-size="13" font-weight="500">Maria Costa</text>
+  <text x="92" y="254" class="secondary-text" font-size="12">"Preciso de ajuda com meu pedido #4521..."</text>
+  <text x="700" y="234" class="muted-text" font-size="12">WhatsApp</text>
+  <text x="700" y="254" fill="#f59e0b" font-size="12" font-family="system-ui, -apple-system, sans-serif">3m wait</text>
+  <rect x="800" y="228" width="56" height="28" rx="6" fill="#3b82f6"/>
+  <text x="810" y="247" class="white-text" font-size="11" font-weight="500">Take</text>
+
+  <!-- Conversation 2 -->
+  <rect x="28" y="288" width="840" height="64" rx="8" class="panel-bg"/>
+  <rect x="28" y="288" width="840" height="64" rx="8" class="border"/>
+  <circle cx="64" cy="320" r="18" fill="#3b82f6" opacity="0.15"/>
+  <text x="56" y="325" class="accent-text" font-size="13" font-weight="600">JS</text>
+  <text x="92" y="310" class="main-text" font-size="13" font-weight="500">João Silva</text>
+  <text x="92" y="330" class="secondary-text" font-size="12">"Minha conta está bloqueada, não consigo..."</text>
+  <text x="700" y="310" class="muted-text" font-size="12">Web Chat</text>
+  <text x="700" y="330" fill="#f59e0b" font-size="12" font-family="system-ui, -apple-system, sans-serif">5m wait</text>
+  <rect x="800" y="306" width="56" height="28" rx="6" fill="#3b82f6"/>
+  <text x="810" y="325" class="white-text" font-size="11" font-weight="500">Take</text>
+
+  <!-- Conversation 3 -->
+  <rect x="28" y="364" width="840" height="64" rx="8" class="panel-bg"/>
+  <rect x="28" y="364" width="840" height="64" rx="8" class="border"/>
+  <circle cx="64" cy="396" r="18" fill="#3b82f6" opacity="0.15"/>
+  <text x="56" y="401" class="accent-text" font-size="13" font-weight="600">AL</text>
+  <text x="92" y="386" class="main-text" font-size="13" font-weight="500">Ana Lima</text>
+  <text x="92" y="406" class="secondary-text" font-size="12">"Quero cancelar minha assinatura..."</text>
+  <text x="700" y="386" class="muted-text" font-size="12">Instagram</text>
+  <text x="700" y="406" fill="#ef4444" font-size="12" font-family="system-ui, -apple-system, sans-serif">8m wait</text>
+  <rect x="800" y="382" width="56" height="28" rx="6" fill="#3b82f6"/>
+  <text x="810" y="401" class="white-text" font-size="11" font-weight="500">Take</text>
+
+  <line x1="28" y1="444" x2="868" y2="444" class="border"/>
+</svg>

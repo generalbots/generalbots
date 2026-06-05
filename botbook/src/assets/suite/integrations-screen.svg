@@ -1,0 +1,141 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .nav-active { fill: #eff6ff; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .badge { fill: #3b82f6; }
+    .search-bg { fill: #f1f5f9; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .nav-active { fill: #1e3a5f; }
+      .card { fill: #1e293b; stroke: #334155; }
+      .search-bg { fill: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Integration Platform</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Top Bar -->
+  <g transform="translate(50, 55)">
+    <text x="0" y="15" font-size="18" font-weight="600" class="main-text">Integrations</text>
+    <text x="730" y="15" font-size="12" class="muted-text">6 available</text>
+    <rect x="540" y="-5" width="100" height="30" rx="6" fill="url(#accentGrad)"/>
+    <text x="590" y="15" text-anchor="middle" font-size="12" font-weight="500" class="white-text">+ New</text>
+  </g>
+
+  <line x1="30" y1="85" x2="870" y2="85" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(50, 95)">
+    <rect x="0" y="0" width="90" height="32" rx="6" class="nav-active"/>
+    <text x="45" y="21" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">Available</text>
+    <text x="155" y="21" text-anchor="middle" font-size="12" class="secondary-text">Connected</text>
+    <text x="285" y="21" text-anchor="middle" font-size="12" class="secondary-text">ETL Jobs</text>
+  </g>
+
+  <line x1="30" y1="140" x2="870" y2="140" class="border"/>
+
+  <!-- Search Box -->
+  <g transform="translate(50, 150)">
+    <rect x="0" y="0" width="300" height="34" rx="8" class="search-bg"/>
+    <text x="14" y="22" font-size="13" class="muted-text">🔍 Search connectors...</text>
+  </g>
+
+  <!-- Connector Cards Grid (3x2) -->
+  <!-- Row 1 -->
+  <g transform="translate(50, 200)">
+    <!-- Slack -->
+    <rect x="0" y="0" width="250" height="110" rx="8" class="card"/>
+    <rect x="16" y="16" width="40" height="40" rx="8" fill="#4A154B"/>
+    <text x="36" y="42" text-anchor="middle" font-size="18" class="white-text">#</text>
+    <text x="68" y="38" font-size="14" font-weight="600" class="main-text">Slack</text>
+    <text x="68" y="54" font-size="11" class="secondary-text">Messaging &amp; Notifications</text>
+    <text x="16" y="80" font-size="11" class="muted-text">Real-time team messaging</text>
+    <rect x="170" y="16" width="64" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="202" y="35" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Connect</text>
+
+    <!-- Salesforce -->
+    <rect x="270" y="0" width="250" height="110" rx="8" class="card"/>
+    <rect x="286" y="16" width="40" height="40" rx="8" fill="#00A1E0"/>
+    <text x="306" y="42" text-anchor="middle" font-size="16" font-weight="700" class="white-text">SF</text>
+    <text x="338" y="38" font-size="14" font-weight="600" class="main-text">Salesforce</text>
+    <text x="338" y="54" font-size="11" class="secondary-text">CRM &amp; Sales</text>
+    <text x="286" y="80" font-size="11" class="muted-text">Customer relationship management</text>
+    <rect x="440" y="16" width="64" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="472" y="35" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Connect</text>
+
+    <!-- Shopify -->
+    <rect x="540" y="0" width="250" height="110" rx="8" class="card"/>
+    <rect x="556" y="16" width="40" height="40" rx="8" fill="#96BF48"/>
+    <text x="576" y="42" text-anchor="middle" font-size="16" font-weight="700" class="white-text">S</text>
+    <text x="608" y="38" font-size="14" font-weight="600" class="main-text">Shopify</text>
+    <text x="608" y="54" font-size="11" class="secondary-text">E-Commerce</text>
+    <text x="556" y="80" font-size="11" class="muted-text">Online store management</text>
+    <rect x="710" y="16" width="64" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="742" y="35" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Connect</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(50, 330)">
+    <!-- MySQL -->
+    <rect x="0" y="0" width="250" height="110" rx="8" class="card"/>
+    <rect x="16" y="16" width="40" height="40" rx="8" fill="#00758F"/>
+    <text x="36" y="42" text-anchor="middle" font-size="16" font-weight="700" class="white-text">My</text>
+    <text x="68" y="38" font-size="14" font-weight="600" class="main-text">MySQL</text>
+    <text x="68" y="54" font-size="11" class="secondary-text">Database</text>
+    <text x="16" y="80" font-size="11" class="muted-text">Relational database connector</text>
+    <rect x="170" y="16" width="64" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="202" y="35" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Connect</text>
+
+    <!-- GitHub -->
+    <rect x="270" y="0" width="250" height="110" rx="8" class="card"/>
+    <rect x="286" y="16" width="40" height="40" rx="8" fill="#24292e"/>
+    <text x="306" y="42" text-anchor="middle" font-size="16" font-weight="700" class="white-text">GH</text>
+    <text x="338" y="38" font-size="14" font-weight="600" class="main-text">GitHub</text>
+    <text x="338" y="54" font-size="11" class="secondary-text">Version Control</text>
+    <text x="286" y="80" font-size="11" class="muted-text">Code hosting &amp; CI/CD</text>
+    <rect x="440" y="16" width="64" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="472" y="35" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Connect</text>
+
+    <!-- Stripe -->
+    <rect x="540" y="0" width="250" height="110" rx="8" class="card"/>
+    <rect x="556" y="16" width="40" height="40" rx="8" fill="#635BFF"/>
+    <text x="576" y="42" text-anchor="middle" font-size="16" font-weight="700" class="white-text">St</text>
+    <text x="608" y="38" font-size="14" font-weight="600" class="main-text">Stripe</text>
+    <text x="608" y="54" font-size="11" class="secondary-text">Payments</text>
+    <text x="556" y="80" font-size="11" class="muted-text">Payment processing &amp; billing</text>
+    <rect x="710" y="16" width="64" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="742" y="35" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Connect</text>
+  </g>
+
+  <!-- Bottom Status Bar -->
+  <line x1="30" y1="460" x2="870" y2="460" class="border"/>
+  <text x="50" y="480" font-size="11" class="muted-text">Last sync: 2 minutes ago</text>
+  <text x="830" y="480" text-anchor="end" font-size="11" class="accent-text">Manage API Keys →</text>
+</svg>

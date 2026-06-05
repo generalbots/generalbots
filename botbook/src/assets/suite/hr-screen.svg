@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel-bg { fill: #ffffff; }
+      .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+      .secondary-text { fill: #475569; font-family: system-ui, -apple-system, sans-serif; }
+      .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+      .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+      .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+      .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+      .icon-btn { fill: #f1f5f9; rx: 6; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #0f172a; }
+        .panel-bg { fill: #1e293b; }
+        .main-text { fill: #f1f5f9; }
+        .secondary-text { fill: #cbd5e1; }
+        .muted-text { fill: #64748b; }
+        .white-text { fill: #f1f5f9; }
+        .accent-text { fill: #60a5fa; }
+        .border { stroke: #334155; }
+        .icon-btn { fill: #334155; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="600" class="bg" rx="0"/>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" class="main-text" font-size="18" font-weight="600">HR Management</text>
+
+  <!-- Main Card -->
+  <rect x="16" y="52" width="868" height="536" rx="8" class="panel-bg"/>
+  <rect x="16" y="52" width="868" height="536" rx="8" class="border"/>
+
+  <!-- Tab Bar -->
+  <rect x="16" y="52" width="104" height="36" rx="6" fill="#3b82f6" opacity="0.1"/>
+  <text x="36" y="75" class="accent-text" font-size="12" font-weight="500">Employees</text>
+  <text x="140" y="75" class="secondary-text" font-size="12">Recruitment</text>
+  <text x="260" y="75" class="secondary-text" font-size="12">Attendance</text>
+  <text x="374" y="75" class="secondary-text" font-size="12">Performance</text>
+
+  <!-- Add Employee Button -->
+  <rect x="28" y="100" width="120" height="32" rx="6" fill="#3b82f6"/>
+  <text x="44" y="121" class="white-text" font-size="12" font-weight="500">+ Add Employee</text>
+
+  <!-- Search -->
+  <rect x="160" y="100" width="360" height="32" rx="6" fill="#f1f5f9"/>
+  <text x="176" y="121" class="muted-text" font-size="13">Search employees...</text>
+
+  <!-- Department Filter -->
+  <rect x="532" y="100" width="140" height="32" rx="6" fill="#f1f5f9"/>
+  <text x="548" y="121" class="secondary-text" font-size="13">All Departments</text>
+  <text x="648" y="121" class="muted-text" font-size="12">v</text>
+
+  <!-- Employee Grid - Row 1 -->
+  <!-- Card 1 -->
+  <rect x="28" y="148" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="28" y="148" width="132" height="140" rx="8" class="border"/>
+  <circle cx="94" cy="188" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="84" y="194" class="accent-text" font-size="16" font-weight="600">MS</text>
+  <text x="94" y="232" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Maria Silva</text>
+  <text x="94" y="250" text-anchor="middle" class="muted-text" font-size="11">Engineering</text>
+  <rect x="58" y="262" width="72" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="70" y="275" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+
+  <!-- Card 2 -->
+  <rect x="172" y="148" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="172" y="148" width="132" height="140" rx="8" class="border"/>
+  <circle cx="238" cy="188" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="228" y="194" class="accent-text" font-size="16" font-weight="600">JS</text>
+  <text x="238" y="232" text-anchor="middle" class="main-text" font-size="12" font-weight="500">João Santos</text>
+  <text x="238" y="250" text-anchor="middle" class="muted-text" font-size="11">Marketing</text>
+  <rect x="208" y="262" width="60" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="216" y="275" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+
+  <!-- Card 3 -->
+  <rect x="316" y="148" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="316" y="148" width="132" height="140" rx="8" class="border"/>
+  <circle cx="382" cy="188" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="372" y="194" class="accent-text" font-size="16" font-weight="600">AC</text>
+  <text x="382" y="232" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Ana Costa</text>
+  <text x="382" y="250" text-anchor="middle" class="muted-text" font-size="11">Sales</text>
+  <rect x="352" y="262" width="60" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="360" y="275" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+
+  <!-- Card 4 -->
+  <rect x="460" y="148" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="460" y="148" width="132" height="140" rx="8" class="border"/>
+  <circle cx="526" cy="188" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="516" y="194" class="accent-text" font-size="16" font-weight="600">CL</text>
+  <text x="526" y="232" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Carlos Lima</text>
+  <text x="526" y="250" text-anchor="middle" class="muted-text" font-size="11">Engineering</text>
+  <rect x="490" y="262" width="72" height="18" rx="4" fill="#f59e0b" opacity="0.15"/>
+  <text x="500" y="275" fill="#f59e0b" font-size="10" font-family="system-ui, -apple-system, sans-serif">On Leave</text>
+
+  <!-- Card 5 -->
+  <rect x="604" y="148" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="604" y="148" width="132" height="140" rx="8" class="border"/>
+  <circle cx="670" cy="188" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="660" y="194" class="accent-text" font-size="16" font-weight="600">PF</text>
+  <text x="670" y="232" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Paula Ferreira</text>
+  <text x="670" y="250" text-anchor="middle" class="muted-text" font-size="11">HR</text>
+  <rect x="634" y="262" width="72" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="644" y="275" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+
+  <!-- Card 6 -->
+  <rect x="748" y="148" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="748" y="148" width="132" height="140" rx="8" class="border"/>
+  <circle cx="814" cy="188" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="804" y="194" class="accent-text" font-size="16" font-weight="600">RO</text>
+  <text x="814" y="232" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Rafael Oliveira</text>
+  <text x="814" y="250" text-anchor="middle" class="muted-text" font-size="11">Finance</text>
+  <rect x="778" y="262" width="72" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="788" y="275" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+
+  <!-- Row 2 -->
+  <!-- Card 7 -->
+  <rect x="28" y="304" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="28" y="304" width="132" height="140" rx="8" class="border"/>
+  <circle cx="94" cy="344" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="84" y="350" class="accent-text" font-size="16" font-weight="600">LR</text>
+  <text x="94" y="388" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Lucia Ribeiro</text>
+  <text x="94" y="406" text-anchor="middle" class="muted-text" font-size="11">Support</text>
+  <rect x="58" y="418" width="72" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="70" y="431" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+
+  <!-- Card 8 -->
+  <rect x="172" y="304" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="172" y="304" width="132" height="140" rx="8" class="border"/>
+  <circle cx="238" cy="344" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="228" y="350" class="accent-text" font-size="16" font-weight="600">TM</text>
+  <text x="238" y="388" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Thiago Mendes</text>
+  <text x="238" y="406" text-anchor="middle" class="muted-text" font-size="11">Engineering</text>
+  <rect x="208" y="418" width="72" height="18" rx="4" fill="#ef4444" opacity="0.15"/>
+  <text x="216" y="431" fill="#ef4444" font-size="10" font-family="system-ui, -apple-system, sans-serif">Inactive</text>
+
+  <!-- Card 9 -->
+  <rect x="316" y="304" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="316" y="304" width="132" height="140" rx="8" class="border"/>
+  <circle cx="382" cy="344" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="372" y="350" class="accent-text" font-size="16" font-weight="600">CB</text>
+  <text x="382" y="388" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Camila Borges</text>
+  <text x="382" y="406" text-anchor="middle" class="muted-text" font-size="11">Marketing</text>
+  <rect x="352" y="418" width="72" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="364" y="431" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+
+  <!-- Card 10 -->
+  <rect x="460" y="304" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="460" y="304" width="132" height="140" rx="8" class="border"/>
+  <circle cx="526" cy="344" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="516" y="350" class="accent-text" font-size="16" font-weight="600">PN</text>
+  <text x="526" y="388" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Pedro Nunes</text>
+  <text x="526" y="406" text-anchor="middle" class="muted-text" font-size="11">Sales</text>
+  <rect x="490" y="418" width="60" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="500" y="431" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+
+  <!-- Card 11 -->
+  <rect x="604" y="304" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="604" y="304" width="132" height="140" rx="8" class="border"/>
+  <circle cx="670" cy="344" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="660" y="350" class="accent-text" font-size="16" font-weight="600">FS</text>
+  <text x="670" y="388" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Fernanda Souza</text>
+  <text x="670" y="406" text-anchor="middle" class="muted-text" font-size="11">Finance</text>
+  <rect x="634" y="418" width="72" height="18" rx="4" fill="#f59e0b" opacity="0.15"/>
+  <text x="644" y="431" fill="#f59e0b" font-size="10" font-family="system-ui, -apple-system, sans-serif">On Leave</text>
+
+  <!-- Card 12 -->
+  <rect x="748" y="304" width="132" height="140" rx="8" class="panel-bg"/>
+  <rect x="748" y="304" width="132" height="140" rx="8" class="border"/>
+  <circle cx="814" cy="344" r="24" fill="#3b82f6" opacity="0.15"/>
+  <text x="804" y="350" class="accent-text" font-size="16" font-weight="600">DH</text>
+  <text x="814" y="388" text-anchor="middle" class="main-text" font-size="12" font-weight="500">Diego Henrique</text>
+  <text x="814" y="406" text-anchor="middle" class="muted-text" font-size="11">Support</text>
+  <rect x="778" y="418" width="72" height="18" rx="4" fill="#22c55e" opacity="0.15"/>
+  <text x="788" y="431" fill="#22c55e" font-size="10" font-family="system-ui, -apple-system, sans-serif">Active</text>
+</svg>

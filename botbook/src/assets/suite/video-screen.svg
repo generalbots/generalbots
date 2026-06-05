@@ -1,0 +1,175 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#f87171"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+    <filter id="shadowSm" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #ef4444; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .stat-card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .camera-feed { fill: #1e293b; stroke: #334155; stroke-width: 1; }
+    .alert-item { fill: #fef2f2; stroke: #fecaca; stroke-width: 1; }
+    .alert-warn { fill: #fffbeb; stroke: #fde68a; stroke-width: 1; }
+    .alert-ok { fill: #f0fdf4; stroke: #bbf7d0; stroke-width: 1; }
+    .rec-badge { fill: #ef4444; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #f87171; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card { fill: #1e293b; stroke: #334155; }
+      .stat-card { fill: #1e293b; stroke: #334155; }
+      .camera-feed { fill: #0f172a; stroke: #334155; }
+      .alert-item { fill: #3b1a1a; stroke: #7f1d1d; }
+      .alert-warn { fill: #3b2e0a; stroke: #78350f; }
+      .alert-ok { fill: #0a3b1a; stroke: #14532d; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Monitoramento por IA</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Stats Row -->
+  <g transform="translate(45, 55)">
+    <!-- Stat 1: Detecções -->
+    <rect x="0" y="0" width="140" height="65" rx="8" class="stat-card" filter="url(#shadowSm)"/>
+    <text x="14" y="18" font-size="11" class="muted-text">Detecções</text>
+    <text x="14" y="44" font-size="26" font-weight="700" class="accent-text">12</text>
+    <text x="70" y="44" font-size="11" class="secondary-text">hoje</text>
+
+    <!-- Stat 2: Uptime -->
+    <rect x="155" y="0" width="140" height="65" rx="8" class="stat-card" filter="url(#shadowSm)"/>
+    <text x="169" y="18" font-size="11" class="muted-text">Uptime</text>
+    <text x="169" y="44" font-size="26" font-weight="700" fill="#22c55e">99.9%</text>
+
+    <!-- Stat 3: Storage -->
+    <rect x="310" y="0" width="140" height="65" rx="8" class="stat-card" filter="url(#shadowSm)"/>
+    <text x="324" y="18" font-size="11" class="muted-text">Storage</text>
+    <text x="324" y="44" font-size="26" font-weight="700" class="main-text">45GB</text>
+    <text x="390" y="44" font-size="11" class="secondary-text">/100GB</text>
+
+    <!-- Stat 4: Cameras -->
+    <rect x="465" y="0" width="140" height="65" rx="8" class="stat-card" filter="url(#shadowSm)"/>
+    <text x="479" y="18" font-size="11" class="muted-text">Cameras</text>
+    <text x="479" y="44" font-size="26" font-weight="700" class="main-text">4</text>
+    <text x="505" y="44" font-size="11" fill="#22c55e">●</text>
+    <text x="520" y="44" font-size="11" class="secondary-text">online</text>
+  </g>
+
+  <!-- Camera Grid (2x2) -->
+  <g transform="translate(45, 130)">
+    <!-- Camera 1 -->
+    <rect x="0" y="0" width="280" height="160" rx="8" class="camera-feed"/>
+    <!-- REC badge -->
+    <rect x="12" y="12" width="40" height="18" rx="4" class="rec-badge"/>
+    <text x="32" y="25" text-anchor="middle" font-size="9" font-weight="600" class="white-text">REC</text>
+    <!-- Camera Label -->
+    <text x="16" y="145" font-size="12" font-weight="500" class="white-text">Camera 1</text>
+    <text x="16" y="158" font-size="10" class="muted-text">Entrada Principal</text>
+    <!-- Time -->
+    <text x="260" y="25" font-size="10" class="muted-text" text-anchor="end">14:32:05</text>
+
+    <!-- Camera 2 -->
+    <rect x="295" y="0" width="280" height="160" rx="8" class="camera-feed"/>
+    <rect x="307" y="12" width="40" height="18" rx="4" class="rec-badge"/>
+    <text x="327" y="25" text-anchor="middle" font-size="9" font-weight="600" class="white-text">REC</text>
+    <text x="311" y="145" font-size="12" font-weight="500" class="white-text">Camera 2</text>
+    <text x="311" y="158" font-size="10" class="muted-text">Estacionamento</text>
+    <text x="555" y="25" font-size="10" class="muted-text" text-anchor="end">14:32:05</text>
+
+    <!-- Camera 3 -->
+    <rect x="0" y="175" width="280" height="160" rx="8" class="camera-feed"/>
+    <rect x="12" y="187" width="40" height="18" rx="4" class="rec-badge"/>
+    <text x="32" y="200" text-anchor="middle" font-size="9" font-weight="600" class="white-text">REC</text>
+    <text x="16" y="320" font-size="12" font-weight="500" class="white-text">Camera 3</text>
+    <text x="16" y="333" font-size="10" class="muted-text">Sala de Reunião</text>
+    <text x="260" y="200" font-size="10" class="muted-text" text-anchor="end">14:32:05</text>
+
+    <!-- Camera 4 -->
+    <rect x="295" y="175" width="280" height="160" rx="8" class="camera-feed"/>
+    <rect x="307" y="187" width="40" height="18" rx="4" class="rec-badge"/>
+    <text x="327" y="200" text-anchor="middle" font-size="9" font-weight="600" class="white-text">REC</text>
+    <text x="311" y="320" font-size="12" font-weight="500" class="white-text">Camera 4</text>
+    <text x="311" y="333" font-size="10" class="muted-text">Recepção</text>
+    <text x="555" y="200" font-size="10" class="muted-text" text-anchor="end">14:32:05</text>
+  </g>
+
+  <!-- Right Sidebar: Alerts -->
+  <rect x="640" y="130" width="220" height="430" class="panel-bg"/>
+  <line x1="640" y1="130" x2="640" y2="560" class="border"/>
+
+  <g transform="translate(660, 150)">
+    <text x="0" y="0" font-size="14" font-weight="600" class="main-text">Recent Alerts</text>
+    <line x1="0" y1="10" x2="180" y2="10" class="border"/>
+
+    <!-- Alert 1: Critical -->
+    <g transform="translate(0, 25)">
+      <rect x="0" y="0" width="180" height="55" rx="6" class="alert-item"/>
+      <circle cx="14" cy="14" r="5" fill="#ef4444"/>
+      <text x="26" y="18" font-size="11" font-weight="500" class="accent-text">Intrusion Detected</text>
+      <text x="14" y="38" font-size="10" class="secondary-text">Camera 1 - 14:28</text>
+    </g>
+
+    <!-- Alert 2: Warning -->
+    <g transform="translate(0, 90)">
+      <rect x="0" y="0" width="180" height="55" rx="6" class="alert-warn"/>
+      <circle cx="14" cy="14" r="5" fill="#f59e0b"/>
+      <text x="26" y="18" font-size="11" font-weight="500" fill="#d97706">Motion Detected</text>
+      <text x="14" y="38" font-size="10" class="secondary-text">Camera 3 - 14:15</text>
+    </g>
+
+    <!-- Alert 3: Info -->
+    <g transform="translate(0, 155)">
+      <rect x="0" y="0" width="180" height="55" rx="6" class="alert-ok"/>
+      <circle cx="14" cy="14" r="5" fill="#22c55e"/>
+      <text x="26" y="18" font-size="11" font-weight="500" fill="#16a34a">System Check OK</text>
+      <text x="14" y="38" font-size="10" class="secondary-text">All cameras - 14:00</text>
+    </g>
+
+    <!-- Alert 4: Warning -->
+    <g transform="translate(0, 220)">
+      <rect x="0" y="0" width="180" height="55" rx="6" class="alert-warn"/>
+      <circle cx="14" cy="14" r="5" fill="#f59e0b"/>
+      <text x="26" y="18" font-size="11" font-weight="500" fill="#d97706">Storage Warning</text>
+      <text x="14" y="38" font-size="10" class="secondary-text">45% used - 13:45</text>
+    </g>
+
+    <!-- Alert 5: Info -->
+    <g transform="translate(0, 285)">
+      <rect x="0" y="0" width="180" height="55" rx="6" class="alert-ok"/>
+      <circle cx="14" cy="14" r="5" fill="#22c55e"/>
+      <text x="26" y="18" font-size="11" font-weight="500" fill="#16a34a">Backup Complete</text>
+      <text x="14" y="38" font-size="10" class="secondary-text">All footage - 12:00</text>
+    </g>
+  </g>
+</svg>
