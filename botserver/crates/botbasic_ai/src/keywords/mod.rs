@@ -4,6 +4,7 @@ pub mod api_tool_generator;
 pub mod banking;
 pub mod clear_tools;
 pub mod inventory;
+pub mod kyc;
 pub mod code_sandbox;
 pub mod enhanced_llm;
 pub mod enhanced_memory;
@@ -45,6 +46,7 @@ pub fn register_ai_keywords(
     api_tool_generator::register_api_tool_keywords(state.clone(), user.clone(), engine);
     banking::register_banking_keywords(state.clone(), user.clone(), engine);
     inventory::register_inventory_keywords(state.clone(), user.clone(), engine);
+    kyc::register_kyc_keywords(state.clone(), user.clone(), engine);
     episodic_memory::register_episodic_memory_keywords(engine);
     http_operations::register_http_operations(state.clone(), user.clone(), engine);
     human_approval::register_approval_keywords(engine);
