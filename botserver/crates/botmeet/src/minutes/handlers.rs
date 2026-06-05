@@ -9,6 +9,8 @@ use std::sync::Arc;
 use diesel::PgConnection;
 use log::error;
 
+use botcore::shared::state::AppState;
+
 use crate::minutes::types::*;
 use crate::minutes::storage::MinuteStorage;
 use crate::minutes::signature::MinuteSignature;
@@ -29,10 +31,10 @@ async fn get_conn(pool: &DbPool) -> Result<PgConnection, (StatusCode, String)> {
 }
 
 pub async fn handle_create_recording(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Json(req): Json<CreateRecordingRequest>,
 ) -> Result<Json<MeetRecording>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let recording = MeetRecording::new(req);
     MinuteStorage::save_recording(&mut conn, &recording).await.map_err(|e| {
         error!("Failed to save recording: {e}");
@@ -42,10 +44,10 @@ pub async fn handle_create_recording(
 }
 
 pub async fn handle_get_recording(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MeetRecording>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let recording = MinuteStorage::get_recording(&mut conn, id).await.map_err(|e| {
         error!("Recording not found: {e}");
         (StatusCode::NOT_FOUND, "Recording not found".into())
@@ -54,11 +56,11 @@ pub async fn handle_get_recording(
 }
 
 pub async fn handle_list_recordings(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(bot_id): Path<Uuid>,
     Query(p): Query<PaginationParams>,
 ) -> Result<Json<Vec<MeetRecording>>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let limit = p.limit.unwrap_or(20).min(100);
     let offset = p.offset.unwrap_or(0);
     let recordings = MinuteStorage::list_recordings(&mut conn, bot_id, limit, offset).await.map_err(|e| {
@@ -69,10 +71,10 @@ pub async fn handle_list_recordings(
 }
 
 pub async fn handle_transcribe_recording(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(recording_id): Path<Uuid>,
 ) -> Result<Json<Transcription>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let recording = MinuteStorage::get_recording(&mut conn, recording_id).await.map_err(|e| {
         error!("Recording not found: {e}");
         (StatusCode::NOT_FOUND, "Recording not found".into())
@@ -107,10 +109,10 @@ pub async fn handle_transcribe_recording(
 }
 
 pub async fn handle_generate_minutes(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(recording_id): Path<Uuid>,
 ) -> Result<Json<MeetingMinute>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let transcription = MinuteStorage::get_transcription(&mut conn, recording_id).await.map_err(|e| {
         error!("Transcription not found: {e}");
         (StatusCode::NOT_FOUND, "Transcription not found".into())
@@ -141,10 +143,10 @@ pub async fn handle_generate_minutes(
 }
 
 pub async fn handle_get_minutes(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MeetingMinute>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let minute = MinuteStorage::get_minute(&mut conn, id).await.map_err(|e| {
         error!("Minutes not found: {e}");
         (StatusCode::NOT_FOUND, "Minutes not found".into())
@@ -153,11 +155,11 @@ pub async fn handle_get_minutes(
 }
 
 pub async fn handle_list_minutes(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(bot_id): Path<Uuid>,
     Query(p): Query<PaginationParams>,
 ) -> Result<Json<Vec<MeetingMinute>>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let limit = p.limit.unwrap_or(20).min(100);
     let offset = p.offset.unwrap_or(0);
     let minutes = MinuteStorage::list_minutes(&mut conn, bot_id, limit, offset).await.map_err(|e| {
@@ -168,11 +170,11 @@ pub async fn handle_list_minutes(
 }
 
 pub async fn handle_update_minutes(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateMinutesRequest>,
 ) -> Result<Json<MeetingMinute>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     MinuteStorage::update_minute(&mut conn, id, &req).await.map_err(|e| {
         error!("Failed to update minutes: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Failed to update minutes".into())
@@ -185,10 +187,10 @@ pub async fn handle_update_minutes(
 }
 
 pub async fn handle_finalize_minutes(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     MinuteStorage::finalize_minute(&mut conn, id).await.map_err(|e| {
         error!("Failed to finalize minutes: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Failed to finalize minutes".into())
@@ -197,10 +199,10 @@ pub async fn handle_finalize_minutes(
 }
 
 pub async fn handle_export_pdf(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Vec<u8>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let minute = MinuteStorage::get_minute(&mut conn, id).await.map_err(|e| {
         error!("Minutes not found: {e}");
         (StatusCode::NOT_FOUND, "Minutes not found".into())
@@ -215,10 +217,10 @@ pub async fn handle_export_pdf(
 }
 
 pub async fn handle_get_signatures(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(minute_id): Path<Uuid>,
 ) -> Result<Json<Vec<MinuteSignature>>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let sigs = MinuteStorage::get_signatures(&mut conn, minute_id).await.map_err(|e| {
         error!("Failed to get signatures: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get signatures".into())
@@ -227,11 +229,11 @@ pub async fn handle_get_signatures(
 }
 
 pub async fn handle_sign_minutes(
-    State(pool): State<Arc<DbPool>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(req): Json<SignMinutesRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut conn = get_conn(&pool).await?;
+    let mut conn = get_conn(&state.conn).await?;
     let minute = MinuteStorage::get_minute(&mut conn, id).await.map_err(|e| {
         error!("Minutes not found: {e}");
         (StatusCode::NOT_FOUND, "Minutes not found".into())
@@ -260,7 +262,7 @@ pub async fn handle_sign_minutes(
     Ok(Json(serde_json::json!({"signature_id": sig.id, "signed_hash": sig.signed_hash})))
 }
 
-pub fn minutes_routes() -> axum::Router<Arc<DbPool>> {
+pub fn minutes_routes() -> axum::Router<Arc<AppState>> {
     use axum::routing::{get, post, put};
 
     axum::Router::new()

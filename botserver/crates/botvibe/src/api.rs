@@ -388,21 +388,23 @@ async fn execute_run(
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let runs = api.inner.runs.read().await;
-    let run = runs.get(&run_id);
-    
-    if run.is_none() {
-        return Json(ActionResponse {
-            success: false,
-            message: None,
-            error: Some("Run not found".to_string()),
-        });
-    }
-    
-    let run = run.unwrap();
+    let run = match runs.get(&run_id) {
+        Some(r) => r,
+        None => {
+            return Json(ActionResponse {
+                success: false,
+                message: None,
+                error: Some("Run not found".to_string()),
+            });
+        }
+    };
+
+    let use_case = run.use_case;
+    let tool_calls = run.tool_calls.clone();
+    drop(runs);
     let state_clone = api.inner.state.clone();
-    
-    // Execute pending tool calls
-    for tool_call in &run.tool_calls.clone() {
+
+    for tool_call in &tool_calls {
         if !tool_call.approved && tool_call.requires_approval {
             return Json(ActionResponse {
                 success: false,
@@ -410,23 +412,26 @@ async fn execute_run(
                 error: None,
             });
         }
-        
-        let result = api.inner.tool_executor.execute(
-            &mut tool_call.clone(),
-            run.use_case,
-            state_clone.as_ref(),
-        ).await;
-        
+
+        let mut owned = tool_call.clone();
+        let result = api
+            .inner
+            .tool_executor
+            .execute(&mut owned, use_case, state_clone.as_ref())
+            .await;
+
         match result {
             Ok(_) => info!("Tool executed successfully"),
-            Err(e) => return Json(ActionResponse {
-                success: false,
-                message: None,
-                error: Some(format!("Execution error: {}", e)),
-            }),
+            Err(e) => {
+                return Json(ActionResponse {
+                    success: false,
+                    message: None,
+                    error: Some(format!("Execution error: {e}")),
+                });
+            }
         }
     }
-    
+
     Json(ActionResponse {
         success: true,
         message: Some("Run executed".to_string()),

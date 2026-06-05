@@ -164,6 +164,7 @@ pub fn configure() -> Router<Arc<AppState>> {
             ApiUrls::MEET_HTMX_ROOM_CREATE,
             post(dashboard::create_room_htmx),
         )
+        .merge(minutes::handlers::minutes_routes())
 }
 
 #[derive(Debug, Deserialize)]

@@ -995,8 +995,237 @@ pub fn configure_tickets_routes() -> Router<Arc<TicketsState>> {
         .route("/api/tickets/:id/close", put(close_ticket))
         .route("/api/tickets/:id/reopen", put(reopen_ticket))
         .route("/api/tickets/:id/comments", get(list_comments).post(add_comment))
+        .route("/api/tickets/:id/activities", get(list_activities).post(add_activity))
+        .route("/api/tickets/:id/ai-suggest", get(ai_suggest_for_ticket).post(ai_suggest_for_ticket))
         .route("/api/tickets/canned", get(list_canned_responses).post(create_canned_response))
         .route("/api/tickets/categories", get(list_categories).post(create_category))
         .route("/api/tickets/sla", get(list_sla_policies))
         .route("/api/tickets/tags", get(list_tags))
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TicketActivity {
+    pub id: Uuid,
+    pub ticket_id: Uuid,
+    pub actor_id: Option<Uuid>,
+    pub actor_name: String,
+    pub activity_type: String,
+    pub description: String,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct AddActivityRequest {
+    pub activity_type: String,
+    pub description: String,
+    pub actor_name: String,
+    pub metadata: Option<serde_json::Value>,
+}
+
+pub async fn list_activities(
+    State(state): State<Arc<TicketsState>>,
+    Path(ticket_id): Path<Uuid>,
+) -> Result<Json<Vec<TicketActivity>>, (StatusCode, String)> {
+    let mut conn = state.pool.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let comments: Vec<TicketComment> = ticket_comments::table
+        .filter(ticket_comments::ticket_id.eq(ticket_id))
+        .order(ticket_comments::created_at.asc())
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+
+    let ticket: SupportTicket = support_tickets::table
+        .filter(support_tickets::id.eq(ticket_id))
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+
+    let mut activities: Vec<TicketActivity> = comments
+        .into_iter()
+        .map(|c| TicketActivity {
+            id: c.id,
+            ticket_id: c.ticket_id,
+            actor_id: c.author_id,
+            actor_name: c.author_name,
+            activity_type: if c.is_internal { "internal_note".to_string() } else { "comment".to_string() },
+            description: c.content,
+            metadata: c.attachments,
+            created_at: c.created_at,
+        })
+        .collect();
+
+    activities.push(TicketActivity {
+        id: Uuid::new_v4(),
+        ticket_id: ticket.id,
+        actor_id: ticket.created_by,
+        actor_name: "system".to_string(),
+        activity_type: "ticket_created".to_string(),
+        description: format!("Ticket #{} created", ticket.ticket_number),
+        metadata: serde_json::json!({"priority": ticket.priority, "status": ticket.status}),
+        created_at: ticket.created_at,
+    });
+
+    if let Some(assigned_to) = ticket.assigned_to {
+        activities.push(TicketActivity {
+            id: Uuid::new_v4(),
+            ticket_id: ticket.id,
+            actor_id: Some(assigned_to),
+            actor_name: "system".to_string(),
+            activity_type: "ticket_assigned".to_string(),
+            description: "Ticket assigned".to_string(),
+            metadata: serde_json::json!({"assignee": assigned_to}),
+            created_at: ticket.updated_at,
+        });
+    }
+
+    activities.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    Ok(Json(activities))
+}
+
+pub async fn add_activity(
+    State(state): State<Arc<TicketsState>>,
+    Path(ticket_id): Path<Uuid>,
+    Json(req): Json<AddActivityRequest>,
+) -> Result<Json<TicketActivity>, (StatusCode, String)> {
+    let mut conn = state.pool.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let exists: bool = support_tickets::table
+        .filter(support_tickets::id.eq(ticket_id))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .map(|c| c > 0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+
+    if !exists {
+        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
+    }
+
+    let now = Utc::now();
+    let id = Uuid::new_v4();
+    let comment = TicketComment {
+        id,
+        ticket_id,
+        author_id: None,
+        author_name: req.actor_name,
+        author_email: None,
+        content: req.description,
+        is_internal: req.activity_type == "internal_note",
+        attachments: req.metadata.unwrap_or(serde_json::json!([])),
+        created_at: now,
+    };
+
+    diesel::insert_into(ticket_comments::table)
+        .values(&comment)
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+
+    diesel::update(support_tickets::table.filter(support_tickets::id.eq(ticket_id)))
+        .set(support_tickets::updated_at.eq(now))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+
+    Ok(Json(TicketActivity {
+        id,
+        ticket_id,
+        actor_id: None,
+        actor_name: comment.author_name,
+        activity_type: req.activity_type,
+        description: comment.content,
+        metadata: comment.attachments,
+        created_at: now,
+    }))
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AiSuggestion {
+    pub ticket_id: Uuid,
+    pub suggested_category: String,
+    pub suggested_priority: String,
+    pub suggested_assignee: Option<Uuid>,
+    pub suggested_tags: Vec<String>,
+    pub similar_tickets: Vec<Uuid>,
+    pub confidence: f64,
+    pub reasoning: String,
+}
+
+pub async fn ai_suggest_for_ticket(
+    State(state): State<Arc<TicketsState>>,
+    Path(ticket_id): Path<Uuid>,
+) -> Result<Json<AiSuggestion>, (StatusCode, String)> {
+    let mut conn = state.pool.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let ticket: SupportTicket = support_tickets::table
+        .filter(support_tickets::id.eq(ticket_id))
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+
+    let lower_subject = ticket.subject.to_lowercase();
+    let lower_body = ticket.description.to_lowercase();
+    let haystack = format!("{lower_subject} {lower_body}");
+
+    let (suggested_category, suggested_priority, reasoning) = if haystack.contains("password")
+        || haystack.contains("login")
+        || haystack.contains("authentication")
+        || haystack.contains("access denied")
+    {
+        ("Authentication".to_string(), "high".to_string(), "Detected authentication keywords".to_string())
+    } else if haystack.contains("payment")
+        || haystack.contains("invoice")
+        || haystack.contains("billing")
+        || haystack.contains("charge")
+    {
+        ("Billing".to_string(), "high".to_string(), "Detected payment-related keywords".to_string())
+    } else if haystack.contains("crash")
+        || haystack.contains("error")
+        || haystack.contains("exception")
+        || haystack.contains("500")
+    {
+        ("Bug Report".to_string(), "high".to_string(), "Detected error or crash keywords".to_string())
+    } else if haystack.contains("how to")
+        || haystack.contains("help")
+        || haystack.contains("tutorial")
+    {
+        ("How-To".to_string(), "low".to_string(), "Detected help/tutorial request".to_string())
+    } else if haystack.contains("feature")
+        || haystack.contains("request")
+        || haystack.contains("enhancement")
+    {
+        ("Feature Request".to_string(), "low".to_string(), "Detected feature request".to_string())
+    } else {
+        ("General".to_string(), "normal".to_string(), "No specific category matched".to_string())
+    };
+
+    let similar: Vec<Uuid> = support_tickets::table
+        .filter(support_tickets::id.ne(ticket_id))
+        .filter(support_tickets::category_id.is_not_null())
+        .order(support_tickets::created_at.desc())
+        .limit(3)
+        .select(support_tickets::id)
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+
+    let tags: Vec<String> = if suggested_priority == "high" {
+        vec!["urgent".to_string(), suggested_category.to_lowercase()]
+    } else {
+        vec![suggested_category.to_lowercase()]
+    };
+
+    let confidence = if haystack.len() > 50 { 0.75 } else { 0.5 };
+
+    Ok(Json(AiSuggestion {
+        ticket_id,
+        suggested_category,
+        suggested_priority,
+        suggested_assignee: None,
+        suggested_tags: tags,
+        similar_tickets: similar,
+        confidence,
+        reasoning,
+    }))
 }

@@ -366,7 +366,11 @@
         };
 
         window.likePost = function(postId) {
-            fetch('/api/social/posts/' + postId + '/like', {method:'POST'}).then(function(){
+            fetch('/api/social/posts/' + postId + '/react', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({reaction_type: 'like'})
+            }).then(function(){
                 htmx.trigger('#social-content', 'refresh');
             });
         };
@@ -385,7 +389,11 @@
         };
 
         window.sharePost = function(postId) {
-            fetch('/api/social/posts/' + postId + '/share', {method:'POST'}).then(function(){
+            fetch('/api/social/posts/' + postId + '/react', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({reaction_type: 'share'})
+            }).then(function(){
                 if (window.GBAlerts) window.GBAlerts.info('Social', 'Post shared!');
             });
         };

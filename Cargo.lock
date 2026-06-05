@@ -1163,6 +1163,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "botbanking"
+version = "6.5.0"
+dependencies = [
+ "chrono",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "serde",
+ "thiserror 2.0.18",
+ "uuid",
+]
+
+[[package]]
 name = "botbasic_ai"
 version = "6.3.0"
 dependencies = [
@@ -1362,6 +1374,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "botbiometry"
+version = "6.5.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "serde",
+ "thiserror 2.0.18",
+ "uuid",
+]
+
+[[package]]
+name = "botbrazil"
+version = "6.5.0"
+dependencies = [
+ "chrono",
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "uuid",
+]
+
+[[package]]
 name = "botbrowser"
 version = "6.3.0"
 dependencies = [
@@ -1408,18 +1443,22 @@ name = "botchannels"
 version = "6.3.0"
 dependencies = [
  "async-trait",
+ "axum 0.7.9",
  "base64 0.22.1",
  "botchannels-core",
  "chrono",
  "hex",
  "hmac 0.12.1",
  "log",
+ "rand 0.9.4",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
  "sha1",
  "sha2 0.10.9",
+ "thiserror 2.0.18",
  "tokio",
+ "tower-http",
  "urlencoding",
  "uuid",
 ]
@@ -1435,6 +1474,18 @@ dependencies = [
  "serde_json",
  "tokio",
  "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botclock"
+version = "6.5.0"
+dependencies = [
+ "chrono",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "serde",
+ "thiserror 2.0.18",
  "uuid",
 ]
 
@@ -1500,6 +1551,7 @@ dependencies = [
  "flate2",
  "governor",
  "hex",
+ "http",
  "indicatif",
  "jsonwebtoken",
  "lettre",
@@ -1521,6 +1573,7 @@ dependencies = [
  "tar",
  "tokio",
  "toml 0.8.2",
+ "tower 0.4.13",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -1685,6 +1738,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "toml 0.8.2",
  "uuid",
 ]
 
@@ -1808,6 +1862,53 @@ dependencies = [
 ]
 
 [[package]]
+name = "boteval"
+version = "6.5.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "log",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "toml 0.8.2",
+ "uuid",
+]
+
+[[package]]
+name = "botfraud"
+version = "6.5.0"
+dependencies = [
+ "axum 0.7.9",
+ "chrono",
+ "diesel",
+ "log",
+ "reqwest 0.12.28",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "botgl"
+version = "6.5.0"
+dependencies = [
+ "axum 0.7.9",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "botinstagram"
 version = "6.3.0"
 dependencies = [
@@ -1820,6 +1921,20 @@ dependencies = [
  "serde_json",
  "tokio",
  "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botinventory"
+version = "6.5.0"
+dependencies = [
+ "axum 0.7.9",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
  "uuid",
 ]
 
@@ -1876,6 +1991,7 @@ dependencies = [
  "env_logger",
  "log",
  "reqwest 0.12.28",
+ "rusqlite",
  "rust-embed",
  "serde",
  "serde_json",
@@ -1913,6 +2029,18 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "uuid",
+]
+
+[[package]]
+name = "botm365"
+version = "6.5.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
  "uuid",
 ]
 
@@ -2150,6 +2278,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "botretail"
+version = "6.5.0"
+dependencies = [
+ "chrono",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "serde",
+ "thiserror 2.0.18",
+ "uuid",
+]
+
+[[package]]
 name = "botschema"
 version = "6.3.0"
 dependencies = [
@@ -2178,12 +2318,22 @@ name = "botsecurity"
 version = "6.3.0"
 dependencies = [
  "anyhow",
+ "axum 0.7.9",
+ "base64 0.22.1",
  "botsecurity-auth",
  "botsecurity-core",
  "botsecurity-crypto",
  "botsecurity-protection",
+ "chrono",
+ "rand 0.9.4",
  "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.18",
+ "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -2320,6 +2470,7 @@ dependencies = [
  "botattendance",
  "botattendant",
  "botautotask",
+ "botbanking",
  "botbasic_ai",
  "botbasic_comms",
  "botbasic_compiler",
@@ -2328,10 +2479,13 @@ dependencies = [
  "botbasic_system",
  "botbasic_types",
  "botbilling",
+ "botbiometry",
+ "botbrazil",
  "botbrowser",
  "botcalendar",
  "botcanvas",
  "botchannels",
+ "botclock",
  "botcompliance",
  "botcontacts",
  "botcore",
@@ -2354,6 +2508,7 @@ dependencies = [
  "botlegal",
  "botlib",
  "botllm",
+ "botm365",
  "botmaintenance",
  "botmarketing",
  "botmeet",
@@ -2369,6 +2524,7 @@ dependencies = [
  "botproject",
  "botqdrant",
  "botresearch",
+ "botretail",
  "botsearch",
  "botsecurity",
  "botsettings",
@@ -2410,10 +2566,12 @@ dependencies = [
  "indicatif",
  "jsonwebtoken",
  "lettre",
+ "libc",
  "log",
  "mailparse",
  "mimalloc",
  "mockito",
+ "nix",
  "num-format",
  "ole",
  "once_cell",
@@ -2459,6 +2617,7 @@ dependencies = [
  "uuid",
  "vaultrs",
  "walkdir",
+ "windows-sys 0.59.0",
  "x509-parser 0.15.1",
  "zip 2.4.2",
 ]
@@ -2563,12 +2722,16 @@ name = "botsources"
 version = "6.3.0"
 dependencies = [
  "axum 0.7.9",
+ "base64 0.22.1",
  "chrono",
  "diesel",
  "log",
  "pdf-extract",
+ "rand 0.9.4",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "thiserror 2.0.18",
  "tokio",
  "uuid",
  "zip 2.4.2",
@@ -4670,6 +4833,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
+name = "fallible-iterator"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
+
+[[package]]
+name = "fallible-streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
+
+[[package]]
 name = "fancy-regex"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5413,6 +5588,9 @@ name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
+dependencies = [
+ "ahash",
+]
 
 [[package]]
 name = "hashbrown"
@@ -5439,6 +5617,15 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+
+[[package]]
+name = "hashlink"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ba4ff7128dee98c7dc9794b6a411377e1404dba1c97deb8d1a55297bd25d8af"
+dependencies = [
+ "hashbrown 0.14.5",
+]
 
 [[package]]
 name = "headers"
@@ -6494,6 +6681,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f02ab6bace2054fb888a3c16f990117b579d14a3088e472d63c6011fa185c9d3"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "libsqlite3-sys"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149"
+dependencies = [
+ "pkg-config",
+ "vcpkg",
 ]
 
 [[package]]
@@ -8152,7 +8349,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aacf632d0554ff75f58183694f41dc8999c8a3a43a386994d0ec2d034f1dfbe1"
 dependencies = [
  "bytes",
- "fallible-iterator",
+ "fallible-iterator 0.2.0",
  "futures-util",
  "log",
  "tokio",
@@ -8168,7 +8365,7 @@ dependencies = [
  "base64 0.22.1",
  "byteorder",
  "bytes",
- "fallible-iterator",
+ "fallible-iterator 0.2.0",
  "hmac 0.13.0",
  "md-5 0.11.0",
  "memchr",
@@ -8185,7 +8382,7 @@ checksum = "8dc729a129e682e8d24170cd30ae1aa01b336b096cbb56df6d534ffec133d186"
 dependencies = [
  "bytes",
  "chrono",
- "fallible-iterator",
+ "fallible-iterator 0.2.0",
  "postgres-protocol",
  "serde_core",
  "serde_json",
@@ -9178,6 +9375,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusqlite"
+version = "0.32.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7753b721174eb8ff87a9a0e799e2d7bc3749323e773db92e0984debb00019d6e"
+dependencies = [
+ "bitflags 2.11.1",
+ "fallible-iterator 0.3.0",
+ "fallible-streaming-iterator",
+ "hashlink",
+ "libsqlite3-sys",
+ "smallvec",
+]
+
+[[package]]
 name = "rust-embed"
 version = "8.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9255,6 +9466,28 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "url",
+]
+
+[[package]]
+name = "rust_decimal"
+version = "1.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c5108e3d4d903e21aac27f12ba5377b6b34f9f44b325e4894c7924169d06995"
+dependencies = [
+ "arrayvec",
+ "num-traits",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "rust_decimal_macros"
+version = "1.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74a5a6f027e892c7a035c6fddb50435a1fbf5a734ffc0c2a9fed4d0221440519"
+dependencies = [
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -11017,7 +11250,7 @@ dependencies = [
  "async-trait",
  "byteorder",
  "bytes",
- "fallible-iterator",
+ "fallible-iterator 0.2.0",
  "futures-channel",
  "futures-util",
  "log",
@@ -11896,6 +12129,7 @@ dependencies = [
  "cfg-if",
  "once_cell",
  "rustversion",
+ "serde",
  "wasm-bindgen-macro",
  "wasm-bindgen-shared",
 ]
