@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ClockEvent {
@@ -58,41 +59,41 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn clock_in_out(Json(event): Json<ClockEvent>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn clock_in_out(Json(event): Json<ClockEvent>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let mut new_event = event;
     new_event.id = uuid::Uuid::new_v4().to_string();
     new_event.timestamp = chrono::Utc::now().to_rfc3339();
     s.clock_events.push(new_event.clone());
-    Json(serde_json::json!({"event": new_event}))
+    Ok(Json(serde_json::json!({"event": new_event})))
 }
 
-pub async fn list_records() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_records() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&TimeRecord> = s.records.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_overtime() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_overtime() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&OvertimeRequest> = s.overtime.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn approve_overtime(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn approve_overtime(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.overtime.get_mut(&id) {
         Some(req) => {
             req.status = "approved".to_string();
             req.approved_by = Some("system".to_string());
-            Json(serde_json::json!({"item": req}))
+            Ok(Json(serde_json::json!({"item": req})))
         }
-        None => Json(serde_json::json!({"error": "Overtime request not found"})),
+        None => Err((StatusCode::NOT_FOUND, "Overtime request not found".to_string())),
     }
 }
 
-pub async fn get_reports() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn get_reports() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Report> = s.reports.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }

@@ -2,6 +2,7 @@ use axum::extract::Json;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Transaction {
@@ -58,31 +59,31 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_transactions() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_transactions() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Transaction> = s.transactions.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_transaction(Json(item): Json<Transaction>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn create_transaction(Json(item): Json<Transaction>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut new_item = item;
     new_item.id = id.clone();
     new_item.created_at = chrono::Utc::now().to_rfc3339();
     new_item.status = "pending".to_string();
     s.transactions.insert(id.clone(), new_item.clone());
-    Json(serde_json::json!({"item": new_item}))
+    Ok(Json(serde_json::json!({"item": new_item})))
 }
 
-pub async fn list_platforms() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_platforms() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Platform> = s.platforms.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn reconcile() -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn reconcile() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let result = ReconcileResult {
         id: id.clone(),
@@ -94,11 +95,11 @@ pub async fn reconcile() -> Json<serde_json::Value> {
         created_at: chrono::Utc::now().to_rfc3339(),
     };
     s.reconcile_results.insert(id, result.clone());
-    Json(serde_json::json!({"result": result}))
+    Ok(Json(serde_json::json!({"result": result})))
 }
 
-pub async fn get_report() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn get_report() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Report> = s.reports.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }

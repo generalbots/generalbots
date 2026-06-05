@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Verification {
@@ -49,44 +50,44 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_verifications() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_verifications() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Verification> = s.verifications.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn update_verification(Path(id): Path<String>, Json(item): Json<Verification>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn update_verification(Path(id): Path<String>, Json(item): Json<Verification>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     if let Some(existing) = s.verifications.get_mut(&id) {
         existing.status = item.status;
         existing.reviewed_by = item.reviewed_by;
         existing.documents = item.documents;
-        Json(serde_json::json!({"item": existing}))
+        Ok(Json(serde_json::json!({"item": existing})))
     } else {
-        Json(serde_json::json!({"error": "Verification not found"}))
+        Err((StatusCode::NOT_FOUND, "Verification not found".to_string()))
     }
 }
 
-pub async fn list_signatures() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_signatures() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Signature> = s.signatures.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn sign_document(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn sign_document(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.signatures.get_mut(&id) {
         Some(sig) => {
             sig.status = "signed".to_string();
             sig.signed_at = Some(chrono::Utc::now().to_rfc3339());
-            Json(serde_json::json!({"item": sig}))
+            Ok(Json(serde_json::json!({"item": sig})))
         }
-        None => Json(serde_json::json!({"error": "Signature not found"})),
+        None => Err((StatusCode::NOT_FOUND, "Signature not found".to_string())),
     }
 }
 
-pub async fn list_certificates() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_certificates() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Certificate> = s.certificates.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }

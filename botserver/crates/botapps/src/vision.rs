@@ -2,6 +2,7 @@ use axum::extract::Json;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AnalysisRequest {
@@ -32,8 +33,8 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn analyze_image(Json(req): Json<AnalysisRequest>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn analyze_image(Json(req): Json<AnalysisRequest>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let result = AnalysisResult {
         id: id.clone(),
@@ -46,11 +47,11 @@ pub async fn analyze_image(Json(req): Json<AnalysisRequest>) -> Json<serde_json:
         created_at: chrono::Utc::now().to_rfc3339(),
     };
     s.results.insert(id, result.clone());
-    Json(serde_json::json!({"result": result}))
+    Ok(Json(serde_json::json!({"result": result})))
 }
 
-pub async fn list_history() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_history() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&AnalysisResult> = s.results.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }

@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Product {
@@ -42,43 +43,43 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_products() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_products() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Product> = s.products.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_product(Json(item): Json<Product>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn create_product(Json(item): Json<Product>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut new_item = item;
     new_item.id = id.clone();
     new_item.active = true;
     s.products.insert(id.clone(), new_item.clone());
-    Json(serde_json::json!({"item": new_item}))
+    Ok(Json(serde_json::json!({"item": new_item})))
 }
 
-pub async fn list_orders() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_orders() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Order> = s.orders.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_order(Json(item): Json<Order>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn create_order(Json(item): Json<Order>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut new_item = item;
     new_item.id = id.clone();
     new_item.created_at = chrono::Utc::now().to_rfc3339();
     new_item.status = "created".to_string();
     s.orders.insert(id.clone(), new_item.clone());
-    Json(serde_json::json!({"item": new_item}))
+    Ok(Json(serde_json::json!({"item": new_item})))
 }
 
-pub async fn get_order(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn get_order(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.orders.get(&id) {
-        Some(order) => Json(serde_json::json!({"item": order})),
-        None => Json(serde_json::json!({"error": "Order not found"})),
+        Some(order) => Ok(Json(serde_json::json!({"order": order}))),
+        None => Err((StatusCode::NOT_FOUND, "Order not found".to_string())),
     }
 }

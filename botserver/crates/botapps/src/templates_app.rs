@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Template {
@@ -50,24 +51,24 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_templates() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_templates() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Template> = s.templates.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn preview_template(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn preview_template(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.previews.get(&id) {
-        Some(preview) => Json(serde_json::json!({"preview": preview})),
-        None => Json(serde_json::json!({"error": "Template not found"})),
+        Some(preview) => Ok(Json(serde_json::json!({"preview": preview}))),
+        None => Err((StatusCode::NOT_FOUND, "Template not found".to_string())),
     }
 }
 
-pub async fn deploy_template(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn deploy_template(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     if !s.templates.contains_key(&id) {
-        return Json(serde_json::json!({"error": "Template not found"}));
+        return Err((StatusCode::NOT_FOUND, "Template not found".to_string()));
     }
     let deploy_id = uuid::Uuid::new_v4().to_string();
     let result = DeployResult {
@@ -78,5 +79,5 @@ pub async fn deploy_template(Path(id): Path<String>) -> Json<serde_json::Value> 
         target: "production".to_string(),
     };
     s.deploys.insert(deploy_id, result.clone());
-    Json(serde_json::json!({"result": result}))
+    Ok(Json(serde_json::json!({"result": result})))
 }

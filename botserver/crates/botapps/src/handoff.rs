@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct QueueEntry {
@@ -59,41 +60,41 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_queue() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_queue() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&QueueEntry> = s.queue.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn transfer_item(Path(id): Path<String>, Json(req): Json<TransferRequest>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn transfer_item(Path(id): Path<String>, Json(req): Json<TransferRequest>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.queue.remove(&id) {
         Some(entry) => {
-            Json(serde_json::json!({
+            Ok(Json(serde_json::json!({
                 "transferred": true,
                 "session_id": entry.session_id,
                 "agent_id": req.agent_id,
                 "notes": req.notes
-            }))
+            })))
         }
-        None => Json(serde_json::json!({"error": "Session not found in queue"})),
+        None => Err((StatusCode::NOT_FOUND, "Session not found in queue".to_string())),
     }
 }
 
-pub async fn get_analytics() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn get_analytics() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&HandoffAnalytics> = s.analytics.iter().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_channels() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_channels() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Channel> = s.channels.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_csat() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_csat() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&CsatEntry> = s.csat.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }

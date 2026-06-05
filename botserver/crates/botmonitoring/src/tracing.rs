@@ -626,13 +626,134 @@ impl DistributedTracingService {
                 }
             }
             ExporterType::Otlp => {
-                log::debug!("Would export {} spans to OTLP endpoint: {}", spans.len(), config.endpoint);
+                let endpoint = config.endpoint.trim_end_matches('/').to_string()
+                    + "/v1/traces";
+                let client = reqwest::Client::builder()
+                    .timeout(std::time::Duration::from_secs(10))
+                    .build()
+                    .map_err(|e| log::error!("Failed to build OTLP client: {}", e));
+                if let Ok(client) = client {
+                    let payload = serde_json::json!({
+                        "resourceSpans": [{
+                            "resource": {
+                                "attributes": [
+                                    {"key": "service.name", "value": {"stringValue": spans[0].resource.service_name.clone()}}
+                                ]
+                            },
+                            "scopeSpans": [{
+                                "scope": {"name": "botserver"},
+                                "spans": spans.iter().map(|s| {
+                                    serde_json::json!({
+                                        "traceId": s.trace_id,
+                                        "spanId": s.span_id,
+                                        "parentSpanId": s.parent_span_id,
+                                        "name": s.operation_name,
+                                        "kind": match s.kind {
+                                            SpanKind::Internal => 1,
+                                            SpanKind::Server => 2,
+                                            SpanKind::Client => 3,
+                                            SpanKind::Producer => 4,
+                                            SpanKind::Consumer => 5,
+                                        },
+                                        "startTimeUnixNano": s.start_time.timestamp_nanos_opt().unwrap_or(0).to_string(),
+                                        "endTimeUnixNano": s.end_time.and_then(|t| t.timestamp_nanos_opt()).unwrap_or(0).to_string(),
+                                        "status": match s.status {
+                                            SpanStatus::Ok => serde_json::json!({"code": 1}),
+                                            SpanStatus::Error => serde_json::json!({"code": 2, "message": s.status_message}),
+                                            SpanStatus::Unset => serde_json::json!({"code": 0}),
+                                        },
+                                        "attributes": s.attributes.iter().map(|(k, v)| {
+                                            serde_json::json!({"key": k, "value": attr_to_otlp_value(v)})
+                                        }).collect::<Vec<_>>(),
+                                    })
+                                }).collect::<Vec<_>>()
+                            }]
+                        }]
+                    });
+                    match client.post(&endpoint).json(&payload).send().await {
+                        Ok(resp) => {
+                            if !resp.status().is_success() {
+                                log::warn!("OTLP export returned status: {}", resp.status());
+                            }
+                        }
+                        Err(e) => log::error!("OTLP export failed: {}", e),
+                    }
+                }
             }
             ExporterType::Jaeger => {
-                log::debug!("Would export {} spans to Jaeger endpoint: {}", spans.len(), config.endpoint);
+                let endpoint = config.endpoint.trim_end_matches('/').to_string()
+                    + "/api/traces";
+                let client = reqwest::Client::builder()
+                    .timeout(std::time::Duration::from_secs(10))
+                    .build()
+                    .map_err(|e| log::error!("Failed to build Jaeger client: {}", e));
+                if let Ok(client) = client {
+                    let batch = serde_json::json!({
+                        "data": [{
+                            "traceID": spans[0].trace_id,
+                            "spans": spans.iter().map(|s| {
+                                let start_us = s.start_time.timestamp_nanos_opt().unwrap_or(0) / 1000;
+                                let duration_us = s.duration_us.unwrap_or(0);
+                                serde_json::json!({
+                                    "traceID": s.trace_id,
+                                    "spanID": s.span_id,
+                                    "operationName": s.operation_name,
+                                    "startTime": start_us,
+                                    "duration": duration_us,
+                                    "tags": jaeger_tags(s),
+                                    "logs": s.events.iter().map(|e| {
+                                        serde_json::json!({
+                                            "timestamp": e.timestamp.timestamp_nanos_opt().unwrap_or(0) / 1000,
+                                            "fields": [{"key": "event", "type": "string", "value": e.name}]
+                                        })
+                                    }).collect::<Vec<_>>(),
+                                })
+                            }).collect::<Vec<_>>()
+                        }]
+                    });
+                    match client.post(&endpoint).json(&batch).send().await {
+                        Ok(resp) => {
+                            if !resp.status().is_success() {
+                                log::warn!("Jaeger export returned status: {}", resp.status());
+                            }
+                        }
+                        Err(e) => log::error!("Jaeger export failed: {}", e),
+                    }
+                }
             }
             ExporterType::Zipkin => {
-                log::debug!("Would export {} spans to Zipkin endpoint: {}", spans.len(), config.endpoint);
+                let endpoint = config.endpoint.trim_end_matches('/').to_string()
+                    + "/api/v2/spans";
+                let client = reqwest::Client::builder()
+                    .timeout(std::time::Duration::from_secs(10))
+                    .build()
+                    .map_err(|e| log::error!("Failed to build Zipkin client: {}", e));
+                if let Ok(client) = client {
+                    let zipkin_spans: Vec<serde_json::Value> = spans.iter().map(|s| {
+                        let ts_micros = s.start_time.timestamp_nanos_opt().unwrap_or(0) / 1000;
+                        let duration_micros = s.duration_us.unwrap_or(0).max(1);
+                        serde_json::json!({
+                            "id": s.span_id,
+                            "traceId": s.trace_id,
+                            "parentId": s.parent_span_id,
+                            "name": s.operation_name,
+                            "timestamp": ts_micros,
+                            "duration": duration_micros,
+                            "localEndpoint": {
+                                "serviceName": s.service_name
+                            },
+                            "tags": zipkin_tags(s),
+                        })
+                    }).collect();
+                    match client.post(&endpoint).json(&zipkin_spans).send().await {
+                        Ok(resp) => {
+                            if !resp.status().is_success() {
+                                log::warn!("Zipkin export returned status: {}", resp.status());
+                            }
+                        }
+                        Err(e) => log::error!("Zipkin export failed: {}", e),
+                    }
+                }
             }
             ExporterType::None => {}
         }
@@ -925,4 +1046,69 @@ impl DistributedTracingService {
         let idx = ((p as f64 / 100.0) * (sorted_data.len() as f64 - 1.0)).round() as usize;
         sorted_data[idx.min(sorted_data.len() - 1)]
     }
+}
+
+fn attr_to_otlp_value(attr: &AttributeValue) -> serde_json::Value {
+    match attr {
+        AttributeValue::String(s) => serde_json::json!({"stringValue": s}),
+        AttributeValue::Int(i) => serde_json::json!({"intValue": i.to_string()}),
+        AttributeValue::Float(f) => serde_json::json!({"doubleValue": f}),
+        AttributeValue::Bool(b) => serde_json::json!({"boolValue": b}),
+        AttributeValue::StringArray(arr) => serde_json::json!({
+            "arrayValue": {"values": arr.iter().map(|s| serde_json::json!({"stringValue": s})).collect::<Vec<_>>()}
+        }),
+        AttributeValue::IntArray(arr) => serde_json::json!({
+            "arrayValue": {"values": arr.iter().map(|i| serde_json::json!({"intValue": i.to_string()})).collect::<Vec<_>>()}
+        }),
+    }
+}
+
+fn jaeger_tags(s: &Span) -> Vec<serde_json::Value> {
+    let mut tags = vec![
+        serde_json::json!({"key": "span.kind", "type": "string", "value": format!("{:?}", s.kind).to_lowercase()}),
+        serde_json::json!({"key": "service.name", "type": "string", "value": s.service_name}),
+        serde_json::json!({"key": "status", "type": "string", "value": format!("{:?}", s.status)}),
+    ];
+    if let Some(msg) = &s.status_message {
+        tags.push(serde_json::json!({"key": "status.message", "type": "string", "value": msg}));
+    }
+    if let Some(host) = &s.resource.host_name {
+        tags.push(serde_json::json!({"key": "host.name", "type": "string", "value": host}));
+    }
+    for (k, v) in &s.attributes {
+        let (typ, val) = match v {
+            AttributeValue::String(s) => ("string", serde_json::json!(s)),
+            AttributeValue::Int(i) => ("int64", serde_json::json!(i)),
+            AttributeValue::Float(f) => ("float64", serde_json::json!(f)),
+            AttributeValue::Bool(b) => ("bool", serde_json::json!(b)),
+            AttributeValue::StringArray(arr) => ("string", serde_json::json!(arr.join(","))),
+            AttributeValue::IntArray(arr) => ("int64", serde_json::json!(arr.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(","))),
+        };
+        tags.push(serde_json::json!({"key": k, "type": typ, "value": val}));
+    }
+    tags
+}
+
+fn zipkin_tags(s: &Span) -> serde_json::Map<String, serde_json::Value> {
+    let mut tags = serde_json::Map::new();
+    tags.insert("span.kind".to_string(), serde_json::json!(format!("{:?}", s.kind).to_lowercase()));
+    tags.insert("status".to_string(), serde_json::json!(format!("{:?}", s.status)));
+    if let Some(msg) = &s.status_message {
+        tags.insert("status.message".to_string(), serde_json::json!(msg));
+    }
+    if let Some(host) = &s.resource.host_name {
+        tags.insert("host.name".to_string(), serde_json::json!(host));
+    }
+    for (k, v) in &s.attributes {
+        let val = match v {
+            AttributeValue::String(s) => serde_json::json!(s),
+            AttributeValue::Int(i) => serde_json::json!(i),
+            AttributeValue::Float(f) => serde_json::json!(f),
+            AttributeValue::Bool(b) => serde_json::json!(b),
+            AttributeValue::StringArray(arr) => serde_json::json!(arr.join(",")),
+            AttributeValue::IntArray(arr) => serde_json::json!(arr.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",")),
+        };
+        tags.insert(k.clone(), val);
+    }
+    tags
 }

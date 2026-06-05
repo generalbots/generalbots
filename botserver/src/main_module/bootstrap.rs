@@ -567,6 +567,9 @@ pub async fn create_app_state(
 
     let metrics_collector = botcore::shared::analytics::MetricsCollector::new();
 
+    #[cfg(feature = "monitoring")]
+    let tracing_service = botmonitoring::DistributedTracingService::new();
+
     #[cfg(feature = "tasks")]
     let task_scheduler = None;
 
@@ -648,6 +651,8 @@ task_engine: None,
             let ext = botcore::shared::state::Extensions::new();
             #[cfg(feature = "llm")]
             ext.insert_blocking(Arc::clone(&dynamic_llm_provider));
+            #[cfg(feature = "monitoring")]
+            ext.insert_blocking(tracing_service.clone());
             ext
         },
         attendant_broadcast: Some(attendant_tx),

@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, OnceLock};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Connector {
@@ -37,36 +38,36 @@ fn state() -> &'static Arc<RwLock<AppState>> {
     S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
 }
 
-pub async fn list_connectors() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_connectors() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&Connector> = s.connectors.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn connect_connector(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn connect_connector(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.connectors.get_mut(&id) {
         Some(item) => {
             item.status = "connected".to_string();
-            Json(serde_json::json!({"item": item}))
+            Ok(Json(serde_json::json!({"item": item})))
         }
-        None => Json(serde_json::json!({"error": "Connector not found"})),
+        None => Err((StatusCode::NOT_FOUND, "Connector not found".to_string())),
     }
 }
 
-pub async fn disconnect_connector(Path(id): Path<String>) -> Json<serde_json::Value> {
-    let mut s = state().write().unwrap();
+pub async fn disconnect_connector(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     match s.connectors.get_mut(&id) {
         Some(item) => {
             item.status = "disconnected".to_string();
-            Json(serde_json::json!({"item": item}))
+            Ok(Json(serde_json::json!({"item": item})))
         }
-        None => Json(serde_json::json!({"error": "Connector not found"})),
+        None => Err((StatusCode::NOT_FOUND, "Connector not found".to_string())),
     }
 }
 
-pub async fn list_etl() -> Json<serde_json::Value> {
-    let s = state().read().unwrap();
+pub async fn list_etl() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     let items: Vec<&EtlJob> = s.etl_jobs.values().collect();
-    Json(serde_json::json!({"items": items}))
+    Ok(Json(serde_json::json!({"items": items})))
 }
