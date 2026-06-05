@@ -308,7 +308,13 @@
   }
 
   function exportPptx(title) {
-    const buf = buildPptx(title);
+    let buf;
+    try {
+      buf = buildPptx(title);
+    } catch (e) {
+      if (window.console && window.console.error) window.console.error("PPTX export failed:", e);
+      return false;
+    }
     if (!buf) return false;
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
     const url = URL.createObjectURL(blob);
