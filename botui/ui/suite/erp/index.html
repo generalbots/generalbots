@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise ERP</title>
+<style>
+:root { --bg: #0f1117; --card: #1a1d27; --border: #2d3148; --text: #e8eaed; --text2: #9aa0b4; --accent: #6366f1; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.erp-app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+header h1 { font-size: 24px; font-weight: 600; }
+.modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.module-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; cursor: pointer; transition: border-color 0.2s; }
+.module-card:hover { border-color: var(--accent); }
+.module-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; }
+.module-name { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.module-desc { font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.5; }
+.module-status { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.active { background: #22c55e; }
+.dot.partial { background: #f59e0b; }
+.dot.planned { background: #6366f1; }
+</style>
+</head>
+<body>
+<div class="erp-app">
+<header><h1>Enterprise ERP</h1></header>
+<div class="modules">
+<div class="module-card" onclick="location.href='/crm'">
+<div class="module-icon" style="background:rgba(99,102,241,0.15);color:var(--accent)">👥</div>
+<div class="module-name">CRM & Sales</div>
+<div class="module-desc">Pipeline, deals, contacts, lead management</div>
+<div class="module-status"><span class="dot active"></span> Active</div>
+</div>
+<div class="module-card" onclick="location.href='/billing'">
+<div class="module-icon" style="background:rgba(34,197,94,0.15);color:#22c55e">💰</div>
+<div class="module-name">Billing & Finance</div>
+<div class="module-desc">Invoices, plans, general ledger, reports</div>
+<div class="module-status"><span class="dot partial"></span> GL New</div>
+</div>
+<div class="module-card" onclick="location.href='/products'">
+<div class="module-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b">📦</div>
+<div class="module-name">Inventory & Products</div>
+<div class="module-desc">Catalog, stock, movements, purchase orders</div>
+<div class="module-status"><span class="dot partial"></span> Inventory New</div>
+</div>
+<div class="module-card" onclick="location.href='/tasks'">
+<div class="module-icon" style="background:rgba(59,130,246,0.15);color:#3b82f6">✅</div>
+<div class="module-name">Tasks & Projects</div>
+<div class="module-desc">Kanban, project management, goals/OKR</div>
+<div class="module-status"><span class="dot active"></span> Active</div>
+</div>
+<div class="module-card" onclick="location.href='/calendar'">
+<div class="module-icon" style="background:rgba(168,85,247,0.15);color:#a855f7">📅</div>
+<div class="module-name">Calendar</div>
+<div class="module-desc">Scheduling, events, resource planning</div>
+<div class="module-status"><span class="dot active"></span> Active</div>
+</div>
+<div class="module-card" onclick="location.href='/people'">
+<div class="module-icon" style="background:rgba(236,72,153,0.15);color:#ec4899">👤</div>
+<div class="module-name">HR & People</div>
+<div class="module-desc">Employee records, time tracking, payroll</div>
+<div class="module-status"><span class="dot partial"></span> Partial</div>
+</div>
+</div>
+</div>
+</body>
+</html>
