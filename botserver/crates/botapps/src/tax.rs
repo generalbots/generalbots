@@ -1,271 +1,231 @@
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    routing::{get, post},
-    Json, Router,
-};
-use chrono::Utc;
-use serde::{Deserialize, Serialize};
+use axum::{extract::{State, Json, Path}, routing::get, Router};
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
+use chrono::Utc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Produto {
-    pub nome: String,
-    pub quantidade: i64,
-    pub preco_unitario: f64,
-    pub ncm: String,
-    pub cfop: String,
+pub enum NfeStatus { Pending, Approved, Rejected }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CteStatus { Draft, Sent, Authorized, Cancelled }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct NfeDocument {
+    pub id: Uuid,
+    pub number: String,
+    pub emitter_cnpj: String,
+    pub value: f64,
+    pub status: String,
+    pub xml_content: String,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NFe {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct NfseDocument {
     pub id: Uuid,
-    pub numero: i64,
-    pub destinatario: String,
-    pub produtos: Vec<Produto>,
-    pub cfop: String,
-    pub valor_total: f64,
+    pub number: String,
+    pub provider_cnpj: String,
+    pub service_code: String,
+    pub value: f64,
     pub status: String,
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NFSe {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CteDocument {
     pub id: Uuid,
-    pub numero: i64,
-    pub prestador: String,
-    pub tomador: String,
-    pub valor: f64,
+    pub number: String,
+    pub modality: String,
+    pub emitter_cnpj: String,
+    pub recipient_cnpj: String,
+    pub value: f64,
     pub status: String,
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CTe {
-    pub id: Uuid,
-    pub numero: i64,
-    pub remetente: String,
-    pub destinatario: String,
-    pub valor: f64,
-    pub status: String,
-    pub created_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SpedFile {
     pub id: Uuid,
-    pub filename: String,
-    pub tipo: String,
-    pub periodo: String,
+    pub file_type: String,
+    pub period: String,
+    pub status: String,
+    pub line_count: u32,
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateNFe {
-    pub numero: i64,
-    pub destinatario: String,
-    pub produtos: Vec<Produto>,
-    pub cfop: String,
-    pub valor_total: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateNFSe {
-    pub numero: i64,
-    pub prestador: String,
-    pub tomador: String,
-    pub valor: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateCTe {
-    pub numero: i64,
-    pub remetente: String,
-    pub destinatario: String,
-    pub valor: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SpedGenerateRequest {
-    pub tipo: String,
-    pub periodo: String,
-}
-
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct TaxState {
-    pub nfe: HashMap<Uuid, NFe>,
-    pub nfse: HashMap<Uuid, NFSe>,
-    pub cte: HashMap<Uuid, CTe>,
-    pub sped: Vec<SpedFile>,
+    pub nfe_documents: HashMap<Uuid, NfeDocument>,
+    pub nfse_documents: HashMap<Uuid, NfseDocument>,
+    pub cte_documents: HashMap<Uuid, CteDocument>,
+    pub sped_files: HashMap<Uuid, SpedFile>,
 }
 
-
-
-pub fn create_tax_state() -> SharedTaxState {
-    Arc::new(RwLock::new(TaxState::default()))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateNFe {
-    pub destinatario: Option<String>,
-    pub produtos: Option<Vec<Produto>>,
-    pub cfop: Option<String>,
-    pub valor_total: Option<f64>,
-}
-
-async fn list_nfe(
-    State(state): State<SharedTaxState>,
-) -> Result<Json<Vec<NFe>>, StatusCode> {
-    let data = state.read().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(data.nfe.values().cloned().collect()))
-}
-
-async fn create_nfe(
-    State(state): State<SharedTaxState>,
-    Json(input): Json<CreateNFe>,
-) -> Result<(StatusCode, Json<NFe>), StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let nfe = NFe {
-        id: Uuid::new_v4(),
-        numero: input.numero,
-        destinatario: input.destinatario,
-        produtos: input.produtos,
-        cfop: input.cfop,
-        valor_total: input.valor_total,
-        status: "pendente".to_string(),
-        created_at: Utc::now().to_rfc3339(),
-    };
-    data.nfe.insert(nfe.id, nfe.clone());
-    Ok((StatusCode::CREATED, Json(nfe)))
-}
-
-async fn get_nfe(
-    State(state): State<SharedTaxState>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<NFe>, StatusCode> {
-    let data = state.read().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    data.nfe.get(&id).cloned().ok_or(StatusCode::NOT_FOUND).map(Json)
-}
-
-async fn update_nfe(
-    State(state): State<SharedTaxState>,
-    Path(id): Path<Uuid>,
-    Json(input): Json<UpdateNFe>,
-) -> Result<Json<NFe>, StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let nfe = data.nfe.get_mut(&id).ok_or(StatusCode::NOT_FOUND)?;
-    if let Some(d) = input.destinatario {
-        nfe.destinatario = d;
-    }
-    if let Some(p) = input.produtos {
-        nfe.produtos = p;
-    }
-    if let Some(c) = input.cfop {
-        nfe.cfop = c;
-    }
-    if let Some(v) = input.valor_total {
-        nfe.valor_total = v;
-    }
-    Ok(Json(nfe.clone()))
-}
-
-async fn authorize_nfe(
-    State(state): State<SharedTaxState>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<NFe>, StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let nfe = data.nfe.get_mut(&id).ok_or(StatusCode::NOT_FOUND)?;
-    nfe.status = "autorizada".to_string();
-    Ok(Json(nfe.clone()))
-}
-
-async fn list_nfse(
-    State(state): State<SharedTaxState>,
-) -> Result<Json<Vec<NFSe>>, StatusCode> {
-    let data = state.read().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(data.nfse.values().cloned().collect()))
-}
-
-async fn create_nfse(
-    State(state): State<SharedTaxState>,
-    Json(input): Json<CreateNFSe>,
-) -> Result<(StatusCode, Json<NFSe>), StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let nfse = NFSe {
-        id: Uuid::new_v4(),
-        numero: input.numero,
-        prestador: input.prestador,
-        tomador: input.tomador,
-        valor: input.valor,
-        status: "pendente".to_string(),
-        created_at: Utc::now().to_rfc3339(),
-    };
-    data.nfse.insert(nfse.id, nfse.clone());
-    Ok((StatusCode::CREATED, Json(nfse)))
-}
-
-async fn list_cte(
-    State(state): State<SharedTaxState>,
-) -> Result<Json<Vec<CTe>>, StatusCode> {
-    let data = state.read().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(data.cte.values().cloned().collect()))
-}
-
-async fn create_cte(
-    State(state): State<SharedTaxState>,
-    Json(input): Json<CreateCTe>,
-) -> Result<(StatusCode, Json<CTe>), StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let cte = CTe {
-        id: Uuid::new_v4(),
-        numero: input.numero,
-        remetente: input.remetente,
-        destinatario: input.destinatario,
-        valor: input.valor,
-        status: "pendente".to_string(),
-        created_at: Utc::now().to_rfc3339(),
-    };
-    data.cte.insert(cte.id, cte.clone());
-    Ok((StatusCode::CREATED, Json(cte)))
-}
-
-async fn list_sped(
-    State(state): State<SharedTaxState>,
-) -> Result<Json<Vec<SpedFile>>, StatusCode> {
-    let data = state.read().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(data.sped.clone()))
-}
-
-async fn generate_sped(
-    State(state): State<SharedTaxState>,
-    Json(input): Json<SpedGenerateRequest>,
-) -> Result<(StatusCode, Json<SpedFile>), StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let file = SpedFile {
-        id: Uuid::new_v4(),
-        filename: format!("SPED_{}_{}.txt", input.tipo, input.periodo),
-        tipo: input.tipo,
-        periodo: input.periodo,
-        created_at: Utc::now().to_rfc3339(),
-    };
-    data.sped.push(file.clone());
-    Ok((StatusCode::CREATED, Json(file)))
-}
-
-pub fn routes() -> Router {
-    let state = std::sync::Arc::new(std::sync::RwLock::new(Default::default()));
+pub fn routes() -> axum::Router {
+    let state = Arc::new(RwLock::new(TaxState::default()));
     Router::new()
         .route("/api/tax/nfe", get(list_nfe).post(create_nfe))
-        .route(
-            "/api/tax/nfe/{id}",
-            get(get_nfe).put(update_nfe),
-        )
-        .route("/api/tax/nfe/{id}/authorize", post(authorize_nfe))
+        .route("/api/tax/nfe/{id}", get(get_nfe).put(update_nfe).delete(delete_nfe))
         .route("/api/tax/nfse", get(list_nfse).post(create_nfse))
+        .route("/api/tax/nfse/{id}", get(get_nfse).put(update_nfse).delete(delete_nfse))
         .route("/api/tax/cte", get(list_cte).post(create_cte))
-        .route("/api/tax/sped", get(list_sped))
-        .route("/api/tax/sped/generate", post(generate_sped))
+        .route("/api/tax/cte/{id}", get(get_cte).put(update_cte).delete(delete_cte))
+        .route("/api/tax/sped", get(list_sped).post(create_sped))
+        .route("/api/tax/sped/{id}", get(get_sped).delete(delete_sped))
         .with_state(state)
+}
+
+async fn list_nfe(State(state): State<Arc<RwLock<TaxState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let docs: Vec<&NfeDocument> = s.nfe_documents.values().collect();
+    Json(serde_json::json!({"nfe_documents": docs}))
+}
+
+async fn create_nfe(State(state): State<Arc<RwLock<TaxState>>>, Json(mut doc): Json<NfeDocument>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    doc.id = id;
+    doc.status = "Pending".to_string();
+    doc.created_at = Utc::now().to_rfc3339();
+    s.nfe_documents.insert(id, doc.clone());
+    Json(serde_json::json!({"nfe_document": doc}))
+}
+
+async fn get_nfe(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.nfe_documents.get(&id) {
+        Some(doc) => Json(serde_json::json!({"nfe_document": doc})),
+        None => Json(serde_json::json!({"error": "NFe not found"})),
+    }
+}
+
+async fn update_nfe(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>, Json(doc): Json<NfeDocument>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.nfe_documents.get_mut(&id) {
+        *existing = doc.clone();
+        existing.id = id;
+        Json(serde_json::json!({"nfe_document": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "NFe not found"}))
+    }
+}
+
+async fn delete_nfe(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.nfe_documents.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_nfse(State(state): State<Arc<RwLock<TaxState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let docs: Vec<&NfseDocument> = s.nfse_documents.values().collect();
+    Json(serde_json::json!({"nfse_documents": docs}))
+}
+
+async fn create_nfse(State(state): State<Arc<RwLock<TaxState>>>, Json(mut doc): Json<NfseDocument>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    doc.id = id;
+    doc.status = "Pending".to_string();
+    doc.created_at = Utc::now().to_rfc3339();
+    s.nfse_documents.insert(id, doc.clone());
+    Json(serde_json::json!({"nfse_document": doc}))
+}
+
+async fn get_nfse(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.nfse_documents.get(&id) {
+        Some(doc) => Json(serde_json::json!({"nfse_document": doc})),
+        None => Json(serde_json::json!({"error": "NFSe not found"})),
+    }
+}
+
+async fn update_nfse(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>, Json(doc): Json<NfseDocument>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.nfse_documents.get_mut(&id) {
+        *existing = doc.clone();
+        existing.id = id;
+        Json(serde_json::json!({"nfse_document": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "NFSe not found"}))
+    }
+}
+
+async fn delete_nfse(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.nfse_documents.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_cte(State(state): State<Arc<RwLock<TaxState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let docs: Vec<&CteDocument> = s.cte_documents.values().collect();
+    Json(serde_json::json!({"cte_documents": docs}))
+}
+
+async fn create_cte(State(state): State<Arc<RwLock<TaxState>>>, Json(mut doc): Json<CteDocument>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    doc.id = id;
+    doc.status = "Draft".to_string();
+    doc.created_at = Utc::now().to_rfc3339();
+    s.cte_documents.insert(id, doc.clone());
+    Json(serde_json::json!({"cte_document": doc}))
+}
+
+async fn get_cte(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.cte_documents.get(&id) {
+        Some(doc) => Json(serde_json::json!({"cte_document": doc})),
+        None => Json(serde_json::json!({"error": "CTe not found"})),
+    }
+}
+
+async fn update_cte(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>, Json(doc): Json<CteDocument>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.cte_documents.get_mut(&id) {
+        *existing = doc.clone();
+        existing.id = id;
+        Json(serde_json::json!({"cte_document": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "CTe not found"}))
+    }
+}
+
+async fn delete_cte(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.cte_documents.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_sped(State(state): State<Arc<RwLock<TaxState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let docs: Vec<&SpedFile> = s.sped_files.values().collect();
+    Json(serde_json::json!({"sped_files": docs}))
+}
+
+async fn create_sped(State(state): State<Arc<RwLock<TaxState>>>, Json(mut doc): Json<SpedFile>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    doc.id = id;
+    doc.status = "Generated".to_string();
+    doc.created_at = Utc::now().to_rfc3339();
+    s.sped_files.insert(id, doc.clone());
+    Json(serde_json::json!({"sped_file": doc}))
+}
+
+async fn get_sped(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.sped_files.get(&id) {
+        Some(doc) => Json(serde_json::json!({"sped_file": doc})),
+        None => Json(serde_json::json!({"error": "SPED not found"})),
+    }
+}
+
+async fn delete_sped(State(state): State<Arc<RwLock<TaxState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.sped_files.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
 }

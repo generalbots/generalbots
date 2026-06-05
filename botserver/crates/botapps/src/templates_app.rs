@@ -1,149 +1,139 @@
-use axum::{
-    extract::{Path, State as AxumState},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use axum::{extract::{State, Json, Path}, routing::{get, post}, Router};
+use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
+use chrono::Utc;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum TemplateCategory {
-    Business,
-    Service,
-    Lifestyle,
-    Custom,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BotTemplate {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Template {
     pub id: Uuid,
     pub name: String,
     pub description: String,
-    pub category: TemplateCategory,
-    pub icon: String,
-    pub features: Vec<String>,
-    pub sample_conversations: Vec<String>,
+    pub category: String,
+    pub content: String,
+    pub variables: String,
+    pub version: u32,
+    pub author: String,
+    pub public: bool,
+    pub usage_count: u64,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TemplateDeployment {
+    pub id: Uuid,
+    pub template_id: Uuid,
+    pub bot_id: String,
+    pub parameters: String,
+    pub status: String,
+    pub deployed_at: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TemplatePreview {
     pub id: Uuid,
-    pub name: String,
-    pub description: String,
-    pub category: TemplateCategory,
-    pub icon: String,
-    pub features: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeployResult {
     pub template_id: Uuid,
-    pub bot_name: String,
-    pub deployed_at: DateTime<Utc>,
-    pub status: String,
+    pub rendered_content: String,
+    pub preview_url: Option<String>,
+    pub created_at: String,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct DeployRequest {
-    pub bot_name: String,
+#[derive(Default)]
+pub struct TemplatesAppState {
+    pub templates: HashMap<Uuid, Template>,
+    pub deployments: HashMap<Uuid, TemplateDeployment>,
+    pub previews: HashMap<Uuid, TemplatePreview>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ApiResponse<T: Serialize> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub error: Option<String>,
-}
-
-#[derive(Clone)]
-pub struct TemplatesState {
-    pub templates: Arc<RwLock<Vec<BotTemplate>>>,
-}
-
-impl TemplatesState {
-    pub fn new() -> Self {
-        Self {
-            templates: Arc::new(RwLock::new(Vec::new())),
-        }
-    }
-}
-
-pub fn routes() -> Router {
-    let state = TemplatesState::new();
+pub fn routes() -> axum::Router {
+    let state = Arc::new(RwLock::new(TemplatesAppState::default()));
     Router::new()
-        .route("/api/templates/list", get(list_templates))
-        .route("/api/templates/preview/:id", get(get_preview))
-        .route("/api/templates/deploy/:id", post(deploy_template))
+        .route("/api/templates/list", get(list_templates).post(create_template))
+        .route("/api/templates/list/{id}", get(get_template).put(update_template).delete(delete_template))
+        .route("/api/templates/preview/{id}", get(preview_template))
+        .route("/api/templates/deploy/{id}", post(deploy_template))
         .with_state(state)
 }
 
-async fn list_templates(
-    AxumState(state): AxumState<TemplatesState>,
-) -> Result<Json<ApiResponse<Vec<BotTemplate>>>, StatusCode> {
-    let templates = state
-        .templates
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(templates.clone()),
-        error: None,
-    }))
+async fn list_templates(State(state): State<Arc<RwLock<TemplatesAppState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Template> = s.templates.values().collect();
+    Json(serde_json::json!({"templates": items}))
 }
 
-async fn get_preview(
-    AxumState(state): AxumState<TemplatesState>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<ApiResponse<TemplatePreview>>, StatusCode> {
-    let templates = state
-        .templates
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let template = templates
-        .iter()
-        .find(|t| t.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    let preview = TemplatePreview {
-        id: template.id,
-        name: template.name.clone(),
-        description: template.description.clone(),
-        category: template.category.clone(),
-        icon: template.icon.clone(),
-        features: template.features.clone(),
-    };
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(preview),
-        error: None,
-    }))
+async fn create_template(State(state): State<Arc<RwLock<TemplatesAppState>>>, Json(mut tmpl): Json<Template>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    tmpl.id = id;
+    tmpl.version = 1;
+    tmpl.usage_count = 0;
+    tmpl.created_at = Utc::now().to_rfc3339();
+    s.templates.insert(id, tmpl.clone());
+    Json(serde_json::json!({"template": tmpl}))
+}
+
+async fn get_template(State(state): State<Arc<RwLock<TemplatesAppState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.templates.get(&id) {
+        Some(t) => Json(serde_json::json!({"template": t})),
+        None => Json(serde_json::json!({"error": "Template not found"})),
+    }
+}
+
+async fn update_template(State(state): State<Arc<RwLock<TemplatesAppState>>>, Path(id): Path<Uuid>, Json(tmpl): Json<Template>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.templates.get_mut(&id) {
+        *existing = tmpl.clone();
+        existing.id = id;
+        existing.version += 1;
+        Json(serde_json::json!({"template": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Template not found"}))
+    }
+}
+
+async fn delete_template(State(state): State<Arc<RwLock<TemplatesAppState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.templates.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn preview_template(State(state): State<Arc<RwLock<TemplatesAppState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.templates.get(&id) {
+        Some(tmpl) => {
+            let preview = TemplatePreview {
+                id: Uuid::new_v4(),
+                template_id: id,
+                rendered_content: tmpl.content.clone(),
+                preview_url: None,
+                created_at: Utc::now().to_rfc3339(),
+            };
+            Json(serde_json::json!({"preview": preview}))
+        }
+        None => Json(serde_json::json!({"error": "Template not found"})),
+    }
 }
 
 async fn deploy_template(
-    AxumState(state): AxumState<TemplatesState>,
+    State(state): State<Arc<RwLock<TemplatesAppState>>>,
     Path(id): Path<Uuid>,
-    Json(payload): Json<DeployRequest>,
-) -> Result<Json<ApiResponse<DeployResult>>, StatusCode> {
-    let templates = state
-        .templates
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let template = templates
-        .iter()
-        .find(|t| t.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    let result = DeployResult {
-        template_id: template.id,
-        bot_name: payload.bot_name,
-        deployed_at: Utc::now(),
-        status: "deployed".to_string(),
-    };
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(result),
-        error: None,
-    }))
+    Json(deployment): Json<TemplateDeployment>,
+) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(tmpl) = s.templates.get_mut(&id) {
+        tmpl.usage_count += 1;
+        let mut dep = deployment;
+        dep.id = Uuid::new_v4();
+        dep.template_id = id;
+        dep.status = "Deployed".to_string();
+        dep.deployed_at = Some(Utc::now().to_rfc3339());
+        dep.created_at = Utc::now().to_rfc3339();
+        s.deployments.insert(dep.id, dep.clone());
+        Json(serde_json::json!({"deployment": dep}))
+    } else {
+        Json(serde_json::json!({"error": "Template not found"}))
+    }
 }

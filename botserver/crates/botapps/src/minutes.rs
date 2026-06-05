@@ -1,249 +1,177 @@
-use axum::{
-    extract::{Path, State as AxumState},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, put},
-    Json, Router,
-};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use axum::{extract::{State, Json, Path}, routing::get, Router};
+use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
+use chrono::Utc;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum MeetingStatus {
-    Scheduled,
-    InProgress,
-    Completed,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum DocumentStatus {
-    Draft,
-    Approved,
-    Signed,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Meeting {
     pub id: Uuid,
     pub title: String,
-    pub scheduled_at: DateTime<Utc>,
-    pub participants: Vec<String>,
-    pub status: MeetingStatus,
+    pub description: String,
+    pub organizer: String,
+    pub attendees: String,
+    pub scheduled_at: String,
+    pub duration_minutes: u32,
+    pub location: Option<String>,
+    pub status: String,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Transcript {
     pub id: Uuid,
     pub meeting_id: Uuid,
+    pub speaker: String,
     pub content: String,
+    pub timestamp: String,
+    pub confidence: f64,
     pub language: String,
-    pub created_at: DateTime<Utc>,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MinuteDocument {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MinutesDocument {
     pub id: Uuid,
     pub meeting_id: Uuid,
-    pub content: String,
-    pub status: DocumentStatus,
-    pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreateMeetingRequest {
     pub title: String,
-    pub scheduled_at: DateTime<Utc>,
-    pub participants: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreateTranscriptRequest {
-    pub meeting_id: Uuid,
     pub content: String,
-    pub language: String,
+    pub action_items: String,
+    pub summary: String,
+    pub version: u32,
+    pub status: String,
+    pub created_at: String,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreateMinuteDocumentRequest {
-    pub meeting_id: Uuid,
-    pub content: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateDocumentRequest {
-    pub content: Option<String>,
-    pub status: Option<DocumentStatus>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ApiResponse<T: Serialize> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub error: Option<String>,
-}
-
-#[derive(Clone)]
+#[derive(Default)]
 pub struct MinutesState {
-    pub meetings: Arc<RwLock<Vec<Meeting>>>,
-    pub transcripts: Arc<RwLock<Vec<Transcript>>>,
-    pub documents: Arc<RwLock<Vec<MinuteDocument>>>,
+    pub meetings: HashMap<Uuid, Meeting>,
+    pub transcripts: HashMap<Uuid, Transcript>,
+    pub documents: HashMap<Uuid, MinutesDocument>,
 }
 
-impl MinutesState {
-    pub fn new() -> Self {
-        Self {
-            meetings: Arc::new(RwLock::new(Vec::new())),
-            transcripts: Arc::new(RwLock::new(Vec::new())),
-            documents: Arc::new(RwLock::new(Vec::new())),
-        }
-    }
-}
-
-pub fn routes() -> Router {
-    let state = MinutesState::new();
+pub fn routes() -> axum::Router {
+    let state = Arc::new(RwLock::new(MinutesState::default()));
     Router::new()
         .route("/api/minutes/meetings", get(list_meetings).post(create_meeting))
+        .route("/api/minutes/meetings/{id}", get(get_meeting).put(update_meeting).delete(delete_meeting))
         .route("/api/minutes/transcripts", get(list_transcripts).post(create_transcript))
+        .route("/api/minutes/transcripts/{id}", get(get_transcript).delete(delete_transcript))
         .route("/api/minutes/documents", get(list_documents).post(create_document))
-        .route("/api/minutes/documents/:id", put(update_document))
+        .route("/api/minutes/documents/{id}", get(get_document).put(update_document).delete(delete_document))
         .with_state(state)
 }
 
-async fn list_meetings(
-    AxumState(state): AxumState<MinutesState>,
-) -> Result<Json<ApiResponse<Vec<Meeting>>>, StatusCode> {
-    let meetings = state
-        .meetings
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(meetings.clone()),
-        error: None,
-    }))
+async fn list_meetings(State(state): State<Arc<RwLock<MinutesState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Meeting> = s.meetings.values().collect();
+    Json(serde_json::json!({"meetings": items}))
 }
 
-async fn create_meeting(
-    AxumState(state): AxumState<MinutesState>,
-    Json(payload): Json<CreateMeetingRequest>,
-) -> Result<(StatusCode, Json<ApiResponse<Meeting>>), StatusCode> {
-    let meeting = Meeting {
-        id: Uuid::new_v4(),
-        title: payload.title,
-        scheduled_at: payload.scheduled_at,
-        participants: payload.participants,
-        status: MeetingStatus::Scheduled,
-    };
-    let mut meetings = state
-        .meetings
-        .write()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    meetings.push(meeting.clone());
-    Ok((StatusCode::CREATED, Json(ApiResponse {
-        success: true,
-        data: Some(meeting),
-        error: None,
-    })))
+async fn create_meeting(State(state): State<Arc<RwLock<MinutesState>>>, Json(mut meeting): Json<Meeting>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    meeting.id = id;
+    meeting.status = "Scheduled".to_string();
+    meeting.created_at = Utc::now().to_rfc3339();
+    s.meetings.insert(id, meeting.clone());
+    Json(serde_json::json!({"meeting": meeting}))
 }
 
-async fn list_transcripts(
-    AxumState(state): AxumState<MinutesState>,
-) -> Result<Json<ApiResponse<Vec<Transcript>>>, StatusCode> {
-    let transcripts = state
-        .transcripts
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(transcripts.clone()),
-        error: None,
-    }))
-}
-
-async fn create_transcript(
-    AxumState(state): AxumState<MinutesState>,
-    Json(payload): Json<CreateTranscriptRequest>,
-) -> Result<(StatusCode, Json<ApiResponse<Transcript>>), StatusCode> {
-    let transcript = Transcript {
-        id: Uuid::new_v4(),
-        meeting_id: payload.meeting_id,
-        content: payload.content,
-        language: payload.language,
-        created_at: Utc::now(),
-    };
-    let mut transcripts = state
-        .transcripts
-        .write()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    transcripts.push(transcript.clone());
-    Ok((StatusCode::CREATED, Json(ApiResponse {
-        success: true,
-        data: Some(transcript),
-        error: None,
-    })))
-}
-
-async fn list_documents(
-    AxumState(state): AxumState<MinutesState>,
-) -> Result<Json<ApiResponse<Vec<MinuteDocument>>>, StatusCode> {
-    let documents = state
-        .documents
-        .read()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(documents.clone()),
-        error: None,
-    }))
-}
-
-async fn create_document(
-    AxumState(state): AxumState<MinutesState>,
-    Json(payload): Json<CreateMinuteDocumentRequest>,
-) -> Result<(StatusCode, Json<ApiResponse<MinuteDocument>>), StatusCode> {
-    let document = MinuteDocument {
-        id: Uuid::new_v4(),
-        meeting_id: payload.meeting_id,
-        content: payload.content,
-        status: DocumentStatus::Draft,
-        created_at: Utc::now(),
-    };
-    let mut documents = state
-        .documents
-        .write()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    documents.push(document.clone());
-    Ok((StatusCode::CREATED, Json(ApiResponse {
-        success: true,
-        data: Some(document),
-        error: None,
-    })))
-}
-
-async fn update_document(
-    AxumState(state): AxumState<MinutesState>,
-    Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateDocumentRequest>,
-) -> Result<Json<ApiResponse<MinuteDocument>>, StatusCode> {
-    let mut documents = state
-        .documents
-        .write()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let document = documents
-        .iter_mut()
-        .find(|d| d.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    if let Some(content) = payload.content {
-        document.content = content;
+async fn get_meeting(State(state): State<Arc<RwLock<MinutesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.meetings.get(&id) {
+        Some(m) => Json(serde_json::json!({"meeting": m})),
+        None => Json(serde_json::json!({"error": "Meeting not found"})),
     }
-    if let Some(status) = payload.status {
-        document.status = status;
+}
+
+async fn update_meeting(State(state): State<Arc<RwLock<MinutesState>>>, Path(id): Path<Uuid>, Json(meeting): Json<Meeting>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.meetings.get_mut(&id) {
+        *existing = meeting.clone();
+        existing.id = id;
+        Json(serde_json::json!({"meeting": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Meeting not found"}))
     }
-    Ok(Json(ApiResponse {
-        success: true,
-        data: Some(document.clone()),
-        error: None,
-    }))
+}
+
+async fn delete_meeting(State(state): State<Arc<RwLock<MinutesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.meetings.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_transcripts(State(state): State<Arc<RwLock<MinutesState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Transcript> = s.transcripts.values().collect();
+    Json(serde_json::json!({"transcripts": items}))
+}
+
+async fn create_transcript(State(state): State<Arc<RwLock<MinutesState>>>, Json(mut t): Json<Transcript>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    t.id = id;
+    t.created_at = Utc::now().to_rfc3339();
+    s.transcripts.insert(id, t.clone());
+    Json(serde_json::json!({"transcript": t}))
+}
+
+async fn get_transcript(State(state): State<Arc<RwLock<MinutesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.transcripts.get(&id) {
+        Some(t) => Json(serde_json::json!({"transcript": t})),
+        None => Json(serde_json::json!({"error": "Transcript not found"})),
+    }
+}
+
+async fn delete_transcript(State(state): State<Arc<RwLock<MinutesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.transcripts.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_documents(State(state): State<Arc<RwLock<MinutesState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&MinutesDocument> = s.documents.values().collect();
+    Json(serde_json::json!({"documents": items}))
+}
+
+async fn create_document(State(state): State<Arc<RwLock<MinutesState>>>, Json(mut doc): Json<MinutesDocument>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    doc.id = id;
+    doc.version = 1;
+    doc.status = "Draft".to_string();
+    doc.created_at = Utc::now().to_rfc3339();
+    s.documents.insert(id, doc.clone());
+    Json(serde_json::json!({"document": doc}))
+}
+
+async fn get_document(State(state): State<Arc<RwLock<MinutesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.documents.get(&id) {
+        Some(d) => Json(serde_json::json!({"document": d})),
+        None => Json(serde_json::json!({"error": "Document not found"})),
+    }
+}
+
+async fn update_document(State(state): State<Arc<RwLock<MinutesState>>>, Path(id): Path<Uuid>, Json(doc): Json<MinutesDocument>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.documents.get_mut(&id) {
+        *existing = doc.clone();
+        existing.id = id;
+        existing.version += 1;
+        Json(serde_json::json!({"document": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Document not found"}))
+    }
+}
+
+async fn delete_document(State(state): State<Arc<RwLock<MinutesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.documents.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
 }

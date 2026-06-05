@@ -1,140 +1,101 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    routing::{get, post},
-    Json, Router,
-};
-use chrono::Utc;
-use serde::{Deserialize, Serialize};
+use axum::{extract::{State, Json, Path}, routing::{get, post}, Router};
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
+use chrono::Utc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BoundingBox {
-    pub x: f64,
-    pub y: f64,
-    pub width: f64,
-    pub height: f64,
-}
+pub enum AnalysisType { ObjectDetection, FaceRecognition, Ocr, SceneClassification }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DetectionResult {
-    pub label: String,
-    pub confidence: f64,
-    pub bounding_box: Option<BoundingBox>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Analysis {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct VisionAnalysis {
     pub id: Uuid,
+    pub input_type: String,
+    pub input_url: String,
     pub analysis_type: String,
-    pub filename: String,
-    pub results: Vec<DetectionResult>,
+    pub result: String,
+    pub confidence: f64,
+    pub processing_time_ms: u64,
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AnalyzeRequest {
-    pub analysis_type: String,
-    pub filename: String,
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct VisionHistoryEntry {
+    pub id: Uuid,
+    pub analysis_id: Uuid,
+    pub action: String,
+    pub details: String,
+    pub created_at: String,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct VisionState {
-    pub analyses: HashMap<Uuid, Analysis>,
-    pub history: Vec<Analysis>,
+    pub analyses: HashMap<Uuid, VisionAnalysis>,
+    pub history: HashMap<Uuid, VisionHistoryEntry>,
 }
 
-
-
-pub fn create_vision_state() -> SharedVisionState {
-    Arc::new(RwLock::new(VisionState::default()))
+pub fn routes() -> axum::Router {
+    let state = Arc::new(RwLock::new(VisionState::default()));
+    Router::new()
+        .route("/api/vision/analyze", post(create_analysis))
+        .route("/api/vision/analyze/{id}", get(get_analysis).delete(delete_analysis))
+        .route("/api/vision/history", get(list_history))
+        .route("/api/vision/history/{id}", get(get_history_entry))
+        .with_state(state)
 }
 
-async fn analyze_image(
-    State(state): State<SharedVisionState>,
-    Json(input): Json<AnalyzeRequest>,
-) -> Result<(StatusCode, Json<Analysis>), StatusCode> {
-    let mut data = state.write().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let results = match input.analysis_type.as_str() {
-        "ocr" => vec![DetectionResult {
-            label: "text_detected".to_string(),
-            confidence: 0.95,
-            bounding_box: Some(BoundingBox {
-                x: 10.0,
-                y: 20.0,
-                width: 200.0,
-                height: 50.0,
-            }),
-        }],
-        "object_detection" => vec![
-            DetectionResult {
-                label: "person".to_string(),
-                confidence: 0.92,
-                bounding_box: Some(BoundingBox {
-                    x: 100.0,
-                    y: 50.0,
-                    width: 150.0,
-                    height: 300.0,
-                }),
-            },
-            DetectionResult {
-                label: "car".to_string(),
-                confidence: 0.87,
-                bounding_box: Some(BoundingBox {
-                    x: 300.0,
-                    y: 150.0,
-                    width: 250.0,
-                    height: 120.0,
-                }),
-            },
-        ],
-        "damage" => vec![DetectionResult {
-            label: "scratch".to_string(),
-            confidence: 0.78,
-            bounding_box: Some(BoundingBox {
-                x: 50.0,
-                y: 100.0,
-                width: 80.0,
-                height: 30.0,
-            }),
-        }],
-        "plate" => vec![DetectionResult {
-            label: "ABC1D23".to_string(),
-            confidence: 0.91,
-            bounding_box: Some(BoundingBox {
-                x: 200.0,
-                y: 250.0,
-                width: 120.0,
-                height: 40.0,
-            }),
-        }],
-        _ => vec![],
-    };
-    let analysis = Analysis {
-        id: Uuid::new_v4(),
-        analysis_type: input.analysis_type,
-        filename: input.filename,
-        results,
+async fn create_analysis(State(state): State<Arc<RwLock<VisionState>>>, Json(mut analysis): Json<VisionAnalysis>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    analysis.id = id;
+    analysis.created_at = Utc::now().to_rfc3339();
+    s.analyses.insert(id, analysis.clone());
+    let history_id = Uuid::new_v4();
+    let entry = VisionHistoryEntry {
+        id: history_id,
+        analysis_id: id,
+        action: "created".to_string(),
+        details: format!("Analysis of type {} created", analysis.analysis_type),
         created_at: Utc::now().to_rfc3339(),
     };
-    data.analyses.insert(analysis.id, analysis.clone());
-    data.history.push(analysis.clone());
-    Ok((StatusCode::CREATED, Json(analysis)))
+    s.history.insert(history_id, entry);
+    Json(serde_json::json!({"analysis": analysis}))
 }
 
-async fn get_history(
-    State(state): State<SharedVisionState>,
-) -> Result<Json<Vec<Analysis>>, StatusCode> {
-    let data = state.read().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(data.history.clone()))
+async fn get_analysis(State(state): State<Arc<RwLock<VisionState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.analyses.get(&id) {
+        Some(a) => Json(serde_json::json!({"analysis": a})),
+        None => Json(serde_json::json!({"error": "Analysis not found"})),
+    }
 }
 
-pub fn routes() -> Router {
-    let state = std::sync::Arc::new(std::sync::RwLock::new(Default::default()));
-    Router::new()
-        .route("/api/vision/analyze", post(analyze_image))
-        .route("/api/vision/history", get(get_history))
-        .with_state(state)
+async fn delete_analysis(State(state): State<Arc<RwLock<VisionState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.analyses.remove(&id);
+    let history_id = Uuid::new_v4();
+    let entry = VisionHistoryEntry {
+        id: history_id,
+        analysis_id: id,
+        action: "deleted".to_string(),
+        details: "Analysis deleted".to_string(),
+        created_at: Utc::now().to_rfc3339(),
+    };
+    s.history.insert(history_id, entry);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_history(State(state): State<Arc<RwLock<VisionState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&VisionHistoryEntry> = s.history.values().collect();
+    Json(serde_json::json!({"history": items}))
+}
+
+async fn get_history_entry(State(state): State<Arc<RwLock<VisionState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.history.get(&id) {
+        Some(e) => Json(serde_json::json!({"entry": e})),
+        None => Json(serde_json::json!({"error": "History entry not found"})),
+    }
 }

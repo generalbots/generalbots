@@ -1,232 +1,225 @@
+use axum::{extract::{State, Json, Path}, routing::get, Router};
+use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-
-use axum::extract::{Path, State as AxumState};
-use axum::routing::{get, post, put};
-use axum::{Json, Router};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use chrono::Utc;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DealStage {
-    Lead,
-    Qualified,
-    Proposal,
-    Negotiation,
-    Won,
-    Lost,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Deal {
     pub id: Uuid,
     pub title: String,
     pub company: String,
+    pub contact: String,
     pub value: f64,
-    pub stage: DealStage,
-    pub owner: String,
-    pub created_at: DateTime<Utc>,
+    pub currency: String,
+    pub stage: String,
+    pub probability: u32,
+    pub expected_close_date: String,
+    pub assigned_to: String,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Contact {
     pub id: Uuid,
     pub name: String,
     pub email: String,
+    pub phone: String,
     pub company: String,
-    pub last_contact: Option<DateTime<Utc>>,
+    pub position: String,
+    pub tags: String,
+    pub last_contact_at: Option<String>,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SaleActivity {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SalesActivity {
     pub id: Uuid,
-    pub deal_id: Uuid,
+    pub deal_id: Option<Uuid>,
+    pub contact_id: Option<Uuid>,
     pub activity_type: String,
-    pub notes: String,
-    pub created_at: DateTime<Utc>,
+    pub description: String,
+    pub due_date: Option<String>,
+    pub completed: bool,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Forecast {
-    pub total_pipeline: f64,
-    pub weighted_pipeline: f64,
-    pub deals_by_stage: Vec<(String, i32)>,
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ForecastEntry {
+    pub id: Uuid,
+    pub period: String,
+    pub pipeline_value: f64,
+    pub weighted_value: f64,
+    pub closed_value: f64,
+    pub won_value: f64,
+    pub lost_value: f64,
+    pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateDeal {
-    pub title: String,
-    pub company: String,
-    pub value: f64,
-    pub stage: DealStage,
-    pub owner: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateDeal {
-    pub title: Option<String>,
-    pub company: Option<String>,
-    pub value: Option<f64>,
-    pub stage: Option<DealStage>,
-    pub owner: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateContact {
-    pub name: String,
-    pub email: String,
-    pub company: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateActivity {
-    pub deal_id: Uuid,
-    pub activity_type: String,
-    pub notes: String,
-}
-
-#[derive(Clone)]
+#[derive(Default)]
 pub struct SalesState {
-    pub deals: Arc<RwLock<Vec<Deal>>>,
-    pub contacts: Arc<RwLock<Vec<Contact>>>,
-    pub activities: Arc<RwLock<Vec<SaleActivity>>>,
+    pub deals: HashMap<Uuid, Deal>,
+    pub contacts: HashMap<Uuid, Contact>,
+    pub activities: HashMap<Uuid, SalesActivity>,
+    pub forecasts: HashMap<Uuid, ForecastEntry>,
 }
 
-impl SalesState {
-    pub fn new() -> Self {
-        Self {
-            deals: Arc::new(RwLock::new(Vec::new())),
-            contacts: Arc::new(RwLock::new(Vec::new())),
-            activities: Arc::new(RwLock::new(Vec::new())),
-        }
-    }
-}
-
-#[derive(Debug, Serialize)]
-pub struct ApiResponse<T: Serialize> {
-    pub success: bool,
-    pub data: T,
-}
-
-async fn list_deals(AxumState(state): AxumState<SalesState>) -> Json<ApiResponse<Vec<Deal>>> {
-    let deals = state.deals.read().unwrap().clone();
-    Json(ApiResponse { success: true, data: deals })
-}
-
-async fn create_deal(
-    AxumState(state): AxumState<SalesState>,
-    Json(payload): Json<CreateDeal>,
-) -> Json<ApiResponse<Deal>> {
-    let deal = Deal {
-        id: Uuid::new_v4(),
-        title: payload.title,
-        company: payload.company,
-        value: payload.value,
-        stage: payload.stage,
-        owner: payload.owner,
-        created_at: Utc::now(),
-    };
-    state.deals.write().unwrap().push(deal.clone());
-    Json(ApiResponse { success: true, data: deal })
-}
-
-async fn update_deal(
-    AxumState(state): AxumState<SalesState>,
-    Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateDeal>,
-) -> Json<ApiResponse<Deal>> {
-    let mut deals = state.deals.write().unwrap();
-    let deal = deals.iter_mut().find(|d| d.id == id).expect("Deal not found");
-    if let Some(title) = payload.title { deal.title = title; }
-    if let Some(company) = payload.company { deal.company = company; }
-    if let Some(value) = payload.value { deal.value = value; }
-    if let Some(stage) = payload.stage { deal.stage = stage; }
-    if let Some(owner) = payload.owner { deal.owner = owner; }
-    Json(ApiResponse { success: true, data: deal.clone() })
-}
-
-async fn list_contacts(AxumState(state): AxumState<SalesState>) -> Json<ApiResponse<Vec<Contact>>> {
-    let contacts = state.contacts.read().unwrap().clone();
-    Json(ApiResponse { success: true, data: contacts })
-}
-
-async fn create_contact(
-    AxumState(state): AxumState<SalesState>,
-    Json(payload): Json<CreateContact>,
-) -> Json<ApiResponse<Contact>> {
-    let contact = Contact {
-        id: Uuid::new_v4(),
-        name: payload.name,
-        email: payload.email,
-        company: payload.company,
-        last_contact: None,
-    };
-    state.contacts.write().unwrap().push(contact.clone());
-    Json(ApiResponse { success: true, data: contact })
-}
-
-async fn list_activities(AxumState(state): AxumState<SalesState>) -> Json<ApiResponse<Vec<SaleActivity>>> {
-    let activities = state.activities.read().unwrap().clone();
-    Json(ApiResponse { success: true, data: activities })
-}
-
-async fn create_activity(
-    AxumState(state): AxumState<SalesState>,
-    Json(payload): Json<CreateActivity>,
-) -> Json<ApiResponse<SaleActivity>> {
-    let activity = SaleActivity {
-        id: Uuid::new_v4(),
-        deal_id: payload.deal_id,
-        activity_type: payload.activity_type,
-        notes: payload.notes,
-        created_at: Utc::now(),
-    };
-    state.activities.write().unwrap().push(activity.clone());
-    Json(ApiResponse { success: true, data: activity })
-}
-
-async fn get_forecast(AxumState(state): AxumState<SalesState>) -> Json<ApiResponse<Forecast>> {
-    let deals = state.deals.read().unwrap();
-    let total_pipeline: f64 = deals.iter().map(|d| d.value).sum();
-    let weighted_pipeline: f64 = deals.iter().map(|d| match d.stage {
-        DealStage::Lead => d.value * 0.1,
-        DealStage::Qualified => d.value * 0.25,
-        DealStage::Proposal => d.value * 0.5,
-        DealStage::Negotiation => d.value * 0.75,
-        DealStage::Won => d.value,
-        DealStage::Lost => 0.0,
-    }).sum();
-    let mut stage_counts: Vec<(String, i32)> = Vec::new();
-    for deal in deals.iter() {
-        let stage_name = match &deal.stage {
-            DealStage::Lead => "lead",
-            DealStage::Qualified => "qualified",
-            DealStage::Proposal => "proposal",
-            DealStage::Negotiation => "negotiation",
-            DealStage::Won => "won",
-            DealStage::Lost => "lost",
-        };
-        if let Some(entry) = stage_counts.iter_mut().find(|(s, _)| s == stage_name) {
-            entry.1 += 1;
-        } else {
-            stage_counts.push((stage_name.to_string(), 1));
-        }
-    }
-    let forecast = Forecast {
-        total_pipeline,
-        weighted_pipeline,
-        deals_by_stage: stage_counts,
-    };
-    Json(ApiResponse { success: true, data: forecast })
-}
-
-pub fn routes() -> Router {
-    let state = SalesState::new();
+pub fn routes() -> axum::Router {
+    let state = Arc::new(RwLock::new(SalesState::default()));
     Router::new()
         .route("/api/sales/deals", get(list_deals).post(create_deal))
-        .route("/api/sales/deals/{id}", put(update_deal))
+        .route("/api/sales/deals/{id}", get(get_deal).put(update_deal).delete(delete_deal))
         .route("/api/sales/contacts", get(list_contacts).post(create_contact))
+        .route("/api/sales/contacts/{id}", get(get_contact).put(update_contact).delete(delete_contact))
         .route("/api/sales/activities", get(list_activities).post(create_activity))
-        .route("/api/sales/forecast", get(get_forecast))
+        .route("/api/sales/activities/{id}", get(get_activity).put(update_activity).delete(delete_activity))
+        .route("/api/sales/forecast", get(list_forecast).post(create_forecast))
+        .route("/api/sales/forecast/{id}", get(get_forecast))
         .with_state(state)
+}
+
+async fn list_deals(State(state): State<Arc<RwLock<SalesState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Deal> = s.deals.values().collect();
+    Json(serde_json::json!({"deals": items}))
+}
+
+async fn create_deal(State(state): State<Arc<RwLock<SalesState>>>, Json(mut deal): Json<Deal>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    deal.id = id;
+    deal.stage = "Prospecting".to_string();
+    deal.created_at = Utc::now().to_rfc3339();
+    s.deals.insert(id, deal.clone());
+    Json(serde_json::json!({"deal": deal}))
+}
+
+async fn get_deal(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.deals.get(&id) {
+        Some(d) => Json(serde_json::json!({"deal": d})),
+        None => Json(serde_json::json!({"error": "Deal not found"})),
+    }
+}
+
+async fn update_deal(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>, Json(deal): Json<Deal>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.deals.get_mut(&id) {
+        *existing = deal.clone();
+        existing.id = id;
+        Json(serde_json::json!({"deal": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Deal not found"}))
+    }
+}
+
+async fn delete_deal(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.deals.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_contacts(State(state): State<Arc<RwLock<SalesState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&Contact> = s.contacts.values().collect();
+    Json(serde_json::json!({"contacts": items}))
+}
+
+async fn create_contact(State(state): State<Arc<RwLock<SalesState>>>, Json(mut contact): Json<Contact>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    contact.id = id;
+    contact.created_at = Utc::now().to_rfc3339();
+    s.contacts.insert(id, contact.clone());
+    Json(serde_json::json!({"contact": contact}))
+}
+
+async fn get_contact(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.contacts.get(&id) {
+        Some(c) => Json(serde_json::json!({"contact": c})),
+        None => Json(serde_json::json!({"error": "Contact not found"})),
+    }
+}
+
+async fn update_contact(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>, Json(contact): Json<Contact>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.contacts.get_mut(&id) {
+        *existing = contact.clone();
+        existing.id = id;
+        Json(serde_json::json!({"contact": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Contact not found"}))
+    }
+}
+
+async fn delete_contact(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.contacts.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_activities(State(state): State<Arc<RwLock<SalesState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&SalesActivity> = s.activities.values().collect();
+    Json(serde_json::json!({"activities": items}))
+}
+
+async fn create_activity(State(state): State<Arc<RwLock<SalesState>>>, Json(mut activity): Json<SalesActivity>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    activity.id = id;
+    activity.completed = false;
+    activity.created_at = Utc::now().to_rfc3339();
+    s.activities.insert(id, activity.clone());
+    Json(serde_json::json!({"activity": activity}))
+}
+
+async fn get_activity(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.activities.get(&id) {
+        Some(a) => Json(serde_json::json!({"activity": a})),
+        None => Json(serde_json::json!({"error": "Activity not found"})),
+    }
+}
+
+async fn update_activity(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>, Json(activity): Json<SalesActivity>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    if let Some(existing) = s.activities.get_mut(&id) {
+        *existing = activity.clone();
+        existing.id = id;
+        Json(serde_json::json!({"activity": existing.clone()}))
+    } else {
+        Json(serde_json::json!({"error": "Activity not found"}))
+    }
+}
+
+async fn delete_activity(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    s.activities.remove(&id);
+    Json(serde_json::json!({"deleted": true}))
+}
+
+async fn list_forecast(State(state): State<Arc<RwLock<SalesState>>>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    let items: Vec<&ForecastEntry> = s.forecasts.values().collect();
+    Json(serde_json::json!({"forecasts": items}))
+}
+
+async fn create_forecast(State(state): State<Arc<RwLock<SalesState>>>, Json(mut forecast): Json<ForecastEntry>) -> Json<serde_json::Value> {
+    let mut s = state.write().unwrap();
+    let id = Uuid::new_v4();
+    forecast.id = id;
+    forecast.created_at = Utc::now().to_rfc3339();
+    s.forecasts.insert(id, forecast.clone());
+    Json(serde_json::json!({"forecast": forecast}))
+}
+
+async fn get_forecast(State(state): State<Arc<RwLock<SalesState>>>, Path(id): Path<Uuid>) -> Json<serde_json::Value> {
+    let s = state.read().unwrap();
+    match s.forecasts.get(&id) {
+        Some(f) => Json(serde_json::json!({"forecast": f})),
+        None => Json(serde_json::json!({"error": "Forecast not found"})),
+    }
 }

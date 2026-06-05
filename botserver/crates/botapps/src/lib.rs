@@ -18,7 +18,7 @@ pub mod templates_app;
 
 use axum::Router;
 
-pub fn configure_routes() -> Router {
+pub fn routes() -> Router {
     Router::new()
         .merge(tax::routes())
         .merge(video::routes())
