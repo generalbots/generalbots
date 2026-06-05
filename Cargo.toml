@@ -15,6 +15,11 @@ members = [
   "botserver/crates/botattendance",
   "botserver/crates/botattendant",
   "botserver/crates/botautotask",
+  "botserver/crates/botbanking",
+  "botserver/crates/botbrazil",
+  "botserver/crates/botbiometry",
+  "botserver/crates/botclock",
+  "botserver/crates/boteval",
   "botserver/crates/botbasic_ai",
   "botserver/crates/botbasic_comms",
   "botserver/crates/botbasic_compiler",
@@ -53,6 +58,7 @@ members = [
   "botserver/crates/botmeet",
   "botserver/crates/botmodelsbridge",
   "botserver/crates/botmonitoring",
+  "botserver/crates/botm365",
   "botserver/crates/botmsteams",
   "botserver/crates/botmultimodal",
   "botserver/crates/botnvidia",
@@ -63,6 +69,7 @@ members = [
   "botserver/crates/botproject",
   "botserver/crates/botqdrant",
   "botserver/crates/botresearch",
+  "botserver/crates/botretail",
   "botserver/crates/botsearch",
   "botserver/crates/botsecurity",
   "botserver/crates/botsecurity-auth",
@@ -102,6 +109,8 @@ botautotask = { path = "botserver/crates/botautotask" }
 botlib = { path = "botlib" }
 http = "1.0"
 botanalytics = { path = "botserver/crates/botanalytics" }
+botbrazil = { path = "botserver/crates/botbrazil" }
+boteval = { path = "botserver/crates/boteval" }
 botattendance = { path = "botserver/crates/botattendance" }
 botattendant = { path = "botserver/crates/botattendant" }
 botbilling = { path = "botserver/crates/botbilling" }
@@ -123,6 +132,10 @@ botlegal = { path = "botserver/crates/botlegal" }
 botllm = { path = "botserver/crates/botllm" }
 botmaintenance = { path = "botserver/crates/botmaintenance" }
 botmarketing = { path = "botserver/crates/botmarketing" }
+botbiometry = { path = "botserver/crates/botbiometry" }
+botbanking = { path = "botserver/crates/botbanking" }
+botclock = { path = "botserver/crates/botclock" }
+botm365 = { path = "botserver/crates/botm365" }
 botmonitoring = { path = "botserver/crates/botmonitoring" }
 botmsteams = { path = "botserver/crates/botmsteams" }
 botmultimodal = { path = "botserver/crates/botmultimodal" }
@@ -134,6 +147,7 @@ botproducts = { path = "botserver/crates/botproducts" }
 botproject = { path = "botserver/crates/botproject" }
 botqdrant = { path = "botserver/crates/botqdrant" }
 botresearch = { path = "botserver/crates/botresearch" }
+botretail = { path = "botserver/crates/botretail" }
 botsearch = { path = "botserver/crates/botsearch" }
 botsecurity = { path = "botserver/crates/botsecurity" }
 botsecurity-auth = { path = "botserver/crates/botsecurity-auth" }
@@ -182,6 +196,8 @@ botcorepkg = { path = "botserver/crates/botcorepkg" }
 anyhow = "1.0"
 thiserror = "2.0"
 log = "0.4"
+rust_decimal = { version = "1.36", default-features = false }
+rust_decimal_macros = "1.36"
 env_logger = "0.11"
 color-eyre = "0.6.5"
 
