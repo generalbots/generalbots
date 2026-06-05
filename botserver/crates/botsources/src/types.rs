@@ -185,7 +185,7 @@ pub struct ApiKeyInfo {
     pub last_used: Option<String>,
 }
 
-// --- Integration Platform Types ---
+// --- Stub Integration Platform Types (moved to connector_types.rs) ---
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectorResponse {
