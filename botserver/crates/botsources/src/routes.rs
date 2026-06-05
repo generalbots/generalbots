@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 const API_SOURCES_KB: &str = "/api/sources/kb";
 const API_SOURCES_MCP: &str = "/api/sources/mcp";
+const API_SOURCES_CONNECTORS: &str = "/api/sources/connectors";
 const API_UI_SOURCES: &str = "/api/ui/sources";
 
 pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
@@ -37,6 +38,18 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
             axum::routing::post(handle_disable_mcp_server),
         );
 
+    let connector_routes = Router::new()
+        .route("/", axum::routing::post(handle_create_connector))
+        .route("/templates", get(handle_list_connector_templates))
+        .route("/templates/{connector_type}", get(handle_get_connector_template))
+        .route("/templates/{connector_type}/install", axum::routing::post(handle_install_connector_template))
+        .route("/{id}", get(handle_get_connector).put(handle_update_connector).delete(handle_delete_connector))
+        .route("/{id}/test", axum::routing::post(handle_test_connector))
+        .route("/{id}/sync", axum::routing::post(handle_sync_connector))
+        .route("/{id}/discover", axum::routing::post(handle_discover_connector))
+        .route("/{id}/logs", get(handle_get_connector_logs))
+        .route("/bot/{bot_id}", get(handle_list_connectors));
+
     let ui_sources_routes = Router::new()
         .route("/repositories", get(handle_list_repositories))
         .route(
@@ -63,6 +76,7 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
     Router::new()
         .nest(API_SOURCES_KB, kb_routes)
         .nest(API_SOURCES_MCP, mcp_routes)
+        .nest(API_SOURCES_CONNECTORS, connector_routes)
         .nest(API_UI_SOURCES, ui_sources_routes)
         .merge(crate::ui::configure_sources_ui_routes())
 }

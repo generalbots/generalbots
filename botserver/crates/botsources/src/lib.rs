@@ -1,3 +1,5 @@
+pub mod connector_types;
+pub mod connectors;
 pub mod handlers;
 pub mod models;
 pub mod renderers;
