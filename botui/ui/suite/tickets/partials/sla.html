@@ -1,0 +1,51 @@
+<!-- SLA Management partial for Tickets app -->
+<div class="tickets-sla" id="tickets-sla-panel">
+  <h3>SLA Management</h3>
+  <p class="hint">Service Level Agreements by priority · breach forecast next 24h</p>
+  <div class="sla-grid">
+    <div class="sla-card" data-priority="critical">
+      <div class="sla-priority">Critical</div>
+      <div class="sla-target">Target: 1h response / 4h resolve</div>
+      <div class="sla-bar"><div class="sla-fill" style="width:0%" data-target="0.82"></div></div>
+      <div class="sla-stats">
+        <span class="ok">0 met</span>
+        <span class="warn">0 at risk</span>
+        <span class="bad">0 breached</span>
+      </div>
+    </div>
+    <div class="sla-card" data-priority="high">
+      <div class="sla-priority">High</div>
+      <div class="sla-target">Target: 4h response / 24h resolve</div>
+      <div class="sla-bar"><div class="sla-fill" style="width:0%" data-target="0.91"></div></div>
+      <div class="sla-stats">
+        <span class="ok">0 met</span>
+        <span class="warn">0 at risk</span>
+        <span class="bad">0 breached</span>
+      </div>
+    </div>
+    <div class="sla-card" data-priority="normal">
+      <div class="sla-priority">Normal</div>
+      <div class="sla-target">Target: 8h response / 72h resolve</div>
+      <div class="sla-bar"><div class="sla-fill" style="width:0%" data-target="0.95"></div></div>
+      <div class="sla-stats">
+        <span class="ok">0 met</span>
+        <span class="warn">0 at risk</span>
+        <span class="bad">0 breached</span>
+      </div>
+    </div>
+  </div>
+  <table class="data-table" id="sla-breach-forecast">
+    <thead>
+      <tr>
+        <th>Ticket</th>
+        <th>Priority</th>
+        <th>Time to SLA</th>
+        <th>Owner</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="5" class="empty">No tickets at risk in the next 24h.</td></tr>
+    </tbody>
+  </table>
+</div>
