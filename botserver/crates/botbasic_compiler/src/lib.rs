@@ -311,31 +311,32 @@ impl BasicCompiler {
 
             if do_call_re.as_ref().map_or(false, |re| re.is_match(&normalized)) {
                 found_directives.insert(basic_errors::Directive::OnUpdateOf);
-                let caps = do_call_re.unwrap().captures(&normalized).unwrap();
-                let table_name = caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
-                let trigger_script = caps.get(2).map(|m| m.as_str().to_string()).unwrap_or_else(|| script_name.clone());
-                if let Some(ref cb) = self.callbacks.execute_on_update {
-                    let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {e}"))?;
-                    use botcore::shared::schema::system_automations;
-                    if let Err(e) = diesel::delete(
-                        system_automations::table
-                            .filter(system_automations::bot_id.eq(&bot_uuid))
-                            .filter(system_automations::target.eq(&table_name))
-                            .filter(system_automations::kind.eq_any(vec![1i32, 2i32, 3i32])),
-                    )
-                    .execute(&mut conn)
-                    {
-                        log::error!("Failed to clean old ON UPDATE OF triggers: {e}");
-                    }
-                    let call_bot_id = bot_uuid;
-                    if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 2) {
-                        log::error!("Failed to register ON UPDATE OF DO CALL (INSERT) trigger: {e}");
-                    }
-                    if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 1) {
-                        log::error!("Failed to register ON UPDATE OF DO CALL (UPDATE) trigger: {e}");
-                    }
-                    if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 3) {
-                        log::error!("Failed to register ON UPDATE OF DO CALL (DELETE) trigger: {e}");
+                if let Some(re) = do_call_re.as_ref().and_then(|r| r.captures(&normalized)) {
+                    let table_name = re.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
+                    let trigger_script = re.get(2).map(|m| m.as_str().to_string()).unwrap_or_else(|| script_name.clone());
+                    if let Some(ref cb) = self.callbacks.execute_on_update {
+                        let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+                        use botcore::shared::schema::system_automations;
+                        if let Err(e) = diesel::delete(
+                            system_automations::table
+                                .filter(system_automations::bot_id.eq(&bot_uuid))
+                                .filter(system_automations::target.eq(&table_name))
+                                .filter(system_automations::kind.eq_any(vec![1i32, 2i32, 3i32])),
+                        )
+                        .execute(&mut conn)
+                        {
+                            log::error!("Failed to clean old ON UPDATE OF triggers: {e}");
+                        }
+                        let call_bot_id = bot_uuid;
+                        if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 2) {
+                            log::error!("Failed to register ON UPDATE OF DO CALL (INSERT) trigger: {e}");
+                        }
+                        if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 1) {
+                            log::error!("Failed to register ON UPDATE OF DO CALL (UPDATE) trigger: {e}");
+                        }
+                        if let Err(e) = (cb)(&mut conn, &table_name, &trigger_script, call_bot_id, 3) {
+                            log::error!("Failed to register ON UPDATE OF DO CALL (DELETE) trigger: {e}");
+                        }
                     }
                 }
                 continue;

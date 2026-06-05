@@ -679,13 +679,18 @@ impl ContainerOperations for PackageManager {
                 .and_then(|c| c.arg("--"))
                 .and_then(|c| c.arg("mkdir"))
                 .and_then(|c| c.arg("-p"))
-                .and_then(|c| c.arg(std::path::Path::new(&dest).parent().unwrap().to_str().unwrap()))
+                .and_then(|c| c.arg(
+                    std::path::Path::new(&dest)
+                        .parent()
+                        .and_then(|p| p.to_str())
+                        .unwrap_or(".")
+                ))
                 .and_then(|cmd| cmd.execute())?;
 
             SafeCommand::new("incus")
                 .and_then(|c| c.arg("file"))
                 .and_then(|c| c.arg("push"))
-                .and_then(|c| c.arg(src.to_str().unwrap()))
+                .and_then(|c| c.arg(src.to_str().unwrap_or_default()))
                 .and_then(|c| c.arg(format!("{container}:{dest}").as_str()))
                 .and_then(|cmd| cmd.execute())?;
         }
@@ -723,8 +728,12 @@ impl ContainerOperations for PackageManager {
                 continue;
             }
 
-            let remote_tmp = format!("/tmp/{}-{}", container, src.file_name().unwrap().to_str().unwrap());
-            let scp_src = src.to_str().unwrap();
+            let remote_tmp = format!(
+                "/tmp/{}-{}",
+                container,
+                src.file_name().and_then(|f| f.to_str()).unwrap_or("unknown")
+            );
+            let scp_src = src.to_str().unwrap_or_default();
             let scp_dest = format!("{}:{}", ssh_host, remote_tmp);
 
             // SCP to host
@@ -749,7 +758,12 @@ impl ContainerOperations for PackageManager {
                 .and_then(|c| c.arg("--"))
                 .and_then(|c| c.arg("mkdir"))
                 .and_then(|c| c.arg("-p"))
-                .and_then(|c| c.arg(std::path::Path::new(&dest).parent().unwrap().to_str().unwrap()))
+                .and_then(|c| c.arg(
+                    std::path::Path::new(&dest)
+                        .parent()
+                        .and_then(|p| p.to_str())
+                        .unwrap_or(".")
+                ))
                 .and_then(|cmd| cmd.execute())?;
 
             // incus file push on host

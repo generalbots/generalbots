@@ -1631,7 +1631,7 @@
     if (url) {
       const slide = state.slides[state.currentSlideIndex];
       if (slide) {
-        const imageElement = createImageElement(url, 100, 100, 400, 300);
+        const imageElement = createImageElement(100, 100, 400, 300, url);
         slide.elements.push(imageElement);
         renderCurrentSlide();
         renderThumbnails();
@@ -1693,8 +1693,7 @@
     hideAllContextMenus();
 
     if (target) {
-      const elementId = target.dataset.id;
-      selectElement(elementId);
+      selectElement(target);
       showContextMenu(elements.contextMenu, e.clientX, e.clientY);
     } else if (thumbnail) {
       showContextMenu(elements.slideContextMenu, e.clientX, e.clientY);
@@ -2007,6 +2006,31 @@
     }
   }
 
+  function broadcastChange(type, data) {
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+    try {
+      state.ws.send(JSON.stringify({ type, userId: getUserId(), ...data }));
+    } catch (e) {
+      console.error("broadcastChange error:", e);
+    }
+  }
+
+  function broadcastCursor(e) {
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+    try {
+      const rect = document.getElementById("slideCanvas").getBoundingClientRect();
+      state.ws.send(JSON.stringify({
+        type: "cursor",
+        userId: getUserId(),
+        userName: getUserName(),
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      }));
+    } catch (err) {
+      console.error("broadcastCursor error:", err);
+    }
+  }
+
   function connectWebSocket() {
     if (!state.presentationId) return;
 
@@ -2057,6 +2081,11 @@
           renderCurrentSlide();
         }
         break;
+      case "cursor":
+        if (msg.userId !== getUserId()) {
+          updateRemoteCursor(msg);
+        }
+        break;
     }
   }
 
@@ -2070,6 +2099,23 @@
   function removeCollaborator(userId) {
     state.collaborators = state.collaborators.filter((u) => u.id !== userId);
     renderCollaborators();
+    const indicator = document.getElementById("cursor-" + userId);
+    if (indicator) indicator.remove();
+  }
+
+  function updateRemoteCursor(msg) {
+    let indicator = document.getElementById("cursor-" + msg.userId);
+    if (!indicator) {
+      indicator = document.createElement("div");
+      indicator.id = "cursor-" + msg.userId;
+      indicator.className = "remote-cursor";
+      indicator.style.cssText = "position:absolute;pointer-events:none;z-index:9999;transition:left 0.1s,top 0.1s;";
+      indicator.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 0 L16 6 L6 8 L8 16 Z" fill="${msg.color || "#4285f4"}"/></svg><span style="font-size:10px;background:${msg.color || "#4285f4"};color:#fff;padding:1px 4px;border-radius:3px;margin-left:2px;white-space:nowrap;">${escapeHtml(msg.userName || "")}</span>`;
+      const canvas = document.getElementById("slideCanvas");
+      if (canvas) canvas.appendChild(indicator);
+    }
+    indicator.style.left = (msg.x || 0) + "px";
+    indicator.style.top = (msg.y || 0) + "px";
   }
 
   function renderCollaborators() {

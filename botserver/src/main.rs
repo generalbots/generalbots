@@ -50,7 +50,7 @@ pub mod docs;
 pub mod embedded_ui;
 #[cfg(feature = "learn")]
 pub mod learn;
-#[cfg(feature = "compliance")]
+#[cfg(feature = "legal")]
 pub mod legal;
 #[cfg(feature = "maintenance")]
 pub mod maintenance;

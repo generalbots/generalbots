@@ -443,7 +443,11 @@ impl LLMProvider for OpenAIClient {
                 }
             }
         }
-        let response = response.unwrap();
+        let response = response.ok_or_else(|| {
+            Box::<dyn std::error::Error + Send + Sync>::from(format!(
+                "LLM request failed after {} retries", max_retries
+            ))
+        })?;
 
         let result: Value = response.json().await?;
         let raw_content = result["choices"][0]["message"]["content"]
@@ -590,7 +594,11 @@ impl LLMProvider for OpenAIClient {
                 }
             }
         }
-        let response = response.unwrap();
+        let response = response.ok_or_else(|| {
+            Box::<dyn std::error::Error + Send + Sync>::from(format!(
+                "LLM stream request failed after {} retries", max_retries
+            ))
+        })?;
 
         let handler = get_handler(model);
         let mut stream_state = String::new();

@@ -165,7 +165,10 @@ impl ForgejoClient {
                 }
                 self.add_all_files(repo, index, &path)?;
             } else {
-                let relative_path = path.strip_prefix(repo.workdir().unwrap())
+                let workdir = repo.workdir().ok_or_else(|| {
+                    git2::Error::from_str("Repository has no working directory")
+                })?;
+                let relative_path = path.strip_prefix(workdir)
                     .map_err(|e| git2::Error::from_str(&e.to_string()))?;
                 index.add_path(relative_path)?;
             }

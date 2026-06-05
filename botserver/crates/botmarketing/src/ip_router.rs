@@ -144,7 +144,9 @@ impl IpRouter {
         }
 
         let max_score = score_groups.keys().copied().max().unwrap_or(0);
-        let top_group = score_groups.get(&max_score).unwrap();
+        let Some(top_group) = score_groups.get(&max_score) else {
+            return Err(IpRouterError::NoAvailableIps);
+        };
 
         self.round_robin_select(top_group)
     }
