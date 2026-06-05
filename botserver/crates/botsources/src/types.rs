@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQuery {
@@ -182,4 +183,59 @@ pub struct ApiKeyInfo {
     pub key_preview: String,
     pub created_at: String,
     pub last_used: Option<String>,
+}
+
+// --- Integration Platform Types ---
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectorResponse {
+    pub id: Uuid,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub connector_type: String,
+    pub description: String,
+    pub connected: bool,
+    pub active: bool,
+    pub last_sync: Option<String>,
+    pub records_synced: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectorListResponse {
+    pub connectors: Vec<ConnectorResponse>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectConnectorRequest {
+    pub name: String,
+    pub connector_type: String,
+    pub description: Option<String>,
+    pub auth_config: Option<serde_json::Value>,
+    pub endpoints: Option<serde_json::Value>,
+    pub schedule: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EtlJobResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub source: String,
+    pub destination: String,
+    pub schedule: String,
+    pub last_run: Option<String>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EtlJobListResponse {
+    pub jobs: Vec<EtlJobResponse>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateEtlJobRequest {
+    pub name: String,
+    pub source: Uuid,
+    pub destination: Uuid,
+    pub schedule: String,
+    pub transform: Option<String>,
 }
