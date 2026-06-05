@@ -8,7 +8,6 @@ pub mod kb;
 pub mod bot;
 
 // Modules moved from botserver/src/core/
-pub mod campaign;
 pub mod automation;
 pub mod bootstrap;
 pub mod bot_database;
