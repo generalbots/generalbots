@@ -626,22 +626,68 @@ After reset completes, verify:
 
 ### 1. Error Handling - NO PANICS IN PRODUCTION
 
-```rust
-// ❌ FORBIDDEN
-value.unwrap()
-value.expect("message")
-panic!("error")
-todo!()
-unimplemented!()
+O `botserver` atende milhares de sessões simultâneas 24/7; qualquer `panic!` derruba o processo e interrompe todos os usuários conectados. Por isso, todo caminho de erro deve propagar via `Result` ou ser tratado localmente — `unwrap`, `expect`, `panic!`, `todo!` e `unimplemented!` são terminantemente proibidos fora de testes. Os pares abaixo contrastam o código que aborta o processo com o código que o mantém de pé.
 
-// ✅ REQUIRED
-value?
-value.ok_or_else(|| Error::NotFound)?
-value.unwrap_or_default()
-value.unwrap_or_else(|e| { log::error!("{}", e); default })
-if let Some(v) = value { ... }
-match value { Ok(v) => v, Err(e) => return Err(e.into()) }
+```rust
+// ❌ FORBIDDEN — qualquer chamada que aborte o processo é vetada em produção
+fn load_config(path: &str) -> Config {
+    let raw = std::fs::read_to_string(path).unwrap();            // panic se faltar arquivo
+    let cfg: Config = serde_json::from_str(&raw).expect("parse"); // panic em JSON inválido
+    if cfg.users.is_empty() {
+        panic!("no users defined");                               // crash deliberado
+    }
+    cfg
+}
+
+fn save_user(user: &User) {
+    let conn = POOL.get().unwrap();                               // panic se pool fechado
+    conn.execute(...).unwrap();                                   // panic em erro de SQL
+    todo!("persistence not implemented yet");                     // placeholder proibido
+}
 ```
+
+```rust
+// ✅ REQUIRED — propagar via `?`, ou tratar localmente com log
+fn load_config(path: &str) -> Result<Config, ConfigError> {
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| ConfigError::Io(path.into(), e))?;
+    let cfg: Config = serde_json::from_str(&raw)
+        .map_err(ConfigError::Parse)?;
+    if cfg.users.is_empty() {
+        return Err(ConfigError::Empty);
+    }
+    Ok(cfg)
+}
+
+fn save_user(user: &User) -> Result<(), DbError> {
+    let conn = POOL.get()
+        .ok_or_else(|| DbError::PoolClosed)?;
+    conn.execute(...).map_err(DbError::from)?;
+    Ok(())
+}
+
+fn load_or_default(path: &str) -> Config {
+    match load_config(path) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            log::error!("config load failed for {path}: {e}");
+            Config::default()
+        }
+    }
+}
+```
+
+**Tabela de tradução rápida — sempre que aparecer o padrão da esquerda, reescreva usando o da direita:**
+
+| Padrão proibido | Substituição obrigatória |
+|-----------------|--------------------------|
+| `value.unwrap()` | `value?` (em função que retorna `Result`) ou `value.ok_or_else(\|\| Error::X)?` |
+| `value.expect("msg")` | `value.context("msg")?` (com `anyhow`) ou `value.map_err(\|e| Error::X(e))?` |
+| `panic!("...")` | `return Err(Error::X.into());` |
+| `todo!()` | corpo real da função ou `unimplemented!()` documentado em `#[cfg(test)]` |
+| `unimplemented!()` | idem — ou `return Err(Error::NotImplemented.into());` |
+| `if let Some(v) = x { ... }` solto | `match x { Some(v) => ..., None => return Err(...) }` para exaustividade |
+| `match x { Ok(v) => v, Err(_) => default }` silencioso | `match x { Ok(v) => v, Err(e) => { log::error!(...); default } }` |
 
 ### 2. Command Execution - USE SafeCommand
 
