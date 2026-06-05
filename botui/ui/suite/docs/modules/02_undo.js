@@ -321,32 +321,35 @@
     }
     hideModal("exportModal");
   }
-
   function exportAsPDF(title, content) {
+    if (window.PdfExport && window.PdfExport.exportToPdf) {
+      try {
+        const size = window.PdfExport.exportToPdf(content, { title, filename: title });
+        addChatMessage("assistant", "PDF exported (" + size + " bytes).");
+        return;
+      } catch (e) {
+        console.error("PdfExport failed, falling back to print:", e);
+      }
+    }
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${escapeHtml(title)}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-            h1, h2, h3 { margin-top: 1em; }
-            p { line-height: 1.6; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ccc; padding: 8px; }
-          </style>
-        </head>
-        <body>${content}</body>
-        </html>
-      `);
+      printWindow.document.write("<!DOCTYPE html><html><head><title>" + escapeHtml(title) + "</title><style>body{font-family:Arial;padding:40px;max-width:800px;margin:0 auto}h1,h2,h3{margin-top:1em}p{line-height:1.6}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:8px}</style></head><body>" + content + "</body></html>");
       printWindow.document.close();
       printWindow.print();
     }
   }
 
   async function exportAsDocx(title, content) {
+    if (window.DocxExport && window.DocxExport.exportToDocx) {
+      try {
+        const size = window.DocxExport.exportToDocx(content, { title, filename: title });
+        addChatMessage("assistant", "DOCX exported (" + size + " bytes).");
+        return;
+      } catch (e) {
+        addChatMessage("assistant", "DOCX export failed: " + e.message);
+        return;
+      }
+    }
     try {
       addChatMessage("assistant", "Generating DOCX...");
       const response = await fetch("/api/docs/export/docx", {
@@ -370,7 +373,6 @@
       addChatMessage("assistant", "DOCX export failed: " + e.message);
     }
   }
-
   function exportAsHTML(title, content) {
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -447,4 +449,3 @@ ${content}
       console.error("WebSocket failed:", e);
     }
   }
-
