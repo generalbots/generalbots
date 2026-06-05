@@ -23,6 +23,7 @@ pub mod on_form_submit;
 pub mod orchestration;
 pub mod qrcode;
 pub mod remember;
+pub mod time_clock;
 pub mod use_tool;
 pub mod use_website;
 pub mod video;
@@ -47,6 +48,7 @@ pub fn register_ai_keywords(
     banking::register_banking_keywords(state.clone(), user.clone(), engine);
     inventory::register_inventory_keywords(state.clone(), user.clone(), engine);
     kyc::register_kyc_keywords(state.clone(), user.clone(), engine);
+    time_clock::register_time_clock_keywords(state.clone(), user.clone(), engine);
     episodic_memory::register_episodic_memory_keywords(engine);
     http_operations::register_http_operations(state.clone(), user.clone(), engine);
     human_approval::register_approval_keywords(engine);
