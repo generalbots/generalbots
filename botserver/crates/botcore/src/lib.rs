@@ -1,11 +1,14 @@
+pub mod os_abstraction;
 pub mod shared;
 pub mod config;
 pub mod config_reload;
+pub mod tracing;
 pub mod urls;
 pub mod kb;
 pub mod bot;
 
 // Modules moved from botserver/src/core/
+pub mod campaign;
 pub mod automation;
 pub mod bootstrap;
 pub mod bot_database;
@@ -22,6 +25,7 @@ pub mod package_manager;
 pub mod performance;
 pub mod product;
 pub mod rate_limit;
+pub mod export;
 
 pub use shared::state::AppState;
 pub use shared::utils::DbPool;

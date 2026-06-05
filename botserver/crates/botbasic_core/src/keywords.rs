@@ -1,5 +1,6 @@
 pub mod arrays;
 pub mod core_functions;
+pub mod dag;
 pub mod datetime;
 pub mod errors;
 pub mod first;
@@ -30,6 +31,7 @@ pub fn register_core_keywords(
 ) {
     arrays::register_array_functions(&state, user.clone(), engine);
     core_functions::register_core_functions(&state, user.clone(), engine);
+    dag::register_dag_keywords(&state, user.clone(), engine);
     datetime::register_datetime_functions(&state, user.clone(), engine);
     errors::register_error_functions(&state, user.clone(), engine);
     first::first_keyword(engine);

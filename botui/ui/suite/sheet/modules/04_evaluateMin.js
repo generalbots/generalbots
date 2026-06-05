@@ -83,6 +83,35 @@
     }
   }
 
+  function evaluateAnd(expr) {
+    const match = expr.match(/AND\(([^)]+)\)/i);
+    if (!match) return "#ERROR";
+    const parts = match[1].split(",");
+    for (let i = 0; i < parts.length; i++) {
+      const val = safeEvalArithmetic(parts[i].trim());
+      if (!val) return 0;
+    }
+    return 1;
+  }
+
+  function evaluateOr(expr) {
+    const match = expr.match(/OR\(([^)]+)\)/i);
+    if (!match) return "#ERROR";
+    const parts = match[1].split(",");
+    for (let i = 0; i < parts.length; i++) {
+      const val = safeEvalArithmetic(parts[i].trim());
+      if (val) return 1;
+    }
+    return 0;
+  }
+
+  function evaluateNot(expr) {
+    const match = expr.match(/NOT\(([^)]+)\)/i);
+    if (!match) return "#ERROR";
+    const val = safeEvalArithmetic(match[1].trim());
+    return val ? 0 : 1;
+  }
+
   function parseRange(rangeStr) {
     const values = [];
     const parts = rangeStr.split(":");
@@ -256,7 +285,7 @@
   function updateFormulaPreview() {
     const value = elements.formulaInput.value;
     if (value.startsWith("=")) {
-      const result = evaluateFormula(
+      const result = window.evaluateFormula(
         value,
         state.activeCell.row,
         state.activeCell.col,
