@@ -1,23 +1,14 @@
 "use strict";
 
-/**
- * Module 25: Validation enforcement for Spreadsheet (P0 critical).
- * Hooks the validation engine (module 12) into the actual cell editing
- * flow: setCellValue, finishEditing, pasteSelection, range edit. Shows
- * a red tooltip with the validation error message; rejects the value.
- * For list-validators, draws a <select> dropdown overlay that appears
- * when the user starts editing a validated cell.
- *
- * Local evaluation is the source of truth for instant UX (no round
- * trip). verify() is an async second opinion: it calls
- * SheetAPI.validateCell so the backend can re-run custom/formula
- * validators, and the result is merged back into the local enforcement.
- *
- * Public API: window.SheetValidationEnforce = {
- *   enforce, verify, attach, showDropdown, hideDropdown, getValidators
- * }.
- */
-
+// botui/ui/suite/sheet/modules/25_validation_enforce.js
+// Validation enforcement for Spreadsheet — SERVER-ONLY. All rule
+// evaluation (list, numberRange, textLength, dateRange, regex, email,
+// url, formula, custom) lives in botserver's /api/sheet/validate-cell
+// handler. The client only renders UI: tooltip, red border, dropdown.
+//
+// Public API: window.SheetValidationEnforce = {
+//   enforce, verify, attach, showDropdown, hideDropdown, getValidators
+// }
 (function () {
   function getState() { return window.state || null; }
   function getSheet() {
@@ -73,64 +64,23 @@
     }
   }
 
-  function evaluate(validator, value) {
-    if (!validator) return null;
-    const v = String(value == null ? "" : value);
-    switch (validator.type) {
-      case "list":
-        if (!validator.list) return null;
-        return validator.list.indexOf(v) >= 0 ? null : (validator.message || "Valor fora da lista");
-      case "numberRange": {
-        const n = parseFloat(v);
-        if (v === "" && validator.allowBlank) return null;
-        if (Number.isNaN(n)) return validator.message || "Número inválido";
-        if (validator.min != null && n < parseFloat(validator.min)) return validator.message || ("Mínimo: " + validator.min);
-        if (validator.max != null && n > parseFloat(validator.max)) return validator.message || ("Máximo: " + validator.max);
-        return null;
-      }
-      case "textLength": {
-        if (v === "" && validator.allowBlank) return null;
-        if (validator.min != null && v.length < parseInt(validator.min, 10)) return validator.message || ("Mínimo " + validator.min + " caracteres");
-        if (validator.max != null && v.length > parseInt(validator.max, 10)) return validator.message || ("Máximo " + validator.max + " caracteres");
-        return null;
-      }
-      case "dateRange": {
-        const d = Date.parse(v);
-        if (Number.isNaN(d)) return validator.message || "Data inválida";
-        if (validator.minDate && d < Date.parse(validator.minDate)) return validator.message || ("Mínimo: " + validator.minDate);
-        if (validator.maxDate && d > Date.parse(validator.maxDate)) return validator.message || ("Máximo: " + validator.maxDate);
-        return null;
-      }
-      case "regex": {
-        if (!validator.pattern) return null;
-        try { return new RegExp(validator.pattern).test(v) ? null : (validator.message || "Formato inválido"); }
-        catch (_e) { return null; }
-      }
-      case "email":
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : (validator.message || "E-mail inválido");
-      case "url":
-        return /^https?:\/\//.test(v) ? null : (validator.message || "URL inválida (use http:// ou https://)");
-      case "formula":
-        return null;
-      case "custom":
-        return null;
-    }
-    return null;
-  }
-
   function enforce(row, col, value, x, y) {
     const validator = getValidationForCell(row, col);
-    if (!validator) return { ok: true, value };
-    const err = evaluate(validator, value);
-    if (!err) {
-      drawCellBorder(row, col, false);
-      return { ok: true, value };
-    }
-    showTooltip(err, x || 100, y || 100);
-    drawCellBorder(row, col, true);
-    if (validator.severity === "warning") return { ok: true, value, warning: err };
-    if (validator.onInvalid === "allow") return { ok: true, value };
-    return { ok: false, value, error: err };
+    if (!validator) return Promise.resolve({ ok: true, value });
+    return verify(row, col, value).then(function (v) {
+      if (!v) {
+        return { ok: false, value, error: "Server unreachable; cannot validate" };
+      }
+      if (v.ok) {
+        drawCellBorder(row, col, false);
+        return { ok: true, value };
+      }
+      showTooltip(v.error || "Validation failed", x || 100, y || 100);
+      drawCellBorder(row, col, true);
+      if (validator.severity === "warning") return { ok: true, value, warning: v.error };
+      if (validator.onInvalid === "allow") return { ok: true, value };
+      return { ok: false, value, error: v.error };
+    });
   }
 
   function verify(row, col, value) {
@@ -175,19 +125,20 @@
         d.style.display = "none";
         const editors = document.querySelectorAll("[data-editing-cell='1']");
         if (editors.length) editors[0].value = opt;
-        const result = enforce(row, col, opt, anchorX, anchorY);
-        if (result.ok) {
-          if (typeof window.SheetCells === "object" && window.SheetCells.setValue) {
-            window.SheetCells.setValue(row, col, opt);
-          } else {
-            const ws = getSheet();
-            if (ws) {
-              if (!ws.cells[row]) ws.cells[row] = [];
-              ws.cells[row][col] = opt;
-              if (window.SheetRender) window.SheetRender.repaint();
+        enforce(row, col, opt, anchorX, anchorY).then(function (result) {
+          if (result && result.ok) {
+            if (typeof window.SheetCells === "object" && window.SheetCells.setValue) {
+              window.SheetCells.setValue(row, col, opt);
+            } else {
+              const ws = getSheet();
+              if (ws) {
+                if (!ws.cells[row]) ws.cells[row] = [];
+                ws.cells[row][col] = opt;
+                if (window.SheetRender) window.SheetRender.repaint();
+              }
             }
           }
-        }
+        });
       });
       d.appendChild(item);
     }
@@ -205,16 +156,17 @@
   function attach() {
     const orig = window.setCellValue;
     window.setCellValue = function (row, col, value, x, y) {
-      const result = enforce(row, col, value, x, y);
-      if (!result.ok) return false;
-      if (typeof orig === "function") return orig(row, col, result.value);
-      const ws = getSheet();
-      if (ws) {
-        if (!ws.cells[row]) ws.cells[row] = [];
-        ws.cells[row][col] = result.value;
-        if (window.SheetRender) window.SheetRender.repaint();
-      }
-      return true;
+      return enforce(row, col, value, x, y).then(function (result) {
+        if (!result || !result.ok) return false;
+        if (typeof orig === "function") return orig(row, col, result.value);
+        const ws = getSheet();
+        if (ws) {
+          if (!ws.cells[row]) ws.cells[row] = [];
+          ws.cells[row][col] = result.value;
+          if (window.SheetRender) window.SheetRender.repaint();
+        }
+        return true;
+      });
     };
 
     document.addEventListener("dblclick", function (e) {
@@ -238,5 +190,5 @@
     setTimeout(attach, 50);
   }
 
-  window.SheetValidationEnforce = { enforce, verify, attach, showDropdown, hideDropdown, getValidators, evaluate };
+  window.SheetValidationEnforce = { enforce, verify, attach, showDropdown, hideDropdown, getValidators };
 })();

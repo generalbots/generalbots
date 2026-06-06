@@ -1,15 +1,11 @@
-// botui/ui/suite/slides/modules/32_pdf_export.js
-// PDF export — refactored to delegate rendering to botserver via
-// window.SlidesAPI.exportPresentation. The iframe + window.print
-// hack is removed entirely; the backend uses umya-spreadsheet and
-// rust_xlsxwriter to produce proper Office Open XML, then optionally
-// converts to PDF via the server's /api/pdf endpoint.
-//
-// For environments where the server is unreachable (e.g. static
-// preview), a minimal print-fallback is kept (browser's native
-// print dialog) but the canonical path is the API call.
 "use strict";
 
+// botui/ui/suite/slides/modules/32_pdf_export.js
+// PDF export — SERVER-ONLY. Delegates rendering to botserver via
+// window.SlidesAPI.exportPresentation. The botserver uses
+// umya-spreadsheet / rust_xlsxwriter to produce proper Office Open
+// XML, then optionally converts to PDF. No client-side rendering.
+// If the server is unreachable, print() rejects with a clear error.
 (function () {
   function getAPI() {
     return window.SlidesAPI || null;
@@ -45,21 +41,11 @@
   function print() {
     const API = getAPI();
     const presId = getPresId();
-    if (!API) {
-      return exportViaPrintFallback().catch(function (e) {
-        return { ok: false, error: { message: e.message || "Export failed" } };
-      });
-    }
-    if (!presId) {
-      return Promise.resolve({ ok: false, error: { message: "No presentation loaded" } });
-    }
+    if (!API) return Promise.resolve({ ok: false, error: { message: "SlidesAPI not loaded; server required for export" } });
+    if (!presId) return Promise.resolve({ ok: false, error: { message: "No presentation loaded" } });
     return API.exportPresentation(presId, "pdf").then(function (r) {
       if (!r.ok) {
-        return exportViaPrintFallback().then(function () {
-          return { ok: true, method: "print-fallback" };
-        }).catch(function (e) {
-          return { ok: false, error: { message: e.message || "Export failed" } };
-        });
+        return Promise.resolve({ ok: false, error: r.error || { message: "Server rejected export" } });
       }
       const blob = (r.data instanceof Blob) ? r.data : new Blob([JSON.stringify(r.data)], { type: "application/json" });
       return download(blob, getTitle() + ".pdf").then(function () {
@@ -68,24 +54,9 @@
     });
   }
 
-  function exportViaPrintFallback() {
-    return new Promise(function (resolve, reject) {
-      if (!window.print) {
-        reject(new Error("Print API not available"));
-        return;
-      }
-      try {
-        window.print();
-        resolve(true);
-      } catch (e) {
-        reject(e);
-      }
-    });
-  }
-
   function exportViaServer(slides, options) {
     const API = getAPI();
-    if (!API) return Promise.reject(new Error("SlidesAPI not loaded"));
+    if (!API) return Promise.reject(new Error("SlidesAPI not loaded; server required for export"));
     const opts = options || {};
     const body = {
       pres_id: opts.presId || getPresId(),
