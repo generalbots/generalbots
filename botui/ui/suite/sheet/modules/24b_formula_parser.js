@@ -43,15 +43,16 @@
         i = j;
         continue;
       }
-      if (/[A-Z_]/.test(c)) {
+      if (/[A-Za-z_]/.test(c)) {
         let j = i;
-        while (j < src.length && /[A-Z0-9_]/.test(src[j])) j++;
+        while (j < src.length && /[A-Za-z0-9_]/.test(src[j])) j++;
         const id = src.slice(i, j);
-        if (id === "TRUE") tokens.push({ type: "bool", value: true });
-        else if (id === "FALSE") tokens.push({ type: "bool", value: false });
-        else if (j < src.length && src[j] === "(") tokens.push({ type: "func", name: id });
-        else if (/^[A-Z]+\d+$/.test(id)) tokens.push({ type: "ref", value: id });
-        else if (/^\$?[A-Z]+\$?\d+$/.test(id)) tokens.push({ type: "ref", value: id.replace(/\$/g, "") });
+        const up = id.toUpperCase();
+        if (up === "TRUE") tokens.push({ type: "bool", value: true });
+        else if (up === "FALSE") tokens.push({ type: "bool", value: false });
+        else if (j < src.length && src[j] === "(") tokens.push({ type: "func", name: up });
+        else if (/^\$?[A-Z]+\$?\d+$/.test(id)) tokens.push({ type: "ref", value: id.replace(/\$/g, "").toUpperCase() });
+        else if (/^[A-Za-z]+\d+$/.test(id)) tokens.push({ type: "ref", value: id.toUpperCase() });
         else tokens.push({ type: "name", value: id });
         i = j;
         continue;
@@ -125,7 +126,7 @@
       while (this.peek().type === "op" && ["=", "<>", "<", ">", "<=", ">="].indexOf(this.peek().op) >= 0) {
         const op = this.consume().op;
         const right = this.parseAdd();
-        left = { type: "cmp", op, left, right };
+        left = { type: "binop", op, left, right };
       }
       return left;
     }
@@ -176,14 +177,15 @@
         return inner;
       }
       if (t.type === "func") {
-        this.consume();
+        const name = this.consume().name;
+        this.expect("lparen");
         const args = [];
         if (this.peek().type !== "rparen") {
           args.push(this.parseExpression());
           while (this.match("comma")) args.push(this.parseExpression());
         }
         this.expect("rparen");
-        return { type: "call", name: t.name, args };
+        return { type: "call", name, args };
       }
       if (t.type === "rangestart") {
         const start = t.value;
