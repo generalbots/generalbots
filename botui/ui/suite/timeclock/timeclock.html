@@ -1,354 +1,49 @@
 <link rel="stylesheet" href="timeclock/timeclock.css">
-<script src="timeclock/timeclock.js"></script>
+<script src="../js/vendor/htmx.min.js"></script>
+<script src="../js/vendor/htmx-json-enc.js"></script>
 
 <div class="tc-container">
     <header class="tc-header">
         <h1>Electronic Time Clock</h1>
+        <p>Registros, overtime, justificativas e auditoria — toda a lógica é servida pelo Rust via fragmentos HTMX em <code>botserver/ui_fragments/timeclock</code>.</p>
         <div class="tc-header-actions">
-            <button class="tc-btn" onclick="window._tc.exportCsv()" title="Export records as CSV">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export
-            </button>
-            <button class="tc-btn" onclick="window._tc.printReceipt()" title="Print clock-in receipt">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                Receipt
-            </button>
-            <button class="tc-btn" onclick="window._tc.loadAll()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
-                Refresh
-            </button>
+            <button class="tc-btn" hx-get="/suite/timeclock/fragments/dashboard" hx-target="#tc-content" hx-swap="innerHTML">Atualizar</button>
         </div>
     </header>
 
-    <div class="tc-stats">
-        <div class="tc-stat-card"><span class="tc-stat-label">Today Hours</span><span class="tc-stat-value green" id="stat-today-hours">0h</span></div>
-        <div class="tc-stat-card"><span class="tc-stat-label">Week Hours</span><span class="tc-stat-value blue" id="stat-week-hours">0h</span></div>
-        <div class="tc-stat-card"><span class="tc-stat-label">Overtime</span><span class="tc-stat-value yellow" id="stat-overtime">0h</span></div>
-        <div class="tc-stat-card"><span class="tc-stat-label">Month Hours</span><span class="tc-stat-value blue" id="stat-month-hours">0h</span></div>
-        <div class="tc-stat-card"><span class="tc-stat-label">Vacation Balance</span><span class="tc-stat-value green" id="stat-vacation">0d</span></div>
-        <div class="tc-stat-card"><span class="tc-stat-label">Status</span><span class="tc-stat-value" id="stat-status">--</span></div>
+    <div class="tc-live-clock">
+        <div class="tc-clock-time" id="tc-clock">--:--:--</div>
+        <div class="tc-clock-date" id="tc-date">—</div>
     </div>
 
     <nav class="tc-tabs">
-        <button class="tc-tab active" data-tab="clock" onclick="window._tc.switchTab('clock',this)">Clock In/Out</button>
-        <button class="tc-tab" data-tab="records" onclick="window._tc.switchTab('records',this)">Records</button>
-        <button class="tc-tab" data-tab="overtime" onclick="window._tc.switchTab('overtime',this)">Overtime</button>
-        <button class="tc-tab" data-tab="justifications" onclick="window._tc.switchTab('justifications',this)">Justifications</button>
-        <button class="tc-tab" data-tab="schedule" onclick="window._tc.switchTab('schedule',this)">Schedule</button>
-        <button class="tc-tab" data-tab="holidays" onclick="window._tc.switchTab('holidays',this)">Holidays</button>
-        <button class="tc-tab" data-tab="team" onclick="window._tc.switchTab('team',this)">Team</button>
-        <button class="tc-tab" data-tab="reports" onclick="window._tc.switchTab('reports',this)">Reports</button>
+        <button class="tc-tab active" data-tab-trigger="dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-target="#tc-content" hx-swap="innerHTML">Dashboard</button>
+        <button class="tc-tab" data-tab-trigger="records" hx-get="/suite/timeclock/fragments/records" hx-target="#tc-content" hx-swap="innerHTML">Registros</button>
+        <button class="tc-tab" data-tab-trigger="overtime" hx-get="/suite/timeclock/fragments/overtime" hx-target="#tc-content" hx-swap="innerHTML">Overtime</button>
+        <button class="tc-tab" data-tab-trigger="justifications" hx-get="/suite/timeclock/fragments/justifications" hx-target="#tc-content" hx-swap="innerHTML">Justificativas</button>
+        <button class="tc-tab" data-tab-trigger="schedule" hx-get="/suite/timeclock/fragments/schedule" hx-target="#tc-content" hx-swap="innerHTML">Escala</button>
+        <button class="tc-tab" data-tab-trigger="holidays" hx-get="/suite/timeclock/fragments/holidays" hx-target="#tc-content" hx-swap="innerHTML">Feriados</button>
+        <button class="tc-tab" data-tab-trigger="team" hx-get="/suite/timeclock/fragments/team" hx-target="#tc-content" hx-swap="innerHTML">Equipe</button>
+        <button class="tc-tab" data-tab-trigger="audit" hx-get="/suite/timeclock/fragments/audit" hx-target="#tc-content" hx-swap="innerHTML">Auditoria</button>
+        <button class="tc-tab" data-tab-trigger="reports" hx-get="/suite/timeclock/fragments/reports" hx-target="#tc-content" hx-swap="innerHTML">Relatórios</button>
     </nav>
 
-    <div class="tc-content">
-        <div class="tc-panel active" id="panel-clock">
-            <div class="tc-clock-display">
-                <div class="tc-clock-time" id="live-clock">00:00:00</div>
-                <div class="tc-clock-date" id="live-date">Loading...</div>
-                <div class="tc-clock-employee" id="employee-name">Loading...</div>
-                <div class="tc-clock-gps">
-                    <div class="tc-clock-gps-dot" id="gps-dot"></div>
-                    <span id="gps-status">Checking GPS...</span>
-                    <span class="tc-coord" id="gps-coords"></span>
-                </div>
-                <div class="tc-clock-method">
-                    <label class="tc-radio"><input type="radio" name="clock-method" value="password" checked> Password</label>
-                    <label class="tc-radio"><input type="radio" name="clock-method" value="biometric"> Biometric (fingerprint)</label>
-                    <label class="tc-radio"><input type="radio" name="clock-method" value="facial"> Facial recognition</label>
-                    <label class="tc-radio"><input type="radio" name="clock-method" value="qr"> QR code</label>
-                </div>
-                <div class="tc-clock-photo">
-                    <div class="tc-clock-photo-preview" id="photo-preview">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                    </div>
-                    <button type="button" class="tc-btn" id="btn-capture-photo" onclick="window._tc.capturePhoto()">Capture photo</button>
-                </div>
-                <div class="tc-clock-actions">
-                    <button class="tc-btn tc-btn-success tc-btn-lg" id="btn-clock-in" onclick="window._tc.clockIn()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        Clock In
-                    </button>
-                    <button class="tc-btn tc-btn-warning tc-btn-lg" id="btn-break-start" onclick="window._tc.breakStart()" disabled>
-                        Start Break
-                    </button>
-                    <button class="tc-btn tc-btn-warning tc-btn-lg" id="btn-break-end" onclick="window._tc.breakEnd()" disabled>
-                        End Break
-                    </button>
-                    <button class="tc-btn tc-btn-danger tc-btn-lg" id="btn-clock-out" onclick="window._tc.clockOut()" disabled>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        Clock Out
-                    </button>
-                </div>
-                <div class="tc-today-events" id="today-events">
-                    <h4>Today's events</h4>
-                    <ul id="today-events-list"><li class="tc-empty-small">No events recorded today.</li></ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="tc-panel" id="panel-records">
-            <div class="tc-table-wrapper">
-                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-                    <h3 style="font-size:14px;font-weight:600;margin:0">Time Records</h3>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                        <input type="month" id="records-month" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._tc.loadRecords()">
-                        <select id="records-filter" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._tc.loadRecords()">
-                            <option value="all">All records</option>
-                            <option value="normal">Normal only</option>
-                            <option value="overtime">Overtime only</option>
-                            <option value="absent">Absences only</option>
-                            <option value="justified">Justified</option>
-                        </select>
-                        <button class="tc-btn" onclick="window._tc.loadRecords()">Filter</button>
-                        <button class="tc-btn" onclick="window._tc.exportCsv()">Export CSV</button>
-                    </div>
-                </div>
-                <div style="overflow-x:auto">
-                    <table class="tc-table">
-                        <thead><tr><th>Date</th><th>Clock In</th><th>Break Start</th><th>Break End</th><th>Clock Out</th><th>Hours</th><th>Method</th><th>GPS</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="records-tbody"><tr><td colspan="10" class="tc-empty">Loading...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="tc-summary-row">
-                <div class="tc-summary-item"><span class="label">Records this period</span><span class="value" id="records-count">0</span></div>
-                <div class="tc-summary-item"><span class="label">Total hours</span><span class="value" id="records-total-hours">0h</span></div>
-                <div class="tc-summary-item"><span class="label">Average per day</span><span class="value" id="records-avg-hours">0h</span></div>
-                <div class="tc-summary-item"><span class="label">Days with overtime</span><span class="value" id="records-ot-days">0</span></div>
-            </div>
-        </div>
-
-        <div class="tc-panel" id="panel-overtime">
-            <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-                <button class="tc-btn tc-btn-primary" onclick="window._tc.openOvertimeRequest()">+ Request Overtime</button>
-                <select id="overtime-status-filter" style="padding:8px 12px;background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:6px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._tc.loadOvertime()">
-                    <option value="all">All requests</option>
-                    <option value="pending">Pending only</option>
-                    <option value="approved">Approved only</option>
-                    <option value="rejected">Rejected only</option>
-                </select>
-                <span style="margin-left:auto;font-size:13px;color:var(--text-secondary,#94a3b8)" id="overtime-summary">--</span>
-            </div>
-            <div class="tc-ot-grid" id="overtime-grid">
-                <div class="tc-empty"><div class="tc-empty-icon">⏰</div><h3>Loading...</h3><p>Fetching overtime data</p></div>
-            </div>
-        </div>
-
-        <div class="tc-panel" id="panel-reports">
-            <div class="tc-report-grid" id="reports-grid">
-                <div class="tc-empty"><div class="tc-empty-icon">📊</div><h3>Loading...</h3><p>Fetching report data</p></div>
-            </div>
-            <div class="tc-table-wrapper" style="margin-top:16px">
-                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
-                    <h3 style="font-size:14px;font-weight:600;margin:0">Audit log</h3>
-                    <button class="tc-btn" onclick="window._tc.loadAuditLog()">Refresh</button>
-                </div>
-                <div style="overflow-x:auto">
-                    <table class="tc-table">
-                        <thead><tr><th>Timestamp</th><th>Employee</th><th>Action</th><th>Method</th><th>GPS</th><th>IP</th></tr></thead>
-                        <tbody id="audit-tbody"><tr><td colspan="6" class="tc-empty">Loading audit trail...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="tc-panel" id="panel-justifications">
-            <div class="tc-justification-form tc-table-wrapper" style="padding:16px">
-                <h3 style="font-size:14px;font-weight:600;margin:0 0 12px 0">Submit justification</h3>
-                <div class="tc-form-grid">
-                    <label class="tc-field">
-                        <span>Date</span>
-                        <input type="date" id="just-date" />
-                    </label>
-                    <label class="tc-field">
-                        <span>Type</span>
-                        <select id="just-type">
-                            <option value="missed">Missed clock-in/out</option>
-                            <option value="medical">Medical leave</option>
-                            <option value="personal">Personal leave</option>
-                            <option value="external">External meeting</option>
-                            <option value="vacation">Vacation day</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </label>
-                    <label class="tc-field tc-field-full">
-                        <span>Reason</span>
-                        <textarea id="just-reason" rows="3" placeholder="Describe the reason for this justification..."></textarea>
-                    </label>
-                    <label class="tc-field">
-                        <span>Supporting document</span>
-                        <input type="file" id="just-attachment" accept="image/*,.pdf" />
-                    </label>
-                </div>
-                <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
-                    <button class="tc-btn" onclick="document.getElementById('just-reason').value=''">Clear</button>
-                    <button class="tc-btn tc-btn-primary" onclick="window._tc.submitJustification()">Submit</button>
-                </div>
-            </div>
-            <div class="tc-table-wrapper" style="margin-top:16px">
-                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155)">
-                    <h3 style="font-size:14px;font-weight:600;margin:0">Pending justifications</h3>
-                </div>
-                <div style="overflow-x:auto">
-                    <table class="tc-table">
-                        <thead><tr><th>Date</th><th>Type</th><th>Reason</th><th>Submitted</th><th>Status</th><th>Approver</th></tr></thead>
-                        <tbody id="justifications-tbody"><tr><td colspan="6" class="tc-empty">Loading justifications...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="tc-panel" id="panel-schedule">
-            <div class="tc-table-wrapper">
-                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
-                    <h3 style="font-size:14px;font-weight:600;margin:0">Weekly schedule</h3>
-                    <div style="display:flex;gap:8px">
-                        <button class="tc-btn" onclick="window._tc.prevWeek()">‹ Previous</button>
-                        <span id="schedule-week-label" style="padding:6px 10px;font-size:13px">This week</span>
-                        <button class="tc-btn" onclick="window._tc.nextWeek()">Next ›</button>
-                    </div>
-                </div>
-                <div style="padding:16px">
-                    <div class="tc-schedule-grid" id="schedule-grid">
-                        <div class="tc-schedule-day"><div class="tc-schedule-day-label">Monday</div><div class="tc-schedule-shift">08:00 – 17:00</div></div>
-                        <div class="tc-schedule-day"><div class="tc-schedule-day-label">Tuesday</div><div class="tc-schedule-shift">08:00 – 17:00</div></div>
-                        <div class="tc-schedule-day"><div class="tc-schedule-day-label">Wednesday</div><div class="tc-schedule-shift">08:00 – 17:00</div></div>
-                        <div class="tc-schedule-day"><div class="tc-schedule-day-label">Thursday</div><div class="tc-schedule-shift">08:00 – 17:00</div></div>
-                        <div class="tc-schedule-day"><div class="tc-schedule-day-label">Friday</div><div class="tc-schedule-shift">08:00 – 17:00</div></div>
-                        <div class="tc-schedule-day tc-weekend"><div class="tc-schedule-day-label">Saturday</div><div class="tc-schedule-shift">Off</div></div>
-                        <div class="tc-schedule-day tc-weekend"><div class="tc-schedule-day-label">Sunday</div><div class="tc-schedule-shift">Off</div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tc-panel" id="panel-holidays">
-            <div class="tc-table-wrapper">
-                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
-                    <h3 style="font-size:14px;font-weight:600;margin:0">Holiday calendar</h3>
-                    <select id="holidays-year" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._tc.loadHolidays()">
-                        <option value="2025">2025</option>
-                        <option value="2026" selected>2026</option>
-                        <option value="2027">2027</option>
-                    </select>
-                </div>
-                <div style="overflow-x:auto">
-                    <table class="tc-table">
-                        <thead><tr><th>Date</th><th>Name</th><th>Type</th><th>Region</th><th>Optional?</th></tr></thead>
-                        <tbody id="holidays-tbody"><tr><td colspan="5" class="tc-empty">Loading holidays...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="tc-panel" id="panel-team">
-            <div class="tc-team-status-grid" id="team-status-grid">
-                <div class="tc-empty"><div class="tc-empty-icon">👥</div><h3>Loading team...</h3><p>Fetching team presence data</p></div>
-            </div>
-            <div class="tc-table-wrapper" style="margin-top:16px">
-                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155)">
-                    <h3 style="font-size:14px;font-weight:600;margin:0">Team timesheet (this week)</h3>
-                </div>
-                <div style="overflow-x:auto">
-                    <table class="tc-table">
-                        <thead><tr><th>Employee</th><th>Department</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Total</th></tr></thead>
-                        <tbody id="team-timesheet-tbody"><tr><td colspan="8" class="tc-empty">Loading timesheet...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    <div class="tc-content" id="tc-content" hx-get="/suite/timeclock/fragments/dashboard" hx-trigger="load delay:0" hx-swap="innerHTML">
+        <p class="tc-loading">Carregando painel…</p>
     </div>
 </div>
 
-<div id="tc-photo-modal" class="tc-modal" style="display:none">
+<div id="tc-ot-modal" class="tc-modal" hidden>
     <div class="tc-modal-content">
-        <div class="tc-modal-header">
-            <h3>Capture photo for clock event</h3>
-            <button class="tc-modal-close" onclick="window._tc.closePhotoModal()" aria-label="Close">&times;</button>
-        </div>
-        <div class="tc-modal-body">
-            <video id="tc-camera-feed" autoplay muted playsinline style="width:100%;max-width:480px;border-radius:8px;background:#000"></video>
-            <canvas id="tc-photo-canvas" style="display:none"></canvas>
-            <div id="tc-photo-result" style="display:none;margin-top:8px"></div>
-        </div>
-        <div class="tc-modal-footer">
-            <button class="tc-btn" onclick="window._tc.closePhotoModal()">Cancel</button>
-            <button class="tc-btn tc-btn-primary" id="tc-photo-snap" onclick="window._tc.snapPhoto()">Snap</button>
-            <button class="tc-btn tc-btn-success" id="tc-photo-confirm" style="display:none" onclick="window._tc.confirmPhoto()">Use this photo</button>
-        </div>
+        <h3>Solicitar hora extra</h3>
+        <form hx-post="/api/timeclock/forms/overtime" hx-target="#tc-content" hx-swap="innerHTML">
+            <label>Data <input type="date" name="date" required></label>
+            <label>Horas <input type="number" name="hours" step="0.25" min="0.25" max="12" required></label>
+            <label>Motivo <textarea name="reason" rows="2" required></textarea></label>
+            <label>Funcionário <input type="text" name="employee_id" placeholder="UUID" required></label>
+            <button type="submit" class="tc-btn tc-btn-primary">Enviar</button>
+        </form>
     </div>
 </div>
 
-<div id="tc-overtime-modal" class="tc-modal" style="display:none">
-    <div class="tc-modal-content">
-        <div class="tc-modal-header">
-            <h3>Request overtime</h3>
-            <button class="tc-modal-close" onclick="window._tc.closeOvertimeModal()" aria-label="Close">&times;</button>
-        </div>
-        <div class="tc-modal-body">
-            <div class="tc-form-grid">
-                <label class="tc-field">
-                    <span>Date</span>
-                    <input type="date" id="ot-date" />
-                </label>
-                <label class="tc-field">
-                    <span>Hours</span>
-                    <input type="number" id="ot-hours" min="0.25" max="12" step="0.25" value="2" />
-                </label>
-                <label class="tc-field tc-field-full">
-                    <span>Reason</span>
-                    <textarea id="ot-reason" rows="3" placeholder="Reason for overtime request..."></textarea>
-                </label>
-                <label class="tc-field">
-                    <span>Project / Task</span>
-                    <input type="text" id="ot-project" placeholder="Optional project code" />
-                </label>
-                <label class="tc-field">
-                    <span>Manager</span>
-                    <select id="ot-manager">
-                        <option value="">-- Select --</option>
-                    </select>
-                </label>
-            </div>
-        </div>
-        <div class="tc-modal-footer">
-            <button class="tc-btn" onclick="window._tc.closeOvertimeModal()">Cancel</button>
-            <button class="tc-btn tc-btn-primary" onclick="window._tc.submitOvertimeRequest()">Submit request</button>
-        </div>
-    </div>
-</div>
-
-<div id="tc-notifications" class="tc-notifications">
-    <div class="tc-notification tc-notification-info" id="tc-notif-pending" style="display:none">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span id="tc-notif-pending-text">You have pending overtime approvals.</span>
-        <button class="tc-notification-action" onclick="window._tc.switchTab('overtime',document.querySelector('.tc-tab[data-tab=overtime]'))">View</button>
-    </div>
-    <div class="tc-notification tc-notification-warning" id="tc-notif-incomplete" style="display:none">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span>Your last clock-out is missing. Submit a justification.</span>
-        <button class="tc-notification-action" onclick="window._tc.switchTab('justifications',document.querySelector('.tc-tab[data-tab=justifications]'))">Fix</button>
-    </div>
-    <div class="tc-notification tc-notification-success" id="tc-notif-streak" style="display:none">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-        <span>Punctuality streak: <strong id="tc-streak-days">0</strong> days. Keep it up!</span>
-    </div>
-</div>
-
-<div id="tc-feedback-area"></div>
-
-<aside id="tc-quick-actions" class="tc-quick-actions" aria-label="Quick actions">
-    <h4>Quick actions</h4>
-    <button class="tc-quick-btn" onclick="window._tc.switchTab('clock',document.querySelector('.tc-tab[data-tab=clock]'))">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Clock action
-    </button>
-    <button class="tc-quick-btn" onclick="window._tc.switchTab('justifications',document.querySelector('.tc-tab[data-tab=justifications]'))">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        New justification
-    </button>
-    <button class="tc-quick-btn" onclick="window._tc.openOvertimeRequest()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Request overtime
-    </button>
-</aside>
+<script src="timeclock/timeclock.js"></script>
