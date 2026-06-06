@@ -253,10 +253,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="shareModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle" tabindex="-1" id="shareModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Share Document</h3>
+            <h3 id="shareModalTitle">Share Document</h3>
             <button class="btn-close" id="closeShareModal">×</button>
         </div>
         <div class="modal-body">
@@ -286,10 +286,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="linkModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle" tabindex="-1" id="linkModal">
     <div class="modal-content modal-small">
         <div class="modal-header">
-            <h3>Insert Link</h3>
+            <h3 id="linkModalTitle">Insert Link</h3>
             <button class="btn-close" id="closeLinkModal">×</button>
         </div>
         <div class="modal-body">
@@ -309,10 +309,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="imageModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="imageModalTitle" tabindex="-1" id="imageModal">
     <div class="modal-content modal-small">
         <div class="modal-header">
-            <h3>Insert Image</h3>
+            <h3 id="imageModalTitle">Insert Image</h3>
             <button class="btn-close" id="closeImageModal">×</button>
         </div>
         <div class="modal-body">
@@ -334,10 +334,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="tableModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tableModalTitle" tabindex="-1" id="tableModal">
     <div class="modal-content modal-small">
         <div class="modal-header">
-            <h3>Insert Table</h3>
+            <h3 id="tableModalTitle">Insert Table</h3>
             <button class="btn-close" id="closeTableModal">×</button>
         </div>
         <div class="modal-body">
@@ -363,10 +363,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="exportModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle" tabindex="-1" id="exportModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Export Document</h3>
+            <h3 id="exportModalTitle">Export Document</h3>
             <button class="btn-close" id="closeExportModal">×</button>
         </div>
         <div class="modal-body">
@@ -436,10 +436,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="findReplaceModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="findReplaceModalTitle" tabindex="-1" id="findReplaceModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Find & Replace</h3>
+            <h3 id="findReplaceModalTitle">Find & Replace</h3>
             <button class="btn-close" id="closeFindReplaceModal">×</button>
         </div>
         <div class="modal-body">
@@ -476,10 +476,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="printPreviewModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="printPreviewModalTitle" tabindex="-1" id="printPreviewModal">
     <div class="modal-content modal-fullscreen">
         <div class="modal-header">
-            <h3>Print Preview</h3>
+            <h3 id="printPreviewModalTitle">Print Preview</h3>
             <div class="print-toolbar">
                 <select id="printOrientation">
                     <option value="portrait">Portrait</option>
@@ -520,10 +520,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="headerFooterModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="headerFooterModalTitle" tabindex="-1" id="headerFooterModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Header & Footer</h3>
+            <h3 id="headerFooterModalTitle">Header & Footer</h3>
             <button class="btn-close" id="closeHeaderFooterModal">×</button>
         </div>
         <div class="modal-body">
@@ -628,4 +628,5 @@
 <script src="docs/modules/18_selection_commands.js"></script>
 <script src="docs/modules/19_docx_export.js"></script>
 <script src="docs/modules/20_pdf_export.js"></script>
+<script src="docs/modules/01c_modal_a11y.js"></script>
 <script src="docs/modules/99_init.js"></script>

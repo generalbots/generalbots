@@ -344,10 +344,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="shareModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle" tabindex="-1" id="shareModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Share Spreadsheet</h3>
+            <h3 id="shareModalTitle">Share Spreadsheet</h3>
             <button class="btn-close" id="closeShareModal">×</button>
         </div>
         <div class="modal-body">
@@ -376,10 +376,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="chartModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="chartModalTitle" tabindex="-1" id="chartModal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h3>Insert Chart</h3>
+            <h3 id="chartModalTitle">Insert Chart</h3>
             <button class="btn-close" id="closeChartModal">×</button>
         </div>
         <div class="modal-body">
@@ -424,10 +424,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="findReplaceModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="findReplaceModalTitle" tabindex="-1" id="findReplaceModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Find & Replace</h3>
+            <h3 id="findReplaceModalTitle">Find & Replace</h3>
             <button class="btn-close" id="closeFindReplaceModal">×</button>
         </div>
         <div class="modal-body">
@@ -468,10 +468,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="conditionalFormatModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="conditionalFormatModalTitle" tabindex="-1" id="conditionalFormatModal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h3>Conditional Formatting</h3>
+            <h3 id="conditionalFormatModalTitle">Conditional Formatting</h3>
             <button class="btn-close" id="closeConditionalFormatModal">
                 ×
             </button>
@@ -541,10 +541,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="dataValidationModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="dataValidationModalTitle" tabindex="-1" id="dataValidationModal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h3>Data Validation</h3>
+            <h3 id="dataValidationModalTitle">Data Validation</h3>
             <button class="btn-close" id="closeDataValidationModal">×</button>
         </div>
         <div class="modal-body">
@@ -664,10 +664,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="printPreviewModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="printPreviewModalTitle" tabindex="-1" id="printPreviewModal">
     <div class="modal-content modal-fullscreen">
         <div class="modal-header">
-            <h3>Print Preview</h3>
+            <h3 id="printPreviewModalTitle">Print Preview</h3>
             <div class="print-toolbar">
                 <select id="printOrientation">
                     <option value="portrait">Portrait</option>
@@ -718,10 +718,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="customNumberFormatModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="customNumberFormatModalTitle" tabindex="-1" id="customNumberFormatModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Custom Number Format</h3>
+            <h3 id="customNumberFormatModalTitle">Custom Number Format</h3>
             <button class="btn-close" id="closeCustomFormatModal">×</button>
         </div>
         <div class="modal-body">
@@ -783,10 +783,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="insertImageModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="insertImageModalTitle" tabindex="-1" id="insertImageModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Insert Image</h3>
+            <h3 id="insertImageModalTitle">Insert Image</h3>
             <button class="btn-close" id="closeInsertImageModal">×</button>
         </div>
         <div class="modal-body">
@@ -855,4 +855,5 @@
 <script src="sheet/modules/24c_formula_conditionals.js"></script>
 <script src="sheet/modules/25_validation_enforce.js"></script>
 <script src="sheet/modules/26_filter_dropdowns.js"></script>
+<script src="sheet/modules/01c_modal_a11y.js"></script>
 <script src="sheet/modules/99_init.js"></script>

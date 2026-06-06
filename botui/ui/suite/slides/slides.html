@@ -551,10 +551,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="shareModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle" tabindex="-1" id="shareModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Share Presentation</h3>
+            <h3 id="shareModalTitle">Share Presentation</h3>
             <button class="btn-close" id="closeShareModal">×</button>
         </div>
         <div class="modal-body">
@@ -602,10 +602,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="imageModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="imageModalTitle" tabindex="-1" id="imageModal">
     <div class="modal-content modal-small">
         <div class="modal-header">
-            <h3>Insert Image</h3>
+            <h3 id="imageModalTitle">Insert Image</h3>
             <button class="btn-close" id="closeImageModal">×</button>
         </div>
         <div class="modal-body">
@@ -638,10 +638,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="shapeModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shapeModalTitle" tabindex="-1" id="shapeModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Insert Shape</h3>
+            <h3 id="shapeModalTitle">Insert Shape</h3>
             <button class="btn-close" id="closeShapeModal">×</button>
         </div>
         <div class="modal-body">
@@ -762,10 +762,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="notesModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="notesModalTitle" tabindex="-1" id="notesModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Speaker Notes</h3>
+            <h3 id="notesModalTitle">Speaker Notes</h3>
             <button class="btn-close" id="closeNotesModal">×</button>
         </div>
         <div class="modal-body">
@@ -791,10 +791,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="backgroundModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="backgroundModalTitle" tabindex="-1" id="backgroundModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Slide Background</h3>
+            <h3 id="backgroundModalTitle">Slide Background</h3>
             <button class="btn-close" id="closeBackgroundModal">×</button>
         </div>
         <div class="modal-body">
@@ -900,10 +900,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="transitionsModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="transitionsModalTitle" tabindex="-1" id="transitionsModal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h3>Slide Transitions</h3>
+            <h3 id="transitionsModalTitle">Slide Transitions</h3>
             <button class="btn-close" id="closeTransitionsModal">×</button>
         </div>
         <div class="modal-body">
@@ -1024,10 +1024,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="animationsModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="animationsModalTitle" tabindex="-1" id="animationsModal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h3>Animations</h3>
+            <h3 id="animationsModalTitle">Animations</h3>
             <button class="btn-close" id="closeAnimationsModal">×</button>
         </div>
         <div class="modal-body">
@@ -1137,10 +1137,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="slideSorterModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="slideSorterModalTitle" tabindex="-1" id="slideSorterModal">
     <div class="modal-content modal-fullscreen">
         <div class="modal-header">
-            <h3>Slide Sorter</h3>
+            <h3 id="slideSorterModalTitle">Slide Sorter</h3>
             <div class="sorter-toolbar">
                 <button class="btn-secondary" id="sorterAddSlide">
                     <svg
@@ -1175,10 +1175,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="exportPdfModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="exportPdfModalTitle" tabindex="-1" id="exportPdfModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Export to PDF</h3>
+            <h3 id="exportPdfModalTitle">Export to PDF</h3>
             <button class="btn-close" id="closeExportPdfModal">×</button>
         </div>
         <div class="modal-body">
@@ -1246,10 +1246,10 @@
     </div>
 </div>
 
-<div class="modal hidden" id="masterSlideModal">
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="masterSlideModalTitle" tabindex="-1" id="masterSlideModal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h3>Edit Master Slide</h3>
+            <h3 id="masterSlideModalTitle">Edit Master Slide</h3>
             <button class="btn-close" id="closeMasterSlideModal">×</button>
         </div>
         <div class="modal-body">
@@ -1451,4 +1451,5 @@
 <script src="slides/modules/29_transitions_presenter.js"></script>
 <script src="slides/modules/30_animations_presenter.js"></script>
 <script src="slides/modules/31_pptx_export_fix.js"></script>
+<script src="slides/modules/01c_modal_a11y.js"></script>
 <script src="slides/modules/99_init.js"></script>
