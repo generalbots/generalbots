@@ -19,6 +19,7 @@ pub mod minutes;
 pub mod templates_app;
 pub mod database;
 pub mod db;
+pub mod ui_fragments;
 
 use axum::routing::{get, post, put, delete};
 use axum::Router;
@@ -116,4 +117,6 @@ pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
         .route("/api/database/schemas", get(database::list_schemas))
         .route("/api/database/tables", get(database::list_tables))
         .route("/api/database/query", post(database::execute_query))
+        // HTMX fragment handlers for brazil, timeclock, minutes apps
+        .merge(ui_fragments::configure())
 }
