@@ -1,16 +1,39 @@
 "use strict";
 
 /**
- * Module 24: Real formula engine for Spreadsheet (P0 critical).
+ * Module 24: Formula engine for Spreadsheet (P0 critical).
  * Replaces the insecure `new Function("return " + expr)` parser with a
  * proper recursive-descent parser and 50+ safe built-in functions.
  * Supports cell references (A1, B2:D10, sheet refs, named ranges),
  * operators (+, -, *, /, ^, &, =, <>, <, >, <=, >=), string literals,
  * number literals, boolean, error propagation, and array references.
  *
+ * ARCHITECTURAL NOTE (2026-06):
+ *   This module is a CLIENT-SIDE CACHE for instant UI feedback only.
+ *   The source of truth for formula evaluation is
+ *   `botserver/crates/botsheet-core/src/formulas/` (40+ functions in
+ *   Rust), exposed via `POST /api/sheet/formula`.
+ *
+ *   The pattern (Lotus 1-2-3 Network model, 1989):
+ *     1. User types `=A1+1` -> client.evaluate() runs immediately
+ *        (zero latency, no network).
+ *     2. Concurrently, the same formula is sent to the server via
+ *        client.evaluateViaServer() for authoritative evaluation.
+ *     3. If the server returns a different value, a "stale" indicator
+ *        appears. On save, the server value wins.
+ *
+ *   In offline mode (no network), client.evaluate() is the only path
+ *   and the result is committed to the cache. On reconnect, the
+ *   server re-evaluates everything and reconciles.
+ *
+ *   Custom functions (F.registerFunction) are client-only; they are
+ *   not callable from .bas scripts on the backend.
+ *
  * Public API: window.SheetFormulaEngine = {
- *   parse, evaluate, registerFunction, getFunctions, isCellRef, isRange,
- *   parseCellRef, parseRange, normalize, FUNCTION_LIST
+ *   parse, evaluate, evaluateViaServer, evaluateDual,
+ *   registerFunction, getFunctions, isCellRef, isRange,
+ *   parseCellRef, parseRange, normalize, FUNCTION_LIST,
+ *   serverAuthoritative, setSheetId
  * }.
  */
 
@@ -308,10 +331,114 @@
   const FUNCTION_LIST = getFunctions();
   const _helpers = { flatten, numCoerce, strCoerce, cmpValues, toBool, isError, AGG: { _flattenNumeric: AGG._flattenNumeric, _countAll: AGG._countAll } };
 
+  // ---- Server-authoritative hybrid (Phase 7 of remediation) ----
+  let _sheetId = null;
+  let _serverAuthoritative = true;
+  let _pendingDual = 0;
+  const _dualListeners = [];
+
+  function setSheetId(id) {
+    _sheetId = id;
+  }
+
+  function getServerAuthoritative() {
+    return _serverAuthoritative;
+  }
+
+  function setServerAuthoritative(v) {
+    _serverAuthoritative = v === true;
+  }
+
+  function _toComparable(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === "object" && v.type) {
+      if (v.type === "num") return v.value;
+      if (v.type === "bool") return v.value ? 1 : 0;
+      if (v.type === "str") return v.value;
+      if (v.type === "empty") return null;
+      if (v.type === "error") return "#" + v.value;
+    }
+    return v;
+  }
+
+  function _divergent(local, server) {
+    const a = _toComparable(local);
+    const b = _toComparable(server);
+    if (a === null && b === null) return false;
+    if (typeof a === "number" && typeof b === "number") {
+      if (isNaN(a) && isNaN(b)) return false;
+      return Math.abs(a - b) > 1e-9;
+    }
+    return a !== b;
+  }
+
+  function _fireDual(payload) {
+    for (let i = 0; i < _dualListeners.length; i++) {
+      try { _dualListeners[i](payload); } catch (e) { /* listener error ignored */ }
+    }
+  }
+
+  function evaluateViaServer(formula, sheetId) {
+    if (!window.SheetAPI) {
+      return Promise.resolve({ ok: false, error: { message: "SheetAPI not loaded" } });
+    }
+    const id = sheetId || _sheetId;
+    if (!id) {
+      return Promise.resolve({ ok: false, error: { message: "No sheet_id" } });
+    }
+    return window.SheetAPI.evaluate(id, formula);
+  }
+
+  function evaluateDual(formula, state, sheetId) {
+    const localResult = evaluate(formula, state);
+    const id = sheetId || _sheetId;
+    if (!window.SheetAPI || !id) {
+      return Promise.resolve({ local: localResult, server: null, divergent: false, network: false });
+    }
+    _pendingDual++;
+    return window.SheetAPI.evaluate(id, formula).then(function (r) {
+      _pendingDual--;
+      if (!r.ok) {
+        const payload = { local: localResult, server: null, divergent: false, network: false, error: r.error };
+        _fireDual(payload);
+        return payload;
+      }
+      const serverResult = (r.data && r.data.result) || null;
+      const divergent = _divergent(localResult, serverResult);
+      const payload = {
+        local: localResult,
+        server: serverResult,
+        divergent: divergent,
+        network: true,
+        formula: formula,
+      };
+      _fireDual(payload);
+      return payload;
+    }).catch(function (e) {
+      _pendingDual--;
+      const payload = { local: localResult, server: null, divergent: false, network: false, error: e };
+      _fireDual(payload);
+      return payload;
+    });
+  }
+
+  function onDualResult(fn) {
+    if (typeof fn !== "function") return function () {};
+    _dualListeners.push(fn);
+    return function off() {
+      const idx = _dualListeners.indexOf(fn);
+      if (idx >= 0) _dualListeners.splice(idx, 1);
+    };
+  }
+
+  function pendingDualCount() { return _pendingDual; }
+
   window.SheetFormulaEngine = Object.assign({
     parse, evaluate, registerFunction, getFunctions,
     isCellRef, isRange, parseCellRef, parseRange, normalize: indexToColName,
     colNameToIndex, indexToColName,
     FUNCTION_LIST, FUNCS,
+    evaluateViaServer, evaluateDual, onDualResult, pendingDualCount,
+    setSheetId, getServerAuthoritative, setServerAuthoritative,
   }, _helpers);
 })();

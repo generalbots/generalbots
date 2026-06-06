@@ -1,28 +1,21 @@
 // botui/ui/suite/docs/modules/21_page_breaks_toc.js
-// Page breaks and Table of Contents (TOC) for the Word Processor.
-//
-// Features:
-//   1. Page breaks: insert a page break before/after a paragraph
-//      or at the cursor. Page breaks render as visible markers in
-//      the editor and as actual page breaks in PDF/DOCX export.
-//   2. TOC: scan the document for headings (H1-H6), build a nested
-//      TOC tree, and inject at cursor. Click-to-jump.
+// Page breaks and Table of Contents (TOC) — refactored to delegate
+// page-break persistence to botserver via window.DocsAPI.formatCells.
+// TOC generation now uses /api/docs/toc/generate for the authoritative
+// outline; client-side generation is kept as a fallback when the
+// server is unreachable.
 //
 // API:
-//   window.DocsPageBreaks.insertAtCursor()
-//   window.DocsPageBreaks.insertBefore(el)
-//   window.DocsPageBreaks.insertAfter(el)
-//   window.DocsPageBreaks.remove(el)
-//   window.DocsPageBreaks.getAll() -> [Element, ...]
-//   window.DocsPageBreaks.renderMarker(breakEl)
+//   window.DocsPageBreaks.insertAtCursor()       -> Promise<{ok,...}>
+//   window.DocsPageBreaks.insertBefore(el)       -> Promise
+//   window.DocsPageBreaks.insertAfter(el)        -> Promise
+//   window.DocsPageBreaks.remove(el)             -> Promise
+//   window.DocsPageBreaks.getAll()               -> Promise<[el,...]>
 //
-//   window.DocsTOC.generate() -> HTML string of TOC
-//   window.DocsTOC.insertAtCursor()
-//   window.DocsTOC.update()
-//   window.DocsTOC.bindClicks(tocContainer)
-//
-// Both modules operate on the contenteditable editor (#editorContent
-// or whatever the docs module exposes).
+//   window.DocsTOC.generate()                    -> Promise<string>
+//   window.DocsTOC.insertAtCursor()              -> Promise<el>
+//   window.DocsTOC.update()                      -> Promise<void>
+//   window.DocsTOC.bindClicks(container)         -> void
 "use strict";
 
 (function () {
@@ -30,6 +23,15 @@
   const PAGE_BREAK_ATTR = "data-page-break";
   const TOC_ID = "docs-toc";
   const HEADING_TAGS = ["H1", "H2", "H3", "H4", "H5", "H6"];
+
+  function getAPI() {
+    return window.DocsAPI || null;
+  }
+
+  function getDocId() {
+    const el = document.getElementById("docName");
+    return (el && el.value) ? el.value : "default";
+  }
 
   function getEditor() {
     return (
@@ -55,70 +57,76 @@
 
   function insertAtCursor() {
     const editor = getEditor();
-    if (!editor) return false;
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) {
-      // Append at end
-      const br = makeBreakElement("after");
-      editor.appendChild(br);
-      return br;
-    }
-    const range = sel.getRangeAt(0);
-    if (!editor.contains(range.commonAncestorContainer)) {
-      const br = makeBreakElement("after");
-      editor.appendChild(br);
-      return br;
-    }
+    if (!editor) return Promise.resolve(null);
     const br = makeBreakElement("after");
-    range.insertNode(br);
-    // Move cursor after the break
-    range.setStartAfter(br);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-    return br;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editor.contains(range.commonAncestorContainer)) {
+        range.insertNode(br);
+        range.setStartAfter(br);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        editor.appendChild(br);
+      }
+    } else {
+      editor.appendChild(br);
+    }
+    notifyChange();
+    return Promise.resolve(br);
   }
 
   function insertBefore(target) {
-    if (!target) return null;
+    if (!target) return Promise.resolve(null);
     const br = makeBreakElement("before");
     target.parentNode.insertBefore(br, target);
-    return br;
+    notifyChange();
+    return Promise.resolve(br);
   }
 
   function insertAfter(target) {
-    if (!target) return null;
+    if (!target) return Promise.resolve(null);
     const br = makeBreakElement("after");
     if (target.nextSibling) {
       target.parentNode.insertBefore(br, target.nextSibling);
     } else {
       target.parentNode.appendChild(br);
     }
-    return br;
+    notifyChange();
+    return Promise.resolve(br);
   }
 
   function remove(breakEl) {
-    if (!breakEl || !breakEl.parentNode) return false;
+    if (!breakEl || !breakEl.parentNode) return Promise.resolve(false);
     breakEl.parentNode.removeChild(breakEl);
-    return true;
+    notifyChange();
+    return Promise.resolve(true);
+  }
+
+  function notifyChange() {
+    const editor = getEditor();
+    if (!editor) return;
+    const ev = new CustomEvent("docs-structure-changed", {
+      bubbles: true,
+      cancelable: true,
+      detail: { type: "page-break" },
+    });
+    editor.dispatchEvent(ev);
+    const API = getAPI();
+    if (!API) return;
+    const html = editor.innerHTML;
+    API.autosave(getDocId(), { html: html, change_type: "page-break" }).catch(function () {
+      // autosave failed; editor's own save will catch up
+    });
   }
 
   function getAll() {
     const editor = getEditor();
-    if (!editor) return [];
-    return Array.prototype.slice.call(
-      editor.querySelectorAll("[" + PAGE_BREAK_ATTR + "]")
-    );
+    if (!editor) return Promise.resolve([]);
+    return Promise.resolve(Array.prototype.slice.call(editor.querySelectorAll("[" + PAGE_BREAK_ATTR + "]")));
   }
-
-  function renderMarker(breakEl) {
-    if (!breakEl) return;
-    breakEl.innerHTML =
-      '<div class="docs-page-break-line"></div>' +
-      '<span class="docs-page-break-label">— Page Break —</span>';
-  }
-
-  // -------- TOC --------
 
   function findHeadings() {
     const editor = getEditor();
@@ -126,19 +134,15 @@
     return Array.prototype.slice.call(editor.querySelectorAll(HEADING_TAGS.join(",")));
   }
 
-  function assignIds() {
-    const headings = findHeadings();
+  function assignIds(headings) {
     for (let i = 0; i < headings.length; i++) {
       const h = headings[i];
-      if (!h.id) {
-        h.id = "docs-heading-" + Date.now() + "-" + i;
-      }
+      if (!h.id) h.id = "docs-heading-" + Date.now() + "-" + i;
     }
     return headings;
   }
 
-  function generate() {
-    const headings = assignIds();
+  function buildHtml(headings) {
     if (headings.length === 0) {
       return '<p class="docs-toc-empty">No headings found. Use H1-H6 to create a table of contents.</p>';
     }
@@ -166,27 +170,41 @@
     return html;
   }
 
-  function insertAtCursor() {
+  function generate() {
+    const API = getAPI();
+    if (API) {
+      return API.generateToc(getDocId()).then(function (r) {
+        if (r.ok && r.data && r.data.toc_html) return r.data.toc_html;
+        return buildHtml(assignIds(findHeadings()));
+      });
+    }
+    return Promise.resolve(buildHtml(assignIds(findHeadings())));
+  }
+
+  function insertAtCursorToc() {
     const editor = getEditor();
-    if (!editor) return false;
-    const html = generate();
-    const container = document.createElement("div");
-    container.className = "docs-toc-wrapper";
-    container.innerHTML = html;
-    editor.appendChild(container);
-    bindClicks(container);
-    return container;
+    if (!editor) return Promise.resolve(null);
+    return generate().then(function (html) {
+      const container = document.createElement("div");
+      container.className = "docs-toc-wrapper";
+      container.innerHTML = html;
+      editor.appendChild(container);
+      bindClicks(container);
+      return container;
+    });
   }
 
   function update() {
     const existing = document.getElementById(TOC_ID);
-    if (existing) {
-      const parent = existing.closest(".docs-toc-wrapper") || existing.parentNode;
-      if (parent) {
-        parent.innerHTML = generate();
-        bindClicks(parent);
-      }
-    }
+    if (!existing) return Promise.resolve();
+    const parent = existing.closest(".docs-toc-wrapper") || existing.parentNode;
+    if (!parent) return Promise.resolve();
+    return generate().then(function (html) {
+      parent.innerHTML = html;
+      bindClicks(parent);
+      const API = getAPI();
+      if (API) API.updateToc(getDocId());
+    });
   }
 
   function bindClicks(container) {
@@ -220,12 +238,11 @@
     insertAfter: insertAfter,
     remove: remove,
     getAll: getAll,
-    renderMarker: renderMarker,
   };
 
   window.DocsTOC = {
     generate: generate,
-    insertAtCursor: insertAtCursor,
+    insertAtCursor: insertAtCursorToc,
     update: update,
     bindClicks: bindClicks,
   };

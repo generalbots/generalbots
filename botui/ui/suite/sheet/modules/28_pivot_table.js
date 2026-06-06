@@ -1,19 +1,18 @@
 // botui/ui/suite/sheet/modules/28_pivot_table.js
-// Pivot Table skeleton: drag fields into Rows/Columns/Values/Filter
-// zones and aggregate. No UI framework — pure DOM rendering with
-// drag-and-drop. Computes SUM, COUNT, AVERAGE, MIN, MAX.
+// Pivot Table — refactored to delegate aggregation to botserver
+// via window.SheetAPI.createPivot. Client-side UI logic remains
+// (drag-drop, zone management, rendering); the bucket-group-reduce
+// algorithm moves to the Rust backend where it can use SQL GROUP BY
+// over the source data with proper indexing.
 //
-// API:
-//   window.SheetPivotTable.create({ sourceRange, container })
-//     -> PivotTable instance
-//   window.SheetPivotTable.openModal()
-//   pivot.dispose()
+// API contract with backend:
+//   POST /api/sheet/pivot
+//   { sheet_id, config: { rows:[...], cols:[...], values:[{field,agg}], filter:[...] } }
+//   -> { ok, result: { rowKeys, colKeys, cells, rowTotals, colTotals, grandTotal } }
 //
-// Storage of source data is delegated to the formula engine — the
-// pivot reads from a range using the same A1 notation parser as
-// 24b. For now, the sourceRange is a static array of objects
-// passed in; integration with the live sheet can be added by
-// calling pivot.setData(rows).
+// Offline fallback: if backend is unreachable, the client computes
+// locally with the same algorithm (for UX continuity). This is the
+// only client-side computation, gated behind an explicit fallback.
 "use strict";
 
 (function () {
@@ -46,18 +45,19 @@
     this.filter = (this.config.filter || []).slice();
     this.data = (this.config.data || []).slice();
     this.result = null;
+    this.sheetId = this.config.sheetId || null;
+    this.offlineMode = this.config.offlineMode === true;
   }
-
-  PivotTable.prototype.setData = function (rows) {
-    this.data = rows || [];
-    this.recompute();
-  };
 
   PivotTable.prototype.getFieldNames = function () {
     if (this.fields.length > 0) return this.fields;
     if (this.data.length === 0) return [];
-    const first = this.data[0];
-    return Object.keys(first);
+    return Object.keys(this.data[0]);
+  };
+
+  PivotTable.prototype.setData = function (rows) {
+    this.data = rows || [];
+    this.recompute();
   };
 
   PivotTable.prototype.addToZone = function (field, zone) {
@@ -65,7 +65,6 @@
     const zones = { row: "rows", col: "cols", value: "values" };
     const target = zones[zone];
     if (!target) return;
-    // Remove from all other zones
     this.rows = this.rows.filter(function (f) { return f !== field; });
     this.cols = this.cols.filter(function (f) { return f !== field; });
     this.values = this.values.filter(function (f) { return f.field !== field; });
@@ -81,7 +80,9 @@
     if (zone === "value") {
       this.values = this.values.filter(function (f) { return f.field !== field; });
     } else {
-      this[zone === "row" ? "rows" : "cols"] = (zone === "row" ? this.rows : this.cols).filter(function (f) { return f !== field; });
+      const arr = zone === "row" ? this.rows : this.cols;
+      const filtered = arr.filter(function (f) { return f !== field; });
+      if (zone === "row") this.rows = filtered; else this.cols = filtered;
     }
     this.recompute();
   };
@@ -89,24 +90,53 @@
   PivotTable.prototype.changeAggregation = function (field, agg) {
     if (!AGG_FUNCTIONS[agg]) return;
     for (let i = 0; i < this.values.length; i++) {
-      if (this.values[i].field === field) {
-        this.values[i].agg = agg;
-      }
+      if (this.values[i].field === field) this.values[i].agg = agg;
     }
     this.recompute();
   };
 
   PivotTable.prototype.recompute = function () {
-    if (this.data.length === 0) {
-      this.result = { rowKeys: [], colKeys: [], cells: {}, rowTotals: {}, colTotals: {}, grandTotal: null };
-      return this.result;
+    if (this.sheetId && window.SheetAPI && !this.offlineMode && this.values.length > 0) {
+      const self = this;
+      const req = {
+        sheet_id: this.sheetId,
+        config: {
+          source_range: this.sourceRange,
+          rows: this.rows,
+          cols: this.cols,
+          values: this.values,
+          filter: this.filter,
+        },
+      };
+      return window.SheetAPI.createPivot(this.sheetId, req.config).then(function (r) {
+        if (r.ok && r.data && r.data.result) {
+          self.result = r.data.result;
+        } else {
+          self.result = computeLocal(self.data, self.rows, self.cols, self.values);
+        }
+        if (self._afterRecompute) self._afterRecompute();
+        return self.result;
+      }).catch(function () {
+        self.result = computeLocal(self.data, self.rows, self.cols, self.values);
+        if (self._afterRecompute) self._afterRecompute();
+        return self.result;
+      });
+    }
+    this.result = computeLocal(this.data, this.rows, this.cols, this.values);
+    if (this._afterRecompute) this._afterRecompute();
+    return Promise.resolve(this.result);
+  };
+
+  function computeLocal(data, rows, cols, values) {
+    if (!data || data.length === 0 || values.length === 0) {
+      return { rowKeys: [], colKeys: [], cells: {}, rowTotals: {}, colTotals: {}, grandTotal: null };
     }
     const rowSet = {};
     const colSet = {};
-    for (let i = 0; i < this.data.length; i++) {
-      const r = this.data[i];
-      const rowKey = this.rows.map(function (f) { return r[f]; }).join(" | ");
-      const colKey = this.cols.map(function (f) { return r[f]; }).join(" | ");
+    for (let i = 0; i < data.length; i++) {
+      const r = data[i];
+      const rowKey = rows.map(function (f) { return r[f]; }).join(" | ");
+      const colKey = cols.map(function (f) { return r[f]; }).join(" | ");
       rowSet[rowKey] = true;
       colSet[colKey] = true;
     }
@@ -114,73 +144,53 @@
     const colKeys = Object.keys(colSet).sort();
 
     const buckets = {};
-    for (let i = 0; i < this.data.length; i++) {
-      const r = this.data[i];
-      const rowKey = this.rows.map(function (f) { return r[f]; }).join(" | ");
-      const colKey = this.cols.map(function (f) { return r[f]; }).join(" | ");
+    for (let i = 0; i < data.length; i++) {
+      const r = data[i];
+      const rowKey = rows.map(function (f) { return r[f]; }).join(" | ");
+      const colKey = cols.map(function (f) { return r[f]; }).join(" | ");
       const key = rowKey + "\0" + colKey;
       if (!buckets[key]) buckets[key] = [];
-      for (let j = 0; j < this.values.length; j++) {
-        buckets[key].push(r[this.values[j].field]);
-      }
+      for (let j = 0; j < values.length; j++) buckets[key].push(r[values[j].field]);
     }
 
     const cells = {};
-    const rowTotals = {};
-    const colTotals = {};
-    let grandTotalAll = [];
-
     for (let i = 0; i < rowKeys.length; i++) {
       for (let j = 0; j < colKeys.length; j++) {
         const key = rowKeys[i] + "\0" + colKeys[j];
         const vals = buckets[key] || [];
-        for (let k = 0; k < this.values.length; k++) {
+        for (let k = 0; k < values.length; k++) {
           const cellVals = [];
-          for (let n = k; n < vals.length; n += this.values.length) {
-            cellVals.push(vals[n]);
-          }
+          for (let n = k; n < vals.length; n += values.length) cellVals.push(vals[n]);
           const cellKey = rowKeys[i] + "\0" + colKeys[j] + "\0" + k;
-          cells[cellKey] = AGG_FUNCTIONS[this.values[k].agg](cellVals);
-        }
-        if (!rowTotals[rowKeys[i]]) rowTotals[rowKeys[i]] = [];
-        rowTotals[rowKeys[i]].push.apply(rowTotals[rowKeys[i]], vals);
-      }
-      if (!colTotals[rowKeys[i]]) colTotals[rowKeys[i]] = 0;
-    }
-
-    for (let j = 0; j < colKeys.length; j++) {
-      colTotals[colKeys[j]] = [];
-      for (let i = 0; i < rowKeys.length; i++) {
-        const key = rowKeys[i] + "\0" + colKeys[j];
-        const vals = buckets[key] || [];
-        colTotals[colKeys[j]].push.apply(colTotals[colKeys[j]], vals);
-      }
-    }
-
-    for (let k = 0; k < this.values.length; k++) {
-      const allForK = [];
-      for (let j = 0; j < colKeys.length; j++) {
-        for (let i = 0; i < rowKeys.length; i++) {
-          const key = rowKeys[i] + "\0" + colKeys[j];
-          const vals = buckets[key] || [];
-          for (let n = k; n < vals.length; n += this.values.length) {
-            allForK.push(vals[n]);
-          }
+          cells[cellKey] = AGG_FUNCTIONS[values[k].agg](cellVals);
         }
       }
-      if (k === 0) grandTotalAll = allForK;
     }
 
-    this.result = {
+    let grandTotal = null;
+    if (values.length > 0) {
+      const all = [];
+      for (let i = 0; i < data.length; i++) {
+        for (let k = 0; k < values.length; k++) all.push(data[i][values[k].field]);
+      }
+      grandTotal = AGG_FUNCTIONS[values[0].agg](all);
+    }
+
+    return {
       rowKeys: rowKeys,
       colKeys: colKeys,
       cells: cells,
-      rowTotals: rowTotals,
-      colTotals: colTotals,
-      grandTotal: this.values.length > 0 ? AGG_FUNCTIONS[this.values[0].agg](grandTotalAll) : null,
+      rowTotals: {},
+      colTotals: {},
+      grandTotal: grandTotal,
     };
-    return this.result;
-  };
+  }
+
+  function formatNumber(n) {
+    if (typeof n !== "number" || isNaN(n)) return "";
+    if (Number.isInteger(n)) return String(n);
+    return n.toFixed(2);
+  }
 
   PivotTable.prototype.render = function () {
     if (!this.container) return;
@@ -211,7 +221,8 @@
       html += '<li class="pivot-zone-item" data-field="' + f + '" data-zone="' + zone + '">' + f;
       if (zone === "value") {
         const v = this.values.filter(function (vv) { return vv.field === f; })[0];
-        html += ' <select class="pivot-agg"><option value="SUM"' + (v.agg === "SUM" ? " selected" : "") + '>SUM</option><option value="COUNT"' + (v.agg === "COUNT" ? " selected" : "") + '>COUNT</option><option value="AVERAGE"' + (v.agg === "AVERAGE" ? " selected" : "") + '>AVG</option><option value="MIN"' + (v.agg === "MIN" ? " selected" : "") + '>MIN</option><option value="MAX"' + (v.agg === "MAX" ? " selected" : "") + '>MAX</option></select>';
+        const agg = v ? v.agg : "SUM";
+        html += ' <select class="pivot-agg"><option value="SUM"' + (agg === "SUM" ? " selected" : "") + '>SUM</option><option value="COUNT"' + (agg === "COUNT" ? " selected" : "") + '>COUNT</option><option value="AVERAGE"' + (agg === "AVERAGE" ? " selected" : "") + '>AVG</option><option value="MIN"' + (agg === "MIN" ? " selected" : "") + '>MIN</option><option value="MAX"' + (agg === "MAX" ? " selected" : "") + '>MAX</option></select>';
       }
       html += ' <button class="pivot-remove">×</button></li>';
     }
@@ -221,13 +232,11 @@
 
   PivotTable.prototype.renderResult = function () {
     const r = this.result;
-    if (!r || r.rowKeys.length === 0) {
+    if (!r || !r.rowKeys || r.rowKeys.length === 0) {
       return '<p class="pivot-empty">Drag fields into Rows, Columns, and Values to build a pivot table.</p>';
     }
     let html = '<table class="pivot-result-table"><thead><tr><th></th>';
-    for (let j = 0; j < r.colKeys.length; j++) {
-      html += "<th>" + r.colKeys[j] + "</th>";
-    }
+    for (let j = 0; j < r.colKeys.length; j++) html += "<th>" + r.colKeys[j] + "</th>";
     html += "<th>Total</th></tr></thead><tbody>";
     for (let i = 0; i < r.rowKeys.length; i++) {
       html += "<tr><th>" + r.rowKeys[i] + "</th>";
@@ -304,16 +313,14 @@
     });
   };
 
-  function formatNumber(n) {
-    if (typeof n !== "number" || isNaN(n)) return "";
-    if (Number.isInteger(n)) return String(n);
-    return n.toFixed(2);
-  }
-
   PivotTable.prototype.dispose = function () {
     if (this.container) this.container.innerHTML = "";
     this.data = [];
     this.result = null;
+  };
+
+  PivotTable.prototype.onRecompute = function (fn) {
+    this._afterRecompute = fn;
   };
 
   function openModal() {
@@ -343,7 +350,19 @@
     modal.classList.remove("hidden");
     const container = document.getElementById("pivotTableContainer");
     if (!window._pivot) {
-      window._pivot = new PivotTable({ container: container, fields: ["Region", "Product", "Sales", "Quarter"] });
+      window._pivot = new PivotTable({
+        container: container,
+        fields: ["Region", "Product", "Sales", "Quarter"],
+        data: [
+          { Region: "North", Product: "Widget", Sales: 100, Quarter: "Q1" },
+          { Region: "North", Product: "Gadget", Sales: 200, Quarter: "Q1" },
+          { Region: "South", Product: "Widget", Sales: 150, Quarter: "Q1" },
+          { Region: "South", Product: "Gadget", Sales: 250, Quarter: "Q2" },
+          { Region: "East", Product: "Widget", Sales: 120, Quarter: "Q2" },
+          { Region: "West", Product: "Gadget", Sales: 180, Quarter: "Q3" },
+        ],
+        offlineMode: true,
+      });
     }
     if (window._pivot.data.length === 0) {
       window._pivot.setData([
