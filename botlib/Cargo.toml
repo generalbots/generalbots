@@ -11,12 +11,13 @@ categories = ["api-bindings", "web-programming"]
 
 [features]
 default = ["database", "i18n"]
-full = ["database", "http-client", "validation", "resilience", "i18n"]
+full = ["database", "http-client", "validation", "resilience", "i18n", "sqlite"]
 database = ["i18n", "dep:diesel"]
 http-client = ["dep:reqwest"]
 validation = []
 resilience = []
 i18n = ["dep:rust-embed"]
+sqlite = ["dep:rusqlite"]
 
 [dependencies]
 # Core
@@ -39,8 +40,12 @@ reqwest = { workspace = true, features = ["json", "rustls-tls"], optional = true
 # Optional: i18n
 rust-embed = { workspace = true, optional = true, features = ["debug-embed"] }
 
+# Optional: SQLite driver for non-Linux platforms
+rusqlite = { version = "0.32", optional = true }
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }
+rusqlite = { version = "0.32" }
 
 [lints]
 workspace = true

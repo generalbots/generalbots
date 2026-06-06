@@ -1,0 +1,66 @@
+.bio-container{display:flex;flex-direction:column;height:100%;background:var(--bg,#0f172a);color:var(--text,#f8fafc);overflow:hidden}
+.bio-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-color,#334155);background:var(--bg-secondary,#1e293b);flex-shrink:0}
+.bio-header h1{font-size:20px;font-weight:600;margin:0}
+.bio-header-actions{display:flex;gap:8px}
+.bio-btn{padding:8px 14px;display:inline-flex;align-items:center;gap:6px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:6px;color:var(--text-primary,#f8fafc);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease}
+.bio-btn:hover{border-color:var(--accent,#d4f505);color:var(--accent,#d4f505)}
+.bio-btn-primary{background:var(--accent,#d4f505);color:var(--bg);border-color:var(--accent,#d4f505)}
+.bio-btn-primary:hover{filter:brightness(1.1);color:var(--bg)}
+.bio-btn-success{background:#22c55e;color:#fff;border-color:#22c55e}
+.bio-btn-success:hover{filter:brightness(1.1);color:#fff}
+.bio-btn-danger{background:transparent;border-color:#ef4444;color:#ef4444}
+.bio-btn-danger:hover{background:#ef4444;color:#fff}
+.bio-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-color,#334155);flex-shrink:0}
+.bio-stat-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.bio-stat-label{font-size:11px;color:var(--text-secondary,#94a3b8);text-transform:uppercase;letter-spacing:.5px}
+.bio-stat-value{font-size:20px;font-weight:700}
+.bio-stat-value.green{color:#22c55e}.bio-stat-value.blue{color:#3b82f6}.bio-stat-value.yellow{color:#fbbf24}.bio-stat-value.purple{color:#a855f7}
+.bio-tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--border-color,#334155);flex-shrink:0;overflow-x:auto}
+.bio-tab{padding:10px 16px;background:transparent;border:none;color:var(--text-secondary,#94a3b8);font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s ease;white-space:nowrap}
+.bio-tab:hover{color:var(--text-primary,#f8fafc)}
+.bio-tab.active{color:var(--accent,#d4f505);border-bottom-color:var(--accent,#d4f505)}
+.bio-content{flex:1;overflow-y:auto;padding:20px}
+.bio-panel{display:none}
+.bio-panel.active{display:block}
+.bio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.bio-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;overflow:hidden}
+.bio-card-header{padding:12px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;justify-content:space-between;align-items:center}
+.bio-card-title{font-size:14px;font-weight:600}
+.bio-card-body{padding:12px 16px}
+.bio-card-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px}
+.bio-card-row .label{color:var(--text-secondary,#94a3b8);text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+.bio-card-actions{padding:12px 16px;border-top:1px solid var(--border-color,#334155);display:flex;gap:8px;justify-content:flex-end}
+.bio-badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:uppercase}
+.bio-badge.active,.bio-badge.verified{background:rgba(34,197,94,.15);color:#22c55e}
+.bio-badge.pending{background:rgba(251,191,36,.15);color:#fbbf24}
+.bio-badge.failed,.bio-badge.rejected{background:rgba(239,68,68,.15);color:#ef4444}
+.bio-badge.expiring{background:rgba(251,191,36,.15);color:#fbbf24}
+.bio-score-bar{height:6px;background:var(--bg-tertiary,#334155);border-radius:3px;overflow:hidden;margin-top:4px}
+.bio-score-fill{height:100%;transition:width .3s ease}
+.bio-score-fill.high{background:#22c55e}
+.bio-score-fill.medium{background:#fbbf24}
+.bio-score-fill.low{background:#ef4444}
+.bio-liveness-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bio-liveness-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;padding:20px}
+.bio-liveness-card h3{font-size:14px;font-weight:600;margin:0 0 12px 0}
+.bio-liveness-status{padding:8px 12px;background:var(--bg-tertiary,#334155);border-radius:4px;font-size:12px;font-weight:500;display:inline-block;margin-bottom:12px}
+.bio-liveness-status.active{background:rgba(34,197,94,.15);color:#22c55e}
+.bio-liveness-frame{aspect-ratio:4/3;background:var(--bg-tertiary,#334155);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.bio-liveness-actions{display:flex;gap:8px;margin-bottom:16px}
+.bio-liveness-score{display:flex;align-items:center;gap:12px;font-size:12px}
+.bio-liveness-score .bio-score-bar{flex:1;height:8px}
+.bio-liveness-score span:last-child{font-weight:600;color:var(--accent,#d4f505);min-width:40px;text-align:right}
+.bio-list-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-color,#334155);font-size:13px}
+.bio-list-row:last-child{border-bottom:none}
+.bio-list-value{font-weight:600;color:var(--accent,#d4f505)}
+.bio-table-wrapper{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;overflow:hidden}
+.bio-table{width:100%;border-collapse:collapse;font-size:13px}
+.bio-table thead{background:var(--bg-tertiary,#334155)}
+.bio-table th{padding:10px 12px;text-align:left;font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase;letter-spacing:.5px;font-size:11px}
+.bio-table td{padding:10px 12px;border-top:1px solid var(--border-color,#334155);color:var(--text-primary,#f8fafc)}
+.bio-table tbody tr:hover{background:var(--bg-tertiary,#334155)}
+.bio-empty{text-align:center;padding:30px 20px;color:var(--text-secondary,#94a3b8);font-size:13px}
+.bio-empty-icon{font-size:36px;margin-bottom:8px;opacity:.4}
+.bio-empty h3{font-size:14px;margin:0 0 4px 0;font-weight:600;color:var(--text-primary,#f8fafc)}
+.bio-empty p{margin:0;font-size:12px}
+@media(max-width:900px){.bio-liveness-layout{grid-template-columns:1fr}.bio-stats{grid-template-columns:repeat(2,1fr)}}

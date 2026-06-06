@@ -226,8 +226,8 @@ pub async fn index(
         let path_parts: Vec<&str> = path.split('/').collect();
         let fs_path = if path_parts.len() > 1 {
             let mut start_idx = 1;
-            let known_dirs = ["suite", "js", "css", "vendor", "assets", "public", "partials", "settings", "auth", "about", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe"];
-            let suite_dirs = ["drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe"];
+            let known_dirs = ["suite", "js", "css", "vendor", "assets", "public", "partials", "settings", "auth", "about", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud"];
+            let suite_dirs = ["drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud"];
 
             // If the first segment is already a known dir (suite subdirectory), prepend "suite/"
             if known_dirs.contains(&path_parts[1]) {
