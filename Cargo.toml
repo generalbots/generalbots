@@ -97,6 +97,14 @@ members = [
   "botserver/crates/botdesktop",
 ]
 
+[workspace.package]
+version = "6.3.1"
+edition = "2021"
+license = "MIT"
+authors = ["Pragmatismo <a404010@pragmatismo.com.br>"]
+description = "General Bots BotServer monorepo."
+publish = false
+
 [workspace.lints.rust]
 
 [workspace.lints.clippy]
