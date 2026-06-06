@@ -135,8 +135,10 @@ impl KbIndexer {
         self.db_pool.as_ref()
     }
 
-    pub fn get_pool(&self) -> DbPool {
-        self.db_pool.clone().unwrap_or_else(|| panic!("DbPool not available"))
+    pub fn get_pool(&self) -> Result<DbPool, anyhow::Error> {
+        self.db_pool
+            .clone()
+            .ok_or_else(|| anyhow::anyhow!("DbPool not available"))
     }
 
     pub async fn check_qdrant_health(&self) -> Result<bool> {
