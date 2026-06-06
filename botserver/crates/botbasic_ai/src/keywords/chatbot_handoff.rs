@@ -1,13 +1,17 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use botbasic_types::BasicRuntime;
 use botbasic_types::UserSession;
 use chrono::Utc;
-use diesel::sql_types::{BigInt, Nullable, Text, Timestamptz};
-use diesel::QueryableByName;
 use rhai::{Dynamic, Engine, EvalAltResult};
 use serde_json::{json, Value};
-use std::sync::Arc;
-use std::time::Duration;
 use uuid::Uuid;
+
+use super::chatbot_handoff_storage::{
+    append_event, ensure_schema, fetch_handoff, insert_queue_entry, queue_position,
+    set_agent_presence, update_handoff_status,
+};
 
 /// Chatbot handoff BASIC keywords for issue #621.
 ///
@@ -26,6 +30,9 @@ pub fn register_chatbot_handoff_keywords(
     user: UserSession,
     engine: &mut Engine,
 ) {
+    if let Err(e) = ensure_default_schema(&state) {
+        eprintln!("chatbot_handoff: bootstrap schema failed: {e}");
+    }
     register_transfer_to_human(state.clone(), user.clone(), engine);
     register_escalate(state.clone(), user.clone(), engine);
     register_request_agent(state.clone(), user.clone(), engine);
@@ -33,188 +40,12 @@ pub fn register_chatbot_handoff_keywords(
     register_complete_handoff(state, user, engine);
 }
 
+fn ensure_default_schema(state: &Arc<dyn BasicRuntime>) -> Result<(), String> {
+    ensure_schema(state.db_pool())
+}
+
 fn runtime_error(message: impl Into<String>) -> Box<EvalAltResult> {
     Box::new(EvalAltResult::ErrorRuntime(message.into().into(), rhai::Position::NONE))
-}
-
-fn ensure_schema(pool: &botlib::db_pool::DbPool) -> Result<(), String> {
-    let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
-    diesel::sql_query(
-        "CREATE TABLE IF NOT EXISTS handoff_queue (
-            id UUID PRIMARY KEY,
-            bot_id UUID NOT NULL,
-            session_id UUID,
-            user_id UUID,
-            topic TEXT NOT NULL,
-            reason TEXT,
-            priority TEXT NOT NULL DEFAULT 'normal',
-            status TEXT NOT NULL DEFAULT 'queued',
-            agent_id UUID,
-            metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )",
-    )
-    .execute(&mut conn)
-    .map_err(|e| format!("handoff_queue: {e}"))?;
-    diesel::sql_query(
-        "CREATE TABLE IF NOT EXISTS handoff_events (
-            id UUID PRIMARY KEY,
-            handoff_id UUID NOT NULL,
-            kind TEXT NOT NULL,
-            payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-            actor_id UUID,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )",
-    )
-    .execute(&mut conn)
-    .map_err(|e| format!("handoff_events: {e}"))?;
-    Ok(())
-}
-
-#[derive(QueryableByName, Debug)]
-struct QueuePosition {
-    #[diesel(sql_type = BigInt)]
-    position: i64,
-}
-
-#[derive(QueryableByName, Debug)]
-struct AgentId {
-    #[diesel(sql_type = Nullable<diesel::sql_types::Uuid>)]
-    agent_id: Option<Uuid>,
-}
-
-fn queue_position(
-    pool: &botlib::db_pool::DbPool,
-    bot_id: Uuid,
-    handoff_id: Uuid,
-) -> Result<i64, String> {
-    let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
-    let rows: Vec<QueuePosition> = diesel::sql_query(
-        "SELECT COUNT(*) AS position
-           FROM handoff_queue
-          WHERE bot_id = $1
-            AND status = 'queued'
-            AND created_at <= (SELECT created_at FROM handoff_queue WHERE id = $2)",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .bind::<diesel::sql_types::Uuid, _>(handoff_id)
-    .get_results(&mut conn)
-    .map_err(|e| format!("queue position: {e}"))?;
-    Ok(rows.first().map(|r| r.position).unwrap_or(1))
-}
-
-fn insert_queue_entry(
-    pool: &botlib::db_pool::DbPool,
-    bot_id: Uuid,
-    session_id: Option<Uuid>,
-    user_id: Option<Uuid>,
-    topic: &str,
-    reason: Option<&str>,
-    priority: &str,
-    metadata: &Value,
-) -> Result<Uuid, String> {
-    ensure_schema(pool)?;
-    let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
-    let id = Uuid::new_v4();
-    let body = serde_json::to_string(metadata).map_err(|e| format!("Serialize: {e}"))?;
-    diesel::sql_query(
-        "INSERT INTO handoff_queue
-            (id, bot_id, session_id, user_id, topic, reason, priority, status, metadata)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'queued', $8::jsonb)",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(id)
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(session_id)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(user_id)
-    .bind::<diesel::sql_types::Text, _>(topic)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(reason)
-    .bind::<diesel::sql_types::Text, _>(priority)
-    .bind::<diesel::sql_types::Text, _>(body)
-    .execute(&mut conn)
-    .map_err(|e| format!("insert queue: {e}"))?;
-    Ok(id)
-}
-
-fn update_handoff_status(
-    pool: &botlib::db_pool::DbPool,
-    handoff_id: Uuid,
-    status: &str,
-    agent_id: Option<Uuid>,
-) -> Result<(), String> {
-    let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
-    diesel::sql_query(
-        "UPDATE handoff_queue
-            SET status = $1,
-                agent_id = COALESCE($2, agent_id),
-                updated_at = NOW()
-          WHERE id = $3",
-    )
-    .bind::<diesel::sql_types::Text, _>(status)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(agent_id)
-    .bind::<diesel::sql_types::Uuid, _>(handoff_id)
-    .execute(&mut conn)
-    .map_err(|e| format!("update handoff: {e}"))?;
-    Ok(())
-}
-
-fn fetch_handoff(
-    pool: &botlib::db_pool::DbPool,
-    handoff_id: Uuid,
-) -> Result<Option<Uuid>, String> {
-    let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
-    let rows: Vec<AgentId> = diesel::sql_query(
-        "SELECT agent_id FROM handoff_queue WHERE id = $1",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(handoff_id)
-    .get_results(&mut conn)
-    .map_err(|e| format!("fetch handoff: {e}"))?;
-    Ok(rows.first().and_then(|r| r.agent_id))
-}
-
-fn append_event(
-    pool: &botlib::db_pool::DbPool,
-    handoff_id: Uuid,
-    kind: &str,
-    payload: &Value,
-    actor_id: Option<Uuid>,
-) -> Result<(), String> {
-    let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
-    let body = serde_json::to_string(payload).map_err(|e| format!("Serialize: {e}"))?;
-    diesel::sql_query(
-        "INSERT INTO handoff_events (id, handoff_id, kind, payload, actor_id)
-         VALUES ($1, $2, $3, $4::jsonb, $5)",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
-    .bind::<diesel::sql_types::Uuid, _>(handoff_id)
-    .bind::<diesel::sql_types::Text, _>(kind)
-    .bind::<diesel::sql_types::Text, _>(body)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(actor_id)
-    .execute(&mut conn)
-    .map_err(|e| format!("append event: {e}"))?;
-    Ok(())
-}
-
-fn set_agent_presence(state: &Arc<dyn BasicRuntime>, agent_id: Uuid, online: bool) {
-    if let Some(client) = state.cache_client() {
-        let key = format!("presence:{agent_id}");
-        let value = if online { "online" } else { "offline" };
-        let client_clone = Arc::clone(&client);
-        let _ = std::thread::Builder::new()
-            .name("presence".into())
-            .spawn(move || {
-                if let Ok(mut conn) = client_clone.get_connection() {
-                    use redis::Commands;
-                    if online {
-                        let _: Result<(), _> = conn.set_ex(&key, value, 300);
-                    } else {
-                        let _: Result<(), _> = conn.del(&key);
-                    }
-                }
-            })
-            .map(|h| h.join().ok())
-            .ok();
-    }
 }
 
 fn execute_with_timeout<F, T>(work: F) -> Result<T, String>
