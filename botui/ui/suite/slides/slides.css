@@ -222,6 +222,14 @@
     bottom: 4px;
 }
 
+.color-indicator-text {
+    background: #000000;
+}
+
+.color-indicator-fill {
+    background: #ffffff;
+}
+
 .color-input {
     position: absolute;
     opacity: 0;
