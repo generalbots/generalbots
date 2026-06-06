@@ -283,22 +283,6 @@
     });
 
     document
-      .getElementById("closeShareModal")
-      ?.addEventListener("click", () => hideModal("shareModal"));
-    document
-      .getElementById("closeImageModal")
-      ?.addEventListener("click", () => hideModal("imageModal"));
-    document
-      .getElementById("closeShapeModal")
-      ?.addEventListener("click", () => hideModal("shapeModal"));
-    document
-      .getElementById("closeNotesModal")
-      ?.addEventListener("click", () => hideModal("notesModal"));
-    document
-      .getElementById("closeBackgroundModal")
-      ?.addEventListener("click", () => hideModal("backgroundModal"));
-
-    document
       .getElementById("insertImageBtn")
       ?.addEventListener("click", insertImage);
     document
