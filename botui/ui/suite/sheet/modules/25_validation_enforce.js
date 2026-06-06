@@ -8,8 +8,13 @@
  * For list-validators, draws a <select> dropdown overlay that appears
  * when the user starts editing a validated cell.
  *
+ * Local evaluation is the source of truth for instant UX (no round
+ * trip). verify() is an async second opinion: it calls
+ * SheetAPI.validateCell so the backend can re-run custom/formula
+ * validators, and the result is merged back into the local enforcement.
+ *
  * Public API: window.SheetValidationEnforce = {
- *   enforce, attach, showDropdown, hideDropdown, getValidators
+ *   enforce, verify, attach, showDropdown, hideDropdown, getValidators
  * }.
  */
 
@@ -26,6 +31,13 @@
     if (!engine || !engine.getValidationForRange) return null;
     const ref = ((window.SheetFormulaEngine || {}).indexToColName || function () { return ""; })(col) + (row + 1);
     return engine.getValidationForRange(ref);
+  }
+  function getSheetId() {
+    const el = document.getElementById("sheetName");
+    return (el && el.value) ? el.value : null;
+  }
+  function getCellRef(row, col) {
+    return ((window.SheetFormulaEngine || {}).indexToColName || function () { return ""; })(col) + (row + 1);
   }
 
   function tooltip() {
@@ -121,6 +133,18 @@
     return { ok: false, value, error: err };
   }
 
+  function verify(row, col, value) {
+    const API = window.SheetAPI;
+    const sheetId = getSheetId();
+    if (!API || !sheetId) return Promise.resolve(null);
+    const ref = getCellRef(row, col);
+    return API.validateCell(sheetId, ref, value).then(function (r) {
+      if (!r || !r.ok) return null;
+      const data = r.data || {};
+      return { ok: data.valid !== false, error: data.error || null, source: "server" };
+    }).catch(function () { return null; });
+  }
+
   function dropdownOverlay() {
     let d = document.getElementById("sheetValidationDropdown");
     if (d) return d;
@@ -214,5 +238,5 @@
     setTimeout(attach, 50);
   }
 
-  window.SheetValidationEnforce = { enforce, attach, showDropdown, hideDropdown, getValidators, evaluate };
+  window.SheetValidationEnforce = { enforce, verify, attach, showDropdown, hideDropdown, getValidators, evaluate };
 })();

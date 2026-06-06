@@ -1,14 +1,19 @@
 "use strict";
 
 /**
- * Module 26: Filter dropdowns in column headers for Spreadsheet (P0).
- * Replaces the simple toggleFilter with a real <select> overlay attached
- * to the column header. The dropdown contains a search input, a Sort
- * Asc/Desc pair, a Top-N picker, and a checkbox list of unique values
- * with a Blanks option. Multi-select state is preserved per column.
+ * Module 26: Filter dropdowns for Spreadsheet (P1+ feature).
+ * Opens a checkbox-list overlay anchored to a column header. Renders
+ * unique values from the column, plus A→Z / Z→A sort buttons, top-N
+ * picker, blank toggle. Applies the resulting filter + sort to the
+ * worksheet's in-memory state (filter.criteria, sortOrder[col]).
+ *
+ * On apply, the criterion and sort order are sent to the backend via
+ * SheetAPI.filter / SheetAPI.sortRange so that other sessions and
+ * re-opens see the same view. The local state is the source of truth
+ * for instant UX; the server is the source of truth for persistence.
  *
  * Public API: window.SheetFilterDropdowns = {
- *   open, close, applyToColumn, clearColumn, getState, getActiveFilters
+ *   open, close, applyToColumn, clearColumn, getActiveFilters, ...
  * }.
  */
 
@@ -157,8 +162,14 @@
     return b;
   }
 
-  function setSort(col, dir) { _state[col].sort = dir; }
-  function setTop(col, n) { _state[col].top = n; }
+  function setSort(col, dir) {
+    if (!_state[col]) _state[col] = { selected: {}, sort: null, top: null, blank: true };
+    _state[col].sort = dir;
+  }
+  function setTop(col, n) {
+    if (!_state[col]) _state[col] = { selected: {}, sort: null, top: null, blank: true };
+    _state[col].top = n;
+  }
 
   function applyToColumn(col) {
     const ws = getSheet();
@@ -194,6 +205,7 @@
     } else if (typeof window.renderGrid === "function") {
       window.renderGrid();
     }
+    syncToServer(col, ws);
     return true;
   }
 
@@ -201,7 +213,39 @@
     if (_state[col]) delete _state[col];
     const ws = getSheet();
     if (ws && ws.filter && ws.filter.criteria) delete ws.filter.criteria[col];
+    if (ws && ws.sortOrder) delete ws.sortOrder[col];
     if (typeof window.SheetRender === "object" && window.SheetRender.repaint) window.SheetRender.repaint();
+    syncClearToServer(col, ws);
+  }
+
+  function getSheetId() {
+    const el = document.getElementById("sheetName");
+    return (el && el.value) ? el.value : null;
+  }
+
+  function syncToServer(col, ws) {
+    const API = window.SheetAPI;
+    const sheetId = getSheetId();
+    if (!API || !sheetId || !ws) return;
+    const st = _state[col] || {};
+    const allowed = Object.keys(st.selected || {}).filter(function (k) { return st.selected[k] !== false; });
+    const criterion = {
+      column: col,
+      allowed: allowed,
+      blank: st.blank !== false,
+      sort: st.sort || null,
+    };
+    API.filter(sheetId, null, criterion).catch(function () { /* offline ok; local state is source of truth for instant UX */ });
+    if ((st.sort === "asc" || st.sort === "desc") && ws.sortOrder && ws.sortOrder[col]) {
+      API.sortRange(sheetId, null, col, st.sort).catch(function () {});
+    }
+  }
+
+  function syncClearToServer(col, ws) {
+    const API = window.SheetAPI;
+    const sheetId = getSheetId();
+    if (!API || !sheetId) return;
+    API.clearFilter(sheetId).catch(function () {});
   }
 
   function getActiveFilters() {
