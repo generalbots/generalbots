@@ -6,20 +6,20 @@ use crate::handlers::{
 handle_add_comment, handle_add_external_link, handle_add_note, handle_array_formula,
 handle_clear_filter, handle_conditional_format, handle_create_chart, handle_create_named_range,
 handle_data_validation, handle_delete_array_formula, handle_delete_chart, handle_delete_comment,
-handle_delete_named_range, handle_delete_sheet, handle_evaluate_formula, handle_export_sheet,
-handle_filter_data, handle_format_cells, handle_freeze_panes, handle_get_sheet_by_id,
-handle_import_sheet, handle_list_comments, handle_list_external_links, handle_list_named_ranges,
-handle_list_sheets, handle_load_from_drive, handle_load_sheet, handle_lock_cells,
-handle_merge_cells, handle_new_sheet, handle_protect_sheet, handle_refresh_external_link,
-handle_remove_external_link, handle_reply_comment, handle_resolve_comment, handle_save_sheet,
-handle_search_sheets, handle_share_sheet, handle_sheet_ai, handle_sort_range,
-handle_unmerge_cells, handle_unprotect_sheet, handle_update_cell, handle_update_named_range,
-handle_validate_cell,
+handle_delete_named_range, handle_delete_sheet, handle_evaluate_formula, handle_export_named_ranges_csv,
+handle_export_sheet, handle_filter_data, handle_format_cells, handle_freeze_panes,
+handle_get_sheet_by_id, handle_import_named_ranges_csv, handle_import_sheet, handle_list_comments,
+handle_list_external_links, handle_list_named_ranges, handle_list_sheets, handle_load_from_drive,
+handle_load_sheet, handle_lock_cells, handle_merge_cells, handle_new_sheet, handle_pivot,
+handle_protect_sheet, handle_refresh_external_link, handle_remove_external_link,
+handle_reply_comment, handle_resolve_comment, handle_save_sheet, handle_search_sheets,
+handle_share_sheet, handle_sheet_ai, handle_sort_range, handle_unmerge_cells,
+handle_unprotect_sheet, handle_update_cell, handle_update_named_range, handle_validate_cell,
 };
 use botsheet_core::state::SheetState;
 use axum::{
-routing::{get, post},
-Router,
+    routing::{get, post},
+    Router,
 };
 use std::sync::Arc;
 
@@ -34,6 +34,7 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/cell", post(handle_update_cell))
         .route("/api/sheet/format", post(handle_format_cells))
         .route("/api/sheet/formula", post(handle_evaluate_formula))
+        .route("/api/sheet/pivot", post(handle_pivot))
         .route("/api/sheet/export", post(handle_export_sheet))
         .route("/api/sheet/share", post(handle_share_sheet))
         .route("/api/sheet/new", get(handle_new_sheet))
@@ -71,6 +72,8 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/named-range/update", post(handle_update_named_range))
         .route("/api/sheet/named-range/delete", post(handle_delete_named_range))
         .route("/api/sheet/named-ranges", get(handle_list_named_ranges))
+        .route("/api/sheet/named-ranges/export", get(handle_export_named_ranges_csv))
+        .route("/api/sheet/named-ranges/import", post(handle_import_named_ranges_csv))
         .route("/api/sheet/:sheet_id/presence", get(handle_get_presence))
         .route("/api/sheet/:sheet_id/typing", get(handle_get_typing))
         .route("/api/sheet/:sheet_id/selections", get(handle_get_selections))

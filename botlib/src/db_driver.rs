@@ -68,9 +68,10 @@ impl DbDriver for SqliteDriver {
     fn dialect(&self) -> SqlDialect {
         SqlDialect::Sqlite
     }
-    fn connect(&self, url: &str) -> Result<Box<dyn DbConnection>, DbError> {
-        let conn = rusqlite_in_memory::open(url).map_err(DbError::Connection)?;
-        Ok(Box::new(conn))
+    fn connect(&self, _url: &str) -> Result<Box<dyn DbConnection>, DbError> {
+        Err(DbError::UnsupportedDialect(
+            "SqliteDriver::connect is a stub; production path uses libpq via diesel".into(),
+        ))
     }
 }
 

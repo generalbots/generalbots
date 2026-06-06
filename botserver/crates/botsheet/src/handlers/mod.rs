@@ -5,6 +5,8 @@ pub mod cell_ops;
 pub mod comments;
 pub mod crud;
 pub mod data_ops;
+pub mod named_ranges_csv;
+pub mod pivot;
 pub mod validation;
 
 pub use advanced::{
@@ -34,4 +36,8 @@ pub use data_ops::{
     handle_clear_filter, handle_conditional_format, handle_create_chart, handle_delete_chart,
     handle_filter_data, handle_sort_range,
 };
+pub use named_ranges_csv::{
+    handle_export_named_ranges_csv, handle_import_named_ranges_csv,
+};
+pub use pivot::handle_pivot;
 pub use validation::{handle_add_note, handle_data_validation, handle_validate_cell};

@@ -412,3 +412,47 @@ pub struct SheetAiResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PivotFieldAgg {
+    pub field: String,
+    #[serde(default = "default_agg")]
+    pub agg: String,
+}
+
+fn default_agg() -> String {
+    "SUM".to_string()
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PivotRequest {
+    pub sheet_id: String,
+    #[serde(default)]
+    pub source_range: Option<String>,
+    #[serde(default)]
+    pub rows: Vec<String>,
+    #[serde(default)]
+    pub cols: Vec<String>,
+    #[serde(default)]
+    pub values: Vec<PivotFieldAgg>,
+    #[serde(default)]
+    pub filter: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PivotResult {
+    pub result: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NamedRangesExportResponse {
+    pub csv: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NamedRangesImportResponse {
+    pub added: u32,
+    pub updated: u32,
+    pub errors: Vec<String>,
+    pub entries: Vec<super::core::NamedRange>,
+}
