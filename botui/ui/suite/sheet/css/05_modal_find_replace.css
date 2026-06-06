@@ -1,0 +1,367 @@
+/* =============================================================================
+ * 05 MODAL FIND REPLACE — Find/replace modal, conditional formatting modal
+ * Split from sheet.css on 2026-06-06 (Plan A cleanup, AGENTS.md <450 line rule)
+ * =============================================================================
+/* =============================================================================
+   CHARTS & IMAGES DISPLAY
+   ============================================================================= */
+
+.charts-container,
+.images-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.chart-wrapper {
+    position: absolute;
+    background: var(--sentient-bg-primary, #ffffff);
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-md, 8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+    overflow: hidden;
+}
+
+.chart-wrapper:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.chart-wrapper.selected {
+    border-color: var(--sentient-accent, #4285f4);
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    border-bottom: 1px solid var(--sentient-border, #e0e0e0);
+    cursor: move;
+}
+
+.chart-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-primary, #212121);
+    margin: 0;
+}
+
+.chart-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.chart-actions button {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--sentient-text-secondary, #666);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-actions button:hover {
+    background: var(--sentient-bg-tertiary, #e0e0e0);
+}
+
+.chart-content {
+    padding: 16px;
+    min-height: 200px;
+}
+
+.chart-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.chart-bar-container {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    height: 100%;
+    padding: 8px;
+    gap: 8px;
+}
+
+.chart-bar {
+    flex: 1;
+    background: var(--sentient-accent, #4285f4);
+    border-radius: 4px 4px 0 0;
+    min-width: 20px;
+    max-width: 60px;
+    transition: height 0.3s ease;
+}
+
+.chart-bar:nth-child(2) {
+    background: #34a853;
+}
+
+.chart-bar:nth-child(3) {
+    background: #fbbc04;
+}
+
+.chart-bar:nth-child(4) {
+    background: #ea4335;
+}
+
+.chart-bar:nth-child(5) {
+    background: #9c27b0;
+}
+
+.chart-line-container {
+    position: relative;
+    height: 100%;
+    padding: 8px;
+}
+
+.chart-line {
+    fill: none;
+    stroke: var(--sentient-accent, #4285f4);
+    stroke-width: 2;
+}
+
+.chart-line-point {
+    fill: var(--sentient-accent, #4285f4);
+}
+
+.chart-pie-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+    font-size: 11px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.image-wrapper {
+    position: absolute;
+    border: 1px solid transparent;
+    border-radius: var(--sentient-radius-sm, 4px);
+    pointer-events: auto;
+    cursor: move;
+    overflow: hidden;
+}
+
+.image-wrapper:hover {
+    border-color: var(--sentient-border, #e0e0e0);
+}
+
+.image-wrapper.selected {
+    border-color: var(--sentient-accent, #4285f4);
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.image-resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--sentient-accent, #4285f4);
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: se-resize;
+    bottom: -5px;
+    right: -5px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.image-wrapper:hover .image-resize-handle,
+.image-wrapper.selected .image-resize-handle {
+    opacity: 1;
+}
+
+/* =============================================================================
+   FIND & REPLACE MODAL
+   ============================================================================= */
+
+.find-replace-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.find-replace-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-secondary, #666);
+}
+
+.find-replace-group input {
+    padding: 10px 12px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+}
+
+.find-replace-group input:focus {
+    outline: none;
+    border-color: var(--sentient-accent, #4285f4);
+}
+
+.find-replace-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--sentient-text-primary, #212121);
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--sentient-accent, #4285f4);
+}
+
+.find-results {
+    padding: 10px 12px;
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 13px;
+    color: var(--sentient-text-secondary, #666);
+    margin-bottom: 16px;
+}
+
+/* =============================================================================
+   CONDITIONAL FORMATTING MODAL
+   ============================================================================= */
+
+.cf-section {
+    margin-bottom: 16px;
+}
+
+.cf-section label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-secondary, #666);
+    margin-bottom: 6px;
+}
+
+.cf-section input,
+.cf-section select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+}
+
+.cf-section input:focus,
+.cf-section select:focus {
+    outline: none;
+    border-color: var(--sentient-accent, #4285f4);
+}
+
+.cf-values {
+    display: flex;
+    gap: 12px;
+}
+
+.cf-values input {
+    flex: 1;
+}
+
+.cf-style-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.cf-style-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cf-style-row label {
+    margin-bottom: 0;
+    min-width: 80px;
+}
+
+.cf-style-row input[type="color"] {
+    width: 40px;
+    height: 32px;
+    padding: 2px;
+    cursor: pointer;
+}
+
+.cf-style-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--sentient-accent, #4285f4);
+}
+
+.cf-preview {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+.cf-preview label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-secondary, #666);
+    margin-bottom: 8px;
+}
+
+.cf-preview-cell {
+    width: 120px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    background: #ffeb3b;
+}
+

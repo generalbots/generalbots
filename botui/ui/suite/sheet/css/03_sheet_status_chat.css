@@ -1,0 +1,373 @@
+/* =============================================================================
+ * 03 SHEET STATUS CHAT — Sheet tabs, status bar, chat panel
+ * Split from sheet.css on 2026-06-06 (Plan A cleanup, AGENTS.md <450 line rule)
+ * =============================================================================
+/* =============================================================================
+   SHEET TABS
+   ============================================================================= */
+
+.sheet-tabs-container {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+    height: 36px;
+    flex-shrink: 0;
+    gap: 4px;
+}
+
+.sheet-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow-x: auto;
+    flex: 1;
+}
+
+.sheet-tabs::-webkit-scrollbar {
+    height: 0;
+}
+
+.sheet-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: var(--sentient-bg-primary, #ffffff);
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    color: var(--sentient-text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.sheet-tab:hover {
+    background: var(--sentient-bg-hover, #e8e8e8);
+}
+
+.sheet-tab.active {
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+    border-color: var(--sentient-border, #e0e0e0);
+    border-bottom-color: var(--sentient-bg-primary, #ffffff);
+    margin-bottom: -1px;
+    font-weight: 500;
+}
+
+.tab-menu-btn {
+    padding: 2px 4px;
+    background: transparent;
+    border: none;
+    font-size: 10px;
+    color: var(--sentient-text-muted, #999);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.sheet-tab:hover .tab-menu-btn {
+    opacity: 1;
+}
+
+.btn-add-sheet {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    background: var(--sentient-bg-primary, #ffffff);
+    border-radius: var(--sentient-radius-sm, 4px);
+    color: var(--sentient-text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-add-sheet:hover {
+    background: var(--sentient-bg-hover, #e8e8e8);
+    color: var(--sentient-text-primary, #212121);
+}
+
+/* =============================================================================
+   STATUS BAR
+   ============================================================================= */
+
+.sheet-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px;
+    background: var(--sentient-bg-primary, #ffffff);
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+    font-size: 12px;
+    color: var(--sentient-text-secondary, #666);
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.status-left,
+.status-center,
+.status-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-zoom {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    background: var(--sentient-bg-primary, #ffffff);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sentient-text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-zoom:hover {
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    color: var(--sentient-text-primary, #212121);
+}
+
+/* =============================================================================
+   CHAT PANEL
+   ============================================================================= */
+
+.chat-panel {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    background: var(--sentient-bg-primary, #ffffff);
+    border-left: 1px solid var(--sentient-border, #e0e0e0);
+    flex-shrink: 0;
+    transition:
+        width 0.3s ease,
+        opacity 0.3s ease;
+}
+
+.chat-panel.collapsed {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+.chat-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(
+        135deg,
+        var(--sentient-accent, #4285f4),
+        #8e44ad
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.chat-title h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sentient-text-primary, #212121);
+}
+
+.chat-status {
+    font-size: 12px;
+    color: var(--sentient-text-muted, #999);
+}
+
+.chat-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--sentient-text-muted, #999);
+    border-radius: var(--sentient-radius-sm, 4px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.chat-close:hover {
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    color: var(--sentient-text-primary, #212121);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.chat-message.user {
+    align-items: flex-end;
+}
+
+.chat-message.assistant {
+    align-items: flex-start;
+}
+
+.message-bubble {
+    max-width: 90%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.chat-message.user .message-bubble {
+    background: var(--sentient-accent, #4285f4);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-message.assistant .message-bubble {
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    color: var(--sentient-text-primary, #212121);
+    border-bottom-left-radius: 4px;
+}
+
+.message-bubble p {
+    margin: 0 0 8px 0;
+}
+
+.message-bubble p:last-child {
+    margin-bottom: 0;
+}
+
+.message-bubble ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.message-bubble li {
+    margin: 4px 0;
+}
+
+.chat-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+.suggestion-btn {
+    padding: 6px 12px;
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: 16px;
+    font-size: 12px;
+    color: var(--sentient-text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.suggestion-btn:hover {
+    background: var(--sentient-bg-hover, #e8e8e8);
+    color: var(--sentient-text-primary, #212121);
+    border-color: var(--sentient-accent, #4285f4);
+}
+
+.chat-input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+.chat-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: 20px;
+    font-size: 13px;
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+    transition: border-color 0.15s ease;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: var(--sentient-accent, #4285f4);
+}
+
+.chat-input::placeholder {
+    color: var(--sentient-text-muted, #999);
+}
+
+.chat-send {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: var(--sentient-accent, #4285f4);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+    flex-shrink: 0;
+}
+
+.chat-send:hover {
+    background: var(--sentient-accent-hover, #3367d6);
+}
+
+.chat-toggle {
+    position: relative;
+}
+
+.chat-toggle.has-notification::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    background: #ea4335;
+    border-radius: 50%;
+}
+

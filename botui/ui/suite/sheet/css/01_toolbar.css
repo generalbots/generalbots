@@ -1,0 +1,287 @@
+/* =============================================================================
+ * 01 TOOLBAR — Toolbar, buttons, selects, collaborators
+ * Split from sheet.css on 2026-06-06 (Plan A cleanup, AGENTS.md <450 line rule)
+ * =============================================================================
+/* =============================================================================
+   MAIN LAYOUT
+   ============================================================================= */
+
+.sheet-app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+    font-family: var(
+        --sentient-font-family,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        sans-serif
+    );
+    overflow: hidden;
+}
+
+/* =============================================================================
+   TOOLBAR
+   ============================================================================= */
+
+.sheet-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--sentient-bg-primary, #ffffff);
+    border-bottom: 1px solid var(--sentient-border, #e0e0e0);
+    gap: 16px;
+    flex-shrink: 0;
+    min-height: 52px;
+}
+
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toolbar-left {
+    flex: 0 0 auto;
+    min-width: 200px;
+}
+
+.toolbar-center {
+    flex: 1;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 4px 0;
+}
+
+.toolbar-center::-webkit-scrollbar {
+    height: 4px;
+}
+
+.toolbar-center::-webkit-scrollbar-thumb {
+    background: var(--sentient-border, #e0e0e0);
+    border-radius: 2px;
+}
+
+.toolbar-right {
+    flex: 0 0 auto;
+    gap: 12px;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--sentient-border, #e0e0e0);
+    margin: 0 8px;
+    flex-shrink: 0;
+}
+
+.sheet-name-input {
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--sentient-text-primary, #212121);
+    padding: 6px 10px;
+    border-radius: var(--sentient-radius-sm, 4px);
+    width: 100%;
+    max-width: 250px;
+    transition: all 0.2s ease;
+}
+
+.sheet-name-input:hover {
+    background: var(--sentient-bg-secondary, #f5f5f5);
+}
+
+.sheet-name-input:focus {
+    outline: none;
+    border-color: var(--sentient-accent, #4285f4);
+    background: var(--sentient-bg-primary, #ffffff);
+}
+
+/* =============================================================================
+   BUTTONS
+   ============================================================================= */
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--sentient-text-secondary, #666);
+    border-radius: var(--sentient-radius-sm, 4px);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.btn-icon:hover {
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    color: var(--sentient-text-primary, #212121);
+}
+
+.btn-icon.active {
+    background: var(--sentient-accent, #4285f4);
+    color: white;
+}
+
+.btn-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.btn-icon strong,
+.btn-icon em,
+.btn-icon u,
+.btn-icon s {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--sentient-accent, #4285f4);
+    color: white;
+    border: none;
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.btn-primary:hover {
+    background: var(--sentient-accent-hover, #3367d6);
+}
+
+.btn-secondary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--sentient-text-primary, #212121);
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--sentient-bg-secondary, #f5f5f5);
+}
+
+/* =============================================================================
+   TOOLBAR SELECTS & COLORS
+   ============================================================================= */
+
+.toolbar-select {
+    padding: 6px 8px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.toolbar-select:hover {
+    border-color: var(--sentient-text-muted, #999);
+}
+
+.toolbar-select:focus {
+    outline: none;
+    border-color: var(--sentient-accent, #4285f4);
+}
+
+.font-family {
+    width: 110px;
+}
+
+.font-size {
+    width: 60px;
+}
+
+.color-btn {
+    position: relative;
+    overflow: visible;
+}
+
+.color-letter {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.color-indicator {
+    position: absolute;
+    bottom: 4px;
+    left: 6px;
+    right: 6px;
+    height: 3px;
+    background: #000000;
+    border-radius: 1px;
+}
+
+.bg-indicator {
+    background: #ffff00;
+}
+
+.color-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* =============================================================================
+   COLLABORATORS
+   ============================================================================= */
+
+.collaborators {
+    display: flex;
+    align-items: center;
+    gap: -8px;
+}
+
+.collaborator-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--sentient-bg-primary, #ffffff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    margin-left: -8px;
+}
+
+.collaborator-avatar:first-child {
+    margin-left: 0;
+}
+

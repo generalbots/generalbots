@@ -1,0 +1,343 @@
+/* =============================================================================
+ * 04 CONTEXT MENUS — Context menu, base modals, share modal, chart modal
+ * Split from sheet.css on 2026-06-06 (Plan A cleanup, AGENTS.md <450 line rule)
+ * =============================================================================
+/* =============================================================================
+   CONTEXT MENU
+   ============================================================================= */
+
+.context-menu {
+    position: fixed;
+    background: var(--sentient-bg-primary, #ffffff);
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-md, 8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    padding: 6px 0;
+    z-index: 1000;
+}
+
+.context-menu.hidden {
+    display: none;
+}
+
+.context-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--sentient-text-primary, #212121);
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+
+.context-item:hover {
+    background: var(--sentient-bg-secondary, #f5f5f5);
+}
+
+.context-item .shortcut {
+    font-size: 11px;
+    color: var(--sentient-text-muted, #999);
+}
+
+.context-divider {
+    height: 1px;
+    background: var(--sentient-border, #e0e0e0);
+    margin: 6px 0;
+}
+
+/* =============================================================================
+   MODALS
+   ============================================================================= */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: var(--sentient-bg-primary, #ffffff);
+    border-radius: var(--sentient-radius-lg, 12px);
+    width: 90%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content.modal-large {
+    max-width: 600px;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--sentient-text-primary, #212121);
+}
+
+.btn-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--sentient-text-muted, #999);
+    border-radius: var(--sentient-radius-sm, 4px);
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-close:hover {
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    color: var(--sentient-text-primary, #212121);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+/* Share Modal */
+.share-input-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.share-input-group input,
+.share-input-group select {
+    padding: 10px 12px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+}
+
+.share-input-group input {
+    flex: 1;
+}
+
+.share-input-group input:focus,
+.share-input-group select:focus {
+    outline: none;
+    border-color: var(--sentient-accent, #4285f4);
+}
+
+.share-link-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+.share-link-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sentient-text-primary, #212121);
+}
+
+.share-link-group {
+    display: flex;
+    gap: 8px;
+}
+
+.share-link-group input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 13px;
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    color: var(--sentient-text-secondary, #666);
+}
+
+/* Chart Modal */
+.chart-type-selector {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.chart-type-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    background: var(--sentient-bg-secondary, #f5f5f5);
+    border: 2px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-md, 8px);
+    color: var(--sentient-text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.chart-type-btn:hover {
+    border-color: var(--sentient-accent, #4285f4);
+    color: var(--sentient-accent, #4285f4);
+}
+
+.chart-type-btn.active {
+    border-color: var(--sentient-accent, #4285f4);
+    background: rgba(66, 133, 244, 0.1);
+    color: var(--sentient-accent, #4285f4);
+}
+
+.chart-type-btn span {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.chart-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chart-options label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-primary, #212121);
+}
+
+.chart-options input {
+    padding: 10px 12px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+}
+
+.chart-options input:focus {
+    outline: none;
+    border-color: var(--sentient-accent, #4285f4);
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 1024px) {
+    .chat-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 320px;
+        z-index: 100;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-panel.collapsed {
+        transform: translateX(100%);
+        width: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .toolbar-center {
+        display: none;
+    }
+
+    .sheet-name-input {
+        max-width: 150px;
+    }
+
+    .btn-primary span {
+        display: none;
+    }
+
+    .chat-panel {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .sheet-toolbar {
+        padding: 6px 10px;
+    }
+
+    .toolbar-right {
+        gap: 6px;
+    }
+
+    .btn-primary {
+        padding: 8px 12px;
+    }
+}
+
+/* =============================================================================
+   PRINT
+   ============================================================================= */
+
+@media print {
+    .sheet-toolbar,
+    .formula-bar,
+    .sheet-tabs-container,
+    .sheet-status-bar,
+    .chat-panel,
+    .context-menu,
+    .modal {
+        display: none !important;
+    }
+
+    .sheet-app {
+        height: auto;
+    }
+
+    .sheet-main {
+        display: block;
+    }
+
+    .sheet-content {
+        display: block;
+    }
+
+    .sheet-grid-container {
+        overflow: visible;
+    }
+
+    .cell {
+        background: white !important;
+        color: black !important;
+        border-color: #ccc !important;
+    }
+}
+
