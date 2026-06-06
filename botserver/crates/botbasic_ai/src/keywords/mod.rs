@@ -2,9 +2,11 @@ pub mod agent_reflection;
 pub mod ai_tools;
 pub mod api_tool_generator;
 pub mod banking;
+pub mod chatbot_handoff;
 pub mod clear_tools;
 pub mod inventory;
 pub mod kyc;
+pub mod learn;
 pub mod code_sandbox;
 pub mod enhanced_llm;
 pub mod enhanced_memory;
@@ -88,6 +90,14 @@ pub fn register_ai_keywords(
     use_website::use_website_keyword(state.clone(), user.clone(), engine);
     use_website::register_use_website_function(state.clone(), user.clone(), engine);
     use_website::clear_websites_keyword(state.clone(), user.clone(), engine);
+
+    // Education keywords (issue #625): TEACH, STUDY, QUIZ, FLASHCARD, CURRICULUM,
+    // LESSON, PROGRESS, REMEMBER FACT.
+    learn::register_learn_keywords(state.clone(), user.clone(), engine);
+
+    // Chatbot handoff keywords (issue #621): TRANSFER TO HUMAN, ESCALATE, REQUEST AGENT,
+    // ASSIGN AGENT, COMPLETE HANDOFF.
+    chatbot_handoff::register_chatbot_handoff_keywords(state.clone(), user.clone(), engine);
 
     // These still require Arc<AppState> — registered at botserver layer:
     // enhanced_llm (SmartLLMRouter needs AppState), llm_macros (direct llm_provider access),

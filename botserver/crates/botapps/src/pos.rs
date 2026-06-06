@@ -1,85 +1,246 @@
 use axum::extract::{Json, Path};
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock, OnceLock};
 use axum::http::StatusCode;
+use chrono::Utc;
+use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+use crate::db;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Product {
-    pub id: String,
-    pub name: String,
+    pub id: Uuid,
     pub sku: String,
-    pub price: f64,
-    pub stock: u64,
+    pub name: String,
+    pub price: String,
+    pub stock: i64,
     pub category: String,
     pub active: bool,
+    pub created_at: chrono::DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderItem {
-    pub product_id: String,
-    pub quantity: u64,
-    pub unit_price: f64,
+    pub product_id: Uuid,
+    pub quantity: i64,
+    pub unit_price: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Order {
-    pub id: String,
+    pub id: Uuid,
     pub items: Vec<OrderItem>,
-    pub total: f64,
+    pub total: String,
     pub status: String,
     pub payment_method: String,
-    pub created_at: String,
+    pub created_at: chrono::DateTime<Utc>,
 }
 
-#[derive(Default)]
-struct AppState {
-    products: HashMap<String, Product>,
-    orders: HashMap<String, Order>,
+#[derive(Debug, Deserialize)]
+pub struct NewProduct {
+    pub sku: String,
+    pub name: String,
+    pub price: String,
+    pub stock: i64,
+    pub category: String,
 }
 
-fn state() -> &'static Arc<RwLock<AppState>> {
-    static S: OnceLock<Arc<RwLock<AppState>>> = OnceLock::new();
-    S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
+#[derive(Debug, Deserialize)]
+pub struct NewOrder {
+    pub items: Vec<OrderItem>,
+    pub payment_method: String,
 }
 
-pub async fn list_products() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    let items: Vec<&Product> = s.products.values().collect();
-    Ok(Json(serde_json::json!({"items": items})))
+fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS pos_products (
+            id UUID PRIMARY KEY,
+            sku TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            price NUMERIC(18,2) NOT NULL DEFAULT 0,
+            stock BIGINT NOT NULL DEFAULT 0,
+            category VARCHAR(100) NOT NULL DEFAULT 'general',
+            active BOOLEAN NOT NULL DEFAULT true,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS pos_orders (
+            id UUID PRIMARY KEY,
+            items JSONB NOT NULL,
+            total NUMERIC(18,2) NOT NULL DEFAULT 0,
+            status VARCHAR(30) NOT NULL DEFAULT 'created',
+            payment_method VARCHAR(50) NOT NULL DEFAULT 'cash',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(())
 }
 
-pub async fn create_product(Json(item): Json<Product>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    let id = uuid::Uuid::new_v4().to_string();
-    let mut new_item = item;
-    new_item.id = id.clone();
-    new_item.active = true;
-    s.products.insert(id.clone(), new_item.clone());
-    Ok(Json(serde_json::json!({"item": new_item})))
+fn parse_decimal(s: &str) -> Result<Decimal, (StatusCode, String)> {
+    s.parse::<Decimal>().map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid decimal '{s}': {e}")))
 }
 
-pub async fn list_orders() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    let items: Vec<&Order> = s.orders.values().collect();
-    Ok(Json(serde_json::json!({"items": items})))
-}
-
-pub async fn create_order(Json(item): Json<Order>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    let id = uuid::Uuid::new_v4().to_string();
-    let mut new_item = item;
-    new_item.id = id.clone();
-    new_item.created_at = chrono::Utc::now().to_rfc3339();
-    new_item.status = "created".to_string();
-    s.orders.insert(id.clone(), new_item.clone());
-    Ok(Json(serde_json::json!({"item": new_item})))
-}
-
-pub async fn get_order(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    match s.orders.get(&id) {
-        Some(order) => Ok(Json(serde_json::json!({"order": order}))),
-        None => Err((StatusCode::NOT_FOUND, "Order not found".to_string())),
+pub async fn list_products() -> Result<Json<Vec<Product>>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] sku: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] name: String,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] price: Decimal,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] stock: i64,
+        #[diesel(sql_type = diesel::sql_types::Text)] category: String,
+        #[diesel(sql_type = diesel::sql_types::Bool)] active: bool,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
     }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, sku, name, price, stock, category, active, created_at
+         FROM pos_products ORDER BY name ASC LIMIT 500",
+    )
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| Product {
+        id: r.id, sku: r.sku, name: r.name, price: r.price.to_string(),
+        stock: r.stock, category: r.category, active: r.active, created_at: r.created_at,
+    }).collect()))
+}
+
+pub async fn create_product(Json(req): Json<NewProduct>) -> Result<Json<Product>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let price = parse_decimal(&req.price)?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let id = Uuid::new_v4();
+    let now = Utc::now();
+    diesel::sql_query(
+        "INSERT INTO pos_products (id, sku, name, price, stock, category, active, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, true, $7)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(id)
+    .bind::<diesel::sql_types::Text, _>(&req.sku)
+    .bind::<diesel::sql_types::Text, _>(&req.name)
+    .bind::<diesel::sql_types::Numeric, _>(price)
+    .bind::<diesel::sql_types::BigInt, _>(req.stock)
+    .bind::<diesel::sql_types::Text, _>(&req.category)
+    .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(Product {
+        id, sku: req.sku, name: req.name, price: price.to_string(),
+        stock: req.stock, category: req.category, active: true, created_at: now,
+    }))
+}
+
+pub async fn list_orders() -> Result<Json<Vec<Order>>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Jsonb)] items: serde_json::Value,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] total: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Text)] status: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] payment_method: String,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
+    }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, items, total, status, payment_method, created_at
+         FROM pos_orders ORDER BY created_at DESC LIMIT 500",
+    )
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| Order {
+        id: r.id,
+        items: r.items.as_array().map(|a| a.iter().filter_map(|v| {
+            Some(OrderItem {
+                product_id: v.get("product_id").and_then(|p| p.as_str()).and_then(|s| Uuid::parse_str(s).ok())?,
+                quantity: v.get("quantity").and_then(|q| q.as_i64()).unwrap_or(0),
+                unit_price: v.get("unit_price").and_then(|p| p.as_str()).unwrap_or("0").to_string(),
+            })
+        }).collect()).unwrap_or_default(),
+        total: r.total.to_string(),
+        status: r.status,
+        payment_method: r.payment_method,
+        created_at: r.created_at,
+    }).collect()))
+}
+
+pub async fn create_order(Json(req): Json<NewOrder>) -> Result<Json<Order>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut total = Decimal::ZERO;
+    for item in &req.items {
+        let unit = parse_decimal(&item.unit_price)?;
+        total += unit * Decimal::from(item.quantity);
+    }
+    let id = Uuid::new_v4();
+    let now = Utc::now();
+    let items_json = serde_json::to_value(&req.items).map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Serialize: {e}"))
+    })?;
+    diesel::sql_query(
+        "INSERT INTO pos_orders (id, items, total, status, payment_method, created_at)
+         VALUES ($1, $2, $3, 'created', $4, $5)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(id)
+    .bind::<diesel::sql_types::Jsonb, _>(&items_json)
+    .bind::<diesel::sql_types::Numeric, _>(total)
+    .bind::<diesel::sql_types::Text, _>(&req.payment_method)
+    .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(Order {
+        id, items: req.items, total: total.to_string(), status: "created".to_string(),
+        payment_method: req.payment_method, created_at: now,
+    }))
+}
+
+pub async fn get_order(Path(id): Path<String>) -> Result<Json<Order>, (StatusCode, String)> {
+    let parsed = Uuid::parse_str(&id)
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Jsonb)] items: serde_json::Value,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] total: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Text)] status: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] payment_method: String,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
+    }
+    let row: Option<Row> = diesel::sql_query(
+        "SELECT id, items, total, status, payment_method, created_at FROM pos_orders WHERE id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .get_result(&mut conn)
+    .optional()
+    .map_err(db::map_diesel_err)?;
+    let r = row.ok_or((StatusCode::NOT_FOUND, format!("Order {id} not found")))?;
+    Ok(Json(Order {
+        id: r.id,
+        items: r.items.as_array().map(|a| a.iter().filter_map(|v| {
+            Some(OrderItem {
+                product_id: v.get("product_id").and_then(|p| p.as_str()).and_then(|s| Uuid::parse_str(s).ok())?,
+                quantity: v.get("quantity").and_then(|q| q.as_i64()).unwrap_or(0),
+                unit_price: v.get("unit_price").and_then(|p| p.as_str()).unwrap_or("0").to_string(),
+            })
+        }).collect()).unwrap_or_default(),
+        total: r.total.to_string(),
+        status: r.status,
+        payment_method: r.payment_method,
+        created_at: r.created_at,
+    }))
 }
