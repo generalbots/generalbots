@@ -1,0 +1,123 @@
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="transitionsModalTitle" tabindex="-1" id="transitionsModal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="transitionsModalTitle">Slide Transitions</h3>
+            <button class="btn-close" id="closeTransitionsModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="transitions-section">
+                <label>Transition Effect:</label>
+                <div class="transitions-grid">
+                    <button
+                        class="transition-btn active"
+                        data-transition="none"
+                        title="None"
+                    >
+                        <div class="transition-preview none"></div>
+                        <span>None</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="fade"
+                        title="Fade"
+                    >
+                        <div class="transition-preview fade"></div>
+                        <span>Fade</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="slide-left"
+                        title="Slide Left"
+                    >
+                        <div class="transition-preview slide-left"></div>
+                        <span>Slide Left</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="slide-right"
+                        title="Slide Right"
+                    >
+                        <div class="transition-preview slide-right"></div>
+                        <span>Slide Right</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="slide-up"
+                        title="Slide Up"
+                    >
+                        <div class="transition-preview slide-up"></div>
+                        <span>Slide Up</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="slide-down"
+                        title="Slide Down"
+                    >
+                        <div class="transition-preview slide-down"></div>
+                        <span>Slide Down</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="zoom-in"
+                        title="Zoom In"
+                    >
+                        <div class="transition-preview zoom-in"></div>
+                        <span>Zoom In</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="zoom-out"
+                        title="Zoom Out"
+                    >
+                        <div class="transition-preview zoom-out"></div>
+                        <span>Zoom Out</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="flip"
+                        title="Flip"
+                    >
+                        <div class="transition-preview flip"></div>
+                        <span>Flip</span>
+                    </button>
+                    <button
+                        class="transition-btn"
+                        data-transition="cube"
+                        title="Cube"
+                    >
+                        <div class="transition-preview cube"></div>
+                        <span>Cube</span>
+                    </button>
+                </div>
+            </div>
+            <div class="transitions-section">
+                <label>Duration:</label>
+                <div class="duration-control">
+                    <input
+                        type="range"
+                        id="transitionDuration"
+                        min="0.1"
+                        max="3"
+                        step="0.1"
+                        value="0.5"
+                    />
+                    <span id="durationValue">0.5s</span>
+                </div>
+            </div>
+            <div class="transitions-section">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="applyToAllSlides" />
+                    Apply to all slides
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancelTransitionsBtn">
+                    Cancel
+                </button>
+                <button class="btn-primary" id="applyTransitionsBtn">
+                    Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

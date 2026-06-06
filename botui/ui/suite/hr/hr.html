@@ -10,6 +10,11 @@
 <div class="hr-app">
 <header class="app-header">
 <h1>HR Management</h1>
+<div class="header-meta">
+<span class="header-meta-item">Cycle: <strong>Q1 2025 review</strong></span>
+<span class="header-meta-item">Open positions: <strong id="hrOpenPositions">--</strong></span>
+<span class="header-meta-item">Updated: <strong id="hrUpdated">--</strong></span>
+</div>
 <button class="btn-refresh" id="refreshBtn">&#8635;</button>
 </header>
 <nav class="tab-bar">
@@ -17,12 +22,26 @@
 <button class="tab" data-tab="recruitment">Recruitment</button>
 <button class="tab" data-tab="attendance">Attendance</button>
 <button class="tab" data-tab="performance">Performance</button>
+<button class="tab" data-tab="payroll">Payroll</button>
+<button class="tab" data-tab="benefits">Benefits</button>
+<button class="tab" data-tab="training">Training</button>
+<button class="tab" data-tab="reports">Reports</button>
 </nav>
+<section class="hr-stats">
+<article class="hr-stat-card"><span class="hr-stat-label">Headcount</span><span class="hr-stat-value" id="hr-stat-headcount">--</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label">On leave today</span><span class="hr-stat-value orange" id="hr-stat-leave">--</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label">Open requisitions</span><span class="hr-stat-value blue" id="hr-stat-reqs">--</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label">Pending reviews</span><span class="hr-stat-value purple" id="hr-stat-reviews">--</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label">Turnover (90d)</span><span class="hr-stat-value red" id="hr-stat-turnover">--%</span></article>
+</section>
 <main class="tab-content">
 <section class="tab-panel active" id="panel-employees">
 <div class="section-header">
 <h2>Employee Directory</h2>
+<div class="header-actions">
 <button class="btn-primary" id="addEmployeeBtn">Add Employee</button>
+<button class="btn-secondary" id="exportEmployeesBtn">Export</button>
+</div>
 </div>
 <div class="emp-toolbar">
 <input type="text" class="search-input" id="empSearch" placeholder="Search employees...">
@@ -40,6 +59,13 @@
 <option value="active">Active</option>
 <option value="on_leave">On Leave</option>
 <option value="terminated">Terminated</option>
+</select>
+<select class="filter-select" id="empLocationFilter">
+<option value="">All locations</option>
+<option value="sao-paulo">São Paulo</option>
+<option value="rio">Rio de Janeiro</option>
+<option value="remote">Remote</option>
+<option value="new-york">New York</option>
 </select>
 </div>
 <div class="employee-grid" id="employeeGrid"></div>
@@ -81,9 +107,39 @@
 </select>
 </div>
 </div>
+<div class="form-row">
 <div class="form-group">
 <label>Hire Date</label>
 <input type="date" id="empHireDate" required>
+</div>
+<div class="form-group">
+<label>Location</label>
+<select id="empLocation">
+<option value="sao-paulo">São Paulo</option>
+<option value="rio">Rio de Janeiro</option>
+<option value="remote">Remote</option>
+<option value="new-york">New York</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Manager</label>
+<input type="text" id="empManager" placeholder="Manager name or email">
+</div>
+<div class="form-group">
+<label>Salary (R$)</label>
+<input type="number" id="empSalary" min="0" step="0.01">
+</div>
+</div>
+<div class="form-group">
+<label>Employment type</label>
+<select id="empType">
+<option value="full-time">Full time</option>
+<option value="part-time">Part time</option>
+<option value="contractor">Contractor</option>
+<option value="intern">Intern</option>
+</select>
 </div>
 <div class="form-actions">
 <button type="button" class="btn-secondary" id="cancelEmpBtn">Cancel</button>
@@ -121,12 +177,59 @@
 <section class="tab-panel" id="panel-performance">
 <div class="section-header">
 <h2>Review Cycles</h2>
+<button class="btn-primary" id="startReviewBtn">Start new cycle</button>
 </div>
 <div class="review-cycles" id="reviewCycles"></div>
 <div class="section-header" style="margin-top:24px">
 <h2>Goal Completion</h2>
 </div>
 <div class="goals-grid" id="goalsGrid"></div>
+</section>
+<section class="tab-panel" id="panel-payroll">
+<div class="section-header">
+<h2>Payroll runs</h2>
+<button class="btn-primary" id="runPayrollBtn">Run payroll</button>
+</div>
+<div class="banking-table-wrap" style="padding:24px">
+<table class="data-table">
+<thead><tr><th>Period</th><th>Employees</th><th>Gross</th><th>Net</th><th>Taxes</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody id="payrollBody"></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-benefits">
+<div class="section-header">
+<h2>Benefits enrollment</h2>
+</div>
+<div class="banking-table-wrap" style="padding:24px">
+<table class="data-table">
+<thead><tr><th>Plan</th><th>Provider</th><th>Type</th><th>Enrolled</th><th>Monthly cost</th><th>Status</th></tr></thead>
+<tbody id="benefitsBody"></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-training">
+<div class="section-header">
+<h2>Training & certifications</h2>
+<button class="btn-primary" id="addCourseBtn">+ Add course</button>
+</div>
+<div class="banking-table-wrap" style="padding:24px">
+<table class="data-table">
+<thead><tr><th>Course</th><th>Provider</th><th>Duration</th><th>Assigned</th><th>Completed</th><th>Status</th></tr></thead>
+<tbody id="trainingBody"></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-reports">
+<div class="section-header">
+<h2>HR analytics</h2>
+</div>
+<section class="hr-report-grid" id="hrReportGrid">
+<article class="hr-report-card"><h3>Headcount by department</h3><div class="hr-report-body" id="hrReportDept">Loading...</div></article>
+<article class="hr-report-card"><h3>Attrition (12m)</h3><div class="hr-report-body" id="hrReportAttrition">Loading...</div></article>
+<article class="hr-report-card"><h3>Time to hire</h3><div class="hr-report-body" id="hrReportTimeToHire">Loading...</div></article>
+<article class="hr-report-card"><h3>Compensation distribution</h3><div class="hr-report-body" id="hrReportComp">Loading...</div></article>
+</section>
 </section>
 </main>
 </div>

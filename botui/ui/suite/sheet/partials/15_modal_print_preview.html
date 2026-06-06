@@ -1,0 +1,54 @@
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="printPreviewModalTitle" tabindex="-1" id="printPreviewModal">
+    <div class="modal-content modal-fullscreen">
+        <div class="modal-header">
+            <h3 id="printPreviewModalTitle">Print Preview</h3>
+            <div class="print-toolbar">
+                <select id="printOrientation">
+                    <option value="portrait">Portrait</option>
+                    <option value="landscape">Landscape</option>
+                </select>
+                <select id="printPaperSize">
+                    <option value="letter">Letter (8.5" x 11")</option>
+                    <option value="a4">A4 (210mm x 297mm)</option>
+                    <option value="legal">Legal (8.5" x 14")</option>
+                    <option value="tabloid">Tabloid (11" x 17")</option>
+                </select>
+                <select id="printScale">
+                    <option value="100">100%</option>
+                    <option value="fit_width">Fit to width</option>
+                    <option value="fit_page">Fit to page</option>
+                    <option value="75">75%</option>
+                    <option value="50">50%</option>
+                </select>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="printGridlines" />
+                    Gridlines
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="printHeaders" />
+                    Row/Column headers
+                </label>
+            </div>
+            <button class="btn-close" id="closePrintPreviewModal">×</button>
+        </div>
+        <div class="modal-body print-preview-body">
+            <div class="print-preview-container" id="printPreviewContainer">
+                <div class="print-page" id="printPage">
+                    <div class="print-content" id="printContent"></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="cancelPrintBtn">Cancel</button>
+            <button class="btn-primary" id="printBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                Print
+            </button>
+        </div>
+    </div>
+</div>
+

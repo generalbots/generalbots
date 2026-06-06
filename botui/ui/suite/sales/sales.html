@@ -5,12 +5,29 @@
             <h1>Sales CRM</h1>
             <nav class="sales-tabs">
                 <button class="sales-tab active" data-view="pipeline">Pipeline</button>
+                <button class="sales-tab" data-view="leads">Leads</button>
                 <button class="sales-tab" data-view="contacts">Contacts</button>
+                <button class="sales-tab" data-view="quotes">Quotes</button>
+                <button class="sales-tab" data-view="orders">Orders</button>
                 <button class="sales-tab" data-view="activities">Activities</button>
                 <button class="sales-tab" data-view="forecast">Forecast</button>
+                <button class="sales-tab" data-view="reports">Reports</button>
             </nav>
         </div>
         <div class="sales-header-right">
+            <select id="salesOwnerFilter" class="sales-filter-select">
+                <option value="">All owners</option>
+                <option value="me">My deals</option>
+                <option value="team">Team</option>
+            </select>
+            <select id="salesStageFilter" class="sales-filter-select">
+                <option value="">All stages</option>
+                <option value="qualification">Qualification</option>
+                <option value="proposal">Proposal</option>
+                <option value="negotiation">Negotiation</option>
+                <option value="closed-won">Closed won</option>
+                <option value="closed-lost">Closed lost</option>
+            </select>
             <div class="sales-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 <input type="text" id="salesSearch" placeholder="Search deals, contacts...">
@@ -22,6 +39,29 @@
         </div>
     </header>
 
+    <section class="sales-stats">
+        <article class="sales-stat-card">
+            <span class="sales-stat-label">Open pipeline</span>
+            <span class="sales-stat-value blue" id="sales-stat-pipeline">R$ --</span>
+        </article>
+        <article class="sales-stat-card">
+            <span class="sales-stat-label">Won (month)</span>
+            <span class="sales-stat-value green" id="sales-stat-won">R$ --</span>
+        </article>
+        <article class="sales-stat-card">
+            <span class="sales-stat-label">Win rate</span>
+            <span class="sales-stat-value purple" id="sales-stat-winrate">--%</span>
+        </article>
+        <article class="sales-stat-card">
+            <span class="sales-stat-label">Avg deal size</span>
+            <span class="sales-stat-value orange" id="sales-stat-avgsize">R$ --</span>
+        </article>
+        <article class="sales-stat-card">
+            <span class="sales-stat-label">Forecast this quarter</span>
+            <span class="sales-stat-value blue" id="sales-stat-forecast">R$ --</span>
+        </article>
+    </section>
+
     <div id="pipeline-view" class="sales-view active">
         <div class="pipeline-container" id="pipeline-container">
             <div class="loading-row"><div class="spinner"></div> Loading pipeline...</div>
@@ -29,16 +69,62 @@
         <div class="pipeline-summary" id="pipeline-summary"></div>
     </div>
 
-    <div id="contacts-view" class="sales-view">
+    <div id="leads-view" class="sales-view">
+        <div class="leads-toolbar">
+            <button class="btn-primary" onclick="SalesApp.showNewLead()">+ New lead</button>
+            <button class="btn-secondary" onclick="SalesApp.importLeads()">Import CSV</button>
+            <button class="btn-secondary" onclick="SalesApp.exportLeads()">Export</button>
+        </div>
         <div class="banking-table-wrap" style="padding:24px">
             <table class="sales-table">
-                <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Last Contact</th><th>Deal Value</th><th>Actions</th></tr></thead>
-                <tbody id="contacts-body"><tr><td colspan="6" class="loading-row"><div class="spinner"></div> Loading contacts...</td></tr></tbody>
+                <thead><tr><th>Lead</th><th>Company</th><th>Source</th><th>Score</th><th>Status</th><th>Owner</th><th>Created</th><th>Actions</th></tr></thead>
+                <tbody id="leads-body"><tr><td colspan="8" class="loading-row"><div class="spinner"></div> Loading leads...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="contacts-view" class="sales-view">
+        <div class="contacts-toolbar">
+            <input type="search" id="contactSearch" placeholder="Search contacts...">
+            <button class="btn-primary" onclick="SalesApp.showNewContact()">+ New contact</button>
+        </div>
+        <div class="banking-table-wrap" style="padding:24px">
+            <table class="sales-table">
+                <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Last Contact</th><th>Deal Value</th><th>Actions</th></tr></thead>
+                <tbody id="contacts-body"><tr><td colspan="7" class="loading-row"><div class="spinner"></div> Loading contacts...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="quotes-view" class="sales-view">
+        <div class="banking-table-wrap" style="padding:24px">
+            <table class="sales-table">
+                <thead><tr><th>Quote #</th><th>Title</th><th>Customer</th><th>Amount</th><th>Valid until</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="quotes-body"><tr><td colspan="7" class="loading-row"><div class="spinner"></div> Loading quotes...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="orders-view" class="sales-view">
+        <div class="banking-table-wrap" style="padding:24px">
+            <table class="sales-table">
+                <thead><tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Delivery</th><th>Actions</th></tr></thead>
+                <tbody id="orders-body"><tr><td colspan="7" class="loading-row"><div class="spinner"></div> Loading orders...</td></tr></tbody>
             </table>
         </div>
     </div>
 
     <div id="activities-view" class="sales-view">
+        <div class="activities-toolbar">
+            <select id="activityTypeFilter">
+                <option value="">All types</option>
+                <option value="call">Call</option>
+                <option value="email">Email</option>
+                <option value="meeting">Meeting</option>
+                <option value="task">Task</option>
+            </select>
+            <button class="btn-primary" onclick="SalesApp.showLogActivity()">+ Log activity</button>
+        </div>
         <div class="activities-list" id="activities-list">
             <div class="loading-row"><div class="spinner"></div> Loading activities...</div>
         </div>
@@ -48,6 +134,64 @@
         <div class="forecast-grid" id="forecast-grid">
             <div class="loading-row"><div class="spinner"></div> Loading forecast...</div>
         </div>
+        <div class="forecast-chart" id="forecast-chart"></div>
+    </div>
+
+    <div id="reports-view" class="sales-view">
+        <div class="reports-toolbar">
+            <button class="btn-primary" onclick="SalesApp.generateReport('pipeline')">Pipeline report</button>
+            <button class="btn-secondary" onclick="SalesApp.generateReport('rep')">Rep performance</button>
+            <button class="btn-secondary" onclick="SalesApp.generateReport('velocity')">Deal velocity</button>
+        </div>
+        <div class="report-grid" id="report-grid"></div>
+    </div>
+</div>
+
+<div id="salesDealModal" class="sales-modal" style="display:none">
+    <div class="sales-modal-dialog">
+        <header class="sales-modal-header">
+            <h2 id="salesDealModalTitle">New deal</h2>
+            <button onclick="SalesApp.closeDealModal()">&times;</button>
+        </header>
+        <div class="sales-modal-body">
+            <label>Title
+                <input type="text" id="dealTitle" required>
+            </label>
+            <label>Account
+                <input type="text" id="dealAccount" required>
+            </label>
+            <label>Contact
+                <input type="text" id="dealContact">
+            </label>
+            <label>Value (R$)
+                <input type="number" id="dealValue" step="0.01" min="0">
+            </label>
+            <label>Stage
+                <select id="dealStage">
+                    <option value="qualification">Qualification</option>
+                    <option value="proposal">Proposal</option>
+                    <option value="negotiation">Negotiation</option>
+                    <option value="closed-won">Closed won</option>
+                    <option value="closed-lost">Closed lost</option>
+                </select>
+            </label>
+            <label>Expected close
+                <input type="date" id="dealCloseDate">
+            </label>
+            <label>Probability (%)
+                <input type="number" id="dealProbability" min="0" max="100" value="20">
+            </label>
+            <label>Owner
+                <input type="text" id="dealOwner">
+            </label>
+            <label>Notes
+                <textarea id="dealNotes" rows="3"></textarea>
+            </label>
+        </div>
+        <footer class="sales-modal-footer">
+            <button class="btn-secondary" onclick="SalesApp.closeDealModal()">Cancel</button>
+            <button class="btn-primary" onclick="SalesApp.saveDeal()">Save deal</button>
+        </footer>
     </div>
 </div>
 <script src="/suite/sales/sales.js"></script>

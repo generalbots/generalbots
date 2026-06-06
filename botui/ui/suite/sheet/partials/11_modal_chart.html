@@ -1,0 +1,48 @@
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="chartModalTitle" tabindex="-1" id="chartModal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="chartModalTitle">Insert Chart</h3>
+            <button class="btn-close" id="closeChartModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="chart-type-selector">
+                <button class="chart-type-btn active" data-type="bar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="12" width="4" height="9"></rect>
+                        <rect x="10" y="6" width="4" height="15"></rect>
+                        <rect x="17" y="3" width="4" height="18"></rect>
+                    </svg>
+                    <span>Bar</span>
+                </button>
+                <button class="chart-type-btn" data-type="line">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 18 9 12 13 16 21 6"></polyline>
+                    </svg>
+                    <span>Line</span>
+                </button>
+                <button class="chart-type-btn" data-type="pie">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 2v10l8.5 5"></path>
+                    </svg>
+                    <span>Pie</span>
+                </button>
+            </div>
+            <div class="chart-options">
+                <label>Data Range</label>
+                <input type="text" id="chartDataRange" placeholder="e.g., A1:B10" />
+                <label>Chart Title</label>
+                <input type="text" id="chartTitle" placeholder="Enter chart title" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancelChartBtn">
+                    Cancel
+                </button>
+                <button class="btn-primary" id="insertChartBtnConfirm">
+                    Insert Chart
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

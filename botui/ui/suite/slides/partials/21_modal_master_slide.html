@@ -1,0 +1,173 @@
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="masterSlideModalTitle" tabindex="-1" id="masterSlideModal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="masterSlideModalTitle">Edit Master Slide</h3>
+            <button class="btn-close" id="closeMasterSlideModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="master-layout">
+                <div class="master-sidebar">
+                    <h4>Master Layouts</h4>
+                    <div class="master-layout-list" id="masterLayoutList">
+                        <div
+                            class="master-layout-item active"
+                            data-layout="title"
+                        >
+                            <div class="layout-preview title-preview">
+                                <div class="preview-title"></div>
+                                <div class="preview-subtitle"></div>
+                            </div>
+                            <span>Title Slide</span>
+                        </div>
+                        <div
+                            class="master-layout-item"
+                            data-layout="title_content"
+                        >
+                            <div class="layout-preview title-content-preview">
+                                <div class="preview-title small"></div>
+                                <div class="preview-content"></div>
+                            </div>
+                            <span>Title and Content</span>
+                        </div>
+                        <div
+                            class="master-layout-item"
+                            data-layout="two_content"
+                        >
+                            <div class="layout-preview two-content-preview">
+                                <div class="preview-title small"></div>
+                                <div class="preview-columns">
+                                    <div class="preview-col"></div>
+                                    <div class="preview-col"></div>
+                                </div>
+                            </div>
+                            <span>Two Content</span>
+                        </div>
+                        <div class="master-layout-item" data-layout="section">
+                            <div class="layout-preview section-preview">
+                                <div class="preview-section-title"></div>
+                            </div>
+                            <span>Section Header</span>
+                        </div>
+                        <div class="master-layout-item" data-layout="blank">
+                            <div class="layout-preview blank-preview"></div>
+                            <span>Blank</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="master-editor">
+                    <div class="master-section">
+                        <h4>Theme Colors</h4>
+                        <div class="color-grid">
+                            <div class="color-item">
+                                <label>Primary:</label>
+                                <input
+                                    type="color"
+                                    id="masterPrimaryColor"
+                                    value="#4285f4"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Secondary:</label>
+                                <input
+                                    type="color"
+                                    id="masterSecondaryColor"
+                                    value="#34a853"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Accent:</label>
+                                <input
+                                    type="color"
+                                    id="masterAccentColor"
+                                    value="#fbbc04"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Background:</label>
+                                <input
+                                    type="color"
+                                    id="masterBgColor"
+                                    value="#ffffff"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Text:</label>
+                                <input
+                                    type="color"
+                                    id="masterTextColor"
+                                    value="#212121"
+                                />
+                            </div>
+                            <div class="color-item">
+                                <label>Text Light:</label>
+                                <input
+                                    type="color"
+                                    id="masterTextLightColor"
+                                    value="#666666"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="master-section">
+                        <h4>Theme Fonts</h4>
+                        <div class="font-grid">
+                            <div class="font-item">
+                                <label>Heading Font:</label>
+                                <select id="masterHeadingFont">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Times New Roman">
+                                        Times New Roman
+                                    </option>
+                                    <option value="Verdana">Verdana</option>
+                                    <option value="Trebuchet MS">
+                                        Trebuchet MS
+                                    </option>
+                                    <option value="Impact">Impact</option>
+                                </select>
+                            </div>
+                            <div class="font-item">
+                                <label>Body Font:</label>
+                                <select id="masterBodyFont">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Times New Roman">
+                                        Times New Roman
+                                    </option>
+                                    <option value="Verdana">Verdana</option>
+                                    <option value="Calibri">Calibri</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="master-section">
+                        <h4>Preview</h4>
+                        <div class="master-preview" id="masterPreview">
+                            <div class="preview-slide">
+                                <h2 class="preview-heading" id="previewHeading">
+                                    Title Text
+                                </h2>
+                                <p class="preview-body" id="previewBody">
+                                    Body text example
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="resetMasterBtn">
+                    Reset to Default
+                </button>
+                <button class="btn-secondary" id="cancelMasterBtn">
+                    Cancel
+                </button>
+                <button class="btn-primary" id="applyMasterBtn">
+                    Apply to All Slides
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
