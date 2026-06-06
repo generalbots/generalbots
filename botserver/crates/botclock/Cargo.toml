@@ -1,19 +1,18 @@
 [package]
 name = "botclock"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-authors.workspace = true
+version = "6.5.0"
+edition = "2021"
 description = "Electronic time clock (Registro de Ponto Eletrônico) with Brazilian CLT rules in botbrazil."
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
 rust_decimal = { workspace = true, features = ["serde-with-str"] }
-rust_decimal_macros = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
+
+[dev-dependencies]
+rust_decimal_macros = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,12 +1,12 @@
 use crate::handlers::*;
 use crate::state::AppState;
-use axum::{routing::get, Router};
+use axum::{routing::{get, post, delete}, Router};
 use std::sync::Arc;
 
 const API_SOURCES_KB: &str = "/api/sources/kb";
 const API_SOURCES_MCP: &str = "/api/sources/mcp";
-const API_SOURCES_CONNECTORS: &str = "/api/sources/connectors";
 const API_UI_SOURCES: &str = "/api/ui/sources";
+const API_INTEGRATIONS: &str = "/api/integrations";
 
 pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
     let kb_routes = Router::new()
@@ -73,10 +73,19 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/api-keys", axum::routing::post(handle_add_api_key))
         .route("/api-keys/{id}", axum::routing::delete(handle_delete_api_key));
 
+    let integrations_routes = Router::new()
+        .route("/connectors", get(handle_list_connectors).post(handle_connect_connector))
+        .route("/connectors/{id}/connect", post(handle_connect_connector))
+        .route("/connectors/{id}/sync", post(handle_sync_connector))
+        .route("/connectors/{id}/disconnect", delete(handle_disconnect_connector))
+        .route("/etl", get(handle_list_etl_jobs).post(handle_create_etl_job))
+        .route("/etl/{id}/run", post(handle_run_etl_job))
+        .route("/etl/{id}", delete(handle_delete_etl_job));
+
     Router::new()
         .nest(API_SOURCES_KB, kb_routes)
         .nest(API_SOURCES_MCP, mcp_routes)
-        .nest(API_SOURCES_CONNECTORS, connector_routes)
         .nest(API_UI_SOURCES, ui_sources_routes)
+        .nest(API_INTEGRATIONS, integrations_routes)
         .merge(crate::ui::configure_sources_ui_routes())
 }

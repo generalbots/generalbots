@@ -1,4 +1,5 @@
 pub mod branding;
+pub mod db_driver;
 pub mod db_pool;
 pub mod error;
 pub mod key_utils;
