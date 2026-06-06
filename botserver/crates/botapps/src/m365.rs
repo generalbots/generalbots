@@ -3,6 +3,8 @@ use axum::http::StatusCode;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
+use diesel::OptionalExtension;
 
 use crate::db;
 
@@ -47,7 +49,7 @@ pub struct M365Settings {
 
 fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS m365_sharepoint_items (
             id UUID PRIMARY KEY,
@@ -106,7 +108,7 @@ fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
 pub async fn list_sharepoint() -> Result<Json<Vec<SharePointItem>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -130,7 +132,7 @@ pub async fn list_sharepoint() -> Result<Json<Vec<SharePointItem>>, (StatusCode,
 pub async fn list_calendar() -> Result<Json<Vec<CalendarEvent>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -158,7 +160,7 @@ pub async fn list_calendar() -> Result<Json<Vec<CalendarEvent>>, (StatusCode, St
 pub async fn list_onedrive() -> Result<Json<Vec<OneDriveFile>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -183,7 +185,7 @@ pub async fn list_onedrive() -> Result<Json<Vec<OneDriveFile>>, (StatusCode, Str
 pub async fn get_settings() -> Result<Json<Option<M365Settings>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Text)] tenant_id: String,

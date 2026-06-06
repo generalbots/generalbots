@@ -1,10 +1,40 @@
 use anyhow::Result;
 use chrono::Utc;
-use sha2::{Sha512, Digest};
 use uuid::Uuid;
 use log::info;
+use sha2::{Sha512, Digest};
 
 use crate::minutes::types::{MinuteSignature, MinuteStatus, MeetingMinute};
+
+#[derive(Debug, Clone)]
+pub struct DigitalSigner {
+    #[allow(dead_code)]
+    private_key: String,
+    #[allow(dead_code)]
+    certificate: String,
+}
+
+impl DigitalSigner {
+    pub fn new(private_key: String, certificate: String) -> Self {
+        Self { private_key, certificate }
+    }
+
+    pub fn sign(&self, minute: &MeetingMinute) -> Result<MinuteSignature> {
+        let content = format!("{:?}", minute);
+        let mut hasher = Sha512::new();
+        hasher.update(content.as_bytes());
+        let hash = hex::encode(hasher.finalize());
+        Ok(MinuteSignature {
+            id: Uuid::new_v4(),
+            minute_id: minute.id,
+            user_id: Uuid::nil(),
+            signature_id: None,
+            signed_hash: hash,
+            signed_at: Utc::now(),
+            ip_address: None,
+        })
+    }
+}
 
 pub struct SignatureService;
 

@@ -3,6 +3,8 @@ use axum::http::StatusCode;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
+use diesel::OptionalExtension;
 
 use crate::db;
 
@@ -51,7 +53,7 @@ pub struct TransferRequest {
 
 fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS handoff_queue (
             id UUID PRIMARY KEY,
@@ -105,7 +107,7 @@ fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
 pub async fn list_queue() -> Result<Json<Vec<QueueEntry>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -135,13 +137,17 @@ pub async fn transfer_item(
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid queue id '{id}': {e}")))?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] session_id: Uuid,
+    }
     let entry: Option<Uuid> = diesel::sql_query("SELECT session_id FROM handoff_queue WHERE id = $1")
         .bind::<diesel::sql_types::Uuid, _>(parsed)
-        .get_result::<(Uuid,)>(&mut conn)
+        .get_result::<Row>(&mut conn)
         .optional()
         .map_err(db::map_diesel_err)?
-        .map(|t| t.0);
+        .map(|r| r.session_id);
     let session_id = entry.ok_or((StatusCode::NOT_FOUND, format!("Queue entry {id} not found")))?;
     diesel::sql_query("DELETE FROM handoff_queue WHERE id = $1")
         .bind::<diesel::sql_types::Uuid, _>(parsed)
@@ -158,7 +164,7 @@ pub async fn transfer_item(
 pub async fn get_analytics() -> Result<Json<Vec<HandoffAnalytics>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Text)] period: String,
@@ -183,7 +189,7 @@ pub async fn get_analytics() -> Result<Json<Vec<HandoffAnalytics>>, (StatusCode,
 pub async fn list_channels() -> Result<Json<Vec<Channel>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -205,7 +211,7 @@ pub async fn list_channels() -> Result<Json<Vec<Channel>>, (StatusCode, String)>
 pub async fn list_csat() -> Result<Json<Vec<CsatEntry>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,

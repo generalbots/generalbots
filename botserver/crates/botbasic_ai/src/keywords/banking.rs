@@ -84,11 +84,11 @@ fn register_import_bank_statement(
                 for row in &rows {
                     let date = row
                         .get("date")
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .and_then(|s| parse_br_date(&s))
                         .or_else(|| {
                             row.get("data")
-                                .and_then(|v| v.clone().try_into_string().ok())
+                                .and_then(|v| v.clone().into_string().ok())
                                 .and_then(|s| parse_br_date(&s))
                         })
                         .unwrap_or_else(|| "1970-01-01".to_string());
@@ -96,20 +96,20 @@ fn register_import_bank_statement(
                         .get("description")
                         .or_else(|| row.get("descricao"))
                         .or_else(|| row.get("historico"))
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .unwrap_or_default();
                     let amount = row
                         .get("amount")
                         .or_else(|| row.get("valor"))
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .map(|s| parse_amount(&s))
                         .unwrap_or(0.0);
                     let bank = row
                         .get("bank")
-                        .and_then(|v| v.clone().try_into_string().ok());
+                        .and_then(|v| v.clone().into_string().ok());
                     let account = row
                         .get("account")
-                        .and_then(|v| v.clone().try_into_string().ok());
+                        .and_then(|v| v.clone().into_string().ok());
 
                     txns.push(json!({
                         "transaction_date": date,
@@ -152,46 +152,46 @@ fn register_import_platform_orders(
                 for row in &rows {
                     let platform = row
                         .get("platform")
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .unwrap_or_else(|| "unknown".to_string());
                     let platform_order_id = row
                         .get("order_id")
                         .or_else(|| row.get("id"))
                         .or_else(|| row.get("pedido_id"))
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .unwrap_or_default();
                     let order_date = row
                         .get("date")
                         .or_else(|| row.get("data"))
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .and_then(|s| parse_br_date(&s))
                         .unwrap_or_else(|| "1970-01-01".to_string());
                     let customer_name = row
                         .get("customer")
                         .or_else(|| row.get("cliente"))
-                        .and_then(|v| v.clone().try_into_string().ok());
+                        .and_then(|v| v.clone().into_string().ok());
                     let subtotal = row
                         .get("subtotal")
                         .or_else(|| row.get("valor"))
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .map(|s| parse_amount(&s))
                         .unwrap_or(0.0);
                     let delivery_fee = row
                         .get("delivery_fee")
                         .or_else(|| row.get("entrega"))
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .map(|s| parse_amount(&s))
                         .unwrap_or(0.0);
                     let platform_commission = row
                         .get("commission")
                         .or_else(|| row.get("comissao"))
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .map(|s| parse_amount(&s))
                         .unwrap_or(0.0);
                     let net_value = row
                         .get("net")
                         .or_else(|| row.get("liquido"))
-                        .and_then(|v| v.clone().try_into_string().ok())
+                        .and_then(|v| v.clone().into_string().ok())
                         .map(|s| parse_amount(&s))
                         .unwrap_or(subtotal - platform_commission);
 

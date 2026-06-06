@@ -61,7 +61,7 @@ fn runtime_error(message: impl Into<String>) -> Box<EvalAltResult> {
     Box::new(EvalAltResult::ErrorRuntime(message.into().into(), rhai::Position::NONE))
 }
 
-fn eval_string(context: &rhai::EvalContext, input: &rhai::Expression) -> Result<String, Box<EvalAltResult>> {
+fn eval_string(context: &mut rhai::EvalContext, input: &rhai::Expression) -> Result<String, Box<EvalAltResult>> {
     Ok(context.eval_expression_tree(input)?.to_string())
 }
 
@@ -75,7 +75,7 @@ where
     let join = std::thread::Builder::new()
         .name(name.into())
         .spawn(move || {
-            let result = std::thread::Builder::new()
+            let inner_result = std::thread::Builder::new()
                 .name(format!("{name}-rt"))
                 .spawn(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
@@ -86,7 +86,7 @@ where
                         })?;
                     rt.block_on(fut)
                 });
-            let outcome = match join {
+            let outcome = match inner_result {
                 Ok(handle) => match handle.join() {
                     Ok(res) => res,
                     Err(_) => Err("Video worker thread panicked".into()),
@@ -130,8 +130,8 @@ fn register_monitor_camera(state: Arc<dyn BasicRuntime>, user: UserSession, engi
         .register_custom_syntax(
             ["MONITOR", "CAMERA", "$expr$"],
             false,
-            move |context, inputs| {
-                let source = eval_string(&context, &inputs[0])?;
+            move |mut context, inputs| {
+                let source = eval_string(&mut context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("monitor-camera", async move {
@@ -152,8 +152,8 @@ fn register_describe_video(state: Arc<dyn BasicRuntime>, user: UserSession, engi
         .register_custom_syntax(
             ["DESCRIBE", "VIDEO", "$expr$"],
             false,
-            move |context, inputs| {
-                let source = eval_string(&context, &inputs[0])?;
+            move |mut context, inputs| {
+                let source = eval_string(&mut context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("describe-video", async move {
@@ -175,8 +175,8 @@ fn register_detect_event(state: Arc<dyn BasicRuntime>, user: UserSession, engine
         .register_custom_syntax(
             ["DETECT", "EVENT", "$expr$"],
             false,
-            move |context, inputs| {
-                let source = eval_string(&context, &inputs[0])?;
+            move |mut context, inputs| {
+                let source = eval_string(&mut context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("detect-event", async move {
@@ -200,8 +200,8 @@ fn register_count_people(state: Arc<dyn BasicRuntime>, user: UserSession, engine
         .register_custom_syntax(
             ["COUNT", "PEOPLE", "$expr$"],
             false,
-            move |context, inputs| {
-                let source = eval_string(&context, &inputs[0])?;
+            move |mut context, inputs| {
+                let source = eval_string(&mut context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("count-people", async move {
@@ -226,8 +226,8 @@ fn register_motion_detected(state: Arc<dyn BasicRuntime>, user: UserSession, eng
         .register_custom_syntax(
             ["MOTION", "DETECTED", "$expr$"],
             false,
-            move |context, inputs| {
-                let source = eval_string(&context, &inputs[0])?;
+            move |mut context, inputs| {
+                let source = eval_string(&mut context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("motion-detected", async move {

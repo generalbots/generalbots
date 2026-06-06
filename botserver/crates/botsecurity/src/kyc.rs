@@ -154,7 +154,7 @@ impl KycService {
 
     pub fn add_check(profile: &mut KycProfile, check: ComplianceCheck) {
         profile.checks.push(check);
-        profile.recompute_status();
+        KycService::recompute_status(profile);
         profile.updated_at = Utc::now();
     }
 

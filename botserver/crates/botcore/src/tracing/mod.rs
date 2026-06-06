@@ -7,7 +7,7 @@
 //!
 //! No unwrap() or expect() are used in this module.
 
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 
 const TRACEPARENT_VERSION: &str = "00";
@@ -290,6 +290,39 @@ pub fn setup_tracing_subscriber() {
 // ---------------------------------------------------------------------------
 // Header name constants
 // ---------------------------------------------------------------------------
+
+/// Axum middleware function used by `axum::middleware::from_fn` to attach
+/// distributed-tracing headers and log the request span. Kept as a free
+/// function so it can be re-used across routers without taking ownership of
+/// the layer.
+pub async fn tracing_middleware_fn(
+    name: String,
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let parent = extract_context(req.headers());
+    let span = start_span(&name, parent.as_ref());
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+    log::info!(
+        "tracing.span.start name={} method={} uri={} trace_id={}",
+        name,
+        method,
+        uri,
+        span.trace_id
+    );
+    let mut response = next.run(req).await;
+    if let Some(ctx) = parent.as_ref() {
+        inject_context(ctx, response.headers_mut());
+    }
+    log::info!(
+        "tracing.span.end name={} trace_id={} status={}",
+        name,
+        span.trace_id,
+        response.status()
+    );
+    response
+}
 
 pub fn traceparent_header() -> &'static str {
     "traceparent"

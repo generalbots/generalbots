@@ -53,7 +53,7 @@ impl fmt::Display for Arch {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Platform {
     pub os: TargetOs,
     pub arch: Arch,

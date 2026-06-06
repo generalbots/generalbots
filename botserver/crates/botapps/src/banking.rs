@@ -4,6 +4,7 @@ use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
 
 use crate::db;
 
@@ -60,7 +61,7 @@ pub struct NewTransaction {
 
 fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS banking_transactions (
             id UUID PRIMARY KEY,
@@ -121,7 +122,7 @@ fn parse_decimal(s: &str) -> Result<Decimal, (StatusCode, String)> {
 pub async fn list_transactions() -> Result<Json<Vec<Transaction>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -149,7 +150,7 @@ pub async fn create_transaction(Json(req): Json<NewTransaction>) -> Result<Json<
     ensure_schema_sync()?;
     let amount = parse_decimal(&req.amount)?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -174,7 +175,7 @@ pub async fn create_transaction(Json(req): Json<NewTransaction>) -> Result<Json<
 pub async fn list_platforms() -> Result<Json<Vec<Platform>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -196,7 +197,7 @@ pub async fn list_platforms() -> Result<Json<Vec<Platform>>, (StatusCode, String
 pub async fn reconcile() -> Result<Json<ReconcileResult>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let period = Utc::now().format("%Y-%m").to_string();
     let now = Utc::now();
     #[derive(diesel::QueryableByName)]
@@ -236,7 +237,7 @@ pub async fn reconcile() -> Result<Json<ReconcileResult>, (StatusCode, String)> 
 pub async fn get_report() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,

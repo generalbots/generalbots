@@ -4,6 +4,7 @@ use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
 
 use crate::db;
 use crate::tax_storage::{ensure_schema_sync, parse_decimal};
@@ -82,7 +83,7 @@ pub struct NewCTe {
 pub async fn list_nfe() -> Result<Json<Vec<NFe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -112,7 +113,7 @@ pub async fn create_nfe(Json(req): Json<NewNFe>) -> Result<Json<NFe>, (StatusCod
     ensure_schema_sync()?;
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -140,7 +141,7 @@ pub async fn authorize_nfe(Path(id): Path<String>) -> Result<Json<NFe>, (StatusC
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();
     let n = diesel::sql_query(
         "UPDATE brazil_nfe SET status = 'authorized', authorized_at = $1 WHERE id = $2",
@@ -162,7 +163,7 @@ pub async fn authorize_nfe(Path(id): Path<String>) -> Result<Json<NFe>, (StatusC
 pub async fn list_nfse() -> Result<Json<Vec<NFSe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -189,7 +190,7 @@ pub async fn create_nfse(Json(req): Json<NewNFSe>) -> Result<Json<NFSe>, (Status
     ensure_schema_sync()?;
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -213,7 +214,7 @@ pub async fn create_nfse(Json(req): Json<NewNFSe>) -> Result<Json<NFSe>, (Status
 pub async fn list_cte() -> Result<Json<Vec<CTe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -241,7 +242,7 @@ pub async fn create_cte(Json(req): Json<NewCTe>) -> Result<Json<CTe>, (StatusCod
     ensure_schema_sync()?;
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -266,7 +267,7 @@ pub async fn create_cte(Json(req): Json<NewCTe>) -> Result<Json<CTe>, (StatusCod
 pub async fn list_sped() -> Result<Json<Vec<Sped>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,

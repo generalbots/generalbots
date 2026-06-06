@@ -109,7 +109,7 @@ fn runtime_error(message: impl Into<String>) -> Box<EvalAltResult> {
     Box::new(EvalAltResult::ErrorRuntime(message.into().into(), rhai::Position::NONE))
 }
 
-fn eval_string(context: &rhai::EvalContext, input: &rhai::Expression) -> Result<String, Box<EvalAltResult>> {
+fn eval_string(context: &mut rhai::EvalContext, input: &rhai::Expression) -> Result<String, Box<EvalAltResult>> {
     Ok(context.eval_expression_tree(input)?.to_string())
 }
 
@@ -122,9 +122,9 @@ fn register_branch_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
         .register_custom_syntax(
             ["IF", "$expr$", "THEN", "$expr$"],
             false,
-            move |context, inputs| {
-                let condition = eval_string(&context, &inputs[0])?;
-                let label = eval_string(&context, &inputs[1])?;
+            move |mut context, inputs| {
+                let condition = eval_string(&mut context, &inputs[0])?;
+                let label = eval_string(&mut context, &inputs[1])?;
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
                 let (tx, rx) = std::sync::mpsc::channel();
@@ -177,10 +177,10 @@ fn register_parallel_start(state: Arc<dyn BasicRuntime>, user: UserSession, engi
         .register_custom_syntax(
             ["PARALLEL", "$expr$", "WITH", "$expr$", "AND", "$expr$"],
             false,
-            move |context, inputs| {
-                let name = eval_string(&context, &inputs[0])?;
-                let first = eval_string(&context, &inputs[1])?;
-                let second = eval_string(&context, &inputs[2])?;
+            move |mut context, inputs| {
+                let name = eval_string(&mut context, &inputs[0])?;
+                let first = eval_string(&mut context, &inputs[1])?;
+                let second = eval_string(&mut context, &inputs[2])?;
                 let branches = vec![first, second];
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
@@ -234,8 +234,8 @@ fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
         .register_custom_syntax(
             ["MERGE", "$expr$"],
             false,
-            move |context, inputs| {
-                let name = eval_string(&context, &inputs[0])?;
+            move |mut context, inputs| {
+                let name = eval_string(&mut context, &inputs[0])?;
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
                 let (tx, rx) = std::sync::mpsc::channel();
@@ -289,8 +289,8 @@ fn register_error_handler(state: Arc<dyn BasicRuntime>, user: UserSession, engin
         .register_custom_syntax(
             ["ON", "ERROR", "CALL", "$expr$"],
             false,
-            move |context, inputs| {
-                let handler = eval_string(&context, &inputs[0])?;
+            move |mut context, inputs| {
+                let handler = eval_string(&mut context, &inputs[0])?;
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
                 let (tx, rx) = std::sync::mpsc::channel();

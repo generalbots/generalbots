@@ -84,7 +84,7 @@ where
 }
 
 pub fn eval_string(
-    context: &rhai::EvalContext,
+    context: &mut rhai::EvalContext,
     input: &rhai::Expression,
 ) -> Result<String, Box<EvalAltResult>> {
     Ok(context.eval_expression_tree(input)?.to_string())

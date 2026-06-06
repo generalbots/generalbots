@@ -36,7 +36,7 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
 #[async_trait]
-pub trait LLMProvider: Send + Sync {
+pub trait LLMProvider: Send + Sync + std::fmt::Debug {
     async fn generate(
         &self,
         prompt: &str,
@@ -838,6 +838,12 @@ pub fn create_llm_provider_from_url(
 
 pub struct DynamicLLMProvider {
     inner: RwLock<Arc<dyn LLMProvider>>,
+}
+
+impl std::fmt::Debug for DynamicLLMProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DynamicLLMProvider").finish()
+    }
 }
 
 impl DynamicLLMProvider {

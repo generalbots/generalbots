@@ -134,7 +134,7 @@ impl DocxDocument {
         let mut buf = std::io::Cursor::new(Vec::new());
         let mut zip = ZipWriter::new(&mut buf);
 
-        zip.start_file("[Content_Types].xml", Default::default()).map_err(|e| e.to_string())?;
+        zip.start_file("[Content_Types].xml", <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
         write!(zip, r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
@@ -145,13 +145,13 @@ impl DocxDocument {
   <Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
 </Types>"#).map_err(|e| e.to_string())?;
 
-        zip.start_file("_rels/.rels", Default::default()).map_err(|e| e.to_string())?;
+        zip.start_file("_rels/.rels", <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
         write!(zip, r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>"#).map_err(|e| e.to_string())?;
 
-        zip.start_file("word/_rels/document.xml.rels", Default::default()).map_err(|e| e.to_string())?;
+        zip.start_file("word/_rels/document.xml.rels", <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
         let mut rels = format!(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
@@ -164,7 +164,7 @@ impl DocxDocument {
         rels.push_str("</Relationships>");
         write!(zip, "{}", rels).map_err(|e| e.to_string())?;
 
-        zip.start_file("word/styles.xml", Default::default()).map_err(|e| e.to_string())?;
+        zip.start_file("word/styles.xml", <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
         write!(zip, r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
@@ -189,7 +189,7 @@ impl DocxDocument {
             self.styles.heading_font, self.styles.heading_font,
         ).map_err(|e| e.to_string())?;
 
-        zip.start_file("word/document.xml", Default::default()).map_err(|e| e.to_string())?;
+        zip.start_file("word/document.xml", <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
         write!(zip, r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
             xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
@@ -267,19 +267,19 @@ impl DocxDocument {
 
         for (i, img) in self.images.iter().enumerate() {
             let path = format!("word/media/image{}.png", i + 1);
-            zip.start_file(&path, Default::default()).map_err(|e| e.to_string())?;
+            zip.start_file(&path, <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
             std::io::copy(&mut std::io::Cursor::new(&img.data), &mut zip).map_err(|e| e.to_string())?;
         }
 
         if let Some(ref hdr) = self.styles.header_text {
-            zip.start_file("word/header1.xml", Default::default()).map_err(|e| e.to_string())?;
+            zip.start_file("word/header1.xml", <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
             let escaped = hdr.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
             write!(zip, r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:hdr>"#, escaped).map_err(|e| e.to_string())?;
         }
 
         if let Some(ref ftr) = self.styles.footer_text {
-            zip.start_file("word/footer1.xml", Default::default()).map_err(|e| e.to_string())?;
+            zip.start_file("word/footer1.xml", <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
             let escaped = ftr.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
             write!(zip, r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:r><w:t>{}</w:t></w:r></w:p></w:ftr>"#, escaped).map_err(|e| e.to_string())?;

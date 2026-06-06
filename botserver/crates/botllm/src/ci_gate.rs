@@ -132,11 +132,13 @@ impl CiGateRunner {
     ) -> Result<CiGateReport, String> {
         // 1. Load baseline
         let baseline: Option<Baseline> = load_json(baseline_path.as_ref())
-            .map_err(|e| format!("Failed to load baseline: {e}"))?;
+            .map_err(|e| format!("Failed to load baseline: {e}"))?
+            .unwrap_or(None);
 
         // 2. Load output samples
         let samples: Vec<EvaluationSample> = load_json(output_path.as_ref())
-            .map_err(|e| format!("Failed to load output samples: {e}"))?;
+            .map_err(|e| format!("Failed to load output samples: {e}"))?
+            .unwrap_or_default();
 
         info!(
             "CI gate: loaded {} samples, baseline {}",

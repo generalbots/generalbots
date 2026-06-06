@@ -3,6 +3,8 @@ use axum::http::StatusCode;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
+use diesel::OptionalExtension;
 
 use crate::db;
 use crate::itsm_storage::ensure_schema_sync;
@@ -90,7 +92,7 @@ struct IncidentRow {
 pub async fn list_incidents() -> Result<Json<Vec<Incident>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let rows: Vec<IncidentRow> = diesel::sql_query(
         "SELECT id, title, description, severity, status, assignee, created_at, resolved_at
          FROM itsm_incidents ORDER BY created_at DESC LIMIT 500",
@@ -106,7 +108,7 @@ pub async fn list_incidents() -> Result<Json<Vec<Incident>>, (StatusCode, String
 pub async fn create_incident(Json(req): Json<NewIncident>) -> Result<Json<Incident>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -135,7 +137,7 @@ pub async fn update_incident(
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let existing: Option<IncidentRow> = diesel::sql_query(
         "SELECT id, title, description, severity, status, assignee, created_at, resolved_at
          FROM itsm_incidents WHERE id = $1",
@@ -176,7 +178,7 @@ pub async fn update_incident(
 pub async fn list_requests() -> Result<Json<Vec<ServiceRequest>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -202,7 +204,7 @@ pub async fn list_requests() -> Result<Json<Vec<ServiceRequest>>, (StatusCode, S
 pub async fn create_request(Json(req): Json<NewServiceRequest>) -> Result<Json<ServiceRequest>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -226,7 +228,7 @@ pub async fn create_request(Json(req): Json<NewServiceRequest>) -> Result<Json<S
 pub async fn list_cmdb() -> Result<Json<Vec<CmdbItem>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -250,7 +252,7 @@ pub async fn list_cmdb() -> Result<Json<Vec<CmdbItem>>, (StatusCode, String)> {
 pub async fn list_kb() -> Result<Json<Vec<KbArticle>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,

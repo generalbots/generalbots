@@ -5,6 +5,7 @@ use diesel::sql_types::{BigInt, Nullable, Text, Uuid};
 use diesel::QueryableByName;
 use serde_json::Value;
 use uuid::Uuid as UuidValue;
+use diesel::RunQueryDsl;
 
 /// Ensure the handoff_* tables exist (idempotent migration fallback).
 pub fn ensure_schema(pool: &botlib::db_pool::DbPool) -> Result<(), String> {

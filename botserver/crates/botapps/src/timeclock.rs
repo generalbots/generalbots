@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
 
 use crate::db;
 
@@ -57,7 +58,7 @@ pub struct NewClockEvent {
 
 fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS timeclock_events (
             id UUID PRIMARY KEY,
@@ -114,7 +115,7 @@ fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
 pub async fn clock_in_out(Json(req): Json<NewClockEvent>) -> Result<Json<ClockEvent>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -136,7 +137,7 @@ pub async fn clock_in_out(Json(req): Json<NewClockEvent>) -> Result<Json<ClockEv
 pub async fn list_records() -> Result<Json<Vec<TimeRecord>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -162,7 +163,7 @@ pub async fn list_records() -> Result<Json<Vec<TimeRecord>>, (StatusCode, String
 pub async fn list_overtime() -> Result<Json<Vec<OvertimeRequest>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -191,7 +192,7 @@ pub async fn approve_overtime(Path(id): Path<String>) -> Result<Json<OvertimeReq
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let n = diesel::sql_query(
         "UPDATE timeclock_overtime SET status = 'approved', approved_by = gen_random_uuid() WHERE id = $1",
     )
@@ -211,7 +212,7 @@ pub async fn approve_overtime(Path(id): Path<String>) -> Result<Json<OvertimeReq
 pub async fn get_reports() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
