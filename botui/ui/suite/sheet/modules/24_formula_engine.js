@@ -70,7 +70,7 @@
     if (!expr.startsWith("=")) return null;
     const ns = window.__SHEET_FORMULA_PARSE;
     if (!ns) return null;
-    const src = expr.slice(1).toUpperCase();
+    const src = expr.slice(1);
     const tokens = ns.tokenize(src);
     const p = new ns.Parser(tokens);
     const tree = p.parseExpression();
@@ -113,7 +113,10 @@
   }
 
   function rangeValues(rangeNode, ctx) {
-    const a = parseRange(rangeNode.a + ":" + rangeNode.b);
+    const startRef = (rangeNode.start && rangeNode.start.raw) || rangeNode.a;
+    const endRef = (rangeNode.end && rangeNode.end.raw) || rangeNode.b;
+    if (!startRef || !endRef) return { type: "error", value: "#REF!" };
+    const a = parseRange(startRef + ":" + endRef);
     if (!a) return { type: "error", value: "#REF!" };
     const out = [];
     for (let r = a.start.row; r <= a.end.row; r++) {
@@ -122,7 +125,7 @@
         out.push(lookupCell(ref, ctx));
       }
     }
-    return { type: "array", values: out };
+    return { type: "array", values: out, start: a.start, end: a.end, width: (a.end.col - a.start.col) + 1, height: (a.end.row - a.start.row) + 1 };
   }
 
   function numCoerce(v) {
