@@ -1,10 +1,12 @@
 pub mod tax;
+pub mod tax_storage;
 pub mod video;
 pub mod vision;
 pub mod fraud;
 pub mod erp;
 pub mod integrations;
 pub mod itsm;
+pub mod itsm_storage;
 pub mod hr;
 pub mod banking;
 pub mod sales;
