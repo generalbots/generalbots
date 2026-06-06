@@ -1,99 +1,234 @@
 use axum::extract::{Json, Path};
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock, OnceLock};
 use axum::http::StatusCode;
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+use crate::db;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClockEvent {
-    pub id: String,
-    pub employee_id: String,
+    pub id: Uuid,
+    pub employee_id: Uuid,
     pub kind: String,
-    pub timestamp: String,
+    pub timestamp: chrono::DateTime<Utc>,
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeRecord {
-    pub id: String,
-    pub employee_id: String,
-    pub date: String,
-    pub clock_in: String,
-    pub clock_out: Option<String>,
-    pub hours_worked: f64,
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub clock_in: chrono::DateTime<Utc>,
+    pub clock_out: Option<chrono::DateTime<Utc>>,
+    pub hours_worked: String,
     pub status: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OvertimeRequest {
-    pub id: String,
-    pub employee_id: String,
-    pub date: String,
-    pub hours: f64,
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub hours: String,
     pub reason: String,
     pub status: String,
-    pub approved_by: Option<String>,
-    pub created_at: String,
+    pub approved_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Report {
-    pub id: String,
+    pub id: Uuid,
     pub period: String,
-    pub total_hours: f64,
-    pub overtime_hours: f64,
-    pub employees: u64,
-    pub created_at: String,
+    pub total_hours: String,
+    pub overtime_hours: String,
+    pub employees: i64,
+    pub created_at: chrono::DateTime<Utc>,
 }
 
-#[derive(Default)]
-struct AppState {
-    clock_events: Vec<ClockEvent>,
-    records: HashMap<String, TimeRecord>,
-    overtime: HashMap<String, OvertimeRequest>,
-    reports: HashMap<String, Report>,
+#[derive(Debug, Deserialize)]
+pub struct NewClockEvent {
+    pub employee_id: Uuid,
+    pub kind: String,
+    pub notes: Option<String>,
 }
 
-fn state() -> &'static Arc<RwLock<AppState>> {
-    static S: OnceLock<Arc<RwLock<AppState>>> = OnceLock::new();
-    S.get_or_init(|| Arc::new(RwLock::new(AppState::default())))
+fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS timeclock_events (
+            id UUID PRIMARY KEY,
+            employee_id UUID NOT NULL,
+            kind VARCHAR(20) NOT NULL,
+            ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            notes TEXT
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS timeclock_records (
+            id UUID PRIMARY KEY,
+            employee_id UUID NOT NULL,
+            date DATE NOT NULL,
+            clock_in TIMESTAMPTZ NOT NULL,
+            clock_out TIMESTAMPTZ,
+            hours_worked NUMERIC(8,2) NOT NULL DEFAULT 0,
+            status VARCHAR(30) NOT NULL DEFAULT 'open'
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS timeclock_overtime (
+            id UUID PRIMARY KEY,
+            employee_id UUID NOT NULL,
+            date DATE NOT NULL,
+            hours NUMERIC(8,2) NOT NULL DEFAULT 0,
+            reason TEXT NOT NULL DEFAULT '',
+            status VARCHAR(30) NOT NULL DEFAULT 'pending',
+            approved_by UUID,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS timeclock_reports (
+            id UUID PRIMARY KEY,
+            period TEXT NOT NULL,
+            total_hours NUMERIC(10,2) NOT NULL DEFAULT 0,
+            overtime_hours NUMERIC(10,2) NOT NULL DEFAULT 0,
+            employees BIGINT NOT NULL DEFAULT 0,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(())
 }
 
-pub async fn clock_in_out(Json(event): Json<ClockEvent>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    let mut new_event = event;
-    new_event.id = uuid::Uuid::new_v4().to_string();
-    new_event.timestamp = chrono::Utc::now().to_rfc3339();
-    s.clock_events.push(new_event.clone());
-    Ok(Json(serde_json::json!({"event": new_event})))
+pub async fn clock_in_out(Json(req): Json<NewClockEvent>) -> Result<Json<ClockEvent>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let id = Uuid::new_v4();
+    let now = Utc::now();
+    diesel::sql_query(
+        "INSERT INTO timeclock_events (id, employee_id, kind, ts, notes)
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(id)
+    .bind::<diesel::sql_types::Uuid, _>(req.employee_id)
+    .bind::<diesel::sql_types::Text, _>(&req.kind)
+    .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(req.notes.as_deref())
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(ClockEvent {
+        id, employee_id: req.employee_id, kind: req.kind, timestamp: now, notes: req.notes,
+    }))
 }
 
-pub async fn list_records() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    let items: Vec<&TimeRecord> = s.records.values().collect();
-    Ok(Json(serde_json::json!({"items": items})))
-}
-
-pub async fn list_overtime() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    let items: Vec<&OvertimeRequest> = s.overtime.values().collect();
-    Ok(Json(serde_json::json!({"items": items})))
-}
-
-pub async fn approve_overtime(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    match s.overtime.get_mut(&id) {
-        Some(req) => {
-            req.status = "approved".to_string();
-            req.approved_by = Some("system".to_string());
-            Ok(Json(serde_json::json!({"item": req})))
-        }
-        None => Err((StatusCode::NOT_FOUND, "Overtime request not found".to_string())),
+pub async fn list_records() -> Result<Json<Vec<TimeRecord>>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)] employee_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Date)] date: chrono::NaiveDate,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] clock_in: chrono::DateTime<Utc>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)] clock_out: Option<chrono::DateTime<Utc>>,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] hours_worked: rust_decimal::Decimal,
+        #[diesel(sql_type = diesel::sql_types::Text)] status: String,
     }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, employee_id, date, clock_in, clock_out, hours_worked, status
+         FROM timeclock_records ORDER BY date DESC LIMIT 500",
+    )
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| TimeRecord {
+        id: r.id, employee_id: r.employee_id, date: r.date, clock_in: r.clock_in,
+        clock_out: r.clock_out, hours_worked: r.hours_worked.to_string(), status: r.status,
+    }).collect()))
 }
 
-pub async fn get_reports() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let s = state().read().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
-    let items: Vec<&Report> = s.reports.values().collect();
-    Ok(Json(serde_json::json!({"items": items})))
+pub async fn list_overtime() -> Result<Json<Vec<OvertimeRequest>>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)] employee_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Date)] date: chrono::NaiveDate,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] hours: rust_decimal::Decimal,
+        #[diesel(sql_type = diesel::sql_types::Text)] reason: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] status: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)] approved_by: Option<Uuid>,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
+    }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, employee_id, date, hours, reason, status, approved_by, created_at
+         FROM timeclock_overtime ORDER BY created_at DESC LIMIT 500",
+    )
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| OvertimeRequest {
+        id: r.id, employee_id: r.employee_id, date: r.date, hours: r.hours.to_string(),
+        reason: r.reason, status: r.status, approved_by: r.approved_by, created_at: r.created_at,
+    }).collect()))
+}
+
+pub async fn approve_overtime(Path(id): Path<String>) -> Result<Json<OvertimeRequest>, (StatusCode, String)> {
+    let parsed = Uuid::parse_str(&id)
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let n = diesel::sql_query(
+        "UPDATE timeclock_overtime SET status = 'approved', approved_by = gen_random_uuid() WHERE id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    if n == 0 {
+        return Err((StatusCode::NOT_FOUND, format!("Overtime {id} not found")));
+    }
+    Ok(Json(OvertimeRequest {
+        id: parsed, employee_id: Uuid::nil(), date: Utc::now().date_naive(), hours: "0".to_string(),
+        reason: String::new(), status: "approved".to_string(), approved_by: Some(Uuid::new_v4()),
+        created_at: Utc::now(),
+    }))
+}
+
+pub async fn get_reports() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] period: String,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] total_hours: rust_decimal::Decimal,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] overtime_hours: rust_decimal::Decimal,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] employees: i64,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
+    }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, period, total_hours, overtime_hours, employees, created_at
+         FROM timeclock_reports ORDER BY created_at DESC LIMIT 500",
+    )
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| Report {
+        id: r.id, period: r.period, total_hours: r.total_hours.to_string(),
+        overtime_hours: r.overtime_hours.to_string(), employees: r.employees, created_at: r.created_at,
+    }).collect()))
 }

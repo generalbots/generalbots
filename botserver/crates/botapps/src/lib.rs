@@ -15,6 +15,8 @@ pub mod timeclock;
 pub mod m365;
 pub mod minutes;
 pub mod templates_app;
+pub mod database;
+pub mod db;
 
 use axum::routing::{get, post, put, delete};
 use axum::Router;
@@ -108,4 +110,8 @@ pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
         .route("/api/templates/list", get(templates_app::list_templates))
         .route("/api/templates/preview/{id}", get(templates_app::preview_template))
         .route("/api/templates/deploy/{id}", post(templates_app::deploy_template))
+        // database manager
+        .route("/api/database/schemas", get(database::list_schemas))
+        .route("/api/database/tables", get(database::list_tables))
+        .route("/api/database/query", post(database::execute_query))
 }
