@@ -62,7 +62,7 @@ impl ServiceBackend for MacosBackend {
     fn stop(&self, service: &str) -> Result<(), String> {
         Err(format!("macos backend for {service} not wired"))
     }
-    fn status(&self, service: &str) -> Result<ServiceState, String> {
+    fn status(&self, _service: &str) -> Result<ServiceState, String> {
         Ok(ServiceState::Unknown)
     }
     fn platform(&self) -> TargetOs {
@@ -79,7 +79,7 @@ impl ServiceBackend for WindowsBackend {
     fn stop(&self, service: &str) -> Result<(), String> {
         Err(format!("windows backend for {service} not wired"))
     }
-    fn status(&self, service: &str) -> Result<ServiceState, String> {
+    fn status(&self, _service: &str) -> Result<ServiceState, String> {
         Ok(ServiceState::Unknown)
     }
     fn platform(&self) -> TargetOs {

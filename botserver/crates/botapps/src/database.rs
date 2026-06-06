@@ -1,6 +1,7 @@
 use axum::extract::Json;
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use diesel::RunQueryDsl;
 
 use crate::db;
 
@@ -35,7 +36,7 @@ pub struct QueryResult {
 
 pub async fn list_schemas() -> Result<Json<Vec<TableSchema>>, (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct TableRow {
         #[diesel(sql_type = diesel::sql_types::Text)] table_name: String,
@@ -105,7 +106,7 @@ pub async fn execute_query(Json(req): Json<SqlQuery>) -> Result<Json<QueryResult
     }
     let pool = db::pool()?;
     let start = std::time::Instant::now();
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct JsonRow {
         #[diesel(sql_type = diesel::sql_types::Jsonb)] data: serde_json::Value,
@@ -122,7 +123,8 @@ pub async fn execute_query(Json(req): Json<SqlQuery>) -> Result<Json<QueryResult
         }
     };
     let elapsed = start.elapsed().as_millis() as u64;
-    let mut out_rows = Vec::with_capacity(rows.len());
+    let row_count = rows.len();
+    let mut out_rows = Vec::with_capacity(row_count);
     for row in rows {
         match row.data {
             serde_json::Value::Array(arr) => {
@@ -136,14 +138,14 @@ pub async fn execute_query(Json(req): Json<SqlQuery>) -> Result<Json<QueryResult
     Ok(Json(QueryResult {
         columns: vec!["data".to_string()],
         rows: out_rows,
-        row_count: rows.len(),
+        row_count,
         elapsed_ms: elapsed,
     }))
 }
 
 pub async fn list_tables() -> Result<Json<Vec<String>>, (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Text)] table_name: String,

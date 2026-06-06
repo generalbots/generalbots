@@ -64,7 +64,7 @@ pub trait ScriptRunner: Send + Sync {
     fn set_variable(&self, key: &str, value: &str) -> BotResult<()>;
 }
 
-pub trait LLMProvider: Send + Sync {
+pub trait LLMProvider: Send + Sync + std::fmt::Debug {
     fn generate_stream(
         &self,
         model: &str,

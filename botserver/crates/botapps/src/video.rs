@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
 
 use crate::db;
 
@@ -59,7 +60,7 @@ pub struct NewCamera {
 
 pub async fn list_cameras() -> Result<Json<Vec<Camera>>, (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -93,7 +94,7 @@ pub async fn list_cameras() -> Result<Json<Vec<Camera>>, (StatusCode, String)> {
 
 pub async fn create_camera(Json(req): Json<NewCamera>) -> Result<Json<Camera>, (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -124,7 +125,7 @@ pub async fn delete_camera(Path(id): Path<String>) -> Result<StatusCode, (Status
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let n = diesel::sql_query("DELETE FROM monitoring_cameras WHERE id = $1")
         .bind::<diesel::sql_types::Uuid, _>(parsed)
         .execute(&mut conn)
@@ -137,7 +138,7 @@ pub async fn delete_camera(Path(id): Path<String>) -> Result<StatusCode, (Status
 
 pub async fn list_alerts() -> Result<Json<Vec<MonitoringEvent>>, (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -167,7 +168,7 @@ pub async fn list_alerts() -> Result<Json<Vec<MonitoringEvent>>, (StatusCode, St
 
 pub async fn list_analytics() -> Result<Json<Vec<CameraAnalytics>>, (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Count {
         #[diesel(sql_type = diesel::sql_types::BigInt)] total: i64,

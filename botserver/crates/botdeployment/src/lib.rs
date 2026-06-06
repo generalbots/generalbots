@@ -16,11 +16,14 @@
 //! - `forgejo` - Forgejo client for repository management
 //! - `gateway` - Deploy Gateway API for secure alm-ci → host operations
 
+pub mod cross_platform;
 pub mod forgejo;
 pub mod gateway;
 pub mod gateway_server;
 pub mod handlers;
+pub mod installer;
 pub mod router;
+pub mod service;
 pub mod types;
 pub mod schema;
 pub mod models;

@@ -18,6 +18,7 @@ tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "fs", "p
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "r2d2"] }
 uuid = { workspace = true, features = ["v4", "serde"] }
 chrono = { workspace = true, features = ["serde"] }
+toml = { workspace = true }
 
 [lints]
 workspace = true

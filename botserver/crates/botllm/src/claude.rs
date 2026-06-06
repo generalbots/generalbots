@@ -116,6 +116,7 @@ pub struct AzureStreamChunk {
     pub choices: Vec<AzureStreamChoice>,
 }
 
+#[derive(Debug)]
 pub struct ClaudeClient {
     base_url: String,
     deployment_name: String,

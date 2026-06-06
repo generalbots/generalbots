@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
 
 use crate::db;
 
@@ -49,7 +50,7 @@ pub struct UpdateVerification {
 
 fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS identity_kyc_workflows (
             id UUID PRIMARY KEY,
@@ -96,7 +97,7 @@ fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
 pub async fn list_verifications() -> Result<Json<Vec<Verification>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -129,7 +130,7 @@ pub async fn update_verification(
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let completed_at = if req.status == "approved" || req.status == "rejected" {
         Some(Utc::now())
     } else {
@@ -159,7 +160,7 @@ pub async fn update_verification(
 pub async fn list_signatures() -> Result<Json<Vec<Signature>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -187,7 +188,7 @@ pub async fn sign_document(Path(id): Path<String>) -> Result<Json<Signature>, (S
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();
     let n = diesel::sql_query(
         "UPDATE identity_signatures SET status = 'signed', signed_at = $1 WHERE id = $2",
@@ -208,7 +209,7 @@ pub async fn sign_document(Path(id): Path<String>) -> Result<Json<Signature>, (S
 pub async fn list_certificates() -> Result<Json<Vec<Certificate>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,

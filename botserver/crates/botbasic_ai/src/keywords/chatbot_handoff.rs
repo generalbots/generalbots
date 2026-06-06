@@ -62,15 +62,15 @@ where
         })
         .map_err(|e| format!("Spawn: {e}"))?;
     rx.recv_timeout(Duration::from_secs(15))
-        .map_err(|_| "Operation timed out after 15s".to_string())
+        .map_err(|_| "Operation timed out after 15s".to_string())?
 }
 
 fn bot_id_from_session(user: &UserSession) -> Uuid {
-    user.bot_id.unwrap_or_else(Uuid::nil)
+    user.bot_id
 }
 
 fn user_id_from_session(user: &UserSession) -> Option<Uuid> {
-    user.user_id
+    Some(user.user_id)
 }
 
 fn priority_int(priority: &str) -> i32 {
@@ -102,7 +102,7 @@ fn register_transfer_to_human(
                     let pool = state.db_pool();
                     let bot_id = bot_id_from_session(&user_clone);
                     let user_id = user_id_from_session(&user_clone);
-                    let session_id = user_clone.session_id;
+                    let session_id = user_clone.id;
                     let topic = format!("User {user_id:?} request");
                     let metadata = json!({
                         "channel": "bot",
@@ -162,7 +162,7 @@ fn register_escalate(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &m
                     let pool = state.db_pool();
                     let bot_id = bot_id_from_session(&user_clone);
                     let user_id = user_id_from_session(&user_clone);
-                    let session_id = user_clone.session_id;
+                    let session_id = user_clone.id;
                     let metadata = json!({
                         "channel": "bot",
                         "session_id": session_id,
@@ -222,7 +222,7 @@ fn register_request_agent(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                     let pool = state.db_pool();
                     let bot_id = bot_id_from_session(&user_clone);
                     let user_id = user_id_from_session(&user_clone);
-                    let session_id = user_clone.session_id;
+                    let session_id = user_clone.id;
                     let metadata = json!({ "channel": "bot", "session_id": session_id });
                     let handoff_id = insert_queue_entry(
                         pool,

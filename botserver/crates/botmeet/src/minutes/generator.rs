@@ -5,7 +5,7 @@ use chrono::Utc;
 
 use crate::minutes::types::{
     MeetingMinute, MinuteActionItem, AttendeeEntry, MinuteStatus,
-    Transcription, TranscriptionSegment,
+    Transcription,
 };
 
 pub struct MinutesGenerator;

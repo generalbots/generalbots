@@ -3,7 +3,6 @@ use diesel::prelude::*;
 use diesel::sql_query;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
-use log::{error, info};
 
 use crate::minutes::types::*;
 

@@ -185,7 +185,7 @@ impl TranscriptionService {
         speakers
     }
 
-    pub fn generate_full_transcript(&self) -> FullTranscript {
+    pub fn generate_full_transcript(&mut self) -> FullTranscript {
         let meeting_id = self.segments.first().map(|s| s.meeting_id.clone()).unwrap_or_default();
         let speakers = self.speaker_diarization();
         let total_duration = speakers.iter().map(|s| s.total_duration).sum();
@@ -199,7 +199,7 @@ impl TranscriptionService {
         }
     }
 
-    pub fn generate_transcript_summary(&self) -> TranscriptSummary {
+    pub fn generate_transcript_summary(&mut self) -> TranscriptSummary {
         let speakers = self.speaker_diarization();
         let total_segments = self.segments.len();
         let total_duration: f64 = speakers.iter().map(|s| s.total_duration).sum();

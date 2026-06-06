@@ -1,4 +1,3 @@
-use base64::Engine;
 use std::io::Write;
 use zip::ZipWriter;
 
@@ -219,7 +218,7 @@ impl PptxDocument {
         let mut zip = ZipWriter::new(&mut buf);
 
         // [Content_Types].xml
-        zip.start_file("[Content_Types].xml", Default::default())
+        zip.start_file("[Content_Types].xml", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -267,7 +266,7 @@ impl PptxDocument {
         writeln!(zip, "</Types>").map_err(|e| e.to_string())?;
 
         // _rels/.rels
-        zip.start_file("_rels/.rels", Default::default())
+        zip.start_file("_rels/.rels", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -281,7 +280,7 @@ impl PptxDocument {
         .map_err(|e| e.to_string())?;
 
         // ppt/presentation.xml
-        zip.start_file("ppt/presentation.xml", Default::default())
+        zip.start_file("ppt/presentation.xml", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
 
         let slide_id_list: String = self
@@ -316,7 +315,7 @@ impl PptxDocument {
   </p:sldMasterIdLst>
   <p:sldIdLst>
 {sld_ids}  </p:sldIdLst>
-  <p:sldSz cx="{}" cy="{}"/>
+  <p:sldSz cx="{slide_width}" cy="{slide_height}"/>
   <p:notesSz cx="9144000" cy="6858000"/>
   <p:defaultTextStyle>
     <a:defPPr>
@@ -328,13 +327,13 @@ impl PptxDocument {
   </p:defaultTextStyle>
 </p:presentation>"#,
             sld_ids = slide_id_list,
-            self.styles.slide_width,
-            self.styles.slide_height,
+            slide_width = self.styles.slide_width,
+            slide_height = self.styles.slide_height,
         )
         .map_err(|e| e.to_string())?;
 
         // ppt/_rels/presentation.xml.rels
-        zip.start_file("ppt/_rels/presentation.xml.rels", Default::default())
+        zip.start_file("ppt/_rels/presentation.xml.rels", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
         let mut pres_rels = format!(
             r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -367,9 +366,7 @@ impl PptxDocument {
 
         // ppt/slideMasters/slideMaster1.xml
         zip.start_file(
-            "ppt/slideMasters/slideMaster1.xml",
-            Default::default(),
-        )
+            "ppt/slideMasters/slideMaster1.xml", <zip::write::FileOptions<()>>::default())
         .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -394,9 +391,7 @@ impl PptxDocument {
 
         // ppt/slideMasters/_rels/slideMaster1.xml.rels
         zip.start_file(
-            "ppt/slideMasters/_rels/slideMaster1.xml.rels",
-            Default::default(),
-        )
+            "ppt/slideMasters/_rels/slideMaster1.xml.rels", <zip::write::FileOptions<()>>::default())
         .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -410,9 +405,7 @@ impl PptxDocument {
 
         // ppt/slideLayouts/slideLayout1.xml
         zip.start_file(
-            "ppt/slideLayouts/slideLayout1.xml",
-            Default::default(),
-        )
+            "ppt/slideLayouts/slideLayout1.xml", <zip::write::FileOptions<()>>::default())
         .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -437,9 +430,7 @@ impl PptxDocument {
 
         // ppt/slideLayouts/_rels/slideLayout1.xml.rels
         zip.start_file(
-            "ppt/slideLayouts/_rels/slideLayout1.xml.rels",
-            Default::default(),
-        )
+            "ppt/slideLayouts/_rels/slideLayout1.xml.rels", <zip::write::FileOptions<()>>::default())
         .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -451,7 +442,7 @@ impl PptxDocument {
         .map_err(|e| e.to_string())?;
 
         // ppt/theme/theme1.xml
-        zip.start_file("ppt/theme/theme1.xml", Default::default())
+        zip.start_file("ppt/theme/theme1.xml", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -508,7 +499,7 @@ impl PptxDocument {
         .map_err(|e| e.to_string())?;
 
         // ppt/presProps.xml
-        zip.start_file("ppt/presProps.xml", Default::default())
+        zip.start_file("ppt/presProps.xml", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -519,7 +510,7 @@ impl PptxDocument {
         .map_err(|e| e.to_string())?;
 
         // ppt/viewProps.xml
-        zip.start_file("ppt/viewProps.xml", Default::default())
+        zip.start_file("ppt/viewProps.xml", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -642,7 +633,7 @@ impl PptxDocument {
                             img_id, img_id, ext
                         ));
 
-                        zip.start_file(&img_path, Default::default())
+                        zip.start_file(&img_path, <zip::write::FileOptions<()>>::default())
                             .map_err(|e| e.to_string())?;
                             std::io::copy(
                             &mut std::io::Cursor::new(data),
@@ -687,7 +678,7 @@ impl PptxDocument {
                     SlideElementType::Shape {
                         shape_type,
                         fill_color,
-                        line_color,
+                        line_color: _line_color,
                         text,
                     } => {
                         let fill = fill_color
@@ -792,7 +783,7 @@ impl PptxDocument {
           <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table">
             <a:tbl>
               <a:tblPr>
-                <a:tableStyleId>{{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}</a:tableStyleId>
+                <a:tableStyleId>{{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}}</a:tableStyleId>
               </a:tblPr>
               <a:tblGrid>"#,
                             el_id, el_id,
@@ -893,14 +884,14 @@ impl PptxDocument {
             );
 
             let slide_path = format!("ppt/slides/slide{}.xml", slide_num);
-            zip.start_file(&slide_path, Default::default())
+            zip.start_file(&slide_path, <zip::write::FileOptions<()>>::default())
                 .map_err(|e| e.to_string())?;
             write!(zip, "{}", slide_xml).map_err(|e| e.to_string())?;
 
             // Slide rels
             let rels_path = format!("ppt/slides/_rels/slide{}.xml.rels", slide_num);
             rels.push_str("</Relationships>");
-            zip.start_file(&rels_path, Default::default())
+            zip.start_file(&rels_path, <zip::write::FileOptions<()>>::default())
                 .map_err(|e| e.to_string())?;
             write!(zip, "{}", rels).map_err(|e| e.to_string())?;
 
@@ -954,14 +945,14 @@ impl PptxDocument {
 </p:notes>"#,
                     slide_num, escaped_notes
                 );
-                zip.start_file(&notes_path, Default::default())
+                zip.start_file(&notes_path, <zip::write::FileOptions<()>>::default())
                     .map_err(|e| e.to_string())?;
                 write!(zip, "{}", notes_xml).map_err(|e| e.to_string())?;
             }
         }
 
         // docProps/core.xml
-        zip.start_file("docProps/core.xml", Default::default())
+        zip.start_file("docProps/core.xml", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -984,7 +975,7 @@ impl PptxDocument {
         .map_err(|e| e.to_string())?;
 
         // docProps/app.xml
-        zip.start_file("docProps/app.xml", Default::default())
+        zip.start_file("docProps/app.xml", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
         write!(
             zip,
@@ -1010,7 +1001,7 @@ impl PptxDocument {
 
 pub fn from_html(html: &str) -> Result<PptxDocument, String> {
     let mut doc = PptxDocument::new();
-    let mut current_slide: Option<Slide> = None;
+    let _current_slide: Option<Slide> = None;
 
     let re_h1 = regex::Regex::new(r"<h1[^>]*>(.*?)</h1>").map_err(|e| e.to_string())?;
     let re_h2 = regex::Regex::new(r"<h2[^>]*>(.*?)</h2>").map_err(|e| e.to_string())?;

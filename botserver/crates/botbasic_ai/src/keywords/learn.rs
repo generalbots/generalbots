@@ -54,15 +54,15 @@ where
         })
         .map_err(|e| format!("Spawn: {e}"))?;
     rx.recv_timeout(Duration::from_secs(45))
-        .map_err(|_| "Operation timed out after 45s".to_string())
+        .map_err(|_| "Operation timed out after 45s".to_string())?
 }
 
 fn bot_id_from_session(user: &UserSession) -> Uuid {
-    user.bot_id.unwrap_or_else(Uuid::nil)
+    user.bot_id
 }
 
 fn user_id_from_session(user: &UserSession) -> Option<Uuid> {
-    user.user_id
+    Some(user.user_id)
 }
 
 fn llm_content(state: &Arc<dyn BasicRuntime>, prompt: &str, fallback: &str) -> String {

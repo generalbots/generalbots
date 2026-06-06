@@ -18,6 +18,8 @@ botsecurity-crypto = { path = "../botsecurity-crypto" }
 botsecurity-auth = { path = "../botsecurity-auth" }
 botsecurity-protection = { path = "../botsecurity-protection" }
 anyhow = { workspace = true }
+
+diesel = { workspace = true, features = ["postgres", "r2d2"] }
 axum = { workspace = true }
 chrono = { workspace = true, features = ["serde", "clock"] }
 base64 = { workspace = true }

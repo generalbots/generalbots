@@ -4,6 +4,8 @@ use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use diesel::RunQueryDsl;
+use diesel::OptionalExtension;
 
 use crate::db;
 
@@ -53,7 +55,7 @@ pub struct NewOrder {
 
 fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS pos_products (
             id UUID PRIMARY KEY,
@@ -90,7 +92,7 @@ fn parse_decimal(s: &str) -> Result<Decimal, (StatusCode, String)> {
 pub async fn list_products() -> Result<Json<Vec<Product>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -118,7 +120,7 @@ pub async fn create_product(Json(req): Json<NewProduct>) -> Result<Json<Product>
     ensure_schema_sync()?;
     let price = parse_decimal(&req.price)?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
@@ -143,7 +145,7 @@ pub async fn create_product(Json(req): Json<NewProduct>) -> Result<Json<Product>
 pub async fn list_orders() -> Result<Json<Vec<Order>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -178,7 +180,7 @@ pub async fn list_orders() -> Result<Json<Vec<Order>>, (StatusCode, String)> {
 pub async fn create_order(Json(req): Json<NewOrder>) -> Result<Json<Order>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let mut total = Decimal::ZERO;
     for item in &req.items {
         let unit = parse_decimal(&item.unit_price)?;
@@ -211,7 +213,7 @@ pub async fn get_order(Path(id): Path<String>) -> Result<Json<Order>, (StatusCod
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(db::map_diesel_err)?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
