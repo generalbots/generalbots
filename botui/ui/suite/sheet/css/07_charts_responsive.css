@@ -1,0 +1,123 @@
+/* =============================================================================
+ * 07 CHARTS RESPONSIVE — Charts & images display, responsive, print, number format select, utility classes
+ * Split from sheet.css on 2026-06-06 (Plan A cleanup, AGENTS.md <450 line rule)
+ * =============================================================================
+/* =============================================================================
+   INSERT IMAGE MODAL
+   ============================================================================= */
+
+.img-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--sentient-border, #e0e0e0);
+    margin-bottom: 16px;
+}
+
+.img-tab {
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-secondary, #666);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.img-tab:hover {
+    color: var(--sentient-text-primary, #212121);
+}
+
+.img-tab.active {
+    color: var(--sentient-accent, #4285f4);
+    border-bottom-color: var(--sentient-accent, #4285f4);
+}
+
+.img-tab-content {
+    display: none;
+}
+
+.img-tab-content.active {
+    display: block;
+}
+
+.img-section {
+    margin-bottom: 16px;
+}
+
+.img-section label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-secondary, #666);
+    margin-bottom: 6px;
+}
+
+.img-section input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-sm, 4px);
+    font-size: 14px;
+    background: var(--sentient-bg-primary, #ffffff);
+    color: var(--sentient-text-primary, #212121);
+}
+
+.img-section input:focus {
+    outline: none;
+    border-color: var(--sentient-accent, #4285f4);
+}
+
+.img-drop-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    border: 2px dashed var(--sentient-border, #e0e0e0);
+    border-radius: var(--sentient-radius-md, 8px);
+    color: var(--sentient-text-secondary, #666);
+    transition: all 0.15s ease;
+}
+
+.img-drop-zone:hover,
+.img-drop-zone.dragover {
+    border-color: var(--sentient-accent, #4285f4);
+    background: rgba(66, 133, 244, 0.05);
+}
+
+.img-drop-zone p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.img-preview-container {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+.img-preview-container label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-secondary, #666);
+    margin-bottom: 8px;
+}
+
+.img-preview-container img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: var(--sentient-radius-sm, 4px);
+    border: 1px solid var(--sentient-border, #e0e0e0);
+}
+
+/* =============================================================================
+   NUMBER FORMAT SELECT
+   ============================================================================= */
+
+.number-format {
+    min-width: 140px;
+}
+
