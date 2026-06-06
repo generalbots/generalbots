@@ -1,0 +1,65 @@
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="customNumberFormatModalTitle" tabindex="-1" id="customNumberFormatModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="customNumberFormatModalTitle">Custom Number Format</h3>
+            <button class="btn-close" id="closeCustomFormatModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="cnf-section">
+                <label>Category:</label>
+                <select id="cnfCategory">
+                    <option value="number">Number</option>
+                    <option value="currency">Currency</option>
+                    <option value="date">Date</option>
+                    <option value="time">Time</option>
+                    <option value="percentage">Percentage</option>
+                    <option value="fraction">Fraction</option>
+                    <option value="scientific">Scientific</option>
+                    <option value="text">Text</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="cnf-section">
+                <label>Format code:</label>
+                <input type="text" id="cnfFormatCode" placeholder="#,##0.00" />
+            </div>
+            <div class="cnf-section">
+                <label>Preview:</label>
+                <div class="cnf-preview" id="cnfPreview">1,234.56</div>
+            </div>
+            <div class="cnf-section">
+                <label>Common formats:</label>
+                <div class="cnf-formats-list" id="cnfFormatsList">
+                    <div class="cnf-format-item" data-format="#,##0">1,235</div>
+                    <div class="cnf-format-item" data-format="#,##0.00">
+                        1,234.56
+                    </div>
+                    <div class="cnf-format-item" data-format="$#,##0.00">
+                        $1,234.56
+                    </div>
+                    <div class="cnf-format-item" data-format="0%">12%</div>
+                    <div class="cnf-format-item" data-format="0.00%">
+                        12.34%
+                    </div>
+                    <div class="cnf-format-item" data-format="0.00E+00">
+                        1.23E+03
+                    </div>
+                    <div class="cnf-format-item" data-format="MM/DD/YYYY">
+                        01/15/2024
+                    </div>
+                    <div class="cnf-format-item" data-format="MMMM D, YYYY">
+                        January 15, 2024
+                    </div>
+                    <div class="cnf-format-item" data-format="HH:MM:SS">
+                        14:30:00
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancelCnfBtn">Cancel</button>
+                <button class="btn-primary" id="applyCnfBtn">Apply</button>
+            </div>
+        </div>
+    </div>
+</div>
+

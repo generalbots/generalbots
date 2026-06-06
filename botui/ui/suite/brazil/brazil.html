@@ -20,7 +20,17 @@
     <button class="gb-tab" data-tab="cte">CTe / MDFe</button>
     <button class="gb-tab" data-tab="sped">EFD / SPED</button>
     <button class="gb-tab" data-tab="validators">Validadores</button>
+    <button class="gb-tab" data-tab="history">Histórico</button>
+    <button class="gb-tab" data-tab="settings">Configurações</button>
   </nav>
+
+  <div class="gb-status-bar" id="gb-status-bar">
+    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-SP: Operacional</span>
+    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-RJ: Operacional</span>
+    <span class="gb-status-item"><span class="gb-status-dot degraded"></span>SEFAZ-MG: Lentidão</span>
+    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-DF: Operacional</span>
+    <span class="gb-status-item"><span class="gb-status-dot online"></span>Certificado A1: Válido até 2027-01-15</span>
+  </div>
 
   <main>
     <section id="tab-dashboard" class="gb-tab-pane active">
@@ -29,6 +39,10 @@
         <div class="gb-kpi"><span class="gb-kpi-label">Autorizadas</span><span class="gb-kpi-value" data-counter="authorized">0</span></div>
         <div class="gb-kpi"><span class="gb-kpi-label">Rejeitadas</span><span class="gb-kpi-value" data-counter="rejected">0</span></div>
         <div class="gb-kpi"><span class="gb-kpi-label">Em digitação</span><span class="gb-kpi-value" data-counter="draft">0</span></div>
+        <div class="gb-kpi"><span class="gb-kpi-label">Canceladas (mês)</span><span class="gb-kpi-value" data-counter="cancelled">0</span></div>
+        <div class="gb-kpi"><span class="gb-kpi-label">Faturamento (R$)</span><span class="gb-kpi-value" data-counter="revenue">0</span></div>
+        <div class="gb-kpi"><span class="gb-kpi-label">ICMS recolhido</span><span class="gb-kpi-value" data-counter="icms">0</span></div>
+        <div class="gb-kpi"><span class="gb-kpi-label">ISS recolhido</span><span class="gb-kpi-value" data-counter="iss">0</span></div>
       </div>
       <div class="gb-card">
         <h2>Atalhos</h2>
@@ -37,7 +51,21 @@
           <button class="gb-action" data-shortcut="nfse">+ Nova NFSe</button>
           <button class="gb-action" data-shortcut="cte">+ Novo CTe</button>
           <button class="gb-action" data-shortcut="mdfe">+ Novo MDFe</button>
+          <button class="gb-action" data-shortcut="sped">+ Gerar SPED</button>
+          <button class="gb-action" data-shortcut="validators">Validar documento</button>
         </div>
+      </div>
+      <div class="gb-card">
+        <h2>Eventos recentes</h2>
+        <ul class="gb-event-list" id="dashboard-events">
+          <li class="gb-event"><span class="gb-event-time">--:--</span><span class="gb-event-text">Carregando eventos...</span></li>
+        </ul>
+      </div>
+      <div class="gb-card">
+        <h2>Alertas fiscais</h2>
+        <ul class="gb-alert-list" id="dashboard-alerts">
+          <li class="gb-alert info">Sistema operacional.</li>
+        </ul>
       </div>
     </section>
 
@@ -47,21 +75,65 @@
           <legend>Emissor</legend>
           <label>CNPJ <input name="issuer_cnpj" data-mask="cnpj" required /></label>
           <label>IE <input name="issuer_ie" data-mask="ie" /></label>
+          <label>Razão social <input name="issuer_name" /></label>
+          <label>Endereço <input name="issuer_address" /></label>
+          <label>UF
+            <select name="issuer_uf">
+              <option>SP</option><option>RJ</option><option>MG</option><option>DF</option><option>PR</option><option>RS</option><option>SC</option><option>BA</option><option>PE</option><option>CE</option><option>GO</option>
+            </select>
+          </label>
+          <label>Município (cód. IBGE) <input name="issuer_city" pattern="[0-9]{7}" /></label>
         </fieldset>
         <fieldset>
           <legend>Destinatário</legend>
           <label>CNPJ/CPF <input name="recipient_tax_id" data-mask="cnpj_cpf" /></label>
+          <label>Nome/Razão social <input name="recipient_name" /></label>
+          <label>Email <input name="recipient_email" type="email" /></label>
+          <label>Endereço <input name="recipient_address" /></label>
+          <label>CEP <input name="recipient_zip" data-mask="cep" /></label>
         </fieldset>
         <fieldset>
-          <legend>Produto (linha 1)</legend>
-          <label>SKU <input name="sku" /></label>
-          <label>Descrição <input name="description" required /></label>
-          <label>NCM <input name="ncm" /></label>
-          <label>CFOP <input name="cfop" /></label>
-          <label>Quantidade <input name="quantity" type="number" min="0" step="0.01" value="1" /></label>
-          <label>Valor unitário <input name="unit_price" type="number" min="0" step="0.01" value="0" /></label>
+          <legend>Produtos</legend>
+          <div id="nfe-products"></div>
+          <button type="button" class="gb-secondary" id="nfe-add-product">+ Adicionar item</button>
         </fieldset>
-        <button type="submit" class="gb-primary">Gerar chave de acesso</button>
+        <fieldset>
+          <legend>Tributação</legend>
+          <label>Natureza da operação <input name="cfop_operation" value="Venda de mercadoria" /></label>
+          <label>Regime tributário
+            <select name="tax_regime">
+              <option value="1">Simples Nacional</option>
+              <option value="2">Simples Nacional – excesso de sublimite</option>
+              <option value="3">Regime Normal (Lucro Real/Presumido)</option>
+            </select>
+          </label>
+          <label>Finalidade
+            <select name="purpose">
+              <option value="1">NF-e normal</option>
+              <option value="2">NF-e complementar</option>
+              <option value="3">NF-e de ajuste</option>
+              <option value="4">Devolução</option>
+            </select>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Transporte</legend>
+          <label>Modalidade do frete
+            <select name="freight_modality">
+              <option value="0">Por conta do emitente</option>
+              <option value="1">Por conta do destinatário</option>
+              <option value="2">Por conta de terceiros</option>
+              <option value="9">Sem ocorrência de transporte</option>
+            </select>
+          </label>
+          <label>Transportadora (CNPJ) <input name="carrier_cnpj" data-mask="cnpj" /></label>
+          <label>Placa do veículo <input name="vehicle_plate" /></label>
+        </fieldset>
+        <div class="gb-form-actions">
+          <button type="submit" class="gb-primary">Gerar chave de acesso</button>
+          <button type="button" class="gb-secondary" id="nfe-preview">Pré-visualizar DANFE</button>
+          <button type="button" class="gb-secondary" id="nfe-save-draft">Salvar rascunho</button>
+        </div>
         <output id="nfe-key-output" class="gb-output"></output>
       </form>
     </section>
@@ -78,19 +150,59 @@
 
     <section id="tab-cte" class="gb-tab-pane">
       <form id="cte-form" class="gb-form">
-        <label>Modal
-          <select name="modal">
-            <option value="Road">Rodoviário</option>
-            <option value="Air">Aéreo</option>
-            <option value="Water">Aquaviário</option>
-            <option value="Rail">Ferroviário</option>
-            <option value="Pipeline">Dutoviário</option>
-          </select>
-        </label>
-        <label>Placa do veículo <input name="plate" pattern="[A-Z]{3}[0-9][A-Z0-9][0-9]{2}" required /></label>
-        <label>Origem (cód. IBGE) <input name="origin" pattern="[0-9]{7}" required /></label>
-        <label>Destino (cód. IBGE) <input name="destination" pattern="[0-9]{7}" required /></label>
-        <button type="submit" class="gb-primary">Montar CT-e</button>
+        <fieldset>
+          <legend>Identificação</legend>
+          <label>Modal
+            <select name="modal">
+              <option value="Road">Rodoviário</option>
+              <option value="Air">Aéreo</option>
+              <option value="Water">Aquaviário</option>
+              <option value="Rail">Ferroviário</option>
+              <option value="Pipeline">Dutoviário</option>
+              <option value="Multimodal">Multimodal</option>
+            </select>
+          </label>
+          <label>Tipo de serviço
+            <select name="service_type">
+              <option value="0">Normal</option>
+              <option value="1">Subcontratação</option>
+              <option value="2">Redespacho</option>
+              <option value="3">Redespacho intermediário</option>
+            </select>
+          </label>
+          <label>Placa do veículo <input name="plate" pattern="[A-Z]{3}[0-9][A-Z0-9][0-9]{2}" required /></label>
+          <label>RENAVAM do veículo <input name="renavam" pattern="[0-9]{11}" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Origem e destino</legend>
+          <label>Origem (cód. IBGE) <input name="origin" pattern="[0-9]{7}" required /></label>
+          <label>Origem UF
+            <select name="origin_uf"><option>SP</option><option>RJ</option><option>MG</option><option>DF</option><option>PR</option><option>RS</option><option>SC</option></select>
+          </label>
+          <label>Destino (cód. IBGE) <input name="destination" pattern="[0-9]{7}" required /></label>
+          <label>Destino UF
+            <select name="destination_uf"><option>SP</option><option>RJ</option><option>MG</option><option>DF</option><option>PR</option><option>RS</option><option>SC</option></select>
+          </label>
+          <label>Distância (km) <input name="distance_km" type="number" min="0" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Carga</legend>
+          <label>Descrição da carga <input name="cargo_description" /></label>
+          <label>Peso bruto (kg) <input name="cargo_weight_kg" type="number" min="0" step="0.001" /></label>
+          <label>Volume (m³) <input name="cargo_volume_m3" type="number" min="0" step="0.001" /></label>
+          <label>Valor da carga (R$) <input name="cargo_value" type="number" min="0" step="0.01" /></label>
+          <label>NF-e vinculada (chave 44 dígitos) <input name="linked_nfe" maxlength="44" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Valores</legend>
+          <label>Valor do frete (R$) <input name="freight_value" type="number" min="0" step="0.01" required /></label>
+          <label>Pedágio (R$) <input name="toll_value" type="number" min="0" step="0.01" value="0" /></label>
+          <label>ICMS (%) <input name="icms_rate" type="number" min="0" max="100" step="0.01" value="12" /></label>
+        </fieldset>
+        <div class="gb-form-actions">
+          <button type="submit" class="gb-primary">Montar CT-e</button>
+          <button type="button" class="gb-secondary" id="cte-preview">Pré-visualizar DACTE</button>
+        </div>
         <output id="cte-output" class="gb-output"></output>
       </form>
     </section>
@@ -119,10 +231,123 @@
         <label>CNPJ <input name="cnpj" data-mask="cnpj" placeholder="00.000.000/0000-00" /></label>
         <label>CPF <input name="cpf" data-mask="cpf" placeholder="000.000.000-00" /></label>
         <label>CEP <input name="cep" data-mask="cep" placeholder="00000-000" /></label>
-        <label>UF <select name="uf"><option>SP</option><option>RJ</option><option>MG</option><option>DF</option></select></label>
+        <label>UF <select name="uf"><option>SP</option><option>RJ</option><option>MG</option><option>DF</option><option>PR</option><option>RS</option><option>SC</option><option>BA</option><option>PE</option><option>CE</option><option>GO</option></select></label>
         <label>IE <input name="ie" /></label>
+        <label>Chave NFe (44 dígitos) <input name="access_key" maxlength="44" /></label>
+        <label>RENAVAM <input name="renavam" pattern="[0-9]{11}" /></label>
         <button type="submit" class="gb-primary">Validar</button>
         <output id="validators-output" class="gb-output"></output>
+      </form>
+      <div class="gb-card">
+        <h2>Validação em lote</h2>
+        <p>Cole uma lista de CNPJs ou CPFs (um por linha) para validação em massa.</p>
+        <textarea id="bulk-input" rows="6" placeholder="00.000.000/0000-00&#10;000.000.000-00" class="gb-textarea"></textarea>
+        <button type="button" class="gb-primary" id="bulk-validate-btn">Validar lote</button>
+        <output id="bulk-output" class="gb-output"></output>
+      </div>
+    </section>
+
+    <section id="tab-history" class="gb-tab-pane">
+      <div class="gb-toolbar">
+        <input type="search" id="history-search" placeholder="Buscar por chave, CNPJ, número..." class="gb-search" />
+        <select id="history-type" class="gb-select">
+          <option value="all">Todos os tipos</option>
+          <option value="nfe">NFe</option>
+          <option value="nfse">NFSe</option>
+          <option value="cte">CTe</option>
+          <option value="mdfe">MDFe</option>
+        </select>
+        <select id="history-status" class="gb-select">
+          <option value="all">Todos os status</option>
+          <option value="authorized">Autorizada</option>
+          <option value="rejected">Rejeitada</option>
+          <option value="cancelled">Cancelada</option>
+          <option value="draft">Em digitação</option>
+        </select>
+        <input type="date" id="history-start" class="gb-date" />
+        <input type="date" id="history-end" class="gb-date" />
+        <button type="button" class="gb-primary" id="history-filter-btn">Filtrar</button>
+        <button type="button" class="gb-secondary" id="history-export-btn">Exportar CSV</button>
+      </div>
+      <div class="gb-table-wrapper">
+        <table class="gb-table">
+          <thead>
+            <tr>
+              <th>Data emissão</th>
+              <th>Tipo</th>
+              <th>Número/Série</th>
+              <th>Chave</th>
+              <th>Destinatário</th>
+              <th>Valor (R$)</th>
+              <th>Status</th>
+              <th>Protocolo SEFAZ</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <tr><td colspan="9" class="gb-empty">Carregando histórico...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="gb-pagination">
+        <button type="button" class="gb-secondary" id="history-prev">‹ Anterior</button>
+        <span id="history-page-info">Página 1</span>
+        <button type="button" class="gb-secondary" id="history-next">Próxima ›</button>
+      </div>
+    </section>
+
+    <section id="tab-settings" class="gb-tab-pane">
+      <form id="settings-form" class="gb-form">
+        <fieldset>
+          <legend>Certificado Digital (A1/A3)</legend>
+          <label>Tipo
+            <select name="cert_type">
+              <option value="A1">A1 (arquivo .pfx)</option>
+              <option value="A3">A3 (token/smartcard)</option>
+            </select>
+          </label>
+          <label>Arquivo (.pfx) <input type="file" name="cert_file" accept=".pfx,.p12" /></label>
+          <label>Senha do certificado <input type="password" name="cert_password" /></label>
+          <label>Validade <input type="date" name="cert_expiry" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Ambiente</legend>
+          <label>SEFAZ
+            <select name="environment">
+              <option value="2">Homologação (testes)</option>
+              <option value="1">Produção</option>
+            </select>
+          </label>
+          <label>Próximo número da NFe <input name="next_nfe_number" type="number" min="1" value="1" /></label>
+          <label>Série padrão NFe <input name="default_nfe_series" type="number" min="1" max="999" value="1" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>SMTP para envio de DANFE</legend>
+          <label>Servidor SMTP <input name="smtp_host" placeholder="smtp.gmail.com" /></label>
+          <label>Porta <input name="smtp_port" type="number" value="587" /></label>
+          <label>Usuário <input name="smtp_user" /></label>
+          <label>Senha <input type="password" name="smtp_password" /></label>
+          <label>TLS <input type="checkbox" name="smtp_tls" checked /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Contingência</legend>
+          <label>Modo
+            <select name="contingency_mode">
+              <option value="0">Normal (online)</option>
+              <option value="1">SCAN (Sistema de Contingência do Ambiente Nacional)</option>
+              <option value="2">EPEC (Evento Prévio de Emissão em Contingência)</option>
+              <option value="3">FS-DA (Formulário de Segurança - DANFE)</option>
+              <option value="4">SVC-AN (SEFAZ Virtual de Contingência - Amb. Nacional)</option>
+            </select>
+          </label>
+          <label>Justificativa <textarea name="contingency_reason" rows="3" class="gb-textarea"></textarea></label>
+        </fieldset>
+        <div class="gb-form-actions">
+          <button type="submit" class="gb-primary">Salvar configurações</button>
+          <button type="button" class="gb-secondary" id="test-cert-btn">Testar certificado</button>
+          <button type="button" class="gb-secondary" id="test-sefaz-btn">Testar conexão SEFAZ</button>
+        </div>
+        <output id="settings-output" class="gb-output"></output>
       </form>
     </section>
   </main>

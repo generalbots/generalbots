@@ -1,0 +1,35 @@
+<div class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="imageModalTitle" tabindex="-1" id="imageModal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h3 id="imageModalTitle">Insert Image</h3>
+            <button class="btn-close" id="closeImageModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Image URL</label>
+                <input
+                    type="url"
+                    id="imageUrl"
+                    placeholder="https://example.com/image.jpg"
+                />
+            </div>
+            <div class="form-group">
+                <label>Alt Text</label>
+                <input
+                    type="text"
+                    id="imageAlt"
+                    placeholder="Describe the image"
+                />
+            </div>
+            <div class="modal-actions">
+                <button
+                    class="btn-secondary"
+                    id="cancelImageBtn"
+                >
+                    Cancel
+                </button>
+                <button class="btn-primary" id="insertImageBtn">Insert</button>
+            </div>
+        </div>
+    </div>
+</div>

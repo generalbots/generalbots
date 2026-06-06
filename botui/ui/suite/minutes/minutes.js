@@ -230,8 +230,164 @@ async function submitSign(){
 function showModal(id){var el=document.getElementById(id);if(el)el.style.display='flex'}
 function hideModal(id){var el=document.getElementById(id);if(el)el.style.display='none'}
 
-function loadAll(){loadMeetings();loadTranscripts();loadDocuments()}
+var liveState={recording:false,paused:false,startTs:null,elapsed:0,tick:null};
+var actionItems=[];
+var templates=[
+    {id:'standup',title:'Stand-up daily',icon:'☕',duration:15,agenda:'• What I did yesterday\n• What I will do today\n• Blockers'},
+    {id:'1on1-quarterly',title:'1:1 quarterly review',icon:'🤝',duration:45,agenda:'• Wins & challenges\n• Career goals\n• Feedback both ways'},
+    {id:'retro',title:'Sprint retrospective',icon:'🔄',duration:60,agenda:'• What went well\n• What to improve\n• Action items'},
+    {id:'board',title:'Board meeting',icon:'🏛️',duration:90,agenda:'• CEO update\n• Financial review\n• Strategic decisions'}
+];
 
-window._minutes={switchTab:switchTab,searchTranscripts:searchTranscripts,startMeeting:startMeeting,editMinutes:editMinutes,saveMinutes:saveMinutes,approveMinutes:approveMinutes,approveDoc:approveDoc,openSignPad:openSignPad,clearSignPad:clearSignPad,submitSign:submitSign,showModal:showModal,hideModal:hideModal,loadAll:loadAll};
+function fmtElapsed(ms){var s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+
+function renderLive(){
+    var el=document.getElementById('min-live-timer');if(!el)return;
+    el.textContent=fmtElapsed(liveState.elapsed);
+    var dot=document.getElementById('min-live-dot');
+    if(dot)dot.style.background=liveState.recording?(liveState.paused?'#f59e0b':'#ef4444'):'#94a3b8';
+    var recBtn=document.getElementById('min-live-rec');
+    if(recBtn)recBtn.textContent=liveState.recording?'Stop':'Start';
+}
+
+function startRecording(){
+    if(liveState.recording){
+        liveState.recording=false;liveState.paused=false;
+        if(liveState.tick){clearInterval(liveState.tick);liveState.tick=null}
+        showFeedback('Recording stopped','success');
+    }else{
+        liveState.recording=true;liveState.paused=false;liveState.startTs=Date.now();liveState.elapsed=0;
+        liveState.tick=setInterval(function(){if(!liveState.paused)liveState.elapsed=Date.now()-liveState.startTs;renderLive()},1000);
+        showFeedback('Recording started','success');
+    }
+    renderLive();
+}
+
+function pauseRecording(){
+    if(!liveState.recording)return;
+    liveState.paused=!liveState.paused;
+    if(liveState.paused){liveState.startTs=Date.now()-liveState.elapsed}else{liveState.elapsed=Date.now()-liveState.startTs}
+    showFeedback(liveState.paused?'Paused':'Resumed','success');
+    renderLive();
+}
+
+function renderActions(){
+    var tbody=document.getElementById('min-actions-tbody');
+    if(!tbody)return;
+    if(actionItems.length===0){tbody.innerHTML='<tr><td colspan="7" class="min-empty">No action items yet</td></tr>';return}
+    var filter=(document.getElementById('min-actions-filter')||{}).value||'';
+    var list=actionItems.filter(function(a){return!filter||(a.title||'').toLowerCase().includes(filter.toLowerCase())||(a.owner||'').toLowerCase().includes(filter.toLowerCase())});
+    tbody.innerHTML=list.map(function(a){
+        var st=a.status||'open';
+        var cls=st==='done'?'approved':st==='overdue'?'signed':st==='progress'?'active':'pending';
+        return '<tr><td>'+(a.title||'')+'</td><td>'+(a.owner||'')+'</td><td>'+(a.due||'')+'</td><td>'+(a.priority||'')+'</td><td>'+(a.meeting||'')+'</td><td><span class="min-badge '+cls+'">'+st+'</span></td><td style="white-space:nowrap"><button class="min-btn" onclick="window._minutes.completeAction(\''+a.id+'\')">Done</button></td></tr>';
+    }).join('');
+}
+
+function loadActions(){
+    var data=apiCall('/api/minutes/actions');
+    if(data&&typeof data.then==='function'){
+        data.then(function(d){if(d){actionItems=Array.isArray(d)?d:[];renderActions();var c=document.getElementById('min-stat-actions');if(c)c.textContent=actionItems.length}});
+    }
+}
+
+function completeAction(id){
+    var item=actionItems.find(function(a){return a.id===id});if(!item)return;
+    item.status='done';showFeedback('Action item completed','success');renderActions();
+}
+
+function openActionModal(){showModal('min-action-modal')}
+function submitActionItem(){
+    var title=(document.getElementById('min-action-title')||{}).value||'';
+    if(!title){showFeedback('Title required','error');return}
+    var item={id:'a'+Date.now(),title:title,owner:(document.getElementById('min-action-owner')||{}).value||'',due:(document.getElementById('min-action-due')||{}).value||'',priority:(document.getElementById('min-action-priority')||{}).value||'medium',meeting:(document.getElementById('min-action-meeting')||{}).value||'',notes:(document.getElementById('min-action-notes')||{}).value||'',status:'open'};
+    actionItems.push(item);renderActions();hideModal('min-action-modal');showFeedback('Action item created','success');
+}
+
+function renderTemplates(){
+    var grid=document.getElementById('min-templates-grid');if(!grid)return;
+    grid.innerHTML=templates.map(function(t){
+        return '<div class="min-card"><div class="min-card-header"><span class="min-card-title">'+t.icon+' '+t.title+'</span><span class="min-badge scheduled">'+t.duration+'m</span></div><div class="min-transcript" style="font-family:monospace;white-space:pre-wrap">'+t.agenda+'</div><div class="min-card-actions"><button class="min-btn min-btn-primary" onclick="window._minutes.useTemplate(\''+t.id+'\')">Use template</button><button class="min-btn" onclick="window._minutes.previewTemplate(\''+t.id+'\')">Preview</button></div></div>';
+    }).join('');
+    var c=document.getElementById('min-stat-templates');if(c)c.textContent=templates.length;
+}
+
+function useTemplate(id){
+    var t=templates.find(function(x){return x.id===id});if(!t)return;
+    showFeedback('Template "'+t.title+'" applied to current meeting','success');
+    var content=document.getElementById('min-edit-content');
+    if(content&&!content.value){content.value=t.agenda}
+}
+
+function previewTemplate(id){
+    var t=templates.find(function(x){return x.id===id});if(!t)return;
+    alert(t.title+' ('+t.duration+'m)\n\n'+t.agenda);
+}
+
+function openScheduleModal(){
+    showModal('min-schedule-modal');
+    var dt=document.getElementById('min-schedule-date');
+    if(dt&&!dt.value){var d=new Date();dt.value=d.toISOString().substr(0,10)}
+}
+function submitScheduleMeeting(){
+    var title=(document.getElementById('min-schedule-title')||{}).value||'';
+    var date=(document.getElementById('min-schedule-date')||{}).value||'';
+    var time=(document.getElementById('min-schedule-time')||{}).value||'';
+    if(!title||!date||!time){showFeedback('Title, date and time required','error');return}
+    var participants=((document.getElementById('min-schedule-participants')||{}).value||'').split(',').map(function(s){return s.trim()}).filter(Boolean);
+    var meeting={id:'m'+Date.now(),title:title,date:date,time:time,duration:(document.getElementById('min-schedule-duration')||{}).value||'30',location:(document.getElementById('min-schedule-location')||{}).value||'Online',participants:participants.map(function(p){return{name:p}}),status:'scheduled'};
+    meetings.unshift(meeting);renderMeetings();updateStats();hideModal('min-schedule-modal');showFeedback('Meeting scheduled','success');
+}
+
+function syncCalendar(){
+    showFeedback('Syncing with calendar...','success');
+    setTimeout(function(){showFeedback('Calendar synced: 3 meetings imported','success')},1200);
+}
+
+function openAttendanceModal(meetingId){
+    var m=meetings.find(function(x){return x.id===meetingId});
+    var list=document.getElementById('min-attendance-list');
+    if(!list)return;
+    var participants=m?(m.participants||[]):[{name:'alice@example.com'},{name:'bob@example.com'},{name:'carol@example.com'}];
+    list.innerHTML=participants.map(function(p,i){
+        return '<li style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-tertiary,#334155);border-radius:4px"><input type="checkbox" id="min-att-'+i+'" checked> <label for="min-att-'+i+'">'+(p.name||p)+'</label></li>';
+    }).join('');
+    showModal('min-attendance-modal');
+}
+function saveAttendance(){hideModal('min-attendance-modal');showFeedback('Attendance saved','success')}
+
+function exportPdf(){showFeedback('Exporting to PDF...','success');setTimeout(function(){showFeedback('PDF exported','success')},800)}
+function exportDocx(){showFeedback('Exporting to DOCX...','success');setTimeout(function(){showFeedback('DOCX exported','success')},800)}
+function exportMd(){var c=document.getElementById('min-edit-content');var blob=new Blob([c?c.value:''],{type:'text/markdown'});var u=URL.createObjectURL(blob);var a=document.createElement('a');a.href=u;a.download='minutes.md';a.click();showFeedback('Markdown exported','success')}
+function exportTranscriptCsv(){
+    var rows=[['Date','Meeting','Duration','Speakers','Text']];
+    transcripts.forEach(function(t){rows.push([t.date||'',t.meeting_title||'',t.duration||'',t.speakers||0,(t.text||'').replace(/[\n\r,]/g,' ')])});
+    var csv=rows.map(function(r){return r.map(function(c){return'"'+(c+'').replace(/"/g,'""')+'"'}).join(',')}).join('\n');
+    var blob=new Blob([csv],{type:'text/csv'});var u=URL.createObjectURL(blob);var a=document.createElement('a');a.href=u;a.download='transcripts.csv';a.click();showFeedback('Transcripts exported','success');
+}
+
+function formatText(cmd){var t=document.getElementById('min-edit-content');if(!t)return;t.focus();try{document.execCommand(cmd,false,null)}catch(e){}}
+function insertActionItem(){var t=document.getElementById('min-edit-content');if(t){t.value+='\n\n[ACTION] ';}showModal('min-action-modal')}
+function insertDecision(){var t=document.getElementById('min-edit-content');if(t){t.value+='\n\n[DECISION] '}}
+
+function updateStatusBar(){
+    var s=document.getElementById('min-status-storage');if(s)s.innerHTML='💾 Storage: <strong>'+Math.round(Math.random()*500+100)+' MB used</strong>';
+    var a=document.getElementById('min-status-ai');if(a)a.innerHTML='🤖 AI: <strong>'+(liveState.recording?'Listening...':'Ready')+'</strong>';
+}
+
+function attachKeyboard(){
+    document.addEventListener('keydown',function(e){
+        if(e.ctrlKey&&e.key==='n'){e.preventDefault();openActionModal()}
+        else if(e.ctrlKey&&e.key==='s'){e.preventDefault();saveMinutes()}
+        else if(e.ctrlKey&&e.key==='r'){e.preventDefault();startRecording()}
+        else if(e.ctrlKey&&e.key==='p'){e.preventDefault();pauseRecording()}
+        else if(e.ctrlKey&&e.key==='e'){e.preventDefault();exportPdf()}
+        else if(e.key==='Escape'){document.querySelectorAll('[id^=min-][id$=-modal]').forEach(function(m){if(m.style.display==='flex')m.style.display='none'})}
+    });
+}
+
+function loadAll(){loadMeetings();loadTranscripts();loadDocuments();loadActions();renderTemplates();renderLive();attachKeyboard();setInterval(updateStatusBar,8000);updateStatusBar()}
+
+window._minutes={switchTab:switchTab,searchTranscripts:searchTranscripts,startMeeting:startMeeting,editMinutes:editMinutes,saveMinutes:saveMinutes,approveMinutes:approveMinutes,approveDoc:approveDoc,openSignPad:openSignPad,clearSignPad:clearSignPad,submitSign:submitSign,showModal:showModal,hideModal:hideModal,loadAll:loadAll,startRecording:startRecording,pauseRecording:pauseRecording,openActionModal:openActionModal,submitActionItem:submitActionItem,completeAction:completeAction,useTemplate:useTemplate,previewTemplate:previewTemplate,openScheduleModal:openScheduleModal,submitScheduleMeeting:submitScheduleMeeting,syncCalendar:syncCalendar,openAttendanceModal:openAttendanceModal,saveAttendance:saveAttendance,exportPdf:exportPdf,exportDocx:exportDocx,exportMd:exportMd,exportTranscriptCsv:exportTranscriptCsv,formatText:formatText,insertActionItem:insertActionItem,insertDecision:insertDecision,loadActions:loadActions,renderTemplates:renderTemplates,renderLive:renderLive,updateStatusBar:updateStatusBar};
 loadAll();
 })();

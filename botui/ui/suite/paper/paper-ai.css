@@ -1,0 +1,212 @@
+    /* AI Panel */
+    .ai-panel {
+        position: absolute;
+        right: 0;
+        top: 53px;
+        bottom: 32px;
+        width: 360px;
+        background: var(--card);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        z-index: 50;
+        transform: translateX(0);
+        transition: transform 0.2s ease;
+    }
+
+    .ai-panel.hidden {
+        transform: translateX(100%);
+    }
+
+    .ai-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .ai-panel-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .ai-panel-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+    }
+
+    .ai-quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+
+    .ai-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--background);
+        color: var(--foreground);
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .ai-action-btn:hover {
+        background: var(--accent);
+        border-color: var(--primary);
+    }
+
+    .ai-tone-section,
+    .ai-translate-section,
+    .ai-custom-section {
+        margin-bottom: 20px;
+    }
+
+    .ai-tone-section label,
+    .ai-translate-section label,
+    .ai-custom-section label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        margin-bottom: 8px;
+    }
+
+    .tone-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .tone-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--background);
+        color: var(--foreground);
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .tone-btn:hover,
+    .tone-btn.active {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-color: var(--primary);
+    }
+
+    .ai-select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--background);
+        color: var(--foreground);
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .ai-custom-section textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--background);
+        color: var(--foreground);
+        font-size: 14px;
+        resize: vertical;
+        min-height: 80px;
+        margin-bottom: 8px;
+    }
+
+    .btn-primary {
+        width: 100%;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.15s;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.9;
+    }
+
+    .ai-response {
+        border-top: 1px solid var(--border);
+        padding: 16px;
+        background: var(--muted);
+    }
+
+    .ai-response.hidden {
+        display: none;
+    }
+
+    .ai-response-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    .ai-response-header span {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+    }
+
+    .ai-response-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .ai-response-content {
+        font-size: 14px;
+        line-height: 1.6;
+        padding: 12px;
+        background: var(--card);
+        border-radius: 6px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    /* Status Bar */
+    .paper-status-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--card);
+        font-size: 12px;
+        color: var(--muted-foreground);
+    }
+
+    .status-left,
+    .status-center,
+    .status-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .save-status.saving {
+        color: var(--chart-4);
+    }
+
+    .save-status.saved {
+        color: var(--chart-2);
+    }

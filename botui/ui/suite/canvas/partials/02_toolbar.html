@@ -1,0 +1,164 @@
+<!-- Toolbar -->
+    <aside class="canvas-toolbar">
+        <div class="toolbar-section">
+            <button
+                class="tool-btn active"
+                data-tool="select"
+                onclick="selectTool('select')"
+                title="Select (V)"
+            >
+                <span>↖</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="pan"
+                onclick="selectTool('pan')"
+                title="Pan (H)"
+            >
+                <span>✋</span>
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button
+                class="tool-btn"
+                data-tool="pencil"
+                onclick="selectTool('pencil')"
+                title="Pencil (P)"
+            >
+                <span>✏️</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="brush"
+                onclick="selectTool('brush')"
+                title="Brush (B)"
+            >
+                <span>🖌️</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="eraser"
+                onclick="selectTool('eraser')"
+                title="Eraser (E)"
+            >
+                <span>🧹</span>
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button
+                class="tool-btn"
+                data-tool="rectangle"
+                onclick="selectTool('rectangle')"
+                title="Rectangle (R)"
+            >
+                <span>▢</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="ellipse"
+                onclick="selectTool('ellipse')"
+                title="Ellipse (O)"
+            >
+                <span>◯</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="line"
+                onclick="selectTool('line')"
+                title="Line (L)"
+            >
+                <span>╱</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="arrow"
+                onclick="selectTool('arrow')"
+                title="Arrow (A)"
+            >
+                <span>→</span>
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button
+                class="tool-btn"
+                data-tool="text"
+                onclick="selectTool('text')"
+                title="Text (T)"
+            >
+                <span>T</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="sticky"
+                onclick="selectTool('sticky')"
+                title="Sticky Note (S)"
+            >
+                <span>📝</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="image"
+                onclick="selectTool('image')"
+                title="Image (I)"
+            >
+                <span>🖼️</span>
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button
+                class="tool-btn"
+                data-tool="connector"
+                onclick="selectTool('connector')"
+                title="Connector (C)"
+            >
+                <span>⤳</span>
+            </button>
+            <button
+                class="tool-btn"
+                data-tool="frame"
+                onclick="selectTool('frame')"
+                title="Frame (F)"
+            >
+                <span>⬚</span>
+            </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-section colors">
+            <input
+                type="color"
+                id="stroke-color"
+                value="#000000"
+                title="Stroke Color"
+                onchange="setStrokeColor(this.value)"
+            />
+            <input
+                type="color"
+                id="fill-color"
+                value="#ffffff"
+                title="Fill Color"
+                onchange="setFillColor(this.value)"
+            />
+        </div>
+
+        <div class="toolbar-section">
+            <select
+                id="stroke-width"
+                onchange="setStrokeWidth(this.value)"
+                title="Stroke Width"
+            >
+                <option value="1">1px</option>
+                <option value="2" selected>2px</option>
+                <option value="4">4px</option>
+                <option value="6">6px</option>
+                <option value="8">8px</option>
+            </select>
+        </div>
+    </aside>
+
+    

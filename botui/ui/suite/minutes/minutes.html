@@ -17,17 +17,30 @@
         <div class="min-stat-card"><span class="min-stat-label">Transcripts</span><span class="min-stat-value green" id="min-stat-transcripts">0</span></div>
         <div class="min-stat-card"><span class="min-stat-label">Minutes</span><span class="min-stat-value purple" id="min-stat-documents">0</span></div>
         <div class="min-stat-card"><span class="min-stat-label">Pending Sign</span><span class="min-stat-value orange" id="min-stat-pending-sign">0</span></div>
+        <div class="min-stat-card"><span class="min-stat-label">Action Items</span><span class="min-stat-value blue" id="min-stat-actions">0</span></div>
+        <div class="min-stat-card"><span class="min-stat-label">Templates</span><span class="min-stat-value purple" id="min-stat-templates">0</span></div>
     </div>
 
     <nav class="min-tabs">
         <button class="min-tab active" data-tab="upcoming" onclick="window._minutes.switchTab('upcoming',this)">Upcoming</button>
+        <button class="min-tab" data-tab="live" onclick="window._minutes.switchTab('live',this)">Live</button>
         <button class="min-tab" data-tab="transcripts" onclick="window._minutes.switchTab('transcripts',this)">Transcripts</button>
         <button class="min-tab" data-tab="minutes" onclick="window._minutes.switchTab('minutes',this)">Minutes</button>
+        <button class="min-tab" data-tab="actions" onclick="window._minutes.switchTab('actions',this)">Action Items</button>
+        <button class="min-tab" data-tab="templates" onclick="window._minutes.switchTab('templates',this)">Templates</button>
         <button class="min-tab" data-tab="signatures" onclick="window._minutes.switchTab('signatures',this)">Signatures</button>
     </nav>
 
     <div class="min-content">
         <div class="min-panel active" id="min-panel-upcoming">
+            <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+                <button class="min-btn min-btn-primary" onclick="window._minutes.openScheduleModal()">+ Schedule meeting</button>
+                <input type="date" id="min-upcoming-from" style="padding:8px 12px;background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:6px;color:var(--text-primary,#f8fafc);font-size:13px" />
+                <input type="date" id="min-upcoming-to" style="padding:8px 12px;background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:6px;color:var(--text-primary,#f8fafc);font-size:13px" />
+                <button class="min-btn" onclick="window._minutes.loadMeetings()">Apply</button>
+                <button class="min-btn" onclick="window._minutes.syncCalendar()">Sync calendar</button>
+                <span style="margin-left:auto;font-size:13px;color:var(--text-secondary,#94a3b8)" id="min-upcoming-summary">--</span>
+            </div>
             <div class="min-grid" id="min-upcoming-grid">
                 <div class="min-empty"><div class="min-empty-icon">📅</div><h3>Loading...</h3><p>Fetching upcoming meetings</p></div>
             </div>
@@ -37,6 +50,13 @@
             <div class="min-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 <input type="text" id="min-search-transcript" placeholder="Search within transcripts..." oninput="window._minutes.searchTranscripts(this.value)">
+                <select id="min-transcript-filter" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px">
+                    <option value="all">All transcripts</option>
+                    <option value="recent">Last 7 days</option>
+                    <option value="month">Last 30 days</option>
+                    <option value="my">My meetings only</option>
+                </select>
+                <button class="min-btn" onclick="window._minutes.exportTranscriptCsv()">Export CSV</button>
             </div>
             <div class="min-grid" id="min-transcripts-grid">
                 <div class="min-empty"><div class="min-empty-icon">📝</div><h3>Loading...</h3><p>Fetching transcripts</p></div>
@@ -76,22 +96,260 @@
                 </div>
             </div>
         </div>
+
+        <div class="min-panel" id="min-panel-live">
+            <div class="min-live-grid">
+                <div class="min-table-wrapper">
+                    <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                        <h3 style="font-size:14px;font-weight:600;margin:0">Live transcription</h3>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <span class="min-record-dot"></span>
+                            <span id="min-live-timer" style="font-family:monospace;font-size:13px">00:00:00</span>
+                            <button class="min-btn" onclick="window._minutes.toggleRecording()" id="min-record-btn">Start</button>
+                            <button class="min-btn" onclick="window._minutes.pauseRecording()">Pause</button>
+                        </div>
+                    </div>
+                    <div id="min-live-transcript" class="min-live-transcript" tabindex="0">
+                        <p class="min-live-placeholder">Recording will appear here as participants speak. Speakers are detected automatically.</p>
+                    </div>
+                </div>
+                <aside class="min-live-side">
+                    <div class="min-table-wrapper">
+                        <div style="padding:12px 14px;border-bottom:1px solid var(--border-color,#334155)">
+                            <h4 style="font-size:13px;font-weight:600;margin:0">Participants</h4>
+                        </div>
+                        <ul class="min-participants-list" id="min-participants-list">
+                            <li class="min-participant-row"><span class="min-participant-dot online"></span>Loading...</li>
+                        </ul>
+                    </div>
+                    <div class="min-table-wrapper" style="margin-top:12px">
+                        <div style="padding:12px 14px;border-bottom:1px solid var(--border-color,#334155)">
+                            <h4 style="font-size:13px;font-weight:600;margin:0">AI summary (live)</h4>
+                        </div>
+                        <div id="min-ai-summary" style="padding:12px;font-size:13px;line-height:1.5">
+                            <p>AI summary will appear after the first minute of conversation.</p>
+                        </div>
+                    </div>
+                    <div class="min-table-wrapper" style="margin-top:12px">
+                        <div style="padding:12px 14px;border-bottom:1px solid var(--border-color,#334155)">
+                            <h4 style="font-size:13px;font-weight:600;margin:0">Suggested action items</h4>
+                        </div>
+                        <ul id="min-ai-actions" class="min-ai-actions">
+                            <li>Run AI extraction on speech to surface suggested items here.</li>
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <div class="min-panel" id="min-panel-actions">
+            <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+                <button class="min-btn min-btn-primary" onclick="window._minutes.openActionModal()">+ New action item</button>
+                <select id="min-actions-status" style="padding:8px 12px;background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:6px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._minutes.filterActions()">
+                    <option value="all">All statuses</option>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="done">Done</option>
+                    <option value="blocked">Blocked</option>
+                </select>
+                <select id="min-actions-owner" style="padding:8px 12px;background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:6px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._minutes.filterActions()">
+                    <option value="all">All owners</option>
+                </select>
+                <span style="margin-left:auto;font-size:13px;color:var(--text-secondary,#94a3b8)" id="min-actions-summary">0 items</span>
+            </div>
+            <div class="min-table-wrapper">
+                <div style="overflow-x:auto">
+                    <table class="min-table">
+                        <thead><tr><th>Title</th><th>Meeting</th><th>Owner</th><th>Due</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="min-actions-tbody"><tr><td colspan="7" class="min-empty">Loading action items...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="min-panel" id="min-panel-templates">
+            <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+                <button class="min-btn min-btn-primary" onclick="window._minutes.openTemplateModal()">+ New template</button>
+                <span style="margin-left:auto;font-size:13px;color:var(--text-secondary,#94a3b8)">Reusable agenda structures</span>
+            </div>
+            <div class="min-grid" id="min-templates-grid">
+                <div class="min-card">
+                    <div class="min-card-header"><span class="min-card-title">Stand-up daily</span><span class="min-badge active">built-in</span></div>
+                    <div class="min-card-body">
+                        <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.6">
+                            <li>What did you do yesterday?</li>
+                            <li>What will you do today?</li>
+                            <li>Any blockers?</li>
+                        </ol>
+                    </div>
+                    <div class="min-card-actions"><button class="min-btn" onclick="window._minutes.useTemplate('standup')">Use template</button></div>
+                </div>
+                <div class="min-card">
+                    <div class="min-card-header"><span class="min-card-title">1:1 quarterly review</span><span class="min-badge active">built-in</span></div>
+                    <div class="min-card-body">
+                        <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.6">
+                            <li>Wins and progress on goals</li>
+                            <li>Challenges and blockers</li>
+                            <li>Feedback (both directions)</li>
+                            <li>Career development</li>
+                            <li>Next quarter goals</li>
+                        </ol>
+                    </div>
+                    <div class="min-card-actions"><button class="min-btn" onclick="window._minutes.useTemplate('1on1-quarterly')">Use template</button></div>
+                </div>
+                <div class="min-card">
+                    <div class="min-card-header"><span class="min-card-title">Sprint retrospective</span><span class="min-badge active">built-in</span></div>
+                    <div class="min-card-body">
+                        <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.6">
+                            <li>What went well?</li>
+                            <li>What didn't go well?</li>
+                            <li>What should we try next?</li>
+                            <li>Action items</li>
+                        </ol>
+                    </div>
+                    <div class="min-card-actions"><button class="min-btn" onclick="window._minutes.useTemplate('retro')">Use template</button></div>
+                </div>
+                <div class="min-card">
+                    <div class="min-card-header"><span class="min-card-title">Board meeting</span><span class="min-badge active">built-in</span></div>
+                    <div class="min-card-body">
+                        <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.6">
+                            <li>Approval of previous minutes</li>
+                            <li>Financial report</li>
+                            <li>Operational updates</li>
+                            <li>Strategic items</li>
+                            <li>Any other business</li>
+                        </ol>
+                    </div>
+                    <div class="min-card-actions"><button class="min-btn" onclick="window._minutes.useTemplate('board')">Use template</button></div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <div id="min-edit-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
-    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:600px;max-height:80vh;overflow:hidden">
+    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:720px;max-height:80vh;overflow:hidden">
         <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
             <h3 style="font-size:15px;font-weight:600;margin:0" id="min-edit-title">Edit Minutes</h3>
             <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._minutes.hideModal('min-edit-modal')">&times;</button>
         </div>
         <div style="padding:16px;overflow-y:auto;max-height:60vh">
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">Content</label><textarea id="min-edit-content" rows="10" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px;font-family:inherit;resize:vertical"></textarea></div>
+            <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="min-btn" onclick="window._minutes.formatText('bold')" title="Bold"><b>B</b></button>
+                <button class="min-btn" onclick="window._minutes.formatText('italic')" title="Italic"><i>I</i></button>
+                <button class="min-btn" onclick="window._minutes.formatText('h2')" title="Heading">H2</button>
+                <button class="min-btn" onclick="window._minutes.formatText('ul')" title="Bullets">• List</button>
+                <button class="min-btn" onclick="window._minutes.formatText('ol')" title="Numbered">1. List</button>
+                <button class="min-btn" onclick="window._minutes.insertActionItem()" title="Action item">✓ Action</button>
+                <button class="min-btn" onclick="window._minutes.insertDecision()" title="Decision">⚖ Decision</button>
+            </div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">Content</label><textarea id="min-edit-content" rows="14" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px;font-family:inherit;resize:vertical"></textarea></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">Tags</label><input id="min-edit-tags" type="text" placeholder="e.g. board, q4, strategy" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
         </div>
-        <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:flex-end;gap:8px">
-            <button class="min-btn" onclick="window._minutes.hideModal('min-edit-modal')">Cancel</button>
-            <button class="min-btn min-btn-primary" onclick="window._minutes.saveMinutes()">Save</button>
-            <button class="min-btn min-btn-success" onclick="window._minutes.approveMinutes()">Approve</button>
+        <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:space-between;gap:8px;align-items:center">
+            <div style="display:flex;gap:8px">
+                <button class="min-btn" onclick="window._minutes.exportPdf()">Export PDF</button>
+                <button class="min-btn" onclick="window._minutes.exportDocx()">Export DOCX</button>
+                <button class="min-btn" onclick="window._minutes.exportMd()">Export MD</button>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button class="min-btn" onclick="window._minutes.hideModal('min-edit-modal')">Cancel</button>
+                <button class="min-btn min-btn-primary" onclick="window._minutes.saveMinutes()">Save</button>
+                <button class="min-btn min-btn-success" onclick="window._minutes.approveMinutes()">Approve</button>
+            </div>
         </div>
     </div>
 </div>
+
+<div id="min-action-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
+    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:520px;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+            <h3 style="font-size:15px;font-weight:600;margin:0">New action item</h3>
+            <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._minutes.hideModal('min-action-modal')">&times;</button>
+        </div>
+        <div style="padding:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Title</span><input id="min-action-title" type="text" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" placeholder="What needs to be done?"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Owner</span><input id="min-action-owner" type="text" placeholder="Assignee email or name" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Due</span><input id="min-action-due" type="date" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Priority</span><select id="min-action-priority" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Meeting</span><input id="min-action-meeting" type="text" placeholder="Meeting reference (optional)" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></label>
+                <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Notes</span><textarea id="min-action-notes" rows="3" placeholder="Optional context" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px;font-family:inherit;resize:vertical"></textarea></label>
+            </div>
+        </div>
+        <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:flex-end;gap:8px">
+            <button class="min-btn" onclick="window._minutes.hideModal('min-action-modal')">Cancel</button>
+            <button class="min-btn min-btn-primary" onclick="window._minutes.submitActionItem()">Create</button>
+        </div>
+    </div>
+</div>
+
+<div id="min-schedule-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
+    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:560px;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+            <h3 style="font-size:15px;font-weight:600;margin:0">Schedule new meeting</h3>
+            <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._minutes.hideModal('min-schedule-modal')">&times;</button>
+        </div>
+        <div style="padding:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Title</span><input id="min-schedule-title" type="text" required style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" placeholder="Meeting title"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Date</span><input id="min-schedule-date" type="date" required style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Time</span><input id="min-schedule-time" type="time" required style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Duration (min)</span><input id="min-schedule-duration" type="number" min="5" step="5" value="30" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Location</span><input id="min-schedule-location" type="text" placeholder="Room or video link" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></label>
+                <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Participants (comma separated emails)</span><input id="min-schedule-participants" type="text" placeholder="alice@example.com, bob@example.com" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></label>
+                <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase">Agenda template (optional)</span><select id="min-schedule-template" style="padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"><option value="">— None —</option><option value="standup">Stand-up daily</option><option value="1on1-quarterly">1:1 quarterly review</option><option value="retro">Sprint retrospective</option><option value="board">Board meeting</option></select></label>
+                <label style="grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:13px"><input id="min-schedule-record" type="checkbox" checked> Record &amp; transcribe automatically</label>
+                <label style="grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:13px"><input id="min-schedule-aisummary" type="checkbox" checked> Generate AI summary after meeting</label>
+            </div>
+        </div>
+        <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:flex-end;gap:8px">
+            <button class="min-btn" onclick="window._minutes.hideModal('min-schedule-modal')">Cancel</button>
+            <button class="min-btn min-btn-primary" onclick="window._minutes.submitScheduleMeeting()">Schedule</button>
+        </div>
+    </div>
+</div>
+
+<div id="min-feedback-area"></div>
+
+<div id="min-attendance-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
+    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:480px;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+            <h3 style="font-size:15px;font-weight:600;margin:0">Attendance check</h3>
+            <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._minutes.hideModal('min-attendance-modal')">&times;</button>
+        </div>
+        <div style="padding:16px">
+            <ul id="min-attendance-list" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px">
+                <li style="padding:8px;background:var(--bg-tertiary,#334155);border-radius:4px">Loading participants...</li>
+            </ul>
+        </div>
+        <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:flex-end;gap:8px">
+            <button class="min-btn" onclick="window._minutes.hideModal('min-attendance-modal')">Close</button>
+            <button class="min-btn min-btn-primary" onclick="window._minutes.saveAttendance()">Save attendance</button>
+        </div>
+    </div>
+</div>
+
+<aside id="min-keyboard-help" class="min-keyboard-help" aria-label="Keyboard shortcuts">
+    <details>
+        <summary>⌨ Shortcuts</summary>
+        <dl>
+            <dt>Ctrl+N</dt><dd>New action item</dd>
+            <dt>Ctrl+S</dt><dd>Save minutes</dd>
+            <dt>Ctrl+R</dt><dd>Start recording</dd>
+            <dt>Ctrl+P</dt><dd>Pause recording</dd>
+            <dt>Ctrl+E</dt><dd>Export to PDF</dd>
+            <dt>Esc</dt><dd>Close modal</dd>
+        </dl>
+    </details>
+</aside>
+
+<aside id="min-status-bar" class="min-status-bar" aria-live="polite">
+    <span class="min-status-item">
+        <span class="min-status-dot online"></span>
+        Connected to meeting server
+    </span>
+    <span class="min-status-item" id="min-status-mic">🎤 Mic: <strong>OK</strong></span>
+    <span class="min-status-item" id="min-status-storage">💾 Storage: <strong>--</strong></span>
+    <span class="min-status-item" id="min-status-ai">🤖 AI: <strong>Ready</strong></span>
+</aside>

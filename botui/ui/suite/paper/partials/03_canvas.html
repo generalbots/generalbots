@@ -1,0 +1,27 @@
+<!-- Document Canvas -->
+        <div class="editor-canvas">
+            <div class="paper-page">
+                <!-- Title -->
+                <div
+                    class="paper-title"
+                    contenteditable="true"
+                    data-placeholder="Untitled"
+                    data-i18n-placeholder="paper-untitled"
+                    id="paper-title"
+                ></div>
+
+                <!-- Editor Content -->
+                <div
+                    class="editor-content"
+                    id="editor-content"
+                    contenteditable="true"
+                    data-placeholder="Start writing, or type / for commands..."
+                    data-i18n-placeholder="paper-placeholder"
+                    hx-post="/api/ui/paper/autosave"
+                    hx-trigger="keyup changed delay:2000ms"
+                    hx-swap="none"
+                ></div>
+            </div>
+        </div>
+
+        <!-- Slash Command Menu -->

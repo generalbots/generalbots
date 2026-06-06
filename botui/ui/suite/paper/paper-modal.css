@@ -1,0 +1,105 @@
+    /* Modal */
+    .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+    }
+
+    .modal.hidden {
+        display: none;
+    }
+
+    .modal-content {
+        width: 90%;
+        max-width: 480px;
+        background: var(--card);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .export-options {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .export-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 20px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--background);
+        color: var(--foreground);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .export-option:hover {
+        background: var(--accent);
+        border-color: var(--primary);
+    }
+
+    .export-icon {
+        font-size: 28px;
+    }
+
+    .export-label {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .paper-sidebar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 60;
+            transform: translateX(-100%);
+        }
+
+        .paper-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .editor-canvas {
+            padding: 20px;
+        }
+
+        .paper-page {
+            padding: 30px 20px;
+        }
+
+        .ai-panel {
+            width: 100%;
+        }
+
+        .toolbar-center {
+            display: none;
+        }
+    }
