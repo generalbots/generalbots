@@ -117,7 +117,7 @@
       while (this.peek().type === "op" && this.peek().op === "&") {
         this.consume();
         const right = this.parseCompare();
-        left = { type: "concat", left, right };
+        left = { type: "binop", op: "&", left, right };
       }
       return left;
     }
