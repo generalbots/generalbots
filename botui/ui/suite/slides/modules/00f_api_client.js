@@ -96,8 +96,12 @@
             error: (data && data.error) ? data.error : { code: "HTTP_" + res.status, message: res.statusText || "failed" },
           };
         }
-        if (useCache && cacheKey && data !== null) cacheSet(cacheKey, data);
-        return { ok: true, status: res.status, data: data, cached: false };
+        let payload = data;
+        if (ct.indexOf("application/json") >= 0 && data && typeof data === "object" && "ok" in data && "data" in data && Object.keys(data).length <= 4) {
+          payload = data.data;
+        }
+        if (useCache && cacheKey && payload !== null) cacheSet(cacheKey, payload);
+        return { ok: true, status: res.status, data: payload, cached: false };
       } catch (err) {
         if (timer) clearTimeout(timer);
         lastError = { code: "NETWORK", message: (err && err.message) || String(err) };

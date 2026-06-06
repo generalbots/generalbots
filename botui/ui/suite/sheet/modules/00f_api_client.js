@@ -147,8 +147,15 @@
           };
         }
 
-        if (useCache && method === "GET" && data !== null) cacheSet(key, data);
-        return { ok: true, status: res.status, data: data, cached: false };
+        // Unwrap standard server envelope { ok: true, data: <payload> }
+        // so callers can access the payload directly via r.data.
+        let payload = data;
+        if (data && typeof data === "object" && "ok" in data && "data" in data && Object.keys(data).length <= 4) {
+          payload = data.data;
+        }
+
+        if (useCache && method === "GET" && payload !== null) cacheSet(key, payload);
+        return { ok: true, status: res.status, data: payload, cached: false };
       } catch (err) {
         if (timer) clearTimeout(timer);
         lastError = { code: "NETWORK", message: (err && err.message) || String(err) };

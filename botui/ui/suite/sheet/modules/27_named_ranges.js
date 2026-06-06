@@ -1,31 +1,30 @@
 // botui/ui/suite/sheet/modules/27_named_ranges.js
-// Named ranges manager: assign a name (e.g. "revenue") to a cell range
-// (e.g. "B2:B20"). Persists to localStorage keyed by document name.
+// Named ranges manager — refactored to delegate persistence to
+// botserver via window.SheetAPI. Client-side name/range validation
+// remains (UX, no network for typos); authoritative storage is
+// server-side (PostgreSQL via botsheet-core).
+//
+// Source of truth: botserver/crates/botsheet/src/handlers/crud.rs
+//   - handle_create_named_range
+//   - handle_update_named_range
+//   - handle_list_named_ranges
+//   - handle_delete_named_range
 //
 // API:
-//   window.SheetNamedRanges.add(name, range, description?)
-//   window.SheetNamedRanges.remove(name)
-//   window.SheetNamedRanges.update(name, range, description?)
-//   window.SheetNamedRanges.get(name) -> { name, range, description } | null
-//   window.SheetNamedRanges.list() -> [ {name, range, description}, ... ]
-//   window.SheetNamedRanges.resolve(name) -> { start: {row,col}, end: {row,col} } | null
-//   window.SheetNamedRanges.isValidName(name) -> bool
-//   window.SheetNamedRanges.exportToCSV() -> string
-//   window.SheetNamedRanges.importFromCSV(csv) -> { added, updated, errors }
-//
-// The 24_formula_engine can later call .resolve(name) to translate
-// named-range identifiers into range nodes when it encounters an
-// unknown identifier in a formula. For now, the manager is decoupled
-// from the engine — it provides the storage and validation only.
-//
-// Storage key: "gb.sheet.namedRanges.{documentName}"
-// Excel-compatible name rules: must start with letter or underscore,
-// can contain letters/digits/underscores/periods (no spaces, no
-// reserved words like TRUE/FALSE/NULL/etc).
+//   window.SheetNamedRanges.add(name, range, description?) -> Promise<{ok,...}>
+//   window.SheetNamedRanges.update(name, range, description?) -> Promise
+//   window.SheetNamedRanges.remove(name) -> Promise
+//   window.SheetNamedRanges.get(name) -> Promise<{name,range,description}|null>
+//   window.SheetNamedRanges.list() -> Promise<[entry,...]>
+//   window.SheetNamedRanges.isValidName(name) -> bool  (sync, UX only)
+//   window.SheetNamedRanges.isValidRange(range) -> bool  (sync, UX only)
+//   window.SheetNamedRanges.resolve(range) -> {start,end}|null  (sync helper)
+//   window.SheetNamedRanges.renderList(container, list)  (UI render)
+//   window.SheetNamedRanges.exportToCSV() -> Promise<string>
+//   window.SheetNamedRanges.importFromCSV(csv) -> Promise<{added,updated,errors}>
 "use strict";
 
 (function () {
-  const STORAGE_PREFIX = "gb.sheet.namedRanges.";
   const RESERVED = {
     TRUE: 1, FALSE: 1, NULL: 1,
     IF: 1, AND: 1, OR: 1, NOT: 1,
@@ -37,57 +36,21 @@
     PI: 1, SQRT: 1, POWER: 1, EXP: 1, LN: 1, LOG: 1,
     ISERROR: 1, IFERROR: 1, ISBLANK: 1, ISNUMBER: 1, ISTEXT: 1,
   };
-
-  // Standard Excel cell-reference pattern: A1, $A$1, A1:B10, Sheet1!A1, etc.
   const RANGE_PATTERN = /^\$?([A-Za-z]+)\$?(\d+)(?::\$?([A-Za-z]+)\$?(\d+))?$/;
 
   function colToNum(col) {
     let n = 0;
-    for (let i = 0; i < col.length; i++) {
-      n = n * 26 + (col.charCodeAt(i) - 64);
-    }
+    for (let i = 0; i < col.length; i++) n = n * 26 + (col.charCodeAt(i) - 64);
     return n - 1;
   }
 
-  function numToCol(n) {
-    let s = "";
-    n = n + 1;
-    while (n > 0) {
-      const r = (n - 1) % 26;
-      s = String.fromCharCode(65 + r) + s;
-      n = Math.floor((n - 1) / 26);
-    }
-    return s;
-  }
-
-  function getDocumentName() {
+  function getSheetId() {
     const el = document.getElementById("sheetName");
-    if (el && el.value) return el.value;
-    return "default";
+    return (el && el.value) ? el.value : "default";
   }
 
-  function getStorageKey() {
-    return STORAGE_PREFIX + getDocumentName();
-  }
-
-  function load() {
-    try {
-      const raw = localStorage.getItem(getStorageKey());
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function save(ranges) {
-    try {
-      localStorage.setItem(getStorageKey(), JSON.stringify(ranges));
-      return true;
-    } catch (e) {
-      return false;
-    }
+  function getAPI() {
+    return window.SheetAPI || null;
   }
 
   function isValidName(name) {
@@ -100,13 +63,11 @@
 
   function isValidRange(range) {
     if (typeof range !== "string") return false;
-    const m = range.match(RANGE_PATTERN);
-    if (!m) return false;
-    return true;
+    return RANGE_PATTERN.test(range);
   }
 
   function resolve(range) {
-    const m = range.match(RANGE_PATTERN);
+    const m = (typeof range === "string") ? range.match(RANGE_PATTERN) : null;
     if (!m) return null;
     const startCol = colToNum(m[1].toUpperCase());
     const startRow = parseInt(m[2], 10) - 1;
@@ -124,132 +85,161 @@
     };
   }
 
-  function get(name) {
-    const ranges = load();
-    for (let i = 0; i < ranges.length; i++) {
-      if (ranges[i].name.toLowerCase() === String(name).toLowerCase()) {
-        return ranges[i];
-      }
-    }
-    return null;
+  function list() {
+    const API = getAPI();
+    if (!API) return Promise.resolve([]);
+    return API.listNamedRanges(getSheetId()).then(function (r) {
+      if (!r.ok) return [];
+      const data = r.data || {};
+      return Array.isArray(data.ranges) ? data.ranges : [];
+    });
   }
 
-  function list() {
-    return load().slice();
+  function get(name) {
+    return list().then(function (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].name.toLowerCase() === String(name).toLowerCase()) return items[i];
+      }
+      return null;
+    });
   }
 
   function add(name, range, description) {
     if (!isValidName(name)) {
-      return { ok: false, error: "Invalid name. Must start with a letter or underscore, contain only letters/digits/underscores/periods, and not be a reserved word." };
+      return Promise.resolve({ ok: false, error: "Invalid name. Must start with a letter or underscore, contain only letters/digits/underscores/periods, and not be a reserved word." });
     }
     if (!isValidRange(range)) {
-      return { ok: false, error: "Invalid range. Use Excel A1 notation, e.g. A1 or A1:B10." };
+      return Promise.resolve({ ok: false, error: "Invalid range. Use Excel A1 notation, e.g. A1 or A1:B10." });
     }
-    const ranges = load();
-    const existing = get(name);
-    const entry = {
-      name: name,
-      range: range.toUpperCase(),
-      description: typeof description === "string" ? description : "",
-      addedAt: existing ? existing.addedAt : Date.now(),
-      updatedAt: Date.now(),
-    };
-    if (existing) {
-      const idx = ranges.findIndex(function (r) {
-        return r.name.toLowerCase() === name.toLowerCase();
+    const API = getAPI();
+    if (!API) return Promise.resolve({ ok: false, error: "API client not loaded" });
+    return API.createNamedRange(getSheetId(), name, range.toUpperCase(), description || "")
+      .then(function (r) {
+        if (!r.ok) {
+          return { ok: false, error: (r.error && r.error.message) || "Server rejected the named range" };
+        }
+        if (API.cacheClear) API.cacheClear("GET /api/sheet/named-ranges");
+        return { ok: true, entry: (r.data && r.data.entry) || { name: name, range: range.toUpperCase(), description: description || "" } };
       });
-      ranges[idx] = entry;
-      save(ranges);
-      return { ok: true, updated: true, entry: entry };
-    }
-    ranges.push(entry);
-    save(ranges);
-    return { ok: true, added: true, entry: entry };
   }
 
   function update(name, range, description) {
-    const ranges = load();
-    const idx = ranges.findIndex(function (r) {
-      return r.name.toLowerCase() === String(name).toLowerCase();
-    });
-    if (idx < 0) return { ok: false, error: "Name not found" };
+    const API = getAPI();
+    if (!API) return Promise.resolve({ ok: false, error: "API client not loaded" });
     if (range !== undefined && !isValidRange(range)) {
-      return { ok: false, error: "Invalid range" };
+      return Promise.resolve({ ok: false, error: "Invalid range" });
     }
-    if (range !== undefined) ranges[idx].range = range.toUpperCase();
-    if (description !== undefined) ranges[idx].description = description;
-    ranges[idx].updatedAt = Date.now();
-    save(ranges);
-    return { ok: true, entry: ranges[idx] };
+    return get(name).then(function (existing) {
+      if (!existing) return { ok: false, error: "Name not found" };
+      const id = existing.id;
+      return API.updateNamedRange(id, range ? range.toUpperCase() : undefined, description)
+        .then(function (r) {
+          if (!r.ok) return { ok: false, error: (r.error && r.error.message) || "Update failed" };
+          if (API.cacheClear) API.cacheClear("GET /api/sheet/named-ranges");
+          return { ok: true, entry: (r.data && r.data.entry) || existing };
+        });
+    });
   }
 
   function remove(name) {
-    const ranges = load();
-    const idx = ranges.findIndex(function (r) {
-      return r.name.toLowerCase() === String(name).toLowerCase();
+    const API = getAPI();
+    if (!API) return Promise.resolve({ ok: false, error: "API client not loaded" });
+    return get(name).then(function (existing) {
+      if (!existing) return { ok: false, error: "Name not found" };
+      return API.deleteNamedRange(existing.id).then(function (r) {
+        if (!r.ok) return { ok: false, error: (r.error && r.error.message) || "Delete failed" };
+        if (API.cacheClear) API.cacheClear("GET /api/sheet/named-ranges");
+        return { ok: true, removed: existing };
+      });
     });
-    if (idx < 0) return { ok: false, error: "Name not found" };
-    const removed = ranges.splice(idx, 1)[0];
-    save(ranges);
-    return { ok: true, removed: removed };
   }
 
   function clear() {
-    save([]);
+    return list().then(function (items) {
+      const API = getAPI();
+      const ps = items.map(function (it) { return API.deleteNamedRange(it.id); });
+      return Promise.all(ps).then(function (results) {
+        if (API.cacheClear) API.cacheClear("GET /api/sheet/named-ranges");
+        return { ok: true, removed: results.length };
+      });
+    });
   }
 
   function exportToCSV() {
-    const ranges = load();
-    const lines = ["name,range,description"];
-    for (let i = 0; i < ranges.length; i++) {
-      const r = ranges[i];
-      const desc = (r.description || "").replace(/"/g, '""');
-      lines.push(r.name + "," + r.range + ',"' + desc + '"');
-    }
-    return lines.join("\n");
+    return list().then(function (items) {
+      const lines = ["name,range,description"];
+      for (let i = 0; i < items.length; i++) {
+        const r = items[i];
+        const desc = (r.description || "").replace(/"/g, '""');
+        lines.push(r.name + "," + r.range + ',"' + desc + '"');
+      }
+      return lines.join("\n");
+    });
   }
 
   function importFromCSV(csv) {
-    if (typeof csv !== "string") return { added: 0, updated: 0, errors: ["invalid input"] };
+    if (typeof csv !== "string") return Promise.resolve({ added: 0, updated: 0, errors: ["invalid input"] });
     const lines = csv.split(/\r?\n/);
-    let added = 0;
-    let updated = 0;
-    const errors = [];
+    const API = getAPI();
+    const ps = [];
+    let lineNo = 0;
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
+      lineNo++;
       const m = line.match(/^([^,]+),([^,]+)(?:,(.*))?$/);
       if (!m) {
-        errors.push("Line " + (i + 1) + ": could not parse");
+        ps.push(Promise.resolve({ ok: false, error: "Line " + (i + 1) + ": could not parse" }));
         continue;
       }
       const name = m[1].trim();
       const range = m[2].trim();
       const desc = m[3] ? m[3].replace(/^"|"$/g, "").replace(/""/g, '"') : "";
-      const wasExisting = !!get(name);
-      const result = add(name, range, desc);
-      if (result.ok) {
-        if (wasExisting) updated++;
-        else added++;
-      } else {
-        errors.push("Line " + (i + 1) + ": " + result.error);
-      }
+      ps.push(get(name).then(function (existing) {
+        if (existing) return update(name, range, desc);
+        return add(name, range, desc);
+      }));
     }
-    return { added: added, updated: updated, errors: errors };
+    return Promise.all(ps).then(function (results) {
+      let added = 0, updated = 0;
+      const errors = [];
+      const entries = [];
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        if (r && r.ok) {
+          if (r.removed !== undefined) updated++;
+          else added++;
+          if (r.entry) entries.push(r.entry);
+        } else if (r && r.error) {
+          errors.push(r.error);
+        }
+      }
+      if (API && API.cacheClear) API.cacheClear("GET /api/sheet/named-ranges");
+      return { added: added, updated: updated, errors: errors, entries: entries };
+    });
   }
 
-  // UI: render the manager into a modal/dropdown
-  function renderList(container) {
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function renderList(container, items) {
     if (!container) return;
-    const ranges = list();
-    if (ranges.length === 0) {
+    const data = items || [];
+    if (data.length === 0) {
       container.innerHTML =
         '<p style="text-align:center;color:#888;padding:20px;">No named ranges defined. Use the form above to add one.</p>';
       return;
     }
     let html = '<table class="named-ranges-table"><thead><tr><th>Name</th><th>Range</th><th>Description</th><th></th></tr></thead><tbody>';
-    for (let i = 0; i < ranges.length; i++) {
-      const r = ranges[i];
+    for (let i = 0; i < data.length; i++) {
+      const r = data[i];
       html +=
         '<tr>' +
         '<td><code>' + escapeHtml(r.name) + '</code></td>' +
@@ -264,20 +254,11 @@
     for (let i = 0; i < dels.length; i++) {
       dels[i].addEventListener("click", function (e) {
         const n = e.currentTarget.getAttribute("data-name");
-        const result = remove(n);
-        if (result.ok) renderList(container);
+        remove(n).then(function () { return list(); }).then(function (fresh) {
+          renderList(container, fresh);
+        });
       });
     }
-  }
-
-  function escapeHtml(s) {
-    if (s === null || s === undefined) return "";
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
   }
 
   window.SheetNamedRanges = {
