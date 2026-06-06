@@ -1,39 +1,18 @@
+"use strict";
+
 // botui/ui/suite/sheet/modules/28_pivot_table.js
-// Pivot Table — refactored to delegate aggregation to botserver
-// via window.SheetAPI.createPivot. Client-side UI logic remains
-// (drag-drop, zone management, rendering); the bucket-group-reduce
-// algorithm moves to the Rust backend where it can use SQL GROUP BY
-// over the source data with proper indexing.
+// Pivot Table — SERVER-ONLY. All aggregation lives in botserver's
+// /api/sheet/pivot handler. The client only manages UI (zone assignment,
+// drag-drop, render). If the server is unreachable, recompute() rejects
+// with an error; the caller decides what to display.
 //
-// API contract with backend:
+// API contract:
 //   POST /api/sheet/pivot
 //   { sheet_id, config: { rows:[...], cols:[...], values:[{field,agg}], filter:[...] } }
 //   -> { ok, result: { rowKeys, colKeys, cells, rowTotals, colTotals, grandTotal } }
 //
-// Offline fallback: if backend is unreachable, the client computes
-// locally with the same algorithm (for UX continuity). This is the
-// only client-side computation, gated behind an explicit fallback.
-"use strict";
-
+// Public API: window.SheetPivotTable = { create, PivotTable, openModal }
 (function () {
-  const AGG_FUNCTIONS = {
-    SUM: function (vals) { return vals.reduce(function (a, b) { return a + b; }, 0); },
-    COUNT: function (vals) { return vals.filter(function (v) { return v !== null && v !== undefined; }).length; },
-    AVERAGE: function (vals) {
-      const nums = vals.filter(function (v) { return typeof v === "number" && !isNaN(v); });
-      if (nums.length === 0) return 0;
-      return nums.reduce(function (a, b) { return a + b; }, 0) / nums.length;
-    },
-    MIN: function (vals) {
-      const nums = vals.filter(function (v) { return typeof v === "number" && !isNaN(v); });
-      return nums.length === 0 ? 0 : Math.min.apply(null, nums);
-    },
-    MAX: function (vals) {
-      const nums = vals.filter(function (v) { return typeof v === "number" && !isNaN(v); });
-      return nums.length === 0 ? 0 : Math.max.apply(null, nums);
-    },
-  };
-
   function PivotTable(config) {
     this.config = config || {};
     this.sourceRange = this.config.sourceRange || "A1:D100";
@@ -46,7 +25,7 @@
     this.data = (this.config.data || []).slice();
     this.result = null;
     this.sheetId = this.config.sheetId || null;
-    this.offlineMode = this.config.offlineMode === true;
+    this.lastError = null;
   }
 
   PivotTable.prototype.getFieldNames = function () {
@@ -57,7 +36,6 @@
 
   PivotTable.prototype.setData = function (rows) {
     this.data = rows || [];
-    this.recompute();
   };
 
   PivotTable.prototype.addToZone = function (field, zone) {
@@ -85,106 +63,60 @@
       if (zone === "row") this.rows = filtered; else this.cols = filtered;
     }
     this.recompute();
-  };
+  }
 
   PivotTable.prototype.changeAggregation = function (field, agg) {
-    if (!AGG_FUNCTIONS[agg]) return;
-    for (let i = 0; i < this.values.length; i++) {
-      if (this.values[i].field === field) this.values[i].agg = agg;
-    }
+    const v = this.values.filter(function (vv) { return vv.field === field; })[0];
+    if (v) v.agg = agg;
     this.recompute();
   };
 
   PivotTable.prototype.recompute = function () {
-    if (this.sheetId && window.SheetAPI && !this.offlineMode && this.values.length > 0) {
-      const self = this;
-      const req = {
-        sheet_id: this.sheetId,
-        config: {
-          source_range: this.sourceRange,
-          rows: this.rows,
-          cols: this.cols,
-          values: this.values,
-          filter: this.filter,
-        },
-      };
-      return window.SheetAPI.createPivot(this.sheetId, req.config).then(function (r) {
-        if (r.ok && r.data && r.data.result) {
-          self.result = r.data.result;
-        } else {
-          self.result = computeLocal(self.data, self.rows, self.cols, self.values);
-        }
-        if (self._afterRecompute) self._afterRecompute();
-        return self.result;
-      }).catch(function () {
-        self.result = computeLocal(self.data, self.rows, self.cols, self.values);
-        if (self._afterRecompute) self._afterRecompute();
-        return self.result;
-      });
+    const self = this;
+    const API = window.SheetAPI;
+    if (!API) {
+      const err = new Error("SheetAPI not loaded; cannot compute pivot without server");
+      self.lastError = err;
+      if (self._afterRecompute) self._afterRecompute();
+      return Promise.reject(err);
     }
-    this.result = computeLocal(this.data, this.rows, this.cols, this.values);
-    if (this._afterRecompute) this._afterRecompute();
-    return Promise.resolve(this.result);
-  };
-
-  function computeLocal(data, rows, cols, values) {
-    if (!data || data.length === 0 || values.length === 0) {
-      return { rowKeys: [], colKeys: [], cells: {}, rowTotals: {}, colTotals: {}, grandTotal: null };
+    if (!self.sheetId) {
+      const err = new Error("PivotTable.sheetId not set; cannot call server");
+      self.lastError = err;
+      if (self._afterRecompute) self._afterRecompute();
+      return Promise.reject(err);
     }
-    const rowSet = {};
-    const colSet = {};
-    for (let i = 0; i < data.length; i++) {
-      const r = data[i];
-      const rowKey = rows.map(function (f) { return r[f]; }).join(" | ");
-      const colKey = cols.map(function (f) { return r[f]; }).join(" | ");
-      rowSet[rowKey] = true;
-      colSet[colKey] = true;
+    if (self.values.length === 0) {
+      self.result = { rowKeys: [], colKeys: [], cells: {}, rowTotals: {}, colTotals: {}, grandTotal: null };
+      self.lastError = null;
+      if (self._afterRecompute) self._afterRecompute();
+      return Promise.resolve(self.result);
     }
-    const rowKeys = Object.keys(rowSet).sort();
-    const colKeys = Object.keys(colSet).sort();
-
-    const buckets = {};
-    for (let i = 0; i < data.length; i++) {
-      const r = data[i];
-      const rowKey = rows.map(function (f) { return r[f]; }).join(" | ");
-      const colKey = cols.map(function (f) { return r[f]; }).join(" | ");
-      const key = rowKey + "\0" + colKey;
-      if (!buckets[key]) buckets[key] = [];
-      for (let j = 0; j < values.length; j++) buckets[key].push(r[values[j].field]);
-    }
-
-    const cells = {};
-    for (let i = 0; i < rowKeys.length; i++) {
-      for (let j = 0; j < colKeys.length; j++) {
-        const key = rowKeys[i] + "\0" + colKeys[j];
-        const vals = buckets[key] || [];
-        for (let k = 0; k < values.length; k++) {
-          const cellVals = [];
-          for (let n = k; n < vals.length; n += values.length) cellVals.push(vals[n]);
-          const cellKey = rowKeys[i] + "\0" + colKeys[j] + "\0" + k;
-          cells[cellKey] = AGG_FUNCTIONS[values[k].agg](cellVals);
-        }
-      }
-    }
-
-    let grandTotal = null;
-    if (values.length > 0) {
-      const all = [];
-      for (let i = 0; i < data.length; i++) {
-        for (let k = 0; k < values.length; k++) all.push(data[i][values[k].field]);
-      }
-      grandTotal = AGG_FUNCTIONS[values[0].agg](all);
-    }
-
-    return {
-      rowKeys: rowKeys,
-      colKeys: colKeys,
-      cells: cells,
-      rowTotals: {},
-      colTotals: {},
-      grandTotal: grandTotal,
+    const req = {
+      source_range: self.sourceRange,
+      rows: self.rows,
+      cols: self.cols,
+      values: self.values,
+      filter: self.filter,
     };
-  }
+    return API.createPivot(self.sheetId, req).then(function (r) {
+      if (!r || !r.ok) {
+        const err = new Error("Pivot server returned error: " + ((r && r.error && r.error.message) || "unknown"));
+        self.lastError = err;
+        if (self._afterRecompute) self._afterRecompute();
+        return Promise.reject(err);
+      }
+      const data = r.data || {};
+      self.result = data.result || { rowKeys: [], colKeys: [], cells: {}, rowTotals: {}, colTotals: {}, grandTotal: null };
+      self.lastError = null;
+      if (self._afterRecompute) self._afterRecompute();
+      return self.result;
+    }).catch(function (err) {
+      self.lastError = err;
+      if (self._afterRecompute) self._afterRecompute();
+      return Promise.reject(err);
+    });
+  };
 
   function formatNumber(n) {
     if (typeof n !== "number" || isNaN(n)) return "";
@@ -207,7 +139,11 @@
     html += this.renderZone("Values", "value", this.values.map(function (v) { return v.field; }));
     html += "</div>";
     html += '<div class="pivot-table">';
-    html += this.renderResult();
+    if (this.lastError) {
+      html += '<div class="pivot-error" role="alert">' + escapeHtml(this.lastError.message) + '</div>';
+    } else {
+      html += this.renderResult();
+    }
     html += "</div>";
     html += "</div>";
     this.container.innerHTML = html;
@@ -222,105 +158,74 @@
       if (zone === "value") {
         const v = this.values.filter(function (vv) { return vv.field === f; })[0];
         const agg = v ? v.agg : "SUM";
-        html += ' <select class="pivot-agg"><option value="SUM"' + (agg === "SUM" ? " selected" : "") + '>SUM</option><option value="COUNT"' + (agg === "COUNT" ? " selected" : "") + '>COUNT</option><option value="AVERAGE"' + (agg === "AVERAGE" ? " selected" : "") + '>AVG</option><option value="MIN"' + (agg === "MIN" ? " selected" : "") + '>MIN</option><option value="MAX"' + (agg === "MAX" ? " selected" : "") + '>MAX</option></select>';
+        html += ' <span class="pivot-agg">(' + agg + ')</span>';
       }
-      html += ' <button class="pivot-remove">×</button></li>';
+      html += ' <button class="pivot-remove" data-remove-field="' + f + '" data-remove-zone="' + zone + '">x</button>';
+      html += '</li>';
     }
-    html += "</ul></div>";
+    html += '</ul></div>';
     return html;
   };
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+
   PivotTable.prototype.renderResult = function () {
+    if (!this.result) return '<div class="pivot-empty">Configure rows/columns/values and the server will compute.</div>';
     const r = this.result;
-    if (!r || !r.rowKeys || r.rowKeys.length === 0) {
-      return '<p class="pivot-empty">Drag fields into Rows, Columns, and Values to build a pivot table.</p>';
-    }
-    let html = '<table class="pivot-result-table"><thead><tr><th></th>';
-    for (let j = 0; j < r.colKeys.length; j++) html += "<th>" + r.colKeys[j] + "</th>";
-    html += "<th>Total</th></tr></thead><tbody>";
+    if (!r.rowKeys || r.rowKeys.length === 0) return '<div class="pivot-empty">No data.</div>';
+    let html = '<table class="pivot-grid"><thead><tr><th></th>';
+    for (let i = 0; i < r.colKeys.length; i++) html += '<th>' + escapeHtml(r.colKeys[i]) + '</th>';
+    if (r.colKeys.length > 0) html += '<th>Total</th>';
+    html += '</tr></thead><tbody>';
     for (let i = 0; i < r.rowKeys.length; i++) {
-      html += "<tr><th>" + r.rowKeys[i] + "</th>";
+      const rk = r.rowKeys[i];
+      html += '<tr><th>' + escapeHtml(rk) + '</th>';
       for (let j = 0; j < r.colKeys.length; j++) {
-        let cellVal = "";
-        for (let k = 0; k < this.values.length; k++) {
-          const key = r.rowKeys[i] + "\0" + r.colKeys[j] + "\0" + k;
-          cellVal += (k > 0 ? ", " : "") + formatNumber(r.cells[key]);
-        }
-        html += "<td>" + cellVal + "</td>";
+        const key = rk + "\0" + r.colKeys[j] + "\0" + 0;
+        html += '<td>' + formatNumber(r.cells[key]) + '</td>';
       }
-      let totalVal = "";
-      for (let k = 0; k < this.values.length; k++) {
-        const allForK = [];
-        for (let j = 0; j < r.colKeys.length; j++) {
-          const key = r.rowKeys[i] + "\0" + r.colKeys[j] + "\0" + k;
-          allForK.push(r.cells[key]);
-        }
-        totalVal += (k > 0 ? ", " : "") + formatNumber(AGG_FUNCTIONS[this.values[k].agg](allForK));
-      }
-      html += "<td><strong>" + totalVal + "</strong></td>";
-      html += "</tr>";
+      if (r.colKeys.length > 0) html += '<td>' + formatNumber(r.rowTotals[rk]) + '</td>';
+      html += '</tr>';
     }
-    html += "</tbody></table>";
+    if (r.rowKeys.length > 0 && r.colKeys.length > 0) {
+      html += '<tr><th>Total</th>';
+      for (let j = 0; j < r.colKeys.length; j++) html += '<td>' + formatNumber(r.colTotals[r.colKeys[j]]) + '</td>';
+      html += '<td>' + formatNumber(r.grandTotal) + '</td></tr>';
+    }
+    html += '</tbody></table>';
     return html;
   };
 
   PivotTable.prototype.bindDragDrop = function () {
+    const c = this.container;
+    if (!c) return;
+    const fields = c.querySelectorAll(".pivot-field");
+    const zones = c.querySelectorAll(".pivot-zone");
     const self = this;
-    const fields = this.container.querySelectorAll(".pivot-field");
-    fields.forEach(function (f) {
-      f.addEventListener("dragstart", function (e) {
-        e.dataTransfer.setData("text/plain", f.getAttribute("data-field"));
-        e.dataTransfer.effectAllowed = "copy";
+    for (let i = 0; i < fields.length; i++) {
+      fields[i].addEventListener("dragstart", function (e) {
+        e.dataTransfer.setData("text/plain", fields[i].dataset.field);
       });
-    });
-    const zones = this.container.querySelectorAll(".pivot-zone");
-    zones.forEach(function (z) {
-      z.addEventListener("dragover", function (e) {
+    }
+    for (let i = 0; i < zones.length; i++) {
+      zones[i].addEventListener("dragover", function (e) { e.preventDefault(); });
+      zones[i].addEventListener("drop", function (e) {
         e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
-        z.classList.add("pivot-zone-hover");
-      });
-      z.addEventListener("dragleave", function () {
-        z.classList.remove("pivot-zone-hover");
-      });
-      z.addEventListener("drop", function (e) {
-        e.preventDefault();
-        z.classList.remove("pivot-zone-hover");
         const field = e.dataTransfer.getData("text/plain");
-        const zone = z.getAttribute("data-zone");
-        self.addToZone(field, zone);
-        self.render();
+        const zone = zones[i].dataset.zone;
+        if (field && zone) self.addToZone(field, zone);
       });
-    });
-    const removes = this.container.querySelectorAll(".pivot-remove");
-    removes.forEach(function (b) {
-      b.addEventListener("click", function () {
-        const item = b.parentElement;
-        const field = item.getAttribute("data-field");
-        const zone = item.getAttribute("data-zone");
-        self.removeFromZone(field, zone);
-        self.render();
+    }
+    const removeBtns = c.querySelectorAll(".pivot-remove");
+    for (let i = 0; i < removeBtns.length; i++) {
+      removeBtns[i].addEventListener("click", function () {
+        self.removeFromZone(removeBtns[i].dataset.removeField, removeBtns[i].dataset.removeZone);
       });
-    });
-    const aggs = this.container.querySelectorAll(".pivot-agg");
-    aggs.forEach(function (s) {
-      s.addEventListener("change", function () {
-        const item = s.parentElement;
-        const field = item.getAttribute("data-field");
-        self.changeAggregation(field, s.value);
-        self.render();
-      });
-    });
-  };
-
-  PivotTable.prototype.dispose = function () {
-    if (this.container) this.container.innerHTML = "";
-    this.data = [];
-    this.result = null;
-  };
-
-  PivotTable.prototype.onRecompute = function (fn) {
-    this._afterRecompute = fn;
+    }
   };
 
   function openModal() {
@@ -331,11 +236,11 @@
       modal.className = "modal hidden";
       modal.setAttribute("role", "dialog");
       modal.setAttribute("aria-modal", "true");
-      modal.innerHTML =
-        '<div class="modal-content modal-large">' +
+      modal.setAttribute("aria-labelledby", "pivotTitle");
+      modal.innerHTML = '<div class="modal-content">' +
         '<div class="modal-header">' +
-        '<h3 id="pivotTableModalTitle">Pivot Table</h3>' +
-        '<button class="btn-close" id="closePivotTableModal">×</button>' +
+        '<h2 id="pivotTitle">Pivot Table</h2>' +
+        '<button id="closePivotTableModal" class="close-button" aria-label="Close">x</button>' +
         '</div>' +
         '<div class="modal-body">' +
         '<div class="form-group"><label>Source Range</label>' +
@@ -352,27 +257,9 @@
     if (!window._pivot) {
       window._pivot = new PivotTable({
         container: container,
+        sheetId: (document.getElementById("sheetName") || {}).value || null,
         fields: ["Region", "Product", "Sales", "Quarter"],
-        data: [
-          { Region: "North", Product: "Widget", Sales: 100, Quarter: "Q1" },
-          { Region: "North", Product: "Gadget", Sales: 200, Quarter: "Q1" },
-          { Region: "South", Product: "Widget", Sales: 150, Quarter: "Q1" },
-          { Region: "South", Product: "Gadget", Sales: 250, Quarter: "Q2" },
-          { Region: "East", Product: "Widget", Sales: 120, Quarter: "Q2" },
-          { Region: "West", Product: "Gadget", Sales: 180, Quarter: "Q3" },
-        ],
-        offlineMode: true,
       });
-    }
-    if (window._pivot.data.length === 0) {
-      window._pivot.setData([
-        { Region: "North", Product: "Widget", Sales: 100, Quarter: "Q1" },
-        { Region: "North", Product: "Gadget", Sales: 200, Quarter: "Q1" },
-        { Region: "South", Product: "Widget", Sales: 150, Quarter: "Q1" },
-        { Region: "South", Product: "Gadget", Sales: 250, Quarter: "Q2" },
-        { Region: "East", Product: "Widget", Sales: 120, Quarter: "Q2" },
-        { Region: "West", Product: "Gadget", Sales: 180, Quarter: "Q3" },
-      ]);
     }
     window._pivot.container = container;
     window._pivot.render();

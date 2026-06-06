@@ -142,43 +142,16 @@
     return headings;
   }
 
-  function buildHtml(headings) {
-    if (headings.length === 0) {
-      return '<p class="docs-toc-empty">No headings found. Use H1-H6 to create a table of contents.</p>';
-    }
-    let html = '<nav class="docs-toc" id="' + TOC_ID + '"><ol>';
-    let openLevel = 0;
-    for (let i = 0; i < headings.length; i++) {
-      const h = headings[i];
-      const level = parseInt(h.tagName.charAt(1), 10);
-      const text = h.textContent || "(untitled)";
-      if (level > openLevel) {
-        for (let j = openLevel; j < level; j++) html += "<ol>";
-        openLevel = level;
-      } else if (level < openLevel) {
-        for (let j = level; j < openLevel; j++) html += "</ol></li>";
-        openLevel = level;
-      } else if (i > 0) {
-        html += "</li>";
-      }
-      html += '<li class="docs-toc-item docs-toc-h' + level + '">' +
-        '<a href="#' + h.id + '" data-toc-target="' + h.id + '">' +
-        escapeHtml(text) + '</a>';
-    }
-    for (let j = 0; j < openLevel; j++) html += "</li></ol>";
-    html += "</nav>";
-    return html;
-  }
-
   function generate() {
     const API = getAPI();
-    if (API) {
-      return API.generateToc(getDocId()).then(function (r) {
-        if (r.ok && r.data && r.data.toc_html) return r.data.toc_html;
-        return buildHtml(assignIds(findHeadings()));
-      });
-    }
-    return Promise.resolve(buildHtml(assignIds(findHeadings())));
+    if (!API) return Promise.reject(new Error("DocsAPI not loaded; cannot generate TOC without server"));
+    return API.generateToc(getDocId()).then(function (r) {
+      if (!r || !r.ok) return Promise.reject(new Error((r && r.error && r.error.message) || "TOC generation failed"));
+      const d = r.data || {};
+      if (d.toc_html) return d.toc_html;
+      if (d.html) return d.html;
+      return Promise.reject(new Error("Server returned no TOC HTML"));
+    });
   }
 
   function insertAtCursorToc() {

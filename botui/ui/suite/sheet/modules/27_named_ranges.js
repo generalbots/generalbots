@@ -166,56 +166,32 @@
   }
 
   function exportToCSV() {
-    return list().then(function (items) {
-      const lines = ["name,range,description"];
-      for (let i = 0; i < items.length; i++) {
-        const r = items[i];
-        const desc = (r.description || "").replace(/"/g, '""');
-        lines.push(r.name + "," + r.range + ',"' + desc + '"');
-      }
-      return lines.join("\n");
+    const API = getAPI();
+    if (!API) return Promise.reject(new Error("SheetAPI not loaded; cannot export without server"));
+    return API.exportNamedRangesCSV(getSheetId()).then(function (r) {
+      if (!r || !r.ok) return Promise.reject(new Error((r && r.error && r.error.message) || "Export failed"));
+      const d = r.data || {};
+      if (typeof d === "string") return d;
+      if (d.csv) return d.csv;
+      return JSON.stringify(d);
     });
   }
 
   function importFromCSV(csv) {
     if (typeof csv !== "string") return Promise.resolve({ added: 0, updated: 0, errors: ["invalid input"] });
-    const lines = csv.split(/\r?\n/);
     const API = getAPI();
-    const ps = [];
-    let lineNo = 0;
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      lineNo++;
-      const m = line.match(/^([^,]+),([^,]+)(?:,(.*))?$/);
-      if (!m) {
-        ps.push(Promise.resolve({ ok: false, error: "Line " + (i + 1) + ": could not parse" }));
-        continue;
+    if (!API) return Promise.reject(new Error("SheetAPI not loaded; cannot import without server"));
+    return API.importNamedRangesCSV(getSheetId(), csv).then(function (r) {
+      if (!r || !r.ok) {
+        return Promise.reject(new Error((r && r.error && r.error.message) || "Import failed"));
       }
-      const name = m[1].trim();
-      const range = m[2].trim();
-      const desc = m[3] ? m[3].replace(/^"|"$/g, "").replace(/""/g, '"') : "";
-      ps.push(get(name).then(function (existing) {
-        if (existing) return update(name, range, desc);
-        return add(name, range, desc);
-      }));
-    }
-    return Promise.all(ps).then(function (results) {
-      let added = 0, updated = 0;
-      const errors = [];
-      const entries = [];
-      for (let i = 0; i < results.length; i++) {
-        const r = results[i];
-        if (r && r.ok) {
-          if (r.removed !== undefined) updated++;
-          else added++;
-          if (r.entry) entries.push(r.entry);
-        } else if (r && r.error) {
-          errors.push(r.error);
-        }
-      }
-      if (API && API.cacheClear) API.cacheClear("GET /api/sheet/named-ranges");
-      return { added: added, updated: updated, errors: errors, entries: entries };
+      const data = r.data || {};
+      return {
+        added: data.added || 0,
+        updated: data.updated || 0,
+        errors: data.errors || [],
+        entries: data.entries || [],
+      };
     });
   }
 

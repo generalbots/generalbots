@@ -106,7 +106,14 @@
       credentials: "same-origin",
     };
     if (body !== undefined && body !== null && method !== "GET") {
-      init.body = JSON.stringify(body);
+      if (body && typeof body === "object" && body.__raw__ !== undefined) {
+        init.body = body.__raw__;
+        if (body.__content_type__) headers["Content-Type"] = body.__content_type__;
+        const { __raw__, __content_type__, ...jsonPart } = body;
+        body = Object.keys(jsonPart).length > 0 ? jsonPart : null;
+      } else {
+        init.body = JSON.stringify(body);
+      }
     }
 
     let lastError = null;
@@ -172,6 +179,66 @@
   function get(path, options) { return request("GET", path, null, options); }
   function put(path, body, options) { return request("PUT", path, body, options); }
   function del(path, body, options) { return request("DELETE", path, body, options); }
+  function postRaw(path, rawBody, contentType, queryParams) {
+    let url = path;
+    if (queryParams) {
+      const qs = Object.keys(queryParams).map(function (k) {
+        return encodeURIComponent(k) + "=" + encodeURIComponent(queryParams[k]);
+      }).join("&");
+      if (qs) url += (path.indexOf("?") >= 0 ? "&" : "?") + qs;
+    }
+    return requestRaw("POST", url, rawBody, contentType);
+  }
+
+  async function requestRaw(method, url, rawBody, contentType) {
+    const headers = {
+      "Accept": "application/json",
+    };
+    if (contentType) headers["Content-Type"] = contentType;
+    const csrf = getCsrfToken();
+    if (csrf) headers["X-CSRF-Token"] = csrf;
+    const auth = getAuthHeader();
+    if (auth) headers["Authorization"] = auth;
+
+    const init = {
+      method: method,
+      headers: headers,
+      credentials: "same-origin",
+      body: rawBody,
+    };
+    const controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    if (controller) init.signal = controller.signal;
+    const timer = (controller && typeof setTimeout === "function")
+      ? setTimeout(function () { controller.abort(); }, DEFAULT_TIMEOUT_MS)
+      : null;
+    try {
+      if (!window.fetch) {
+        return { ok: false, status: 0, error: { code: "NO_FETCH", message: "fetch API unavailable" } };
+      }
+      const res = await fetch(url, init);
+      if (timer) clearTimeout(timer);
+      const ct = res.headers.get("Content-Type") || "";
+      let data = null;
+      if (ct.indexOf("application/json") >= 0) {
+        try { data = await res.json(); } catch (e) { data = null; }
+      } else {
+        try { data = await res.text(); } catch (e) { data = null; }
+      }
+      if (!res.ok) {
+        return { ok: false, status: res.status, error: data || { code: "HTTP_" + res.status, message: res.statusText } };
+      }
+      let payload = data;
+      if (typeof data === "string") {
+        payload = { csv: data };
+      } else if (data && typeof data === "object" && "ok" in data && "data" in data && Object.keys(data).length <= 4) {
+        payload = data.data;
+      }
+      return { ok: true, status: res.status, data: payload, cached: false };
+    } catch (err) {
+      if (timer) clearTimeout(timer);
+      return { ok: false, status: 0, error: { code: "NETWORK", message: (err && err.message) || String(err) } };
+    }
+  }
 
   const API = {
     evaluate: function (sheetId, formula) {
@@ -247,6 +314,12 @@
     },
     list: function () {
       return get("/api/sheet/list");
+    },
+    exportNamedRangesCSV: function (sheetId) {
+      return get("/api/sheet/named-ranges/export?sheet_id=" + encodeURIComponent(sheetId));
+    },
+    importNamedRangesCSV: function (sheetId, csv) {
+      return postRaw("/api/sheet/named-ranges/import", csv, "text/csv", { sheet_id: sheetId });
     },
     cacheClear: cacheClear,
   };
