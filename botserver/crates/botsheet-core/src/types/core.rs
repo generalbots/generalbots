@@ -142,7 +142,7 @@ pub struct Spreadsheet {
     pub external_links: Option<Vec<ExternalLink>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Worksheet {
     pub name: String,
     pub data: HashMap<String, CellData>,
