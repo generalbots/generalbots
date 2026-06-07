@@ -8,6 +8,7 @@ pub mod data_ops;
 pub mod named_ranges_csv;
 pub mod pivot;
 pub mod validation;
+pub mod worksheets;
 
 pub use advanced::{
     handle_add_external_link, handle_list_external_links, handle_lock_cells,
@@ -20,8 +21,8 @@ pub use advanced_ranges::{
 };
 pub use ai::handle_sheet_ai;
 pub use cell_ops::{
-    handle_evaluate_formula, handle_format_cells, handle_freeze_panes, handle_merge_cells,
-    handle_unmerge_cells, handle_update_cell,
+    handle_evaluate_formula, handle_format_cells, handle_freeze_panes, handle_get_range,
+    handle_merge_cells, handle_unmerge_cells, handle_update_cell, handle_worksheet_meta,
 };
 pub use comments::{
     handle_add_comment, handle_delete_comment, handle_list_comments, handle_reply_comment,
