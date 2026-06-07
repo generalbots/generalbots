@@ -1,4 +1,4 @@
-/* Calendar Module JavaScript */
+/* Calendar Module JavaScript - Real API Integration & Conflict Prevention */
 
 (function() {
     'use strict';
@@ -13,6 +13,15 @@
     let miniCalDays, miniCalTitle, currentPeriod;
     let dayView, weekView, monthView;
     let eventModal, eventPopup;
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
 
     /**
      * Initialize calendar module
@@ -36,6 +45,7 @@
         updateCurrentTimeIndicator();
         setInterval(updateCurrentTimeIndicator, 60000);
         bindEvents();
+        loadEvents();
     }
 
     /**
@@ -94,7 +104,7 @@
         // Previous month days
         const prevMonthLastDay = new Date(year, month, 0).getDate();
         for (let i = startDay - 1; i >= 0; i--) {
-            html += `<button class="mini-day other-month" data-date="${year}-${month - 1}-${prevMonthLastDay - i}">${prevMonthLastDay - i}</button>`;
+            html += `<button class="mini-day other-month" data-date="${year}-${month}-${prevMonthLastDay - i}">${prevMonthLastDay - i}</button>`;
         }
 
         // Current month days
@@ -291,8 +301,6 @@
 
     /**
      * Get start of week (Sunday)
-     * @param {Date} date - Date to get week start for
-     * @returns {Date} - Start of week
      */
     function getWeekStart(date) {
         const d = new Date(date);
@@ -314,7 +322,6 @@
 
         indicator.style.top = `${top + 52}px`; // Offset for header
 
-        // Only show in day/week view
         if (currentView === 'month') {
             indicator.style.display = 'none';
         } else {
@@ -324,7 +331,6 @@
 
     /**
      * Navigate by direction (-1 or 1)
-     * @param {number} direction - Direction to navigate
      */
     function navigate(direction) {
         switch (currentView) {
@@ -341,6 +347,177 @@
         currentDate = new Date(selectedDate);
         renderMiniCalendar();
         renderCurrentView();
+        loadEvents();
+    }
+
+    /**
+     * Load events from backend API
+     */
+    function loadEvents() {
+        let start, end;
+        if (currentView === 'month') {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            start = new Date(year, month - 1, 1).toISOString();
+            end = new Date(year, month + 2, 0).toISOString();
+        } else if (currentView === 'week') {
+            const weekStart = getWeekStart(selectedDate);
+            start = new Date(weekStart).toISOString();
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 7);
+            end = weekEnd.toISOString();
+        } else { // day
+            const dayStart = new Date(selectedDate);
+            dayStart.setHours(0,0,0,0);
+            start = dayStart.toISOString();
+            const dayEnd = new Date(selectedDate);
+            dayEnd.setHours(23,59,59,999);
+            end = dayEnd.toISOString();
+        }
+
+        fetch(`/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+            .then(r => r.json())
+            .then(data => {
+                events = data || [];
+                drawEvents();
+            })
+            .catch(err => {
+                console.error("Failed to load events:", err);
+            });
+    }
+
+    /**
+     * Draw events on grids
+     */
+    function drawEvents() {
+        if (currentView === 'month') {
+            drawEventsMonth();
+        } else if (currentView === 'week') {
+            drawEventsWeek();
+        } else {
+            drawEventsDay();
+        }
+    }
+
+    function drawEventsMonth() {
+        const cells = document.querySelectorAll('.month-day');
+        cells.forEach(cell => {
+            const dateStr = cell.dataset.date;
+            if (!dateStr) return;
+            const parts = dateStr.split('-');
+            const cellYear = parseInt(parts[0], 10);
+            const cellMonth = parseInt(parts[1], 10) - 1;
+            const cellDay = parseInt(parts[2], 10);
+
+            const dayEvents = events.filter(evt => {
+                const d = new Date(evt.start_time);
+                return d.getFullYear() === cellYear && d.getMonth() === cellMonth && d.getDate() === cellDay;
+            });
+
+            const container = cell.querySelector('.month-day-events');
+            if (container) {
+                container.innerHTML = dayEvents.map(evt => {
+                    const color = evt.color || '#3b82f6';
+                    return `<div class="event-chip" data-id="${evt.id}" style="background:${color}20; border-left:3px solid ${color}; color:${color}; font-size:10px; padding:2px 4px; margin-top:2px; border-radius:3px; cursor:pointer;" onclick="event.stopPropagation(); window.CalendarModule.showEventPopup(event, '${evt.id}')">${escapeHtml(evt.title)}</div>`;
+                }).join('');
+            }
+        });
+    }
+
+    function drawEventsWeek() {
+        const columns = document.querySelectorAll('#week-grid .day-column');
+        columns.forEach(col => {
+            col.querySelectorAll('.event-chip-week').forEach(chip => chip.remove());
+        });
+
+        const weekStart = getWeekStart(selectedDate);
+        events.forEach(evt => {
+            const start = new Date(evt.start_time);
+            const end = new Date(evt.end_time);
+            
+            const diffTime = start.getTime() - weekStart.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays >= 0 && diffDays < 7) {
+                const col = columns[diffDays];
+                if (col) {
+                    const startMinutes = start.getHours() * 60 + start.getMinutes();
+                    const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+                    const top = (startMinutes / 60) * 48;
+                    const height = (durationMinutes / 60) * 48;
+                    const color = evt.color || '#3b82f6';
+
+                    const chip = document.createElement('div');
+                    chip.className = 'event-chip-week';
+                    chip.style.cssText = `position:absolute; top:${top}px; left:4px; right:4px; height:${height}px; background:${color}20; border-left:3px solid ${color}; color:${color}; font-size:11px; padding:4px; border-radius:4px; cursor:pointer; overflow:hidden; z-index:2;`;
+                    chip.innerHTML = `<b>${escapeHtml(evt.title)}</b>`;
+                    chip.onclick = (e) => { e.stopPropagation(); showEventPopup(e, evt.id); };
+                    col.appendChild(chip);
+                }
+            }
+        });
+    }
+
+    function drawEventsDay() {
+        const container = document.getElementById('day-events');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const cellYear = selectedDate.getFullYear();
+        const cellMonth = selectedDate.getMonth();
+        const cellDay = selectedDate.getDate();
+
+        const dayEvents = events.filter(evt => {
+            const d = new Date(evt.start_time);
+            return d.getFullYear() === cellYear && d.getMonth() === cellMonth && d.getDate() === cellDay;
+        });
+
+        dayEvents.forEach(evt => {
+            const start = new Date(evt.start_time);
+            const end = new Date(evt.end_time);
+            const startMinutes = start.getHours() * 60 + start.getMinutes();
+            const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+            const top = (startMinutes / 60) * 48;
+            const height = (durationMinutes / 60) * 48;
+            const color = evt.color || '#3b82f6';
+
+            const chip = document.createElement('div');
+            chip.className = 'event-chip-day';
+            chip.style.cssText = `position:absolute; top:${top}px; left:4px; right:4px; height:${height}px; background:${color}20; border-left:3px solid ${color}; color:${color}; font-size:12px; padding:6px; border-radius:4px; cursor:pointer; overflow:hidden; z-index:2;`;
+            chip.innerHTML = `<b>${escapeHtml(evt.title)}</b><br><span style="font-size:10px;">${escapeHtml(evt.location || '')}</span>`;
+            chip.onclick = (e) => { e.stopPropagation(); showEventPopup(e, evt.id); };
+            container.appendChild(chip);
+        });
+    }
+
+    function checkConflict(start, end) {
+        const s = new Date(start).getTime();
+        const e = new Date(end).getTime();
+        return events.some(evt => {
+            const evtS = new Date(evt.start_time).getTime();
+            const evtE = new Date(evt.end_time).getTime();
+            return (s < evtE && e > evtS);
+        });
+    }
+
+    function showEventPopup(e, eventId) {
+        const evt = events.find(x => x.id === eventId);
+        if (!evt) return;
+
+        const popup = document.getElementById('event-popup');
+        if (!popup) return;
+
+        popup.querySelector('.popup-title').textContent = evt.title;
+        popup.querySelector('.popup-desc').textContent = evt.description || "No description";
+        popup.querySelector('.popup-loc').textContent = evt.location || "No location";
+        
+        const start = new Date(evt.start_time);
+        const end = new Date(evt.end_time);
+        popup.querySelector('.popup-time').textContent = `${start.toLocaleDateString()} ${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+
+        popup.style.left = `${e.clientX + 10}px`;
+        popup.style.top = `${e.clientY + 10}px`;
+        popup.style.position = 'fixed';
+        popup.classList.remove('hidden');
     }
 
     /**
@@ -354,6 +531,7 @@
                 this.classList.add('active');
                 currentView = this.dataset.view;
                 renderCurrentView();
+                loadEvents();
             });
         });
 
@@ -365,6 +543,7 @@
                 selectedDate = new Date();
                 renderMiniCalendar();
                 renderCurrentView();
+                loadEvents();
             });
         }
 
@@ -394,6 +573,7 @@
                     currentDate = new Date(selectedDate);
                     renderMiniCalendar();
                     renderCurrentView();
+                    loadEvents();
                 }
             });
         }
@@ -450,7 +630,6 @@
                         selectedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
                         eventModal.classList.remove('hidden');
 
-                        // Pre-fill date in form
                         const startInput = document.querySelector('input[name="start"]');
                         const endInput = document.querySelector('input[name="end"]');
                         if (startInput && endInput) {
@@ -468,8 +647,72 @@
         if (eventForm && eventModal) {
             eventForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                // Form is handled by HTMX, but we can add validation here
-                eventModal.classList.add('hidden');
+
+                const title = eventForm.querySelector('input[name="title"]').value;
+                const startVal = eventForm.querySelector('input[name="start"]').value;
+                const endVal = eventForm.querySelector('input[name="end"]').value;
+                const allDay = eventForm.querySelector('input[name="all_day"]').checked;
+                const location = eventForm.querySelector('input[name="location"]').value;
+                const description = eventForm.querySelector('textarea[name="description"]').value;
+
+                if (checkConflict(startVal, endVal)) {
+                    if (!confirm("This slot overlaps with an existing event. Do you want to book it anyway?")) {
+                        return;
+                    }
+                }
+
+                const calendarId = (eventForm.querySelector('input[name="calendar_id"]') || {}).value
+                    || (window.CalendarModule && window.CalendarModule.currentCalendarId)
+                    || "00000000-0000-0000-0000-000000000000";
+                const body = {
+                    title: title,
+                    start_time: new Date(startVal).toISOString(),
+                    end_time: new Date(endVal).toISOString(),
+                    all_day: allDay,
+                    location: location,
+                    description: description,
+                    organizer: "user",
+                    calendar_id: null
+                };
+                const conflictBody = {
+                    calendar_id: calendarId,
+                    start_time: body.start_time,
+                    end_time: body.end_time
+                };
+
+                function sendEventSave() {
+                    fetch('/api/calendar/events', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    })
+                    .then(r => r.json())
+                    .then(() => {
+                        eventModal.classList.add('hidden');
+                        eventForm.reset();
+                        loadEvents();
+                    })
+                    .catch(err => {
+                        console.error("Failed to save event:", err);
+                    });
+                }
+
+                fetch('/api/calendar/conflicts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(conflictBody)
+                })
+                .then(r => r.ok ? r.json() : null)
+                .then(conflictRes => {
+                    if (conflictRes && conflictRes.has_conflicts) {
+                        const names = conflictRes.conflicts.map(c => c.title).slice(0, 3).join(", ");
+                        if (!confirm("Server detected conflicts with: " + names + ". Save anyway?")) {
+                            return;
+                        }
+                    }
+                    sendEventSave();
+                })
+                .catch(() => sendEventSave());
             });
         }
 
@@ -480,7 +723,6 @@
                 if (eventPopup) eventPopup.classList.add('hidden');
             }
 
-            // Only handle if not in input
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
             switch (e.key) {
@@ -514,9 +756,11 @@
         init,
         navigate,
         renderCurrentView,
+        showEventPopup,
         setView: function(view) {
             currentView = view;
             renderCurrentView();
+            loadEvents();
         }
     };
 
