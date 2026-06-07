@@ -968,3 +968,123 @@ input:checked + .toggle-switch::after {
 .checkbox-label input[type="checkbox"] {
     margin: 0;
 }
+
+.snooze-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.snooze-menu summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 4px 10px;
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.snooze-menu summary::-webkit-details-marker { display: none; }
+
+.snooze-presets {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 100;
+    min-width: 160px;
+}
+
+.snooze-presets button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    background: transparent;
+    color: #f8fafc;
+    border: none;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.snooze-presets button:hover {
+    background: #1e293b;
+}
+
+.mail-action-btn {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.smart-reply-chips {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #334155;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.smart-reply-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+.smart-reply-chip {
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #3b82f6;
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.smart-reply-chip:hover {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+.nudges-banner {
+    margin-bottom: 12px;
+}
+
+.nudge-item {
+    background: #7c2d12;
+    color: #fef3c7;
+    border: 1px solid #b45309;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    font-size: 0.8125rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nudge-item button {
+    background: transparent;
+    color: #fef3c7;
+    border: 1px solid #fef3c7;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}

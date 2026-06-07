@@ -123,7 +123,25 @@
   }
 
   function formatText(command) {
-    document.execCommand(command, false, null);
+    var selection = window.getSelection();
+    if (selection.rangeCount) {
+      var range = selection.getRangeAt(0);
+      var tag = "";
+      if (command === "bold") tag = "strong";
+      else if (command === "italic") tag = "em";
+      else if (command === "underline") tag = "u";
+
+      if (tag) {
+        var el = document.createElement(tag);
+        try {
+          range.surroundContents(el);
+        } catch (e) {
+          var contents = range.extractContents();
+          el.appendChild(contents);
+          range.insertNode(el);
+        }
+      }
+    }
     var body = document.getElementById("compose-body");
     if (body) {
       body.focus();
@@ -198,8 +216,9 @@
   }
 
   function openLabelManager() {
-    if (typeof window.showNotification === "function") {
-      window.showNotification("Label manager coming soon", "info");
+    var modal = document.getElementById("labels-modal");
+    if (modal && modal.showModal) {
+      modal.showModal();
     }
   }
 
@@ -288,14 +307,39 @@
   function insertLink() {
     var url = prompt("Enter URL:");
     if (url) {
-      document.execCommand("createLink", false, url);
+      var selection = window.getSelection();
+      if (selection.rangeCount) {
+        var range = selection.getRangeAt(0);
+        var a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        if (range.collapsed) {
+          a.textContent = url;
+          range.insertNode(a);
+        } else {
+          try {
+            range.surroundContents(a);
+          } catch (e) {
+            var contents = range.extractContents();
+            a.appendChild(contents);
+            range.insertNode(a);
+          }
+        }
+      }
     }
   }
 
   function insertImage() {
     var url = prompt("Enter image URL:");
     if (url) {
-      document.execCommand("insertImage", false, url);
+      var selection = window.getSelection();
+      if (selection.rangeCount) {
+        var range = selection.getRangeAt(0);
+        var img = document.createElement("img");
+        img.src = url;
+        img.style.maxWidth = "100%";
+        range.insertNode(img);
+      }
     }
   }
 
@@ -320,64 +364,292 @@
   }
 
   function createNewTemplate() {
-    if (typeof window.showNotification === "function") {
-      window.showNotification("Template editor coming soon", "info");
+    var modal = document.getElementById("new-template-modal");
+    if (modal && modal.showModal) {
+      modal.showModal();
     }
   }
 
   function createNewSignature() {
-    if (typeof window.showNotification === "function") {
-      window.showNotification("Signature editor coming soon", "info");
+    var modal = document.getElementById("new-signature-modal");
+    if (modal && modal.showModal) {
+      modal.showModal();
     }
   }
 
   function createNewRule() {
-    if (typeof window.showNotification === "function") {
-      window.showNotification("Rule editor coming soon", "info");
+    var modal = document.getElementById("new-rule-modal");
+    if (modal && modal.showModal) {
+      modal.showModal();
     }
   }
 
   function archiveSelected() {
-    if (typeof window.showNotification === "function") {
-      window.showNotification(
-        selectedEmails.size + " emails archived",
-        "success",
-      );
-    }
-    selectedEmails.clear();
-    updateBulkActions();
-    refreshMailList();
+    if (selectedEmails.size === 0) return;
+    var ids = Array.from(selectedEmails);
+    fetch("/api/email/bulk/archive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: ids })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res && res.success) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification(ids.length + " emails archived", "success");
+        }
+        selectedEmails.clear();
+        updateBulkActions();
+        refreshMailList();
+      } else {
+        throw new Error(res.message || "Failed to archive");
+      }
+    })
+    .catch(function(err) {
+      if (typeof window.showNotification === "function") {
+        window.showNotification("Archive error: " + err.message, "error");
+      }
+    });
   }
 
   function markAsRead() {
-    if (typeof window.showNotification === "function") {
-      window.showNotification(
-        selectedEmails.size + " emails marked as read",
-        "success",
-      );
-    }
-    selectedEmails.clear();
-    updateBulkActions();
-    refreshMailList();
+    if (selectedEmails.size === 0) return;
+    var ids = Array.from(selectedEmails);
+    fetch("/api/email/bulk/mark-read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: ids, is_read: true })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res && res.success) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification(ids.length + " emails marked as read", "success");
+        }
+        selectedEmails.clear();
+        updateBulkActions();
+        refreshMailList();
+      } else {
+        throw new Error(res.message || "Failed to mark as read");
+      }
+    })
+    .catch(function(err) {
+      if (typeof window.showNotification === "function") {
+        window.showNotification("Update error: " + err.message, "error");
+      }
+    });
   }
 
   function addLabelToSelected() {
-    if (typeof window.showNotification === "function") {
-      window.showNotification("Label picker coming soon", "info");
+    if (selectedEmails.size === 0) {
+      if (typeof window.showNotification === "function") {
+        window.showNotification("No emails selected", "warning");
+      }
+      return;
     }
+    var labelName = prompt("Enter label name to add to selected emails:");
+    if (!labelName || !labelName.trim()) return;
+
+    var ids = Array.from(selectedEmails);
+    fetch("/api/email/bulk/add-label", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: ids, label_name: labelName.trim() })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res && res.success) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification("Label applied to selected emails", "success");
+        }
+        selectedEmails.clear();
+        updateBulkActions();
+        refreshMailList();
+        var labelsList = document.getElementById("labels-list");
+        if (labelsList && typeof htmx !== "undefined") {
+          htmx.trigger(labelsList, "load");
+        }
+      }
+    })
+    .catch(function(e) {
+      console.error(e);
+    });
   }
 
   function deleteSelected() {
+    if (selectedEmails.size === 0) return;
     if (confirm("Delete " + selectedEmails.size + " emails?")) {
-      if (typeof window.showNotification === "function") {
-        window.showNotification(
-          selectedEmails.size + " emails deleted",
-          "success",
-        );
+      var ids = Array.from(selectedEmails);
+      fetch("/api/email/bulk/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: ids })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res && res.success) {
+          if (typeof window.showNotification === "function") {
+            window.showNotification(ids.length + " emails deleted", "success");
+          }
+          selectedEmails.clear();
+          updateBulkActions();
+          refreshMailList();
+        } else {
+          throw new Error(res.message || "Failed to delete");
+        }
+      })
+      .catch(function(err) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification("Delete error: " + err.message, "error");
+        }
+      });
+    }
+  }
+
+  function saveLabel() {
+    var nameInput = document.getElementById("new-label-name");
+    var colorInput = document.getElementById("new-label-color");
+    if (!nameInput || !nameInput.value.trim()) return;
+
+    var name = nameInput.value.trim();
+    var color = colorInput ? colorInput.value : "#3b82f6";
+
+    fetch("/api/email/labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name, color: color })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res && res.success) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification("Label created successfully", "success");
+        }
+        document.getElementById("labels-modal").close();
+        nameInput.value = "";
+        var labelsList = document.getElementById("labels-list");
+        if (labelsList && typeof htmx !== "undefined") {
+          htmx.trigger(labelsList, "load");
+        }
       }
-      selectedEmails.clear();
+    })
+    .catch(function(e) {
+      console.error(e);
+    });
+  }
+
+  function saveSignature() {
+    var nameInput = document.getElementById("new-sig-name");
+    var contentInput = document.getElementById("new-sig-content");
+    if (!nameInput || !nameInput.value.trim() || !contentInput || !contentInput.value.trim()) return;
+
+    var name = nameInput.value.trim();
+    var content = contentInput.value.trim();
+
+    fetch("/api/email/signatures", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name, content_html: content, content_plain: content, is_default: false })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification("Signature saved successfully", "success");
+        }
+        document.getElementById("new-signature-modal").close();
+        nameInput.value = "";
+        contentInput.value = "";
+        var sigList = document.getElementById("signatures-list");
+        if (sigList && typeof htmx !== "undefined") {
+          htmx.trigger(sigList, "load");
+        }
+      }
+    })
+    .catch(function(e) {
+      console.error(e);
+    });
+  }
+
+  function saveRule() {
+    var nameInput = document.getElementById("new-rule-name");
+    var condInput = document.getElementById("new-rule-condition");
+    var actionInput = document.getElementById("new-rule-action");
+    if (!nameInput || !nameInput.value.trim()) return;
+
+    var name = nameInput.value.trim();
+    var condition = condInput ? condInput.value.trim() : "";
+    var action = actionInput ? actionInput.value : "archive";
+
+    fetch("/api/email/rules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name, condition: condition, action: action })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res && res.success) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification("Rule '" + name + "' created successfully", "success");
+        }
+        document.getElementById("new-rule-modal").close();
+        nameInput.value = "";
+        if (condInput) condInput.value = "";
+        var rulesList = document.getElementById("rules-list");
+        if (rulesList && typeof htmx !== "undefined") {
+          htmx.trigger(rulesList, "load");
+        }
+      }
+    })
+    .catch(function(e) {
+      console.error(e);
+    });
+  }
+
+  function saveTemplate() {
+    var nameInput = document.getElementById("new-template-name");
+    var subjInput = document.getElementById("new-template-subject");
+    var bodyInput = document.getElementById("new-template-body");
+    if (!nameInput || !nameInput.value.trim()) return;
+
+    var name = nameInput.value.trim();
+    var subject = subjInput ? subjInput.value.trim() : "";
+    var body = bodyInput ? bodyInput.value.trim() : "";
+
+    fetch("/api/email/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name, subject: subject, body: body })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res && res.success) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification("Template '" + name + "' saved successfully", "success");
+        }
+        document.getElementById("new-template-modal").close();
+        nameInput.value = "";
+        if (subjInput) subjInput.value = "";
+        if (bodyInput) bodyInput.value = "";
+        var templatesList = document.getElementById("templates-list");
+        if (templatesList && typeof htmx !== "undefined") {
+          htmx.trigger(templatesList, "load");
+        }
+      }
+    })
+    .catch(function(e) {
+      console.error(e);
+    });
+  }
+
+  function handleCheckboxChange(e) {
+    if (e.target.classList.contains("mail-item-checkbox")) {
+      if (e.target.checked) {
+        selectedEmails.add(e.target.dataset.id);
+      } else {
+        selectedEmails.delete(e.target.dataset.id);
+      }
       updateBulkActions();
-      refreshMailList();
     }
   }
 
@@ -480,6 +752,9 @@
   function initMail() {
     initFolderHandlers();
 
+    document.body.removeEventListener("change", handleCheckboxChange);
+    document.body.addEventListener("change", handleCheckboxChange);
+
     var unifiedItem = document.querySelector('.nav-item[data-folder="unified"]');
     if (unifiedItem && typeof htmx !== "undefined") {
       htmx.trigger(unifiedItem, "click");
@@ -530,6 +805,129 @@
   window.loadUnifiedInbox = loadUnifiedInbox;
   window.searchAllAccounts = searchAllAccounts;
   window.handleSearchInput = handleSearchInput;
+  window.saveLabel = saveLabel;
+  window.saveSignature = saveSignature;
+  window.saveRule = saveRule;
+  window.saveTemplate = saveTemplate;
+
+  function snoozeEmail(emailId, preset) {
+    fetch("/api/email/snooze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email_ids: [emailId], preset: preset })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && res.snoozed_count !== undefined) {
+          if (typeof window.showNotification === "function") {
+            window.showNotification("Snoozed until " + new Date(res.snooze_until).toLocaleString(), "success");
+          }
+        } else {
+          throw new Error("Snooze failed");
+        }
+      })
+      .catch(function (err) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification("Snooze error: " + err.message, "error");
+        }
+      });
+  }
+
+  function loadSmartReplies(emailId) {
+    var container = document.getElementById("smart-reply-" + emailId);
+    if (!container) return;
+    fetch("/api/ai/generate-reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email_id: emailId })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && Array.isArray(res.suggestions) && res.suggestions.length) {
+          var chips = res.suggestions.map(function (s) {
+            return '<button class="smart-reply-chip" onclick="useSmartReply(\'' +
+              s.replace(/'/g, "\\'") + '\')">' + s + '</button>';
+          }).join("");
+          container.innerHTML =
+            '<div class="smart-reply-label">Smart replies</div>' + chips;
+        }
+      })
+      .catch(function () {});
+  }
+
+  function useSmartReply(text) {
+    var body = document.getElementById("compose-body");
+    if (body) {
+      body.textContent = text;
+      body.focus();
+    }
+    if (typeof openCompose === "function") {
+      openCompose();
+    } else {
+      var modal = document.getElementById("compose-modal");
+      if (modal && modal.showModal) modal.showModal();
+    }
+  }
+
+  function loadNudgesForEmail(emailId, userId) {
+    var banner = document.getElementById("nudges-banner-" + emailId);
+    if (!banner) return;
+    fetch("/api/email/nudges", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId || "00000000-0000-0000-0000-000000000000" })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && Array.isArray(res.nudges)) {
+          var mine = res.nudges.filter(function (n) { return n.email_id === emailId; });
+          if (mine.length) {
+            banner.innerHTML = mine.map(function (n) {
+              return '<div class="nudge-item">No reply sent for ' + n.days_ago +
+                ' day(s) — <button onclick="dismissNudge(\'' + n.email_id + '\')">Dismiss</button></div>';
+            }).join("");
+          }
+        }
+      })
+      .catch(function () {});
+  }
+
+  function dismissNudge(emailId) {
+    fetch("/api/email/nudge/dismiss", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(emailId)
+    })
+      .then(function () {
+        var banner = document.getElementById("nudges-banner-" + emailId);
+        if (banner) banner.innerHTML = "";
+      })
+      .catch(function () {});
+  }
+
+  function initEmailExtras() {
+    var banners = document.querySelectorAll(".nudges-banner[data-email-id]");
+    banners.forEach(function (el) {
+      loadNudgesForEmail(el.dataset.emailId);
+    });
+    var chips = document.querySelectorAll(".smart-reply-chips[data-email-id]");
+    chips.forEach(function (el) {
+      loadSmartReplies(el.dataset.emailId);
+    });
+  }
+
+  document.body.addEventListener("htmx:afterSwap", function (evt) {
+    if (evt.detail.target && evt.detail.target.id === "mail-content") {
+      setTimeout(initEmailExtras, 0);
+    }
+  });
+
+  window.snoozeEmail = snoozeEmail;
+  window.loadSmartReplies = loadSmartReplies;
+  window.useSmartReply = useSmartReply;
+  window.loadNudgesForEmail = loadNudgesForEmail;
+  window.dismissNudge = dismissNudge;
+  window.initEmailExtras = initEmailExtras;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initMail);
