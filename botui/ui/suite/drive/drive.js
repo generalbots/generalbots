@@ -724,7 +724,9 @@
         isFolder
           ? `<div class="context-menu-item" onclick="${hideMenu}DriveModule.loadFiles('${ep}', '${currentBucket}')">${icons.open}<span>Open</span></div>`
           : `<div class="context-menu-item" onclick="${hideMenu}DriveModule.openFile('${ep}')">${icons.open}<span>Open</span></div>
-             <div class="context-menu-item" onclick="${hideMenu}DriveModule.downloadFile('${ep}')">${icons.download}<span>Download</span></div>`
+             <div class="context-menu-item" onclick="${hideMenu}DriveModule.previewFile('${ep}')">${icons.open}<span>Preview</span></div>
+             <div class="context-menu-item" onclick="${hideMenu}DriveModule.downloadFile('${ep}')">${icons.download}<span>Download</span></div>
+             <div class="context-menu-item" onclick="${hideMenu}DriveModule.shareFile('${ep}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg><span>Share</span></div>`
       }
       <div class="context-menu-divider"></div>
       <div class="context-menu-item" onclick="${hideMenu}DriveModule.copyToClipboard('${ep}')">${icons.copy}<span>Copy</span></div>
@@ -888,31 +890,22 @@
   }
   async function downloadFile(path) {
     try {
-      const response = await apiRequest("/download", {
-        method: "POST",
-        body: JSON.stringify({ bucket: currentBucket, path: path, scope: currentScope }),
-      });
-
-      const content = response.content;
       const fileName = path.split("/").pop() || "download";
-      let blob;
+      const token =
+        localStorage.getItem("gb-access-token") ||
+        sessionStorage.getItem("gb-access-token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = "Bearer " + token;
 
-      const isBase64 =
-        /^[A-Za-z0-9+/=]+$/.test(content) && content.length > 100;
-      if (isBase64) {
-        try {
-          const byteCharacters = atob(content);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++)
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          blob = new Blob([new Uint8Array(byteNumbers)]);
-        } catch (e) {
-          blob = new Blob([content], { type: "text/plain" });
-        }
-      } else {
-        blob = new Blob([content], { type: "text/plain" });
+      const res = await fetch(API_BASE + "/download-binary", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({ bucket: currentBucket, path: path, scope: currentScope })
+      });
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status);
       }
-
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -922,9 +915,178 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      showNotification(`Downloaded ${fileName}`, "success");
+      showNotification("Downloaded " + fileName, "success");
     } catch (err) {
-      showNotification(`Download failed: ${err.message}`, "error");
+      showNotification("Download failed: " + err.message, "error");
+    }
+  }
+
+  function showPreviewModal(fileName, ext, blob) {
+    let modal = document.getElementById("preview-modal");
+    if (modal) modal.remove();
+
+    modal = document.createElement("div");
+    modal.id = "preview-modal";
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.85); display: flex; align-items: center;
+      justify-content: center; z-index: 9999; backdrop-filter: blur(8px);
+    `;
+
+    const container = document.createElement("div");
+    container.style.cssText = `
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      width: 80%; max-width: 900px; max-height: 90vh; display: flex;
+      flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+      overflow: hidden;
+    `;
+
+    const header = document.createElement("div");
+    header.style.cssText = `
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; border-bottom: 1px solid #334155;
+    `;
+    header.innerHTML = `<h3 style="margin:0; color:#f8fafc; font-size:1.125rem;">Preview: ${escapeHtml(fileName)}</h3>`;
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "×";
+    closeBtn.style.cssText = `
+      background: none; border: none; color: #94a3b8; font-size: 28px;
+      cursor: pointer; line-height: 1; padding: 0; margin: 0;
+    `;
+    closeBtn.onclick = () => {
+      modal.remove();
+      URL.revokeObjectURL(objectUrl);
+    };
+    header.appendChild(closeBtn);
+
+    const body = document.createElement("div");
+    body.style.cssText = `
+      padding: 24px; overflow-y: auto; flex-grow: 1; display: flex;
+      align-items: center; justify-content: center; background: #0f172a;
+    `;
+
+    const objectUrl = URL.createObjectURL(blob);
+    let previewEl;
+
+    if (["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) {
+      previewEl = document.createElement("img");
+      previewEl.src = objectUrl;
+      previewEl.style.cssText = "max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px;";
+    } else if (ext === "pdf") {
+      previewEl = document.createElement("iframe");
+      previewEl.src = objectUrl;
+      previewEl.style.cssText = "width:100%; height:70vh; border:none; border-radius:4px;";
+    } else if (["mp4", "webm"].includes(ext)) {
+      previewEl = document.createElement("video");
+      previewEl.src = objectUrl;
+      previewEl.controls = true;
+      previewEl.autoplay = true;
+      previewEl.style.cssText = "max-width:100%; max-height:70vh; border-radius:4px;";
+    } else if (["mp3", "wav", "ogg"].includes(ext)) {
+      previewEl = document.createElement("audio");
+      previewEl.src = objectUrl;
+      previewEl.controls = true;
+      previewEl.autoplay = true;
+      previewEl.style.cssText = "width:100%; max-width:500px;";
+    } else {
+      previewEl = document.createElement("pre");
+      previewEl.style.cssText = "color:#f8fafc; font-family:monospace; font-size:14px; white-space:pre-wrap; width:100%; max-height:70vh; overflow-y:auto; margin:0;";
+      blob.text().then(t => {
+        previewEl.textContent = t.substring(0, 10000);
+      }).catch(() => {
+        previewEl.textContent = "Preview not available for this file type.";
+      });
+    }
+
+    body.appendChild(previewEl);
+    container.appendChild(header);
+    container.appendChild(body);
+    modal.appendChild(container);
+    document.body.appendChild(modal);
+  }
+
+  async function previewFile(path) {
+    try {
+      showNotification("Loading preview...", "info");
+      const response = await apiRequest("/download", {
+        method: "POST",
+        body: JSON.stringify({ bucket: currentBucket, path: path, scope: currentScope }),
+      });
+
+      const content = response.content;
+      const fileName = path.split("/").pop() || "preview";
+      const ext = fileName.split('.').pop().toLowerCase();
+      
+      const byteCharacters = atob(content);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      
+      let mimeType = "application/octet-stream";
+      if (ext === "pdf") mimeType = "application/pdf";
+      else if (ext === "png") mimeType = "image/png";
+      else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
+      else if (ext === "gif") mimeType = "image/gif";
+      else if (ext === "mp3") mimeType = "audio/mpeg";
+      else if (ext === "wav") mimeType = "audio/wav";
+      else if (ext === "mp4") mimeType = "video/mp4";
+      
+      const blob = new Blob([byteArray], { type: mimeType });
+      showPreviewModal(fileName, ext, blob);
+    } catch (err) {
+      showNotification(`Preview failed: ${err.message}`, "error");
+    }
+  }
+
+  function shareFile(path) {
+    const fileName = path.split("/").pop() || "file";
+    const shareUrl = `${window.location.origin}/api/files/download?bucket=${encodeURIComponent(currentBucket)}&path=${encodeURIComponent(path)}&scope=${currentScope}`;
+
+    let modal = document.getElementById("share-modal");
+    if (modal) modal.remove();
+
+    modal = document.createElement("div");
+    modal.id = "share-modal";
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.85); display: flex; align-items: center;
+      justify-content: center; z-index: 9999; backdrop-filter: blur(8px);
+    `;
+
+    const container = document.createElement("div");
+    container.style.cssText = `
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      width: 90%; max-width: 500px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    `;
+
+    container.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="margin:0; color:#f8fafc; font-size:1.25rem;">Share "${escapeHtml(fileName)}"</h3>
+        <button onclick="document.getElementById('share-modal').remove()" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer;">×</button>
+      </div>
+      <p style="color:#94a3b8; font-size:14px; margin-bottom:16px;">Anyone with this link will be able to download the file directly.</p>
+      <div style="display:flex; gap:8px; margin-bottom:20px;">
+        <input type="text" id="share-link-input" readonly value="${shareUrl}" style="flex-grow:1; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:10px 14px; font-size:14px;" />
+        <button onclick="DriveModule.copyShareLink()" style="background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:0 16px; cursor:pointer; font-weight:500; font-size:14px;">Copy</button>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:12px;">
+        <button onclick="document.getElementById('share-modal').remove()" style="background:#334155; border:none; border-radius:6px; color:#f8fafc; padding:10px 20px; cursor:pointer; font-weight:500; font-size:14px;">Close</button>
+      </div>
+    `;
+
+    modal.appendChild(container);
+    document.body.appendChild(modal);
+  }
+
+  function copyShareLink() {
+    const input = document.getElementById("share-link-input");
+    if (input) {
+      input.select();
+      document.execCommand("copy");
+      showNotification("Share link copied to clipboard!", "success");
     }
   }
 
@@ -1335,18 +1497,52 @@
     }
   }
 
-  function aiAction(action) {
-    const messages = {
-      organize:
-        "I'll help you organize your files. What folder would you like to organize?",
-      find: "What file are you looking for?",
-      analyze: "Select a file and I'll analyze its contents.",
-      share: "Select files to share. Who would you like to share with?",
+  async function aiAction(action) {
+    const prompts = {
+      organize: "Help me organize the files in this drive. Suggest a folder structure based on the current contents.",
+      find: "List the most recently modified files in this drive so I can find what I need.",
+      analyze: "Analyze the contents of the currently selected file and provide a summary.",
+      share: "Show me how to share files in this drive and what permissions are available."
     };
-    addAIMessage("assistant", messages[action] || "How can I help you?");
+    const userPrompt = prompts[action] || ("Help me with: " + action);
+
+    addAIMessage("user", userPrompt);
+
+    let activeFilePath = null;
+    const selectedItem = document.querySelector(".file-item.selected");
+    if (selectedItem) {
+      activeFilePath = selectedItem.dataset.path || null;
+    }
+
+    const container = document.getElementById("ai-messages") || document.querySelector(".ai-messages");
+    const typingDiv = document.createElement("div");
+    typingDiv.className = "ai-message assistant typing";
+    typingDiv.innerHTML = '<div class="ai-message-bubble">Thinking...</div>';
+    if (container) {
+      container.appendChild(typingDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    try {
+      const response = await apiRequest("/ai/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: userPrompt,
+          action: action,
+          file_path: activeFilePath,
+          bucket: currentBucket,
+          scope: currentScope
+        })
+      });
+      if (typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
+      addAIMessage("assistant", response.reply || response.message || "Done.");
+    } catch (err) {
+      if (typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
+      addAIMessage("assistant", "Error: " + err.message);
+    }
   }
 
-  function sendAIMessage() {
+  async function sendAIMessage() {
     const input = document.getElementById("ai-input");
     if (!input || !input.value.trim()) return;
 
@@ -1354,10 +1550,44 @@
     input.value = "";
 
     addAIMessage("user", message);
-    // Simulate AI response
-    setTimeout(() => {
-      addAIMessage("assistant", `Processing your request: "${message}"`);
-    }, 500);
+
+    let activeFilePath = null;
+    const selectedItem = document.querySelector(".file-item.selected");
+    if (selectedItem) {
+      activeFilePath = selectedItem.dataset.path || null;
+    }
+
+    const typingDiv = document.createElement("div");
+    typingDiv.className = "ai-message assistant typing";
+    typingDiv.innerHTML = '<div class="ai-message-bubble">Thinking...</div>';
+    const container = document.getElementById("ai-messages") || document.querySelector(".ai-messages");
+    if (container) {
+      container.appendChild(typingDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    try {
+      const response = await apiRequest("/ai/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: message,
+          file_path: activeFilePath,
+          bucket: currentBucket,
+          scope: currentScope
+        })
+      });
+
+      if (typingDiv.parentNode) {
+        typingDiv.parentNode.removeChild(typingDiv);
+      }
+
+      addAIMessage("assistant", response.reply);
+    } catch (err) {
+      if (typingDiv.parentNode) {
+        typingDiv.parentNode.removeChild(typingDiv);
+      }
+      addAIMessage("assistant", `Error: ${err.message}`);
+    }
   }
 
   function addAIMessage(type, content) {
@@ -1399,6 +1629,9 @@
     selectAll,
     clearSelection,
     downloadFile,
+    previewFile,
+    shareFile,
+    copyShareLink,
     openFile,
     deleteItem,
     deleteSelected,
