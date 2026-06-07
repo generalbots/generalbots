@@ -202,6 +202,10 @@ pub async fn run_axum_server(
                 axum_post(crate::drive::drive_handlers::download_file),
             )
             .route(
+                "/api/files/download-binary",
+                axum_post(crate::drive::drive_handlers::download_file_binary),
+            )
+            .route(
                 "/api/files/delete",
                 axum_post(crate::drive::drive_handlers::delete_file),
             )
@@ -220,6 +224,10 @@ pub async fn run_axum_server(
             .route(
                 "/api/files/open",
                 axum_post(crate::drive::drive_handlers::open_file),
+            )
+            .route(
+                "/api/files/ai/chat",
+                axum_post(crate::drive::drive_handlers::ai_chat_handler),
             )
             .route(
                 "/api/files/favorite",
@@ -670,6 +678,16 @@ let base_router = {
         r.merge(crate::slides::configure_slides_routes(app_state.clone()))
     }
     #[cfg(not(feature = "slides"))]
+    r
+};
+
+let base_router = {
+    let r = base_router;
+    #[cfg(feature = "plan")]
+    {
+        r.merge(crate::plan::configure_plan_routes())
+    }
+    #[cfg(not(feature = "plan"))]
     r
 };
 

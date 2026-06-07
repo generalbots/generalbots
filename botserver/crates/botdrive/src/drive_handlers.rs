@@ -201,6 +201,62 @@ pub async fn download_file(
     Ok(Json(DownloadFileResponse { content, file_name }))
 }
 
+pub async fn download_file_binary(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<DownloadFileBody>,
+) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
+    let drive = get_drive(&state)?;
+    let scope = req.scope.unwrap_or_default();
+    let uid = req.user_id.as_deref().unwrap_or("default");
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
+    let prefix = resolve_scope_prefix(&scope, uid);
+    let key = format!("{prefix}{}", normalize_path(&req.path));
+
+    let data = drive
+        .get_object(&bucket, &key)
+        .await
+        .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
+
+    let file_name = req.path.rsplit('/').next().unwrap_or("download").to_string();
+    let mime = guess_mime(&file_name);
+
+    use axum::response::IntoResponse;
+    let headers = [
+        (axum::http::header::CONTENT_TYPE, mime.to_string()),
+        (
+            axum::http::header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{}\"", file_name),
+        ),
+        (axum::http::header::CONTENT_LENGTH, data.len().to_string()),
+    ];
+    Ok((headers, data).into_response())
+}
+
+fn guess_mime(file_name: &str) -> &'static str {
+    let ext = file_name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    match ext.as_str() {
+        "pdf" => "application/pdf",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        "ogg" => "audio/ogg",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        "txt" | "log" | "md" => "text/plain; charset=utf-8",
+        "html" | "htm" => "text/html; charset=utf-8",
+        "css" => "text/css; charset=utf-8",
+        "js" | "mjs" => "application/javascript",
+        "json" => "application/json",
+        "xml" => "application/xml",
+        "zip" => "application/zip",
+        _ => "application/octet-stream",
+    }
+}
+
 pub async fn delete_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<DeleteFileBody>,
@@ -459,4 +515,80 @@ pub async fn share_folder(
     Json(_req): Json<ShareRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse { success: true }))
+}
+
+#[derive(serde::Deserialize)]
+pub struct AIChatBody {
+    pub message: String,
+    pub file_path: Option<String>,
+    pub bucket: Option<String>,
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+pub struct AIChatResponse {
+    pub reply: String,
+}
+
+pub async fn ai_chat_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<AIChatBody>,
+) -> Result<Json<AIChatResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let provider = state
+        .llm_provider
+        .as_ref()
+        .ok_or_else(|| err(StatusCode::SERVICE_UNAVAILABLE, "LLM provider not configured"))?;
+
+    let drive = get_drive(&state)?;
+    let scope = req.scope.unwrap_or_default();
+    let uid = req.user_id.as_deref().unwrap_or("default");
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
+
+    let mut files_context = String::new();
+    if let Ok(objects) = drive.list_objects_with_metadata(&bucket, None).await {
+        files_context.push_str("Files currently in this storage:\n");
+        for obj in objects.iter().take(20) {
+            files_context.push_str(&format!("- Name: {}, Size: {} bytes\n", obj.key, obj.size));
+        }
+    }
+
+    let mut file_content_context = String::new();
+    if let Some(ref path) = req.file_path {
+        let prefix = resolve_scope_prefix(&scope, uid);
+        let key = format!("{prefix}{}", normalize_path(path));
+        file_content_context.push_str(&format!("\nActive File Selected: {}\n", path));
+
+        let ext = path.split('.').last().unwrap_or("").to_lowercase();
+        if ext == "txt" || ext == "md" || ext == "json" || ext == "csv" {
+            if let Ok(data) = drive.get_object(&bucket, &key).await {
+                if data.len() < 10240 {
+                    if let Ok(text) = String::from_utf8(data) {
+                        file_content_context.push_str("File content preview:\n```\n");
+                        file_content_context.push_str(&text.chars().take(2000).collect::<String>());
+                        file_content_context.push_str("\n```\n");
+                    }
+                }
+            }
+        }
+    }
+
+    let prompt = format!(
+        "You are the GeneralBots Drive AI Assistant. You have access to the user's file storage metadata and contents.\n\n\
+        CONTEXT:\n\
+        {}\n\
+        {}\n\n\
+        USER REQUEST: {}\n\n\
+        Respond to the user request. Keep it helpful, precise, and professional. Translate/explain/classify files if requested.",
+        files_context,
+        file_content_context,
+        req.message
+    );
+
+    let reply = provider
+        .generate_simple(&prompt)
+        .await
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("AI generation error: {e}")))?;
+
+    Ok(Json(AIChatResponse { reply }))
 }
