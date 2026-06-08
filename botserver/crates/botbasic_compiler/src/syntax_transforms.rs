@@ -544,18 +544,30 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         // Check for multiword keywords in ANY position (not just start of line)
         for (pattern, min_params, max_params, _param_names) in &multiword_patterns {
             // Use a regex that captures prefix (indent + any text before keyword) and params after keyword
-            let regex_str = format!(
-                r#"(?i)^(\s*)(.*?)\b{}\s+(.*)$"#,
-                pattern
-            );
+            // Zero-param keywords (e.g. CLEAR KB) have no trailing params, so make the param group optional
+            let regex_str = if *min_params == 0 {
+                format!(
+                    r#"(?i)^(\s*)(.*?)\b{}(?:\s+(.*))?$"#,
+                    pattern
+                )
+            } else {
+                format!(
+                    r#"(?i)^(\s*)(.*?)\b{}\s+(.*)$"#,
+                    pattern
+                )
+            };
 
             if let Ok(re) = Regex::new(&regex_str) {
                 if let Some(caps) = re.captures(line) {
-                    if let (Some(prefix_match), Some(params_match)) = (caps.get(2), caps.get(3)) {
+                    if let Some(prefix_match) = caps.get(2) {
                         let indent = caps.get(1).map_or("", |m| m.as_str());
                         let prefix = prefix_match.as_str();
-                        let params_str = params_match.as_str().trim();
-                        let params = parse_parameters(params_str);
+                        let params_str = caps.get(3).map_or("", |m| m.as_str().trim());
+                        let params = if params_str.is_empty() {
+                            Vec::new()
+                        } else {
+                            parse_parameters(params_str)
+                        };
                         let param_count = params.len();
 
                         if param_count >= *min_params && param_count <= *max_params {

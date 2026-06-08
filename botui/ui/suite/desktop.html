@@ -271,18 +271,18 @@
                 display: none !important;
             }
 
-            body.fullscreen .window {
+            body.fullscreen .window-element {
                 border: none !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
             }
         
-            /* Hide window title bar and controls in fullscreen */
-            body.fullscreen .window > div:first-child {
-                display: none !important;
-            }
-
-            body.fullscreen .window > div:nth-child(2) {
+            /* Hide window title bar in fullscreen */
+            body.fullscreen .window-element > div:first-child {
                 display: none !important;
             }
 
@@ -1283,9 +1283,10 @@
                         if (response.ok) {
                             const htmlContent = await response.text();
                             window.wm.open("chat", "Chat", htmlContent);
-                            // Maximize the chat window after opening
+                            // Maximize the chat window after opening and enter fullscreen
                             setTimeout(() => {
                                 window.wm.toggleMaximize("chat");
+                                document.body.classList.add("fullscreen");
                             }, 100);
                         }
                     } catch (err) {
