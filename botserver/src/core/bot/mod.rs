@@ -156,10 +156,21 @@ pub async fn get_bot_config(
     })?;
 
     let sensitive_prefixes = ["llm-key", "llm-url", "llm-server", "secret", "token", "password", "api-key"];
-    let map: HashMap<String, String> = rows
+    let mut map: HashMap<String, String> = rows
         .into_iter()
         .filter(|(k, _)| !sensitive_prefixes.iter().any(|prefix| k.to_lowercase().contains(prefix)))
         .collect();
+
+    // Add is_public flag from bots table
+    if let Some(name) = params.get("bot_name") {
+        let is_public_val: bool = bots::table
+            .filter(bots::name.eq(name))
+            .select(bots::is_public)
+            .first(&mut conn)
+            .unwrap_or(false);
+        map.insert("is_public".to_string(), if is_public_val { "true".to_string() } else { "false".to_string() });
+    }
+
     Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()))
 }
 

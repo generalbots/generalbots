@@ -460,10 +460,11 @@ pub async fn serve_suite_impl(_state: &AppState, bot_name: Option<String>, _head
                 if !is_auth_page {
                     if let Some(name) = bot_name {
                         info!("serve_suite: Injecting bot_name '{}' into page with base href='{}'", name, base_href);
-                        let is_public = name == "cristo";
+                        // Default to false; frontend JS (suite_app.js) will set to true
+                        // after checking /api/bot/config which now includes is_public
                         let bot_script = format!(
-                            r#"<script>window.__INITIAL_BOT_NAME__ = "{}"; window.__BOT_IS_PUBLIC__ = {};</script>"#,
-                            &name, if is_public { "true" } else { "false" }
+                            r#"<script>window.__INITIAL_BOT_NAME__ = "{}"; window.__BOT_IS_PUBLIC__ = false;</script>"#,
+                            &name
                         );
                         html.insert_str(head_end + base_tag.len(), &bot_script);
                         info!("serve_suite: Successfully injected base tag and bot_name script");

@@ -742,7 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       if (response.ok) {
         const config = await response.json();
-        if (config.public === true) {
+        if (config.is_public === "true") {
           window.__BOT_IS_PUBLIC__ = true;
           console.log(
             `✅ Bot '${botName}' is public - authentication not required`,

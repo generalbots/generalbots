@@ -5,13 +5,13 @@ NEVER INCLUDE CREDENTIALS OR COMPANY INFORMATION — THIS IS COMPANY AGNOSTIC.
 ## CRITICAL RULES — READ FIRST
 
 If edit conf/data make a backup first to /tmp with datetime suffix.
-Always manage services with systemctl inside the system container. Never run binaries directly — they fail without .env loading. Correct: sudo incus exec system -- systemctl start|stop|restart|status botserver
+Always manage services with systemctl inside the **bot** container. Never run binaries directly — they fail without .env loading. Correct: `sudo incus exec bot -- systemctl start|stop|restart|status botserver`
 
 Never push secrets (API keys, passwords, tokens) to git. Never commit `init.json` (it contains Vault unseal keys). All secrets must come from Vault — only `VAULT_*` variables are allowed in `.env`. Never deploy manually via scp or ssh; always use CI/CD. Always push all submodules (botserver, botui, botlib) before or alongside the main repo. Always ask before pushing to ALM.
 
 **NEVER restart botserver for config.csv changes** — DriveMonitor auto-reloads on ETag change (~10s). Upload edited config.csv with `mc put`, wait 10s, config is live.
 
-**Credentials cache:** Agent reads `/home/a404010/.gbo-credentials` for production IPs, container names, Vault tokens, MinIO keys, LLM keys, and domain mappings. This file is auto-populated during session setup — no need to re-fetch credentials each time.
+**Credentials cache:** Agent reads `~/.gbo-credentials` for production IPs, container names, Vault tokens, MinIO keys, LLM keys, and domain mappings. This file is auto-populated during session setup — no need to re-fetch credentials each time.
 
 ---
 
@@ -44,7 +44,7 @@ The host machine is accessed via `ssh user@<hostname>`, running Incus (an LXD fo
 
 | Container | Service | Technology | Binary Path | Logs Path | Data Path | Notes |
 |-----------|---------|------------|-------------|-----------|-----------|-------|
-| **system** | BotServer + BotUI | Rust/Axum | `/opt/gbo/bin/botserver`<br>`/opt/gbo/bin/botui` | `/opt/gbo/logs/out.log`<br>`/opt/gbo/logs/err.log` | `/opt/gbo/work/` | Main API + UI proxy |
+| **bot** | BotServer + BotUI | Rust/Axum | `/opt/gbo/bin/botserver`<br>`/opt/gbo/bin/botui` | `/opt/gbo/logs/out.log`<br>`/opt/gbo/logs/err.log` | `/opt/gbo/work/` | Main API + UI proxy (container renamed from `system`→`bot`) |
 | **tables** | PostgreSQL | PostgreSQL 15+ | `/usr/lib/postgresql/*/bin/postgres` | `/opt/gbo/logs/postgresql/` | `/opt/gbo/data/pgdata/` | Primary database |
 | **vault** | HashiCorp Vault | Vault | `/opt/gbo/bin/vault` | `/opt/gbo/logs/vault/` | `/opt/gbo/data/vault/` | Secrets management |
 | **cache** | Valkey | Valkey (Redis fork) | `/opt/gbo/bin/valkey-server` | `/opt/gbo/logs/valkey/` | `/opt/gbo/data/valkey/` | Distributed cache |
@@ -89,20 +89,20 @@ Run this every morning or after any deploy:
 sudo incus list
 
 # 2. Service health - all should show "active (running)"
-sudo incus exec system -- systemctl is-active botserver
-sudo incus exec system -- systemctl is-active botui
+sudo incus exec bot -- systemctl is-active botserver
+sudo incus exec bot -- systemctl is-active botui
 sudo incus exec directory -- systemctl is-active directory 2>/dev/null || echo "Directory check failed"
 sudo incus exec drive -- pgrep -f minio > /dev/null && echo "MinIO OK" || echo "MinIO DOWN"
 sudo incus exec tables -- pgrep -f postgres > /dev/null && echo "PostgreSQL OK" || echo "PostgreSQL DOWN"
 
 # 3. IPv4 connectivity check - all containers should have IPv4
-sudo incus list -c n4 | grep -E "(system|tables|vault|directory|drive|cache|llm|vector_db)" | grep -v "10\." && echo "WARNING: Missing IPv4" || echo "IPv4 OK"
+sudo incus list -c n4 | grep -E "(bot|tables|vault|directory|drive|cache|llm|vector_db)" | grep -v "10\." && echo "WARNING: Missing IPv4" || echo "IPv4 OK"
 
 # 4. Application health endpoint
 curl -sf https://<system-domain>/api/health && echo "Health OK" || echo "Health FAILED"
 
 # 5. Recent errors (last 10 lines)
-sudo incus exec system -- tail -10 /opt/gbo/logs/err.log | grep -i "error\|panic\|failed" | head -5
+sudo incus exec bot -- tail -10 /opt/gbo/logs/err.log | grep -i "error\|panic\|failed" | head -5
 ```
 
 **Expected Result:** All services "active", all containers have IPv4, health endpoint returns 200, no critical errors.
@@ -113,7 +113,7 @@ Run every Monday morning:
 
 ```bash
 # 1. Disk space on all containers
-for c in system tables vault directory drive cache llm vector_db; do
+for c in bot tables vault directory drive cache llm vector_db; do
   echo "=== $c ==="
   sudo incus exec $c -- df -h / 2>/dev/null | tail -1
 done
@@ -131,7 +131,7 @@ sudo incus exec alm-ci -- pgrep -f forgejo > /dev/null && echo "CI runner OK" ||
 sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && mc admin info local' 2>&1 | head -10
 
 # 6. Backup verification - check latest snapshot exists
-sudo incus snapshot list system | head -5
+sudo incus snapshot list bot | head -5
 ```
 
 ### Quick Status Dashboard
@@ -141,11 +141,11 @@ One-line status of everything:
 ```bash
 echo "=== GBO Status Dashboard $(date) ==="
 echo "Containers:"
-sudo incus list -c n4,s | grep -E "(system|tables|vault|directory|drive|cache|llm|vector_db|alm-ci)" | awk '{print $1 ": " $3 " " $4}'
+sudo incus list -c n4,s | grep -E "(bot|tables|vault|directory|drive|cache|llm|vector_db|alm-ci)" | awk '{print $1 ": " $3 " " $4}'
 echo ""
 echo "Services:"
 for svc in botserver botui; do
-  sudo incus exec system -- systemctl is-active $svc 2>/dev/null && echo "  $svc: ACTIVE" || echo "  $svc: DOWN"
+  sudo incus exec bot -- systemctl is-active $svc 2>/dev/null && echo "  $svc: ACTIVE" || echo "  $svc: DOWN"
 done
 echo ""
 echo "Health:"
@@ -298,33 +298,33 @@ sudo incus exec vault -- vault status
 **Quick Diagnostics:**
 ```bash
 # Check process
-sudo incus exec system -- pgrep -f botserver || echo "NOT RUNNING"
+sudo incus exec bot -- pgrep -f botserver || echo "NOT RUNNING"
 
 # Check systemd status
-sudo incus exec system -- systemctl status botserver --no-pager
+sudo incus exec bot -- systemctl status botserver --no-pager
 
 # Check recent logs
-sudo incus exec system -- tail -20 /opt/gbo/logs/err.log
+sudo incus exec bot -- tail -20 /opt/gbo/logs/err.log
 
 # Check for GLIBC errors
-sudo incus exec system -- ldd /opt/gbo/bin/botserver | grep "not found"
+sudo incus exec bot -- ldd /opt/gbo/bin/botserver | grep "not found"
 ```
 
 **Quick Fixes:**
 
 1. **If systemd failed:**
 ```bash
-sudo incus exec system -- systemctl restart botserver
-sudo incus exec system -- systemctl restart botui
+sudo incus exec bot -- systemctl restart botserver
+sudo incus exec bot -- systemctl restart botui
 ```
 
-2. **If GLIBC mismatch:** Binary compiled with wrong glibc. Must rebuild inside system container (Debian 12, glibc 2.36).
+2. **If GLIBC mismatch:** Binary compiled with wrong glibc. Must rebuild inside **bot** container (Debian 12, glibc 2.36).
 
 3. **If port conflict:**
 ```bash
-sudo incus exec system -- lsof -i :5858
-sudo incus exec system -- killall botserver
-sudo incus exec system -- systemctl start botserver
+sudo incus exec bot -- lsof -i :5858
+sudo incus exec bot -- killall botserver
+sudo incus exec bot -- systemctl start botserver
 ```
 
 ---
@@ -480,8 +480,8 @@ sudo incus exec tables -- psql -h localhost -U postgres -d PROD-ALM \
 
 **Verify binary was updated after deploy:**
 ```bash
-sudo incus exec system -- stat -c '%y' /opt/gbo/bin/botserver
-sudo incus exec system -- systemctl status botserver --no-pager
+sudo incus exec bot -- stat -c '%y' /opt/gbo/bin/botserver
+sudo incus exec bot -- systemctl status botserver --no-pager
 curl -sf https://<system-domain>/api/health && echo "OK" || echo "FAILED"
 ```
 
@@ -499,8 +499,8 @@ sudo incus exec alm-ci -- tail -f /opt/gbo/logs/forgejo-runner.log
 watch -n 5 'sudo incus exec tables -- bash -c "export PGPASSWORD=<postgres-password>; psql -h localhost -U postgres -d PROD-ALM -c \\"SELECT id, status, created FROM action_run ORDER BY id DESC LIMIT 3;\\""'
 
 # Verify botserver deployed correctly
-sudo incus exec system -- /opt/gbo/bin/botserver --version 2>&1 | head -3
-sudo incus exec system -- tail -5 /opt/gbo/logs/err.log
+sudo incus exec bot -- /opt/gbo/bin/botserver --version 2>&1 | head -3
+sudo incus exec bot -- tail -5 /opt/gbo/logs/err.log
 ```
 
 ### Monitor CI/CD Build Status
@@ -523,10 +523,10 @@ sudo incus exec alm-ci -- tail -f /opt/gbo/logs/forgejo-runner.log | grep -E "Cl
 **Verify binary was updated:**
 ```bash
 # Check binary timestamp
-ssh administrator@63.141.255.9 "sudo incus exec system -- stat -c '%y' /opt/gbo/bin/botserver"
+ssh administrator@63.141.255.9 "sudo incus exec bot -- stat -c '%y' /opt/gbo/bin/botserver"
 
 # Check running version
-ssh administrator@63.141.255.9 "sudo incus exec system -- /opt/gbo/bin/botserver --version"
+ssh administrator@63.141.255.9 "sudo incus exec bot -- /opt/gbo/bin/botserver --version"
 
 # Check health endpoint
 curl -sf https://chat.pragmatismo.com.br/api/health || echo "Health check failed"
@@ -545,7 +545,7 @@ The `config.csv` format is a plain CSV with no header: each line is `key,value`,
 
 **Check config status:** Query `bot_configuration` via `sudo incus exec tables -- psql -h localhost -U postgres -d botserver -c "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = (SELECT id FROM bots WHERE name = '<botname>') ORDER BY config_key;"`. Check sync state via the `gbot_config_sync` table. Inspect the bucket directly with `sudo incus exec drive -- /opt/gbo/bin/mc cat local/<botname>.gbai/<botname>.gbot/config.csv`.
 
-**Debug DriveMonitor:** Monitor live logs with `sudo incus exec system -- tail -f /opt/gbo/logs/out.log | grep -E "(DRIVE_MONITOR|check_gbot|config)"`. An empty `gbot_config_sync` table means DriveMonitor has not synced yet. If no new log entries appear after 30 seconds, the loop may be stuck — restart botserver with systemctl to clear the state.
+**Debug DriveMonitor:** Monitor live logs with `sudo incus exec bot -- tail -f /opt/gbo/logs/out.log | grep -E "(DRIVE_MONITOR|check_gbot|config)"`. An empty `gbot_config_sync` table means DriveMonitor has not synced yet. If no new log entries appear after 30 seconds, the loop may be stuck — restart botserver with systemctl to clear the state.
 
 **Common config issues:** If config.csv is missing from the bucket, create and upload it with `mc cp`. To force a re-sync, copy config.csv over itself with `mc cp local/... local/...` to change the ETag — DriveMonitor picks it up in ~10s. No restart needed.
 
@@ -569,7 +569,7 @@ HashiCorp Vault is the single source of truth for all secrets. Botserver reads `
 
 **Credential resolution:** For any service, botserver checks the most specific Vault path first (org+bot level), falls back to a default bot path, then falls back to the global path, and only uses environment variables as a last resort in development.
 
-**Verify Vault health:** `sudo incus exec vault -- curl -k -sf https://localhost:8200/v1/sys/health` should return JSON with `"sealed":false`. To read a secret: set `VAULT_ADDR`, `VAULT_TOKEN`, and `VAULT_CACERT` then run `vault kv get secret/gbo/tables`. To test from the system container, use curl with `--cacert /opt/gbo/conf/system/certificates/ca/ca.crt` and `-H "X-Vault-Token: <token>"`.
+**Verify Vault health:** `sudo incus exec vault -- curl -k -sf https://localhost:8200/v1/sys/health` should return JSON with `"sealed":false`. To read a secret: set `VAULT_ADDR`, `VAULT_TOKEN`, and `VAULT_CACERT` then run `vault kv get secret/gbo/tables`. To test from the bot container, use curl with `--cacert /opt/gbo/conf/system/certificates/ca/ca.crt` and `-H "X-Vault-Token: <token>"`.
 
 **init.json** is stored at `/opt/gbo/bin/botserver-stack/conf/vault/vault-conf/init.json` and contains the root token and 5 unseal keys (3 needed to unseal). Never commit this file to git. Store it encrypted in a secure location.
 
@@ -577,14 +577,14 @@ HashiCorp Vault is the single source of truth for all secrets. Botserver reads `
 
 **Get database credentials from Vault v2 API:**
 ```bash
-ssh user@<hostname> "sudo incus exec system -- curl -s --cacert /opt/gbo/conf/system/certificates/ca/ca.crt -H 'X-Vault-Token: <vault-token>' https://<vault-ip>:8200/v1/secret/data/gbo/tables 2>/dev/null"
+ssh user@<hostname> "sudo incus exec bot -- curl -s --cacert /opt/gbo/conf/system/certificates/ca/ca.crt -H 'X-Vault-Token: <vault-token>' https://<vault-ip>:8200/v1/secret/data/gbo/tables 2>/dev/null"
 ```
 
 **Vault troubleshooting — secrets missing:** Run `vault kv get secret/gbo/tables` (and other paths) to check if secrets exist. If a path returns NOT FOUND, add secrets with `vault kv put secret/gbo/tables host=<ip> port=5432 database=botserver username=gbuser password=<pw>` and similar for other paths.
 
 **Vault sealed after restart:** Run `vault operator unseal <key1>`, repeat with key2 and key3 (3 of 5 keys from init.json), then verify with `vault status`.
 
-**TLS certificate errors:** Confirm `/opt/gbo/conf/system/certificates/ca/ca.crt` exists in the system container. If missing, copy it from the vault container using `incus file pull vault/opt/gbo/conf/vault/ca.crt /tmp/ca.crt` then place it at the expected path.
+**TLS certificate errors:** Confirm `/opt/gbo/conf/system/certificates/ca/ca.crt` exists in the bot container. If missing, copy it from the vault container using `incus file pull vault/opt/gbo/conf/vault/ca.crt /tmp/ca.crt` then place it at the expected path.
 
 **Vault snapshots:** Stop vault, run `sudo incus snapshot create vault backup-$(date +%Y%m%d-%H%M)`, start vault. Restore with `sudo incus snapshot restore vault <name>` while vault is stopped.
 
@@ -680,7 +680,7 @@ sudo incus exec proxy -- systemctl restart proxy
 
 ## Troubleshooting Quick Reference
 
-**botserver won't start:** Run `sudo incus exec system -- ldd /opt/gbo/bin/botserver | grep "not found"` to check for missing libraries. Run `sudo incus exec system -- timeout 10 /opt/gbo/bin/botserver 2>&1` to see startup errors. Confirm `/opt/gbo/work/` exists and is accessible.
+**botserver won't start:** Run `sudo incus exec bot -- ldd /opt/gbo/bin/botserver | grep "not found"` to check for missing libraries. Run `sudo incus exec bot -- timeout 10 /opt/gbo/bin/botserver 2>&1` to see startup errors. Confirm `/opt/gbo/work/` exists and is accessible.
 
 **botui can't reach botserver:** Check that the `botui.service` systemd file has `BOTSERVER_URL=http://localhost:5858` — not the external HTTPS URL. Fix with `sed -i 's|BOTSERVER_URL=.*|BOTSERVER_URL=http://localhost:5858|'` on the service file, then `systemctl daemon-reload` and `systemctl restart botui`.
 
@@ -720,7 +720,7 @@ ssh user@host "sudo incus file push /tmp/config.csv drive/tmp/config.csv"
 ssh user@host "sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:\$PATH && mc put /tmp/config.csv local/botname.gbai/botname.gbot/config.csv'"
 
 # 4. Wait ~15 seconds, then verify DriveMonitor picked up the change
-ssh user@host "sudo incus exec system -- bash -c 'grep -i \"Model:\" /opt/gbo/logs/err.log | tail -3'"
+ssh user@host "sudo incus exec bot -- bash -c 'grep -i \"Model:\" /opt/gbo/logs/err.log | tail -3'"
 ```
 
 **Force re-sync of config.csv** (change ETag without content change): `mc cp local/<bot>.gbai/<bot>.gbot/config.csv local/<bot>.gbai/<bot>.gbot/config.csv`
@@ -733,7 +733,7 @@ ssh user@host "sudo incus exec system -- bash -c 'grep -i \"Model:\" /opt/gbo/lo
 
 ## Logging Quick Reference
 
-**Application logs** (searchable, timestamped, most useful): `sudo incus exec system -- tail -f /opt/gbo/logs/err.log` (errors and debug) or `/opt/gbo/logs/out.log` (stdout). The systemd journal only captures process lifecycle events, not application output.
+**Application logs** (searchable, timestamped, most useful): `sudo incus exec bot -- tail -f /opt/gbo/logs/err.log` (errors and debug) or `/opt/gbo/logs/out.log` (stdout). The systemd journal only captures process lifecycle events, not application output.
 
 **Search logs for specific bot activity:** `grep -i "botname\|llm\|Model:\|KB\|USE_KB\|drive_monitor" /opt/gbo/logs/err.log | tail -30`
 
@@ -743,7 +743,7 @@ ssh user@host "sudo incus exec system -- bash -c 'grep -i \"Model:\" /opt/gbo/lo
 
 **Check KB/vector operations:** `grep -i "gbkb\|qdrant\|embedding\|index" /opt/gbo/logs/err.log | tail -20`
 
-**Live tail with filter:** `sudo incus exec system -- bash -c 'tail -f /opt/gbo/logs/err.log | grep --line-buffered -i "botname\|error\|KB"'`
+**Live tail with filter:** `sudo incus exec bot -- bash -c 'tail -f /opt/gbo/logs/err.log | grep --line-buffered -i "botname\|error\|KB"'`
 
 ---
 
@@ -796,16 +796,16 @@ The `.ast` file has all transforms applied: `USE KB "cartas"` becomes `USE_KB("c
 
 ```bash
 # Live error monitoring
-sudo incus exec system -- tail -f /opt/gbo/logs/err.log | grep -i "error\|panic\|failed"
+sudo incus exec bot -- tail -f /opt/gbo/logs/err.log | grep -i "error\|panic\|failed"
 
 # Bot-specific activity
-sudo incus exec system -- tail -f /opt/gbo/logs/err.log | grep -i "<botname>"
+sudo incus exec bot -- tail -f /opt/gbo/logs/err.log | grep -i "<botname>"
 
 # DriveMonitor activity
-sudo incus exec system -- tail -f /opt/gbo/logs/err.log | grep -i "drive\|config"
+sudo incus exec bot -- tail -f /opt/gbo/logs/err.log | grep -i "drive\|config"
 
 # LLM calls
-sudo incus exec system -- tail -f /opt/gbo/logs/err.log | grep -i "model\|llm\|groq"
+sudo incus exec bot -- tail -f /opt/gbo/logs/err.log | grep -i "model\|llm\|groq"
 
 # CI runner
 sudo incus exec alm-ci -- tail -f /opt/gbo/logs/forgejo-runner.log
@@ -1044,7 +1044,7 @@ curl -X POST "http://<directory-ip>:8080/v2/organizations/<org-id>/domains" \
 | `/tmp permission denied` | Wrong permissions | `chmod 1777 /tmp` |
 | `Errors.Token.Invalid (AUTH-7fs1e)` | Zitadel PAT expired | Regenerate via console |
 | `failed SASL auth` | Wrong DB password | Check Vault credentials |
-| `GLIBC_2.39 not found` | Wrong build environment | Rebuild in system container |
+| `GLIBC_2.39 not found` | Wrong build environment | Rebuild in bot container |
 | `connection refused` | Service down | `systemctl restart <service>` |
 | `exec format error` | Architecture mismatch | Recompile for target arch |
 | `address already in use` | Port conflict | `lsof -i :<port>` |
@@ -1055,7 +1055,54 @@ curl -X POST "http://<directory-ip>:8080/v2/organizations/<org-id>/domains" \
 
 If quick fixes don't work:
 
-1. Capture logs: `sudo incus exec system -- tar czf /tmp/debug-$(date +%Y%m%d).tar.gz /opt/gbo/logs/`
+1. Capture logs: `sudo incus exec bot -- tar czf /tmp/debug-$(date +%Y%m%d).tar.gz /opt/gbo/logs/`
 2. Check AGENTS.md for development troubleshooting
 3. Review recent commits for breaking changes
 4. Consider snapshot rollback (last resort)
+
+---
+
+## 🔧 Production Deploy — Quick Reference
+
+### Manual binary update (when ALM/CI unavailable)
+
+```bash
+# 1. Build binary (dev machine)
+cd $WORKSPACE
+cargo build -p botserver
+
+# 2. Copy to production host + container
+scp target/debug/botserver root@<prod-host>:/opt/gbo/bin/botserver
+
+# 3. Push into bot container and restart service
+ssh root@<prod-host> "sudo incus file push /opt/gbo/bin/botserver bot/opt/gbo/bin/botserver && sudo incus exec bot -- systemctl restart botserver"
+
+# 4. Verify health (port 5858 inside container)
+ssh root@<prod-host> "sudo incus exec bot -- curl -s http://localhost:5858/health"
+
+# 5. Check logs
+ssh root@<prod-host> "sudo incus exec bot -- tail -20 /opt/gbo/logs/err.log"
+```
+
+### Container management
+| Action | Command |
+|--------|---------|
+| List containers | `sudo incus list` |
+| Enter container | `sudo incus exec bot -- bash`  |
+| File push | `sudo incus file push <local> bot/<dest>` |
+| File pull | `sudo incus file pull bot/<src> <local>` |
+| Service restart | `sudo incus exec bot -- systemctl restart botserver` |
+| Service status | `sudo incus exec bot -- systemctl status botserver` |
+
+### Common container names
+- **bot** — BotServer + BotUI (formerly `system`)
+- **tables** — PostgreSQL
+- **vault** — HashiCorp Vault
+- **drive** — MinIO
+- **cache** — Valkey
+- **directory** — Zitadel
+- **vectordb** — Qdrant
+- **alm** — Forgejo (port 4747)
+- **alm-ci** — Forgejo Runner
+- **proxy** — Caddy
+- **llm** — llama.cpp
