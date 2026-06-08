@@ -96,3 +96,31 @@ pub fn evaluate_datedif(expr: &str, worksheet: &Worksheet) -> Option<String> {
     };
     Some(result.to_string())
 }
+
+
+pub fn evaluate_hour(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("HOUR(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[5..expr.len() - 1];
+    let num: f64 = resolve_cell_value(inner.trim(), worksheet).parse().ok()?;
+    let secs = (num * 86400.0) as i64;
+    let h = ((secs / 3600) % 24 + 24) % 24;
+    Some(h.to_string())
+}
+
+pub fn evaluate_minute(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("MINUTE(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[7..expr.len() - 1];
+    let num: f64 = resolve_cell_value(inner.trim(), worksheet).parse().ok()?;
+    let secs = (num * 86400.0) as i64;
+    let m = ((secs / 60) % 60 + 60) % 60;
+    Some(m.to_string())
+}
+
+pub fn evaluate_second(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("SECOND(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[7..expr.len() - 1];
+    let num: f64 = resolve_cell_value(inner.trim(), worksheet).parse().ok()?;
+    let secs = (num * 86400.0) as i64;
+    let s = (secs % 60 + 60) % 60;
+    Some(s.to_string())
+}

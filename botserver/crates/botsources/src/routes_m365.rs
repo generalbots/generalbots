@@ -1,6 +1,5 @@
 use axum::{
     http::StatusCode,
-    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
@@ -10,10 +9,7 @@ use std::sync::Arc;
 use super::m365_auth::{
     AuthorizationUrlRequest, M365Credentials, M365OAuthClient, M365Token, OAuthFlow,
 };
-use super::outlook::{CalendarEvent, EmailMessage, EmailImportance, EmailRecipient, OutlookService};
 use super::sharepoint::{parse_drive_response, SharePointClient, SharePointDrive, SharePointItem, SharePointSite};
-
-mod outlook_handlers;
 
 pub fn configure_m365_api_routes() -> Router<Arc<crate::AppState>> {
     Router::new()
@@ -65,7 +61,7 @@ pub struct ListItemsRequest {
     pub path: Option<String>,
 }
 
-pub use outlook_handlers::{list_calendar, list_messages, ListCalendarRequest, ListMessagesRequest};
+pub use crate::outlook_handlers::{list_calendar, list_messages, ListCalendarRequest, ListMessagesRequest};
 
 async fn build_auth_url(
     Json(req): Json<BuildAuthUrlRequest>,

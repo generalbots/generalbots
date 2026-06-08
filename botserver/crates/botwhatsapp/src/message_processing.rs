@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use diesel::prelude::*;
-use uuid::Uuid;
-
 use crate::models::WhatsAppMessage;
 use crate::state::WhatsAppState;
 use crate::session_management::find_or_create_session;

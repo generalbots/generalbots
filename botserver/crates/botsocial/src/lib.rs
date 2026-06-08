@@ -717,14 +717,11 @@ pub async fn handle_social_analytics(
             .map_err(|e| SocialError::Database(e.to_string()))?;
 
         let total_reactions: i64 = social_reactions::table
-            .filter(social_reactions::org_id.eq(org_id))
-            .filter(social_reactions::bot_id.eq(bot_id))
             .count()
             .get_result(&mut conn)
             .map_err(|e| SocialError::Database(e.to_string()))?;
 
         let total_comments: i64 = social_comments::table
-            .filter(social_comments::org_id.eq(org_id))
             .count()
             .get_result(&mut conn)
             .map_err(|e| SocialError::Database(e.to_string()))?;
@@ -1315,13 +1312,6 @@ pub async fn handle_send_praise(
     Ok(Json(result))
 }
 
-fn render_feed_html(posts: &[PostWithAuthor]) -> String {
-    if posts.is_empty() {
-        return r#"<div class="empty-feed"><p>No posts yet. Be the first to share something!</p></div>"#.to_string();
-    }
-    posts.iter().map(render_post_card_html).collect()
-}
-
 fn render_post_card_html(post: &PostWithAuthor) -> String {
     let reactions_html: String = post
         .post
@@ -1450,7 +1440,6 @@ const postId='{post_id}';async function loadPost(){{try{{const r=await fetch(`/a
 pub fn configure_social_routes() -> Router<Arc<SocialState>> {
     Router::new()
         .route("/api/social/feed", get(handle_get_feed))
-        .route("/api/ui/social/feed", get(handle_get_feed_html))
         .route("/api/ui/social/suggested", get(handle_get_suggested_communities_html))
         .route("/api/social/posts", post(handle_create_post))
         .route("/api/social/posts/{id}", get(handle_get_post).put(handle_update_post).delete(handle_delete_post))

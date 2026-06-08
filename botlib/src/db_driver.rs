@@ -124,6 +124,7 @@ mod rusqlite_in_memory {
         fn execute(&mut self, sql: &str) -> Result<u64, DbError> {
             self.conn
                 .execute(sql, [])
+                .map(|n| n as u64)
                 .map_err(|e| DbError::Query(e.to_string()))
         }
         fn query_scalar(&mut self, sql: &str) -> Result<Option<String>, DbError> {

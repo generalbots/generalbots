@@ -1,4 +1,4 @@
-use anyhow::Result;
+type Result<T> = std::result::Result<T, String>;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -14,7 +14,7 @@ impl CertificationService {
         course_id: Uuid,
         user_name: &str,
         course_title: &str,
-        score: i32,
+        _score: i32,
     ) -> Result<CertificationResponse> {
         let verification_code = format!(
             "GBO-{}-{}-{}",

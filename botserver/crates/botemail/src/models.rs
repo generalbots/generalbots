@@ -235,5 +235,15 @@ pub struct EmailContent {
 }
 
 pub fn extract_user_from_session() -> Result<Uuid, String> {
-    Ok(Uuid::new_v4())
+    Ok(Uuid::nil())
+}
+
+#[derive(Debug, QueryableByName, serde::Serialize)]
+pub struct EmailLabelRow {
+    #[diesel(sql_type = DieselUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = Varchar)]
+    pub name: String,
+    #[diesel(sql_type = Varchar)]
+    pub color: String,
 }

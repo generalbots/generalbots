@@ -156,6 +156,7 @@ pub struct ReconciliationSummary {
     pub unmatched_transactions: u32,
     pub unmatched_bank_entries: u32,
     pub total_amount_transactions_cents: i64,
+    pub duplicates: u32,
     pub total_amount_bank_cents: i64,
     pub net_difference_cents: i64,
     pub average_confidence: f64,

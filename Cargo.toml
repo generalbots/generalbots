@@ -67,6 +67,7 @@ members = [
   "botserver/crates/botnvidia",
   "botserver/crates/botpaper",
   "botserver/crates/botpeople",
+  "botserver/crates/botplan",
   "botserver/crates/botplayer",
   "botserver/crates/botproducts",
   "botserver/crates/botproject",
@@ -156,6 +157,7 @@ botmultimodal = { path = "botserver/crates/botmultimodal" }
 botnvidia = { path = "botserver/crates/botnvidia" }
 botpaper = { path = "botserver/crates/botpaper" }
 botpeople = { path = "botserver/crates/botpeople" }
+botplan = { path = "botserver/crates/botplan" }
 botplayer = { path = "botserver/crates/botplayer" }
 botproducts = { path = "botserver/crates/botproducts" }
 botproject = { path = "botserver/crates/botproject" }

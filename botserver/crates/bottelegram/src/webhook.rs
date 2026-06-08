@@ -8,7 +8,7 @@ use axum::{
     routing::post,
     Json, Router,
 };
-use log::{debug, error, info};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 

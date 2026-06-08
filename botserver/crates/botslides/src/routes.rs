@@ -23,6 +23,7 @@ use std::sync::Arc;
 
 pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<Arc<SlidesState<D>>> {
     Router::new()
+        .merge(crate::ui_fragments::configure())
         .route("/api/slides/list", get(handle_list_presentations::<D>))
         .route("/api/slides/search", get(handle_search_presentations::<D>))
         .route("/api/slides/load", get(handle_load_presentation::<D>))

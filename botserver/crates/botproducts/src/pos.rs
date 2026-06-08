@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::inventory::{Product, StockLevel, StockMovement, StockMovementType};
+use super::inventory::{StockLevel, StockMovement, StockMovementType};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SaleStatus {

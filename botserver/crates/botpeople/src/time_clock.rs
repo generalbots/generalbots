@@ -129,11 +129,11 @@ impl TimeClockService {
         Self
     }
 
-    pub fn verify_location(
+    pub fn verify_location<'a>(
         &self,
         geo: &GeoLocation,
-        locations: &[WorkLocation],
-    ) -> Option<&WorkLocation> {
+        locations: &'a [WorkLocation],
+    ) -> Option<&'a WorkLocation> {
         locations
             .iter()
             .filter(|l| l.active)
@@ -168,16 +168,20 @@ impl TimeClockService {
         let (late, early, overtime) = match schedule {
             Some(sched) => {
                 let late = actual_start
-                    .and_then(|s| combine(date, sched.start_time.0))
-                    .map(|sched_start| (s - sched_start).num_minutes().max(0) as i32)
+                    .and_then(|clock_in| {
+                        combine(date, sched.start_time.0)
+                            .map(|sched_start| (clock_in - sched_start).num_minutes().max(0) as i32)
+                    })
                     .unwrap_or(0)
                     .saturating_sub(sched.tolerance_minutes);
                 let early = actual_end
-                    .and_then(|e| combine(date, sched.end_time.0))
-                    .map(|sched_end| (sched_end - e).num_minutes().max(0) as i32)
+                    .and_then(|clock_out| {
+                        combine(date, sched.end_time.0)
+                            .map(|sched_end| (sched_end - clock_out).num_minutes().max(0) as i32)
+                    })
                     .unwrap_or(0)
                     .saturating_sub(sched.tolerance_minutes);
-                let scheduled_minutes = (sched.end_time.0 - sched.start_time.0).num_minutes();
+                let scheduled_minutes = (sched.end_time.0 - sched.start_time.0).num_minutes() as i32;
                 let overtime = (total_worked - scheduled_minutes).max(0);
                 (late, early, overtime)
             }

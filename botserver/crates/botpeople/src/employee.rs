@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{NaiveDate, Utc};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -185,5 +185,3 @@ pub struct EmployeeHierarchyNode {
     pub employee: Employee,
     pub children: Vec<EmployeeHierarchyNode>,
 }
-
-use serde::Serialize;

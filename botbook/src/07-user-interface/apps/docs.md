@@ -170,14 +170,56 @@ Docs is the AI-powered document editor in General Bots Suite. Create, format, an
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/docs` | GET | List all documents |
-| `/api/docs` | POST | Create new document |
-| `/api/docs/:id` | GET | Get document content |
-| `/api/docs/:id` | PATCH | Update document content |
-| `/api/docs/:id` | DELETE | Delete document |
-| `/api/docs/:id/share` | POST | Share with users |
-| `/api/docs/:id/export` | GET | Export as PDF/DOCX/HTML |
+| `/api/docs/list` | GET | List all documents |
 | `/api/docs/search` | GET | Search documents |
+| `/api/docs/load` | GET | Load document content |
+| `/api/docs/save` | POST | Save document |
+| `/api/docs/autosave` | POST | Autosave document content |
+| `/api/docs/delete` | POST | Delete document |
+| `/api/docs/new` | GET | Create new document from template |
+| `/api/docs/ai` | POST | AI writing assistant |
+| `/api/docs/:id` | GET | Get document metadata by ID |
+| `/api/docs/ai/summarize` | POST | Summarize document text |
+| `/api/docs/ai/expand` | POST | Expand text using LLM |
+| `/api/docs/ai/improve` | POST | Improve writing quality |
+| `/api/docs/ai/simplify` | POST | Simplify complex sentences |
+| `/api/docs/ai/translate` | POST | Translate document content |
+| `/api/docs/ai/custom` | POST | Apply custom LLM instructions |
+| `/api/docs/export/pdf` | GET | Export document as PDF |
+| `/api/docs/export/docx` | GET | Export document as DOCX |
+| `/api/docs/export/md` | GET | Export document as Markdown |
+| `/api/docs/export/html` | GET | Export document as HTML |
+| `/api/docs/export/txt` | GET | Export document as text |
+| `/api/docs/import` | POST | Import document (docx/md/txt/html) |
+| `/api/docs/comment` | POST | Add comment to document |
+| `/api/docs/comment/reply` | POST | Reply to a comment |
+| `/api/docs/comment/resolve` | POST | Resolve a comment |
+| `/api/docs/comment/delete` | POST | Delete a comment |
+| `/api/docs/comments` | GET | List all comments |
+| `/api/docs/track-changes/enable` | POST | Enable/disable track changes |
+| `/api/docs/track-changes/accept-reject` | POST | Accept or reject a tracked change |
+| `/api/docs/track-changes/accept-reject-all` | POST | Accept or reject all changes |
+| `/api/docs/track-changes` | GET | List all tracked changes |
+| `/api/docs/toc/generate` | POST | Generate table of contents |
+| `/api/docs/toc/update` | POST | Update table of contents |
+| `/api/docs/footnote` | POST | Add footnote |
+| `/api/docs/footnote/update` | POST | Update footnote |
+| `/api/docs/footnote/delete` | POST | Delete footnote |
+| `/api/docs/footnotes` | GET | List footnotes |
+| `/api/docs/endnote` | POST | Add endnote |
+| `/api/docs/endnote/update` | POST | Update endnote |
+| `/api/docs/endnote/delete` | POST | Delete endnote |
+| `/api/docs/endnotes` | GET | List endnotes |
+| `/api/docs/style` | POST | Create paragraph style |
+| `/api/docs/style/update` | POST | Update paragraph style |
+| `/api/docs/style/delete` | POST | Delete paragraph style |
+| `/api/docs/style/apply` | POST | Apply style to text |
+| `/api/docs/styles` | GET | List document styles |
+| `/api/docs/outline` | POST | Get document outline (headings) |
+| `/api/docs/compare` | POST | Compare two documents (diff) |
+| `/api/docs/:doc_id/collaborators` | GET | Get active collaborators |
+| `/ws/docs/:doc_id` | GET | WebSocket for live collaboration |
+
 
 ### Create Document Request
 

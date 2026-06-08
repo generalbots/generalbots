@@ -562,9 +562,6 @@ pub async fn create_app_state(
     #[cfg(any(feature = "research", feature = "llm"))]
     let kb_manager = Arc::new(crate::core::kb::KnowledgeBaseManager::with_bot_config("work", pool.clone(), default_bot_id));
 
-    #[cfg(feature = "tasks")]
-    let task_engine = Arc::new(crate::tasks::TaskEngine::new(pool.clone()));
-
     let metrics_collector = botcore::shared::analytics::MetricsCollector::new();
 
     #[cfg(feature = "monitoring")]
@@ -643,9 +640,6 @@ pub async fn create_app_state(
 kb_manager: Some(kb_manager.clone() as std::sync::Arc<dyn botlib::traits::KnowledgeBase>),
 #[cfg(not(any(feature = "research", feature = "llm")))]
 kb_manager: None,
-#[cfg(feature = "tasks")]
-task_engine,
-#[cfg(not(feature = "tasks"))]
 task_engine: None,
         extensions: {
             let ext = botcore::shared::state::Extensions::new();
@@ -899,12 +893,28 @@ pub async fn start_background_services(
     }
 
     #[cfg(feature = "tasks")]
-    let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(
-        app_state.clone(),
-    ));
-
-    #[cfg(feature = "tasks")]
-    task_scheduler.start();
+    {
+        let tasks_state = Arc::new(crate::tasks::TasksState {
+            pool: app_state.conn.clone(),
+            run_command: Arc::new(|_cmd: &str, _args: &[&str]| -> Result<String, String> {
+                Ok("stub".to_string())
+            }),
+            call_llm: Arc::new(|_sys: &str, _prompt: &str| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {
+                Box::pin(async { Ok("stub".to_string()) })
+            }),
+            get_config: Arc::new(|_key: &str| -> Result<String, String> {
+                Ok("stub".to_string())
+            }),
+            cache_get: Arc::new(|_key: String| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send>> {
+                Box::pin(async { Ok(None) })
+            }),
+            cache_set: Arc::new(|_key: String, _value: String, _ttl: Option<u64>| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>> {
+                Box::pin(async { Ok(()) })
+            }),
+        });
+        let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(tasks_state));
+        task_scheduler.start();
+    }
 
     #[cfg(any(feature = "research", feature = "llm"))]
     if let Err(e) = crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {

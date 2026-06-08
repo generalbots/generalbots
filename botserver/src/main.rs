@@ -41,6 +41,8 @@ pub mod crm;
 pub mod core;
 #[cfg(feature = "designer")]
 pub mod designer;
+#[cfg(feature = "dashboards")]
+pub mod dashboards;
 #[cfg(feature = "deployment")]
 pub mod deployment;
 pub mod api;
@@ -81,6 +83,8 @@ pub mod settings;
 pub mod sheet;
 #[cfg(feature = "slides")]
 pub mod slides;
+#[cfg(feature = "plan")]
+pub mod plan;
 #[cfg(feature = "social")]
 pub mod social;
 #[cfg(feature = "sources")]
@@ -370,12 +374,28 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
     }
 
     #[cfg(feature = "tasks")]
-    let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(
-        app_state.clone(),
-    ));
-
-    #[cfg(feature = "tasks")]
-    task_scheduler.start();
+    {
+        let tasks_state = Arc::new(crate::tasks::TasksState {
+            pool: app_state.conn.clone(),
+            run_command: Arc::new(|_cmd: &str, _args: &[&str]| -> Result<String, String> {
+                Ok("stub".to_string())
+            }),
+            call_llm: Arc::new(|_sys: &str, _prompt: &str| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {
+                Box::pin(async { Ok("stub".to_string()) })
+            }),
+            get_config: Arc::new(|_key: &str| -> Result<String, String> {
+                Ok("stub".to_string())
+            }),
+            cache_get: Arc::new(|_key: String| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send>> {
+                Box::pin(async { Ok(None) })
+            }),
+            cache_set: Arc::new(|_key: String, _value: String, _ttl: Option<u64>| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>> {
+                Box::pin(async { Ok(()) })
+            }),
+        });
+        let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(tasks_state));
+        task_scheduler.start();
+    }
 
     #[cfg(any(feature = "research", feature = "llm"))]
     if let Err(e) = crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {
@@ -457,4 +477,6 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
 use std::sync::Arc;
 use botcore::shared::memory_monitor::MemoryStats;
 use botcore::shared::memory_monitor::register_thread;
+#[cfg(feature = "security")]
+#[cfg(feature = "security")]
 use crate::security::set_global_panic_hook;

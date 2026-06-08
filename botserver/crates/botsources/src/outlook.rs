@@ -1,6 +1,5 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use super::sharepoint::SharePointClient;
 use super::m365_auth::M365Token;

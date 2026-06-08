@@ -6,6 +6,7 @@ pub mod scheduler_exec;
 pub mod task_api;
 
 pub use state::TasksState;
+pub use task_api::TaskEngine;
 pub use types::{AutoTask, NewAutoTask, TaskManifest};
 
 use axum::{

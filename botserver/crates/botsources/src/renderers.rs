@@ -1,5 +1,4 @@
 use crate::types::{McpServersCatalog, PromptData, TemplateData};
-use log::error;
 
 pub fn get_prompts_data(category: &str) -> Vec<PromptData> {
     let all_prompts = vec![

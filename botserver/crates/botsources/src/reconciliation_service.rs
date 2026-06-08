@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::reconciliation::{BankStatementEntry, ReconciliationEngine, Transaction};
+use super::reconciliation::{BankStatementEntry, Transaction};
 use super::reconciliation_engine::ReconciliationEngine as Engine;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -141,14 +141,13 @@ impl AIAssistant {
         let last_msg = customer_msgs.last().map(|s| s.as_str()).unwrap_or("");
 
         format!(
-            "Conversation summary: {} messages total. "
-            + "Started with: \"{}\". "
-            + "Last message: \"{}\". "
-            + "Sentiment trend: {}.",
-            total_msgs,
-            Self::truncate(first_msg, 80),
-            Self::truncate(last_msg, 80),
-            self.analyze_sentiment(last_msg),
+            "Conversation summary: {total_msgs} messages total. \
+            Started with: \"{first}\". \
+            Last message: \"{last}\". \
+            Sentiment trend: {sentiment}.",
+            first = Self::truncate(first_msg, 80),
+            last = Self::truncate(last_msg, 80),
+            sentiment = self.analyze_sentiment(last_msg),
         )
     }
 

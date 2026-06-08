@@ -2,7 +2,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::sync::Arc;
-use tracing::error;
+
 use uuid::Uuid;
 
 use crate::engine::VideoEngine;

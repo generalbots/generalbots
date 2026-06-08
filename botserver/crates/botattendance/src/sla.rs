@@ -1,7 +1,7 @@
 use crate::schema::*;
 use crate::AttendanceConfig;
 use diesel::prelude::*;
-use log::{error, info};
+use log::{info};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::time::{interval, Duration};

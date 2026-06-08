@@ -1,5 +1,5 @@
 use crate::queue_types::AttendantCSV;
-use log::{error, info, warn};
+use log::{warn, info};
 use std::path::PathBuf;
 use uuid::Uuid;
 

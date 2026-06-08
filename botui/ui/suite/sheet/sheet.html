@@ -6,441 +6,109 @@
 <link rel="stylesheet" href="sheet/css/05_modal_find_replace.css" />
 <link rel="stylesheet" href="sheet/css/06_modal_validation_print.css" />
 <link rel="stylesheet" href="sheet/css/07_charts_responsive.css" />
+<link rel="stylesheet" href="css/collab.css" />
 
 <div class="sheet-app" id="sheet-app" data-touch-target="self">
     <div class="sheet-toolbar">
         <div class="toolbar-left">
-            <input type="text" class="sheet-name-input" id="sheetName" value="Untitled Spreadsheet"
-                spellcheck="false" />
+            <input type="text" class="sheet-name-input" id="sheetName" value="Untitled Spreadsheet" spellcheck="false" hx-post="/api/sheet/save" hx-trigger="blur changed" hx-vals='{"id":"current","action":"rename"}' hx-swap="none" />
         </div>
         <div class="toolbar-center">
             <div class="toolbar-group">
-                <button class="btn-icon" id="undoBtn" title="Undo (Ctrl+Z)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 7v6h6"></path>
-                        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
-                    </svg>
+                <button class="btn-icon" id="undoBtn" title="Undo" hx-get="/api/sheet/load" hx-vals='{"id":"current","action":"undo"}' hx-swap="none">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
                 </button>
-                <button class="btn-icon" id="redoBtn" title="Redo (Ctrl+Y)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 7v6h-6"></path>
-                        <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
-                    </svg>
+                <button class="btn-icon" id="redoBtn" title="Redo" hx-get="/api/sheet/load" hx-vals='{"id":"current","action":"redo"}' hx-swap="none">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>
                 </button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="printPreviewBtn" title="Print Preview">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                        <rect x="6" y="14" width="12" height="8"></rect>
-                    </svg>
+                <button class="btn-icon" id="printPreviewBtn" hx-get="/suite/sheet/modals/print-preview" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Print Preview">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 </button>
-                <button class="btn-icon" id="findReplaceBtn" title="Find & Replace (Ctrl+H)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
+                <button class="btn-icon" id="findReplaceBtn" hx-get="/suite/sheet/modals/find-replace" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Find & Replace">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
-            </div>
-            <span class="toolbar-divider"></span>
-            <div class="toolbar-group">
-                <select class="toolbar-select font-family" id="fontFamily" title="Font">
-                    <option value="Arial">Arial</option>
-                    <option value="Helvetica">Helvetica</option>
-                    <option value="Times New Roman">Times</option>
-                    <option value="Courier New">Courier</option>
-                    <option value="Georgia">Georgia</option>
-                    <option value="Verdana">Verdana</option>
-                </select>
-                <select class="toolbar-select font-size" id="fontSize" title="Size">
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11" selected>11</option>
-                    <option value="12">12</option>
-                    <option value="14">14</option>
-                    <option value="16">16</option>
-                    <option value="18">18</option>
-                    <option value="24">24</option>
-                    <option value="36">36</option>
-                </select>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group format-group">
-                <button class="btn-icon" id="boldBtn" title="Bold (Ctrl+B)">
-                    <strong>B</strong>
+                <button class="btn-icon" id="boldBtn" title="Bold" hx-post="/api/sheet/format" hx-vals='{"id":"current","action":"bold"}' hx-swap="none"><strong>B</strong></button>
+                <button class="btn-icon" id="italicBtn" title="Italic" hx-post="/api/sheet/format" hx-vals='{"id":"current","action":"italic"}' hx-swap="none"><em>I</em></button>
+                <button class="btn-icon" id="underlineBtn" title="Underline" hx-post="/api/sheet/format" hx-vals='{"id":"current","action":"underline"}' hx-swap="none"><u>U</u></button>
+                <button class="btn-icon" id="strikeBtn" title="Strikethrough" hx-post="/api/sheet/format" hx-vals='{"id":"current","action":"strikethrough"}' hx-swap="none"><s>S</s></button>
+            </div>
+            <span class="toolbar-divider"></span>
+            <div class="toolbar-group">
+                <button class="btn-icon" id="mergeCellsBtn" hx-post="/api/sheet/merge" hx-vals='{"id":"current"}' hx-swap="none" title="Merge Cells">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
                 </button>
-                <button class="btn-icon" id="italicBtn" title="Italic (Ctrl+I)">
-                    <em>I</em>
+                <button class="btn-icon" id="conditionalFormatBtn" hx-get="/suite/sheet/modals/conditional-format" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Conditional Formatting">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" fill="#4CAF50"></rect><rect x="14" y="3" width="7" height="7" fill="#FFC107"></rect><rect x="3" y="14" width="7" height="7" fill="#F44336"></rect><rect x="14" y="14" width="7" height="7" fill="#2196F3"></rect></svg>
                 </button>
-                <button class="btn-icon" id="underlineBtn" title="Underline (Ctrl+U)">
-                    <u>U</u>
-                </button>
-                <button class="btn-icon" id="strikeBtn" title="Strikethrough">
-                    <s>S</s>
+                <button class="btn-icon" id="dataValidationBtn" hx-get="/suite/sheet/modals/data-validation" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Data Validation">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                 </button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon color-btn" id="textColorBtn" title="Text Color">
-                    <span class="color-letter">A</span>
-                    <span class="color-indicator" id="textColorIndicator"></span>
-                    <input type="color" class="color-input" id="textColorInput" value="#000000" />
+                <button class="btn-icon" id="insertChartBtn" hx-get="/suite/sheet/modals/chart" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Insert Chart">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"></rect><rect x="10" y="6" width="4" height="15"></rect><rect x="17" y="3" width="4" height="18"></rect></svg>
                 </button>
-                <button class="btn-icon color-btn" id="bgColorBtn" title="Fill Color">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor"
-                            stroke-width="2" />
-                    </svg>
-                    <span class="color-indicator bg-indicator" id="bgColorIndicator"></span>
-                    <input type="color" class="color-input" id="bgColorInput" value="#ffffff" />
+                <button class="btn-icon" id="insertImageBtn" hx-get="/suite/sheet/modals/insert-image" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Insert Image">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 </button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="alignLeftBtn" title="Align Left">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="12" x2="15" y2="12"></line>
-                        <line x1="3" y1="18" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="alignCenterBtn" title="Align Center">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="6" y1="12" x2="18" y2="12"></line>
-                        <line x1="4" y1="18" x2="20" y2="18"></line>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="alignRightBtn" title="Align Right">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="9" y1="12" x2="21" y2="12"></line>
-                        <line x1="6" y1="18" x2="21" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-            <span class="toolbar-divider"></span>
-            <div class="toolbar-group">
-                <select class="toolbar-select number-format" id="numberFormat" title="Number Format">
-                    <option value="general">General</option>
-                    <option value="number">Number (1,234.56)</option>
-                    <option value="currency">Currency ($1,234.56)</option>
-                    <option value="accounting">Accounting</option>
-                    <option value="percent">Percent (12.34%)</option>
-                    <option value="scientific">Scientific (1.23E+03)</option>
-                    <option value="date_short">Date (1/15/2024)</option>
-                    <option value="date_long">Date (January 15, 2024)</option>
-                    <option value="time">Time (3:45 PM)</option>
-                    <option value="datetime">Date & Time</option>
-                    <option value="fraction">Fraction (1/4)</option>
-                    <option value="text">Text</option>
-                    <option value="custom">Custom...</option>
-                </select>
-                <button class="btn-icon" id="decreaseDecimalBtn" title="Decrease Decimal">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <text x="2" y="16" font-size="10" fill="currentColor">
-                            .0
-                        </text>
-                        <path d="M18 8l-4 4 4 4"></path>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="increaseDecimalBtn" title="Increase Decimal">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <text x="2" y="16" font-size="10" fill="currentColor">
-                            .00
-                        </text>
-                        <path d="M14 8l4 4-4 4"></path>
-                    </svg>
-                </button>
-            </div>
-            <span class="toolbar-divider"></span>
-            <div class="toolbar-group">
-                <button class="btn-icon" id="mergeCellsBtn" title="Merge Cells">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-                        <line x1="12" y1="3" x2="12" y2="21"></line>
-                        <path d="M9 12h6M9 12l2-2M9 12l2 2M15 12l-2-2M15 12l-2 2"></path>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="conditionalFormatBtn" title="Conditional Formatting">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7" fill="#4CAF50"></rect>
-                        <rect x="14" y="3" width="7" height="7" fill="#FFC107"></rect>
-                        <rect x="3" y="14" width="7" height="7" fill="#F44336"></rect>
-                        <rect x="14" y="14" width="7" height="7" fill="#2196F3"></rect>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="dataValidationBtn" title="Data Validation">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 11l3 3L22 4"></path>
-                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                    </svg>
-                </button>
-            </div>
-            <span class="toolbar-divider"></span>
-            <div class="toolbar-group">
-                <button class="btn-icon" id="insertChartBtn" title="Insert Chart">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="12" width="4" height="9"></rect>
-                        <rect x="10" y="6" width="4" height="15"></rect>
-                        <rect x="17" y="3" width="4" height="18"></rect>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="insertImageBtn" title="Insert Image">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="filterBtn" title="Filter">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="sortAscBtn" title="Sort A→Z">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 5h10M11 9h7M11 13h4"></path>
-                        <path d="M3 17l3 3 3-3M6 18V4"></path>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="sortDescBtn" title="Sort Z→A">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 5h4M11 9h7M11 13h10"></path>
-                        <path d="M3 7l3-3 3 3M6 6v12"></path>
-                    </svg>
-                </button>
-            </div>
-            <span class="toolbar-divider"></span>
-            <div class="toolbar-group">
-                <button class="btn-icon" id="importXlsxBtn" title="Import xlsx/csv">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="exportXlsxBtn" title="Export xlsx">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="exportCsvBtn" title="Export CSV">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                    </svg>
+                <button class="btn-icon" id="customFormatBtn" hx-get="/suite/sheet/modals/custom-format" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Custom Number Format">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><text x="2" y="16" font-size="10" fill="currentColor">#,##0.00</text></svg>
                 </button>
             </div>
         </div>
         <div class="toolbar-right">
-            <div class="collaborators" id="collaborators"></div>
-            <button class="btn-primary" id="shareBtn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                </svg>
+            <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
+            <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
+            <span id="gb-auth-button"></span>
+            <button class="btn-primary" id="shareBtn" hx-get="/suite/sheet/modals/share" hx-vals='{"id":"current","name":"Planilha"}' hx-target="#modal-container" hx-swap="innerHTML">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
                 <span>Share</span>
             </button>
-
         </div>
     </div>
 
     <div class="sheet-main">
-        <div class="sheet-content">
-            <div class="formula-bar">
-                <div class="cell-address" id="cellAddress">A1</div>
-                <span class="formula-icon">fx</span>
-                <input type="text" class="formula-input" id="formulaInput" placeholder="Enter value or formula..." />
+        <aside class="sheet-sidebar" id="sheet-sidebar" style="width:240px;background:#0f172a;border-right:1px solid #334155;display:flex;flex-direction:column;">
+            <div class="sidebar-tabs" style="display:flex;border-bottom:1px solid #334155;">
+                <button class="sidebar-tab active" data-sidebar-tab="files" style="flex:1;padding:8px;background:#1e293b;color:#f8fafc;border:none;cursor:pointer;font-size:12px;">📁 Arquivos</button>
+                <button class="sidebar-tab" data-sidebar-tab="panels" style="flex:1;padding:8px;background:#0f172a;color:#94a3b8;border:none;cursor:pointer;font-size:12px;">📊 Painéis</button>
             </div>
+            <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files" hx-get="/api/sheet/list" hx-trigger="load" hx-ext="json-enc" hx-target="this" hx-swap="innerHTML"></div>
+            <div class="sidebar-content" id="sidebar-panels" data-sidebar-content="panels" style="display:none;flex-direction:column;padding:8px;gap:6px;">
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/named-ranges" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📐 Ranges Nomeados</button>
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/charts" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📊 Gráficos</button>
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/validations" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">✓ Validações</button>
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/conditional-formats" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🎨 Formatação Condicional</button>
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/external-links" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔗 Links Externos</button>
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/comments" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">💬 Comentários</button>
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/protection" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔒 Proteção</button>
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/array-formulas" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔢 Fórmulas de Matriz</button>
+                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/advanced-ranges" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">⚙ Ações Avançadas</button>
+            </div>
+        </aside>
 
-            <div class="sheet-grid-container" id="gridContainer">
-                <div class="sheet-grid" id="sheetGrid">
-                    <div class="grid-corner"></div>
-                    <div class="column-headers" id="columnHeaders"></div>
-                    <div class="row-headers" id="rowHeaders"></div>
-                    <div class="cells-container" id="cellsContainer">
-                        <div class="cells" id="cells"></div>
-                        <div class="selection-box" id="selectionBox"></div>
-                        <div class="copy-box hidden" id="copyBox"></div>
-                        <div class="autofill-handle" id="autofillHandle"></div>
-                        <div class="cursor-indicators" id="cursorIndicators"></div>
-                        <div class="charts-container" id="chartsContainer"></div>
-                        <div class="images-container" id="imagesContainer"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sheet-tabs-container">
-                <div class="sheet-tabs" id="worksheetTabs">
-                    <div class="sheet-tab active" data-index="0">
-                        <span>Sheet1</span>
-                        <button class="tab-menu-btn">▼</button>
-                    </div>
-                </div>
-                <button class="btn-add-sheet" id="addSheetBtn" title="Add Sheet">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="sheet-status-bar">
-                <div class="status-left">
-                    <span id="selectionInfo">Ready</span>
-                </div>
-                <div class="status-center">
-                    <span id="calculationResult"></span>
-                </div>
-                <div class="status-right">
-                    <span id="saveStatus">Saved</span>
-                    <div class="zoom-control">
-                        <button class="btn-zoom" id="zoomOutBtn">−</button>
-                        <span id="zoomLevel">100%</span>
-                        <button class="btn-zoom" id="zoomInBtn">+</button>
-                    </div>
-                </div>
-            </div>
+        <div class="sheet-content" id="sheet-content" hx-get="/suite/sheet/fragments/tabs" hx-vals='{"id":"new"}' hx-trigger="load" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;background:#0f172a;">
         </div>
-
-
     </div>
+
+    <div class="modal-host" id="modal-container"></div>
 </div>
 
-<div class="context-menu hidden" id="contextMenu">
-    <div class="context-item" data-action="cut">
-        Cut <span class="shortcut">Ctrl+X</span>
-    </div>
-    <div class="context-item" data-action="copy">
-        Copy <span class="shortcut">Ctrl+C</span>
-    </div>
-    <div class="context-item" data-action="paste">
-        Paste <span class="shortcut">Ctrl+V</span>
-    </div>
-    <div class="context-divider"></div>
-    <div class="context-item" data-action="insertRowAbove">
-        Insert row above
-    </div>
-    <div class="context-item" data-action="insertRowBelow">
-        Insert row below
-    </div>
-    <div class="context-item" data-action="insertColLeft">
-        Insert column left
-    </div>
-    <div class="context-item" data-action="insertColRight">
-        Insert column right
-    </div>
-    <div class="context-divider"></div>
-    <div class="context-item" data-action="deleteRow">Delete row</div>
-    <div class="context-item" data-action="deleteCol">Delete column</div>
-    <div class="context-divider"></div>
-    <div class="context-item" data-action="clearContents">Clear contents</div>
-    <div class="context-item" data-action="clearFormatting">
-        Clear formatting
-    </div>
-</div>
-
-<!-- Modals (loaded via htmx) -->
-<div id="modals-container">
-    <div hx-get="./partials/10_modal_share.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/11_modal_chart.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/12_modal_find_replace.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/13_modal_conditional_format.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/14_modal_data_validation.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/15_modal_print_preview.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/16_modal_custom_format.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/17_modal_insert_image.html" hx-trigger="load" hx-swap="outerHTML"></div>
-</div>
-
-<script src="sheet/modules/01_section1.js"></script>
-<script src="sheet/modules/02_init.js"></script>
-<script src="sheet/modules/03_handleCellMouseDown.js"></script>
-<script src="sheet/modules/04a_formula_evaluator.js"></script>
-<script src="sheet/modules/04b_keyboard_navigation.js"></script>
-<script src="sheet/modules/04c_clipboard_format.js"></script>
-<script src="sheet/modules/05_mergeCells.js"></script>
-<script src="sheet/modules/06_loadFromUrlParams.js"></script>
-<script src="sheet/modules/07_toFraction.js"></script>
-<script src="sheet/modules/08_handleDvOperatorChange.js"></script>
-<script src="sheet/modules/09_getChartData.js"></script>
-<script src="sheet/modules/10_formulas_advanced.js"></script>
-<script src="sheet/modules/11_filter.js"></script>
-<script src="sheet/modules/12_validation.js"></script>
-<script src="sheet/modules/13_formatting.js"></script>
-<script src="sheet/modules/14_validation_enforcement.js"></script>
-<script src="sheet/modules/15_filter_dropdowns.js"></script>
-<script src="sheet/modules/16_undo_command.js"></script>
-<script src="sheet/modules/17_resize.js"></script>
-<script src="sheet/modules/18_freeze_panes.js"></script>
-<script src="sheet/modules/19_sheet_tabs.js"></script>
-<script src="sheet/modules/20_conditional_formatting_ui.js"></script>
-<script src="sheet/modules/21_print_scaling.js"></script>
-<script src="sheet/modules/22_merged_unmerge.js"></script>
-<script src="sheet/modules/23_virtual_scroll.js"></script>
-<script src="sheet/modules/24_formula_engine.js"></script>
-<script src="sheet/modules/24b_formula_parser.js"></script>
-<script src="sheet/modules/24a_formula_functions.js"></script>
-<script src="sheet/modules/24c_formula_conditionals.js"></script>
-<script src="sheet/modules/25_validation_enforce.js"></script>
-<script src="sheet/modules/26_filter_dropdowns.js"></script>
-<script src="sheet/modules/27_named_ranges.js"></script>
-<script src="sheet/modules/28_pivot_table.js"></script>
-<script src="sheet/modules/00d_touch_handler.js"></script>
-<script src="sheet/modules/00e_i18n.js"></script>
-<script src="sheet/modules/00f_api_client.js"></script>
-<script src="sheet/modules/01c_modal_a11y.js"></script>
-<script src="sheet/modules/99_init.js"></script>
-
-<!-- Modals (loaded via htmx) -->
-<div id="modals-container">
-</div>
-
-<script src="sheet/modules/01_section1.js"></script>
-<script src="sheet/modules/02_init.js"></script>
-<script src="sheet/modules/03_handleCellMouseDown.js"></script>
-<script src="sheet/modules/04a_formula_evaluator.js"></script>
-<script src="sheet/modules/04b_keyboard_navigation.js"></script>
-<script src="sheet/modules/04c_clipboard_format.js"></script>
-<script src="sheet/modules/05_mergeCells.js"></script>
-<script src="sheet/modules/06_loadFromUrlParams.js"></script>
-<script src="sheet/modules/07_toFraction.js"></script>
-<script src="sheet/modules/08_handleDvOperatorChange.js"></script>
-<script src="sheet/modules/09_getChartData.js"></script>
-<script src="sheet/modules/10_formulas_advanced.js"></script>
-<script src="sheet/modules/11_filter.js"></script>
-<script src="sheet/modules/12_validation.js"></script>
-<script src="sheet/modules/13_formatting.js"></script>
-<script src="sheet/modules/14_validation_enforcement.js"></script>
-<script src="sheet/modules/15_filter_dropdowns.js"></script>
-<script src="sheet/modules/16_undo_command.js"></script>
-<script src="sheet/modules/17_resize.js"></script>
-<script src="sheet/modules/18_freeze_panes.js"></script>
-<script src="sheet/modules/19_sheet_tabs.js"></script>
-<script src="sheet/modules/20_conditional_formatting_ui.js"></script>
-<script src="sheet/modules/21_print_scaling.js"></script>
-<script src="sheet/modules/22_merged_unmerge.js"></script>
-<script src="sheet/modules/23_virtual_scroll.js"></script>
-<script src="sheet/modules/24_formula_engine.js"></script>
-<script src="sheet/modules/24b_formula_parser.js"></script>
-<script src="sheet/modules/24a_formula_functions.js"></script>
-<script src="sheet/modules/24c_formula_conditionals.js"></script>
-<script src="sheet/modules/25_validation_enforce.js"></script>
-<script src="sheet/modules/26_filter_dropdowns.js"></script>
-<script src="sheet/modules/27_named_ranges.js"></script>
-<script src="sheet/modules/28_pivot_table.js"></script>
-<script src="sheet/modules/00d_touch_handler.js"></script>
-<script src="sheet/modules/00e_i18n.js"></script>
-<script src="sheet/modules/00f_api_client.js"></script>
-<script src="sheet/modules/01c_modal_a11y.js"></script>
-<script src="sheet/modules/99_init.js"></script>
+<script src="js/vendor/htmx.min.js"></script>
+<script src="js/vendor/htmx-json-enc.js"></script>
+<script src="js/collab.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/modules-sheet-advanced/01_core.js"></script>
+<script src="js/modules-sheet-advanced/02_conditional.js"></script>
+<script src="js/modules-sheet-advanced/03_charts.js"></script>
+<script src="sheet/sheet.js"></script>

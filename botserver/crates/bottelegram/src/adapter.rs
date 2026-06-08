@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use botlib::models::BotResponse;
-use log::{debug, error, info};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
 use crate::state::{GetConfigFn, DbPool};

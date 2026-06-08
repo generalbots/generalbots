@@ -1,5 +1,5 @@
-use crate::core::shared::message_types::MessageType;
-use crate::core::shared::models::BotResponse;
+use crate::core::shared::BotResponse;
+use crate::core::shared::MessageType;
 use crate::core::shared::state::AppState;
 use color_eyre::Result;
 use std::sync::Arc;
@@ -49,7 +49,7 @@ impl ChatPanel {
         self.messages.push(format!("You: {}", message));
         self.input_buffer.clear();
         let bot_id = Self::get_bot_id(bot_name, app_state)?;
-        let user_message = crate::core::shared::models::UserMessage {
+        let user_message = crate::core::shared::UserMessage {
             bot_id: bot_id.to_string(),
             user_id: self.user_id.to_string(),
             session_id: self.session_id.to_string(),
@@ -57,6 +57,7 @@ impl ChatPanel {
             content: message,
             message_type: MessageType::USER,
             media_url: None,
+            active_switchers: vec![],
             timestamp: chrono::Utc::now(),
             context_name: None,
         };

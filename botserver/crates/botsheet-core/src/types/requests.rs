@@ -456,3 +456,31 @@ pub struct NamedRangesImportResponse {
     pub errors: Vec<String>,
     pub entries: Vec<super::core::NamedRange>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RangeRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RangeResponse {
+    pub cells: std::collections::HashMap<String, super::core::CellData>,
+    pub total_rows: u32,
+    pub total_cols: u32,
+    pub range_start: String,
+    pub range_end: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WorksheetMetaResponse {
+    pub total_rows: u32,
+    pub total_cols: u32,
+    pub name: String,
+    pub frozen_rows: u32,
+    pub frozen_cols: u32,
+}

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use log::{error, info};
+use log::info;
 use uuid::Uuid;
 
 use crate::state::TasksState;

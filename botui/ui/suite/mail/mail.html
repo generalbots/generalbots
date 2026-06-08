@@ -1,3 +1,123 @@
+<!-- Custom Labels Manager Modal -->
+<dialog id="labels-modal" class="modal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2>Manage Labels</h2>
+            <button class="icon-btn" onclick="document.getElementById('labels-modal').close()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="form-group">
+            <label>Label Name</label>
+            <input type="text" id="new-label-name" placeholder="e.g. Work" style="width:100%; box-sizing:border-box; padding:8px;" required />
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+            <label>Color</label>
+            <input type="color" id="new-label-color" value="#3b82f6" style="width:100%; height:40px; padding:0; cursor:pointer;" />
+        </div>
+        <div class="modal-footer" style="margin-top:1.5rem;">
+            <button class="btn-secondary" onclick="document.getElementById('labels-modal').close()">Cancel</button>
+            <button class="btn-primary" onclick="saveLabel()">Create</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- New Signature Modal -->
+<dialog id="new-signature-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>New Email Signature</h2>
+            <button class="icon-btn" onclick="document.getElementById('new-signature-modal').close()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="form-group">
+            <label>Signature Name</label>
+            <input type="text" id="new-sig-name" placeholder="e.g. Professional Signature" style="width:100%; box-sizing:border-box; padding:8px;" required />
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+            <label>HTML Content</label>
+            <textarea id="new-sig-content" placeholder="Best regards,<br><b>Your Name</b>" style="width:100%; height:120px; box-sizing:border-box; padding:8px;" required></textarea>
+        </div>
+        <div class="modal-footer" style="margin-top:1.5rem;">
+            <button class="btn-secondary" onclick="document.getElementById('new-signature-modal').close()">Cancel</button>
+            <button class="btn-primary" onclick="saveSignature()">Save</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- New Rule Modal -->
+<dialog id="new-rule-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>New Email Rule</h2>
+            <button class="icon-btn" onclick="document.getElementById('new-rule-modal').close()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="form-group">
+            <label>Rule Name</label>
+            <input type="text" id="new-rule-name" placeholder="e.g. Archive Newsletters" style="width:100%; box-sizing:border-box; padding:8px;" required />
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+            <label>Condition (Sender contains)</label>
+            <input type="text" id="new-rule-condition" placeholder="e.g. newsletter" style="width:100%; box-sizing:border-box; padding:8px;" required />
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+            <label>Action</label>
+            <select id="new-rule-action" style="width:100%; padding:8px; background:#1e293b; color:#fff; border:1px solid #475569;">
+                <option value="archive">Archive</option>
+                <option value="star">Star</option>
+                <option value="delete">Delete</option>
+            </select>
+        </div>
+        <div class="modal-footer" style="margin-top:1.5rem;">
+            <button class="btn-secondary" onclick="document.getElementById('new-rule-modal').close()">Cancel</button>
+            <button class="btn-primary" onclick="saveRule()">Create</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- New Template Modal -->
+<dialog id="new-template-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>New Email Template</h2>
+            <button class="icon-btn" onclick="document.getElementById('new-template-modal').close()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="form-group">
+            <label>Template Name</label>
+            <input type="text" id="new-template-name" placeholder="e.g. Welcome Email" style="width:100%; box-sizing:border-box; padding:8px;" required />
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+            <label>Subject</label>
+            <input type="text" id="new-template-subject" placeholder="Standard Welcome Subject" style="width:100%; box-sizing:border-box; padding:8px;" required />
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+            <label>Body HTML</label>
+            <textarea id="new-template-body" placeholder="Hello {{name}}, welcome to our platform!" style="width:100%; height:120px; box-sizing:border-box; padding:8px;" required></textarea>
+        </div>
+        <div class="modal-footer" style="margin-top:1.5rem;">
+            <button class="btn-secondary" onclick="document.getElementById('new-template-modal').close()">Cancel</button>
+            <button class="btn-primary" onclick="saveTemplate()">Create</button>
+        </div>
+    </div>
+</dialog>
+
 <link rel="stylesheet" href="mail/mail.css" />
 
 <div class="mail-layout">

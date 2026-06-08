@@ -2,7 +2,7 @@ use botlib::db_pool::DbPool;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Float, Integer, Nullable, Text, Timestamptz};
-use log::{debug, error, info};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

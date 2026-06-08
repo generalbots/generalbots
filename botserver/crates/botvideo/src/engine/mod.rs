@@ -13,7 +13,7 @@ use chrono::Utc;
 use diesel::prelude::*;
 use std::sync::Arc;
 use tokio::sync::broadcast;
-use tracing::{error, info};
+use tracing::{info};
 use uuid::Uuid;
 
 pub struct VideoEngine {

@@ -9,7 +9,7 @@ use axum::{
     Json,
 };
 use diesel::prelude::*;
-use log::{error, info, warn};
+use log::{info, warn};
 use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;

@@ -206,10 +206,10 @@ impl IncidentService {
         if let Some(ref status_str) = req.status {
             let status = IncidentStatus::from_str(status_str)
                 .ok_or_else(|| format!("Invalid status: {status_str}"))?;
-            incident.status = status;
             if status == IncidentStatus::Resolved || status == IncidentStatus::Closed {
                 incident.resolved_at = Some(Utc::now());
             }
+            incident.status = status;
         }
         if let Some(category) = req.category {
             incident.category = category;

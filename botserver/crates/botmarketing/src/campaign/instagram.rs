@@ -101,7 +101,8 @@ impl InstagramService {
             "response_format": {"type": "json_object"}
         });
 
-        self.call_llm(payload).await
+        let value = self.call_llm(payload).await?;
+        serde_json::from_value(value).context("Failed to parse AI content response")
     }
 
     pub async fn generate_hashtags(&self, topic: &str, count: usize) -> Result<Vec<String>> {
@@ -310,24 +311,24 @@ impl InstagramService {
     pub fn hashtag_suggestions(&self, category: &str) -> Vec<String> {
         match category {
             "marketing" => vec![
-                "#marketingdigital", "#estrategiadigital", "#marketingonline",
-                "#crescimento", "#marketing360", "#digitalstrategy",
+                "#marketingdigital".to_string(), "#estrategiadigital".to_string(), "#marketingonline".to_string(),
+                "#crescimento".to_string(), "#marketing360".to_string(), "#digitalstrategy".to_string(),
             ],
             "vendas" => vec![
-                "#vendas", "#sales", "#negocios", "#empreendedorismo",
-                "#sucesso", "#clientes",
+                "#vendas".to_string(), "#sales".to_string(), "#negocios".to_string(), "#empreendedorismo".to_string(),
+                "#sucesso".to_string(), "#clientes".to_string(),
             ],
             "produto" => vec![
-                "#novoproduto", "#lancamento", "#produto", "#inovacao",
-                "#qualidade", "#exclusivo",
+                "#novoproduto".to_string(), "#lancamento".to_string(), "#produto".to_string(), "#inovacao".to_string(),
+                "#qualidade".to_string(), "#exclusivo".to_string(),
             ],
             "engajamento" => vec![
-                "#engajamento", "#interacao", "#comunidade", "#seguidores",
-                "#conversa", "#feedback",
+                "#engajamento".to_string(), "#interacao".to_string(), "#comunidade".to_string(), "#seguidores".to_string(),
+                "#conversa".to_string(), "#feedback".to_string(),
             ],
             _ => vec![
-                "#instagram", "#instagood", "#photooftheday", "#love",
-                "#beautiful", "#happy",
+                "#instagram".to_string(), "#instagood".to_string(), "#photooftheday".to_string(), "#love".to_string(),
+                "#beautiful".to_string(), "#happy".to_string(),
             ],
         }
     }

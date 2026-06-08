@@ -1048,7 +1048,7 @@ pub async fn list_activities(
             id: c.id,
             ticket_id: c.ticket_id,
             actor_id: c.author_id,
-            actor_name: c.author_name,
+            actor_name: c.author_name.unwrap_or_default(),
             activity_type: if c.is_internal { "internal_note".to_string() } else { "comment".to_string() },
             description: c.content,
             metadata: c.attachments,
@@ -1059,7 +1059,7 @@ pub async fn list_activities(
     activities.push(TicketActivity {
         id: Uuid::new_v4(),
         ticket_id: ticket.id,
-        actor_id: ticket.created_by,
+        actor_id: ticket.requester_id,
         actor_name: "system".to_string(),
         activity_type: "ticket_created".to_string(),
         description: format!("Ticket #{} created", ticket.ticket_number),
@@ -1067,7 +1067,7 @@ pub async fn list_activities(
         created_at: ticket.created_at,
     });
 
-    if let Some(assigned_to) = ticket.assigned_to {
+    if let Some(assigned_to) = ticket.assignee_id {
         activities.push(TicketActivity {
             id: Uuid::new_v4(),
             ticket_id: ticket.id,
@@ -1110,7 +1110,7 @@ pub async fn add_activity(
         id,
         ticket_id,
         author_id: None,
-        author_name: req.actor_name,
+        author_name: Some(req.actor_name),
         author_email: None,
         content: req.description,
         is_internal: req.activity_type == "internal_note",
@@ -1132,7 +1132,7 @@ pub async fn add_activity(
         id,
         ticket_id,
         actor_id: None,
-        actor_name: comment.author_name,
+        actor_name: comment.author_name.unwrap_or_default(),
         activity_type: req.activity_type,
         description: comment.content,
         metadata: comment.attachments,
@@ -1166,7 +1166,7 @@ pub async fn ai_suggest_for_ticket(
         .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
     let lower_subject = ticket.subject.to_lowercase();
-    let lower_body = ticket.description.to_lowercase();
+    let lower_body = ticket.description.unwrap_or_default().to_lowercase();
     let haystack = format!("{lower_subject} {lower_body}");
 
     let (suggested_category, suggested_priority, reasoning) = if haystack.contains("password")
@@ -1203,7 +1203,7 @@ pub async fn ai_suggest_for_ticket(
 
     let similar: Vec<Uuid> = support_tickets::table
         .filter(support_tickets::id.ne(ticket_id))
-        .filter(support_tickets::category_id.is_not_null())
+        .filter(support_tickets::category.is_not_null())
         .order(support_tickets::created_at.desc())
         .limit(3)
         .select(support_tickets::id)

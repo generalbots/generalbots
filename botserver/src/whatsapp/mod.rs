@@ -6,37 +6,39 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use botcore::shared::state::AppState;
 use std::sync::Arc;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct SendRequest {
     to: String,
     message: String,
 }
 
 async fn handle_send(
-    State(state): State<Arc<crate::AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<SendRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     Ok(Json(serde_json::json!({ "status": "ok", "to": req.to })))
 }
 
 async fn handle_status(
-    State(_state): State<Arc<crate::AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     Ok(Json(serde_json::json!({ "status": "ok" })))
 }
 
 async fn handle_sessions(
-    State(_state): State<Arc<crate::AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     Ok(Json(serde_json::json!({ "sessions": [] })))
 }
 
 async fn handle_webhook(
-    State(_state): State<Arc<crate::AppState>>,
-    Json(body): Json<serde_json::Value>,
+    State(_state): State<Arc<AppState>>,
+    Json(_body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     Ok(Json(serde_json::json!({ "status": "ok" })))
 }
@@ -45,7 +47,7 @@ async fn handle_webhook_verify() -> Result<String, (StatusCode, String)> {
     Ok("ok".to_string())
 }
 
-pub fn configure(app_state: Arc<crate::AppState>) -> Router<Arc<crate::AppState>> {
+pub fn configure(app_state: Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/whatsapp/webhook", post(handle_webhook).get(handle_webhook_verify))
         .route("/api/whatsapp/send", post(handle_send))

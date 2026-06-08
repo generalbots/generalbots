@@ -170,18 +170,31 @@ Sheet is the spreadsheet application in General Bots Suite. Create, analyze, and
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/sheets` | GET | List all spreadsheets |
-| `/api/sheets` | POST | Create new spreadsheet |
-| `/api/sheets/:id` | GET | Get spreadsheet data |
-| `/api/sheets/:id` | PATCH | Update spreadsheet |
-| `/api/sheets/:id` | DELETE | Delete spreadsheet |
-| `/api/sheets/:id/cells` | PUT | Batch update cells |
-| `/api/sheets/:id/formulas` | POST | Evaluate formula |
-| `/api/sheets/:id/charts` | GET | Get charts |
-| `/api/sheets/:id/charts` | POST | Create chart |
-| `/api/sheets/:id/import` | POST | Import CSV/JSON |
-| `/api/sheets/:id/export` | GET | Export spreadsheet |
-| `/api/sheets/search` | GET | Search spreadsheets |
+| `/api/sheet/list` | GET | List all spreadsheets |
+| `/api/sheet/search` | GET | Search spreadsheets |
+| `/api/sheet/load` | GET | Load spreadsheet by ID |
+| `/api/sheet/save` | POST | Save spreadsheet |
+| `/api/sheet/delete` | POST | Delete spreadsheet |
+| `/api/sheet/cell` | POST | Update cell value |
+| `/api/sheet/format` | POST | Format cells |
+| `/api/sheet/formula` | POST | Evaluate spreadsheet formula |
+| `/api/sheet/range` | POST | Get range values |
+| `/api/sheet/worksheet-meta` | POST | Update worksheet metadata |
+| `/api/sheet/pivot` | POST | Create pivot table |
+| `/api/sheet/export` | POST | Export spreadsheet |
+| `/api/sheet/share` | POST | Share spreadsheet |
+| `/api/sheet/new` | GET | Create new blank spreadsheet |
+| `/api/sheet/merge` | POST | Merge cells |
+| `/api/sheet/unmerge` | POST | Unmerge cells |
+| `/api/sheet/freeze` | POST | Freeze panes |
+| `/api/sheet/sort` | POST | Sort range |
+| `/api/sheet/filter` | POST | Filter data |
+| `/api/sheet/chart` | POST | Create chart |
+| `/api/sheet/conditional-format` | POST | Apply conditional formatting |
+| `/api/sheet/data-validation` | POST | Apply data validation rules |
+| `/api/sheet/ai` | POST | Query spreadsheet AI assistant |
+| `/api/sheet/:id` | GET | Get spreadsheet by ID |
+| `/ws/sheet/:sheet_id` | GET | WebSocket for collaborative editing |
 
 ### Create Spreadsheet Request
 
@@ -252,7 +265,7 @@ Sheet settings can be configured in `config.csv`:
 
 ```csv
 key,value
-max-rows,10000
+max-rows,1200000
 max-columns,256
 auto-calculate,true
 default-sheet-count,1

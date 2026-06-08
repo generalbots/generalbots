@@ -14,7 +14,7 @@ use axum::{
 };
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{error, info, warn};
+use log::{warn, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;

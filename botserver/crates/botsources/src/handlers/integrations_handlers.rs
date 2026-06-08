@@ -8,6 +8,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use diesel::RunQueryDsl;
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;

@@ -34,7 +34,7 @@ pub mod time_tracking;
 pub mod webhooks;
 pub mod admin;
 
-pub use crm_core::{Contact, Lead, LeadStatus, Opportunity, Pipeline};
+pub use crm_core::{Contact, Lead, LeadStatus, Opportunity};
 pub use queue::AttendanceQueue;
 pub use tickets::{Ticket, TicketPriority, TicketStatus};
 pub use admin::DashboardMetrics;
