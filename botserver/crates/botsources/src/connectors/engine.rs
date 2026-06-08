@@ -3,7 +3,6 @@ use crate::connector_types::*;
 use chrono::Utc;
 use diesel::sql_query;
 use diesel::prelude::*;
-use log::error;
 use uuid::Uuid;
 
 pub struct ConnectorEngine;
@@ -343,7 +342,7 @@ impl ConnectorEngine {
             )
             .bind::<diesel::sql_types::Uuid, _>(sync_log_id)
             .bind::<diesel::sql_types::Uuid, _>(id)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(None)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(None::<Uuid>)
             .bind::<diesel::sql_types::Text, _>(serde_json::to_string(&ep_result.status).unwrap_or_default())
             .bind::<diesel::sql_types::BigInt, _>(ep_result.records_synced)
             .bind::<diesel::sql_types::BigInt, _>(ep_result.records_failed)

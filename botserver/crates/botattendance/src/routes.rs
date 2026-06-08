@@ -9,7 +9,7 @@ use axum::{
 use chrono::Utc;
 use diesel::prelude::*;
 use futures::{SinkExt, StreamExt};
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;

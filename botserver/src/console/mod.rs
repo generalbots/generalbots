@@ -1,4 +1,3 @@
-use crate::drive::convert_tree_to_items;
 use crate::core::shared::state::AppState;
 use color_eyre::Result;
 use crossterm::{
@@ -536,7 +535,6 @@ impl XtreeUI {
             let items = file_tree.render_items();
             let selected = file_tree.selected_index();
 
-            let _file_items = convert_tree_to_items(file_tree);
             let list_items: Vec<ListItem> = items
                 .iter()
                 .enumerate()

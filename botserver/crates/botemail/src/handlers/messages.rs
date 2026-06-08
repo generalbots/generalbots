@@ -354,3 +354,201 @@ pub async fn list_folders(
 ) -> Result<Json<ApiResponse<Vec<FolderInfo>>>, EmailError> {
     Ok(Json(ApiResponse { success: false, data: Some(Vec::new()), message: Some("Mail feature not enabled".to_string()) }))
 }
+
+#[derive(Debug, serde::Deserialize)]
+pub struct BulkActionRequest {
+    pub ids: Vec<Uuid>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct BulkMarkReadRequest {
+    pub ids: Vec<Uuid>,
+    pub is_read: bool,
+}
+
+pub async fn archive_emails_bulk(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<BulkActionRequest>,
+) -> Result<Json<ApiResponse<()>>, EmailError> {
+    let pool = state.pool.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+        diesel::sql_query("UPDATE email_messages SET folder = 'archive' WHERE id = ANY($1)")
+            .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(&request.ids)
+            .execute(&mut db_conn)
+            .map_err(|e| format!("Failed to archive emails: {e}"))?;
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(()),
+        message: Some("Emails archived successfully".to_string()),
+    }))
+}
+
+pub async fn mark_emails_read_bulk(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<BulkMarkReadRequest>,
+) -> Result<Json<ApiResponse<()>>, EmailError> {
+    let pool = state.pool.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+        diesel::sql_query("UPDATE email_messages SET is_read = $1 WHERE id = ANY($2)")
+            .bind::<diesel::sql_types::Bool, _>(request.is_read)
+            .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(&request.ids)
+            .execute(&mut db_conn)
+            .map_err(|e| format!("Failed to mark emails as read: {e}"))?;
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(()),
+        message: Some("Emails updated successfully".to_string()),
+    }))
+}
+
+pub async fn delete_emails_bulk(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<BulkActionRequest>,
+) -> Result<Json<ApiResponse<()>>, EmailError> {
+    let pool = state.pool.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+        diesel::sql_query("UPDATE email_messages SET folder = 'trash' WHERE id = ANY($1)")
+            .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(&request.ids)
+            .execute(&mut db_conn)
+            .map_err(|e| format!("Failed to delete emails: {e}"))?;
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(()),
+        message: Some("Emails deleted successfully".to_string()),
+    }))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct CreateLabelRequest {
+    pub name: String,
+    pub color: String,
+}
+
+pub async fn create_label(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<CreateLabelRequest>,
+) -> Result<Json<ApiResponse<()>>, EmailError> {
+    let user_id = extract_user_from_session().map_err(|_| EmailError("Authentication required".to_string()))?;
+    let pool = state.pool.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+        let label_id = Uuid::new_v4();
+        let bot_id = Uuid::nil();
+
+        diesel::sql_query(
+            "INSERT INTO email_labels (id, user_id, bot_id, name, color, is_system, created_at)
+             VALUES ($1, $2, $3, $4, $5, false, NOW())"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(label_id)
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(&request.name)
+        .bind::<diesel::sql_types::Text, _>(&request.color)
+        .execute(&mut db_conn)
+        .map_err(|e| format!("Failed to create label: {e}"))?;
+
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(()),
+        message: Some("Label created successfully".to_string()),
+    }))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct BulkAddLabelRequest {
+    pub ids: Vec<Uuid>,
+    pub label_name: String,
+}
+
+pub async fn add_label_to_emails_bulk(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<BulkAddLabelRequest>,
+) -> Result<Json<ApiResponse<()>>, EmailError> {
+    let user_id = extract_user_from_session().map_err(|_| EmailError("Authentication required".to_string()))?;
+    let pool = state.pool.clone();
+
+    tokio::task::spawn_blocking(move || {
+        use crate::models::EmailLabelRow;
+        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+
+        let label_row: Option<EmailLabelRow> = diesel::sql_query(
+            "SELECT id, name, color FROM email_labels WHERE user_id = $1 AND name = $2 LIMIT 1"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .bind::<diesel::sql_types::Text, _>(&request.label_name)
+        .get_result(&mut db_conn)
+        .optional()
+        .map_err(|e| format!("Failed to find label: {e}"))?;
+
+        let label_id = match label_row {
+            Some(row) => row.id,
+            None => {
+                let new_label_id = Uuid::new_v4();
+                diesel::sql_query(
+                    "INSERT INTO email_labels (id, user_id, bot_id, name, color, is_system, created_at)
+                     VALUES ($1, $2, $3, $4, '#3b82f6', false, NOW())"
+                )
+                .bind::<diesel::sql_types::Uuid, _>(new_label_id)
+                .bind::<diesel::sql_types::Uuid, _>(user_id)
+                .bind::<diesel::sql_types::Uuid, _>(Uuid::nil())
+                .bind::<diesel::sql_types::Text, _>(&request.label_name)
+                .execute(&mut db_conn)
+                .map_err(|e| format!("Failed to auto-create label: {e}"))?;
+                new_label_id
+            }
+        };
+
+        for msg_id in &request.ids {
+            let assignment_id = Uuid::new_v4();
+            diesel::sql_query(
+                "INSERT INTO email_label_assignments (id, email_message_id, label_id, assigned_at)
+                 VALUES ($1, $2, $3, NOW())
+                 ON CONFLICT DO NOTHING"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(assignment_id)
+            .bind::<diesel::sql_types::Varchar, _>(&msg_id.to_string())
+            .bind::<diesel::sql_types::Uuid, _>(label_id)
+            .execute(&mut db_conn)
+            .map_err(|e| format!("Failed to assign label to message: {}", e))?;
+        }
+
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(()),
+        message: Some("Labels assigned successfully".to_string()),
+    }))
+}

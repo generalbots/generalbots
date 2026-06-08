@@ -5,7 +5,7 @@ use crate::DbPool;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::sql_types::{Text, Uuid as DieselUuid};
-use log::error;
+
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use uuid::Uuid;

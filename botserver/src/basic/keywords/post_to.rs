@@ -55,7 +55,7 @@ pub fn post_to_keyword(state: &Arc<AppState>, user: UserSession, engine: &mut En
 
 fn post_to_impl(
     state: &Arc<AppState>,
-    user: &UserSession,
+    _user: &UserSession,
     channel: &str,
     message: &str,
     image: Option<&str>,
@@ -83,12 +83,12 @@ fn post_to_impl(
         let result = if let Ok(rt) = rt {
             rt.block_on(async { cm.post_to(&account_name, &content).await })
         } else {
-            Err("Failed to create runtime".into())
+            Err(crate::channels::ChannelError::NetworkError("Failed to create runtime".to_string()))
         };
         let _ = tx.send(result);
     });
 
-    let result = rx.recv().unwrap_or(Err("Channel error".into()));
+    let result = rx.recv().unwrap_or(Err(crate::channels::ChannelError::NetworkError("Channel error".to_string())));
 
     match result {
         Ok(post_result) => {
@@ -120,7 +120,7 @@ fn post_to_impl(
 
 fn post_to_multiple_impl(
     state: &Arc<AppState>,
-    user: &UserSession,
+    _user: &UserSession,
     channels: &str,
     message: &str,
     image: Option<&str>,
@@ -213,7 +213,7 @@ fn post_to_multiple_impl(
 
 fn post_to_advanced_impl(
     state: &Arc<AppState>,
-    user: &UserSession,
+    _user: &UserSession,
     options: Map,
 ) -> Result<Dynamic, Box<EvalAltResult>> {
     let channel_manager = get_channel_manager(state)?;
@@ -287,12 +287,12 @@ fn post_to_advanced_impl(
         let result = if let Ok(rt) = rt {
             rt.block_on(async { cm.post_to(&channel_str, &content).await })
         } else {
-            Err("Failed to create runtime".into())
+            Err(crate::channels::ChannelError::NetworkError("Failed to create runtime".to_string()))
         };
         let _ = tx.send(result);
     });
 
-    let result = rx.recv().unwrap_or(Err("Channel error".into()));
+    let result = rx.recv().unwrap_or(Err(crate::channels::ChannelError::NetworkError("Channel error".to_string())));
 
     match result {
         Ok(post_result) => {
@@ -322,13 +322,11 @@ fn post_to_advanced_impl(
     }
 }
 
-fn get_channel_manager(state: &Arc<AppState>) -> Result<Arc<ChannelManager>, Box<EvalAltResult>> {
-    state.channel_manager.clone().ok_or_else(|| {
-        Box::new(EvalAltResult::ErrorRuntime(
-            "Channel manager not configured".into(),
-            rhai::Position::NONE,
-        ))
-    })
+fn get_channel_manager(_state: &Arc<AppState>) -> Result<Arc<ChannelManager>, Box<EvalAltResult>> {
+    Err(Box::new(EvalAltResult::ErrorRuntime(
+        "Channel manager not configured (not yet wired to AppState)".into(),
+        rhai::Position::NONE,
+    )))
 }
 
 pub fn get_channel_limits(channel_name: &str) -> Result<Dynamic, Box<EvalAltResult>> {

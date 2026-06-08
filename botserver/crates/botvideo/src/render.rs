@@ -1,7 +1,7 @@
 use chrono::Utc;
 use diesel::prelude::*;
 use std::sync::Arc;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 use crate::models::*;

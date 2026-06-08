@@ -155,6 +155,7 @@ pub async fn list_unified_inbox(
             r##"<div class="mail-item{unread}" data-account-id="{aid}" \
                 hx-get="/api/ui/email/content/{id}?account_id={aid}" \
                 hx-target="#mail-content" hx-swap="innerHTML">\
+                <input type="checkbox" class="mail-item-checkbox" data-id="{id}" onclick="event.stopPropagation()" style="margin-right: 8px; cursor: pointer;" />\
                 <div class="mail-header"><span class="account-dot" style="background:{color};"></span>\
                 <span class="mail-from">{from}</span>\
                 <span class="text-sm text-gray">{date}</span>{flag}{attach}</div>\

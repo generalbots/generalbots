@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::models::*;
 
+#[derive(Clone)]
 pub struct GamificationService {
     badges: Vec<BadgeDefinition>,
     achievements: Vec<Achievement>,
@@ -207,7 +208,6 @@ impl GamificationService {
         let mut entries: Vec<(Uuid, i32)> = xp_by_user.into_iter().collect();
         entries.sort_by(|a, b| b.1.cmp(&a.1));
 
-        let now = Utc::now();
         let leaderboard: Vec<LeaderboardEntry> = entries
             .into_iter()
             .take(limit)
@@ -246,19 +246,16 @@ impl GamificationService {
     }
 
     pub fn check_and_award(&mut self, user_id: Uuid, action: &str, value: i32) -> Vec<AchievementResponse> {
+        let to_award: Vec<String> = self.badges.iter()
+            .filter(|badge| badge.criteria.action == action && value >= badge.criteria.threshold)
+            .filter(|badge| !self.achievements.iter().any(|a| a.user_id == user_id && a.badge_type == badge.badge_type))
+            .map(|badge| badge.badge_type.clone())
+            .collect();
+
         let mut awarded = Vec::new();
-        for badge in &self.badges {
-            if badge.criteria.action != action {
-                continue;
-            }
-            let already_has = self.achievements.iter().any(|a| a.user_id == user_id && a.badge_type == badge.badge_type);
-            if already_has {
-                continue;
-            }
-            if value >= badge.criteria.threshold {
-                if let Some(ach) = self.award_badge(user_id, &badge.badge_type) {
-                    awarded.push(ach);
-                }
+        for badge_type in to_award {
+            if let Some(ach) = self.award_badge(user_id, &badge_type) {
+                awarded.push(ach);
             }
         }
         awarded

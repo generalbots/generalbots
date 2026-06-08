@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -144,7 +144,6 @@ impl TimeTracker {
         let mut total_seconds: i64 = 0;
         let mut last_check_in: Option<DateTime<Utc>> = None;
         let mut on_break = false;
-        let mut break_start: Option<DateTime<Utc>> = None;
 
         for rec in &records {
             match rec.event_type {
@@ -163,12 +162,10 @@ impl TimeTracker {
                         total_seconds += worked;
                     }
                     on_break = true;
-                    break_start = Some(rec.timestamp);
                     last_check_in = None;
                 }
                 TimeEvent::BreakEnd => {
                     on_break = false;
-                    break_start = None;
                     last_check_in = Some(rec.timestamp);
                 }
             }

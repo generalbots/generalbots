@@ -9,6 +9,7 @@ pub mod storage_drive;
 pub mod types;
 pub mod types_core;
 pub mod types_requests;
+pub mod ui_fragments;
 pub mod utils;
 pub mod utils_convert;
 pub mod utils_format;
@@ -32,6 +33,7 @@ pub use types_requests::*;
 
 pub fn configure_docs_routes() -> Router<Arc<DocState>> {
     Router::new()
+        .merge(ui_fragments::configure())
         .route("/api/docs/list", get(handle_list_documents))
         .route("/api/docs/search", get(handle_search_documents))
         .route("/api/docs/load", get(handle_get_document))

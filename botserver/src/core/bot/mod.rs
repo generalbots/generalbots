@@ -106,6 +106,14 @@ impl BotOrchestrator {
         log::info!("BotOrchestrator::mount_all_bots stub"); 
         Ok(()) 
     }
+    pub async fn stream_response(
+        &self,
+        _user_message: botlib::models::UserMessage,
+        _tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>,
+    ) -> Result<(), String> {
+        log::info!("BotOrchestrator::stream_response stub");
+        Ok(())
+    }
 }
 
 pub fn get_default_bot() -> (String, String) { ("default".to_string(), "Default Bot".to_string()) }

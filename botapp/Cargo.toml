@@ -1,6 +1,6 @@
 [package]
 name = "botapp"
-version = "6.3.0"
+version = "6.3.1"
 edition = "2021"
 description = "General Bots App - Tauri wrapper for desktop/mobile"
 license = "AGPL-3.0"
@@ -13,14 +13,14 @@ categories = ["gui", "network-programming"]
 botlib = { workspace = true, features = ["http-client"] }
 
 
-# ─── TAURI (Desktop/Mobile) ───
-tauri = { version = "2",  features = ["tray-icon", "image", "unstable"] }
-tauri-build = "2"
-tauri-plugin-dialog = "2"
-tauri-plugin-opener = "2"
-tauri-plugin-notification = "2"
-tauri-plugin-http = "2"
-tauri-plugin-geolocation = "2"
+# ─── TAURI 2.11 (Desktop/Mobile) ───
+tauri = { version = "2.11", features = ["tray-icon", "image-ico", "image-png", "unstable"] }
+tauri-build = "2.6"
+tauri-plugin-dialog = "2.7"
+tauri-plugin-opener = "2.5"
+tauri-plugin-notification = "2.3"
+tauri-plugin-http = "2.5"
+tauri-plugin-geolocation = "2.3"
 
 # Common
 anyhow = { workspace = true }

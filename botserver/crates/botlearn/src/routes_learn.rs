@@ -13,6 +13,7 @@ use crate::certification::*;
 use crate::course::*;
 use crate::gamification::*;
 use crate::models::*;
+use crate::types::*;
 
 pub fn configure_learn_api_routes() -> Router<Arc<GamificationService>> {
     Router::new()
@@ -54,14 +55,8 @@ async fn enroll_handler(
     }
 }
 
-#[derive(Deserialize)]
-struct ProgressPayload {
-    progress_percent: f32,
-}
-
 async fn update_progress_handler(
     Path(enrollment_id): Path<Uuid>,
-    Json(payload): Json<ProgressPayload>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     Err((StatusCode::NOT_FOUND, format!("Enrollment {} not found", enrollment_id)))
 }
@@ -113,11 +108,11 @@ struct AwardBadgePayload {
 }
 
 async fn award_badge_handler(
-    state: axum::extract::State<Arc<GamificationService>>,
+    mut state: axum::extract::State<Arc<GamificationService>>,
     Json(payload): Json<AwardBadgePayload>,
 ) -> Result<Json<AchievementResponse>, (StatusCode, String)> {
-    let mut service = state.as_ref().clone();
-    let result = GamificationService::award_badge(&mut service, payload.user_id, &payload.badge_type);
+    let service = Arc::make_mut(&mut state);
+    let result = GamificationService::award_badge(service, payload.user_id, &payload.badge_type);
     match result {
         Some(ach) => Ok(Json(ach)),
         None => Err((StatusCode::NOT_FOUND, "Badge type not found".to_string())),

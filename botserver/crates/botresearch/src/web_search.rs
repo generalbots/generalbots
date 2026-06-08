@@ -5,7 +5,7 @@ use axum::{
     Json, Router,
 };
 use chrono::{DateTime, Utc};
-use log::{debug, error, info};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Write;

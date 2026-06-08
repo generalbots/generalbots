@@ -43,6 +43,7 @@ marketing = ["people", "automation", "drive", "cache", "dep:botmarketing"]
 calendar = ["automation", "drive", "cache", "dep:botcalendar"]
 tasks = ["automation", "drive", "cache", "dep:cron", "dep:bottasks"]
 project = ["automation", "drive", "cache", "dep:botproject"]
+plan = ["automation", "drive", "cache", "dep:botplan"]
 goals = ["automation", "drive", "cache"]
 workspaces = ["automation", "drive", "cache", "dep:botworkspaces"]
 tickets = ["automation", "drive", "cache", "dep:bottickets"]
@@ -114,6 +115,23 @@ minimal-chat = ["chat", "automation", "cache"]  # No security at all
 lightweight = ["chat", "tasks", "people"]
 full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
 embed-ui = ["dep:rust-embed"]
+
+allbutooxmlsdk = [
+    "chat", "people", "mail", "meet", "social", "marketing",
+    "calendar", "tasks", "project", "plan", "goals", "workspaces", "tickets", "billing",
+    "kb-extraction", "sheet", "paper",
+    "video", "player", "canvas",
+    "learn", "research", "sources",
+    "analytics", "dashboards", "monitoring",
+    "designer", "editor",
+    "attendant", "settings",
+    "whatsapp", "telegram", "instagram", "msteams",
+    "compliance", "timeseries", "weba", "contacts", "products", "legal", "attendance",
+    "vibe", "kb", "multimodal", "search", "desktop",
+    "browser", "terminal", "external_sync", "nvidia",
+    "deployment",
+    "security", "directory", "llm", "vectordb", "crawler", "console",
+]
 
 [dependencies]
 diesel_migrations = { workspace = true }
@@ -305,6 +323,7 @@ botmsteams = { workspace = true, optional = true }
 botinstagram = { workspace = true, optional = true }
 botmaintenance = { workspace = true, optional = true }
 botproject = { workspace = true, optional = true }
+botplan = { workspace = true, optional = true }
 botdeployment = { workspace = true, optional = true }
 botmonitoring = { workspace = true, optional = true }
 botresearch = { workspace = true, optional = true }

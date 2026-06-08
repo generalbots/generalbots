@@ -4,12 +4,41 @@ use std::time::Duration;
 use chrono::Utc;
 use cron::Schedule;
 use diesel::prelude::*;
-use log::{error, info};
+use log::info;
 use uuid::Uuid;
 
 use crate::schema::auto_tasks;
 use crate::state::TasksState;
 use crate::types::{AutoTask, NewAutoTask};
+
+pub struct TaskScheduler {
+    state: Arc<TasksState>,
+    config: SchedulerConfig,
+}
+
+impl TaskScheduler {
+    pub fn new(state: Arc<TasksState>) -> Self {
+        Self {
+            state,
+            config: SchedulerConfig::default(),
+        }
+    }
+
+    pub fn new_with_config(state: Arc<TasksState>, config: SchedulerConfig) -> Self {
+        Self { state, config }
+    }
+
+    pub fn start(&self) {
+        let state = Arc::clone(&self.state);
+        let config = SchedulerConfig {
+            check_interval_secs: self.config.check_interval_secs,
+        };
+        tokio::spawn(async move {
+            start_scheduler(state, config).await;
+        });
+        info!("TaskScheduler started with interval {}s", self.config.check_interval_secs);
+    }
+}
 
 pub struct SchedulerConfig {
     pub check_interval_secs: u64,

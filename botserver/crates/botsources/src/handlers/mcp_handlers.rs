@@ -7,7 +7,6 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use log::error;
 use std::fmt::Write;
 use std::sync::Arc;
 

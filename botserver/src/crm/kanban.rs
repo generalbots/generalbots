@@ -76,35 +76,38 @@ impl KanbanBoard {
     }
 
     pub fn move_card(&mut self, card_id: &Uuid, target_column_id: &Uuid) -> bool {
-        let card = self.find_card_mut(card_id);
-        let card = match card {
-            Some(c) => c,
+        let card_col_id = self.columns.iter().find_map(|col| {
+            if col.cards.iter().any(|c| &c.id == card_id) {
+                Some(col.id.clone())
+            } else {
+                None
+            }
+        });
+        let card_col_id = match card_col_id {
+            Some(id) => id,
             None => return false,
         };
 
-        if &card.column_id == target_column_id {
+        if &card_col_id == target_column_id {
             return true;
         }
 
-        if let Some(target) = self.find_column_mut(target_column_id) {
-            if let Some(limit) = target.wip_limit {
-                if target.cards.len() >= limit {
-                    return false;
-                }
-            }
+        let wip_ok = self.columns.iter().any(|col| {
+            &col.id != target_column_id
+                || col.wip_limit.map_or(true, |limit| col.cards.len() < limit)
+        });
+        if !wip_ok {
+            return false;
         }
 
-        card.column_id = *target_column_id;
-        true
-    }
-
-    fn find_card_mut(&mut self, card_id: &Uuid) -> Option<&mut KanbanCard> {
-        for col in &mut self.columns {
+        if let Some(col) = self.columns.iter_mut().find(|c| c.id == card_col_id) {
             if let Some(card) = col.cards.iter_mut().find(|c| &c.id == card_id) {
-                return Some(card);
+                card.column_id = *target_column_id;
+                return true;
             }
         }
-        None
+
+        false
     }
 
     pub fn delete_card(&mut self, card_id: &Uuid) -> bool {

@@ -60,8 +60,8 @@ impl PhoneNumber {
     }
 
     pub fn port_from(&mut self, operator: &str) {
-        self.original_operator = Some(operator.clone());
-        self.current_operator = Some(operator.clone());
+        self.original_operator = Some(operator.to_string());
+        self.current_operator = Some(operator.to_string());
     }
 
     pub fn complete_port(&mut self, new_operator: &str) {

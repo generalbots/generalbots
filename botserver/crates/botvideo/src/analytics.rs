@@ -4,7 +4,7 @@ use crate::schema::*;
 
 use chrono::Utc;
 use diesel::prelude::*;
-use tracing::error;
+
 use uuid::Uuid;
 
 pub struct AnalyticsEngine {

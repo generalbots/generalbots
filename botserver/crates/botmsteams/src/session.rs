@@ -5,7 +5,7 @@ use crate::state::{AttendantNotification, ChannelState};
 use botlib::models::BotResponse;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{debug, error, info};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;

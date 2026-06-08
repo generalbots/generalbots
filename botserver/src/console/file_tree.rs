@@ -128,22 +128,19 @@ impl FileTree {
             },
         ));
         if let Some(drive) = &self.app_state.drive {
-            let normalized_prefix = if prefix.is_empty() {
-                None
+            let normalized_prefix = if prefix.is_empty() || prefix == "/" {
+                String::new()
             } else if prefix.ends_with('/') {
-                Some(prefix.to_string())
+                prefix.to_string()
             } else {
-                Some(format!("{}/", prefix))
+                format!("{}/", prefix)
             };
-            let prefix_ref = normalized_prefix.as_deref();
-            let keys = drive.list_objects(bucket, prefix_ref).await.map_err(|e| anyhow::anyhow!("{e}"))?;
+            let prefix_ref = if normalized_prefix.is_empty() { None } else { Some(normalized_prefix.as_str()) };
+            let keys = drive.list_objects(bucket, prefix_ref).await.map_err(|e| color_eyre::eyre::eyre!("{e}"))?;
             let all_keys = keys;
             let mut folders = std::collections::HashSet::new();
-            let mut files = Vec::new();
+            let mut files: Vec<(String, String)> = Vec::new();
             for key in all_keys {
-                if key == normalized_prefix {
-                    continue;
-                }
                 let relative =
                     if !normalized_prefix.is_empty() && key.starts_with(&normalized_prefix) {
                         &key[normalized_prefix.len()..]
@@ -159,7 +156,7 @@ impl FileTree {
                         folders.insert(folder_name.to_string());
                     }
                 } else {
-                    files.push((relative.to_string(), key.clone()));
+                    files.push((relative.to_string(), key));
                 }
             }
             let mut folder_vec: Vec<String> = folders.into_iter().collect();
@@ -180,7 +177,7 @@ impl FileTree {
                 ));
             }
             files.sort_by(|(a, _), (b, _)| a.cmp(b));
-            for (name, full_path) in files {
+            for (ref name, ref full_path) in files {
                 let icon = if has_extension_ci(&name, "bas")
                     || has_extension_ci(&name, "ast")
                     || has_extension_ci(&name, "csv")
@@ -197,7 +194,7 @@ impl FileTree {
                     display,
                     TreeNode::File {
                         bucket: bucket.to_string(),
-                        path: full_path,
+                        path: full_path.to_string(),
                     },
                 ));
             }

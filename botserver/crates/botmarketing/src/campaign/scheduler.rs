@@ -1,8 +1,8 @@
 use crate::campaign::models::{
-    Campaign, CampaignMetrics, CampaignStatus, ChannelConfig, ChannelMetrics, ContentPiece,
+    Campaign, CampaignMetrics, CampaignStatus, ChannelMetrics,
     ContentStatus, Schedule,
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use chrono::{DateTime, Datelike, Duration, Timelike, Utc, Weekday};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -127,7 +127,8 @@ impl CampaignScheduler {
         history.extend(executed.clone());
 
         if history.len() > 1000 {
-            history.drain(0..history.len().saturating_sub(1000));
+            let drain_end = history.len().saturating_sub(1000);
+            history.drain(0..drain_end);
         }
 
         Ok(executed)
@@ -316,9 +317,9 @@ impl CampaignScheduler {
             let minute: u32 = parts.get(1).and_then(|p| p.parse().ok())?;
 
             let candidate = now
-                .with_hour(hour)?
-                .with_minute(minute)?
-                .with_second(0)?;
+                .with_hour(hour)
+                .and_then(|d| d.with_minute(minute))
+                .and_then(|d| d.with_second(0))?;
 
             if candidate > now {
                 Some(candidate)

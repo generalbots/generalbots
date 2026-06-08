@@ -77,3 +77,60 @@ pub fn evaluate_not(expr: &str, worksheet: &Worksheet) -> Option<String> {
     let result = !evaluate_condition(inner.trim(), worksheet);
     Some(result.to_string().to_uppercase())
 }
+
+
+pub fn evaluate_isblank(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("ISBLANK(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[8..expr.len() - 1];
+    let val = super::resolve_cell_value(inner.trim(), worksheet);
+    Some(if val.is_empty() { "TRUE" } else { "FALSE" }.to_string())
+}
+
+pub fn evaluate_isnumber(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("ISNUMBER(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[9..expr.len() - 1];
+    let val = super::resolve_cell_value(inner.trim(), worksheet);
+    Some(if val.trim().parse::<f64>().is_ok() { "TRUE" } else { "FALSE" }.to_string())
+}
+
+pub fn evaluate_istext(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("ISTEXT(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[7..expr.len() - 1];
+    let val = super::resolve_cell_value(inner.trim(), worksheet);
+    let is_num = val.trim().parse::<f64>().is_ok();
+    Some(if val.is_empty() || is_num { "FALSE" } else { "TRUE" }.to_string())
+}
+
+pub fn evaluate_iserror(expr: &str, _worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("ISERROR(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[8..expr.len() - 1];
+    let val = inner.trim();
+    let is_err = val.starts_with('#') || val.eq_ignore_ascii_case("ERROR");
+    Some(if is_err { "TRUE" } else { "FALSE" }.to_string())
+}
+
+pub fn evaluate_islogical(expr: &str, _worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("ISLOGICAL(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[9..expr.len() - 1];
+    let val = inner.trim().to_uppercase();
+    let is_bool = val == "TRUE" || val == "FALSE";
+    Some(if is_bool { "TRUE" } else { "FALSE" }.to_string())
+}
+
+pub fn evaluate_isnontext(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("ISNONTEXT(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[10..expr.len() - 1];
+    let val = super::resolve_cell_value(inner.trim(), worksheet);
+    let is_num = val.trim().parse::<f64>().is_ok();
+    Some(if val.is_empty() || is_num { "TRUE" } else { "FALSE" }.to_string())
+}
+
+pub fn evaluate_true(_expr: &str, _worksheet: &Worksheet) -> Option<String> {
+    if !_expr.starts_with("TRUE(") || !_expr.ends_with(')') { return None; }
+    Some("TRUE".to_string())
+}
+
+pub fn evaluate_false(_expr: &str, _worksheet: &Worksheet) -> Option<String> {
+    if !_expr.starts_with("FALSE(") || !_expr.ends_with(')') { return None; }
+    Some("FALSE".to_string())
+}

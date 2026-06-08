@@ -173,16 +173,43 @@ Slides is the presentation editor in General Bots Suite. Build professional pres
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/slides` | GET | List all presentations |
-| `/api/slides` | POST | Create new presentation |
-| `/api/slides/:id` | GET | Get presentation data |
-| `/api/slides/:id` | PATCH | Update presentation |
-| `/api/slides/:id` | DELETE | Delete presentation |
-| `/api/slides/:id/slides` | POST | Add new slide |
-| `/api/slides/:id/slides/:slide_id` | PATCH | Update slide content |
-| `/api/slides/:id/slides/:slide_id` | DELETE | Delete slide |
-| `/api/slides/:id/export` | GET | Export as PDF/PPTX |
+| `/api/slides/list` | GET | List all presentations |
 | `/api/slides/search` | GET | Search presentations |
+| `/api/slides/load` | GET | Load presentation data |
+| `/api/slides/save` | POST | Save presentation |
+| `/api/slides/delete` | POST | Delete presentation |
+| `/api/slides/new` | GET | Create new blank presentation |
+| `/api/slides/ai` | POST | AI presentation builder |
+| `/api/slides/:id` | GET | Get presentation by ID |
+| `/api/slides/slide/add` | POST | Add slide to presentation |
+| `/api/slides/slide/delete` | POST | Delete slide |
+| `/api/slides/slide/duplicate` | POST | Duplicate slide |
+| `/api/slides/slide/reorder` | POST | Reorder slides in presentation |
+| `/api/slides/slide/notes` | POST | Update presenter notes for a slide |
+| `/api/slides/element/add` | POST | Add element (text, shape, image) |
+| `/api/slides/element/update` | POST | Update element style or content |
+| `/api/slides/element/delete` | POST | Delete element from slide |
+| `/api/slides/theme` | POST | Apply design theme |
+| `/api/slides/export` | POST | Export presentation (PDF/PPTX) |
+| `/api/slides/import` | POST | Import presentation (PPTX) |
+| `/api/slides/cursor` | POST | Update collaborator cursor position |
+| `/api/slides/selection` | POST | Update collaborator selection |
+| `/api/slides/cursors` | GET | List collaborator cursor positions |
+| `/api/slides/selections` | GET | List collaborator selections |
+| `/api/slides/transition` | POST | Set slide transition effect |
+| `/api/slides/transition/all` | POST | Apply transition to all slides |
+| `/api/slides/transition/remove` | POST | Remove transition from slide |
+| `/api/slides/media` | POST | Add media (video, audio) |
+| `/api/slides/media/update` | POST | Update media settings |
+| `/api/slides/media/delete` | POST | Delete media element |
+| `/api/slides/media/list` | GET | List media library |
+| `/api/slides/presenter/start` | POST | Start presenter mode session |
+| `/api/slides/presenter/update` | POST | Update presenter screen state |
+| `/api/slides/presenter/end` | POST | End presenter mode session |
+| `/api/slides/presenter/notes` | GET | Get presenter notes for current slide |
+| `/api/slides/:presentation_id/presence` | GET | Presence list of collaborators |
+| `/ws/slides/:presentation_id` | GET | WebSocket for live collaboration |
+
 
 ### Create Presentation Request
 

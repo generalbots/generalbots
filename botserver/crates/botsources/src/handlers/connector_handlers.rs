@@ -46,7 +46,7 @@ pub async fn handle_list_connectors(
     let limit = p.limit.unwrap_or(20).min(100);
     let offset = p.offset.unwrap_or(0);
     let result = tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::list_connectors(conn, bot_id, limit, offset))
+        with_conn(pool, move |conn| ConnectorEngine::list_connectors(conn, bot_id, limit, offset))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())
@@ -60,7 +60,7 @@ pub async fn handle_get_connector(
 ) -> Result<Json<ConnectorConfig>, (StatusCode, String)> {
     let pool = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::get_connector(conn, id))
+        with_conn(pool, move |conn| ConnectorEngine::get_connector(conn, id))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())
@@ -74,7 +74,7 @@ pub async fn handle_create_connector(
 ) -> Result<Json<ConnectorConfig>, (StatusCode, String)> {
     let pool = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::create_connector(conn, req))
+        with_conn(pool, move |conn| ConnectorEngine::create_connector(conn, req))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())
@@ -89,7 +89,7 @@ pub async fn handle_update_connector(
 ) -> Result<Json<ConnectorConfig>, (StatusCode, String)> {
     let pool = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::update_connector(conn, id, req))
+        with_conn(pool, move |conn| ConnectorEngine::update_connector(conn, id, req))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())
@@ -103,11 +103,11 @@ pub async fn handle_delete_connector(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let pool = state.conn.clone();
     tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::delete_connector(conn, id))
+        with_conn(pool, move |conn| ConnectorEngine::delete_connector(conn, id))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())
-    })???;
+    })??;
     Ok(Json(serde_json::json!({"deleted": true})))
 }
 
@@ -117,7 +117,7 @@ pub async fn handle_test_connector(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let pool = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::test_connection(conn, id))
+        with_conn(pool, move |conn| ConnectorEngine::test_connection(conn, id))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())
@@ -131,7 +131,7 @@ pub async fn handle_sync_connector(
 ) -> Result<Json<SyncResult>, (StatusCode, String)> {
     let pool = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::sync_connector(conn, id))
+        with_conn(pool, move |conn| ConnectorEngine::sync_connector(conn, id))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())
@@ -145,7 +145,7 @@ pub async fn handle_discover_connector(
 ) -> Result<Json<Vec<DiscoveredSchema>>, (StatusCode, String)> {
     let pool = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::discover_schema(conn, id, None))
+        with_conn(pool, move |conn| ConnectorEngine::discover_schema(conn, id, None))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())
@@ -162,7 +162,7 @@ pub async fn handle_get_connector_logs(
     let limit = p.limit.unwrap_or(20).min(100);
     let offset = p.offset.unwrap_or(0);
     let result = tokio::task::spawn_blocking(move || {
-        with_conn(pool, |conn| ConnectorEngine::get_sync_logs(conn, id, limit, offset))
+        with_conn(pool, move |conn| ConnectorEngine::get_sync_logs(conn, id, limit, offset))
     }).await.map_err(|e| {
         log::error!("Task panicked: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string())

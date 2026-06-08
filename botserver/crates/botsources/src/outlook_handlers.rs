@@ -211,7 +211,7 @@ pub async fn list_calendar(
                             .map(String::from),
                         organizer: None,
                         attendees: Vec::new(),
-                        response_status: super::super::outlook::ResponseStatus::NotResponded,
+                        response_status: crate::outlook::ResponseStatus::NotResponded,
                         is_online_meeting: entry
                             .get("isOnlineMeeting")
                             .and_then(|v| v.as_bool())
@@ -222,7 +222,7 @@ pub async fn list_calendar(
                             .and_then(|v| v.as_str())
                             .map(String::from),
                         categories: Vec::new(),
-                        show_as: super::super::outlook::ShowAs::Busy,
+                        show_as: crate::outlook::ShowAs::Busy,
                     });
                 }
             }

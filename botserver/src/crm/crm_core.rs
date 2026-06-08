@@ -155,4 +155,14 @@ impl Opportunity {
     pub fn new(title: String, contact_id: Uuid, value: f64) -> Self {
         Self {
             id: Uuid::new_v4(),
-        
+            contact_id,
+            title,
+            value,
+            stage: "prospecting".to_string(),
+            probability: 10.0,
+            expected_close: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+}

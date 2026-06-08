@@ -5,6 +5,7 @@ pub mod routes;
 pub mod storage;
 pub mod types;
 pub mod ui;
+pub mod ui_fragments;
 pub mod utils;
 
 use std::sync::Arc;

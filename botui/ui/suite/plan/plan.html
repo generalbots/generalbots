@@ -1,0 +1,39 @@
+<link rel="stylesheet" href="css/collab.css" />
+<link rel="stylesheet" href="plan/plan.css" />
+
+<div class="plan-app" id="plan-app" data-touch-target="self">
+    <div class="plan-toolbar">
+        <div class="plan-toolbar-left">
+            <input type="text" class="plan-title-input" id="planTitle" value="Meu Plano de Projeto" spellcheck="false" />
+            <span class="plan-save-status" id="saveStatus" style="color:#94a3b8;font-size:12px;margin-left:8px;">Tudo salvo</span>
+        </div>
+        <div class="plan-toolbar-center">
+            <div class="plan-view-tabs">
+                <button class="plan-view-tab active" data-view="kanban">📋 Kanban</button>
+                <button class="plan-view-tab" data-view="gantt">📅 Gantt</button>
+                <button class="plan-view-tab" data-view="list">📊 Lista</button>
+            </div>
+            <span class="plan-toolbar-divider"></span>
+            <button class="plan-btn plan-btn-primary" id="newTaskBtn">+ Nova Tarefa</button>
+            <button class="plan-btn plan-btn-secondary" id="aiAssistBtn">🤖 IA Assist</button>
+            <button class="plan-btn plan-btn-secondary" id="exportBtn">⬇ Exportar</button>
+            <button class="plan-btn plan-btn-secondary" id="importBtn">⬆ Importar</button>
+        </div>
+        <div class="plan-toolbar-right">
+            <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
+            <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
+            <span id="gb-auth-button"></span>
+        </div>
+    </div>
+
+    <div class="plan-content" id="plan-content">
+    </div>
+
+    <div class="modal-host" id="modal-container"></div>
+</div>
+
+<script src="js/vendor/htmx.min.js"></script>
+<script src="js/vendor/htmx-json-enc.js"></script>
+<script src="js/collab.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="plan/plan.js"></script>

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use botlib::models::BotResponse;
-use log::{error, info};
+use log::info;
 
 use crate::state::{GetConfigFn, DbPool};
 use crate::types::{

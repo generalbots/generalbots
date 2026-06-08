@@ -1,6 +1,6 @@
 use crate::types::Worksheet;
 
-use super::helpers::{parse_range, split_args};
+use super::helpers::{parse_range, resolve_cell_value, split_args};
 
 pub fn evaluate_vlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
     if !expr.starts_with("VLOOKUP(") || !expr.ends_with(')') {
@@ -108,4 +108,49 @@ pub fn evaluate_index_match(expr: &str, worksheet: &Worksheet) -> Option<String>
             .and_then(|c| c.value.clone())
             .unwrap_or_default(),
     )
+}
+
+
+pub fn evaluate_xlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("XLOOKUP(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[8..expr.len() - 1];
+    let parts: Vec<&str> = split_args(inner);
+    if parts.len() < 3 { return None; }
+    let needle = parts[0].trim().trim_matches('"');
+    let lookup_range = parts[1].trim();
+    let return_range = parts[2].trim();
+    let lookup_values = super::get_range_string_values(lookup_range, worksheet);
+    let return_values = super::get_range_string_values(return_range, worksheet);
+    for (i, v) in lookup_values.iter().enumerate() {
+        if v == needle {
+            return return_values.get(i).cloned();
+        }
+    }
+    None
+}
+
+pub fn evaluate_match(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("MATCH(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[6..expr.len() - 1];
+    let parts: Vec<&str> = split_args(inner);
+    if parts.len() < 2 { return None; }
+    let needle = parts[0].trim().trim_matches('"');
+    let lookup_range = parts[1].trim();
+    let lookup_values = super::get_range_string_values(lookup_range, worksheet);
+    for (i, v) in lookup_values.iter().enumerate() {
+        if v == needle {
+            return Some((i + 1).to_string());
+        }
+    }
+    Some("#N/A".to_string())
+}
+
+pub fn evaluate_choose(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("CHOOSE(") || !expr.ends_with(')') { return None; }
+    let inner = &expr[7..expr.len() - 1];
+    let parts: Vec<&str> = split_args(inner);
+    if parts.len() < 2 { return None; }
+    let idx: usize = parts[0].trim().parse().ok()?;
+    if idx == 0 || idx > parts.len() - 1 { return Some("#VALUE!".to_string()); }
+    Some(resolve_cell_value(parts[idx].trim().trim_matches('"'), worksheet))
 }

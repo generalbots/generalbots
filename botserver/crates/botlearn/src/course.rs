@@ -1,4 +1,4 @@
-use anyhow::Result;
+type Result<T> = std::result::Result<T, String>;
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -32,10 +32,10 @@ impl CourseService {
 
     pub fn publish_course(course: &mut Course) -> Result<()> {
         if course.title.is_empty() {
-            anyhow::bail!("Course title cannot be empty");
+            return Err("Course title cannot be empty".to_string());
         }
         if course.duration_minutes <= 0 {
-            anyhow::bail!("Course duration must be positive");
+            return Err("Course duration must be positive".to_string());
         }
         course.is_published = true;
         course.updated_at = Utc::now();

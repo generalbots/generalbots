@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SharePointItemType {
@@ -65,6 +64,7 @@ pub struct SharePointColumn {
     pub indexed: bool,
 }
 
+#[derive(Clone)]
 pub struct SharePointClient {
     pub tenant_id: String,
     pub access_token: String,

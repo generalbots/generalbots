@@ -15,7 +15,6 @@ pub struct AttendanceQueue {
 struct QueueEntry {
     session_id: Uuid,
     enqueued_at: std::time::Instant,
-    priority: u8,
 }
 
 impl AttendanceQueue {
@@ -46,11 +45,9 @@ impl AttendanceQueue {
     }
 
     pub fn enqueue(&mut self, session_id: Uuid) {
-        let priority = self.calculate_priority(&session_id);
         self.queue.push_back(QueueEntry {
             session_id,
             enqueued_at: std::time::Instant::now(),
-            priority,
         });
     }
 
@@ -96,10 +93,6 @@ impl AttendanceQueue {
         } else {
             total as f64 / self.queue.len() as f64
         }
-    }
-
-    fn calculate_priority(&self, _session_id: &Uuid) -> u8 {
-        5
     }
 
     pub fn is_agent_available(&self, agent_id: &str) -> bool {
