@@ -2421,3 +2421,25 @@ AutoTask is an AI-driven task execution system that:
 | `USER` | Current user object |
 | `SESSION` | Current session object |
 | `BOT` | Current bot object |
+
+---
+
+## 🔧 Common Bug Fixes
+
+### IF/THEN/ELSE Panic (`dag.rs`)
+- **Sintoma:** Panic `IF/THEN/ELSE syntax: ParseError(BadInput(ImproperSymbol("$stmt$")))` durante registro do motor Rhai.
+- **Causa:** Rhai 1.25.x não suporta o marcador `$stmt$` em `register_custom_syntax`. Foi substituído por `$block$`.
+- **Correção em `botserver/crates/botbasic_core/src/keywords/dag.rs`:**
+  - `$stmt$` → `$block$` (3 ocorrências: IF/THEN/ELSE, PARALLEL/AND, ON ERROR)
+  - `.expect("...")` → `if let Err(e) = ... { log::error!("...") }` (sem panico em producao)
+  - Requer feature `rt-multi-thread` do tokio em `botbasic_core/Cargo.toml`
+
+### Embedding URL Hardcoded to Empty
+- **Sintoma:** `Embedding server connection failed for : builder error` com URL vazia
+- **Causa:** `botqdrant/src/embedding.rs:14` codificava `let embedding_url = "".to_string()` em vez de usar `self.llm_endpoint`
+- **Correção:** Substituir por `let embedding_url = &self.llm_endpoint;`
+
+### Acesso ao Bot Negado (WebSocket)
+- **Sintoma:** `WS access denied for bot <name>: Access denied` ou WebSocket fecha com code 1006
+- **Causa:** `bots.is_public = false` no banco de dados
+- **Correção:** `UPDATE bots SET is_public = true WHERE name = '<bot>';`

@@ -22,7 +22,7 @@ num-format = { workspace = true }
 bigdecimal = { workspace = true, features = ["serde"] }
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
 redis = { workspace = true, features = ["tokio-comp"] }
-tokio = { workspace = true, features = ["sync", "rt", "macros"] }
+tokio = { workspace = true, features = ["sync", "rt", "rt-multi-thread", "macros"] }
 rand = { workspace = true }
 
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }

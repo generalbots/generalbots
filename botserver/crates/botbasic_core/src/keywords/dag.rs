@@ -8,7 +8,7 @@ pub fn register_dag_keywords(
     _user: UserSession,
     engine: &mut Engine,
 ) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["IF", "$expr$", "THEN", "$block$", "ELSE", "$block$", "END", "IF"],
             true,
@@ -24,9 +24,11 @@ pub fn register_dag_keywords(
                 }
             },
         )
-        .expect("IF/THEN/ELSE syntax");
+    {
+        log::error!("Failed to register IF/THEN/ELSE: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["PARALLEL", "$block$", "AND", "$block$", "END", "PARALLEL"],
             true,
@@ -54,9 +56,11 @@ pub fn register_dag_keywords(
                 Ok(Dynamic::from(results))
             },
         )
-        .expect("PARALLEL/AND syntax");
+    {
+        log::error!("Failed to register PARALLEL/AND: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ON", "ERROR", "$block$"],
             true,
@@ -79,5 +83,7 @@ pub fn register_dag_keywords(
                 }
             },
         )
-        .expect("ON ERROR syntax");
+    {
+        log::error!("Failed to register ON ERROR: {e}");
+    }
 }
