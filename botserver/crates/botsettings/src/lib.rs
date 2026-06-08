@@ -39,7 +39,6 @@ post(revoke_all_sessions),
 .route("/api/ui/settings/accounts/email", get(get_accounts_email))
 .route("/api/settings/accounts/smtp", post(save_smtp_account))
 .route("/api/ops/health", get(get_ops_health))
-.route("/api/rbac/permissions", get(get_rbac_permissions))
 .merge(rbac::configure_rbac_routes())
 .merge(security_admin::configure_security_admin_routes())
 }
@@ -94,19 +93,7 @@ Json(serde_json::json!({
 }))
 }
 
-async fn get_rbac_permissions(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-Json(serde_json::json!({
-"permissions": [
-{"id": "read:users", "name": "Read Users", "category": "Users"},
-{"id": "write:users", "name": "Write Users", "category": "Users"},
-{"id": "delete:users", "name": "Delete Users", "category": "Users"},
-{"id": "read:bots", "name": "Read Bots", "category": "Bots"},
-{"id": "write:bots", "name": "Write Bots", "category": "Bots"},
-{"id": "admin:billing", "name": "Manage Billing", "category": "Admin"},
-{"id": "admin:settings", "name": "Manage Settings", "category": "Admin"}
-]
-}))
-}
+
 
 async fn get_storage_info(State(_state): State<Arc<AppState>>) -> Html<String> {
 Html(

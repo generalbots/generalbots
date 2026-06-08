@@ -113,7 +113,6 @@ pub struct BootstrapResponse {
 
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/", get(get_current_user))
         .route("/login", post(login))
         .route("/logout", post(logout))
         .route("/me", get(get_current_user))

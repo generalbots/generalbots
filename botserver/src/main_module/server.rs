@@ -723,7 +723,7 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
         sub_router = sub_router.merge(crate::api::terminal::configure_terminal_routes());
     }
 
-    let _site_path = app_state
+    let site_path = app_state
         .config
         .as_ref()
         .map(|c| c.site_path.clone())
