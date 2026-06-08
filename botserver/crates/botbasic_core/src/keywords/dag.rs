@@ -10,7 +10,7 @@ pub fn register_dag_keywords(
 ) {
     engine
         .register_custom_syntax(
-            ["IF", "$expr$", "THEN", "$stmt$", "ELSE", "$stmt$", "END", "IF"],
+            ["IF", "$expr$", "THEN", "$block$", "ELSE", "$block$", "END", "IF"],
             true,
             |context, inputs| {
                 let cond = context
@@ -28,7 +28,7 @@ pub fn register_dag_keywords(
 
     engine
         .register_custom_syntax(
-            ["PARALLEL", "$stmt$", "AND", "$stmt$", "END", "PARALLEL"],
+            ["PARALLEL", "$block$", "AND", "$block$", "END", "PARALLEL"],
             true,
             |_context, inputs| {
                 let mut handles = Vec::new();
@@ -58,7 +58,7 @@ pub fn register_dag_keywords(
 
     engine
         .register_custom_syntax(
-            ["ON", "ERROR", "$stmt$"],
+            ["ON", "ERROR", "$block$"],
             true,
             |context, inputs| {
                 let handler = inputs[0].clone();
