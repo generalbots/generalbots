@@ -11,8 +11,8 @@ impl EmbeddingGenerator {
     }
 
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
-        let embedding_url = "".to_string();
-        match self.generate_local_embedding(text, &embedding_url).await {
+        let embedding_url = &self.llm_endpoint;
+        match self.generate_local_embedding(text, embedding_url).await {
             Ok(embedding) => Ok(embedding),
             Err(e) => {
                 warn!("Local embedding failed: {e}, falling back to hash embedding");
