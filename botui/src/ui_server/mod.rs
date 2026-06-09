@@ -628,7 +628,7 @@ pub async fn serve_suite_impl(_state: &AppState, bot_name: Option<String>, _head
                 html = remove_section(&html, "settings");
             }
 
-            (StatusCode::OK, [("content-type", "text/html; charset=utf-8")], Html(html)).into_response()
+            (StatusCode::OK, [("content-type", "text/html; charset=utf-8"), ("cache-control", "no-cache, no-store, must-revalidate"), ("pragma", "no-cache"), ("expires", "0")], Html(html)).into_response()
         }
         Err(e) => {
             error!("Failed to load suite UI: {e}");
