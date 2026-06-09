@@ -42,30 +42,22 @@ function loadBotConfig() {
     .then(function (config) {
       if (!config) return;
 
-      var botId = botName.toLowerCase();
-      var botThemeKey = "gb-theme-" + botId;
-      var localStorageTheme = localStorage.getItem(botThemeKey);
-      var configThemeBase = config.theme_base || config["theme-base"] || "light";
-      var useBotConfigColors = !localStorageTheme || localStorageTheme === "default" || localStorageTheme === configThemeBase;
-
       var color1 = config.theme_color1 || config["theme-color1"] || config["Theme Color"] || "#3b82f6";
       var color2 = config.theme_color2 || config["theme-color2"] || config["theme-color2"] || "#f5deb3";
       var title = config.theme_title || config["theme-title"] || botName;
       var logo = config.theme_logo || config["theme-logo"] || "";
 
-      if (useBotConfigColors) {
-        document.documentElement.setAttribute("data-has-bot-colors", "true");
-        document.documentElement.style.setProperty("--chat-color1", color1);
-        document.documentElement.style.setProperty("--chat-color2", color2);
-        document.documentElement.style.setProperty("--suggestion-color", color1);
-        document.documentElement.style.setProperty("--suggestion-bg", color2);
-        document.documentElement.style.setProperty("--color1", color1);
-        document.documentElement.style.setProperty("--color2", color2);
-        document.documentElement.style.setProperty("--primary", color1);
-        document.documentElement.style.setProperty("--accent", color1);
-        document.documentElement.style.setProperty("--chat-fg1", getContrastYIQ(color1));
-        document.documentElement.style.setProperty("--chat-fg2", getContrastYIQ(color2));
-      }
+      document.documentElement.setAttribute("data-has-bot-colors", "true");
+      document.documentElement.style.setProperty("--chat-color1", color1);
+      document.documentElement.style.setProperty("--chat-color2", color2);
+      document.documentElement.style.setProperty("--suggestion-color", color1);
+      document.documentElement.style.setProperty("--suggestion-bg", color2);
+      document.documentElement.style.setProperty("--color1", color1);
+      document.documentElement.style.setProperty("--color2", color2);
+      document.documentElement.style.setProperty("--primary", color1);
+      document.documentElement.style.setProperty("--accent", color1);
+      document.documentElement.style.setProperty("--chat-fg1", getContrastYIQ(color1));
+      document.documentElement.style.setProperty("--chat-fg2", getContrastYIQ(color2));
 
       if (logo) {
         var logoImg = document.querySelector(".logo-icon-img");
