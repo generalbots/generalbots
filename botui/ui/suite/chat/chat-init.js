@@ -101,10 +101,26 @@ if (mentionKeydownHandler) {
 input.onkeydown = function (e) {
 if (mentionKeydownHandler(e)) return;
 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+if (e.key === "PageUp" || e.key === "PageDown") {
+e.preventDefault();
+var messages = document.getElementById("messages");
+if (messages) {
+var dir = e.key === "PageUp" ? -1 : 1;
+messages.scrollBy({ top: dir * messages.clientHeight, behavior: "instant" });
+}
+}
 };
 } else {
 input.onkeydown = function (e) {
 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+if (e.key === "PageUp" || e.key === "PageDown") {
+e.preventDefault();
+var messages = document.getElementById("messages");
+if (messages) {
+var dir = e.key === "PageUp" ? -1 : 1;
+messages.scrollBy({ top: dir * messages.clientHeight, behavior: "instant" });
+}
+}
 };
 }
 }
