@@ -200,11 +200,8 @@ function finalizeStreaming() {
 }
 
 function showGreeting() {
-  var userId = ChatState.currentUserId || "there";
-  var greeting = typeof t === 'function'
-    ? t('greeting-hello', { name: userId })
-    : 'Hi, there ' + userId + '!';
-  addMessage("bot", greeting);
+  var userId = ChatState.currentUserId || "";
+  addMessage("bot", userId ? "Olá, " + userId + "!" : "Olá!");
 }
 
 function processMessage(data) {
