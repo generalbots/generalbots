@@ -716,6 +716,15 @@ impl LLMProvider for OpenAIClient {
             }
         }
 
+        // Flush any remaining buffered content from streaming look-ahead
+        if !stream_state.is_empty() {
+            let remaining = handler.process_content(&stream_state);
+            if !remaining.is_empty() {
+                content_sent += remaining.len();
+                let _ = tx.send(remaining).await;
+            }
+        }
+
         // After streaming ends, if tool_calls were accumulated, send them to tx
         if !tool_call_name.is_empty() && !tool_call_args.is_empty() {
             let tool_call_msg = serde_json::json!({

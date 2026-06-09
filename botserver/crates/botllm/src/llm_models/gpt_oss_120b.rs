@@ -123,24 +123,28 @@ impl ModelHandler for GptOss120bHandler {
             return String::new();
         }
 
-        let mut processed = chunk.to_string();
+        // Accumulate raw chunks for token-level look-ahead.
+        // This prevents text-number boundaries from being split across
+        // streaming chunks (e.g. "fevereiro20" + "21" = "fevereiro2021").
+        state.push_str(chunk);
 
-        // 1. Cross-chunk: detect text-number boundary between accumulated state and new chunk
-        if let (Some(last), Some(first)) = (state.chars().last(), chunk.chars().next()) {
-            if (last.is_alphabetic() && first.is_ascii_digit())
-                || (last.is_ascii_digit() && first.is_alphabetic())
-            {
-                processed.insert(0, ' ');
-            }
+        // Wait until enough content is accumulated (~4-5 tokens)
+        // before processing with the regex.
+        const MIN_EMIT: usize = 50;
+
+        if state.len() < MIN_EMIT {
+            return String::new();
         }
 
-        // 2. Within-chunk: regex catches boundaries inside a single token (e.g. "em2021")
-        if let Ok(re) = &*TEXT_NUMBER_REGEX {
-            processed = re.replace_all(&processed, " ").to_string();
-        }
+        // Apply text-number regex to the full accumulated buffer
+        let result = if let Ok(re) = &*TEXT_NUMBER_REGEX {
+            re.replace_all(state, " ").to_string()
+        } else {
+            state.clone()
+        };
 
-        state.push_str(&processed);
-        processed
+        state.clear();
+        result
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {
