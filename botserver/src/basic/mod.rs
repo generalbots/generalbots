@@ -89,7 +89,8 @@ impl ScriptService {
 
     pub fn run(&mut self, ast_content: &str) -> Result<Dynamic, Box<EvalAltResult>> {
         std::fs::write("/opt/gbo/logs/run_debug.txt", format!("run() called, ast_content len={}\n", ast_content.len())).ok();
-        let ast = match self.engine.compile(ast_content) {
+        let preprocessed = compiler::syntax_transforms::convert_multiword_keywords(ast_content);
+        let ast = match self.engine.compile(&preprocessed) {
             Ok(ast) => ast,
             Err(e) => {
                 std::fs::write("/opt/gbo/logs/compile_error.txt", format!("compile error: {}\n", e)).ok();

@@ -95,7 +95,7 @@ pub fn register_clear_kb_keyword(
 
     let state_fn = state_for_all;
     let user_fn = session_clone;
-    engine.register_fn("CLEAR_KB", move || {
+    engine.register_fn("clear_kb", move || {
         info!("CLEAR_KB function called - Session: {}", user_fn.id);
         let session_id = user_fn.id;
         let conn = state_fn.db_pool().clone();
