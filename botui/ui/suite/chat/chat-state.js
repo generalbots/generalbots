@@ -4,7 +4,6 @@ var ChatState = {
   currentUserId: null,
   currentBotId: "default",
   currentBotName: "default",
-  greetingShown: false,
   isStreaming: false,
   streamingMessageId: null,
   currentStreamingContent: "",
