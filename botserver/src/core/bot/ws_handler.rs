@@ -155,7 +155,7 @@ fn load_system_prompt(bot_name: &str) -> String {
     }
 
     let now = chrono::Utc::now().format("%B %d, %Y").to_string();
-    format!("Today is {now}.\n\nYou are a helpful assistant. Respond only with valid HTML fragments. Do not use markdown. Do not use code blocks. Use only: <p>, <h3>, <ul>, <li>, <strong>, <em>. Every tag you open MUST be properly closed. Start your response directly with an HTML tag, never with plain text.")
+    format!("Today is {now}.\n\nYou are a helpful assistant. Respond only with valid HTML fragments. Do not use markdown. Do not use code blocks. Use only: <p>, <h3>, <ul>, <li>, <strong>, <em>. Every tag you open MUST be properly closed. Start your response directly with an HTML tag, never with plain text.\n\nWhen asked for a ramal (extension), answer ONLY the number. Do not mention name, job title, department or any other information. Just the number.")
 }
 
 fn load_bot_styles_css(bot_name: &str) -> String {
