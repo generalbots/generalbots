@@ -199,11 +199,6 @@ function finalizeStreaming() {
   ChatState.streamingBuffer = "";
 }
 
-function showGreeting() {
-  var userId = ChatState.currentUserId || "";
-  addMessage("bot", userId ? "Olá, " + userId + "!" : "Olá!");
-}
-
 function processMessage(data) {
   if (data.thinking) {
     if (!ChatState.isStreaming) {
