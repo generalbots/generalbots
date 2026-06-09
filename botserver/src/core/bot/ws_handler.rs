@@ -827,16 +827,16 @@ async fn handle_ws(
                                     tokio::select! {
                                         chunk = stream_rx.recv() => {
                                              match chunk {
-                                                   Some(chunk) => {
-                                                       stream_started = true;
-                                                       full_response.push_str(&chunk);
-                                                       if !chunk.contains("\"__tool_call__\"") {
-                                                           let chunk_resp = serde_json::json!({
-                                                               "bot_id": bot_uuid_s,
-                                                               "user_id": user_id.to_string(),
-                                                               "session_id": session_id_s,
-                                                               "channel": "web",
-                                                               "content": chunk,
+                                                    Some(chunk) => {
+                                                        stream_started = true;
+                                                        full_response.push_str(&chunk);
+                                                        if !chunk.contains("\"__tool_call__\"") {
+                                                            let chunk_resp = serde_json::json!({
+                                                                "bot_id": bot_uuid_s,
+                                                                "user_id": user_id.to_string(),
+                                                                "session_id": session_id_s,
+                                                                "channel": "web",
+                                                                "content": chunk,
                                                                "message_type": 2,
                                                                "is_complete": false,
                                                                "suggestions": [],
@@ -986,8 +986,8 @@ async fn handle_ws(
                                  }
 
                                   {
-                                      let mut sm = state_clone.session_manager.lock().await;
-                                      let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                                   let mut sm = state_clone.session_manager.lock().await;
+                                       let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
                                   }
                             }
                             None => {

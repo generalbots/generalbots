@@ -1,5 +1,10 @@
 use super::ModelHandler;
 use log;
+use regex::Regex;
+use std::sync::LazyLock;
+
+static TEXT_NUMBER_REGEX: LazyLock<Result<Regex, regex::Error>> =
+    LazyLock::new(|| Regex::new(r"(?<=\p{L})(?=\d)|(?<=\d)(?=\p{L})"));
 
 /// Handler for GPT-OSS 120B model with thinking tags filtering
 #[derive(Debug)]
@@ -101,11 +106,41 @@ impl ModelHandler for GptOss120bHandler {
     }
 
     fn process_content(&self, content: &str) -> String {
-        strip_think_tags(content)
+        let cleaned = strip_think_tags(content);
+        if cleaned.is_empty() {
+            return String::new();
+        }
+        // Final safety net: fix text-number boundaries in the full response
+        if let Ok(re) = &*TEXT_NUMBER_REGEX {
+            re.replace_all(&cleaned, " ").to_string()
+        } else {
+            cleaned
+        }
     }
 
-    fn process_content_streaming(&self, chunk: &str, _state: &mut String) -> String {
-        chunk.to_string()
+    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
+        if chunk.is_empty() {
+            return String::new();
+        }
+
+        let mut processed = chunk.to_string();
+
+        // 1. Cross-chunk: detect text-number boundary between accumulated state and new chunk
+        if let (Some(last), Some(first)) = (state.chars().last(), chunk.chars().next()) {
+            if (last.is_alphabetic() && first.is_ascii_digit())
+                || (last.is_ascii_digit() && first.is_alphabetic())
+            {
+                processed.insert(0, ' ');
+            }
+        }
+
+        // 2. Within-chunk: regex catches boundaries inside a single token (e.g. "em2021")
+        if let Ok(re) = &*TEXT_NUMBER_REGEX {
+            processed = re.replace_all(&processed, " ").to_string();
+        }
+
+        state.push_str(&processed);
+        processed
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {
