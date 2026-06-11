@@ -666,7 +666,8 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
         ));
         sub_router = sub_router
             .merge(saas_ui::configure_saas_ui_routes().with_state(saas_service.clone()))
-            .merge(api::configure_saas_api_routes().with_state(saas_service));
+            .merge(api::configure_saas_api_routes().with_state(saas_service.clone()))
+            .merge(botsaas::webhook::configure_webhook_routes().with_state(saas_service));
     }
     
     #[cfg(feature = "whatsapp")]
