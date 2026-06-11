@@ -10,7 +10,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "security", "deployment"]
+default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "security", "deployment", "saas"]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
@@ -108,6 +108,7 @@ kb = ["automation", "drive", "cache", "dep:botkb"]
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
 search = ["automation", "drive", "cache", "dep:botsearch"]
 desktop = ["automation", "drive", "cache", "dep:botdesktop"]
+saas = ["dep:botsaas", "billing"]
 
 # ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat"]
@@ -131,6 +132,7 @@ allbutooxmlsdk = [
     "browser", "terminal", "external_sync", "nvidia",
     "deployment",
     "security", "directory", "llm", "vectordb", "crawler", "console",
+    "saas",
 ]
 
 [dependencies]
@@ -341,6 +343,7 @@ botsearch = { workspace = true, optional = true }
 botdesktop = { workspace = true, optional = true }
 botapps = { workspace = true }
 botmodelsbridge = { workspace = true }
+botsaas = { path = "crates/botsaas", optional = true }
 
 [dev-dependencies]
 mockito = { workspace = true }

@@ -642,6 +642,33 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
         
     }
     
+    #[cfg(feature = "saas")]
+    {
+        use botsaas::{SaasService, SaasConfig, stripe::StripeClient, saas_ui, api};
+        let stripe = StripeClient::new(
+            std::env::var("STRIPE_SECRET_KEY")
+                .unwrap_or_else(|_| "sk_test_placeholder".to_string()),
+            None,
+        );
+        let saas_config = SaasConfig {
+            base_url: std::env::var("SAAS_BASE_URL")
+                .unwrap_or_else(|_| "http://localhost:5859".to_string()),
+            jwt_secret: std::env::var("SAAS_JWT_SECRET")
+                .unwrap_or_else(|_| "change-me-in-production".to_string()),
+        };
+        let saas_service = Arc::new(SaasService::new(
+            Arc::new(botbilling::api::BillingApiState {
+                pool: Arc::new(app_state.conn.clone()),
+                get_default_bot: Some((|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
+            }),
+            stripe,
+            saas_config,
+        ));
+        sub_router = sub_router
+            .merge(saas_ui::configure_saas_ui_routes().with_state(saas_service.clone()))
+            .merge(api::configure_saas_api_routes().with_state(saas_service));
+    }
+    
     #[cfg(feature = "whatsapp")]
     {
         sub_router = sub_router.merge(crate::whatsapp::configure(app_state.clone()).with_state(app_state.clone()));
