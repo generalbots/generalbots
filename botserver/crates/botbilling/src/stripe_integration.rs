@@ -86,6 +86,10 @@ pub struct StripeInvoice {
     pub created: i64,
     pub hosted_invoice_url: Option<String>,
     pub invoice_pdf: Option<String>,
+    #[serde(default)]
+    pub customer_email: Option<String>,
+    #[serde(default)]
+    pub customer_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -123,6 +127,8 @@ pub struct StripeCheckoutSession {
     pub subscription: Option<String>,
     pub status: String,
     pub mode: String,
+    #[serde(default)]
+    pub metadata: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -265,6 +271,21 @@ impl StripeClient {
             .post(format!("{}/checkout/sessions", self.base_url))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
+            .send()
+            .await
+            .map_err(|e| StripeError::NetworkError(e.to_string()))?;
+
+        self.handle_response(response).await
+    }
+
+    pub async fn retrieve_checkout_session(
+        &self,
+        session_id: &str,
+    ) -> Result<StripeCheckoutSession, StripeError> {
+        let response = self
+            .client
+            .get(format!("{}/checkout/sessions/{}", self.base_url, session_id))
+            .basic_auth(&self.api_key, Option::<&str>::None)
             .send()
             .await
             .map_err(|e| StripeError::NetworkError(e.to_string()))?;

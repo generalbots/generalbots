@@ -1,6 +1,9 @@
 pub mod api;
+pub mod integration;
+pub mod notifier;
 pub mod saas_ui;
 pub mod stripe;
+pub mod webhook;
 
 use botbilling::api::BillingApiState;
 use botbilling::stripe_integration::StripeClient;
