@@ -1,4 +1,6 @@
 use botcore::shared::state::AppState;
+use botbasic_comms::keywords::universal_messaging::register_universal_messaging;
+use botbasic_comms::keywords::send_mail::send_mail_keyword;
 use diesel::prelude::*;
 use log::warn;
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
@@ -41,8 +43,10 @@ impl ScriptService {
         botbasic_ai::register_ai_keywords(runtime.clone(), bt_user.clone(), &mut engine);
         botbasic_system::register_system_keywords(runtime, bt_user, &mut engine);
 
-        // Register local (botserver-only) keywords
-        set_answer_mode::register_set_answer_mode_keyword(state_for_local, user, &mut engine);
+        // Register local (botserver-only) keywords that need Arc<AppState>
+        set_answer_mode::register_set_answer_mode_keyword(state_for_local.clone(), user.clone(), &mut engine);
+        register_universal_messaging(state_for_local.clone(), user.clone(), &mut engine);
+        send_mail_keyword(state_for_local, user, &mut engine);
 
         Self { engine, scope }
     }

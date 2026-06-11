@@ -79,6 +79,64 @@ pub fn register_get_keyword(state: Arc<dyn BasicRuntime>, user_session: UserSess
         .expect("valid syntax registration");
 }
 
+pub fn register_get_from_fn(
+    state: Arc<dyn BasicRuntime>,
+    user_session: UserSession,
+    engine: &mut Engine,
+) {
+    let state_fn = Arc::clone(&state);
+    let user_fn = user_session.clone();
+    engine.register_fn("GET_FROM", move |table: String| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+        let filter = "1=1".to_string();
+        let bot_id = user_fn.bot_id;
+        let pool = state_fn.db_pool().clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let tbl = table;
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = match rt {
+                Ok(rt) => rt.block_on(async move {
+                    execute_get_from(&pool, &tbl, &filter, bot_id)
+                }),
+                Err(e) => Err(format!("Failed to create runtime: {e}")),
+            };
+            let _ = tx.send(result);
+        });
+        let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
+        let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+        let results_value = serde_json::Value::Array(results);
+        Ok(botbasic_core::utils::json_value_to_dynamic(&results_value))
+    });
+
+    let state_fn2 = Arc::clone(&state);
+    let user_fn2 = user_session;
+    engine.register_fn("GET_FROM", move |table: String, filter: String| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+        let bot_id = user_fn2.bot_id;
+        let pool = state_fn2.db_pool().clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let tbl = table;
+        let flt = filter;
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = match rt {
+                Ok(rt) => rt.block_on(async move {
+                    execute_get_from(&pool, &tbl, &flt, bot_id)
+                }),
+                Err(e) => Err(format!("Failed to create runtime: {e}")),
+            };
+            let _ = tx.send(result);
+        });
+        let result = rx.recv().unwrap_or(Err("Failed to receive result".into()))?;
+        let results = result.get("results").and_then(|r| r.as_array()).cloned().unwrap_or_default();
+        let results_value = serde_json::Value::Array(results);
+        Ok(botbasic_core::utils::json_value_to_dynamic(&results_value))
+    });
+}
+
 pub fn register_get_from_keyword(
     state: Arc<dyn BasicRuntime>,
     user_session: UserSession,
