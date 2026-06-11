@@ -99,7 +99,7 @@ impl BasicCompiler {
         *save_counter += 1;
 
         let converted = format!(
-            "let {} = {}; SAVE {}, {}",
+            "let {} = {}; SAVE \"{}\", {}",
             data_var, map_expr, table_name, data_var
         );
 
@@ -193,19 +193,21 @@ impl BasicCompiler {
             let data_var = format!("__save_data_{}__", *save_counter);
             *save_counter += 1;
 
+            // Embed id in data map so Rhai's 2-arg SAVE handler can upsert
+            // Format: let __save_data_0__ = #{id: id_expr, key: val, ...}; SAVE "table", __save_data_0__
+            let all_items = format!("id: {}, {}", id_expr, rhai_items.join(", "));
+
             Ok(Some(format!(
-                "let {} = #{{{}}}; SAVE \"{}\", {}, {}",
-                data_var,
-                rhai_items.join(", "),
-                table_name,
-                id_expr,
-                data_var
+                "let {} = #{{{}}}; SAVE \"{}\", {}",
+                data_var, all_items, table_name, data_var
             )))
         } else {
             // Variable name: SAVE var TO table WHERE id = expr
+            // Pass directly to 2-arg SAVE; if var already has an `id` field,
+            // handler will upsert, otherwise it inserts
             Ok(Some(format!(
-                "SAVE \"{}\", {}, {}",
-                table_name, id_expr, data_part
+                "SAVE \"{}\", {}",
+                table_name, data_part
             )))
         }
     }

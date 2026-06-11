@@ -24,9 +24,7 @@ fn normalize_cron_schedule(schedule: &str) -> String {
     result.trim().to_string()
 }
 
-#[cfg(feature = "vectordb")]
-pub use crate::kb::kb_indexer::{IndexingStats, VectorDBIndexer};
-// IndexingStatus parece não existir em botqdrant, ajustando conforme disponível.
+
 
 #[derive(Debug)]
 pub struct AutomationService {

@@ -65,6 +65,38 @@ pub fn dynamic_to_json(value: &Dynamic) -> Value {
 }
 
 pub fn convert_date_to_iso_format(date_str: &str) -> String {
+    let trimmed = date_str.trim();
+    // Already ISO format (yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+    if trimmed.len() >= 10 && trimmed.as_bytes()[4] == b'-' && trimmed.as_bytes()[7] == b'-' {
+        return trimmed.to_string();
+    }
+    // Brazilian format: dd/mm/aaaa or dd/mm/aaaa HH:mm:ss
+    if trimmed.contains('/') {
+        let parts: Vec<&str> = trimmed.splitn(3, '/').collect();
+        if parts.len() == 3 {
+            let day = parts[0];
+            let month = parts[1];
+            let rest = parts[2];
+            let year = if rest.contains(' ') {
+                rest.split(' ').next().unwrap_or(rest)
+            } else {
+                rest
+            };
+            // Validate numbers
+            if day.chars().all(|c| c.is_ascii_digit()) && month.chars().all(|c| c.is_ascii_digit()) {
+                let d: i32 = day.parse().unwrap_or(0);
+                let m: i32 = month.parse().unwrap_or(0);
+                if d >= 1 && d <= 31 && m >= 1 && m <= 12 {
+                    let time_part = if rest.contains(' ') {
+                        " ".to_string() + rest.split(' ').nth(1).unwrap_or("")
+                    } else {
+                        String::new()
+                    };
+                    return format!("{:04}-{:02}-{:02}{}", year, m, d, time_part);
+                }
+            }
+        }
+    }
     date_str.to_string()
 }
 

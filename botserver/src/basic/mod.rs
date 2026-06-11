@@ -88,19 +88,24 @@ impl ScriptService {
     }
 
     pub fn run(&mut self, ast_content: &str) -> Result<Dynamic, Box<EvalAltResult>> {
-        std::fs::write("/opt/gbo/logs/run_debug.txt", format!("run() called, ast_content len={}\n", ast_content.len())).ok();
+        if let Err(e) = std::fs::write("/tmp/run_ast_input.txt", ast_content) {
+            log::warn!("Failed to write /tmp/run_ast_input.txt: {}", e);
+        }
         let preprocessed = compiler::syntax_transforms::convert_multiword_keywords(ast_content);
+        if let Err(e) = std::fs::write("/tmp/run_preprocessed.txt", &preprocessed) {
+            log::warn!("Failed to write /tmp/run_preprocessed.txt: {}", e);
+        }
         let ast = match self.engine.compile(&preprocessed) {
             Ok(ast) => ast,
             Err(e) => {
-                std::fs::write("/opt/gbo/logs/compile_error.txt", format!("compile error: {}\n", e)).ok();
+                if let Err(we) = std::fs::write("/tmp/compile_error.txt", format!("compile error: {}\npreprocessed lines: {}\n", e, preprocessed.lines().count())) {
+                    log::warn!("Failed to write /tmp/compile_error.txt: {}", we);
+                }
                 log::error!("[BASIC_EXEC] Failed to compile AST: {}", e);
                 return Err(Box::new(e.into()));
             }
         };
-        std::fs::write("/opt/gbo/logs/eval_start.txt", format!("eval_ast_with_scope starting\n")).ok();
         let result = self.engine.eval_ast_with_scope(&mut self.scope, &ast);
-        std::fs::write("/opt/gbo/logs/eval_result.txt", format!("eval result: {:?}\n", result)).ok();
         result
     }
 

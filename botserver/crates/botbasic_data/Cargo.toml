@@ -11,8 +11,8 @@ vectordb = []
 people = []
 billing = []
 llm = []
-drive = []
-sheet = []
+drive = ["dep:pdf-extract"]
+sheet = ["dep:calamine", "dep:rust_xlsxwriter"]
 
 [dependencies]
 botlib = { workspace = true, features = ["database", "http-client"] }
@@ -35,6 +35,9 @@ botsecurity = { path = "../botsecurity" }
 axum = { workspace = true, features = ["ws", "macros"] }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
+calamine = { workspace = true, optional = true }
+rust_xlsxwriter = { workspace = true, optional = true }
+pdf-extract = { workspace = true, optional = true }
 
 [lints]
 workspace = true

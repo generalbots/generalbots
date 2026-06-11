@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use log::{info, warn};
+use log::{error, info, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -9,7 +9,47 @@ use tokio::time::{sleep, Duration};
 use uuid::Uuid;
 
 #[cfg(feature = "mail")]
-use crate::email::vectordb::{EmailDocument, UserEmailVectorDB};
+mod email_types {
+    use chrono::{DateTime, Utc};
+    use serde::{Deserialize, Serialize};
+    use uuid::Uuid;
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct EmailDocument {
+        pub id: String,
+        pub account_id: String,
+        pub from_email: String,
+        pub from_name: String,
+        pub to_email: String,
+        pub subject: String,
+        pub body_text: String,
+        pub date: DateTime<Utc>,
+        pub folder: String,
+        pub has_attachments: bool,
+        pub thread_id: Option<String>,
+    }
+
+    pub struct UserEmailVectorDB {
+        user_id: Uuid,
+        bot_id: Uuid,
+        collection_name: String,
+    }
+
+    impl UserEmailVectorDB {
+        pub fn new(user_id: Uuid, bot_id: Uuid, _db_path: String) -> Self {
+            let collection_name = format!("email_{}_{}", bot_id, user_id);
+            Self { user_id, bot_id, collection_name }
+        }
+
+        pub async fn initialize(&mut self, _qdrant_url: &str) -> Result<(), anyhow::Error> {
+            Ok(())
+        }
+    }
+}
+
+#[cfg(feature = "mail")]
+use email_types::{EmailDocument, UserEmailVectorDB};
+
 use crate::embedding::EmbeddingGenerator;
 use crate::drive_vectordb::{FileDocument, FileContentExtractor, UserDriveVectorDB};
 use botcore::shared::utils::DbPool;

@@ -173,6 +173,7 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
 
 fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
+    let user_clone = user.clone();
 
     engine
         .register_custom_syntax(
@@ -185,7 +186,7 @@ fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 trace!("SEND TO: {} with message", target);
 
                 let state_for_send = Arc::clone(&state_clone);
-                let user_for_send = user.clone();
+                let user_for_send = user_clone.clone();
 
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
@@ -208,6 +209,38 @@ fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
             },
         )
         .expect("valid syntax registration");
+
+    // Also register send_to as regular function for .ast compatibility
+    let state_fn = Arc::clone(&state);
+    let user_fn = user.clone();
+    engine.register_fn("send_to", move |target: String, message: String| -> Dynamic {
+        trace!("send_to function: target={}, message={}", target, message);
+
+        let state_for_send = Arc::clone(&state_fn);
+        let user_for_send = user_fn.clone();
+        let target_clone = target.clone();
+        let message_clone = message.clone();
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let result = match rt {
+                Ok(rt) => rt.block_on(async {
+                    send_to_specific_channel(state_for_send, &user_for_send, &target_clone, &message_clone)
+                        .await
+                }),
+                Err(_) => Err("Failed to create runtime".into()),
+            };
+            let _ = tx.send(result);
+        });
+        match rx.recv() {
+            Ok(Ok(())) => Dynamic::UNIT,
+            Ok(Err(e)) => Dynamic::from(format!("Failed to send: {}", e)),
+            Err(e) => Dynamic::from(format!("Failed to receive send result: {}", e)),
+        }
+    });
 }
 
 fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
