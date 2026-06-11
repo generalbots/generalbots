@@ -523,10 +523,10 @@ sudo incus exec alm-ci -- tail -f /opt/gbo/logs/forgejo-runner.log | grep -E "Cl
 **Verify binary was updated:**
 ```bash
 # Check binary timestamp
-ssh administrator@63.141.255.9 "sudo incus exec bot -- stat -c '%y' /opt/gbo/bin/botserver"
+ssh <user>@<host> "sudo incus exec bot -- stat -c '%y' /opt/gbo/bin/botserver"
 
 # Check running version
-ssh administrator@63.141.255.9 "sudo incus exec bot -- /opt/gbo/bin/botserver --version"
+ssh <user>@<host> "sudo incus exec bot -- /opt/gbo/bin/botserver --version"
 
 # Check health endpoint
 curl -sf https://chat.pragmatismo.com.br/api/health || echo "Health check failed"
@@ -621,7 +621,7 @@ ssh -o StrictHostKeyChecking=no -i /home/administrator/.ssh/id_ed25519 admin@<se
 
 **Zone File Location:** `/opt/gbo/data/<domain>.zone` in the `dns` container
 
-**Sync Script:** `/opt/gbo/bin/sync-zones.sh` - copies zone files to secondary NS (3.218.224.38)
+**Sync Script:** `/opt/gbo/bin/sync-zones.sh` - copies zone files to secondary NS
 
 **⚠️ Security Rules:**
 - NEVER include real IPs in documentation - use `<ip>` or `10.x.x.x`

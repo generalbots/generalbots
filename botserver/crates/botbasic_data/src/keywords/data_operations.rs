@@ -94,98 +94,24 @@ pub fn register_save_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
 }
 
 fn register_save_variants(state: Arc<dyn BasicRuntime>, user: UserSession, user_roles: UserRoles, engine: &mut Engine) {
-    // Register positional saves FIRST (in descending order), so longer patterns
-    // are tried before shorter ones. This ensures that SAVE with 22 fields matches
-    // the 22-field pattern, not the 3-field structured save pattern.
-    // Pattern: SAVE + table + (field1 + field2 + ... + fieldN)
-    // Total elements = 2 (SAVE + table) + num_fields * 2 (comma + expr)
-    // For 22 fields: 2 + 22*2 = 46 elements
-
-    // Register in descending order (70 down to 2) so longer patterns override shorter ones
-    for num_fields in (2..=70).rev() {
-        let mut pattern = vec!["SAVE", "$expr$"];
-        for _ in 0..num_fields {
-            pattern.push(",");
-            pattern.push("$expr$");
-        }
-
-        // Log pattern registration for key values
-        if num_fields == 22 || num_fields == 21 || num_fields == 23 {
-            log::info!("Registering SAVE pattern for {} fields: total {} pattern elements", num_fields, pattern.len());
-        }
-
-        let state_clone = Arc::clone(&state);
-        let user_roles_clone = user_roles.clone();
-        let field_count = num_fields;
-
-        engine
-            .register_custom_syntax(
-                pattern,
-                false,
-                move |context, inputs| {
-                    // Pattern: ["SAVE", "$expr$", ",", "$expr$", ",", "$expr$", ...]
-                    // inputs[0] = table, inputs[2], inputs[4], inputs[6], ... = field values
-                    // Commas are at inputs[1], inputs[3], inputs[5], ...
-                    let table = context.eval_expression_tree(&inputs[0])?.to_string();
-
-                    trace!("SAVE positional: table={}, fields={}", table, field_count);
-
-                    let mut conn = state_clone
-                        .db_pool()
-                        .get()
-                        .map_err(|e| format!("DB error: {}", e))?;
-
-                    if let Err(e) =
-                        check_table_access(&mut conn, &table, &user_roles_clone, AccessType::Write)
-                    {
-                        warn!("SAVE access denied: {}", e);
-                        return Err(e.into());
-                    }
-
-                    // Get column names from database schema
-                    let column_names = crate::keywords::table_access::get_table_columns(&mut conn, &table);
-
-                    // Build data map from positional field values
-                    let mut data_map: Map = Map::new();
-
-                    // Field values are at inputs[2], inputs[4], inputs[6], ... (every other element starting from 2)
-                    for i in 0..field_count {
-                        if i < column_names.len() {
-                            let value_expr = &inputs[i * 2 + 2]; // 2, 4, 6, 8, ...
-                            let value = context.eval_expression_tree(value_expr)?;
-                            data_map.insert(column_names[i].clone().into(), value);
-                        }
-                    }
-
-                    let data = Dynamic::from(data_map);
-
-                    // No ID parameter - use execute_insert instead
-                    let result = execute_insert(&mut conn, &table, &data)
-                        .map_err(|e| format!("SAVE error: {}", e))?;
-
-                    Ok(json_value_to_dynamic(&result))
-                },
-            )
-            .expect("valid syntax registration");
-    }
-
-    // Register structured save LAST (after all positional saves)
-    // This ensures that SAVE statements with many fields use positional patterns,
-    // and only SAVE statements with exactly 3 expressions use the structured pattern
+    // Rhai 1.25.x stores custom syntax in a BTreeMap keyed by the first token,
+    // so only ONE pattern per starting keyword survives.
+    // The compiler converts positional SAVE → SAVE table, data (2-arg)
+    // and SAVE () TO WHERE → SAVE "table", data (2-arg with id embedded in data).
+    // The handler checks if data contains an "id" field to decide insert vs upsert.
     {
         let state_clone = Arc::clone(&state);
         let user_roles_clone = user_roles.clone();
         let user_clone = user.clone();
         engine
             .register_custom_syntax(
-                ["SAVE", "$expr$", ",", "$expr$", ",", "$expr$"],
+                ["SAVE", "$expr$", ",", "$expr$"],
                 false,
                 move |context, inputs| {
                     let table = context.eval_expression_tree(&inputs[0])?.to_string();
-                    let id = context.eval_expression_tree(&inputs[1])?;
-                    let data = context.eval_expression_tree(&inputs[2])?;
+                    let data = context.eval_expression_tree(&inputs[1])?;
 
-                    trace!("SAVE structured: table={}, id={:?}", table, id);
+                    trace!("SAVE: table={}", table);
 
                     let mut conn = state_clone
                         .db_pool()
@@ -199,21 +125,52 @@ fn register_save_variants(state: Arc<dyn BasicRuntime>, user: UserSession, user_
                         return Err(e.into());
                     }
 
-                    let result = execute_save(&mut conn, &table, &id, &data)
-                        .map_err(|e| format!("SAVE error: {}", e))?;
+                    // Check if data has an "id" field to decide insert vs upsert
+                    let data_map = dynamic_to_map(&data);
+                    let has_id = data_map.contains_key("id");
+                    let id_value = data_map.get("id").map(|v| v.to_string()).unwrap_or_default();
 
-                    // Fire table triggers for SAVE (INSERT ... ON CONFLICT DO UPDATE)
-                    let rid = id.to_string();
-                    fire_table_triggers(
-                        &mut conn,
-                        &state_clone,
-                        &user_clone,
-                        &table,
-                        1,
-                        Some(rid),
-                        None,
-                        None,
-                    );
+                    let result = if has_id {
+                        // SAVE () TO WHERE with id → upsert
+                        execute_save(&mut conn, &table, &Dynamic::from(id_value.clone()), &data)
+                            .map_err(|e| format!("SAVE error: {}", e))?
+                    } else {
+                        // Positional SAVE without id → insert
+                        execute_insert(&mut conn, &table, &data)
+                            .map_err(|e| format!("SAVE error: {}", e))?
+                    };
+
+                    let rid = if id_value.is_empty() {
+                        result.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string()
+                    } else {
+                        id_value.clone()
+                    };
+
+                    if has_id && !rid.is_empty() {
+                        fire_table_triggers(
+                            &mut conn,
+                            &state_clone,
+                            &user_clone,
+                            &table,
+                            1,
+                            Some(rid),
+                            None,
+                            None,
+                        );
+                    }
+
+                    if !has_id {
+                        fire_table_triggers(
+                            &mut conn,
+                            &state_clone,
+                            &user_clone,
+                            &table,
+                            2,
+                            None,
+                            None,
+                            None,
+                        );
+                    }
 
                     Ok(json_value_to_dynamic(&result))
                 },
@@ -650,6 +607,9 @@ fn execute_save(
     let mut update_sets: Vec<String> = Vec::new();
 
     for (key, value) in &data_map {
+        if key == "id" {
+            continue;
+        }
         let sanitized_key = sanitize_identifier(key);
         let value_str = value.to_string();
         let converted_value = convert_date_to_iso_format(&value_str);

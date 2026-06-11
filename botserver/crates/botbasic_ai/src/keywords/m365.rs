@@ -85,25 +85,18 @@ fn register_send_teams_message(
     let _state_clone = state;
 
     engine
-        .register_custom_syntax(
-            ["SEND", "TEAMS", "MESSAGE", "$expr$", ",", "$expr$"],
-            false,
-            move |context, inputs| {
-                let chat_id = context.eval_expression_tree(&inputs[0])?.to_string();
-                let message = context.eval_expression_tree(&inputs[1])?.to_string();
-                trace!("SEND TEAMS MESSAGE: chat={chat_id}");
-                let result = json!({
-                    "kind": "teams_message",
-                    "action": "send",
-                    "chat_id": chat_id,
-                    "body": { "contentType": "html", "content": message },
-                    "endpoint": format!("/v1.0/chats/{}/messages", chat_id),
-                    "method": "POST",
-                });
-                Ok(serde_json_to_dynamic(&result))
-            },
-        )
-        .expect("valid SEND TEAMS MESSAGE syntax");
+        .register_fn("send_teams_message", |chat_id: String, message: String| {
+            trace!("send_teams_message: chat={chat_id}");
+            let result = json!({
+                "kind": "teams_message",
+                "action": "send",
+                "chat_id": chat_id,
+                "body": { "contentType": "html", "content": message },
+                "endpoint": format!("/v1.0/chats/{}/messages", chat_id),
+                "method": "POST",
+            });
+            serde_json_to_dynamic(&result)
+        });
 }
 
 fn serde_json_to_dynamic(v: &Value) -> Dynamic {

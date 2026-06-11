@@ -253,7 +253,8 @@ pub async fn get_from_bucket(
         log::error!("Unsafe file path detected: {}", file_path);
         return Err("Invalid file path".into());
     }
-    let client = state.drive_repository().as_ref().ok_or("S3 client not configured")?;
+    let drive_repo = state.drive_repository().ok_or("S3 client not configured")?;
+    let client = drive_repo.as_ref();
     let bot_name: String = {
         use botbasic_types::schema::bots::dsl::*;
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {}", e))?;
@@ -271,17 +272,9 @@ pub async fn get_from_bucket(
     };
     let bytes: Vec<u8> = match tokio::time::timeout(Duration::from_secs(30), async {
         client
-            .get_object()
-            .bucket(&bucket_name)
-            .key(file_path)
-            .send()
+            .get_object(&bucket_name, file_path)
             .await
-            .map_err(|e| format!("S3 operation failed: {}", e))?
-            .body
-            .collect()
-            .await
-            .map(|c| c.into_bytes())
-            .map_err(|e| format!("Body collect failed: {}", e))
+            .map_err(|e| format!("S3 operation failed: {}", e))
     })
     .await
     {

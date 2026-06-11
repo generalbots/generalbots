@@ -50,20 +50,27 @@ impl super::BasicCompiler {
             return Ok(None);
         }
         let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() < 4 {
+        if parts.len() < 3 {
             warn!("Invalid PARAM line: {line}");
             return Ok(None);
         }
-        let name = parts[1].to_string();
+        let raw_name = parts[1];
+        let (name, param_type) = if let Some(colon_pos) = raw_name.find(':') {
+            let n = raw_name[..colon_pos].to_string();
+            let t = raw_name[colon_pos + 1..].to_lowercase();
+            (n, t)
+        } else {
+            (raw_name.to_string(), "string".to_string())
+        };
         let as_index = parts.iter().position(|&p| p == "AS");
         let param_type = if let Some(idx) = as_index {
             if idx + 1 < parts.len() {
                 parts[idx + 1].to_lowercase()
             } else {
-                "string".to_string()
+                param_type
             }
         } else {
-            "string".to_string()
+            param_type
         };
         let example = line.find("LIKE").and_then(|like_pos| {
             let rest = &line[like_pos + 4..].trim();

@@ -231,19 +231,6 @@ impl DocumentProcessor {
                 Err(e) => log::warn!("DOCX ZIP extraction failed for {path_display}: {e}"),
             }
 
-            #[cfg(feature = "docs")]
-            match crate::kb::document_processor::ooxml_extract::load_docx_preserving(&bytes) {
-                Ok(doc) => {
-                    let text: String = doc.paragraphs.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n");
-                    if !text.trim().is_empty() {
-                        log::info!("Extracted DOCX with ooxmlsdk: {path_display}");
-                        return Ok(text);
-                    }
-                    log::warn!("ooxmlsdk DOCX returned empty: {path_display}");
-                }
-                Err(e) => log::warn!("ooxmlsdk DOCX failed for {path_display}: {e}"),
-            }
-
             Err(anyhow::anyhow!("All DOCX extraction methods failed for {path_display}"))
         })
         .await??;
@@ -313,27 +300,6 @@ impl DocumentProcessor {
                 }
                 Ok(_) => log::warn!("PPTX ZIP extraction returned empty text: {path_display}"),
                 Err(e) => log::warn!("PPTX ZIP extraction failed for {path_display}: {e}"),
-            }
-
-            #[cfg(feature = "slides")]
-            match crate::kb::document_processor::ooxml_extract::load_pptx_preserving(&bytes) {
-                Ok(pptx) => {
-                    let mut text = String::new();
-                    for slide in &pptx.slides {
-                        for slide_text in &slide.texts {
-                            if !text.is_empty() {
-                                text.push('\n');
-                            }
-                            text.push_str(slide_text);
-                        }
-                    }
-                    if !text.trim().is_empty() {
-                        log::info!("Extracted PPTX with ooxmlsdk: {path_display}");
-                        return Ok(text);
-                    }
-                    log::warn!("ooxmlsdk PPTX returned empty: {path_display}");
-                }
-                Err(e) => log::warn!("ooxmlsdk PPTX failed for {path_display}: {e}"),
             }
 
             Err(anyhow::anyhow!("All PPTX extraction methods failed for {path_display}"))

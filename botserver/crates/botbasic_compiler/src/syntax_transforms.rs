@@ -100,6 +100,52 @@ pub fn convert_if_then_syntax(script: &str) -> String {
                 condition.to_string()
             };
             log::trace!("Converting IF statement: condition='{}'", condition);
+
+            // Handle inline IF/THEN with body on the same line
+            // e.g., IF cond THEN stmt END IF  or  IF cond THEN stmt ELSE stmt2 END IF
+            let after_then = trimmed[then_pos + 5..].trim();
+            let has_inline_else = after_then.to_uppercase().contains(" ELSE ");
+            let has_inline_end = after_then.to_uppercase().contains(" END IF");
+
+            if has_inline_end || has_inline_else {
+                // Extract inline THEN body (everything before ELSE or END IF)
+                let inline_body = if has_inline_else {
+                    let else_upper = after_then.to_uppercase();
+                    let else_pos = else_upper.find(" ELSE ").unwrap();
+                    after_then[..else_pos].trim().to_string()
+                } else if has_inline_end {
+                    let end_upper = after_then.to_uppercase();
+                    let end_pos = end_upper.find(" END IF").unwrap();
+                    after_then[..end_pos].trim().to_string()
+                } else {
+                    after_then.to_string()
+                };
+
+                result.push_str("if ");
+                result.push_str(&condition);
+                result.push_str(" {\n  ");
+                result.push_str(&inline_body);
+                result.push_str(";\n");
+
+                if has_inline_else {
+                    let else_upper = after_then.to_uppercase();
+                    let else_pos = else_upper.find(" ELSE ").unwrap();
+                    let after_else = after_then[else_pos + 6..].trim();
+                    let else_body = if after_else.to_uppercase().ends_with(" END IF") {
+                        after_else[..after_else.len() - 7].trim().to_string()
+                    } else {
+                        after_else.trim_end().to_string()
+                    };
+                    result.push_str("} else {\n  ");
+                    result.push_str(&else_body);
+                    result.push_str(";\n}\n");
+                } else {
+                    result.push_str("}\n");
+                }
+                // Don't push to if_stack since it's single-line and already closed
+                continue;
+            }
+
             result.push_str("if ");
             result.push_str(&condition);
             result.push_str(" {\n");
@@ -208,18 +254,11 @@ pub fn convert_if_then_syntax(script: &str) -> String {
 
             if parts.len() >= 2 {
                 let table = parts[0].trim().trim_matches('"');
-
-                if parts.len() == 2 {
-                    let object_name = parts[1].trim().trim_end_matches(';');
-                    let converted = format!("INSERT \"{}\", {};\n", table, object_name);
-                    log::trace!("Converted SAVE to INSERT (old syntax): '{}'", converted);
-                    result.push_str(&converted);
-                    continue;
-                }
-
-                let values = parts[1..].join(", ");
+                let values = parts[1..].join(",");
+                // Unified 2-arg SAVE: SAVE "table", data
+                // Rhai handler checks if data has an `id` field to decide insert vs upsert
                 let converted = format!("SAVE \"{}\", {};\n", table, values);
-                log::trace!("Keeping SAVE syntax (modern): '{}'", converted);
+                log::trace!("Unified SAVE syntax: '{}'", converted);
                 result.push_str(&converted);
                 continue;
             }
@@ -514,6 +553,8 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         (r#"ON\s+EVENT"#, 1, 1, vec!["event"]),
 
         (r#"SEND\s+MAIL"#, 4, 4, vec!["to", "subject", "body", "attachments"]),
+        (r#"SEND\s+TEAMS\s+MESSAGE"#, 2, 2, vec!["chat_id", "message"]),
+        (r#"SEND\s+TO"#, 2, 2, vec!["target", "message"]),
 
         (r#"HAS\s+ROLE"#, 1, 1, vec!["role"]),
         (r#"BOOK"#, 1, 1, vec!["event"]),
@@ -563,12 +604,27 @@ pub fn convert_multiword_keywords(script: &str) -> String {
                         let indent = caps.get(1).map_or("", |m| m.as_str());
                         let prefix = prefix_match.as_str();
                         let params_str = caps.get(3).map_or("", |m| m.as_str().trim());
-                        let params = if params_str.is_empty() {
+                        let mut params = if params_str.is_empty() {
                             Vec::new()
                         } else {
                             parse_parameters(params_str)
                         };
-                        let param_count = params.len();
+                        let mut param_count = params.len();
+
+                        // Fallback: if comma-based parsing gave too few params, try splitting by '='
+                        // e.g. SET BOT MEMORY "key" = value uses '=' not ','
+                        if param_count < *min_params && params_str.contains('=') && !params_str.contains(','){
+                            let eq_parts: Vec<&str> = params_str.splitn(2, '=').collect();
+                            if eq_parts.len() == 2 {
+                                let key = eq_parts[0].trim();
+                                let value = eq_parts[1].trim();
+                                let fallback_params = vec![key.to_string(), value.to_string()];
+                                if fallback_params.len() >= *min_params && fallback_params.len() <= *max_params {
+                                    params = fallback_params;
+                                    param_count = params.len();
+                                }
+                            }
+                        }
 
                         if param_count >= *min_params && param_count <= *max_params {
                             let keyword = pattern.replace(r"\s+", "_").to_lowercase();

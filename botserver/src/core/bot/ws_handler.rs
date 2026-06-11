@@ -382,6 +382,17 @@ async fn handle_ws(
 
     loop {
         tokio::select! {
+            response = rx.recv() => {
+                if let Some(response) = response {
+                    if let Ok(json) = serde_json::to_string(&response) {
+                        if ws_sender.send(Message::Text(json.into())).await.is_err() {
+                            break;
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
             msg = ws_receiver.next() => {
                 match msg {
                     Some(Ok(Message::Text(text))) => {
@@ -919,9 +930,12 @@ async fn handle_ws(
                                                  }
                                              };
 
-                                               if !ast_content.is_empty() {
-                                                   let state_for_tool = state_clone.clone();
-                                                   let tool_name_cl = tool_name.clone();
+                                                if !ast_content.is_empty() {
+                                                    let state_for_tool = state_clone.clone();
+                                                    let tool_name_cl = tool_name.clone();
+                                                    let work_path_for_mcp = work_path.clone();
+                                                    let bot_name_for_mcp = bot_name.clone();
+                                                    let tool_name_for_mcp = tool_name.clone();
 
                                                    let parsed_args: serde_json::Value = serde_json::from_str(tool_args).unwrap_or(serde_json::Value::Null);
                                                    let injected_args = parsed_args.clone();
@@ -945,25 +959,44 @@ async fn handle_ws(
                                                           state_for_tool.clone(), session_for_tool,
                                                       );
                                                       svc.load_bot_config_params(&state_for_tool, bot_uuid);
-                                                      // Inject LLM tool_call arguments into Rhai scope
-                                                      if let Some(obj) = injected_args.as_object() {
-                                                          for (key, value) in obj {
-                                                              let rhai_key = key.to_lowercase();
-                                                              match value {
-                                                                  serde_json::Value::String(s) => {
-                                                                      let _ = svc.set_variable(&rhai_key, s);
-                                                                  }
-                                                                  serde_json::Value::Number(n) => {
-                                                                      let _ = svc.set_variable(&rhai_key, &n.to_string());
-                                                                  }
-                                                                  serde_json::Value::Bool(b) => {
-                                                                      let _ = svc.set_variable(&rhai_key, if *b { "true" } else { "false" });
-                                                                  }
-                                                                  _ => {}
-                                                              }
-                                                          }
-                                                      }
-                                                      if let Err(e) = svc.run(&ast_content) {
+                                                       // Inject LLM tool_call arguments into Rhai scope
+                                                       let mut injected_param_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+                                                       if let Some(obj) = injected_args.as_object() {
+                                                           for (key, value) in obj {
+                                                               let rhai_key = key.to_lowercase();
+                                                               injected_param_names.insert(rhai_key.clone());
+                                                               match value {
+                                                                   serde_json::Value::String(s) => {
+                                                                       let _ = svc.set_variable(&rhai_key, s);
+                                                                   }
+                                                                   serde_json::Value::Number(n) => {
+                                                                       let _ = svc.set_variable(&rhai_key, &n.to_string());
+                                                                   }
+                                                                   serde_json::Value::Bool(b) => {
+                                                                       let _ = svc.set_variable(&rhai_key, if *b { "true" } else { "false" });
+                                                                   }
+                                                                   _ => {}
+                                                               }
+                                                           }
+                                                       }
+                                                       // Pre-fill any missing params from .mcp.json with empty strings
+                                                       let mcp_path = format!("{}.gbai/{}.gbdialog/{}.mcp.json", bot_name_for_mcp, bot_name_for_mcp, tool_name_for_mcp);
+                                                       let mcp_full = std::path::Path::new(&work_path_for_mcp).join(&mcp_path);
+                                                       if mcp_full.exists() {
+                                                           if let Ok(mcp_content) = std::fs::read_to_string(&mcp_full) {
+                                                               if let Ok(mcp_val) = serde_json::from_str::<serde_json::Value>(&mcp_content) {
+                                                                   if let Some(props) = mcp_val.get("input_schema").and_then(|s| s.get("properties")).and_then(|p| p.as_object()) {
+                                                                       for (param_name, _) in props {
+                                                                           let clean_name = param_name.trim_end_matches(":string").to_lowercase();
+                                                                           if !injected_param_names.contains(&clean_name) {
+                                                                               let _ = svc.set_variable(&clean_name, "");
+                                                                           }
+                                                                       }
+                                                                   }
+                                                               }
+                                                           }
+                                                       }
+                                                       if let Err(e) = svc.run(&ast_content) {
                                                           warn!("Tool '{}' execution error: {}", tool_name_cl, e);
                                                       }
                                                   }).await;
@@ -1018,12 +1051,6 @@ async fn handle_ws(
                     _ => {}
                 }
             }
-            Some(response) = rx.recv() => {
-                if let Ok(json) = serde_json::to_string(&response) {
-                    let _ = ws_sender.send(Message::Text(json.into())).await;
-                }
-            }
-            else => break,
         }
     }
 

@@ -107,6 +107,15 @@
     overflow: hidden;
 }
 
+/* Chat Content Wrapper - fill available space with flex column */
+.chat-content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
 /* Connection Status - use shared styles from app.css */
 
 @keyframes pulse {

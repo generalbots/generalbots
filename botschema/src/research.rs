@@ -157,26 +157,3 @@ diesel::allow_tables_to_appear_in_same_query!(
     research_collaborators,
     research_exports,
 );
-
-diesel::table! {
-    kb_collections (id) {
-        id -> Uuid,
-        bot_id -> Uuid,
-        name -> Varchar,
-        description -> Nullable<Varchar>,
-        folder_path -> Nullable<Text>,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
-    }
-}
-
-diesel::table! {
-    kb_group_associations (id) {
-        id -> Uuid,
-        collection_id -> Uuid,
-        group_id -> Uuid,
-        kb_id -> Uuid,
-        granted_at -> Timestamptz,
-        created_at -> Timestamp,
-    }
-}

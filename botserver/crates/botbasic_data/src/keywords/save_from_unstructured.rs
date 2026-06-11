@@ -4,86 +4,18 @@ use botbasic_types::BasicRuntime;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{trace, warn};
-use rhai::{Dynamic, Engine};
+use rhai::Engine;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub fn register_save_from_unstructured(
-    state: Arc<dyn BasicRuntime>,
-    user: UserSession,
-    engine: &mut Engine,
+    _state: Arc<dyn BasicRuntime>,
+    _user: UserSession,
+    _engine: &mut Engine,
 ) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user;
-
-    engine
-        .register_custom_syntax(
-            ["SAVE", "FROM", "UNSTRUCTURED", "$expr$", ",", "$expr$"],
-            false,
-            move |context, inputs| {
-                let table_name = context.eval_expression_tree(&inputs[0])?.to_string();
-                let text = context.eval_expression_tree(&inputs[1])?.to_string();
-
-                trace!(
-                    "SAVE FROM UNSTRUCTURED: table={}, text_len={} for user={}",
-                    table_name,
-                    text.len(),
-                    user_clone.user_id
-                );
-
-                let state_for_task = Arc::clone(&state_clone);
-                let user_for_task = user_clone.clone();
-
-                let (tx, rx) = std::sync::mpsc::channel();
-
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread()
-                        .worker_threads(2)
-                        .enable_all()
-                        .build();
-
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-execute_save_from_unstructured(
-            state_for_task,
-                                &user_for_task,
-                                &table_name,
-                                &text,
-                            )
-                            .await
-                        });
-                        tx.send(result).err()
-                    } else {
-                        tx.send(Err("Failed to build tokio runtime".to_string()))
-                            .err()
-                    };
-
-                    if send_err.is_some() {
-                        log::error!("Failed to send SAVE FROM UNSTRUCTURED result from thread");
-                    }
-                });
-
-                match rx.recv_timeout(std::time::Duration::from_secs(30)) {
-                    Ok(Ok(record_id)) => Ok(Dynamic::from(record_id)),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("SAVE FROM UNSTRUCTURED failed: {}", e).into(),
-                        rhai::Position::NONE,
-                    ))),
-                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                            "SAVE FROM UNSTRUCTURED timed out".into(),
-                            rhai::Position::NONE,
-                        )))
-                    }
-                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("SAVE FROM UNSTRUCTURED thread failed: {}", e).into(),
-                        rhai::Position::NONE,
-                    ))),
-                }
-            },
-        )
-        .expect("valid syntax registration");
+    // SAVE FROM UNSTRUCTURED is available as SAVE_FROM_UNSTRUCTURED() function call
+    // (no custom syntax to avoid overwriting SAVE which is keyed by first token in Rhai BTreeMap)
 }
 
 pub async fn execute_save_from_unstructured(
