@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Saas</title>
+  <link rel="stylesheet" href="../css/core.css">
+  <link rel="stylesheet" href="../css/suite.css">
+  <link rel="stylesheet" href="css/saas.css">
+</head>
+<body class="suite-layout">
+  <div class="suite-shell">
+    <nav class="saas-nav">
+      <div class="saas-nav-brand">Saas</div>
+      <div class="saas-nav-user">
+        <span id="user-email"></span>
+        <button onclick="doLogout()" class="btn-text">Sign Out</button>
+      </div>
+    </nav>
+    <div class="suite-body">
+      <div class="saas-header">
+        <h1>Dashboard</h1>
+        <button onclick="showNewOrgModal()" class="btn-primary">+ New Organization</button>
+      </div>
+
+      <div class="saas-orgs" id="orgs-list">
+        <div class="saas-loading">Loading organizations...</div>
+      </div>
+
+      <div class="saas-plans" id="plans-section">
+        <h2>Available Plans</h2>
+        <div class="saas-plans-grid" id="plans-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="new-org-modal" class="saas-modal" style="display:none">
+    <div class="saas-modal-backdrop" onclick="hideNewOrgModal()"></div>
+    <div class="saas-modal-content">
+      <h2>New Organization</h2>
+      <form id="new-org-form" onsubmit="return createOrg(event)">
+        <div class="form-group">
+          <label for="org-name">Organization Name</label>
+          <input type="text" id="org-name" required placeholder="e.g. My Agency">
+        </div>
+        <div class="form-group">
+          <label for="org-plan">Plan</label>
+          <select id="org-plan" required></select>
+        </div>
+        <div class="form-group">
+          <label for="org-period">Billing Period</label>
+          <select id="org-period">
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Storage (GB)</label>
+          <input type="number" id="org-storage" value="5" min="0" step="1">
+        </div>
+        <button type="submit" class="btn-primary btn-block">Create & Pay</button>
+      </form>
+      <button onclick="hideNewOrgModal()" class="btn-text">Cancel</button>
+    </div>
+  </div>
+
+  <script src="js/saas.js"></script>
+</body>
+</html>

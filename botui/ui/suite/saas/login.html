@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - Saas</title>
+  <link rel="stylesheet" href="../css/core.css">
+  <link rel="stylesheet" href="../css/suite.css">
+  <link rel="stylesheet" href="css/saas.css">
+</head>
+<body class="suite-layout">
+  <div class="suite-shell">
+    <div class="suite-body saas-auth">
+      <div class="saas-auth-card">
+        <h1>Sign In</h1>
+        <p>Access your Saas dashboard</p>
+        <form id="login-form" onsubmit="return doLogin(event)">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required placeholder="you@example.com">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn-primary btn-block">Sign In</button>
+        </form>
+        <p class="saas-auth-alt">Don't have an account? <a href="/saas/signup">Create one</a></p>
+      </div>
+    </div>
+  </div>
+  <script src="js/saas-auth.js"></script>
+</body>
+</html>
