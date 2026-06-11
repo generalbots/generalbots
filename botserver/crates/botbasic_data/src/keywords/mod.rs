@@ -40,6 +40,7 @@ pub fn register_data_keywords(
     find::register_find_keyword(state.clone(), user.clone(), engine);
     get::register_get_keyword(state.clone(), user.clone(), engine);
     get::register_get_from_keyword(state.clone(), user.clone(), engine);
+    get::register_get_from_fn(state.clone(), user.clone(), engine);
     import_export::register_import_export(state.clone(), user.clone(), engine);
     kb_statistics::register_kb_statistics_keyword(state.clone(), user.clone(), engine);
     lead_scoring::register_lead_scoring_keywords(state.clone(), user.clone(), engine);
