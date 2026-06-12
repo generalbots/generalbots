@@ -1,34 +1,10 @@
-# General Bots Workspace
 
-## ⚠️ CRITICAL SECURITY WARNING
-
-**NEVER CREATE FILES WITH SECRETS IN THE REPOSITORY ROOT**
-
-Secret files MUST be placed in `/tmp/` only:
-- ✅ `/tmp/vault-token-gb` - Vault root token
-- ✅ `/tmp/vault-unseal-key-gb` - Vault unseal key
-- ❌ `vault-unseal-keys` - FORBIDDEN (tracked by git)
-- ❌ `start-and-unseal.sh` - FORBIDDEN (contains secrets)
-
-**Files added to .gitignore:** `vault-unseal-keys`, `start-and-unseal.sh`, `vault-token-*`
-
-**Why `/tmp/`?**
-- Cleared on reboot (ephemeral)
-- Not tracked by git
-- Standard Unix security practice
-- Prevents accidental commits
-
----
+<center>
+<img src="https://generalbots.org/icons/general-bots-text.svg" />
+</center>
 
 
-**Version:** 6.3.0  
-**Type:** Rust Workspace (Monorepo with Independent Subproject Repos)
-
----
-
-## Overview
-
-General Bots is a comprehensive automation platform built with Rust, providing a unified workspace for building AI-powered bots, web interfaces, desktop applications, and integration tools. The workspace follows a modular architecture with independent subprojects that can be developed and deployed separately while sharing common libraries and standards.
+General Bots is a comprehensive AI automation platform built with Rust, providing a unified workspace for building AI-powered bots, web interfaces, desktop applications, and integration tools. The workspace follows a modular architecture with independent subprojects that can be developed and deployed separately while sharing common libraries and standards.
 
 For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](./botbook)** for detailed guides, API references, and tutorials.
 
