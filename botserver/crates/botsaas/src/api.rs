@@ -4,6 +4,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -25,15 +26,16 @@ pub struct SignupBody {
     pub password: Option<String>,
 }
 
-pub fn configure_saas_api_routes() -> Router<Arc<SaasService>> {
+pub fn configure_management_api_routes() -> Router<Arc<SaasService>> {
     Router::new()
-        .route("/api/saas/checkout", post(handle_checkout))
-        .route("/api/saas/checkout/success", get(checkout_success))
-        .route("/api/saas/plans", get(list_plans))
-        .route("/api/saas/auth/signup", post(handle_signup))
+        .route("/api/management/checkout", post(handle_checkout))
+        .route("/api/management/checkout/success", get(checkout_success))
+        .route("/api/management/plans", get(list_plans))
+        .route("/api/management/plans/{plan_id}", get(get_plan_detail))
+        .route("/api/management/auth/signup", post(handle_signup))
 }
 
-/// `POST /api/saas/auth/signup`
+/// `POST /api/management/auth/signup`
 ///
 /// Cria organização no banco + contato no CRM, retornando os IDs.
 async fn handle_signup(
@@ -71,7 +73,7 @@ async fn handle_signup(
     })))
 }
 
-/// `POST /api/saas/checkout`
+/// `POST /api/management/checkout`
 ///
 /// Cria fatura no billing + contato/deal no CRM + sessão no Stripe.
 async fn handle_checkout(
@@ -198,15 +200,15 @@ async fn handle_checkout(
         .ok_or_else(|| (StatusCode::BAD_REQUEST, format!("Plan '{}' not found", payload.plan)))?;
 
     let return_url = body.return_url.clone()
-        .unwrap_or_else(|| format!("{}/saas/dashboard", service.config.base_url));
-    let cancel_url = format!("{}/saas/checkout/cancel", service.config.base_url);
+        .unwrap_or_else(|| format!("{}/management/dashboard", service.config.base_url));
+    let cancel_url = format!("{}/management/checkout/cancel", service.config.base_url);
 
     let session = service.stripe
         .create_checkout_session(
             botbilling::stripe_integration::CreateCheckoutSessionParams {
                 customer_id: stripe_customer.id,
                 price_id: payload.plan.clone(),
-                success_url: format!("{}/saas/checkout/success?session_id={{CHECKOUT_SESSION_ID}}&invoice={}", service.config.base_url, invoice_id),
+                success_url: format!("{}/management/checkout/success?session_id={{CHECKOUT_SESSION_ID}}&invoice={}", service.config.base_url, invoice_id),
                 cancel_url,
                 trial_days: plan.trial_days,
                 metadata: std::collections::HashMap::from([
@@ -227,7 +229,7 @@ async fn handle_checkout(
     })))
 }
 
-/// `GET /api/saas/checkout/success`
+/// `GET /api/management/checkout/success`
 ///
 /// Confirma pagamento Stripe, atualiza fatura, cria GL entry + subscription.
 async fn checkout_success(
@@ -337,7 +339,7 @@ async fn checkout_success(
     })))
 }
 
-/// `GET /api/saas/plans`
+/// `GET /api/management/plans`
 async fn list_plans(
     State(service): State<Arc<SaasService>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
@@ -367,4 +369,40 @@ async fn list_plans(
     }
 
     Ok(Json(serde_json::json!({ "branding": config.branding, "plans": plans })))
+}
+
+/// `GET /api/management/plans/{plan_id}`
+async fn get_plan_detail(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(plan_id): axum::extract::Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let config = botbilling::default_product_config();
+    let plan = config.plans.get(&plan_id)
+        .ok_or_else(|| (StatusCode::NOT_FOUND, format!("Plan '{}' not found", plan_id)))?;
+
+    let price = match &plan.price {
+        botbilling::PlanPrice::Free => serde_json::json!({"type": "free"}),
+        botbilling::PlanPrice::Fixed { amount, currency, period } => serde_json::json!({
+            "type": "fixed", "amount": amount, "currency": currency, "period": period,
+        }),
+        botbilling::PlanPrice::Custom => serde_json::json!({"type": "custom"}),
+    };
+
+    Ok(Json(serde_json::json!({
+        "id": plan_id,
+        "name": plan.name,
+        "description": plan.description,
+        "price": price,
+        "features": plan.features,
+        "trial_days": plan.trial_days,
+        "limits": {
+            "messages_per_day": plan.limits.messages_per_day.value(),
+            "storage_mb": plan.limits.storage_mb.value(),
+            "bots": plan.limits.bots.value(),
+            "users": plan.limits.users.value(),
+            "api_calls_per_day": plan.limits.api_calls_per_day.value(),
+            "kb_documents": plan.limits.kb_documents.value(),
+            "apps": plan.limits.apps.value(),
+        },
+    })))
 }

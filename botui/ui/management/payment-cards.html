@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Cards - Management</title>
+  <link rel="stylesheet" href="css/management.css">
+</head>
+<body class="mgmt-layout">
+  <div class="mgmt-shell">
+    <nav class="saas-nav">
+      <div class="saas-nav-brand">Management</div>
+      <div class="saas-nav-links">
+        <a href="/management/dashboard" class="nav-link">Dashboard</a>
+        <a href="/management/plans" class="nav-link">Plans</a>
+        <a href="/management/store" class="nav-link">Store</a>
+        <a href="/management/services" class="nav-link">Services</a>
+        <a href="/management/invoices" class="nav-link">Invoices</a>
+        <a href="/management/payment-cards" class="nav-link active">Cards</a>
+      </div>
+      <div class="saas-nav-user">
+        <span id="user-email"></span>
+        <button onclick="doLogout()" class="btn-text">Sign Out</button>
+      </div>
+    </nav>
+    <div class="mgmt-body">
+      <div class="saas-header">
+        <h1>Payment Cards</h1>
+        <button onclick="openBillingPortal()" class="btn-primary">Manage in Stripe</button>
+      </div>
+      <div id="cards-list">
+        <div class="saas-loading">Loading cards...</div>
+      </div>
+    </div>
+  </div>
+  <script src="js/management-cards.js"></script>
+</body>
+</html>

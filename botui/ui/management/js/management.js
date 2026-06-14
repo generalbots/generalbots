@@ -1,8 +1,8 @@
-const API_BASE = '/api/saas';
+const API_BASE = '/api/management';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const token = requireAuth();
-  document.getElementById('user-email').textContent = localStorage.getItem('saas_email') || '';
+  document.getElementById('user-email').textContent = localStorage.getItem('management_email') || '';
   await loadOrgs(token);
   await loadPlans(token);
 });
@@ -129,9 +129,9 @@ function hideNewOrgModal() {
 }
 
 function doLogout() {
-  localStorage.removeItem('saas_token');
-  localStorage.removeItem('saas_email');
-  window.location.href = '/saas';
+  localStorage.removeItem('management_token');
+  localStorage.removeItem('management_email');
+  window.location.href = '/management';
 }
 
 function escapeHtml(str) {

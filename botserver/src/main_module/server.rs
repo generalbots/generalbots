@@ -644,7 +644,7 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     
     #[cfg(feature = "saas")]
     {
-        use botsaas::{SaasService, SaasConfig, stripe::StripeClient, saas_ui, api};
+        use botsaas::{SaasService, SaasConfig, stripe::StripeClient, management_ui, api};
         let stripe = StripeClient::new(
             std::env::var("STRIPE_SECRET_KEY")
                 .unwrap_or_else(|_| "sk_test_placeholder".to_string()),
@@ -665,8 +665,8 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
             saas_config,
         ));
         sub_router = sub_router
-            .merge(saas_ui::configure_saas_ui_routes().with_state(saas_service.clone()))
-            .merge(api::configure_saas_api_routes().with_state(saas_service.clone()))
+            .merge(management_ui::configure_management_ui_routes().with_state(saas_service.clone()))
+            .merge(api::configure_management_api_routes().with_state(saas_service.clone()))
             .merge(botsaas::webhook::configure_webhook_routes().with_state(saas_service));
     }
     

@@ -30,7 +30,7 @@ pub mod basic;
 #[cfg(feature = "billing")]
 pub mod billing;
 #[cfg(feature = "saas")]
-pub mod saas;
+pub mod management;
 pub mod botmodels;
 #[cfg(feature = "canvas")]
 pub mod canvas;

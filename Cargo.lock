@@ -2373,6 +2373,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "botsaas"
+version = "0.1.0"
+dependencies = [
+ "axum 0.7.9",
+ "bigdecimal",
+ "botbilling",
+ "chrono",
+ "diesel",
+ "r2d2",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "botschema"
 version = "6.3.0"
 dependencies = [
@@ -2604,6 +2623,7 @@ dependencies = [
  "botproject",
  "botqdrant",
  "botresearch",
+ "botsaas",
  "botsearch",
  "botsecurity",
  "botsettings",
