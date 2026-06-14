@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store - Management</title>
+  <link rel="stylesheet" href="css/management.css">
+</head>
+<body class="mgmt-layout">
+  <div class="mgmt-shell">
+    <nav class="saas-nav">
+      <div class="saas-nav-brand">Management</div>
+      <div class="saas-nav-links">
+        <a href="/management/dashboard" class="nav-link">Dashboard</a>
+        <a href="/management/plans" class="nav-link">Plans</a>
+        <a href="/management/store" class="nav-link active">Store</a>
+      </div>
+      <div class="saas-nav-user">
+        <span id="user-email"></span>
+        <button onclick="doLogout()" class="btn-text">Sign Out</button>
+      </div>
+    </nav>
+    <div class="mgmt-body">
+      <div class="saas-header">
+        <h1>App Store</h1>
+        <p class="header-subtitle">Browse and purchase add-ons for your bots</p>
+      </div>
+
+      <div class="store-categories">
+        <button class="category-btn active" data-cat="all" onclick="filterStore('all')">All</button>
+        <button class="category-btn" data-cat="compute" onclick="filterStore('compute')">Compute</button>
+        <button class="category-btn" data-cat="storage" onclick="filterStore('storage')">Storage</button>
+        <button class="category-btn" data-cat="domains" onclick="filterStore('domains')">Domains</button>
+        <button class="category-btn" data-cat="comms" onclick="filterStore('comms')">SMS & Calls</button>
+      </div>
+
+      <div class="store-grid" id="store-grid">
+        <div class="saas-loading">Loading store items...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="purchase-modal" class="saas-modal" style="display:none">
+    <div class="saas-modal-backdrop" onclick="hideModal()"></div>
+    <div class="saas-modal-content">
+      <h2 id="modal-title">Purchase</h2>
+      <div id="modal-body"></div>
+      <button onclick="confirmPurchase()" class="btn-primary btn-block">Confirm Purchase</button>
+      <button onclick="hideModal()" class="btn-text btn-block">Cancel</button>
+    </div>
+  </div>
+
+  <script src="js/management-store.js"></script>
+</body>
+</html>

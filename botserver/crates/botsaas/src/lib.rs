@@ -1,7 +1,7 @@
 pub mod api;
 pub mod integration;
 pub mod notifier;
-pub mod saas_ui;
+pub mod management_ui;
 pub mod stripe;
 pub mod webhook;
 

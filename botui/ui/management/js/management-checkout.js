@@ -1,4 +1,4 @@
-const API_BASE = '/api/saas';
+const API_BASE = '/api/management';
 
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
@@ -62,7 +62,7 @@ async function doCheckout(e) {
         payload: JSON.stringify(payload),
         email,
         organization_name: orgName || undefined,
-        return_url: window.location.origin + '/saas/dashboard',
+        return_url: window.location.origin + '/management/dashboard',
       }),
     });
 

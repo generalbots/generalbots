@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plans - Management</title>
+  <link rel="stylesheet" href="css/management.css">
+</head>
+<body class="mgmt-layout">
+  <div class="mgmt-shell">
+    <nav class="saas-nav">
+      <div class="saas-nav-brand">Management</div>
+      <div class="saas-nav-links">
+        <a href="/management/dashboard" class="nav-link">Dashboard</a>
+        <a href="/management/plans" class="nav-link active">Plans</a>
+      </div>
+      <div class="saas-nav-user">
+        <span id="user-email"></span>
+        <button onclick="doLogout()" class="btn-text">Sign Out</button>
+      </div>
+    </nav>
+    <div class="mgmt-body">
+      <div class="saas-header">
+        <h1>Plans & Pricing</h1>
+        <div class="billing-toggle">
+          <span class="toggle-label" id="period-monthly">Monthly</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="period-toggle" onchange="toggleBillingPeriod()">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label" id="period-yearly">Yearly <small>Save 20%</small></span>
+        </div>
+      </div>
+
+      <div class="plans-comparison" id="plans-grid">
+        <div class="saas-loading">Loading plans...</div>
+      </div>
+
+      <div class="plans-features-matrix" id="features-matrix">
+        <h2>Feature Comparison</h2>
+        <div class="features-table-wrapper">
+          <table class="features-table" id="features-table">
+            <thead id="features-header"></thead>
+            <tbody id="features-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/management-plans.js"></script>
+</body>
+</html>

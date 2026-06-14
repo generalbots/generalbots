@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Saas</title>
-  <link rel="stylesheet" href="../css/core.css">
-  <link rel="stylesheet" href="../css/suite.css">
-  <link rel="stylesheet" href="css/saas.css">
+  <title>Dashboard - Management</title>
+  <link rel="stylesheet" href="css/management.css">
 </head>
-<body class="suite-layout">
-  <div class="suite-shell">
+<body class="mgmt-layout">
+  <div class="mgmt-shell">
     <nav class="saas-nav">
-      <div class="saas-nav-brand">Saas</div>
+      <div class="saas-nav-brand">Management</div>
+      <div class="saas-nav-links">
+        <a href="/management/dashboard" class="nav-link active">Dashboard</a>
+        <a href="/management/plans" class="nav-link">Plans</a>
+      </div>
       <div class="saas-nav-user">
         <span id="user-email"></span>
         <button onclick="doLogout()" class="btn-text">Sign Out</button>
       </div>
     </nav>
-    <div class="suite-body">
+    <div class="mgmt-body">
       <div class="saas-header">
         <h1>Dashboard</h1>
         <button onclick="showNewOrgModal()" class="btn-primary">+ New Organization</button>
@@ -64,6 +66,6 @@
     </div>
   </div>
 
-  <script src="js/saas.js"></script>
+  <script src="js/management.js"></script>
 </body>
 </html>
