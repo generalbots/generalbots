@@ -24,6 +24,7 @@ pub fn configure_management_ui_routes() -> Router<Arc<SaasService>> {
         .route("/management/invoices", get(invoices_page))
         .route("/management/payment-cards", get(payment_cards_page))
         .route("/management/profile", get(profile_page))
+        .route("/management/offers", get(offers_page))
 }
 
 async fn management_home() -> Html<&'static str> {
@@ -87,3 +88,8 @@ async fn payment_cards_page() -> Html<&'static str> {
 async fn profile_page() -> Html<&'static str> {
     Html(include_str!("../../../../botui/ui/management/profile.html"))
 }
+
+async fn offers_page() -> Html<&'static str> {
+    Html(include_str!("../../../../botui/ui/management/offers.html"))
+}
+

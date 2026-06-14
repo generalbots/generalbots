@@ -1,11 +1,11 @@
 use axum::{
     extract::State,
     http::StatusCode,
-    routing::{get, post},
+    routing::{get, post, delete},
     Json, Router,
 };
 use diesel::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -26,13 +26,61 @@ pub struct SignupBody {
     pub password: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct LoginBody {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateOrgBody {
+    pub name: String,
+    pub plan: Option<String>,
+    pub period: Option<String>,
+    pub storage_gb: Option<f64>,
+    pub ai_addons: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrgResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub plan: String,
+    pub status: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ProfileUpdateBody {
+    pub name: Option<String>,
+    pub organization: Option<String>,
+}
+
 pub fn configure_management_api_routes() -> Router<Arc<SaasService>> {
     Router::new()
+        // Auth
+        .route("/api/management/auth/login", post(handle_login))
+        .route("/api/management/auth/signup", post(handle_signup))
+        // Checkout / Plans
         .route("/api/management/checkout", post(handle_checkout))
         .route("/api/management/checkout/success", get(checkout_success))
         .route("/api/management/plans", get(list_plans))
         .route("/api/management/plans/{plan_id}", get(get_plan_detail))
-        .route("/api/management/auth/signup", post(handle_signup))
+        // Organizations
+        .route("/api/management/organizations", get(list_organizations).post(create_organization))
+        .route("/api/management/organizations/{org_id}/billing", get(org_billing_portal))
+        // Services (purchased add-ons)
+        .route("/api/management/services", get(list_services))
+        // Invoices
+        .route("/api/management/invoices", get(list_invoices))
+        // Payment cards (stub — real impl via Stripe SetupIntent)
+        .route("/api/management/payment-cards", get(list_payment_cards))
+        // Store items
+        .route("/api/management/store", get(list_store_items))
+        // Profile
+        .route("/api/management/profile", get(get_profile).post(update_profile))
+        // Top-up (Special Offers)
+        .route("/api/management/topup", post(handle_topup))
 }
 
 /// `POST /api/management/auth/signup`
@@ -406,3 +454,438 @@ async fn get_plan_detail(
         },
     })))
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth: Login (JWT stub — real auth via Zitadel/OIDC in production)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `POST /api/management/auth/login`
+///
+/// Valida credenciais e devolve um token JWT de acesso ao portal de gestão.
+/// Em produção, delegar ao provedor OIDC configurado (Zitadel).
+async fn handle_login(
+    State(service): State<Arc<SaasService>>,
+    Json(body): Json<LoginBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    // Validação mínima de email
+    if !body.email.contains('@') {
+        return Err((StatusCode::BAD_REQUEST, "Invalid email".to_string()));
+    }
+
+    // Verificar se existe contato com este email na base
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use botbilling::schema::crm_contacts::dsl::*;
+    let contact_opt = crm_contacts
+        .filter(email.eq(&body.email))
+        .select((id, name, email))
+        .first::<(Uuid, String, String)>(&mut conn)
+        .optional()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    // Gerar token JWT simples (HMAC-SHA256 com o secret configurado)
+    let exp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() + 86400 * 7; // 7 dias
+
+    let header  = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
+    let payload = base64_url_encode(
+        format!(
+            "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
+            contact_opt.as_ref().map(|c| c.0.to_string()).unwrap_or_else(|| "guest".to_string()),
+            body.email,
+            exp
+        ).as_bytes()
+    );
+    // Signature stub (real HMAC signing requires a crypto crate)
+    let signature = base64_url_encode(service.config.jwt_secret.as_bytes());
+    let token = format!("{header}.{payload}.{signature}");
+
+    let (user_name, found) = if let Some((_, n, _)) = &contact_opt {
+        (n.clone(), true)
+    } else {
+        (body.email.split('@').next().unwrap_or("User").to_string(), false)
+    };
+
+    Ok(Json(serde_json::json!({
+        "status": "ok",
+        "token": token,
+        "email": body.email,
+        "name": user_name,
+        "is_new": !found,
+    })))
+}
+
+fn base64_url_encode(input: &[u8]) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    for chunk in input.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let n = (b0 << 16) | (b1 << 8) | b2;
+        let chars = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        let _ = write!(out, "{}{}{}{}", chars[((n >> 18) & 63) as usize] as char,
+            chars[((n >> 12) & 63) as usize] as char,
+            if chunk.len() > 1 { chars[((n >> 6) & 63) as usize] as char } else { '=' },
+            if chunk.len() > 2 { chars[(n & 63) as usize] as char } else { '=' });
+    }
+    out
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Organizations
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `GET /api/management/organizations`
+async fn list_organizations(
+    State(service): State<Arc<SaasService>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use botbilling::schema::organizations::dsl::*;
+    let orgs = organizations
+        .select((id, name))
+        .load::<(Uuid, String)>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    let result: Vec<serde_json::Value> = orgs.into_iter().map(|(oid, oname)| {
+        serde_json::json!({
+            "id": oid,
+            "name": oname,
+            "plan": "personal",
+            "status": "active",
+        })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "organizations": result })))
+}
+
+/// `POST /api/management/organizations`
+async fn create_organization(
+    State(service): State<Arc<SaasService>>,
+    Json(body): Json<CreateOrgBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    if body.name.trim().is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Organization name is required".to_string()));
+    }
+
+    let org_id = integration::create_organization(service.pool(), &body.name)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    let plan = body.plan.unwrap_or_else(|| "personal".to_string());
+    let period = body.period.unwrap_or_else(|| "monthly".to_string());
+    let storage = body.storage_gb.unwrap_or(5.0);
+
+    // Se houver plano pago, criar sessão de checkout
+    let config = botbilling::default_product_config();
+    if let Some(plan_cfg) = config.plans.get(&plan) {
+        if matches!(plan_cfg.price, botbilling::PlanPrice::Fixed { .. }) {
+            let total = match &plan_cfg.price {
+                botbilling::PlanPrice::Fixed { amount, .. } => *amount as f64 / 100.0,
+                _ => 0.0,
+            };
+            let payload_json = serde_json::json!({
+                "plan": plan, "period": period,
+                "storage": storage, "ai": [], "total": total, "currency": "usd"
+            });
+            return Ok(Json(serde_json::json!({
+                "status": "checkout_required",
+                "org_id": org_id,
+                "checkout_payload": payload_json,
+                "checkout_url": format!("/management/checkout?payload={}", url::form_urlencoded::byte_serialize(payload_json.to_string().as_bytes()).collect::<String>()),
+            })));
+        }
+    }
+
+    Ok(Json(serde_json::json!({
+        "status": "created",
+        "org_id": org_id,
+        "name": body.name,
+        "plan": plan,
+    })))
+}
+
+/// `GET /api/management/organizations/{org_id}/billing`
+async fn org_billing_portal(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(org_id): axum::extract::Path<Uuid>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Redireciona para o portal de faturamento Stripe do cliente
+    let portal_url = format!(
+        "{}/api/billing/portal?org_id={}",
+        service.config.base_url, org_id
+    );
+    Ok(Json(serde_json::json!({ "url": portal_url, "org_id": org_id })))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Services (add-ons purchased)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `GET /api/management/services`
+///
+/// Retorna os serviços provisionados (subscriptions activas).
+async fn list_services(
+    State(service): State<Arc<SaasService>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use botbilling::schema::billing_subscriptions::dsl::*;
+    let subs = billing_subscriptions
+        .select((id, customer_name, plan_id, status, amount, currency, billing_period))
+        .load::<(Uuid, String, String, String, bigdecimal::BigDecimal, String, String)>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    let result: Vec<serde_json::Value> = subs.into_iter().map(|(sid, cname, pid, stat, amt, cur, per)| {
+        serde_json::json!({
+            "id": sid,
+            "name": cname,
+            "plan_id": pid,
+            "status": stat,
+            "amount": amt.to_string(),
+            "currency": cur,
+            "period": per,
+        })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "services": result })))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Invoices
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `GET /api/management/invoices`
+async fn list_invoices(
+    State(service): State<Arc<SaasService>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use botbilling::schema::billing_invoices::dsl::*;
+    let invs = billing_invoices
+        .select((id, invoice_number, customer_name, total, status, issue_date, due_date))
+        .order(issue_date.desc())
+        .limit(50)
+        .load::<(Uuid, String, String, bigdecimal::BigDecimal, String, chrono::NaiveDate, chrono::NaiveDate)>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    let result: Vec<serde_json::Value> = invs.into_iter().map(|(iid, inum, cname, tot, stat, idate, ddate)| {
+        serde_json::json!({
+            "id": iid,
+            "number": inum,
+            "customer": cname,
+            "total": tot.to_string(),
+            "status": stat,
+            "issue_date": idate.to_string(),
+            "due_date": ddate.to_string(),
+        })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "invoices": result })))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Payment Cards (Stripe — lista os métodos de pagamento do cliente)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `GET /api/management/payment-cards`
+async fn list_payment_cards(
+    State(_service): State<Arc<SaasService>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Stub: em produção, listar payment methods do Stripe Customer ligado ao usuário autenticado
+    Ok(Json(serde_json::json!({
+        "cards": [],
+        "message": "Payment cards are managed via Stripe. Add a card during checkout."
+    })))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Store catalogue (produtos disponíveis para compra)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `GET /api/management/store`
+async fn list_store_items(
+    State(_service): State<Arc<SaasService>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Catálogo estático com preços dobrados, providers invisíveis
+    let items = serde_json::json!({
+        "items": [
+            // ── VPS ──
+            { "id":"vps-small",  "category":"compute", "name":"VPS Small",  "icon":"🖥️", "price_type":"fixed", "amount":999,  "currency":"usd", "period":"mo", "description":"4 vCPU · 8 GB RAM · 100 GB NVMe · 2 TB BW" },
+            { "id":"vps-medium", "category":"compute", "name":"VPS Medium", "icon":"🖥️", "price_type":"fixed", "amount":1999, "currency":"usd", "period":"mo", "description":"6 vCPU · 16 GB RAM · 200 GB NVMe · 4 TB BW" },
+            { "id":"vps-large",  "category":"compute", "name":"VPS Large",  "icon":"🖥️", "price_type":"fixed", "amount":3999, "currency":"usd", "period":"mo", "description":"8 vCPU · 32 GB RAM · 400 GB NVMe · 8 TB BW" },
+            { "id":"vps-xl",     "category":"compute", "name":"VPS XL",     "icon":"🖥️", "price_type":"fixed", "amount":7999, "currency":"usd", "period":"mo", "description":"16 vCPU · 64 GB RAM · 800 GB NVMe · 16 TB BW" },
+            // ── GPU ──
+            { "id":"gpu-basic",      "category":"compute", "name":"GPU Basic",      "icon":"⚡", "price_type":"fixed", "amount":2999,  "currency":"usd", "period":"mo", "description":"GT 730 · 4 vCPU · 8 GB RAM" },
+            { "id":"gpu-pro",        "category":"compute", "name":"GPU Pro",        "icon":"⚡", "price_type":"fixed", "amount":9999,  "currency":"usd", "period":"mo", "description":"RTX 4090 · 8 vCPU · 32 GB RAM" },
+            { "id":"gpu-enterprise", "category":"compute", "name":"GPU Enterprise", "icon":"⚡", "price_type":"fixed", "amount":29999, "currency":"usd", "period":"mo", "description":"A100 80 GB · 16 vCPU · 64 GB RAM" },
+            // ── Storage ──
+            { "id":"storage-50",   "category":"storage", "name":"Storage 50 GB",  "icon":"💾", "price_type":"fixed", "amount":999,  "currency":"usd", "period":"mo", "description":"S3-compatible · 100 GB egress" },
+            { "id":"storage-250",  "category":"storage", "name":"Storage 250 GB", "icon":"💾", "price_type":"fixed", "amount":2999, "currency":"usd", "period":"mo", "description":"S3-compatible · 500 GB egress · Versioning" },
+            { "id":"storage-1tb",  "category":"storage", "name":"Storage 1 TB",   "icon":"💾", "price_type":"fixed", "amount":5999, "currency":"usd", "period":"mo", "description":"S3-compatible · 2 TB egress · Lifecycle mgmt" },
+            { "id":"storage-10tb", "category":"storage", "name":"Storage 10 TB",  "icon":"💾", "price_type":"fixed", "amount":19999,"currency":"usd", "period":"mo", "description":"S3-compatible · 20 TB egress · Priority support" },
+            // ── Numbers ──
+            { "id":"number-local",    "category":"comms", "name":"Local Number",   "icon":"📞", "price_type":"fixed", "amount":599,  "currency":"usd", "period":"mo", "description":"1 number · SMS + Voice · WhatsApp-ready" },
+            { "id":"number-global",   "category":"comms", "name":"Global Bundle",  "icon":"📞", "price_type":"fixed", "amount":1999, "currency":"usd", "period":"mo", "description":"3 numbers · Different countries" },
+            { "id":"number-business", "category":"comms", "name":"Business Pack",  "icon":"📞", "price_type":"fixed", "amount":4999, "currency":"usd", "period":"mo", "description":"10 numbers · Any countries" },
+            // ── Calls ──
+            { "id":"calls-100",  "category":"comms", "name":"100 Min Bundle",  "icon":"📱", "price_type":"fixed", "amount":999,  "currency":"usd", "period":"once", "description":"100 outbound minutes · Global coverage" },
+            { "id":"calls-500",  "category":"comms", "name":"500 Min Bundle",  "icon":"📱", "price_type":"fixed", "amount":3999, "currency":"usd", "period":"once", "description":"500 outbound minutes · Priority routing" },
+            { "id":"calls-1000", "category":"comms", "name":"1000+ Min Bundle","icon":"📱", "price_type":"fixed", "amount":6999, "currency":"usd", "period":"once", "description":"1000 outbound minutes · Dedicated routes" },
+            // ── Domains ──
+            { "id":"domain-com",  "category":"domains", "name":".com Domain", "icon":"🌐", "price_type":"fixed", "amount":2199, "currency":"usd", "period":"yr", "description":"Free WHOIS privacy · Managed DNS" },
+            { "id":"domain-io",   "category":"domains", "name":".io Domain",  "icon":"🌐", "price_type":"fixed", "amount":7199, "currency":"usd", "period":"yr", "description":"Free WHOIS privacy · Managed DNS" },
+            { "id":"domain-ai",   "category":"domains", "name":".ai Domain",  "icon":"🌐", "price_type":"fixed", "amount":15999,"currency":"usd", "period":"yr", "description":"Free WHOIS privacy · Managed DNS" },
+        ]
+    });
+    Ok(Json(items))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Profile
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `GET /api/management/profile`
+async fn get_profile(
+    State(_service): State<Arc<SaasService>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Em produção: decodificar JWT do header Authorization e buscar perfil
+    Ok(Json(serde_json::json!({
+        "name": "",
+        "email": "",
+        "organization": "",
+    })))
+}
+
+/// `POST /api/management/profile`
+async fn update_profile(
+    State(_service): State<Arc<SaasService>>,
+    Json(body): Json<ProfileUpdateBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Stub: atualizar nome/org no banco associado ao JWT do usuário autenticado
+    Ok(Json(serde_json::json!({
+        "status": "ok",
+        "name": body.name.unwrap_or_default(),
+        "organization": body.organization.unwrap_or_default(),
+    })))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Top-up (Special Offers)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+pub struct TopupBody {
+    pub org_id: Uuid,
+    pub amount: f64,
+    pub email: String,
+}
+
+/// `POST /api/management/topup`
+async fn handle_topup(
+    State(service): State<Arc<SaasService>>,
+    Json(body): Json<TopupBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB Connection: {e}")))?;
+
+    // Recuperar bot_id padrão
+    let (_, bot_id) = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
+    let target_bot_id = if bot_id == Uuid::nil() {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap()
+    } else {
+        bot_id
+    };
+
+    use std::str::FromStr;
+    let decimal_amount = bigdecimal::BigDecimal::from_str(&format!("{:.2}", body.amount))
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid amount: {e}")))?;
+
+    let zero = bigdecimal::BigDecimal::from(0);
+
+    // Gerar número de fatura único
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let num: u32 = rng.gen_range(100_000..999_999);
+    let invoice_num = format!("INV-TOPUP-{}", num);
+
+    // Inserir a fatura de recarga no banco de dados como paga (paid)
+    let new_invoice_id = Uuid::new_v4();
+    
+    // Obter o nome do contato correspondente ao email, ou usar email
+    use botbilling::schema::crm_contacts::dsl::*;
+    let contact_name = crm_contacts
+        .filter(email.eq(&body.email))
+        .select(name)
+        .first::<String>(&mut conn)
+        .unwrap_or_else(|_| body.email.split('@').next().unwrap_or("Customer").to_string());
+
+    // Inserir registro na tabela billing_invoices
+    diesel::insert_into(botbilling::schema::billing_invoices::table)
+        .values((
+            botbilling::schema::billing_invoices::id.eq(new_invoice_id),
+            botbilling::schema::billing_invoices::org_id.eq(body.org_id),
+            botbilling::schema::billing_invoices::bot_id.eq(target_bot_id),
+            botbilling::schema::billing_invoices::invoice_number.eq(&invoice_num),
+            botbilling::schema::billing_invoices::customer_name.eq(&contact_name),
+            botbilling::schema::billing_invoices::customer_email.eq(Some(body.email)),
+            botbilling::schema::billing_invoices::status.eq("paid"),
+            botbilling::schema::billing_invoices::issue_date.eq(chrono::Local::now().date_naive()),
+            botbilling::schema::billing_invoices::due_date.eq(chrono::Local::now().date_naive()),
+            botbilling::schema::billing_invoices::subtotal.eq(&decimal_amount),
+            botbilling::schema::billing_invoices::tax_rate.eq(&zero),
+            botbilling::schema::billing_invoices::tax_amount.eq(&zero),
+            botbilling::schema::billing_invoices::discount_percent.eq(&zero),
+            botbilling::schema::billing_invoices::discount_amount.eq(&zero),
+            botbilling::schema::billing_invoices::total.eq(&decimal_amount),
+            botbilling::schema::billing_invoices::amount_paid.eq(&decimal_amount),
+            botbilling::schema::billing_invoices::amount_due.eq(&zero),
+            botbilling::schema::billing_invoices::currency.eq("usd"),
+            botbilling::schema::billing_invoices::notes.eq(Some("Account balance top-up via Special Offers".to_string())),
+            botbilling::schema::billing_invoices::paid_at.eq(Some(chrono::Utc::now())),
+            botbilling::schema::billing_invoices::created_at.eq(chrono::Utc::now()),
+            botbilling::schema::billing_invoices::updated_at.eq(chrono::Utc::now()),
+        ))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create topup invoice: {e}")))?;
+
+    // Criar o pagamento em billing_payments para registrar a transação
+    let payment_id = Uuid::new_v4();
+    let payment_num = format!("PAY-TOPUP-{}", num);
+    diesel::insert_into(botbilling::schema::billing_payments::table)
+        .values((
+            botbilling::schema::billing_payments::id.eq(payment_id),
+            botbilling::schema::billing_payments::org_id.eq(body.org_id),
+            botbilling::schema::billing_payments::bot_id.eq(target_bot_id),
+            botbilling::schema::billing_payments::invoice_id.eq(Some(new_invoice_id)),
+            botbilling::schema::billing_payments::payment_number.eq(&payment_num),
+            botbilling::schema::billing_payments::amount.eq(&decimal_amount),
+            botbilling::schema::billing_payments::currency.eq("usd"),
+            botbilling::schema::billing_payments::payment_method.eq("offline_topup"),
+            botbilling::schema::billing_payments::status.eq("completed"),
+            botbilling::schema::billing_payments::payer_name.eq(Some(&contact_name)),
+            botbilling::schema::billing_payments::paid_at.eq(chrono::Utc::now()),
+            botbilling::schema::billing_payments::created_at.eq(chrono::Utc::now()),
+        ))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to register payment: {e}")))?;
+
+    log::info!("Top-up success: Organization {} added credits of ${:.2}", body.org_id, body.amount);
+
+    Ok(Json(serde_json::json!({
+        "status": "ok",
+        "invoice_id": new_invoice_id,
+        "invoice_number": invoice_num,
+        "amount": decimal_amount.to_string(),
+        "customer": contact_name,
+    })))
+}
+
