@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plans — General Bots Cloud</title>
+  <link rel="stylesheet" href="css/cloud.css">
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <nav class="mgmt-sidebar">
+    <div class="mgmt-logo"><a href="/cloud" class="mgmt-logo-mark"><div class="mgmt-logo-icon">🤖</div><div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div></a></div>
+    <nav class="mgmt-nav">
+      <div class="mgmt-nav-section">Overview</div>
+      <a href="/cloud/dashboard" class="mgmt-nav-link"><span class="mgmt-nav-icon">📊</span> Dashboard</a>
+      <div class="mgmt-nav-section">Add-ons</div>
+      <a href="/cloud/store" class="mgmt-nav-link"><span class="mgmt-nav-icon">🏪</span> App Store</a>
+      <a href="/cloud/plans" class="mgmt-nav-link active"><span class="mgmt-nav-icon">🚀</span> Plans &amp; Pricing</a>
+      <a href="/cloud/offers" class="mgmt-nav-link"><span class="mgmt-nav-icon">🏷️</span> Special Offers</a>
+      <div class="mgmt-nav-section">Infrastructure</div>
+      <a href="/cloud/store?cat=compute" class="mgmt-nav-link"><span class="mgmt-nav-icon">🖥️</span> Computers / VPS</a>
+      <a href="/cloud/store?cat=storage" class="mgmt-nav-link"><span class="mgmt-nav-icon">💾</span> Storage</a>
+      <a href="/cloud/store?cat=domains" class="mgmt-nav-link"><span class="mgmt-nav-icon">🌐</span> Domains</a>
+      <a href="/cloud/store?cat=comms" class="mgmt-nav-link"><span class="mgmt-nav-icon">📞</span> SMS &amp; Numbers</a>
+      <div class="mgmt-nav-section">Account</div>
+      <a href="/cloud/services" class="mgmt-nav-link"><span class="mgmt-nav-icon">📦</span> My Services</a>
+      <a href="/cloud/invoices" class="mgmt-nav-link"><span class="mgmt-nav-icon">📄</span> Invoices</a>
+      <a href="/cloud/payment-cards" class="mgmt-nav-link"><span class="mgmt-nav-icon">💳</span> Payment Cards</a>
+      <a href="/cloud/profile" class="mgmt-nav-link"><span class="mgmt-nav-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="mgmt-sidebar-footer"><div class="mgmt-user-chip"><div class="mgmt-avatar" id="sidebar-avatar">?</div><span class="mgmt-user-email" id="sidebar-email">…</span><button class="mgmt-logout" onclick="doLogout()" title="Sign out">⎋</button></div></div>
+  </nav>
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Plans &amp; Pricing</span>
+      <div class="mgmt-topbar-actions">
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--muted);cursor:pointer">
+          Monthly
+          <input type="checkbox" id="period-toggle" onchange="togglePeriod()" style="accent-color:var(--accent)">
+          Yearly <span style="color:var(--accent2);font-size:.75rem;font-weight:700">−20%</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="mgmt-split">
+      <!-- LEFT PITCH -->
+      <div class="mgmt-split-left">
+        <div>
+          <span class="split-pitch-tag">🚀 Flexible pricing</span>
+          <h2 class="split-pitch-title" style="margin-top:1rem">
+            Scale at your own <span>pace</span>
+          </h2>
+          <p class="split-pitch-body" style="margin-top:1rem">
+            Start free, upgrade when you need. Every plan includes a full-featured workspace, unlimited bots, and access to the App Store.
+          </p>
+        </div>
+        <ul class="split-pitch-bullets">
+          <li>No setup fees, cancel anytime</li>
+          <li>All plans include workspace + drive + email</li>
+          <li>Upgrade or downgrade instantly</li>
+          <li>20% discount billed annually</li>
+          <li>Enterprise plans with custom SLA available</li>
+        </ul>
+        <div class="split-trust">
+          <div class="split-trust-item"><span class="split-trust-num">Free</span><span class="split-trust-label">to start</span></div>
+          <div class="split-trust-item"><span class="split-trust-num">–20%</span><span class="split-trust-label">annually</span></div>
+          <div class="split-trust-item"><span class="split-trust-num">∞</span><span class="split-trust-label">bots</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT PLANS -->
+      <div class="mgmt-split-right">
+        <div class="plans-grid" id="plans-grid">
+          <div class="mgmt-empty"><div class="loading-dots"><span></span><span></span><span></span></div></div>
+        </div>
+
+        <div style="margin-top:2.5rem">
+          <div class="mgmt-section-title" style="margin-bottom:1rem">Feature Comparison</div>
+          <div style="overflow-x:auto">
+            <table class="invoice-table" id="features-table" style="min-width:500px">
+              <thead id="features-header"></thead>
+              <tbody id="features-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="js/management-plans.js"></script>
+  <script src="/cloud/js/cloud.js"></script>
+</body>
+</html>
