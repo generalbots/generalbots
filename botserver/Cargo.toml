@@ -10,7 +10,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "security", "deployment", "saas"]
+default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "security", "deployment", "saas", "products"]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
@@ -108,7 +108,7 @@ kb = ["automation", "drive", "cache", "dep:botkb"]
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
 search = ["automation", "drive", "cache", "dep:botsearch"]
 desktop = ["automation", "drive", "cache", "dep:botdesktop"]
-saas = ["dep:botsaas", "billing"]
+saas = ["dep:botcloud", "billing"]
 
 # ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat"]
@@ -343,7 +343,7 @@ botsearch = { workspace = true, optional = true }
 botdesktop = { workspace = true, optional = true }
 botapps = { workspace = true }
 botmodelsbridge = { workspace = true }
-botsaas = { path = "crates/botsaas", optional = true }
+botcloud = { path = "crates/botcloud", optional = true }
 
 [dev-dependencies]
 mockito = { workspace = true }

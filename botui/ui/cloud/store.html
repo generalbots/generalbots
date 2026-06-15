@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store — General Bots Cloud</title>
+  <link rel="stylesheet" href="css/cloud.css">
+  <style>
+    /* ── STORE-SPECIFIC: left product nav ── */
+    .store-shell {
+      display: flex;
+      flex: 1;
+      min-height: calc(100vh - 56px);
+    }
+
+    /* Left: product category menu */
+    .store-left {
+      width: 280px;
+      flex-shrink: 0;
+      background: #0f1326;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      position: sticky;
+      top: 56px;
+      height: calc(100vh - 56px);
+    }
+
+    .store-left-header {
+      padding: 1.25rem 1.25rem .75rem;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .store-cat-group { border-bottom: 1px solid var(--border); }
+
+    .store-cat-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .85rem 1.25rem;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: .875rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: background .15s;
+      border-left: 3px solid transparent;
+    }
+    .store-cat-btn:hover { background: rgba(255,255,255,.04); }
+    .store-cat-btn.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+      background: rgba(108,99,255,.1);
+    }
+    .store-cat-icon { font-size: 1.1rem; }
+    .store-cat-label { flex: 1; }
+    .store-cat-arrow {
+      font-size: .7rem;
+      color: var(--muted);
+      transition: transform .2s;
+    }
+    .store-cat-btn.open .store-cat-arrow { transform: rotate(90deg); }
+
+    .store-sub-items { display: none; background: rgba(0,0,0,.15); }
+    .store-sub-items.open { display: block; }
+
+    .store-sub-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .55rem 1.25rem .55rem 3rem;
+      background: none;
+      border: none;
+      border-left: 3px solid transparent;
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: all .12s;
+    }
+    .store-sub-btn:hover { color: var(--text); background: rgba(255,255,255,.03); }
+    .store-sub-btn.active {
+      color: var(--accent2);
+      border-left-color: var(--accent2);
+      background: rgba(0,212,170,.06);
+      font-weight: 600;
+    }
+
+    /* Right: plans/cards */
+    .store-right {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .store-hero {
+      background: linear-gradient(135deg, #0f1326 0%, #1a1f3a 60%, #1a0f30 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 2.5rem 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.5rem;
+    }
+    .store-hero-icon { font-size: 3rem; line-height: 1; }
+    .store-hero-body { flex: 1; }
+    .store-hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      background: rgba(108,99,255,.15);
+      border: 1px solid rgba(108,99,255,.3);
+      color: var(--accent);
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: .2rem .6rem;
+      border-radius: 99px;
+      margin-bottom: .6rem;
+    }
+    .store-hero-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      color: var(--text);
+      margin-bottom: .4rem;
+    }
+    .store-hero-desc { font-size: .875rem; color: var(--muted); max-width: 560px; line-height: 1.6; }
+    .store-hero-bullets {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-top: .9rem;
+    }
+    .store-hero-bullet {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+    .store-hero-bullet::before { content: '✓'; color: var(--accent2); font-weight: 700; }
+
+    .store-content { padding: 1.5rem 2rem; flex: 1; }
+
+    .store-plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    /* plan card override for store */
+    .plan-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+    .plan-card:hover {
+      border-color: rgba(108,99,255,.5);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(108,99,255,.18);
+    }
+    .plan-card.featured {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(108,99,255,.14) 0%, var(--card) 70%);
+    }
+    .plan-card.featured::after {
+      content: 'POPULAR';
+      position: absolute;
+      top: .75rem; right: .75rem;
+      background: linear-gradient(90deg, var(--accent), #8b7cf8);
+      color: #fff;
+      font-size: .6rem;
+      font-weight: 800;
+      letter-spacing: .07em;
+      padding: .2rem .55rem;
+      border-radius: 99px;
+    }
+    .plan-tier {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .plan-name { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+    .plan-price-row { display: flex; align-items: baseline; gap: .3rem; margin: .25rem 0; }
+    .plan-amount { font-size: 2rem; font-weight: 800; letter-spacing: -.04em; color: var(--text); }
+    .plan-currency { font-size: 1rem; font-weight: 600; color: var(--text); }
+    .plan-period { font-size: .78rem; color: var(--muted); }
+    .plan-specs { list-style: none; display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+    .plan-specs li { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: .4rem; }
+    .plan-specs li::before { content: '—'; color: var(--accent2); font-weight: 700; font-size: .75rem; }
+    .plan-cta {
+      margin-top: .5rem;
+      width: 100%;
+      padding: .55rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .plan-cta:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .plan-card.featured .plan-cta { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Number search bar */
+    .number-search {
+      display: flex;
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+      align-items: center;
+    }
+    .number-search select, .number-search input {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: .875rem;
+      padding: .6rem .9rem;
+    }
+    .number-search select:focus, .number-search input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .number-search select { min-width: 180px; }
+    .number-search input { flex: 1; }
+    .number-search button { flex-shrink: 0; }
+
+    /* Domain search */
+    .domain-search {
+      display: flex;
+      gap: .75rem;
+      margin-bottom: 1.5rem;
+    }
+    .domain-search input {
+      flex: 1;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: .95rem;
+      padding: .7rem 1rem;
+    }
+    .domain-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,99,255,.2); }
+
+    .domain-tld-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: .75rem;
+    }
+    .domain-tld-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .domain-tld-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .domain-tld-ext { font-size: 1.3rem; font-weight: 800; color: var(--text); }
+    .domain-tld-price { font-size: .8rem; color: var(--muted); margin-top: .25rem; }
+    .domain-tld-price strong { color: var(--accent2); font-size: .95rem; }
+
+    /* Available numbers table */
+    .numbers-table { width: 100%; border-collapse: collapse; }
+    .numbers-table th {
+      text-align: left;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: .6rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .numbers-table td {
+      padding: .75rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      font-size: .875rem;
+      color: var(--text);
+    }
+    .numbers-table tr:hover td { background: rgba(255,255,255,.03); }
+
+    /* ── Mission Banner ── */
+    .mission-banner {
+      background: linear-gradient(135deg, #0c1025 0%, #161b3c 50%, #0f0a22 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.75rem 2rem;
+    }
+    .mission-banner-inner { max-width: 900px; }
+    .mission-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      background: linear-gradient(90deg, var(--accent), #8b7cf8);
+      color: #fff;
+      font-size: .65rem;
+      font-weight: 800;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      padding: .25rem .7rem;
+      border-radius: 99px;
+      margin-bottom: .75rem;
+    }
+    .mission-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      color: var(--text);
+      margin-bottom: .6rem;
+    }
+    .mission-desc {
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 720px;
+    }
+    .mission-desc a { color: var(--accent2); text-decoration: underline; }
+    .mission-badges {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+      margin-top: .85rem;
+    }
+    .mission-badge-sm {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      background: rgba(108,99,255,.1);
+      border: 1px solid rgba(108,99,255,.2);
+      color: var(--accent);
+      font-size: .72rem;
+      font-weight: 600;
+      padding: .25rem .65rem;
+      border-radius: 99px;
+    }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <!-- APP SIDEBAR -->
+  <nav class="mgmt-sidebar">
+    <div class="mgmt-logo">
+      <a href="/cloud" class="mgmt-logo-mark">
+        <div class="mgmt-logo-icon">🤖</div>
+        <div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div>
+      </a>
+    </div>
+    <nav class="mgmt-nav">
+      <div class="mgmt-nav-section">Overview</div>
+      <a href="/cloud/dashboard" class="mgmt-nav-link"><span class="mgmt-nav-icon">📊</span> Dashboard</a>
+      <div class="mgmt-nav-section">Add-ons</div>
+      <a href="/cloud/store" class="mgmt-nav-link active"><span class="mgmt-nav-icon">🏪</span> App Store</a>
+      <a href="/cloud/plans" class="mgmt-nav-link"><span class="mgmt-nav-icon">🚀</span> Plans &amp; Pricing</a>
+      <a href="/cloud/offers" class="mgmt-nav-link"><span class="mgmt-nav-icon">🏷️</span> Special Offers</a>
+      <div class="mgmt-nav-section">Account</div>
+      <a href="/cloud/services" class="mgmt-nav-link"><span class="mgmt-nav-icon">📦</span> My Services</a>
+      <a href="/cloud/invoices" class="mgmt-nav-link"><span class="mgmt-nav-icon">📄</span> Invoices</a>
+      <a href="/cloud/payment-cards" class="mgmt-nav-link"><span class="mgmt-nav-icon">💳</span> Payment Cards</a>
+      <a href="/cloud/profile" class="mgmt-nav-link"><span class="mgmt-nav-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="mgmt-sidebar-footer">
+      <div class="mgmt-user-chip">
+        <div class="mgmt-avatar" id="sidebar-avatar">?</div>
+        <span class="mgmt-user-email" id="sidebar-email">…</span>
+        <button class="mgmt-logout" onclick="doLogout()" title="Sign out">⎋</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">App Store</span>
+    </div>
+
+    <!-- ══ MISSION BANNER ══ -->
+    <div class="mission-banner">
+      <div class="mission-banner-inner">
+        <div class="mission-badge">🌍 OPEN CLOUD</div>
+        <h2 class="mission-title">Cloud Computing as It Should Be — Open.</h2>
+        <p class="mission-desc">
+          <strong>General Bots Cloud</strong> follows the same philosophy as WordPress: our source code is
+          <strong>100% free and open</strong> (<a href="https://generalbots.org" target="_blank">generalbots.org</a>,
+          AGPL-3.0). Anyone can clone the entire stack, run their own cloud, and even <strong>resell it</strong>.
+          We charge only for the essentials — <strong>VPS, GPU compute, storage, phone numbers, domains</strong> —
+          because physical infrastructure has real costs. <strong>Every AI capability</strong>, including the
+          ability to <em>sell cloud services itself</em>, is <strong>free and freely distributable</strong>.
+        </p>
+        <p class="mission-desc" style="margin-top:0.5rem">
+          There is no marketplace, no vendor lock-in, no per-seat license. You are not a customer — you are a
+          <strong>partner</strong>. Clone it, run it, sell it, <strong>own it</strong>.
+        </p>
+        <div class="mission-badges">
+          <span class="mission-badge-sm">🔓 Open Source (AGPL-3.0)</span>
+          <span class="mission-badge-sm">🆓 Free AI Stack</span>
+          <span class="mission-badge-sm">🤝 Partner-Ready</span>
+          <span class="mission-badge-sm">📦 Clone &amp; Resell</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="store-shell">
+
+      <!-- ══ LEFT: product categories menu ══ -->
+      <div class="store-left">
+        <div class="store-left-header">Categories</div>
+
+        <!-- VPS -->
+        <div class="store-cat-group">
+          <button class="store-cat-btn active open" onclick="toggleGroup(this,'vps-subs')" data-cat="vps-small">
+            <span class="store-cat-icon">🖥️</span>
+            <span class="store-cat-label">Virtual Servers</span>
+            <span class="store-cat-arrow">›</span>
+          </button>
+          <div class="store-sub-items open" id="vps-subs">
+            <button class="store-sub-btn active" onclick="selectProduct(this,'vps-small')">VPS Small</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'vps-medium')">VPS Medium</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'vps-large')">VPS Large</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'vps-xl')">VPS XL</button>
+          </div>
+        </div>
+
+        <!-- GPU -->
+        <div class="store-cat-group">
+          <button class="store-cat-btn" onclick="toggleGroup(this,'gpu-subs')" data-cat="gpu-basic">
+            <span class="store-cat-icon">⚡</span>
+            <span class="store-cat-label">GPU Computing</span>
+            <span class="store-cat-arrow">›</span>
+          </button>
+          <div class="store-sub-items" id="gpu-subs">
+            <button class="store-sub-btn" onclick="selectProduct(this,'gpu-basic')">GPU Basic</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'gpu-pro')">GPU Pro</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'gpu-enterprise')">GPU Enterprise</button>
+          </div>
+        </div>
+
+        <!-- Storage -->
+        <div class="store-cat-group">
+          <button class="store-cat-btn" onclick="toggleGroup(this,'storage-subs')" data-cat="storage-50">
+            <span class="store-cat-icon">💾</span>
+            <span class="store-cat-label">Object Storage</span>
+            <span class="store-cat-arrow">›</span>
+          </button>
+          <div class="store-sub-items" id="storage-subs">
+            <button class="store-sub-btn" onclick="selectProduct(this,'storage-50')">50 GB</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'storage-250')">250 GB</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'storage-1tb')">1 TB</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'storage-10tb')">10 TB</button>
+          </div>
+        </div>
+
+        <!-- Virtual Numbers -->
+        <div class="store-cat-group">
+          <button class="store-cat-btn" onclick="toggleGroup(this,'number-subs')" data-cat="numbers">
+            <span class="store-cat-icon">📞</span>
+            <span class="store-cat-label">Virtual Numbers</span>
+            <span class="store-cat-arrow">›</span>
+          </button>
+          <div class="store-sub-items" id="number-subs">
+            <button class="store-sub-btn" onclick="selectProduct(this,'number-local')">Local Number</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'number-global')">Global Bundle</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'number-business')">Business Pack</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'number-search')">🔍 Search Numbers</button>
+          </div>
+        </div>
+
+        <!-- SIM / eSIM -->
+        <div class="store-cat-group">
+          <button class="store-cat-btn" onclick="toggleGroup(this,'sim-subs')" data-cat="sim">
+            <span class="store-cat-icon">📱</span>
+            <span class="store-cat-label">SIM &amp; Calls</span>
+            <span class="store-cat-arrow">›</span>
+          </button>
+          <div class="store-sub-items" id="sim-subs">
+            <button class="store-sub-btn" onclick="selectProduct(this,'calls-100')">100 Min Bundle</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'calls-500')">500 Min Bundle</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'calls-1000')">1000+ Min Bundle</button>
+          </div>
+        </div>
+
+        <!-- Domains -->
+        <div class="store-cat-group">
+          <button class="store-cat-btn" onclick="toggleGroup(this,'domain-subs')" data-cat="domains">
+            <span class="store-cat-icon">🌐</span>
+            <span class="store-cat-label">Domains</span>
+            <span class="store-cat-arrow">›</span>
+          </button>
+          <div class="store-sub-items" id="domain-subs">
+            <button class="store-sub-btn" onclick="selectProduct(this,'domain-search')">🔍 Search Domain</button>
+            <button class="store-sub-btn" onclick="selectProduct(this,'domain-tlds')">.com / .net / .io / .ai</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ RIGHT: product detail / plans ══ -->
+      <div class="store-right" id="store-right">
+        <!-- Filled by JS -->
+      </div>
+
+    </div><!-- /store-shell -->
+  </main>
+</div>
+
+<!-- PURCHASE MODAL -->
+<div class="mgmt-modal" id="purchase-modal">
+  <div class="mgmt-backdrop" onclick="hideModal()"></div>
+  <div class="mgmt-modal-box">
+    <div class="mgmt-modal-title" id="modal-title">Order</div>
+    <div id="modal-body"></div>
+    <div class="mgmt-modal-actions">
+      <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmOrder()" id="modal-confirm-btn">Confirm &amp; Purchase</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Auth helpers (inline, no external dep needed beyond management.js) ──
+function requireAuth() {
+  const t = localStorage.getItem('management_token');
+  if (!t) window.location.href = '/cloud/login';
+  return t;
+}
+function doLogout() {
+  localStorage.removeItem('management_token');
+  localStorage.removeItem('management_email');
+  window.location.href = '/cloud';
+}
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── State ──
+let currentProduct = 'vps-small';
+let selectedPlan = null;
+
+// ── Product catalogue (all prices in USD, doubled) ──
+const CATALOGUE = {
+  'vps-small': {
+    tag: '🖥️ Virtual Server', icon: '🖥️',
+    title: 'VPS Small', cat: 'Compute',
+    desc: 'Perfect for WhatsApp bots, lightweight APIs and dev environments. Full root access, NVMe SSD, instant provisioning.',
+    bullets: ['Full root SSH access', 'NVMe SSD storage', 'DDoS protection included', 'Hourly snapshots'],
+    plans: [
+      { id:'vps-small', tier:'Small', name:'VPS Small', amount:'9.99', period:'mo', currency:'$', specs:['4 vCPU','8 GB RAM','100 GB NVMe','2 TB bandwidth'], featured:false },
+      { id:'vps-medium', tier:'Medium', name:'VPS Medium', amount:'19.99', period:'mo', currency:'$', specs:['6 vCPU','16 GB RAM','200 GB NVMe','4 TB bandwidth'], featured:true },
+      { id:'vps-large', tier:'Large', name:'VPS Large', amount:'39.99', period:'mo', currency:'$', specs:['8 vCPU','32 GB RAM','400 GB NVMe','8 TB bandwidth'], featured:false },
+      { id:'vps-xl', tier:'XL', name:'VPS XL', amount:'79.99', period:'mo', currency:'$', specs:['16 vCPU','64 GB RAM','800 GB NVMe','16 TB bandwidth'], featured:false },
+    ]
+  },
+  'vps-medium': { alias: 'vps-small' },
+  'vps-large':  { alias: 'vps-small' },
+  'vps-xl':     { alias: 'vps-small' },
+
+  'gpu-basic': {
+    tag: '⚡ GPU Computing', icon: '⚡',
+    title: 'GPU Computing', cat: 'GPU',
+    desc: 'Dedicated NVIDIA GPUs for AI inference, LLM fine-tuning, video rendering, and high-performance computing workloads.',
+    bullets: ['Dedicated NVIDIA GPU', 'NVLink-ready instances', 'Pre-installed CUDA 12', 'Persistent storage included'],
+    plans: [
+      { id:'gpu-basic',      tier:'Basic',      name:'GPU Basic',      amount:'29.99',  period:'mo', currency:'$', specs:['GT 730 GPU','4 vCPU','8 GB RAM','100 GB NVMe'],  featured:false },
+      { id:'gpu-pro',        tier:'Pro',        name:'GPU Pro',        amount:'99.99',  period:'mo', currency:'$', specs:['RTX 4090','8 vCPU','32 GB RAM','200 GB NVMe'],  featured:true  },
+      { id:'gpu-enterprise', tier:'Enterprise', name:'GPU Enterprise', amount:'299.99', period:'mo', currency:'$', specs:['A100 80GB','16 vCPU','64 GB RAM','400 GB NVMe'], featured:false },
+    ]
+  },
+  'gpu-pro':        { alias: 'gpu-basic' },
+  'gpu-enterprise': { alias: 'gpu-basic' },
+
+  'storage-50': {
+    tag: '💾 Object Storage', icon: '💾',
+    title: 'Object Storage', cat: 'Storage',
+    desc: 'S3-compatible object storage. Store bot documents, backups, media files and datasets at a fraction of cloud prices.',
+    bullets: ['S3-compatible API (AWS SDK)','Versioning & lifecycle rules','End-to-end encryption at rest','Zero-egress option on large plans'],
+    plans: [
+      { id:'storage-50',   tier:'Starter', name:'50 GB',   amount:'9.99',   period:'mo', currency:'$', specs:['50 GB storage','100 GB egress','S3-compatible','99.9% uptime'], featured:false },
+      { id:'storage-250',  tier:'Growth',  name:'250 GB',  amount:'29.99',  period:'mo', currency:'$', specs:['250 GB storage','500 GB egress','S3-compatible','Versioning'], featured:true  },
+      { id:'storage-1tb',  tier:'Scale',   name:'1 TB',    amount:'59.99',  period:'mo', currency:'$', specs:['1 TB storage','2 TB egress','Zero-egress opt.','Lifecycle mgmt'], featured:false },
+      { id:'storage-10tb', tier:'Power',   name:'10 TB',   amount:'199.99', period:'mo', currency:'$', specs:['10 TB storage','20 TB egress','Zero-egress opt.','Priority support'], featured:false },
+    ]
+  },
+  'storage-250': { alias:'storage-50' },
+  'storage-1tb':  { alias:'storage-50' },
+  'storage-10tb': { alias:'storage-50' },
+
+  'number-local': {
+    tag: '📞 Virtual Numbers', icon: '📞',
+    title: 'Virtual Phone Numbers', cat: 'Numbers',
+    desc: 'Local and international phone numbers for WhatsApp, SMS and voice. Connect bots to real numbers in 150+ countries.',
+    bullets: ['150+ countries covered','WhatsApp Business API ready','SMS + Voice capabilities','Instant activation'],
+    plans: [
+      { id:'number-local',    tier:'Local',    name:'Local Number',   amount:'5.99',  period:'mo', currency:'$', specs:['1 number','1 country','SMS + Voice','WhatsApp-ready'], featured:false },
+      { id:'number-global',   tier:'Global',   name:'Global Bundle',  amount:'19.99', period:'mo', currency:'$', specs:['3 numbers','Different countries','SMS + Voice','Priority routing'], featured:true  },
+      { id:'number-business', tier:'Business', name:'Business Pack',  amount:'49.99', period:'mo', currency:'$', specs:['10 numbers','Any countries','SMS + Voice + WA','Dedicated routing'], featured:false },
+    ]
+  },
+  'number-global':   { alias:'number-local' },
+  'number-business': { alias:'number-local' },
+
+  'number-search': {
+    tag: '🔍 Search Numbers', icon: '🔍',
+    title: 'Find Available Numbers', cat: 'Numbers',
+    desc: 'Search for available numbers by country and capabilities. Pick your exact number instantly.',
+    bullets: ['Search by country','Filter by SMS, Voice, WhatsApp','Instant purchase','Port your existing number'],
+    type: 'number-search'
+  },
+
+  'calls-100': {
+    tag: '📱 Call Bundles', icon: '📱',
+    title: 'Call Minute Bundles', cat: 'Calls',
+    desc: 'Pre-paid outbound call minutes for your bots. Works globally with competitive per-minute rates.',
+    bullets: ['Global outbound calls','No contracts, buy more anytime','HD voice quality','CDRs & analytics included'],
+    plans: [
+      { id:'calls-100',  tier:'Starter', name:'100 Minutes',  amount:'9.99',  period:'once', currency:'$', specs:['100 min outbound','Global coverage','HD voice','CDR report'], featured:false },
+      { id:'calls-500',  tier:'Growth',  name:'500 Minutes',  amount:'39.99', period:'once', currency:'$', specs:['500 min outbound','Global coverage','HD voice','Priority routing'], featured:true  },
+      { id:'calls-1000', tier:'Power',   name:'1000+ Minutes',amount:'69.99', period:'once', currency:'$', specs:['1000 min outbound','Global coverage','HD voice','Dedicated routes'], featured:false },
+    ]
+  },
+  'calls-500':  { alias:'calls-100' },
+  'calls-1000': { alias:'calls-100' },
+
+  'sim': { alias:'calls-100' },
+
+  'domain-search': {
+    tag: '🌐 Domains', icon: '🌐',
+    title: 'Domain Name Search', cat: 'Domains',
+    desc: 'Register the perfect domain for your bot or product. One-click DNS setup, auto-renew, free WHOIS privacy.',
+    bullets: ['Free WHOIS privacy','Auto-renew available','One-click DNS setup','Transfer in supported'],
+    type: 'domain-search'
+  },
+
+  'domain-tlds': {
+    tag: '🌐 Domains', icon: '🌐',
+    title: 'Domain Extensions & Pricing', cat: 'Domains',
+    desc: 'Choose from the most popular TLDs. All include free WHOIS protection, DNS management and auto-renew.',
+    bullets: ['Free WHOIS privacy','Managed DNS','SSL ready','Transfer-in supported'],
+    type: 'domain-tlds'
+  },
+
+  'domains': { alias:'domain-tlds' },
+  'numbers': { alias:'number-local' },
+};
+
+const TLD_PRICES = [
+  { ext:'.com', price:'$21.99', period:'yr' },
+  { ext:'.net', price:'$25.99', period:'yr' },
+  { ext:'.org', price:'$23.99', period:'yr' },
+  { ext:'.io',  price:'$71.99', period:'yr' },
+  { ext:'.ai',  price:'$159.99',period:'yr' },
+  { ext:'.app', price:'$29.99', period:'yr' },
+  { ext:'.dev', price:'$27.99', period:'yr' },
+  { ext:'.co',  price:'$35.99', period:'yr' },
+  { ext:'.me',  price:'$19.99', period:'yr' },
+  { ext:'.info',price:'$17.99', period:'yr' },
+  { ext:'.biz', price:'$21.99', period:'yr' },
+  { ext:'.us',  price:'$15.99', period:'yr' },
+];
+
+// ── Render right panel ──
+function renderRight(productKey) {
+  let data = CATALOGUE[productKey];
+  if (!data) return;
+  if (data.alias) data = CATALOGUE[data.alias];
+
+  const right = document.getElementById('store-right');
+
+  if (data.type === 'number-search') {
+    right.innerHTML = `
+      ${heroHtml(data)}
+      <div class="store-content">
+        <div class="number-search">
+          <select id="ns-country">
+            <option value="US">🇺🇸 United States (+1)</option>
+            <option value="GB">🇬🇧 United Kingdom (+44)</option>
+            <option value="BR">🇧🇷 Brazil (+55)</option>
+            <option value="DE">🇩🇪 Germany (+49)</option>
+            <option value="FR">🇫🇷 France (+33)</option>
+            <option value="CA">🇨🇦 Canada (+1)</option>
+            <option value="AU">🇦🇺 Australia (+61)</option>
+            <option value="MX">🇲🇽 Mexico (+52)</option>
+            <option value="ES">🇪🇸 Spain (+34)</option>
+            <option value="IT">🇮🇹 Italy (+39)</option>
+          </select>
+          <select id="ns-cap">
+            <option value="all">SMS + Voice</option>
+            <option value="sms">SMS only</option>
+            <option value="voice">Voice only</option>
+          </select>
+          <button class="btn btn-primary" onclick="searchNumbers()">Search</button>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:auto" id="number-results">
+          <table class="numbers-table">
+            <thead><tr><th>Number</th><th>Country</th><th>Capabilities</th><th>Monthly</th><th></th></tr></thead>
+            <tbody id="number-tbody">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">Select a country and click Search</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (data.type === 'domain-search') {
+    right.innerHTML = `
+      ${heroHtml(data)}
+      <div class="store-content">
+        <div class="domain-search">
+          <input type="text" id="domain-input" placeholder="yourbrand.com — type to search…" oninput="domainSearchDebounce()">
+          <button class="btn btn-primary" onclick="searchDomain()">Check Availability</button>
+        </div>
+        <div id="domain-result"></div>
+        <div class="mgmt-section-title" style="margin:1.25rem 0 .75rem">Popular extensions</div>
+        <div class="domain-tld-grid">${TLD_PRICES.map(t=>`
+          <div class="domain-tld-card" onclick="orderDomain('${t.ext}')">
+            <div class="domain-tld-ext">${t.ext}</div>
+            <div class="domain-tld-price"><strong>${t.price}</strong> / ${t.period}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (data.type === 'domain-tlds') {
+    right.innerHTML = `
+      ${heroHtml(data)}
+      <div class="store-content">
+        <div class="domain-tld-grid">${TLD_PRICES.map(t=>`
+          <div class="domain-tld-card" onclick="orderDomain('${t.ext}')">
+            <div class="domain-tld-ext">${t.ext}</div>
+            <div class="domain-tld-price"><strong>${t.price}</strong> / ${t.period}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Default: plan cards
+  right.innerHTML = `
+    ${heroHtml(data)}
+    <div class="store-content">
+      <div class="store-plans-grid">
+        ${(data.plans || []).map(p => `
+          <div class="plan-card ${p.featured?'featured':''}" onclick="openOrder(${JSON.stringify(p)})">
+            <div class="plan-tier">${esc(p.tier)}</div>
+            <div class="plan-name">${esc(p.name)}</div>
+            <div class="plan-price-row">
+              <span class="plan-currency">${p.currency}</span>
+              <span class="plan-amount">${p.amount}</span>
+              <span class="plan-period">/ ${p.period}</span>
+            </div>
+            <ul class="plan-specs">${p.specs.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
+            <button class="plan-cta">Get Started</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function heroHtml(data) {
+  return `
+    <div class="store-hero">
+      <div class="store-hero-icon">${data.icon}</div>
+      <div class="store-hero-body">
+        <div class="store-hero-tag">${data.tag}</div>
+        <div class="store-hero-title">${data.title}</div>
+        <div class="store-hero-desc">${data.desc}</div>
+        <div class="store-hero-bullets">${(data.bullets||[]).map(b=>`<span class="store-hero-bullet">${b}</span>`).join('')}</div>
+      </div>
+    </div>`;
+}
+
+// ── Navigation logic ──
+function toggleGroup(btn, subsId) {
+  const subs = document.getElementById(subsId);
+  const isOpen = subs.classList.contains('open');
+  // close all
+  document.querySelectorAll('.store-sub-items').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.store-cat-btn').forEach(el => el.classList.remove('open'));
+  if (!isOpen) {
+    subs.classList.add('open');
+    btn.classList.add('open');
+  }
+  // navigate to first sub or cat default
+  const firstSub = subs.querySelector('.store-sub-btn');
+  if (firstSub && !isOpen) firstSub.click();
+}
+
+function selectProduct(btn, key) {
+  document.querySelectorAll('.store-sub-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.store-cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // mark parent as active
+  const group = btn.closest('.store-cat-group');
+  if (group) group.querySelector('.store-cat-btn').classList.add('active');
+  currentProduct = key;
+  renderRight(key);
+}
+
+// ── Order modal ──
+function openOrder(plan) {
+  selectedPlan = plan;
+  document.getElementById('modal-title').textContent = `Order: ${plan.name}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="background:var(--bg3);border-radius:8px;padding:1rem;margin-bottom:1rem;border:1px solid var(--border)">
+      <div style="font-size:1.3rem;font-weight:800;color:var(--text)">${plan.currency}${plan.amount}<small style="font-size:.75rem;font-weight:400;color:var(--muted)"> / ${plan.period}</small></div>
+      <ul style="list-style:none;margin-top:.5rem">${plan.specs.map(s=>`<li style="font-size:.82rem;color:var(--muted);padding:.1rem 0">• ${esc(s)}</li>`).join('')}</ul>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Name this service (optional)</label>
+      <input id="order-name" class="form-control" type="text" placeholder="e.g. WhatsApp Bot Server">
+    </div>`;
+  document.getElementById('purchase-modal').classList.add('open');
+}
+
+async function confirmOrder() {
+  if (!selectedPlan) return;
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.textContent = 'Processing…';
+  btn.disabled = true;
+  // Simulate provisioning
+  await new Promise(r => setTimeout(r, 1200));
+  btn.textContent = 'Confirm & Purchase';
+  btn.disabled = false;
+  hideModal();
+  showToast(`✅ ${selectedPlan.name} provisioned! Check My Services.`);
+}
+
+function hideModal() { document.getElementById('purchase-modal').classList.remove('open'); }
+
+// ── Domain helpers ──
+let domainTimer;
+function domainSearchDebounce() { clearTimeout(domainTimer); domainTimer = setTimeout(searchDomain, 600); }
+
+function searchDomain() {
+  const q = document.getElementById('domain-input')?.value?.trim();
+  if (!q) return;
+  const res = document.getElementById('domain-result');
+  if (!res) return;
+  // Simulate availability check
+  const available = Math.random() > 0.3;
+  const domain = q.includes('.') ? q : q + '.com';
+  res.innerHTML = `
+    <div style="background:var(--card);border:1px solid ${available?'rgba(0,212,170,.3)':'rgba(255,107,107,.3)'};border-radius:var(--radius);padding:1rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem">
+      <span style="font-size:1.5rem">${available?'✅':'❌'}</span>
+      <div style="flex:1">
+        <div style="font-size:1rem;font-weight:700;color:var(--text)">${esc(domain)}</div>
+        <div style="font-size:.82rem;color:var(--muted)">${available?'Available — register now!':'Not available. Try another extension.'}</div>
+      </div>
+      ${available?`<button class="btn btn-primary btn-sm" onclick="orderDomainName('${esc(domain)}')">Register $21.99/yr</button>`:''}
+    </div>`;
+}
+
+function orderDomain(ext) {
+  selectedPlan = { name: `Domain ${ext}`, amount: TLD_PRICES.find(t=>t.ext===ext)?.price?.replace('$','') || '21.99', currency:'$', period:'yr', specs:[`${ext} domain`,'Free WHOIS privacy','Managed DNS'] };
+  document.getElementById('modal-title').textContent = `Register ${ext} Domain`;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">Domain Name</label><input id="order-domain" class="form-control" type="text" placeholder="${ext.replace('.','')}.com"></div>
+    <p style="font-size:.82rem;color:var(--muted)">Includes free WHOIS privacy, managed DNS and auto-renew.</p>`;
+  document.getElementById('purchase-modal').classList.add('open');
+}
+
+function orderDomainName(domain) {
+  selectedPlan = { name: domain, amount:'21.99', currency:'$', period:'yr', specs:['Free WHOIS privacy','Managed DNS'] };
+  document.getElementById('modal-title').textContent = `Register ${domain}`;
+  document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Register <strong style="color:var(--text)">${esc(domain)}</strong> for $21.99/yr including free WHOIS privacy.</p>`;
+  document.getElementById('purchase-modal').classList.add('open');
+}
+
+// ── Number search ──
+function searchNumbers() {
+  const country = document.getElementById('ns-country').value;
+  const tbody = document.getElementById('number-tbody');
+  const mockNumbers = [
+    `+1 415-555-0101`, `+1 415-555-0182`, `+1 415-555-0207`,
+    `+1 650-555-0143`, `+1 650-555-0167`,
+  ];
+  tbody.innerHTML = mockNumbers.map(n => `
+    <tr>
+      <td style="font-family:monospace;font-size:.9rem">${n}</td>
+      <td>United States</td>
+      <td><span class="badge badge-active">SMS + Voice</span></td>
+      <td>$5.99/mo</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="orderNumber('${n}')">Buy</button></td>
+    </tr>`).join('');
+}
+
+function orderNumber(number) {
+  selectedPlan = { name:'Virtual Number', amount:'5.99', currency:'$', period:'mo', specs:[number,'SMS + Voice','WhatsApp-ready'] };
+  document.getElementById('modal-title').textContent = `Order Number ${number}`;
+  document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Purchase <strong style="color:var(--text)">${esc(number)}</strong> for $5.99/mo with SMS + Voice capabilities.</p>`;
+  document.getElementById('purchase-modal').classList.add('open');
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, { position:'fixed', bottom:'1.5rem', right:'1.5rem', background:'var(--card)', border:'1px solid var(--accent2)', borderRadius:'10px', padding:'.75rem 1.25rem', color:'var(--text)', fontSize:'.875rem', fontWeight:'600', zIndex:1000, boxShadow:'0 8px 24px rgba(0,0,0,.4)', animation:'modalIn .2s ease' });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  const email = localStorage.getItem('management_email') || '';
+  const emailEl = document.getElementById('sidebar-email');
+  const avatarEl = document.getElementById('sidebar-avatar');
+  if (emailEl) emailEl.textContent = email;
+  if (avatarEl && email) avatarEl.textContent = email[0].toUpperCase();
+
+  // Check URL param
+  const cat = new URLSearchParams(location.search).get('cat') || 'vps-small';
+  // Find and click corresponding sub button
+  const subBtn = document.querySelector(`.store-sub-btn[onclick*="${cat}"]`);
+  if (subBtn) {
+    const group = subBtn.closest('.store-cat-group');
+    const catBtn = group?.querySelector('.store-cat-btn');
+    const subsId = catBtn?.getAttribute('onclick')?.match(/'([^']+)'\)/)?.[1];
+    if (subsId) {
+      document.querySelectorAll('.store-sub-items').forEach(el => el.classList.remove('open'));
+      document.querySelectorAll('.store-cat-btn').forEach(el => el.classList.remove('open', 'active'));
+      document.getElementById(subsId)?.classList.add('open');
+      catBtn?.classList.add('open', 'active');
+      subBtn.click();
+    }
+  } else {
+    renderRight('vps-small');
+  }
+});
+</script>
+  <script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

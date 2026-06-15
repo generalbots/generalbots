@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — General Bots Cloud</title>
+  <link rel="stylesheet" href="css/cloud.css">
+</head>
+<body style="background:var(--bg)">
+<div class="mgmt-auth">
+  <!-- LEFT PITCH -->
+  <div class="mgmt-auth-left">
+    <a href="/cloud" class="mgmt-logo-mark" style="margin-bottom:2.5rem;text-decoration:none">
+      <div class="mgmt-logo-icon">🤖</div>
+      <div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div>
+    </a>
+    <span class="split-pitch-tag">☁️ All-in-one platform</span>
+    <h2 class="split-pitch-title" style="margin-top:1rem;font-size:2.2rem">
+      Your bots.<br>Your <span>infrastructure.</span>
+    </h2>
+    <p class="split-pitch-body" style="margin-top:1rem">
+      Manage VPS servers, phone numbers, domains, storage and billing — all in one unified management console designed for AI-powered workflows.
+    </p>
+    <ul class="split-pitch-bullets" style="margin-top:1.5rem">
+      <li>Instant VPS provisioning from $9.99/mo</li>
+      <li>Phone numbers in 150+ countries</li>
+      <li>S3-compatible object storage</li>
+      <li>One-click domain registration</li>
+      <li>Unified invoicing, no hidden fees</li>
+    </ul>
+    <div class="split-trust" style="margin-top:2rem">
+      <div class="split-trust-item"><span class="split-trust-num">99.9%</span><span class="split-trust-label">Uptime SLA</span></div>
+      <div class="split-trust-item"><span class="split-trust-num">150+</span><span class="split-trust-label">Countries</span></div>
+      <div class="split-trust-item"><span class="split-trust-num">24/7</span><span class="split-trust-label">Support</span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT FORM -->
+  <div class="mgmt-auth-right">
+    <div class="mgmt-auth-card">
+      <h2>Welcome back</h2>
+      <p>Sign in to your management account</p>
+
+      <div id="login-error" style="display:none;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.3);border-radius:8px;padding:.75rem 1rem;font-size:.85rem;color:var(--accent3);margin-bottom:1rem"></div>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input id="login-email" type="email" class="form-control" placeholder="you@company.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input id="login-password" type="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="login-btn" style="margin-top:.5rem;padding:.7rem">
+          Sign In
+        </button>
+      </form>
+
+      <div class="auth-alt">Don't have an account? <a href="/cloud/signup">Create one</a></div>
+    </div>
+  </div>
+</div>
+<script src="js/management-auth.js"></script>
+</body>
+</html>

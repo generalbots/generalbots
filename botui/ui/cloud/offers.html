@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Special Offers &amp; Top-up — General Bots Cloud</title>
+  <link rel="stylesheet" href="css/cloud.css">
+  <style>
+    /* ── STYLING SPECIFIC FOR SPECIAL OFFERS ── */
+    .offers-container {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem;
+    }
+
+    @media (max-width: 1024px) {
+      .offers-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left: Offers Cards */
+    .offers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .offer-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .offer-card:hover {
+      border-color: rgba(0, 212, 170, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0, 212, 170, 0.08);
+    }
+
+    .offer-card.featured {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(108, 99, 255, 0.1) 0%, var(--card) 60%);
+    }
+
+    .offer-card.featured::after {
+      content: 'HOT OFFER';
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: linear-gradient(90deg, #ff4b2b, #ff416c);
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      padding: 0.2rem 0.55rem;
+      border-radius: 99px;
+    }
+
+    .offer-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+
+    .offer-card.featured .offer-icon-wrapper {
+      background: rgba(108, 99, 255, 0.15);
+      border-color: rgba(108, 99, 255, 0.3);
+    }
+
+    .offer-body {
+      flex: 1;
+    }
+
+    .offer-tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--accent2);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.35rem;
+    }
+
+    .offer-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .offer-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .offer-meta {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .offer-price {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .offer-price strong {
+      font-size: 1.2rem;
+      color: var(--accent2);
+      font-weight: 800;
+    }
+
+    /* Right: Top-up Panel */
+    .topup-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      position: sticky;
+      top: 1.5rem;
+    }
+
+    .topup-balance-card {
+      background: linear-gradient(135deg, #10152d 0%, #1e1233 100%);
+      border: 1px solid rgba(108, 99, 255, 0.25);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      box-shadow: inset 0 0 15px rgba(108, 99, 255, 0.1);
+    }
+
+    .balance-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .balance-val {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--text);
+      text-shadow: 0 0 12px rgba(0, 212, 170, 0.2);
+    }
+
+    .quick-amounts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .amount-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.6rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .amount-btn:hover {
+      border-color: var(--accent);
+      background: rgba(108, 99, 255, 0.08);
+    }
+
+    .amount-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .topup-warning {
+      background: rgba(255, 107, 107, 0.08);
+      border: 1px solid rgba(255, 107, 107, 0.2);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.75rem;
+      color: #ff8b8b;
+      line-height: 1.4;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+
+    .topup-warning-icon {
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+
+    /* History table */
+    .topup-history {
+      margin-top: 1.5rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+    }
+
+    .topup-history-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <!-- APP SIDEBAR -->
+  <nav class="mgmt-sidebar">
+    <div class="mgmt-logo">
+      <a href="/cloud" class="mgmt-logo-mark">
+        <div class="mgmt-logo-icon">🤖</div>
+        <div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div>
+      </a>
+    </div>
+    <nav class="mgmt-nav">
+      <div class="mgmt-nav-section">Overview</div>
+      <a href="/cloud/dashboard" class="mgmt-nav-link"><span class="mgmt-nav-icon">📊</span> Dashboard</a>
+      <div class="mgmt-nav-section">Add-ons</div>
+      <a href="/cloud/store" class="mgmt-nav-link"><span class="mgmt-nav-icon">🏪</span> App Store</a>
+      <a href="/cloud/plans" class="mgmt-nav-link"><span class="mgmt-nav-icon">🚀</span> Plans &amp; Pricing</a>
+      <a href="/cloud/offers" class="mgmt-nav-link active"><span class="mgmt-nav-icon">🏷️</span> Special Offers</a>
+      <div class="mgmt-nav-section">Infrastructure</div>
+      <a href="/cloud/store?cat=compute" class="mgmt-nav-link"><span class="mgmt-nav-icon">🖥️</span> Computers / VPS</a>
+      <a href="/cloud/store?cat=storage" class="mgmt-nav-link"><span class="mgmt-nav-icon">💾</span> Storage</a>
+      <a href="/cloud/store?cat=domains" class="mgmt-nav-link"><span class="mgmt-nav-icon">🌐</span> Domains</a>
+      <a href="/cloud/store?cat=comms" class="mgmt-nav-link"><span class="mgmt-nav-icon">📞</span> SMS &amp; Numbers</a>
+      <div class="mgmt-nav-section">Account</div>
+      <a href="/cloud/services" class="mgmt-nav-link"><span class="mgmt-nav-icon">📦</span> My Services</a>
+      <a href="/cloud/invoices" class="mgmt-nav-link"><span class="mgmt-nav-icon">📄</span> Invoices</a>
+      <a href="/cloud/payment-cards" class="mgmt-nav-link"><span class="mgmt-nav-icon">💳</span> Payment Cards</a>
+      <a href="/cloud/profile" class="mgmt-nav-link"><span class="mgmt-nav-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="mgmt-sidebar-footer">
+      <div class="mgmt-user-chip">
+        <div class="mgmt-avatar" id="sidebar-avatar">?</div>
+        <span class="mgmt-user-email" id="sidebar-email">…</span>
+        <button class="mgmt-logout" onclick="doLogout()" title="Sign out">⎋</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Special Offers &amp; Account Top-up</span>
+    </div>
+
+    <div class="offers-container">
+      
+      <!-- LEFT: SPECIAL OFFERS -->
+      <div class="offers-list">
+        
+        <!-- Offer 1 -->
+        <div class="offer-card featured">
+          <div class="offer-icon-wrapper">📱</div>
+          <div class="offer-body">
+            <span class="offer-tag">Popular</span>
+            <div class="offer-title">App Store Publishing — Google Play + Apple</div>
+            <p class="offer-desc">Publique seu aplicativo nas duas maiores lojas do mundo. Inclui consultoria especializada, preparação de assets, criação de conta desenvolvedor e submissão para review. Cobertura completa do processo.</p>
+            <div class="offer-meta">
+              <div class="offer-price">From: <strong>$199</strong> <span style="color:var(--muted);font-weight:400">+ taxas da loja</span></div>
+              <a href="/cloud/appstores" class="btn btn-primary btn-sm">Learn More →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offer 2 -->
+        <div class="offer-card">
+          <div class="offer-icon-wrapper">🇬🇧</div>
+          <div class="offer-body">
+            <span class="offer-tag">Best Price</span>
+            <div class="offer-title">UK eSIM - 1 GB from 8 cents!</div>
+            <p class="offer-desc">Super cheap UK eSIM mobile data. Includes 500 GB total traffic + Unlimited UK calls + UK phone number + 25 GB data to use in 77 other countries. The ultimate connectivity package.</p>
+            <div class="offer-meta">
+              <div class="offer-price">Price from: <strong>$0.08</strong> / 1 GB</div>
+              <a href="/cloud/store?cat=comms" class="btn btn-secondary btn-sm">Buy UK eSIM</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offer 3 -->
+        <div class="offer-card">
+          <div class="offer-icon-wrapper">🇺🇸</div>
+          <div class="offer-body">
+            <span class="offer-tag">Price Drop</span>
+            <div class="offer-title">US Virtual Numbers at Only $0.99/mo!</div>
+            <p class="offer-desc">Prices of US virtual phone numbers went down. Use a separate US number for advertisements, verification codes, or business contacts without needing a physical SIM card.</p>
+            <div class="offer-meta">
+              <div class="offer-price">Monthly: <strong>$0.99</strong> / month</div>
+              <button class="btn btn-primary btn-sm" id="btn-number" onclick="copyPromoCode('NUMBER', 'btn-number')">Copy Code: NUMBER</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offer 4 -->
+        <div class="offer-card">
+          <div class="offer-icon-wrapper">🌍</div>
+          <div class="offer-body">
+            <span class="offer-tag">Data Only</span>
+            <div class="offer-title">Cheap eSIM Mobile Data for International Travel</div>
+            <p class="offer-desc">Travel overseas and use mobile data freely without worrying about unexpected roaming bills or contract obligations. Installs in minutes on any compatible eSIM device.</p>
+            <div class="offer-meta">
+              <a href="/cloud/store?cat=comms" class="btn btn-secondary btn-sm">Explore eSIM Plans</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offer 5 -->
+        <div class="offer-card">
+          <div class="offer-icon-wrapper">👤</div>
+          <div class="offer-body">
+            <span class="offer-tag">Privacy</span>
+            <div class="offer-title">EXTRA Phone Number Without SIM Card</div>
+            <p class="offer-desc">Need a second number for classifieds, job hunting, or testing? Get an extra virtual phone number immediately and protect your primary personal phone number.</p>
+            <div class="offer-meta">
+              <a href="/cloud/store?cat=comms" class="btn btn-secondary btn-sm">Order Number</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offer 6 -->
+        <div class="offer-card">
+          <div class="offer-icon-wrapper">🤖</div>
+          <div class="offer-body">
+            <span class="offer-tag">New Feature</span>
+            <div class="offer-title">Free Incoming Calls on Android via Internet</div>
+            <p class="offer-desc">Android users can now receive incoming calls to their purchased virtual numbers completely free of charge. Calls are routed directly over the internet to ensure crisp HD quality.</p>
+            <div class="offer-meta">
+              <span style="font-size:0.8rem;color:var(--muted)">Requires Internet / Wi-Fi connection</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offer 7 -->
+        <div class="offer-card featured">
+          <div class="offer-icon-wrapper">🎁</div>
+          <div class="offer-body">
+            <span class="offer-tag">First Order</span>
+            <div class="offer-title">-50% Discount for First Order</div>
+            <p class="offer-desc">Hurry up! Save 50% on your first order of any bundle. This discount code is valid for 15 days from registration and applies to eSIM packages, numbers, or compute infrastructure.</p>
+            <div class="offer-meta">
+              <div class="offer-price">Promo Code: <strong>BUNDLE50</strong></div>
+              <button class="btn btn-primary btn-sm" id="btn-bundle" onclick="copyPromoCode('BUNDLE50', 'btn-bundle')">Copy Code: BUNDLE50</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offer 8 -->
+        <div class="offer-card">
+          <div class="offer-icon-wrapper">📞</div>
+          <div class="offer-body">
+            <span class="offer-tag">Outbound Calls</span>
+            <div class="offer-title">Save Up to 97% on International Calls</div>
+            <p class="offer-desc">Call any landline or mobile number globally using General Bots Cloud Outbound. Highly competitive per-minute rates with absolute transparency. Pay only for what you use.</p>
+            <div class="offer-meta">
+              <a href="/cloud/store?cat=comms" class="btn btn-secondary btn-sm">Check Rates</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offer 9 -->
+        <div class="offer-card">
+          <div class="offer-icon-wrapper">💬</div>
+          <div class="offer-body">
+            <span class="offer-tag">Support</span>
+            <div class="offer-title">24/7 Support in EN, PL, LT, RU</div>
+            <p class="offer-desc">Our dedicated team is ready to assist you. Feel free to contact customer service 24/7 in English, Polish, Lithuanian, or Russian. We are always happy to help.</p>
+            <div class="offer-meta">
+              <a href="mailto:support@generalbots.com" class="btn btn-secondary btn-sm">Contact Support</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: TOP-UP CONTROL -->
+      <div>
+        <div class="topup-panel">
+          <div class="topup-balance-card">
+            <div class="balance-label">Total Account Balance</div>
+            <div class="balance-val" id="current-balance">$0.00</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">Valid for calls, SMS, virtual numbers &amp; eSIM plans.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Select Organization to Credit</label>
+            <select id="topup-org" class="form-control">
+              <option value="">Loading Organizations...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Quick Top-up Amount</label>
+            <div class="quick-amounts">
+              <button class="amount-btn" data-amount="4.0" onclick="selectQuickAmount(4.0)">$4.00</button>
+              <button class="amount-btn" data-amount="7.0" onclick="selectQuickAmount(7.0)">$7.00</button>
+              <button class="amount-btn" data-amount="14.0" onclick="selectQuickAmount(14.0)">$14.00</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Or Custom Amount ($)</label>
+            <input type="number" id="topup-custom-amount" class="form-control" placeholder="0.00" min="1.00" step="0.50">
+          </div>
+
+          <div class="topup-warning">
+            <span class="topup-warning-icon">ℹ️</span>
+            <span>Top-ups are applied as account credits valid for 12 months and processed via invoice.</span>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%;padding:0.75rem" id="topup-btn" onclick="executeTopup()">Top-up Now</button>
+        </div>
+
+        <!-- Top-up history -->
+        <div class="topup-history">
+          <div class="topup-history-title">Recent Top-ups</div>
+          <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);color:var(--muted);text-align:left">
+                <th style="padding:0.4rem 0">Invoice</th>
+                <th style="padding:0.4rem 0">Date</th>
+                <th style="padding:0.4rem 0">Amount</th>
+                <th style="padding:0.4rem 0">Status</th>
+              </tr>
+            </thead>
+            <tbody id="topup-history-tbody">
+              <tr>
+                <td colspan="4" style="text-align:center;padding:1rem;color:var(--muted)">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/management-offers.js"></script>
+  <script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

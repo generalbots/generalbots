@@ -10,7 +10,7 @@ members = [
   "botschema",
   "botapp",
   "botserver/crates/botanalytics",
-  "botserver/crates/botsaas",
+  "botserver/crates/botcloud",
   "botserver/crates/botapi",
   "botserver/crates/botapps",
   "botserver/crates/botattendance",

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Cards — General Bots Cloud</title>
+  <link rel="stylesheet" href="css/cloud.css">
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <nav class="mgmt-sidebar">
+    <div class="mgmt-logo"><a href="/cloud" class="mgmt-logo-mark"><div class="mgmt-logo-icon">🤖</div><div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div></a></div>
+    <nav class="mgmt-nav">
+      <div class="mgmt-nav-section">Overview</div>
+      <a href="/cloud/dashboard" class="mgmt-nav-link"><span class="mgmt-nav-icon">📊</span> Dashboard</a>
+      <div class="mgmt-nav-section">Add-ons</div>
+      <a href="/cloud/store" class="mgmt-nav-link"><span class="mgmt-nav-icon">🏪</span> App Store</a>
+      <a href="/cloud/plans" class="mgmt-nav-link"><span class="mgmt-nav-icon">🚀</span> Plans &amp; Pricing</a>
+      <a href="/cloud/offers" class="mgmt-nav-link"><span class="mgmt-nav-icon">🏷️</span> Special Offers</a>
+      <div class="mgmt-nav-section">Infrastructure</div>
+      <a href="/cloud/store?cat=compute" class="mgmt-nav-link"><span class="mgmt-nav-icon">🖥️</span> Computers / VPS</a>
+      <a href="/cloud/store?cat=storage" class="mgmt-nav-link"><span class="mgmt-nav-icon">💾</span> Storage</a>
+      <a href="/cloud/store?cat=domains" class="mgmt-nav-link"><span class="mgmt-nav-icon">🌐</span> Domains</a>
+      <a href="/cloud/store?cat=comms" class="mgmt-nav-link"><span class="mgmt-nav-icon">📞</span> SMS &amp; Numbers</a>
+      <div class="mgmt-nav-section">Account</div>
+      <a href="/cloud/services" class="mgmt-nav-link"><span class="mgmt-nav-icon">📦</span> My Services</a>
+      <a href="/cloud/invoices" class="mgmt-nav-link"><span class="mgmt-nav-icon">📄</span> Invoices</a>
+      <a href="/cloud/payment-cards" class="mgmt-nav-link active"><span class="mgmt-nav-icon">💳</span> Payment Cards</a>
+      <a href="/cloud/profile" class="mgmt-nav-link"><span class="mgmt-nav-icon">👤</span> My Profile</a>
+    </nav>
+    <div class="mgmt-sidebar-footer"><div class="mgmt-user-chip"><div class="mgmt-avatar" id="sidebar-avatar">?</div><span class="mgmt-user-email" id="sidebar-email">…</span><button class="mgmt-logout" onclick="doLogout()" title="Sign out">⎋</button></div></div>
+  </nav>
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Payment Cards</span>
+      <div class="mgmt-topbar-actions">
+        <button class="btn btn-primary btn-sm" onclick="showAddCard()">+ Add Card</button>
+      </div>
+    </div>
+
+    <div style="padding:2rem">
+      <div class="payment-cards" id="cards-grid">
+        <div class="mgmt-empty" style="grid-column:1/-1"><div class="loading-dots"><span></span><span></span><span></span></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ADD CARD MODAL -->
+<div class="mgmt-modal" id="add-card-modal">
+  <div class="mgmt-backdrop" onclick="hideAddCard()"></div>
+  <div class="mgmt-modal-box">
+    <div class="mgmt-modal-title">Add Payment Card</div>
+    <div class="form-group">
+      <label class="form-label">Cardholder Name</label>
+      <input type="text" id="card-name" class="form-control" placeholder="John Smith">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Card Number</label>
+      <input type="text" id="card-number" class="form-control" placeholder="4242 4242 4242 4242" maxlength="19" oninput="fmtCard(this)">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      <div class="form-group">
+        <label class="form-label">Expiry</label>
+        <input type="text" id="card-exp" class="form-control" placeholder="MM/YY" maxlength="5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">CVC</label>
+        <input type="text" id="card-cvc" class="form-control" placeholder="•••" maxlength="4">
+      </div>
+    </div>
+    <div class="mgmt-modal-actions">
+      <button class="btn btn-ghost" onclick="hideAddCard()">Cancel</button>
+      <button class="btn btn-primary" onclick="addCard()">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/management-cards.js"></script>
+  <script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

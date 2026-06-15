@@ -1553,6 +1553,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "botcloud"
+version = "0.1.0"
+dependencies = [
+ "axum 0.7.9",
+ "bigdecimal",
+ "botbilling",
+ "chrono",
+ "diesel",
+ "r2d2",
+ "rand 0.9.4",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "botcompliance"
 version = "6.3.0"
 dependencies = [
@@ -2373,25 +2393,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "botsaas"
-version = "0.1.0"
-dependencies = [
- "axum 0.7.9",
- "bigdecimal",
- "botbilling",
- "chrono",
- "diesel",
- "r2d2",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "botschema"
 version = "6.3.0"
 dependencies = [
@@ -2585,6 +2586,7 @@ dependencies = [
  "botcalendar",
  "botcanvas",
  "botchannels",
+ "botcloud",
  "botcompliance",
  "botcontacts",
  "botcore",
@@ -2623,7 +2625,6 @@ dependencies = [
  "botproject",
  "botqdrant",
  "botresearch",
- "botsaas",
  "botsearch",
  "botsecurity",
  "botsettings",

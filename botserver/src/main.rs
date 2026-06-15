@@ -70,7 +70,7 @@ pub mod paper;
 pub mod people;
 #[cfg(feature = "player")]
 pub mod player;
-#[cfg(feature = "billing")]
+#[cfg(feature = "products")]
 pub mod products;
 #[cfg(feature = "project")]
 pub mod project;
