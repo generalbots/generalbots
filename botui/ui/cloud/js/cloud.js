@@ -19,64 +19,51 @@ const SVG = {
   logout: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
 };
 
-const SIDEBAR_HTML = `<nav class="mgmt-sidebar" id="mgmt-sidebar">
-  <div class="mgmt-logo"><a href="/cloud" class="mgmt-logo-mark"><div class="mgmt-logo-icon">${SVG.robot}</div><div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div></a></div>
-  <nav class="mgmt-nav">
-    <div class="mgmt-nav-section">Overview</div>
-    <a href="/cloud/dashboard" class="mgmt-nav-link" data-page="dashboard"><span class="mgmt-nav-icon">${SVG.dashboard}</span> Dashboard</a>
 
-    <div class="mgmt-nav-section">Tools</div>
-    <a href="javascript:void(0)" class="mgmt-nav-link" onclick="openCalculator()"><span class="mgmt-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="12" y2="18.01"/><line x1="16" y1="18" x2="16" y2="18.01"/></svg></span> Calculator</a>
-
-    <div class="mgmt-nav-section">Store</div>
-    <a href="/cloud/offers" class="mgmt-nav-link" data-page="offers"><span class="mgmt-nav-icon">${SVG.offers}</span> Offers</a>
-    <a href="/cloud/store?cat=compute" class="mgmt-nav-link" data-cat="compute"><span class="mgmt-nav-icon">${SVG.vps}</span> VPS / Compute</a>
-    <a href="/cloud/store?cat=gpu" class="mgmt-nav-link" data-cat="gpu"><span class="mgmt-nav-icon">${SVG.gpu}</span> GPU</a>
-    <a href="/cloud/store?cat=storage" class="mgmt-nav-link" data-cat="storage"><span class="mgmt-nav-icon">${SVG.storage}</span> Storage</a>
-    <a href="/cloud/store?cat=comms" class="mgmt-nav-link" data-cat="comms"><span class="mgmt-nav-icon">${SVG.phone}</span> Phone Numbers</a>
-    <a href="/cloud/store?cat=apps" class="mgmt-nav-link" data-cat="apps"><span class="mgmt-nav-icon">${SVG.appstore}</span> App Store</a>
-    <a href="/cloud/llm" class="mgmt-nav-link" data-page="llm"><span class="mgmt-nav-icon">${SVG.llm}</span> LLM Models</a>
-
-
-    <div class="mgmt-nav-section">Account</div>
-    <a href="/cloud/services" class="mgmt-nav-link" data-page="services"><span class="mgmt-nav-icon">${SVG.services}</span> My Services</a>
-    <a href="/cloud/invoices" class="mgmt-nav-link" data-page="invoices"><span class="mgmt-nav-icon">${SVG.invoices}</span> Invoices</a>
-    <a href="/cloud/payment-cards" class="mgmt-nav-link" data-page="cards"><span class="mgmt-nav-icon">${SVG.cards}</span> Payment Cards</a>
-    <a href="/cloud/organizations" class="mgmt-nav-link" data-page="orgs"><span class="mgmt-nav-icon">${SVG.orgs}</span> My Organizations</a>
-    <a href="/cloud/profile" class="mgmt-nav-link" data-page="profile"><span class="mgmt-nav-icon">${SVG.profile}</span> My Profile</a>
-    <a href="/cloud/settings" class="mgmt-nav-link" data-page="settings"><span class="mgmt-nav-icon">${SVG.settings}</span> Settings</a>
-  </nav>
-  <div class="mgmt-sidebar-footer"><div class="mgmt-user-chip"><div class="mgmt-avatar" id="sidebar-avatar">?</div><span class="mgmt-user-email" id="sidebar-email">\u2026</span><button class="mgmt-logout" onclick="doLogout()" title="Sign out">${SVG.logout}</button></div></div>
-</nav>`;
-
-document.addEventListener('DOMContentLoaded', () => {
-  const token = requireAuth();
-
-  // Injetar sidebar apenas se ainda não existir no HTML
+// ── Sidebar: loaded from /cloud/partials/sidebar.html (single source of truth) ──
+async function loadSidebar() {
   const shell = document.querySelector('.mgmt-shell');
   if (!shell) return;
+  if (shell.querySelector('.mgmt-sidebar')) return; // already present
 
-  let sidebar = shell.querySelector('.mgmt-sidebar');
-  if (!sidebar) {
-    const temp = document.createElement('div');
-    temp.innerHTML = SIDEBAR_HTML;
-    sidebar = temp.firstElementChild;
-    shell.insertBefore(sidebar, shell.firstChild);
-  }
+  try {
+    const res = await fetch('/cloud/partials/sidebar.html');
+    const html = res.ok ? await res.text() : '';
+    if (html) {
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      const sidebar = temp.querySelector('.mgmt-sidebar') || temp.firstElementChild;
+      if (sidebar) shell.insertBefore(sidebar, shell.firstChild);
+    }
+  } catch (_) { /* sidebar unavailable, page still works */ }
+}
 
-  // Marcar link ativo (roda sempre, mesmo sidebar inline)
+function initNavActive(sidebar) {
   const path = window.location.pathname;
   const params = new URLSearchParams(window.location.search);
   sidebar.querySelectorAll('.mgmt-nav-link').forEach(a => {
-    const cat = a.getAttribute('data-cat');
+    const href = a.getAttribute('href') || '';
+    const cat = href.includes('cat=') ? new URLSearchParams(href.split('?')[1] || '').get('cat') : null;
     if (cat) {
       if (params.get('cat') === cat) a.classList.add('active');
-    } else {
-      const href = a.getAttribute('href');
-      if (href && path.startsWith(href.split('?')[0])) a.classList.add('active');
+    } else if (href && href !== '#' && href !== 'javascript:void(0)') {
+      const hrefPath = href.split('?')[0];
+      if (path === hrefPath || (hrefPath !== '/cloud' && path.startsWith(hrefPath))) {
+        a.classList.add('active');
+      }
     }
   });
-  // Preencher email e avatar
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const token = requireAuth();
+
+  await loadSidebar();
+
+  const sidebar = document.querySelector('.mgmt-sidebar');
+  if (sidebar) initNavActive(sidebar);
+
+  // Fill user email + avatar
   const email = localStorage.getItem('management_email') || '';
   const emailEl = document.getElementById('sidebar-email');
   if (emailEl) emailEl.textContent = email;
@@ -89,9 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const userEmail = document.getElementById('user-email');
   if (userEmail) userEmail.textContent = email;
+
   try { loadDashboardOrgs(token).catch(() => {}); } catch (_) {}
   try { loadDashboardPlans(token).catch(() => {}); } catch (_) {}
 });
+
 
 async function loadDashboardOrgs(token) {
   const container = document.getElementById('orgs-list');

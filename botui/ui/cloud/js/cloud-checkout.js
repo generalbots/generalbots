@@ -17,28 +17,74 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function renderSummary(payload) {
   const container = document.getElementById('order-summary');
-  const planName = payload.plan.charAt(0).toUpperCase() + payload.plan.slice(1);
+  const planName = payload.plan === 'private-cloud' ? 'Sovereign Private Cloud' : (payload.plan.charAt(0).toUpperCase() + payload.plan.slice(1) + ' Plan');
   const periodLabel = payload.period === 'yearly' ? '/yr' : '/mo';
-  container.innerHTML = `
+  
+  let html = `
     <div class="saas-order-row">
-      <span>${planName} Plan</span>
-      <span>$${(payload.total || 0).toFixed(2)}${periodLabel}</span>
+      <span><strong>${planName}</strong></span>
+      <span><strong>$${(payload.total || 0).toFixed(2)}${periodLabel}</strong></span>
     </div>
-    ${payload.storage > 0 ? `
-    <div class="saas-order-row">
-      <span>Storage: ${payload.storage}GB</span>
-      <span>Included</span>
-    </div>` : ''}
-    ${payload.ai && payload.ai.length > 0 ? `
-    <div class="saas-order-row">
-      <span>AI: ${payload.ai.join(', ')}</span>
-      <span>Included</span>
-    </div>` : ''}
-    <div class="saas-order-total">
+  `;
+
+  if (payload.vps) {
+    const vpsName = payload.vps.replace('vps-', 'VM ').toUpperCase();
+    html += `
+      <div class="saas-order-row" style="font-size: 0.8rem; opacity: 0.8; padding-left: 10px;">
+        <span>• Server Size: ${vpsName}</span>
+        <span>Included</span>
+      </div>
+    `;
+  }
+  if (payload.storage && payload.storage > 0) {
+    html += `
+      <div class="saas-order-row" style="font-size: 0.8rem; opacity: 0.8; padding-left: 10px;">
+        <span>• Storage: ${payload.storage}GB</span>
+        <span>Included</span>
+      </div>
+    `;
+  }
+  if (payload.gpu && payload.gpu !== 'none') {
+    const gpuName = payload.gpu.replace('gpu-', '').toUpperCase();
+    html += `
+      <div class="saas-order-row" style="font-size: 0.8rem; opacity: 0.8; padding-left: 10px;">
+        <span>• Dedicated GPU: ${gpuName}</span>
+        <span>Included</span>
+      </div>
+    `;
+  }
+  if (payload.phone && payload.phone !== '0') {
+    html += `
+      <div class="saas-order-row" style="font-size: 0.8rem; opacity: 0.8; padding-left: 10px;">
+        <span>• Phone: ${payload.phone} Line(s)</span>
+        <span>Included</span>
+      </div>
+    `;
+  }
+  if (payload.domain) {
+    html += `
+      <div class="saas-order-row" style="font-size: 0.8rem; opacity: 0.8; padding-left: 10px;">
+        <span>• Custom Domain: ${payload.domain}</span>
+        <span>Included</span>
+      </div>
+    `;
+  }
+  if (payload.ai && payload.ai.length > 0) {
+    html += `
+      <div class="saas-order-row" style="font-size: 0.8rem; opacity: 0.8; padding-left: 10px;">
+        <span>• AI Models: ${payload.ai.join(', ')}</span>
+        <span>Included</span>
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="saas-order-total" style="margin-top: 1rem; border-top: 1px dashed var(--border); padding-top: 0.75rem;">
       <span>Total</span>
       <span>$${(payload.total || 0).toFixed(2)}${periodLabel}</span>
     </div>
   `;
+  container.innerHTML = html;
 }
 
 async function doCheckout(e) {

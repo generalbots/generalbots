@@ -4,8 +4,8 @@
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
       padding: 1.25rem; cursor: pointer; transition: all .2s; position: relative;
     }
-    .org-card:hover { border-color: rgba(108,99,255,.4); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108,99,255,.12); }
-    .org-card-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), #8b7cf8); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; margin-bottom: .75rem; }
+    .org-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-accent); }
+    .org-card-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; margin-bottom: .75rem; }
     .org-card-name { font-size: 1rem; font-weight: 700; color: var(--text); }
     .org-card-plan { font-size: .72rem; color: var(--muted); margin-top: .25rem; letter-spacing: .04em; text-transform: uppercase; }
     .org-card-stats { display: flex; gap: 1rem; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
@@ -27,7 +27,7 @@
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
       padding: 1.25rem; transition: all .2s; position: relative;
     }
-    .ws-card:hover { border-color: rgba(108,99,255,.3); }
+    .ws-card:hover { border-color: var(--border-hover); }
     .ws-card-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
     .ws-card-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--bg3), var(--surface)); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
     .ws-card-name { font-size: .95rem; font-weight: 700; color: var(--text); flex: 1; }
@@ -41,7 +41,7 @@
       padding: .75rem 1rem; display: flex; align-items: center; gap: .75rem;
     }
     .res-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: .8rem; flex-shrink: 0; }
-    .res-icon.compute { background: rgba(108,99,255,.15); color: var(--accent); }
+    .res-icon.compute { background: var(--accent-dim); color: var(--accent); }
     .res-icon.storage { background: rgba(0,212,170,.15); color: var(--accent2); }
     .res-icon.phone { background: rgba(255,180,0,.15); color: #ffb400; }
     .res-icon.comms { background: rgba(255,107,107,.15); color: var(--accent3); }

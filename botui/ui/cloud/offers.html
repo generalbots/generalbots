@@ -12,8 +12,8 @@
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
       padding: 1.5rem; transition: all .2s; position: relative; display: flex; flex-direction: column;
     }
-    .offer-card:hover { border-color: rgba(108,99,255,.35); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.08); }
-    .offer-card.highlight { border-color: var(--accent); background: linear-gradient(135deg, rgba(108,99,255,.04), rgba(139,124,248,.04)); }
+    .offer-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-accent); }
+    .offer-card.highlight { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 100%); }
     .offer-card.highlight::before { content: 'Recommended'; position: absolute; top: -.5rem; right: 1rem; background: var(--accent); color: #fff; font-size: .65rem; font-weight: 700; padding: .15rem .65rem; border-radius: 99px; text-transform: uppercase; letter-spacing: .05em; }
     .offer-name { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: .35rem; }
     .offer-desc { font-size: .82rem; color: var(--muted); line-height: 1.55; margin-bottom: 1rem; flex: 1; }
@@ -21,12 +21,12 @@
     .offer-price { font-size: 1.8rem; font-weight: 800; color: var(--text); }
     .offer-price small { font-size: .8rem; font-weight: 400; color: var(--muted); }
     .offer-original { font-size: .85rem; color: var(--muted); text-decoration: line-through; }
-    .offer-savings { font-size: .72rem; background: rgba(52,211,153,.12); color: #34d399; padding: .15rem .5rem; border-radius: 99px; font-weight: 600; }
+    .offer-savings { font-size: .72rem; background: var(--accent-dim); color: var(--accent2); padding: .15rem .5rem; border-radius: 99px; font-weight: 600; }
     .offer-addons { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: 1.25rem; }
     .offer-addon-tag { font-size: .7rem; background: var(--bg3); color: var(--muted); padding: .2rem .55rem; border-radius: 99px; border: 1px solid var(--border); }
     .offer-btn { width: 100%; text-align: center; padding: .65rem; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
     .offer-btn.primary { background: var(--accent); color: #fff; }
-    .offer-btn.primary:hover { background: var(--accent-hover); }
+    .offer-btn.primary:hover { filter: brightness(1.15); }
     .offer-btn.outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
     .offer-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
     .offers-section-title { font-size: .85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 2rem 0 1rem; }
@@ -83,6 +83,57 @@
     ];
   }
 
+  window.allOffers = offers;
+
+  window.buyOffer = function(offerId) {
+    const o = window.allOffers.find(item => item.id === offerId);
+    if (!o) return;
+    
+    let vpsVal = null;
+    let storageVal = 0;
+    let gpuVal = 'none';
+    let phoneVal = '0';
+    let domainVal = '';
+    let aiList = [];
+
+    (o.addons || []).forEach(a => {
+      if (a.startsWith('vps_')) {
+        vpsVal = a.replace('_', '-');
+      } else if (a.startsWith('storage_')) {
+        const gbStr = a.replace('storage_', '');
+        if (gbStr === '50') storageVal = 50;
+        else if (gbStr === '250') storageVal = 250;
+        else if (gbStr === '1tb') storageVal = 1000;
+        else if (gbStr === '10tb') storageVal = 10000;
+      } else if (a.startsWith('gpu_')) {
+        gpuVal = a.replace('_', '-');
+      } else if (a.startsWith('phone_') || a.startsWith('number_')) {
+        const pType = a.replace('phone_', '').replace('number_', '');
+        if (pType === 'local') phoneVal = '1';
+        else if (pType === 'global') phoneVal = '3';
+        else if (pType === 'business') phoneVal = '10';
+      } else if (a.startsWith('domain_')) {
+        domainVal = '.' + a.replace('domain_', '');
+      }
+    });
+
+    const payloadObj = {
+      plan: o.id,
+      period: 'monthly',
+      storage: storageVal,
+      vps: vpsVal,
+      gpu: gpuVal,
+      phone: phoneVal,
+      domain: domainVal,
+      total: o.monthly_price,
+      currency: 'usd',
+      ai: aiList
+    };
+
+    const payload = encodeURIComponent(JSON.stringify(payloadObj));
+    window.location.href = '/cloud/checkout?payload=' + payload;
+  };
+
   function renderCard(o) {
     const isHighlight = o.highlight;
     const addonsHtml = (o.addons || []).map(a => `<span class="offer-addon-tag">${a.replace(/_/g, ' ')}</span>`).join('');
@@ -95,7 +146,7 @@
       '<div class="offer-desc">' + o.description + '</div>' +
       priceHtml +
       addonHtml +
-      '<button class="offer-btn ' + (isHighlight ? 'primary' : 'outline') + '" onclick="alert(\'Checkout: ' + o.id + '\')">Subscribe</button>' +
+      '<button class="offer-btn ' + (isHighlight ? 'primary' : 'outline') + '" onclick="buyOffer(\'' + o.id + '\')">Subscribe</button>' +
       '</div>';
   }
 
