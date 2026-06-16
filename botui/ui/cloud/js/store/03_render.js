@@ -248,19 +248,11 @@ function searchNumbers() {
     </tr>`).join('');
 }
 
+
 function orderNumber(number) {
   selectedPlan = { name:'Virtual Number', amount:'5.99', currency:'$', period:'mo', specs:[number,'SMS + Voice','WhatsApp-ready'] };
   document.getElementById('modal-title').textContent = `Order Number ${number}`;
   document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Purchase <strong style="color:var(--text)">${esc(number)}</strong> for $5.99/mo with SMS + Voice capabilities.</p>`;
   document.getElementById('purchase-modal').classList.add('open');
-}
-
-// ── Toast ──
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.textContent = msg;
-  Object.assign(t.style, { position:'fixed', bottom:'1.5rem', right:'1.5rem', background:'var(--card)', border:'1px solid var(--accent2)', borderRadius:'10px', padding:'.75rem 1.25rem', color:'var(--text)', fontSize:'.875rem', fontWeight:'600', zIndex:1000, boxShadow:'0 8px 24px rgba(0,0,0,.4)', animation:'modalIn .2s ease' });
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
 }
 

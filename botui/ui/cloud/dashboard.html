@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — General Bots Cloud</title>
-  <link rel="stylesheet" href="css/cloud-layout.css">
-  <link rel="stylesheet" href="css/cloud-components.css">
-  <link rel="stylesheet" href="css/cloud-forms-utilities.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
   <style>
     .usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
     .usage-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
@@ -152,7 +152,8 @@
     </div>
   </main>
 </div>
-<script src="js/cloud.js"></script>
+<div id="cloud-toast"></div>
+<script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
   await requireAuth();

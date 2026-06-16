@@ -76,12 +76,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (href && path.startsWith(href.split('?')[0])) a.classList.add('active');
     }
   });
-  // Preencher email
+  // Preencher email e avatar
+  const email = localStorage.getItem('management_email') || '';
   const emailEl = document.getElementById('sidebar-email');
-  if (emailEl) emailEl.textContent = localStorage.getItem('management_email') || '';
+  if (emailEl) emailEl.textContent = email;
+
+  const avatarEl = document.getElementById('sidebar-avatar');
+  if (avatarEl && email) {
+    avatarEl.textContent = email[0].toUpperCase();
+    avatarEl.title = email;
+  }
 
   const userEmail = document.getElementById('user-email');
-  if (userEmail) userEmail.textContent = localStorage.getItem('management_email') || '';
+  if (userEmail) userEmail.textContent = email;
   try { loadDashboardOrgs(token).catch(() => {}); } catch (_) {}
   try { loadDashboardPlans(token).catch(() => {}); } catch (_) {}
 });
@@ -227,9 +234,39 @@ async function devAutoLogin() {
   } catch (_) { /* silent */ }
 }
 
-// ── Calculator (redirects to store page) ──
+// ── Calculator: scroll to calc-panel if on store page, else navigate to store ──
 function openCalculator() {
-  window.location.href = '/cloud/store?cat=compute&calc=1';
+  if (window.location.pathname === '/cloud/store') {
+    const panel = document.getElementById('calc-panel');
+    if (panel) { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  }
+  window.location.href = '/cloud/store';
 }
 function calcUpdate() { /* defined in 02_calc.js */ }
 function submitCalculator() { /* defined in 02_calc.js */ }
+
+// ── Toast notification system ──
+function showToast(message, type) {
+  type = type || 'info';
+  let container = document.getElementById('cloud-toast');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'cloud-toast';
+    document.body.appendChild(container);
+  }
+  const item = document.createElement('div');
+  item.className = 'cloud-toast-item ' + type;
+  const icons = {
+    success: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00d4aa" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    error:   '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ff6b6b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    info:    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#6c63ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+  };
+  item.innerHTML = (icons[type] || icons.info) + '<span>' + escapeHtml(message) + '</span>';
+  container.appendChild(item);
+  setTimeout(() => {
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(20px)';
+    item.style.transition = 'all .3s ease';
+    setTimeout(() => item.remove(), 320);
+  }, 3500);
+}
