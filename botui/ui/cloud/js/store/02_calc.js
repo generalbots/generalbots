@@ -115,5 +115,35 @@ function calcUpdate() {
 }
 
 function submitCalculator() {
-  showToast('Private Cloud ativado! Verifique My Services para detalhes.');
+  const sel = name => {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    const label = el ? el.closest('.calc-vps-btn, .calc-addon-btn') : null;
+    return { val: el ? el.value : null, price: label ? parseFloat(label.dataset.price || 0) : 0 };
+  };
+  const vps     = sel('calc-vps');
+  const gpu     = sel('calc-gpu');
+  const storage = sel('calc-storage');
+  const phone   = sel('calc-phone');
+  const domain  = sel('calc-domain');
+  const total   = vps.price + gpu.price + storage.price + phone.price + domain.price + selectedLLMPrice;
+
+  if (!vps.val) {
+    showToast('Please select a server size first.', 'error');
+    return;
+  }
+
+  const params = new URLSearchParams({
+    plan: 'private-cloud',
+    vps: vps.val,
+    storage: storage.val || '0',
+    gpu: gpu.val || 'none',
+    phone: phone.val || '0',
+    domain: domain.val || '',
+    total: total.toFixed(2),
+  });
+
+  showToast('Redirecting to checkout…', 'info');
+  setTimeout(() => {
+    window.location.href = '/cloud/checkout?' + params.toString();
+  }, 800);
 }

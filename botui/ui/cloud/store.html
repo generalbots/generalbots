@@ -4,300 +4,606 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Store — General Bots Cloud</title>
-   <link rel="stylesheet" href="css/cloud-layout.css">
-   <link rel="stylesheet" href="css/cloud-components.css">
-   <link rel="stylesheet" href="css/cloud-forms-utilities.css">
-  <link rel="stylesheet" href="css/cloud-store.css">
+  <meta name="description" content="General Bots Cloud Store — VPS, GPU, Storage, Phone Numbers, Domains and LLM tokens.">
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-store.css">
   <style>
-    .calc-shell { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+    /* ── Store + Calculator Split Layout ── */
+    .store-shell {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      height: calc(100vh - 52px);
+    }
+
+    /* Left: catalog */
+    .store-catalog {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Right: Calculator panel — always visible, never replaces catalog */
+    .calc-panel {
+      width: 380px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--border);
+      background: linear-gradient(180deg, #0b1028 0%, #0d1226 100%);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .calc-panel-header {
+      padding: 1rem 1.25rem .75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: rgba(108,99,255,.04);
+    }
+    .calc-panel-title {
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.01em;
+    }
+    .calc-panel-title svg { color: var(--accent); flex-shrink: 0; }
+    .calc-panel-sub {
+      font-size: .7rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .calc-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .65rem;
+    }
+
+    .calc-panel-footer {
+      padding: .85rem 1.1rem;
+      border-top: 1px solid var(--border);
+      background: rgba(108,99,255,.04);
+      flex-shrink: 0;
+    }
+
+    /* Override calc-shell styles for the panel */
+    .calc-panel .calc-step {
+      background: rgba(255,255,255,.03);
+      border-radius: 8px;
+      padding: .85rem .9rem;
+      margin-bottom: 0;
+    }
+
+    .calc-panel .calc-step-header {
+      margin-bottom: .65rem;
+    }
+
+    .calc-panel .calc-step-num {
+      width: 22px;
+      height: 22px;
+      font-size: .72rem;
+    }
+
+    .calc-panel .calc-step-label {
+      font-size: .78rem;
+    }
+
+    .calc-panel .calc-recommend {
+      font-size: .65rem;
+    }
+
+    .calc-panel .calc-row-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .65rem;
+    }
+
+    .calc-panel .calc-vps-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: .4rem;
+    }
+
+    .calc-panel .calc-vps-btn strong {
+      font-size: .9rem;
+    }
+
+    .calc-panel .calc-vps-btn .calc-vps-spec {
+      font-size: .58rem;
+    }
+
+    .calc-panel .calc-vps-btn em {
+      font-size: .75rem;
+    }
+
+    .calc-panel .calc-llm-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: .4rem;
+    }
+
+    .calc-panel .calc-llm-head {
+      font-size: .78rem;
+    }
+
+    .calc-panel .calc-llm-sub {
+      font-size: .58rem;
+    }
+
+    .calc-panel .calc-addon-btn {
+      font-size: .68rem;
+      padding: .35rem .4rem;
+    }
+
+    .calc-panel .calc-profile-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .4rem;
+    }
+
+    .calc-panel .calc-prof-btn {
+      flex: unset;
+      font-size: .73rem;
+      padding: .4rem .5rem;
+      min-width: unset;
+    }
+
+    .calc-total-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: .75rem;
+    }
+
+    .calc-total-label {
+      font-size: .78rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .calc-total-value {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -.04em;
+    }
+
+    .calc-total-value sup {
+      font-size: .85rem;
+      font-weight: 600;
+      vertical-align: super;
+    }
+
+    .calc-total-period {
+      font-size: .75rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .calc-savings-strip {
+      background: rgba(52,211,153,.07);
+      border: 1px solid rgba(52,211,153,.18);
+      border-radius: 8px;
+      padding: .55rem .8rem;
+      margin-bottom: .75rem;
+      font-size: .75rem;
+      color: #34d399;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .calc-cta-btn {
+      width: 100%;
+      padding: .75rem;
+      background: linear-gradient(135deg, var(--accent), #8b7cf8);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-family: inherit;
+      font-size: .88rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: -.01em;
+      transition: all .2s;
+      box-shadow: 0 4px 20px rgba(108,99,255,.4);
+    }
+
+    .calc-cta-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(108,99,255,.55);
+    }
+
+    .calc-trust-strip {
+      display: flex;
+      justify-content: center;
+      gap: .65rem;
+      font-size: .65rem;
+      color: var(--muted);
+      margin-top: .6rem;
+      text-align: center;
+    }
+
+    .calc-compare-panel {
+      background: rgba(255,255,255,.025);
+      border-radius: 8px;
+      padding: .65rem .8rem;
+      margin-bottom: .65rem;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+    .calc-compare-panel .calc-compare-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .74rem;
+    }
+    .calc-compare-panel .calc-compare-label { color: var(--muted); }
+    .calc-compare-panel .calc-compare-old {
+      text-decoration: line-through;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .calc-compare-panel .calc-compare-new {
+      color: var(--text);
+      font-weight: 700;
+    }
+    .calc-compare-panel .calc-compare-save {
+      color: #34d399;
+      font-weight: 700;
+      font-size: .74rem;
+    }
+
+    /* Responsive: stack on small screens */
+    @media (max-width: 1100px) {
+      .calc-panel { width: 320px; }
+    }
+    @media (max-width: 860px) {
+      .store-shell { flex-direction: column; height: auto; }
+      .calc-panel {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        max-height: 70vh;
+      }
+    }
   </style>
 </head>
 <body class="mgmt-layout">
 <div class="mgmt-shell">
 
-
+  <!-- Sidebar injected by cloud.js -->
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
       <span class="mgmt-page-title">Store</span>
+      <div class="mgmt-topbar-actions">
+        <span id="topbar-cat-label" style="font-size:.75rem;color:var(--muted)"></span>
+      </div>
     </div>
 
+    <div class="store-shell">
+      <!-- LEFT: Product catalog -->
+      <div class="store-catalog" id="store-right">
+        <!-- Filled by JS (03_render.js) -->
+      </div>
 
+      <!-- RIGHT: Calculator — always present, independent of catalog -->
+      <aside class="calc-panel" id="calc-panel">
+        <div class="calc-panel-header">
+          <div>
+            <div class="calc-panel-title">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="2" width="16" height="20" rx="2"/>
+                <line x1="8" y1="6" x2="16" y2="6"/>
+                <line x1="8" y1="10" x2="8" y2="10.01"/>
+                <line x1="12" y1="10" x2="12" y2="10.01"/>
+                <line x1="16" y1="10" x2="16" y2="10.01"/>
+                <line x1="8" y1="14" x2="8" y2="14.01"/>
+                <line x1="12" y1="14" x2="12" y2="14.01"/>
+                <line x1="16" y1="14" x2="16" y2="14.01"/>
+                <line x1="8" y1="18" x2="8" y2="18.01"/>
+                <line x1="12" y1="18" x2="12" y2="18.01"/>
+                <line x1="16" y1="18" x2="16" y2="18.01"/>
+              </svg>
+              Private Cloud Calculator
+            </div>
+            <div class="calc-panel-sub">Configure and price your sovereign cloud</div>
+          </div>
+        </div>
 
-    <div class="store-right" id="store-right">
-      <!-- Filled by JS -->
-    </div>
+        <div class="calc-panel-body" id="calc-panel-body">
+
+          <!-- Step 1: Profile -->
+          <div class="calc-step">
+            <div class="calc-step-header">
+              <span class="calc-step-num">1</span>
+              <span class="calc-step-label">Profile</span>
+              <span class="calc-recommend" id="calc-recommend">Select for recommendations</span>
+            </div>
+            <div class="calc-profile-row">
+              <button class="calc-prof-btn" data-profile="whatsapp" onclick="selectProfile('whatsapp')">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                WhatsApp
+              </button>
+              <button class="calc-prof-btn" data-profile="llm" onclick="selectProfile('llm')">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                AI / LLM
+              </button>
+              <button class="calc-prof-btn" data-profile="webapp" onclick="selectProfile('webapp')">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                Web Apps
+              </button>
+              <button class="calc-prof-btn" data-profile="enterprise" onclick="selectProfile('enterprise')">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Enterprise
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: VPS Size -->
+          <div class="calc-step">
+            <div class="calc-step-header">
+              <span class="calc-step-num">2</span>
+              <span class="calc-step-label">Server size</span>
+            </div>
+            <div class="calc-vps-grid">
+              <label class="calc-vps-btn selected" data-value="vps-small" data-price="9.99">
+                <input type="radio" name="calc-vps" value="vps-small" checked onchange="calcUpdate()" hidden>
+                <strong>S</strong>
+                <span class="calc-vps-spec">4 vCPU · 8 GB · 100 GB</span>
+                <em>$9.99<small>/mo</small></em>
+              </label>
+              <label class="calc-vps-btn" data-value="vps-medium" data-price="19.99">
+                <input type="radio" name="calc-vps" value="vps-medium" onchange="calcUpdate()" hidden>
+                <strong>M</strong>
+                <span class="calc-vps-spec">6 vCPU · 16 GB · 200 GB</span>
+                <em>$19.99<small>/mo</small></em>
+              </label>
+              <label class="calc-vps-btn" data-value="vps-large" data-price="39.99">
+                <input type="radio" name="calc-vps" value="vps-large" onchange="calcUpdate()" hidden>
+                <strong>L</strong>
+                <span class="calc-vps-spec">8 vCPU · 32 GB · 400 GB</span>
+                <em>$39.99<small>/mo</small></em>
+              </label>
+              <label class="calc-vps-btn" data-value="vps-xl" data-price="79.99">
+                <input type="radio" name="calc-vps" value="vps-xl" onchange="calcUpdate()" hidden>
+                <strong>XL</strong>
+                <span class="calc-vps-spec">16 vCPU · 64 GB · 800 GB</span>
+                <em>$79.99<small>/mo</small></em>
+              </label>
+            </div>
+          </div>
+
+          <!-- Step 3+4: Add-ons -->
+          <div class="calc-row-group">
+            <div class="calc-step calc-step-compact">
+              <div class="calc-step-header">
+                <span class="calc-step-num">3</span>
+                <span class="calc-step-label">Storage</span>
+              </div>
+              <div class="calc-storage-options">
+                <label class="calc-addon-btn selected" data-price="0">
+                  <input type="radio" name="calc-storage" value="0" checked onchange="calcUpdate()" hidden>
+                  50 GB <small>Incl.</small>
+                </label>
+                <label class="calc-addon-btn" data-price="9.99">
+                  <input type="radio" name="calc-storage" value="250" onchange="calcUpdate()" hidden>
+                  +250 GB <small>$9.99</small>
+                </label>
+                <label class="calc-addon-btn" data-price="29.99">
+                  <input type="radio" name="calc-storage" value="1000" onchange="calcUpdate()" hidden>
+                  +1 TB <small>$29.99</small>
+                </label>
+                <label class="calc-addon-btn" data-price="99.99">
+                  <input type="radio" name="calc-storage" value="10000" onchange="calcUpdate()" hidden>
+                  +10 TB <small>$99.99</small>
+                </label>
+              </div>
+            </div>
+            <div class="calc-step calc-step-compact">
+              <div class="calc-step-header">
+                <span class="calc-step-num">4</span>
+                <span class="calc-step-label">GPU</span>
+              </div>
+              <div class="calc-gpu-options">
+                <label class="calc-addon-btn selected" data-price="0">
+                  <input type="radio" name="calc-gpu" value="none" checked onchange="calcUpdate()" hidden>
+                  None
+                </label>
+                <label class="calc-addon-btn" data-price="29.99">
+                  <input type="radio" name="calc-gpu" value="gpu-basic" onchange="calcUpdate()" hidden>
+                  GT 730 <small>$29.99</small>
+                </label>
+                <label class="calc-addon-btn" data-price="99.99">
+                  <input type="radio" name="calc-gpu" value="gpu-pro" onchange="calcUpdate()" hidden>
+                  RTX 4090 <small>$99.99</small>
+                </label>
+                <label class="calc-addon-btn" data-price="299.99">
+                  <input type="radio" name="calc-gpu" value="gpu-enterprise" onchange="calcUpdate()" hidden>
+                  A100 <small>$299</small>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="calc-row-group">
+            <div class="calc-step calc-step-compact">
+              <div class="calc-step-header">
+                <span class="calc-step-num" style="background:var(--accent2)"></span>
+                <span class="calc-step-label">Phone</span>
+              </div>
+              <div class="calc-phone-options">
+                <label class="calc-addon-btn selected" data-price="0">
+                  <input type="radio" name="calc-phone" value="0" checked onchange="calcUpdate()" hidden>
+                  None
+                </label>
+                <label class="calc-addon-btn" data-price="5.99">
+                  <input type="radio" name="calc-phone" value="1" onchange="calcUpdate()" hidden>
+                  1 local <small>$5.99</small>
+                </label>
+                <label class="calc-addon-btn" data-price="19.99">
+                  <input type="radio" name="calc-phone" value="3" onchange="calcUpdate()" hidden>
+                  3 Global <small>$19.99</small>
+                </label>
+                <label class="calc-addon-btn" data-price="49.99">
+                  <input type="radio" name="calc-phone" value="10" onchange="calcUpdate()" hidden>
+                  10 Biz <small>$49.99</small>
+                </label>
+              </div>
+            </div>
+            <div class="calc-step calc-step-compact">
+              <div class="calc-step-header">
+                <span class="calc-step-num" style="background:var(--accent2)"></span>
+                <span class="calc-step-label">Domain</span>
+              </div>
+              <div class="calc-domain-options">
+                <label class="calc-addon-btn selected" data-price="0">
+                  <input type="radio" name="calc-domain" value="" checked onchange="calcUpdate()" hidden>
+                  None
+                </label>
+                <label class="calc-addon-btn" data-price="1.83">
+                  <input type="radio" name="calc-domain" value=".com" onchange="calcUpdate()" hidden>
+                  .com <small>$1.83</small>
+                </label>
+                <label class="calc-addon-btn" data-price="2.17">
+                  <input type="radio" name="calc-domain" value=".net" onchange="calcUpdate()" hidden>
+                  .net <small>$2.17</small>
+                </label>
+                <label class="calc-addon-btn" data-price="6.00">
+                  <input type="radio" name="calc-domain" value=".io" onchange="calcUpdate()" hidden>
+                  .io <small>$6.00</small>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 5: LLM -->
+          <div class="calc-step">
+            <div class="calc-step-header">
+              <span class="calc-step-num">5</span>
+              <span class="calc-step-label">LLM Tokens</span>
+              <span class="calc-recommend">No BYOK needed</span>
+            </div>
+            <div class="calc-llm-grid" id="calc-llm-grid">
+              <div class="calc-llm-card selected" data-price="0" onclick="selectLLM(null,0,null,event)">
+                <div class="calc-llm-head">No LLM</div>
+                <div class="calc-llm-sub">Skip tokens</div>
+                <div class="calc-llm-price">$0<span>/mo</span></div>
+              </div>
+              <div class="calc-llm-card" data-provider="openai">
+                <div class="calc-llm-head">OpenAI</div>
+                <div class="calc-llm-sub">GPT-4o, o3</div>
+                <div class="calc-llm-pkgs">
+                  <button class="calc-pkg-btn" onclick="selectLLM('openai',20,9.99,event)">20M <span>$9.99</span></button>
+                  <button class="calc-pkg-btn" onclick="selectLLM('openai',50,24.99,event)">50M <span>$24.99</span></button>
+                  <button class="calc-pkg-btn" onclick="selectLLM('openai',100,49.99,event)">100M <span>$49.99</span></button>
+                </div>
+              </div>
+              <div class="calc-llm-card" data-provider="anthropic">
+                <div class="calc-llm-head">Anthropic</div>
+                <div class="calc-llm-sub">Claude 3.5</div>
+                <div class="calc-llm-pkgs">
+                  <button class="calc-pkg-btn" onclick="selectLLM('anthropic',20,17.99,event)">20M <span>$17.99</span></button>
+                  <button class="calc-pkg-btn" onclick="selectLLM('anthropic',50,44.99,event)">50M <span>$44.99</span></button>
+                  <button class="calc-pkg-btn" onclick="selectLLM('anthropic',100,89.99,event)">100M <span>$89.99</span></button>
+                </div>
+              </div>
+              <div class="calc-llm-card" data-provider="google">
+                <div class="calc-llm-head">Google</div>
+                <div class="calc-llm-sub">Gemini 1.5</div>
+                <div class="calc-llm-pkgs">
+                  <button class="calc-pkg-btn" onclick="selectLLM('google',20,4.99,event)">20M <span>$4.99</span></button>
+                  <button class="calc-pkg-btn" onclick="selectLLM('google',50,11.99,event)">50M <span>$11.99</span></button>
+                  <button class="calc-pkg-btn" onclick="selectLLM('google',100,24.99,event)">100M <span>$24.99</span></button>
+                </div>
+              </div>
+              <div class="calc-llm-card" data-provider="groq">
+                <div class="calc-llm-head">Groq</div>
+                <div class="calc-llm-sub">Llama, Mixtral</div>
+                <div class="calc-llm-pkgs">
+                  <button class="calc-pkg-btn" onclick="selectLLM('groq',20,16.99,event)">20M <span>$16.99</span></button>
+                  <button class="calc-pkg-btn" onclick="selectLLM('groq',50,41.99,event)">50M <span>$41.99</span></button>
+                  <button class="calc-pkg-btn" onclick="selectLLM('groq',100,84.99,event)">100M <span>$84.99</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- WhatsApp bonus -->
+          <div class="calc-bonus" id="calc-whatsapp-bonus" style="display:none">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#34d399" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>WhatsApp incl. · <strong id="calc-whatsapp-msgs">1000</strong> msg/mo free</span>
+          </div>
+
+          <!-- Comparison -->
+          <div class="calc-compare-panel">
+            <div class="calc-compare-row">
+              <span class="calc-compare-label">Typical SaaS</span>
+              <strong class="calc-compare-old" id="calc-saas-cost">$300/mo</strong>
+            </div>
+            <div class="calc-compare-row">
+              <span class="calc-compare-label">Your sovereign cloud</span>
+              <strong class="calc-compare-new" id="calc-gb-cost">$9.99/mo</strong>
+            </div>
+            <div class="calc-compare-row calc-compare-save" id="calc-savings">
+              <span>Save <strong id="calc-savings-amount">$0</strong>/yr</span>
+              <span id="calc-savings-pct" style="opacity:.7">0% cheaper</span>
+            </div>
+          </div>
+
+        </div><!-- /calc-panel-body -->
+
+        <!-- Footer: price + CTA -->
+        <div class="calc-panel-footer">
+          <div class="calc-total-display">
+            <span class="calc-total-label">Monthly total</span>
+            <span class="calc-total-value">
+              <sup>$</sup><span id="calc-total">9.99</span>
+              <span class="calc-total-period">/mo</span>
+            </span>
+          </div>
+          <button class="calc-cta-btn" id="calc-checkout-cta" onclick="submitCalculator()">
+            Activate Private Cloud →
+          </button>
+          <div class="calc-trust-strip">
+            <span>🔒 Secure checkout</span>
+            <span>·</span>
+            <span>99.9% SLA</span>
+            <span>·</span>
+            <span>Cancel anytime</span>
+          </div>
+        </div>
+      </aside>
+    </div><!-- /store-shell -->
   </main>
-</div>
+</div><!-- /mgmt-shell -->
 
-<!-- CALCULATOR SECTION (inline, step-based) -->
-<div class="calc-shell" id="calc-shell" style="display:none">
-
-  <div class="calc-shell-head">
-    <div>
-      <div class="calc-shell-title">Private Cloud Calculator</div>
-      <div class="calc-shell-sub">Configure VPS, storage, GPU, phones and domains — pay only for what you use.</div>
+<!-- Purchase Modal -->
+<div class="mgmt-modal" id="purchase-modal">
+  <div class="mgmt-backdrop" onclick="hideModal()"></div>
+  <div class="mgmt-modal-box">
+    <div class="mgmt-modal-title" id="modal-title">Order Service</div>
+    <div id="modal-body"></div>
+    <div class="mgmt-modal-actions">
+      <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-confirm-btn" onclick="confirmOrder()">Confirm &amp; Purchase</button>
     </div>
-  </div>
-
-  <!-- Step 1: Profile -->
-  <div class="calc-step">
-    <div class="calc-step-header">
-      <span class="calc-step-num">1</span>
-      <span class="calc-step-label">Choose your profile</span>
-      <span class="calc-recommend" id="calc-recommend">Select a profile for personalized recommendations</span>
-    </div>
-    <div class="calc-profile-row">
-      <button class="calc-prof-btn" data-profile="whatsapp" onclick="selectProfile('whatsapp')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
-        WhatsApp Bots
-      </button>
-      <button class="calc-prof-btn" data-profile="llm" onclick="selectProfile('llm')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        AI / LLM
-      </button>
-      <button class="calc-prof-btn" data-profile="webapp" onclick="selectProfile('webapp')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Web Apps
-      </button>
-      <button class="calc-prof-btn" data-profile="enterprise" onclick="selectProfile('enterprise')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        Enterprise
-      </button>
-    </div>
-  </div>
-
-  <!-- Step 2: VPS Size -->
-  <div class="calc-step">
-    <div class="calc-step-header">
-      <span class="calc-step-num">2</span>
-      <span class="calc-step-label">Server size</span>
-    </div>
-    <div class="calc-vps-grid">
-      <label class="calc-vps-btn selected" data-value="vps-small" data-price="9.99">
-        <input type="radio" name="calc-vps" value="vps-small" checked onchange="calcUpdate()" hidden>
-        <strong>S</strong>
-        <span class="calc-vps-spec">4 vCPU · 8 GB · 100 GB</span>
-        <em>$9.99<small>/mo</small></em>
-      </label>
-      <label class="calc-vps-btn" data-value="vps-medium" data-price="19.99">
-        <input type="radio" name="calc-vps" value="vps-medium" onchange="calcUpdate()" hidden>
-        <strong>M</strong>
-        <span class="calc-vps-spec">6 vCPU · 16 GB · 200 GB</span>
-        <em>$19.99<small>/mo</small></em>
-      </label>
-      <label class="calc-vps-btn" data-value="vps-large" data-price="39.99">
-        <input type="radio" name="calc-vps" value="vps-large" onchange="calcUpdate()" hidden>
-        <strong>L</strong>
-        <span class="calc-vps-spec">8 vCPU · 32 GB · 400 GB</span>
-        <em>$39.99<small>/mo</small></em>
-      </label>
-      <label class="calc-vps-btn" data-value="vps-xl" data-price="79.99">
-        <input type="radio" name="calc-vps" value="vps-xl" onchange="calcUpdate()" hidden>
-        <strong>XL</strong>
-        <span class="calc-vps-spec">16 vCPU · 64 GB · 800 GB</span>
-        <em>$79.99<small>/mo</small></em>
-      </label>
-    </div>
-  </div>
-
-  <!-- Step 3-4: Add-ons side by side -->
-  <div class="calc-row-group">
-    <div class="calc-step calc-step-compact">
-      <div class="calc-step-header">
-        <span class="calc-step-num">3</span>
-        <span class="calc-step-label">Extra storage</span>
-      </div>
-      <div class="calc-storage-options" id="calc-storage">
-        <label class="calc-addon-btn selected" data-price="0">
-          <input type="radio" name="calc-storage" value="0" checked onchange="calcUpdate()" hidden>
-          50 GB <small>Included</small>
-        </label>
-        <label class="calc-addon-btn" data-price="9.99">
-          <input type="radio" name="calc-storage" value="250" onchange="calcUpdate()" hidden>
-          +250 GB <small>$9.99/mo</small>
-        </label>
-        <label class="calc-addon-btn" data-price="29.99">
-          <input type="radio" name="calc-storage" value="1000" onchange="calcUpdate()" hidden>
-          +1 TB <small>$29.99/mo</small>
-        </label>
-        <label class="calc-addon-btn" data-price="99.99">
-          <input type="radio" name="calc-storage" value="10000" onchange="calcUpdate()" hidden>
-          +10 TB <small>$99.99/mo</small>
-        </label>
-      </div>
-    </div>
-    <div class="calc-step calc-step-compact">
-      <div class="calc-step-header">
-        <span class="calc-step-num">4</span>
-        <span class="calc-step-label">GPU inference</span>
-      </div>
-      <div class="calc-gpu-options" id="calc-gpu">
-        <label class="calc-addon-btn selected" data-price="0">
-          <input type="radio" name="calc-gpu" value="none" checked onchange="calcUpdate()" hidden>
-          None
-        </label>
-        <label class="calc-addon-btn" data-price="29.99">
-          <input type="radio" name="calc-gpu" value="gpu-basic" onchange="calcUpdate()" hidden>
-          GT 730 <small>$29.99</small>
-        </label>
-        <label class="calc-addon-btn" data-price="99.99">
-          <input type="radio" name="calc-gpu" value="gpu-pro" onchange="calcUpdate()" hidden>
-          RTX 4090 <small>$99.99</small>
-        </label>
-        <label class="calc-addon-btn" data-price="299.99">
-          <input type="radio" name="calc-gpu" value="gpu-enterprise" onchange="calcUpdate()" hidden>
-          A100 <small>$299.99</small>
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <div class="calc-row-group">
-    <div class="calc-step calc-step-compact">
-      <div class="calc-step-header">
-        <span class="calc-step-num"></span>
-        <span class="calc-step-label">Phone + WhatsApp</span>
-      </div>
-      <div class="calc-phone-options" id="calc-phone">
-        <label class="calc-addon-btn selected" data-price="0">
-          <input type="radio" name="calc-phone" value="0" checked onchange="calcUpdate()" hidden>
-          None
-        </label>
-        <label class="calc-addon-btn" data-price="5.99">
-          <input type="radio" name="calc-phone" value="1" onchange="calcUpdate()" hidden>
-          1 local <small>$5.99</small>
-        </label>
-        <label class="calc-addon-btn" data-price="19.99">
-          <input type="radio" name="calc-phone" value="3" onchange="calcUpdate()" hidden>
-          3 Global <small>$19.99</small>
-        </label>
-        <label class="calc-addon-btn" data-price="49.99">
-          <input type="radio" name="calc-phone" value="10" onchange="calcUpdate()" hidden>
-          10 Business <small>$49.99</small>
-        </label>
-      </div>
-    </div>
-    <div class="calc-step calc-step-compact">
-      <div class="calc-step-header">
-        <span class="calc-step-num"></span>
-        <span class="calc-step-label">Domain</span>
-      </div>
-      <div class="calc-domain-options" id="calc-domain">
-        <label class="calc-addon-btn selected" data-price="0">
-          <input type="radio" name="calc-domain" value="" checked onchange="calcUpdate()" hidden>
-          None
-        </label>
-        <label class="calc-addon-btn" data-price="1.83">
-          <input type="radio" name="calc-domain" value=".com" onchange="calcUpdate()" hidden>
-          .com <small>$1.83</small>
-        </label>
-        <label class="calc-addon-btn" data-price="2.17">
-          <input type="radio" name="calc-domain" value=".net" onchange="calcUpdate()" hidden>
-          .net <small>$2.17</small>
-        </label>
-        <label class="calc-addon-btn" data-price="2.00">
-          <input type="radio" name="calc-domain" value=".org" onchange="calcUpdate()" hidden>
-          .org <small>$2.00</small>
-        </label>
-        <label class="calc-addon-btn" data-price="6.00">
-          <input type="radio" name="calc-domain" value=".io" onchange="calcUpdate()" hidden>
-          .io <small>$6.00</small>
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <!-- Step 5: LLM API Tokens — direct providers + 20% margin -->
-  <div class="calc-step">
-    <div class="calc-step-header">
-      <span class="calc-step-num">5</span>
-      <span class="calc-step-label">LLM API Tokens</span>
-      <span class="calc-recommend">Buy token packages — no BYOK needed</span>
-    </div>
-    <div class="calc-llm-grid" id="calc-llm-grid">
-      <div class="calc-llm-card selected" data-price="0" onclick="selectLLM(null,0,null,event)">
-        <div class="calc-llm-head">No LLM API</div>
-        <div class="calc-llm-sub">Skip token package</div>
-        <div class="calc-llm-price">$0<span>/mo</span></div>
-      </div>
-      <div class="calc-llm-card" data-provider="openai">
-        <div class="calc-llm-head">OpenAI</div>
-        <div class="calc-llm-sub">GPT-4o, GPT-4o-mini, o3</div>
-        <div class="calc-llm-pkgs">
-          <button class="calc-pkg-btn" onclick="selectLLM('openai',20,9.99,event)">20M <span>$9.99</span></button>
-          <button class="calc-pkg-btn" onclick="selectLLM('openai',50,24.99,event)">50M <span>$24.99</span></button>
-          <button class="calc-pkg-btn" onclick="selectLLM('openai',100,49.99,event)">100M <span>$49.99</span></button>
-        </div>
-      </div>
-      <div class="calc-llm-card" data-provider="anthropic">
-        <div class="calc-llm-head">Anthropic</div>
-        <div class="calc-llm-sub">Claude 3.5 Sonnet, Claude Haiku</div>
-        <div class="calc-llm-pkgs">
-          <button class="calc-pkg-btn" onclick="selectLLM('anthropic',20,17.99,event)">20M <span>$17.99</span></button>
-          <button class="calc-pkg-btn" onclick="selectLLM('anthropic',50,44.99,event)">50M <span>$44.99</span></button>
-          <button class="calc-pkg-btn" onclick="selectLLM('anthropic',100,89.99,event)">100M <span>$89.99</span></button>
-        </div>
-      </div>
-      <div class="calc-llm-card" data-provider="google">
-        <div class="calc-llm-head">Google</div>
-        <div class="calc-llm-sub">Gemini 1.5 Pro, Gemini 1.5 Flash</div>
-        <div class="calc-llm-pkgs">
-          <button class="calc-pkg-btn" onclick="selectLLM('google',20,4.99,event)">20M <span>$4.99</span></button>
-          <button class="calc-pkg-btn" onclick="selectLLM('google',50,11.99,event)">50M <span>$11.99</span></button>
-          <button class="calc-pkg-btn" onclick="selectLLM('google',100,24.99,event)">100M <span>$24.99</span></button>
-        </div>
-      </div>
-      <div class="calc-llm-card" data-provider="groq">
-        <div class="calc-llm-head">Groq</div>
-        <div class="calc-llm-sub">Llama 3, Mixtral — direct inference API</div>
-        <div class="calc-llm-pkgs">
-          <button class="calc-pkg-btn" onclick="selectLLM('groq',20,16.99,event)">20M <span>$16.99</span></button>
-          <button class="calc-pkg-btn" onclick="selectLLM('groq',50,41.99,event)">50M <span>$41.99</span></button>
-          <button class="calc-pkg-btn" onclick="selectLLM('groq',100,84.99,event)">100M <span>$84.99</span></button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Comparison -->
-  <div class="calc-compare" id="calc-compare">
-    <div class="calc-compare-row">
-      <span class="calc-compare-label">Typical SaaS cost (per user/mo)</span>
-      <strong class="calc-compare-old" id="calc-saas-cost">$300/mo</strong>
-    </div>
-    <div class="calc-compare-row">
-      <span class="calc-compare-label">Your sovereign cloud</span>
-      <strong class="calc-compare-new" id="calc-gb-cost">$9.99/mo</strong>
-    </div>
-    <div class="calc-compare-row calc-compare-save" id="calc-savings">
-      <span>You save <strong id="calc-savings-amount">$0</strong>/year</span>
-      <span id="calc-savings-pct" style="opacity:0.6">0% cheaper</span>
-    </div>
-  </div>
-
-  <!-- WhatsApp bonus banner -->
-  <div class="calc-bonus" id="calc-whatsapp-bonus" style="display:none">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#34d399" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-    <span>WhatsApp included! <strong id="calc-whatsapp-msgs">1000</strong> free messages per month.</span>
-  </div>
-
-  <!-- Footer: price + CTA -->
-  <div class="calc-footer">
-    <div class="calc-price">
-      <span class="calc-price-amount">$<span id="calc-total">9.99</span></span>
-      <span class="calc-price-period">/mo</span>
-    </div>
-    <a class="calc-cta" id="calc-checkout-cta" onclick="submitCalculator()">Activate Private Cloud →</a>
-  </div>
-  <div class="calc-trust">
-    <span>Secure checkout</span>
-    <span>·</span>
-    <span>99.9% Uptime SLA</span>
-    <span>·</span>
-    <span>Cancel anytime</span>
   </div>
 </div>
+
+<div id="cloud-toast"></div>
 
 <script src="/cloud/js/cloud.js"></script>
 <script src="/cloud/js/store/01_data.js"></script>
