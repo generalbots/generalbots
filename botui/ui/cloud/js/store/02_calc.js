@@ -132,18 +132,32 @@ function submitCalculator() {
     return;
   }
 
-  const params = new URLSearchParams({
+  // Get active LLM provider if selected
+  const llmCard = document.querySelector('.calc-llm-card.selected');
+  const provider = llmCard ? llmCard.dataset.provider : null;
+  const aiList = [];
+  if (provider) {
+    aiList.push(provider.charAt(0).toUpperCase() + provider.slice(1) + ' Tokens');
+  }
+
+  // Build the unified payload structure expected by cloud-checkout.js
+  const payloadObj = {
     plan: 'private-cloud',
+    period: 'monthly',
+    storage: parseInt(storage.val || '0') + 50, // 50GB included base
     vps: vps.val,
-    storage: storage.val || '0',
-    gpu: gpu.val || 'none',
-    phone: phone.val || '0',
-    domain: domain.val || '',
-    total: total.toFixed(2),
-  });
+    gpu: gpu.val,
+    phone: phone.val,
+    domain: domain.val,
+    total: total,
+    currency: 'usd',
+    ai: aiList
+  };
+
+  const payload = encodeURIComponent(JSON.stringify(payloadObj));
 
   showToast('Redirecting to checkout…', 'info');
   setTimeout(() => {
-    window.location.href = '/cloud/checkout?' + params.toString();
+    window.location.href = '/cloud/checkout?payload=' + payload;
   }, 800);
 }

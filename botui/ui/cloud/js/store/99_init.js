@@ -13,14 +13,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(location.search);
   const cat = params.get('cat');
 
+  // Machines has its own dedicated page
+  if (cat === 'machines') {
+    window.location.replace('/cloud/machines');
+    return;
+  }
+
   // Update topbar label if category selected
   const catLabels = {
-    compute: 'VPS / Compute',
-    gpu: 'GPU Inference',
+    compute: 'Virtual Machines',
+    gpu: 'GPU Computing',
     storage: 'Object Storage',
     comms: 'Phone Numbers',
-    apps: 'App Store Publishing',
-    domains: 'Domains'
+    apps: 'Domains',
   };
   const topbarLabel = document.getElementById('topbar-cat-label');
   if (topbarLabel && cat && catLabels[cat]) {
@@ -37,3 +42,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Calculator always visible in right panel — just initialize
   calcUpdate();
 });
+

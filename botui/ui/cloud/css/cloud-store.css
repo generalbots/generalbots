@@ -8,7 +8,7 @@
     }
 
     .store-hero {
-      background: linear-gradient(135deg, #0f1326 0%, #1a1f3a 60%, #1a0f30 100%);
+      background: linear-gradient(135deg, var(--bg2) 0%, var(--bg) 100%);
       border-bottom: 1px solid var(--border);
       padding: 2rem 2.5rem 1.5rem;
       display: flex;
@@ -21,8 +21,8 @@
       display: inline-flex;
       align-items: center;
       gap: .35rem;
-      background: rgba(108,99,255,.15);
-      border: 1px solid rgba(108,99,255,.3);
+      background: var(--accent-dim);
+      border: 1px solid var(--border-hover);
       color: var(--accent);
       font-size: .7rem;
       font-weight: 700;
@@ -78,19 +78,19 @@
       gap: .6rem;
     }
     .plan-card:hover {
-      border-color: rgba(108,99,255,.5);
+      border-color: var(--border-hover);
       transform: translateY(-3px);
-      box-shadow: 0 16px 40px rgba(108,99,255,.18);
+      box-shadow: var(--shadow-accent);
     }
     .plan-card.featured {
       border-color: var(--accent);
-      background: linear-gradient(135deg, rgba(108,99,255,.14) 0%, var(--card) 70%);
+      background: linear-gradient(135deg, var(--accent-dim) 0%, var(--card) 70%);
     }
     .plan-card.featured::after {
       content: 'POPULAR';
       position: absolute;
       top: .75rem; right: .75rem;
-      background: linear-gradient(90deg, var(--accent), #8b7cf8);
+      background: var(--accent);
       color: #fff;
       font-size: .6rem;
       font-weight: 800;
@@ -170,7 +170,7 @@
       font-size: .95rem;
       padding: .7rem 1rem;
     }
-    .domain-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,99,255,.2); }
+    .domain-search input:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-accent); }
 
     .domain-tld-grid {
       display: grid;
@@ -213,7 +213,7 @@
 
     /* ── Mission Banner ── */
     .mission-banner {
-      background: linear-gradient(135deg, #0c1025 0%, #161b3c 50%, #0f0a22 100%);
+      background: linear-gradient(135deg, var(--bg2) 0%, var(--bg) 100%);
       border-bottom: 1px solid var(--border);
       padding: 1.75rem 2rem;
     }
@@ -222,7 +222,7 @@
       display: inline-flex;
       align-items: center;
       gap: .35rem;
-      background: linear-gradient(90deg, var(--accent), #8b7cf8);
+      background: var(--accent);
       color: #fff;
       font-size: .65rem;
       font-weight: 800;
@@ -255,9 +255,9 @@
     .mission-badge-sm {
       display: inline-flex;
       align-items: center;
-      gap: .3rem;
-      background: rgba(108,99,255,.1);
-      border: 1px solid rgba(108,99,255,.2);
+      gap: .35rem;
+      background: var(--accent-dim);
+      border: 1px solid var(--border-hover);
       color: var(--accent);
       font-size: .72rem;
       font-weight: 600;
@@ -410,7 +410,7 @@
 
 .calc-vps-btn.selected {
   border-color: var(--accent);
-  background: rgba(108,99,255,.06);
+  background: var(--accent-dim);
   box-shadow: 0 0 0 1px var(--accent);
 }
 
@@ -493,7 +493,7 @@
 }
 
 .calc-addon-btn.selected {
-  background: rgba(108,99,255,.06);
+  background: var(--accent-dim);
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -597,7 +597,7 @@
 
 .calc-llm-card.selected {
   border-color: var(--accent);
-  background: rgba(108,99,255,.06);
+  background: var(--accent-dim);
   box-shadow: 0 0 0 1px var(--accent);
 }
 
@@ -659,7 +659,7 @@
 }
 
 .calc-pkg-btn.active {
-  background: rgba(108,99,255,.06);
+  background: var(--accent-dim);
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -764,9 +764,9 @@
   gap: .75rem;
 }
 .store-landing-card:hover {
-  border-color: rgba(108,99,255,.5);
+  border-color: var(--border-hover);
   transform: translateY(-3px);
-  box-shadow: 0 16px 40px rgba(108,99,255,.18);
+  box-shadow: var(--shadow-accent);
 }
 .store-landing-icon { font-size: 2.5rem; line-height: 1; }
 .store-landing-name { font-size: 1.2rem; font-weight: 700; color: var(--text); }

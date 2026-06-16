@@ -13,7 +13,7 @@
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
       cursor: pointer; transition: all .2s; user-select: none;
     }
-    .provider-header:hover { border-color: rgba(108,99,255,.3); }
+    .provider-header:hover { border-color: var(--border-hover); }
     .provider-header.open { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
     .provider-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; color: #fff; flex-shrink: 0; }
     .provider-info { flex: 1; }
@@ -21,7 +21,7 @@
     .provider-desc { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
     .provider-badge { font-size: .65rem; padding: .15rem .55rem; border-radius: 99px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
     .provider-badge.byok { background: rgba(251,191,36,.12); color: #fbbf24; }
-    .provider-badge.included { background: rgba(52,211,153,.12); color: #34d399; }
+    .provider-badge.included { background: var(--accent-dim); color: var(--accent2); }
     .provider-arrow { transition: transform .2s; color: var(--muted); }
     .provider-header.open .provider-arrow { transform: rotate(180deg); }
 
@@ -31,13 +31,13 @@
       background: var(--card); border: 1px solid var(--border); border-radius: 8px;
       padding: 1rem; transition: all .2s;
     }
-    .model-card:hover { border-color: rgba(108,99,255,.25); }
+    .model-card:hover { border-color: var(--border-hover); }
     .model-name { font-size: .9rem; font-weight: 700; color: var(--text); }
     .model-meta { display: flex; flex-wrap: wrap; gap: .35rem; margin: .5rem 0; }
     .model-meta-tag { font-size: .65rem; background: var(--bg3); color: var(--muted); padding: .12rem .4rem; border-radius: 4px; border: 1px solid var(--border); }
     .model-desc { font-size: .75rem; color: var(--muted); line-height: 1.45; }
     .model-pricing { font-size: .72rem; margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .model-pricing .free { color: #34d399; font-weight: 600; }
+    .model-pricing .free { color: var(--accent2); font-weight: 600; }
     .model-pricing .paid { color: #fbbf24; font-weight: 600; }
 
     .llm-page-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
@@ -45,8 +45,11 @@
     .llm-page-header p { color: var(--muted); font-size: .85rem; margin: 0; }
     .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .filter-btn { font-size: .78rem; padding: .35rem .85rem; border-radius: 99px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; transition: all .2s; }
-    .filter-btn:hover { border-color: rgba(108,99,255,.3); color: var(--text); }
+    .filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
     .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    @media (prefers-color-scheme: dark) {
+      .filter-btn.active { color: #000; }
+    }
   </style>
 </head>
 <body class="mgmt-layout">

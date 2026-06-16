@@ -31,7 +31,7 @@
       width: 380px;
       flex-shrink: 0;
       border-left: 1px solid var(--border);
-      background: linear-gradient(180deg, #0b1028 0%, #0d1226 100%);
+      background: var(--bg2);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -44,7 +44,7 @@
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
-      background: rgba(108,99,255,.04);
+      background: var(--accent-dim);
     }
     .calc-panel-title {
       display: flex;
@@ -74,13 +74,13 @@
     .calc-panel-footer {
       padding: .85rem 1.1rem;
       border-top: 1px solid var(--border);
-      background: rgba(108,99,255,.04);
+      background: var(--accent-dim);
       flex-shrink: 0;
     }
 
     /* Override calc-shell styles for the panel */
     .calc-panel .calc-step {
-      background: rgba(255,255,255,.03);
+      background: var(--bg3);
       border-radius: 8px;
       padding: .85rem .9rem;
       margin-bottom: 0;
@@ -191,13 +191,13 @@
     }
 
     .calc-savings-strip {
-      background: rgba(52,211,153,.07);
-      border: 1px solid rgba(52,211,153,.18);
+      background: var(--accent-dim);
+      border: 1px solid var(--border-hover);
       border-radius: 8px;
       padding: .55rem .8rem;
       margin-bottom: .75rem;
       font-size: .75rem;
-      color: #34d399;
+      color: var(--accent2);
       font-weight: 600;
       display: flex;
       align-items: center;
@@ -207,7 +207,7 @@
     .calc-cta-btn {
       width: 100%;
       padding: .75rem;
-      background: linear-gradient(135deg, var(--accent), #8b7cf8);
+      background: var(--accent);
       border: none;
       border-radius: 10px;
       color: #fff;
@@ -217,12 +217,18 @@
       cursor: pointer;
       letter-spacing: -.01em;
       transition: all .2s;
-      box-shadow: 0 4px 20px rgba(108,99,255,.4);
+      box-shadow: var(--shadow-accent);
     }
 
     .calc-cta-btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 6px 28px rgba(108,99,255,.55);
+      filter: brightness(1.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .calc-cta-btn {
+        color: #000;
+      }
     }
 
     .calc-trust-strip {
@@ -236,7 +242,7 @@
     }
 
     .calc-compare-panel {
-      background: rgba(255,255,255,.025);
+      background: var(--bg3);
       border-radius: 8px;
       padding: .65rem .8rem;
       margin-bottom: .65rem;
@@ -260,7 +266,7 @@
       font-weight: 700;
     }
     .calc-compare-panel .calc-compare-save {
-      color: #34d399;
+      color: var(--accent2);
       font-weight: 700;
       font-size: .74rem;
     }
