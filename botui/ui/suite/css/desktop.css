@@ -253,6 +253,20 @@
     background-color: var(--bg, #ffffff);
 }
 
+/* Blur background content when a window is active */
+body.window-active .sidebar,
+body.window-active .sidebar-item,
+body.window-active .desktop-icon,
+body.window-active .panel-grid,
+body.window-active .workspace-grid,
+body.window-active .bg-grid,
+body.window-active .bg-svg,
+body.window-active .toolbar {
+    filter: blur(3px);
+    transition: filter 0.2s ease;
+    pointer-events: none;
+}
+
 /* Hide background content when window is maximized */
 body.window-maximized .sidebar,
 body.window-maximized .toolbar,
