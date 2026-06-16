@@ -1284,11 +1284,6 @@
                         if (response.ok) {
                             const htmlContent = await response.text();
                             window.wm.open("chat", "Chat", htmlContent);
-                            // Maximize the chat window after opening and enter fullscreen
-                            setTimeout(() => {
-                                window.wm.toggleMaximize("chat");
-                                document.body.classList.add("fullscreen");
-                            }, 100);
                         }
                     } catch (err) {
                         console.error("Failed to auto-open chat:", err);
