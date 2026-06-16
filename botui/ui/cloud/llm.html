@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Models — General Bots Cloud</title>
+  <link rel="stylesheet" href="css/cloud-layout.css">
+  <link rel="stylesheet" href="css/cloud-components.css">
+  <link rel="stylesheet" href="css/cloud-forms-utilities.css">
+  <style>
+    .provider-section { margin-bottom: 2.5rem; }
+    .provider-header {
+      display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      cursor: pointer; transition: all .2s; user-select: none;
+    }
+    .provider-header:hover { border-color: rgba(108,99,255,.3); }
+    .provider-header.open { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
+    .provider-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .provider-info { flex: 1; }
+    .provider-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .provider-desc { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+    .provider-badge { font-size: .65rem; padding: .15rem .55rem; border-radius: 99px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .provider-badge.byok { background: rgba(251,191,36,.12); color: #fbbf24; }
+    .provider-badge.included { background: rgba(52,211,153,.12); color: #34d399; }
+    .provider-arrow { transition: transform .2s; color: var(--muted); }
+    .provider-header.open .provider-arrow { transform: rotate(180deg); }
+
+    .models-grid { display: none; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .75rem; padding: 1rem; background: var(--bg3); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); }
+    .provider-header.open + .models-grid { display: grid; }
+    .model-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem; transition: all .2s;
+    }
+    .model-card:hover { border-color: rgba(108,99,255,.25); }
+    .model-name { font-size: .9rem; font-weight: 700; color: var(--text); }
+    .model-meta { display: flex; flex-wrap: wrap; gap: .35rem; margin: .5rem 0; }
+    .model-meta-tag { font-size: .65rem; background: var(--bg3); color: var(--muted); padding: .12rem .4rem; border-radius: 4px; border: 1px solid var(--border); }
+    .model-desc { font-size: .75rem; color: var(--muted); line-height: 1.45; }
+    .model-pricing { font-size: .72rem; margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .model-pricing .free { color: #34d399; font-weight: 600; }
+    .model-pricing .paid { color: #fbbf24; font-weight: 600; }
+
+    .llm-page-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+    .llm-page-header h1 { font-size: 1.4rem; font-weight: 800; color: var(--text); margin: 0; }
+    .llm-page-header p { color: var(--muted); font-size: .85rem; margin: 0; }
+    .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .filter-btn { font-size: .78rem; padding: .35rem .85rem; border-radius: 99px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; transition: all .2s; }
+    .filter-btn:hover { border-color: rgba(108,99,255,.3); color: var(--text); }
+    .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">LLM Models</span>
+      <div class="mgmt-topbar-actions"></div>
+    </div>
+
+    <div style="padding:2rem">
+      <div class="llm-page-header">
+        <div style="display:none">
+          <h1>Model Browser</h1>
+        </div>
+      </div>
+
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="chinese">Chinese Providers</button>
+        <button class="filter-btn" data-filter="byok">BYOK</button>
+        <button class="filter-btn" data-filter="included">Included in Plan</button>
+      </div>
+
+      <div id="providers-container"></div>
+    </div>
+  </main>
+</div>
+
+<script src="js/cloud.js"></script>
+<script>
+(async function() {
+  await requireAuth();
+
+  const PROV_ICONS = {
+    glm: { bg: '#2563eb', label: 'GL' },
+    qwen: { bg: '#dc2626', label: 'QW' },
+    deepseek: { bg: '#0891b2', label: 'DS' },
+    minimax: { bg: '#7c3aed', label: 'MX' },
+    yi: { bg: '#059669', label: 'YI' },
+    openai: { bg: '#000000', label: 'AI' },
+    anthropic: { bg: '#d97706', label: 'CL' },
+    gb: { bg: 'var(--accent)', label: 'GB' },
+    google: { bg: '#4285F4', label: 'G' },
+    groq: { bg: '#f97316', label: 'GQ' },
+  };
+
+  const FILTER_PROVIDERS = {
+    chinese: ['zhipu', 'alibaba', 'deepseek', 'minimax', 'yi'],
+    byok: ['zhipu', 'alibaba', 'deepseek', 'minimax', 'yi'],
+    included: ['generalbots'],
+  };
+
+  const FILTER_NAMES = {
+    chinese: 'Chinese Providers',
+    byok: 'BYOK',
+    included: 'Included in Plan',
+  };
+
+  let allProviders = [];
+  let activeFilter = 'all';
+
+  async function loadData() {
+    try {
+      const res = await fetch('/api/cloud/llm-providers');
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('json')) {
+        const data = await res.json();
+        if (data && data.providers) return data.providers;
+      }
+    } catch (_) {}
+    // Fallback: static provider data when API unavailable
+    return [
+      { id: 'generalbots', name: 'General Bots', description: 'Built-in LLM included in all plans. No API key needed.', icon: 'gb', requires_byok: false, models: [
+        { id: 'gb-std', name: 'GB Standard', context: 8192, capabilities: ['chat', 'streaming'], pricing: 'included', description: 'Standard model for general conversations.' },
+        { id: 'gb-pro', name: 'GB Pro', context: 32768, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'included', description: 'Pro model with extended context.' },
+      ]},
+      { id: 'zhipu', name: 'Zhipu AI (GLM)', description: 'Advanced Chinese-language models with strong reasoning capabilities.', icon: 'glm', requires_byok: true, models: [
+        { id: 'glm-4', name: 'GLM-4', context: 128000, capabilities: ['chat', 'streaming'], pricing: 'pay-per-token' },
+      ]},
+      { id: 'deepseek', name: 'DeepSeek', description: 'Cost-effective models with strong math and code performance.', icon: 'deepseek', requires_byok: true, models: [
+        { id: 'deepseek-v3', name: 'DeepSeek V3', context: 64000, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'pay-per-token' },
+      ]},
+      { id: 'openai', name: 'OpenAI', description: 'Industry-standard models for chat, code, and reasoning. Token packages available from $9.99/mo.', icon: 'openai', requires_byok: false, models: [
+        { id: 'gpt-4o', name: 'GPT-4o', context: 128000, capabilities: ['chat', 'streaming', 'function-calling', 'vision'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', context: 128000, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+      ]},
+      { id: 'anthropic', name: 'Anthropic', description: 'Safety-focused models with advanced reasoning. Token packages available from $17.99/mo.', icon: 'anthropic', requires_byok: false, models: [
+        { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', context: 200000, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+        { id: 'claude-3-haiku', name: 'Claude 3 Haiku', context: 200000, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+      ]},
+      { id: 'google', name: 'Google', description: 'Gemini models with strong multimodal capabilities. Token packages from $4.99/mo.', icon: 'google', requires_byok: false, models: [
+        { id: 'gemini-pro', name: 'Gemini Pro', context: 128000, capabilities: ['chat', 'streaming', 'vision'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+        { id: 'gemini-flash', name: 'Gemini Flash', context: 128000, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+      ]},
+      { id: 'groq', name: 'Groq', description: 'Fast inference models with industry-leading speed. Token packages from $16.99/mo.', icon: 'groq', requires_byok: false, models: [
+        { id: 'mixtral-8x7b', name: 'Mixtral 8x7B', context: 32768, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+        { id: 'llama-3.3-70b', name: 'Llama 3.3 70B', context: 131072, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+      ]},
+      { id: 'qwen', name: 'Qwen (Alibaba)', description: 'Strong multilingual models from Alibaba Cloud.', icon: 'qwen', requires_byok: true, models: [
+        { id: 'qwen-2.5-72b', name: 'Qwen 2.5 72B', context: 128000, capabilities: ['chat', 'streaming'], pricing: 'pay-per-token' },
+      ]},
+      { id: 'minimax', name: 'MiniMax', description: 'Efficient Chinese-language and multilingual models.', icon: 'minimax', requires_byok: true, models: [
+        { id: 'minimax-abab', name: 'MiniMax Abab', context: 128000, capabilities: ['chat', 'streaming'], pricing: 'pay-per-token' },
+      ]},
+      { id: 'yi', name: 'Yi (01.AI)', description: 'Open-source friendly models from 01.AI.', icon: 'yi', requires_byok: true, models: [
+        { id: 'yi-lightning', name: 'Yi Lightning', context: 16000, capabilities: ['chat', 'streaming'], pricing: 'pay-per-token' },
+      ]},
+    ];
+  }
+
+  function renderProvider(prov) {
+    const icon = PROV_ICONS[prov.icon] || { bg: '#6b7280', label: '?' };
+    const badge = prov.requires_byok
+      ? '<span class="provider-badge byok">Requires BYOK</span>'
+      : prov.models && prov.models.some(m => m.pricing === 'token-package')
+        ? '<a href="/cloud/store?calc=1#calc-llm-grid" class="provider-badge" style="background:rgba(52,211,153,.12);color:#34d399;text-decoration:none">Token packages ↗</a>'
+        : '<span class="provider-badge included">Included</span>';
+
+    const modelsHtml = (prov.models || []).map(m => {
+      const caps = (m.capabilities || []).map(c => `<span class="model-meta-tag">${c}</span>`).join('');
+      const ctx = m.context ? (m.context / 1000).toFixed(0) + 'K' : '\u2014';
+      const pricing = m.pricing === 'included' ? '<span class="free">Included</span>'
+        : m.pricing === 'token-package'
+          ? '<a href="' + (m.package_url || '/cloud/store?calc=1#calc-llm-grid') + '" style="color:var(--accent2);font-weight:600;text-decoration:none">Buy tokens ↗</a>'
+          : '<span class="paid">Pay-per-token</span>';
+      return '<div class="model-card">' +
+        '<div class="model-name">' + m.name + '</div>' +
+        '<div class="model-meta"><span class="model-meta-tag">' + ctx + ' ctx</span>' + caps + '</div>' +
+        '<div class="model-desc">' + (m.description || '') + '</div>' +
+        '<div class="model-pricing"><span>' + pricing + '</span><span style="color:var(--muted);font-size:.7rem">' + m.id + '</span></div>' +
+        '</div>';
+    }).join('');
+
+    return '<div class="provider-section" data-provider-id="' + prov.id + '">' +
+      '<div class="provider-header" onclick="this.classList.toggle(\'open\')">' +
+      '<div class="provider-icon" style="background:' + icon.bg + '">' + icon.label + '</div>' +
+      '<div class="provider-info">' +
+      '<div class="provider-name">' + prov.name + '</div>' +
+      '<div class="provider-desc">' + (prov.description || '') + '</div>' +
+      '</div>' +
+      badge +
+      '<div class="provider-arrow"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>' +
+      '</div>' +
+      '<div class="models-grid">' + modelsHtml + '</div>' +
+      '</div>';
+  }
+
+  function applyFilter(filter) {
+    activeFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+
+    const container = document.getElementById('providers-container');
+    if (filter === 'all') {
+      container.innerHTML = allProviders.map(renderProvider).join('');
+      return;
+    }
+
+    const ids = FILTER_PROVIDERS[filter] || [];
+    const filtered = allProviders.filter(p => ids.includes(p.id));
+    // Add section headers
+    let html = '';
+    if (filtered.length) {
+      html = filtered.map(renderProvider).join('');
+    } else {
+      html = '<p style="color:var(--muted)">No providers in this category.</p>';
+    }
+    container.innerHTML = html;
+  }
+
+  document.getElementById('filter-bar').addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (btn) applyFilter(btn.dataset.filter);
+  });
+
+  allProviders = await loadData();
+  applyFilter('all');
+})();
+</script>
+</body>
+</html>

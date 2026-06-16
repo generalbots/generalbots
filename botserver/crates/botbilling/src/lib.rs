@@ -275,10 +275,10 @@ pub fn default_product_config() -> ProductConfig {
 
     plans.insert("free".to_string(), PlanConfig {
         name: "Free".to_string(),
-        description: Some("Get started with basic features".to_string()),
+        description: Some("Experimente a plataforma sem custo".to_string()),
         price: PlanPrice::Free,
         limits: PlanLimits {
-            messages_per_day: LimitValue::Limited(5),
+            messages_per_day: LimitValue::Limited(10),
             storage_mb: LimitValue::Limited(50),
             bots: LimitValue::Limited(1),
             users: LimitValue::Limited(1),
@@ -287,14 +287,83 @@ pub fn default_product_config() -> ProductConfig {
             kb_documents: LimitValue::Limited(10),
             apps: LimitValue::Limited(1),
         },
-        features: vec!["basic_chat".to_string()],
+        features: vec![
+            "basic_chat".to_string(),
+        ],
         stripe_price_id: None,
         trial_days: None,
     });
 
+    plans.insert("shared".to_string(), PlanConfig {
+        name: "Shared".to_string(),
+        description: Some("Seu escritório digital com 50GB, BYOK e 5 workspaces".to_string()),
+        price: PlanPrice::Fixed {
+            amount: 399,
+            currency: "usd".to_string(),
+            period: BillingPeriod::Monthly,
+        },
+        limits: PlanLimits {
+            messages_per_day: LimitValue::Unlimited,
+            storage_mb: LimitValue::Limited(51200),
+            bots: LimitValue::Limited(5),
+            users: LimitValue::Limited(5),
+            api_calls_per_day: LimitValue::Unlimited,
+            signups_per_day: None,
+            kb_documents: LimitValue::Limited(100),
+            apps: LimitValue::Limited(5),
+        },
+        features: vec![
+            "basic_chat".to_string(),
+            "file_upload".to_string(),
+            "byok".to_string(),
+            "store_domains".to_string(),
+            "store_phones".to_string(),
+            "store_storage".to_string(),
+        ],
+        stripe_price_id: None,
+        trial_days: Some(14),
+    });
+
+    plans.insert("private-cloud".to_string(), PlanConfig {
+        name: "Private Cloud".to_string(),
+        description: Some("Sua nuvem privada com VPS, ilimitado e marca própria".to_string()),
+        price: PlanPrice::Custom,
+        limits: PlanLimits {
+            messages_per_day: LimitValue::Unlimited,
+            storage_mb: LimitValue::Unlimited,
+            bots: LimitValue::Unlimited,
+            users: LimitValue::Unlimited,
+            api_calls_per_day: LimitValue::Unlimited,
+            signups_per_day: None,
+            kb_documents: LimitValue::Unlimited,
+            apps: LimitValue::Unlimited,
+        },
+        features: vec![
+            "basic_chat".to_string(),
+            "file_upload".to_string(),
+            "byok".to_string(),
+            "store_domains".to_string(),
+            "store_phones".to_string(),
+            "store_storage".to_string(),
+            "store_vps".to_string(),
+            "store_gpu".to_string(),
+            "custom_branding".to_string(),
+            "audit_logs".to_string(),
+            "api_access".to_string(),
+            "analytics".to_string(),
+            "sso_saml".to_string(),
+            "sla_guarantee".to_string(),
+            "dedicated_support".to_string(),
+            "on_premise".to_string(),
+        ],
+        stripe_price_id: None,
+        trial_days: None,
+    });
+
+    // Planos legados mantidos para organizações existentes no banco
     plans.insert("personal".to_string(), PlanConfig {
         name: "Personal".to_string(),
-        description: Some("For individual users and small projects".to_string()),
+        description: Some("Plano anterior — mantido para organizações existentes".to_string()),
         price: PlanPrice::Fixed {
             amount: 900,
             currency: "usd".to_string(),
@@ -321,7 +390,7 @@ pub fn default_product_config() -> ProductConfig {
 
     plans.insert("business".to_string(), PlanConfig {
         name: "Business".to_string(),
-        description: Some("For teams and growing businesses".to_string()),
+        description: Some("Plano anterior — mantido para organizações existentes".to_string()),
         price: PlanPrice::Fixed {
             amount: 4900,
             currency: "usd".to_string(),
@@ -351,7 +420,7 @@ pub fn default_product_config() -> ProductConfig {
 
     plans.insert("enterprise".to_string(), PlanConfig {
         name: "Enterprise".to_string(),
-        description: Some("For large organizations with advanced needs".to_string()),
+        description: Some("Plano anterior — mantido para organizações existentes".to_string()),
         price: PlanPrice::Custom,
         limits: PlanLimits {
             messages_per_day: LimitValue::Unlimited,
@@ -392,6 +461,12 @@ pub fn default_product_config() -> ProductConfig {
         features: vec![
             "basic_chat".to_string(),
             "file_upload".to_string(),
+            "byok".to_string(),
+            "store_domains".to_string(),
+            "store_phones".to_string(),
+            "store_storage".to_string(),
+            "store_vps".to_string(),
+            "store_gpu".to_string(),
             "email_support".to_string(),
             "priority_support".to_string(),
             "custom_branding".to_string(),

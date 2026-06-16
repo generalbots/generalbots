@@ -1,6 +1,6 @@
-use axum::{extract::{State, OriginalUri, Query}, response::{Response, IntoResponse, Redirect}, http::HeaderMap};
+use axum::{extract::{State, OriginalUri, Query, Path}, response::{Response, IntoResponse, Redirect}, http::{HeaderMap, header, StatusCode}};
 use crate::ui_server::{AppState, get_ui_root, SuiteQueryParams, Assets};
-use log::{info, warn};
+use log::{info, warn, error};
 use std::fs;
 use std::path::PathBuf;
 
@@ -24,6 +24,7 @@ pub async fn index(
                 && **part != "api"
                 && **part != "auth"
                 && **part != "suite"
+                && **part != "cloud"
                 && !part.ends_with(".js")
                 && !part.ends_with(".css")
         })
@@ -167,6 +168,7 @@ pub async fn index(
                 && **part != "api"
                 && **part != "auth"
                 && **part != "suite"
+                && **part != "cloud"
                 && !part.ends_with(".js")
                 && !part.ends_with(".css")
         })
@@ -246,6 +248,32 @@ pub async fn serve_minimal() -> impl IntoResponse {
                 Html("Failed to load minimal interface".to_string()),
             )
         }
+    }
+}
+
+pub async fn serve_cloud(
+    Path(path): Path<String>,
+) -> Response {
+    let cloud_root = get_ui_root().join("cloud");
+    let normalized = path.strip_prefix('/').unwrap_or(&path);
+    let file_path = if normalized.contains('.') {
+        cloud_root.join(normalized)
+    } else if normalized.is_empty() || normalized.ends_with('/') {
+        cloud_root.join("index.html")
+    } else {
+        cloud_root.join(format!("{normalized}.html"))
+    };
+
+    match tokio::fs::read(&file_path).await {
+        Ok(bytes) => {
+            let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
+            (
+                [(header::CONTENT_TYPE, mime.as_ref())],
+                bytes,
+            )
+                .into_response()
+        }
+        Err(_) => StatusCode::NOT_FOUND.into_response(),
     }
 }
 

@@ -97,5 +97,182 @@
       "size_mb": 40000,
       "description": "Large model for GPU with 16GB+ VRAM"
     }
-  }
+  },
+  "providers": [
+    {
+      "id": "zhipu",
+      "name": "GLM (Zhipu AI)",
+      "description": "Open-source Chinese models from Zhipu AI with excellent reasoning performance and long context understanding.",
+      "website": "https://open.bigmodel.cn",
+      "api_base": "https://open.bigmodel.cn/api/paas/v4",
+      "docs_url": "https://open.bigmodel.cn/dev/api",
+      "requires_byok": true,
+      "icon": "glm",
+      "models": [
+        {"id": "glm-4-plus", "name": "GLM-4-Plus", "context": 131072, "description": "Flagship with advanced reasoning and tool support", "pricing": "pay-per-token", "capabilities": ["chat", "tools", "function-calling"]},
+        {"id": "glm-4-air", "name": "GLM-4-Air", "context": 131072, "description": "Lightweight and fast, ideal for chatbots and automation", "pricing": "pay-per-token", "capabilities": ["chat", "tools"]},
+        {"id": "glm-4-flash", "name": "GLM-4-Flash", "context": 131072, "description": "Free model with high requests per minute rate", "pricing": "free-tier", "capabilities": ["chat"]},
+        {"id": "glm-4v-plus", "name": "GLM-4V-Plus", "context": 131072, "description": "Multimodal: text + images, advanced visual analysis", "pricing": "pay-per-token", "capabilities": ["chat", "vision"]}
+      ]
+    },
+    {
+      "id": "alibaba",
+      "name": "Qwen (Alibaba Cloud)",
+      "description": "Alibaba's Qwen family — high-performance open models for chat, code and math.",
+      "website": "https://tongyi.aliyun.com",
+      "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "docs_url": "https://help.aliyun.com/zh/model-studio/getting-started/models",
+      "requires_byok": true,
+      "icon": "qwen",
+      "models": [
+        {"id": "qwen-max", "name": "Qwen-Max", "context": 131072, "description": "Most powerful model in the Qwen family, surpassing GPT-4 on Chinese benchmarks", "pricing": "pay-per-token", "capabilities": ["chat", "tools", "function-calling"]},
+        {"id": "qwen-plus", "name": "Qwen-Plus", "context": 131072, "description": "Performance-cost balance, ideal for production", "pricing": "pay-per-token", "capabilities": ["chat", "tools"]},
+        {"id": "qwen-turbo", "name": "Qwen-Turbo", "context": 131072, "description": "Fastest and most economical, great for simple tasks", "pricing": "pay-per-token", "capabilities": ["chat"]},
+        {"id": "qvq-max", "name": "QVQ-Max", "context": 131072, "description": "Multimodal with visual reasoning and image comprehension", "pricing": "pay-per-token", "capabilities": ["chat", "vision"]},
+        {"id": "qwen-coder-plus", "name": "Qwen-Coder-Plus", "context": 131072, "description": "Specialized in code generation and comprehension", "pricing": "pay-per-token", "capabilities": ["chat", "code"]}
+      ]
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "description": "Deep reasoning models from DeepSeek (深度求索), featuring DeepSeek-R1 and DeepSeek-V3.",
+      "website": "https://platform.deepseek.com",
+      "api_base": "https://api.deepseek.com",
+      "docs_url": "https://platform.deepseek.com/api-docs",
+      "requires_byok": true,
+      "icon": "deepseek",
+      "models": [
+        {"id": "deepseek-v3", "name": "DeepSeek-V3", "context": 65536, "description": "High-performance general model, comparable to GPT-4o", "pricing": "pay-per-token", "capabilities": ["chat", "tools", "function-calling"]},
+        {"id": "deepseek-r1", "name": "DeepSeek-R1", "context": 65536, "description": "Reasoning model with visible chain-of-thought, leader in math benchmarks", "pricing": "pay-per-token", "capabilities": ["chat", "reasoning"]},
+        {"id": "deepseek-chat", "name": "DeepSeek-Chat", "context": 65536, "description": "Standard chat model, good cost-benefit", "pricing": "pay-per-token", "capabilities": ["chat"]}
+      ]
+    },
+    {
+      "id": "minimax",
+      "name": "MiniMax",
+      "description": "Chinese models from MiniMax with support for up to 1M token context and long document processing.",
+      "website": "https://www.minimaxi.com",
+      "api_base": "https://api.minimaxi.com/v1",
+      "docs_url": "https://platform.minimaxi.com/document",
+      "requires_byok": true,
+      "icon": "minimax",
+      "models": [
+        {"id": "minimax-text-01", "name": "MiniMax-Text-01", "context": 1048576, "description": "1M token context — read entire books or complete codebases", "pricing": "pay-per-token", "capabilities": ["chat", "tools", "function-calling"]},
+        {"id": "minimax-abab-6.5", "name": "MiniMax-abab6.5", "context": 131072, "description": "Efficient model for conversation and document analysis", "pricing": "pay-per-token", "capabilities": ["chat"]},
+        {"id": "minimax-abab-5.5", "name": "MiniMax-abab5.5", "context": 8192, "description": "Lightweight and fast model for simple chat tasks", "pricing": "pay-per-token", "capabilities": ["chat"]}
+      ]
+    },
+    {
+      "id": "yi",
+      "name": "Yi (01.AI)",
+      "description": "Models from 01.AI (founded by Kai-Fu Lee) with competitive multilingual and code performance.",
+      "website": "https://www.lingyiwanwu.com",
+      "api_base": "https://api.lingyiwanwu.com/v1",
+      "docs_url": "https://platform.lingyiwanwu.com/docs",
+      "requires_byok": true,
+      "icon": "yi",
+      "models": [
+        {"id": "yi-lightning", "name": "Yi-Lightning", "context": 131072, "description": "Flagship model with advanced reasoning and multilingual support", "pricing": "pay-per-token", "capabilities": ["chat", "tools", "function-calling"]},
+        {"id": "yi-lightning-fast", "name": "Yi-Lightning-Fast", "context": 32768, "description": "Optimized for low latency", "pricing": "pay-per-token", "capabilities": ["chat"]}
+      ]
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "description": "OpenAI models — global reference in LLMs with GPT-4o, GPT-4.1 and o-3.",
+      "website": "https://platform.openai.com",
+      "api_base": "https://api.openai.com/v1",
+      "docs_url": "https://platform.openai.com/docs",
+      "requires_byok": false,
+      "pricing": "token-package",
+      "token_packages": [
+        {"tokens": 20000000, "price": 9.99, "label": "20M tokens $9.99/mo"},
+        {"tokens": 50000000, "price": 24.99, "label": "50M tokens $24.99/mo"},
+        {"tokens": 100000000, "price": 49.99, "label": "100M tokens $49.99/mo"}
+      ],
+      "icon": "openai",
+      "models": [
+        {"id": "gpt-4o", "name": "GPT-4o", "context": 131072, "description": "OpenAI's fastest and smartest multimodal model", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "vision", "tools", "function-calling"]},
+        {"id": "gpt-4.1", "name": "GPT-4.1", "context": 1048576, "description": "1M token context with superior instruction understanding", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "tools", "function-calling"]},
+        {"id": "gpt-4.1-mini", "name": "GPT-4.1-Mini", "context": 1048576, "description": "Small, fast and economical with 1M context", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "tools"]},
+        {"id": "gpt-4.1-nano", "name": "GPT-4.1-Nano", "context": 1048576, "description": "Fastest and cheapest in the family, ideal for classification", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat"]},
+        {"id": "o3", "name": "o-3", "context": 262144, "description": "Advanced reasoning model for complex tasks", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "reasoning"]}
+      ]
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "description": "Anthropic's Claude models — safe, interpretable, with up to 200K token context.",
+      "website": "https://console.anthropic.com",
+      "api_base": "https://api.anthropic.com/v1",
+      "docs_url": "https://docs.anthropic.com/en/docs",
+      "requires_byok": false,
+      "pricing": "token-package",
+      "token_packages": [
+        {"tokens": 20000000, "price": 17.99, "label": "20M tokens $17.99/mo"},
+        {"tokens": 50000000, "price": 44.99, "label": "50M tokens $44.99/mo"},
+        {"tokens": 100000000, "price": 89.99, "label": "100M tokens $89.99/mo"}
+      ],
+      "icon": "anthropic",
+      "models": [
+        {"id": "claude-4-sonnet", "name": "Claude 4 Sonnet", "context": 262144, "description": "Ideal speed-capability balance", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "tools", "function-calling", "vision"]},
+        {"id": "claude-4-haiku", "name": "Claude 4 Haiku", "context": 262144, "description": "Fast and economical for everyday tasks", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "tools"]}
+      ]
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "description": "Gemini models with strong multimodal capabilities. Token packages available.",
+      "website": "https://ai.google.dev",
+      "api_base": "https://generativelanguage.googleapis.com/v1beta",
+      "docs_url": "https://ai.google.dev/gemini-api/docs",
+      "requires_byok": false,
+      "pricing": "token-package",
+      "token_packages": [
+        {"tokens": 20000000, "price": 4.99, "label": "20M tokens $4.99/mo"},
+        {"tokens": 50000000, "price": 11.99, "label": "50M tokens $11.99/mo"},
+        {"tokens": 100000000, "price": 24.99, "label": "100M tokens $24.99/mo"}
+      ],
+      "icon": "google",
+      "models": [
+        {"id": "gemini-pro", "name": "Gemini Pro", "context": 131072, "description": "Multimodal with strong reasoning", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "vision", "tools"]},
+        {"id": "gemini-flash", "name": "Gemini Flash", "context": 131072, "description": "Fast and economical", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "tools"]}
+      ]
+    },
+    {
+      "id": "groq",
+      "name": "Groq",
+      "description": "Fast inference models with industry-leading speed. Token packages available.",
+      "website": "https://groq.com",
+      "api_base": "https://api.groq.com/openai/v1",
+      "docs_url": "https://console.groq.com/docs",
+      "requires_byok": false,
+      "pricing": "token-package",
+      "token_packages": [
+        {"tokens": 20000000, "price": 16.99, "label": "20M tokens $16.99/mo"},
+        {"tokens": 50000000, "price": 41.99, "label": "50M tokens $41.99/mo"},
+        {"tokens": 100000000, "price": 84.99, "label": "100M tokens $84.99/mo"}
+      ],
+      "icon": "groq",
+      "models": [
+        {"id": "mixtral-8x7b", "name": "Mixtral 8x7B", "context": 32768, "description": "Mixture of experts for high quality", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "tools"]},
+        {"id": "llama-3.3-70b", "name": "Llama 3.3 70B", "context": 131072, "description": "Meta Llama 3.3 for chat and tools", "pricing": "token-package", "package_url": "/cloud/store?cat=compute&calc=1", "capabilities": ["chat", "tools"]}
+      ]
+    },
+    {
+      "id": "generalbots",
+      "name": "General Bots (Own GPU)",
+      "description": "Open-source models running on General Bots' own GPUs. No BYOK needed — included in the plan.",
+      "website": "https://generalbots.com.br",
+      "api_base": "https://llm.generalbots.com.br/v1",
+      "requires_byok": false,
+      "included_in_plan": true,
+      "icon": "gb",
+      "models": [
+        {"id": "gpt-oss-20b", "name": "GPT-OSS 20B", "context": 32768, "description": "Open 20B parameter model running on dedicated GPU", "pricing": "included", "capabilities": ["chat", "tools"]},
+        {"id": "deepseek-r1-distill-qwen", "name": "DeepSeek-R1-Distill-Qwen-1.5B", "context": 32768, "description": "Lightweight reasoning model included in all plans", "pricing": "included", "capabilities": ["chat", "reasoning"]},
+        {"id": "llama-3.1-8b", "name": "Llama 3.1 8B", "context": 131072, "description": "Meta Llama 3.1 8B model for chat and tools", "pricing": "included", "capabilities": ["chat", "tools"]}
+      ]
+    }
+  ]
 }

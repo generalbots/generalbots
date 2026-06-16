@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>App Store Publishing — General Bots Cloud</title>
-  <link rel="stylesheet" href="css/cloud.css">
+  <link rel="stylesheet" href="css/cloud-layout.css">
+  <link rel="stylesheet" href="css/cloud-components.css">
+  <link rel="stylesheet" href="css/cloud-forms-utilities.css">
   <style>
     .appstores-container {
       padding: 2rem;
@@ -164,30 +166,7 @@
 </head>
 <body class="mgmt-layout">
 <div class="mgmt-shell">
-  <!-- SIDEBAR -->
-  <nav class="mgmt-sidebar">
-    <div class="mgmt-logo"><a href="/cloud" class="mgmt-logo-mark"><div class="mgmt-logo-icon">🤖</div><div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div></a></div>
-    <nav class="mgmt-nav">
-      <div class="mgmt-nav-section">Overview</div>
-      <a href="/cloud/dashboard" class="mgmt-nav-link"><span class="mgmt-nav-icon">📊</span> Dashboard</a>
-      <div class="mgmt-nav-section">Add-ons</div>
-      <a href="/cloud/store" class="mgmt-nav-link"><span class="mgmt-nav-icon">🏪</span> App Store</a>
-      <a href="/cloud/plans" class="mgmt-nav-link"><span class="mgmt-nav-icon">🚀</span> Plans &amp; Pricing</a>
-      <a href="/cloud/appstores" class="mgmt-nav-link active"><span class="mgmt-nav-icon">📱</span> App Publishing</a>
-      <a href="/cloud/offers" class="mgmt-nav-link"><span class="mgmt-nav-icon">🏷️</span> Special Offers</a>
-      <div class="mgmt-nav-section">Infrastructure</div>
-      <a href="/cloud/store?cat=compute" class="mgmt-nav-link"><span class="mgmt-nav-icon">🖥️</span> Computers / VPS</a>
-      <a href="/cloud/store?cat=storage" class="mgmt-nav-link"><span class="mgmt-nav-icon">💾</span> Storage</a>
-      <a href="/cloud/store?cat=domains" class="mgmt-nav-link"><span class="mgmt-nav-icon">🌐</span> Domains</a>
-      <a href="/cloud/store?cat=comms" class="mgmt-nav-link"><span class="mgmt-nav-icon">📞</span> SMS &amp; Numbers</a>
-      <div class="mgmt-nav-section">Account</div>
-      <a href="/cloud/services" class="mgmt-nav-link"><span class="mgmt-nav-icon">📦</span> My Services</a>
-      <a href="/cloud/invoices" class="mgmt-nav-link"><span class="mgmt-nav-icon">📄</span> Invoices</a>
-      <a href="/cloud/payment-cards" class="mgmt-nav-link"><span class="mgmt-nav-icon">💳</span> Payment Cards</a>
-      <a href="/cloud/profile" class="mgmt-nav-link"><span class="mgmt-nav-icon">👤</span> My Profile</a>
-    </nav>
-    <div class="mgmt-sidebar-footer"><div class="mgmt-user-chip"><div class="mgmt-avatar" id="sidebar-avatar">?</div><span class="mgmt-user-email" id="sidebar-email">…</span><button class="mgmt-logout" onclick="doLogout()" title="Sign out">⎋</button></div></div>
-  </nav>
+
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
@@ -196,8 +175,8 @@
 
     <div class="appstores-container">
       <div class="appstores-hero">
-        <h1>🚀 Publish Your App to the World</h1>
-        <p>Serviço completo de consultoria para publicação de aplicativos na Google Play Store e Apple App Store. Cuidamos de todo o processo — desde a criação da conta de desenvolvedor até a submissão para aprovação — para que você foque no que importa: seu aplicativo.</p>
+        <h1>Publish Your App to the World</h1>
+        <p>Full consulting service for publishing apps on Google Play Store and Apple App Store. We handle the entire process — from developer account creation to submission for approval — so you can focus on what matters: your app.</p>
       </div>
 
       <div class="appstores-grid">
@@ -207,11 +186,11 @@
           <div class="appstore-name">Google Play Store</div>
           <div class="appstore-sub">Publishing Consultancy</div>
           <div class="appstore-price-row">
-            <span class="appstore-price-label">Consultoria de publicação</span>
+            <span class="appstore-price-label">Publishing Consultancy</span>
             <span class="appstore-price-value">$100</span>
           </div>
           <div class="appstore-price-row">
-            <span class="appstore-price-label">Taxa Google Play (única)</span>
+            <span class="appstore-price-label">Google Play Fee (one-time)</span>
             <span class="appstore-price-value">$25</span>
           </div>
           <div class="appstore-total">
@@ -225,15 +204,15 @@
 
         <!-- Apple App Store -->
         <div class="appstore-card featured">
-          <div class="appstore-icon">🍎</div>
+          <div class="appstore-icon">A</div>
           <div class="appstore-name">Apple App Store</div>
           <div class="appstore-sub">Publishing Consultancy</div>
           <div class="appstore-price-row">
-            <span class="appstore-price-label">Consultoria de publicação</span>
+            <span class="appstore-price-label">Publishing Consultancy</span>
             <span class="appstore-price-value">$100</span>
           </div>
           <div class="appstore-price-row">
-            <span class="appstore-price-label">Taxa Apple Developer (anual)</span>
+            <span class="appstore-price-label">Apple Developer Fee (annual)</span>
             <span class="appstore-price-value">$99</span>
           </div>
           <div class="appstore-total">
@@ -249,7 +228,7 @@
       <!-- Combo -->
       <div style="text-align:center;margin-bottom:2rem">
         <div style="background:var(--card);border:1px solid var(--accent);border-radius:var(--radius);padding:1.5rem;display:inline-block">
-          <div style="font-size:1.2rem;font-weight:700;margin-bottom:0.25rem">📱 Both Stores Bundle</div>
+          <div style="font-size:1.2rem;font-weight:700;margin-bottom:0.25rem">Both Stores Bundle</div>
           <div style="color:var(--muted);font-size:0.9rem;margin-bottom:0.75rem">Google Play + Apple App Store — everything included</div>
           <div style="display:flex;justify-content:center;align-items:center;gap:1rem;margin-bottom:1rem">
             <span style="text-decoration:line-through;color:var(--muted)">$324</span>
@@ -262,7 +241,7 @@
 
       <!-- How it works -->
       <div class="appstore-how">
-        <h2>📋 How It Works</h2>
+        <h2>How It Works</h2>
         <div class="appstore-step">
           <div class="appstore-step-num">1</div>
           <div class="appstore-step-text"><strong>Purchase</strong> the package for your desired store(s). We'll create an invoice and send you the onboarding questionnaire.</div>
@@ -283,7 +262,7 @@
 
       <!-- FAQ -->
       <div class="appstore-faq">
-        <h2>❓ Frequently Asked Questions</h2>
+        <h2>Frequently Asked Questions</h2>
         <div class="appstore-faq-item">
           <div class="appstore-faq-q">What do I need to provide?</div>
           <div class="appstore-faq-a">Your app binary (.aab for Android, .ipa for iOS), app icon, screenshots, description, and any necessary API credentials. We guide you through each step.</div>
@@ -308,7 +287,6 @@
     </div>
   </main>
 </div>
-<script src="js/management-appstores.js"></script>
-  <script src="/cloud/js/cloud.js"></script>
+<script src="/cloud/js/cloud.js"></script>
 </body>
 </html>

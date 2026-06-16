@@ -1,67 +1,92 @@
 const API_BASE = '/api/cloud';
 
+const SVG = {
+  robot: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="7" width="16" height="13" rx="3"/><circle cx="9" cy="11" r="1.5" fill="currentColor"/><circle cx="15" cy="11" r="1.5" fill="currentColor"/><path d="M9 16c1.5 1.5 4.5 1.5 6 0"/><path d="M8 7V4M16 7V4"/></svg>',
+  dashboard: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/></svg>',
+  vps: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h6"/><path d="M9 19h6"/></svg>',
+  gpu: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="10" cy="12" r="2"/><circle cx="17" cy="11" r="1"/><path d="M10 16v2M14 16v2"/></svg>',
+  storage: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>',
+  appstore: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  services: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4v10l8 4 8-4V7z"/><path d="M12 11v6"/><path d="M8 9v2"/><path d="M16 9v2"/></svg>',
+  invoices: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>',
+  cards: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="6" width="22" height="12" rx="2"/><path d="M1 10h22"/><circle cx="7" cy="14" r="1"/><circle cx="11" cy="14" r="1"/></svg>',
+  profile: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>',
+  orgs: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+  offers: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  llm: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+  logout: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
+};
+
 const SIDEBAR_HTML = `<nav class="mgmt-sidebar" id="mgmt-sidebar">
-  <div class="mgmt-logo">
-    <a href="/cloud" class="mgmt-logo-mark">
-      <div class="mgmt-logo-icon">\u{1f916}</div>
-      <div>
-        <div class="mgmt-logo-text">General Bots</div>
-        <span class="mgmt-logo-sub">Cloud</span>
-      </div>
-    </a>
-  </div>
+  <div class="mgmt-logo"><a href="/cloud" class="mgmt-logo-mark"><div class="mgmt-logo-icon">${SVG.robot}</div><div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div></a></div>
   <nav class="mgmt-nav">
     <div class="mgmt-nav-section">Overview</div>
-    <a href="/cloud/dashboard" class="mgmt-nav-link" data-page="dashboard"><span class="mgmt-nav-icon">\u{1f4ca}</span> Dashboard</a>
-    <div class="mgmt-nav-section">Add-ons</div>
-    <a href="/cloud/store" class="mgmt-nav-link" data-page="store"><span class="mgmt-nav-icon">\u{1f3ea}</span> Store</a>
+    <a href="/cloud/dashboard" class="mgmt-nav-link" data-page="dashboard"><span class="mgmt-nav-icon">${SVG.dashboard}</span> Dashboard</a>
+
+    <div class="mgmt-nav-section">Tools</div>
+    <a href="javascript:void(0)" class="mgmt-nav-link" onclick="openCalculator()"><span class="mgmt-nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="12" y2="18.01"/><line x1="16" y1="18" x2="16" y2="18.01"/></svg></span> Calculator</a>
+
+    <div class="mgmt-nav-section">Store</div>
+    <a href="/cloud/offers" class="mgmt-nav-link" data-page="offers"><span class="mgmt-nav-icon">${SVG.offers}</span> Offers</a>
+    <a href="/cloud/store?cat=compute" class="mgmt-nav-link" data-cat="compute"><span class="mgmt-nav-icon">${SVG.vps}</span> VPS / Compute</a>
+    <a href="/cloud/store?cat=gpu" class="mgmt-nav-link" data-cat="gpu"><span class="mgmt-nav-icon">${SVG.gpu}</span> GPU</a>
+    <a href="/cloud/store?cat=storage" class="mgmt-nav-link" data-cat="storage"><span class="mgmt-nav-icon">${SVG.storage}</span> Storage</a>
+    <a href="/cloud/store?cat=comms" class="mgmt-nav-link" data-cat="comms"><span class="mgmt-nav-icon">${SVG.phone}</span> Phone Numbers</a>
+    <a href="/cloud/store?cat=apps" class="mgmt-nav-link" data-cat="apps"><span class="mgmt-nav-icon">${SVG.appstore}</span> App Store</a>
+    <a href="/cloud/llm" class="mgmt-nav-link" data-page="llm"><span class="mgmt-nav-icon">${SVG.llm}</span> LLM Models</a>
+
+
     <div class="mgmt-nav-section">Account</div>
-    <a href="/cloud/services" class="mgmt-nav-link" data-page="services"><span class="mgmt-nav-icon">\u{1f4e6}</span> My Services</a>
-    <a href="/cloud/invoices" class="mgmt-nav-link" data-page="invoices"><span class="mgmt-nav-icon">\u{1f4c4}</span> Invoices</a>
-    <a href="/cloud/payment-cards" class="mgmt-nav-link" data-page="cards"><span class="mgmt-nav-icon">\u{1f4b3}</span> Payment Cards</a>
-    <a href="/cloud/profile" class="mgmt-nav-link" data-page="profile"><span class="mgmt-nav-icon">\u{1f464}</span> My Profile</a>
+    <a href="/cloud/services" class="mgmt-nav-link" data-page="services"><span class="mgmt-nav-icon">${SVG.services}</span> My Services</a>
+    <a href="/cloud/invoices" class="mgmt-nav-link" data-page="invoices"><span class="mgmt-nav-icon">${SVG.invoices}</span> Invoices</a>
+    <a href="/cloud/payment-cards" class="mgmt-nav-link" data-page="cards"><span class="mgmt-nav-icon">${SVG.cards}</span> Payment Cards</a>
+    <a href="/cloud/organizations" class="mgmt-nav-link" data-page="orgs"><span class="mgmt-nav-icon">${SVG.orgs}</span> My Organizations</a>
+    <a href="/cloud/profile" class="mgmt-nav-link" data-page="profile"><span class="mgmt-nav-icon">${SVG.profile}</span> My Profile</a>
+    <a href="/cloud/settings" class="mgmt-nav-link" data-page="settings"><span class="mgmt-nav-icon">${SVG.settings}</span> Settings</a>
   </nav>
-  <div class="mgmt-sidebar-footer">
-    <div class="mgmt-user-chip">
-      <div class="mgmt-avatar" id="sidebar-avatar">?</div>
-      <span class="mgmt-user-email" id="sidebar-email">\u2026</span>
-      <button class="mgmt-logout" onclick="doLogout()" title="Sign out">\u238b</button>
-    </div>
-  </div>
+  <div class="mgmt-sidebar-footer"><div class="mgmt-user-chip"><div class="mgmt-avatar" id="sidebar-avatar">?</div><span class="mgmt-user-email" id="sidebar-email">\u2026</span><button class="mgmt-logout" onclick="doLogout()" title="Sign out">${SVG.logout}</button></div></div>
 </nav>`;
 
 document.addEventListener('DOMContentLoaded', () => {
   const token = requireAuth();
 
-  // Remover sidebars antigas e injetar a nova
+  // Injetar sidebar apenas se ainda não existir no HTML
   const shell = document.querySelector('.mgmt-shell');
-  if (shell) {
-    document.querySelectorAll('.mgmt-sidebar').forEach(el => el.remove());
+  if (!shell) return;
+
+  let sidebar = shell.querySelector('.mgmt-sidebar');
+  if (!sidebar) {
     const temp = document.createElement('div');
     temp.innerHTML = SIDEBAR_HTML;
-    const newSidebar = temp.firstElementChild;
-    shell.insertBefore(newSidebar, shell.firstChild);
-
-    // Marcar link ativo
-    const path = window.location.pathname;
-    newSidebar.querySelectorAll('.mgmt-nav-link').forEach(a => {
-      const href = a.getAttribute('href');
-      if (href && path.startsWith(href.split('?')[0])) {
-        a.classList.add('active');
-      }
-    });
-    // Preencher email
-    const emailEl = document.getElementById('sidebar-email');
-    if (emailEl) emailEl.textContent = localStorage.getItem('management_email') || '';
+    sidebar = temp.firstElementChild;
+    shell.insertBefore(sidebar, shell.firstChild);
   }
+
+  // Marcar link ativo (roda sempre, mesmo sidebar inline)
+  const path = window.location.pathname;
+  const params = new URLSearchParams(window.location.search);
+  sidebar.querySelectorAll('.mgmt-nav-link').forEach(a => {
+    const cat = a.getAttribute('data-cat');
+    if (cat) {
+      if (params.get('cat') === cat) a.classList.add('active');
+    } else {
+      const href = a.getAttribute('href');
+      if (href && path.startsWith(href.split('?')[0])) a.classList.add('active');
+    }
+  });
+  // Preencher email
+  const emailEl = document.getElementById('sidebar-email');
+  if (emailEl) emailEl.textContent = localStorage.getItem('management_email') || '';
 
   const userEmail = document.getElementById('user-email');
   if (userEmail) userEmail.textContent = localStorage.getItem('management_email') || '';
-  try { loadOrgs(token).catch(() => {}); } catch (_) {}
-  try { loadPlans(token).catch(() => {}); } catch (_) {}
+  try { loadDashboardOrgs(token).catch(() => {}); } catch (_) {}
+  try { loadDashboardPlans(token).catch(() => {}); } catch (_) {}
 });
 
-async function loadOrgs(token) {
+async function loadDashboardOrgs(token) {
   const container = document.getElementById('orgs-list');
   if (!container) return;
   try {
@@ -70,13 +95,13 @@ async function loadOrgs(token) {
     });
     if (!res.ok) { container.innerHTML = '<p>Failed to load organizations</p>'; return; }
     const orgs = await res.json();
-    renderOrgs(orgs);
+    renderDashboardOrgs(orgs);
   } catch (err) {
     container.innerHTML = `<p>Error: ${err.message}</p>`;
   }
 }
 
-function renderOrgs(orgs) {
+function renderDashboardOrgs(orgs) {
   const container = document.getElementById('orgs-list');
   if (!container || !orgs || orgs.length === 0) {
     if (container) container.innerHTML = '<div class="saas-loading"><p>No organizations yet.</p><button onclick="showNewOrgModal()" class="btn-primary">Create Your First Organization</button></div>';
@@ -97,7 +122,7 @@ function renderOrgs(orgs) {
   `).join('');
 }
 
-async function loadPlans(token) {
+async function loadDashboardPlans(token) {
   const grid = document.getElementById('plans-grid');
   if (!grid) return;
   try {
@@ -106,13 +131,13 @@ async function loadPlans(token) {
     });
     if (!res.ok) return;
     const data = await res.json();
-    renderPlans(data.plans);
+    renderDashboardPlans(data.plans);
   } catch (err) {
     console.error('Failed to load plans:', err);
   }
 }
 
-function renderPlans(plans) {
+function renderDashboardPlans(plans) {
   const grid = document.getElementById('plans-grid');
   if (!grid || !plans) return;
   grid.innerHTML = Object.entries(plans).map(([id, plan]) => `
@@ -133,7 +158,7 @@ function renderPlans(plans) {
   }
 }
 
-async function createOrg(e) {
+async function createOrgFromDashboard(e) {
   e.preventDefault();
   const token = requireAuth();
   const name = document.getElementById('org-name').value;
@@ -149,7 +174,7 @@ async function createOrg(e) {
     if (!res.ok) { const err = await res.json(); alert(err.detail || 'Failed'); return; }
     const data = await res.json();
     if (data.checkout_url) window.location.href = data.checkout_url;
-    else { hideNewOrgModal(); await loadOrgs(token); }
+    else { hideNewOrgModal(); await loadDashboardOrgs(token); }
   } catch (err) { alert('Error: ' + err.message); }
 }
 
@@ -170,4 +195,41 @@ function hideNewOrgModal() { const m = document.getElementById('new-org-modal');
 function doLogout() { localStorage.removeItem('management_token'); localStorage.removeItem('management_email'); window.location.href = '/cloud'; }
 function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 function getToken() { return localStorage.getItem('management_token'); }
-function requireAuth() { const t = getToken(); if (!t) window.location.href = '/cloud/login'; return t; }
+function requireAuth() {
+  let t = getToken();
+  if (!t) {
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      localStorage.setItem('management_token', 'dev-token');
+      localStorage.setItem('management_email', 'admin@generalbots.com');
+      devAutoLogin();
+      t = 'dev-token';
+    } else {
+      window.location.href = '/cloud/login';
+    }
+  }
+  return t;
+}
+
+async function devAutoLogin() {
+  if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+  try {
+    const res = await fetch('/api/cloud/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'admin@generalbots.com', password: 'dev' })
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.token) {
+      localStorage.setItem('management_token', data.token);
+      localStorage.setItem('management_email', data.email || 'admin@generalbots.com');
+    }
+  } catch (_) { /* silent */ }
+}
+
+// ── Calculator (redirects to store page) ──
+function openCalculator() {
+  window.location.href = '/cloud/store?cat=compute&calc=1';
+}
+function calcUpdate() { /* defined in 02_calc.js */ }
+function submitCalculator() { /* defined in 02_calc.js */ }
