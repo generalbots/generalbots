@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — General Bots Cloud</title>
+  <link rel="stylesheet" href="css/cloud-layout.css">
+  <link rel="stylesheet" href="css/cloud-components.css">
+  <link rel="stylesheet" href="css/cloud-forms-utilities.css">
+  <style>
+    .settings-section { margin-bottom: 2rem; }
+    .settings-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+    .settings-card-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: .25rem; }
+    .settings-card-desc { font-size: .8rem; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.5; }
+    .byok-row {
+      display: flex; align-items: center; gap: .75rem; padding: .75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .byok-row:last-child { border-bottom: none; }
+    .byok-provider { font-weight: 600; color: var(--text); min-width: 140px; font-size: .85rem; }
+    .byok-input { flex: 1; }
+    .byok-input input { width: 100%; padding: .5rem .75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: monospace; font-size: .78rem; }
+    .byok-input input:focus { outline: none; border-color: var(--accent); }
+    .byok-status { font-size: .72rem; display: flex; align-items: center; gap: .35rem; }
+    .byok-status.active { color: #34d399; }
+    .byok-status.inactive { color: var(--muted); }
+
+    .token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .token-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.25rem; text-align: center; cursor: pointer; transition: all .2s;
+    }
+    .token-card:hover { border-color: rgba(108,99,255,.35); transform: translateY(-2px); }
+    .token-amount { font-size: 1.5rem; font-weight: 800; color: var(--text); }
+    .token-amount small { font-size: .7rem; font-weight: 400; color: var(--muted); }
+    .token-price { font-size: .9rem; color: var(--muted); margin-top: .35rem; }
+    .token-bonus { font-size: .7rem; background: rgba(52,211,153,.12); color: #34d399; padding: .12rem .5rem; border-radius: 99px; display: inline-block; margin-top: .5rem; font-weight: 600; }
+
+    .plan-info-card {
+      background: linear-gradient(135deg, var(--card), var(--bg3));
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem;
+    }
+    .plan-info-name { font-size: 1.2rem; font-weight: 800; color: var(--text); }
+    .plan-info-price { font-size: .85rem; color: var(--muted); }
+    .plan-info-actions { margin-left: auto; }
+
+    .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Settings</span>
+      <div class="mgmt-topbar-actions"></div>
+    </div>
+
+    <div style="padding:2rem;max-width:800px">
+
+      <!-- Current Plan -->
+      <div class="settings-section">
+        <div class="settings-card-title">Current Plan</div>
+        <div class="plan-info-card">
+          <div>
+            <div class="plan-info-name" id="plan-name">Loading...</div>
+            <div class="plan-info-price" id="plan-price">—</div>
+          </div>
+          <div class="plan-info-actions">
+            <a href="/cloud/offers" class="btn btn-primary btn-sm">View Upgrade Options</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- BYOK API Keys -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-card-title">Bring Your Own Key (BYOK)</div>
+          <div id="byok-list">
+            <p style="color:var(--muted);font-size:.85rem">Loading providers...</p>
+          </div>
+          <button class="btn btn-outline btn-sm" style="margin-top:.75rem" onclick="saveByokKeys()">Save Keys</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Token Packs -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-card-title">Token Packs</div>
+          <div class="token-grid" id="token-grid">
+            <div class="token-card" onclick="alert('Buy 10K tokens')">
+              <div class="token-amount">10K <small>tokens</small></div>
+              <div class="token-price">$1.00</div>
+            </div>
+            <div class="token-card" onclick="alert('Buy 100K tokens')">
+              <div class="token-amount">100K <small>tokens</small></div>
+              <div class="token-price">$9.00</div>
+              <div class="token-bonus">+10% bonus</div>
+            </div>
+            <div class="token-card" onclick="alert('Buy 1M tokens')">
+              <div class="token-amount">1M <small>tokens</small></div>
+              <div class="token-price">$79.00</div>
+              <div class="token-bonus">+21% bonus</div>
+            </div>
+            <div class="token-card" onclick="alert('Buy 10M tokens')">
+              <div class="token-amount">10M <small>tokens</small></div>
+              <div class="token-price">$699.00</div>
+              <div class="token-bonus">+30% bonus</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/cloud.js"></script>
+<script>
+(async function() {
+  await requireAuth();
+
+  // Load BYOK providers
+  async function loadByok() {
+    let providers = [];
+    try {
+      const res = await fetch('/api/cloud/llm-providers');
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('json')) {
+        const data = await res.json();
+        providers = (data.providers || []).filter(p => p.requires_byok);
+      }
+    } catch(_) {}
+    if (providers.length === 0) {
+      providers = [
+        { id: 'zhipu', name: 'GLM (Zhipu AI)', icon: 'glm' },
+        { id: 'alibaba', name: 'Qwen (Alibaba Cloud)', icon: 'qwen' },
+        { id: 'deepseek', name: 'DeepSeek', icon: 'deepseek' },
+        { id: 'minimax', name: 'MiniMax', icon: 'minimax' },
+        { id: 'yi', name: 'Yi (01.AI)', icon: 'yi' },
+        { id: 'openai', name: 'OpenAI', icon: 'openai' },
+        { id: 'anthropic', name: 'Anthropic', icon: 'anthropic' },
+      ];
+    }
+
+    const ICON_MAP = {
+      glm: { bg: '#2563eb', label: 'GL' },
+      qwen: { bg: '#dc2626', label: 'QW' },
+      deepseek: { bg: '#0891b2', label: 'DS' },
+      minimax: { bg: '#7c3aed', label: 'MX' },
+      yi: { bg: '#059669', label: 'YI' },
+      openai: { bg: '#000', label: 'AI' },
+      anthropic: { bg: '#d97706', label: 'CL' },
+    };
+
+    const container = document.getElementById('byok-list');
+    container.innerHTML = providers.map(p => {
+      const ic = ICON_MAP[p.icon] || { bg: '#6b7280', label: '?' };
+      return '<div class="byok-row">' +
+        '<div class="byok-provider">' +
+        '<span style="display:inline-flex;align-items:center;gap:.4rem">' +
+        '<span style="width:22px;height:22px;border-radius:5px;background:' + ic.bg + ';color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700">' + ic.label + '</span>' +
+        p.name +
+        '</span>' +
+        '</div>' +
+        '<div class="byok-input">' +
+        '<input type="password" id="byok-' + p.id + '" placeholder="sk-..." data-provider="' + p.id + '" spellcheck="false" autocomplete="off">' +
+        '</div>' +
+        '<div class="byok-status inactive" id="byok-status-' + p.id + '">' +
+        '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>' +
+        ' Not set' +
+        '</div>' +
+        '</div>';
+    }).join('');
+
+    // Load saved keys
+    const saved = localStorage.getItem('gb_byok_keys');
+    if (saved) {
+      try {
+        const keys = JSON.parse(saved);
+        providers.forEach(p => {
+          const input = document.getElementById('byok-' + p.id);
+          if (input && keys[p.id]) {
+            input.value = keys[p.id];
+            const status = document.getElementById('byok-status-' + p.id);
+            if (status) { status.className = 'byok-status active'; status.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved'; }
+          }
+        });
+      } catch(e) {}
+    }
+  }
+
+  window.saveByokKeys = function() {
+    const inputs = document.querySelectorAll('[data-provider]');
+    const keys = {};
+    inputs.forEach(inp => {
+      const val = inp.value.trim();
+      if (val) keys[inp.dataset.provider] = val;
+    });
+    localStorage.setItem('gb_byok_keys', JSON.stringify(keys));
+
+    // Update status indicators
+    Object.keys(keys).forEach(id => {
+      const status = document.getElementById('byok-status-' + id);
+      if (status) { status.className = 'byok-status active'; status.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved'; }
+    });
+
+    alert('API keys saved locally. In production, keys are encrypted and stored server-side.');
+  };
+
+  // Plan info
+  try {
+    const planRes = await fetch('/api/cloud/plans');
+    if (planRes.ok) {
+      const planData = await planRes.json();
+      const plan = planData.plans && planData.plans.shared;
+      if (plan) {
+        document.getElementById('plan-name').textContent = plan.name || 'Shared';
+        document.getElementById('plan-price').textContent = '$3.99 / month';
+      }
+    }
+  } catch(e) {}
+
+  await loadByok();
+})();
+</script>
+</body>
+</html>

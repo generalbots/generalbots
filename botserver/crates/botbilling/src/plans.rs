@@ -20,9 +20,10 @@ impl PlanManager {
     }
 
     pub fn list_public_plans(&self) -> Vec<(&String, &PlanConfig)> {
+        let active = ["free", "shared", "private-cloud"];
         self.plans
             .iter()
-            .filter(|(id, _)| *id != "enterprise")
+            .filter(|(id, _)| active.contains(&id.as_str()))
             .collect()
     }
 
@@ -76,11 +77,11 @@ impl PlanManager {
         }
     }
 
-    pub fn can_upgrade(&self, from_plan: &str, to_plan: &str) -> bool {
-        let plan_order = ["free", "personal", "business", "enterprise"];
+    const PLAN_ORDER: &[&str] = &["free", "shared", "private-cloud"];
 
-        let from_idx = plan_order.iter().position(|p| *p == from_plan);
-        let to_idx = plan_order.iter().position(|p| *p == to_plan);
+    pub fn can_upgrade(&self, from_plan: &str, to_plan: &str) -> bool {
+        let from_idx = Self::PLAN_ORDER.iter().position(|p| *p == from_plan);
+        let to_idx = Self::PLAN_ORDER.iter().position(|p| *p == to_plan);
 
         match (from_idx, to_idx) {
             (Some(from), Some(to)) => to > from,
@@ -89,10 +90,8 @@ impl PlanManager {
     }
 
     pub fn can_downgrade(&self, from_plan: &str, to_plan: &str) -> bool {
-        let plan_order = ["free", "personal", "business", "enterprise"];
-
-        let from_idx = plan_order.iter().position(|p| *p == from_plan);
-        let to_idx = plan_order.iter().position(|p| *p == to_plan);
+        let from_idx = Self::PLAN_ORDER.iter().position(|p| *p == from_plan);
+        let to_idx = Self::PLAN_ORDER.iter().position(|p| *p == to_plan);
 
         match (from_idx, to_idx) {
             (Some(from), Some(to)) => to < from,
@@ -101,15 +100,14 @@ impl PlanManager {
     }
 
     pub fn get_upgrade_options(&self, current_plan: &str) -> Vec<(&String, &PlanConfig)> {
-        let plan_order = ["free", "personal", "business", "enterprise"];
-        let current_idx = plan_order.iter().position(|p| *p == current_plan);
+        let current_idx = Self::PLAN_ORDER.iter().position(|p| *p == current_plan);
 
         match current_idx {
             Some(idx) => self
                 .plans
                 .iter()
                 .filter(|(id, _)| {
-                    plan_order
+                    Self::PLAN_ORDER
                         .iter()
                         .position(|p| *p == id.as_str())
                         .map(|plan_idx| plan_idx > idx)

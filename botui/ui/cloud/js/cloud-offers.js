@@ -59,7 +59,7 @@ async function loadInvoicesAndBalance(token, email) {
     currentBalance = balance;
     document.getElementById('current-balance').textContent = `$${currentBalance.toFixed(2)}`;
 
-    // Renderizar histórico de recargas
+    // Render top-up history
     const tbody = document.getElementById('topup-history-tbody');
     if (tbody) {
       if (topupInvoices.length === 0) {
@@ -80,14 +80,14 @@ async function loadInvoicesAndBalance(token, email) {
   }
 }
 
-// Configurar o valor da recarga ao clicar nos botões rápidos
+// Set top-up amount when clicking quick buttons
 function selectQuickAmount(amount) {
   const input = document.getElementById('topup-custom-amount');
   if (input) {
     input.value = amount.toFixed(2);
   }
   
-  // Atualizar estilo visual dos botões
+  // Update button visual style
   document.querySelectorAll('.amount-btn').forEach(btn => {
     const btnAmt = parseFloat(btn.dataset.amount);
     if (btnAmt === amount) {
@@ -165,7 +165,7 @@ async function executeTopup() {
   }
 }
 
-// Salvar código promocional no clipboard / localStorage para facilidade do usuário
+// Save promo code to clipboard / localStorage for user convenience
 function copyPromoCode(code, elementId) {
   navigator.clipboard.writeText(code).then(() => {
     showToast(`📋 Code "${code}" copied to clipboard!`);

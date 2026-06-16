@@ -1,10 +1,10 @@
-//! Webhook Stripe — processa eventos assíncronos de pagamento.
+//! Stripe Webhook — processes asynchronous payment events.
 //!
-//! Eventos tratados:
-//! - `checkout.session.completed` → fatura paga, CRM deal won, GL entry, subscription
-//! - `invoice.paid` → cobrança recorrente paga
-//! - `invoice.payment_failed` → falha de pagamento
-//! - `customer.subscription.*` → ciclo de vida da assinatura
+//! Handled events:
+//! - `checkout.session.completed` → paid invoice, CRM deal won, GL entry, subscription
+//! - `invoice.paid` → recurring charge paid
+//! - `invoice.payment_failed` → payment failure
+//! - `customer.subscription.*` → subscription lifecycle
 
 use axum::{
     extract::State,
@@ -27,7 +27,7 @@ pub fn configure_webhook_routes() -> Router<Arc<SaasService>> {
 
 /// `POST /api/billing/webhook`
 ///
-/// Recebe eventos do Stripe, verifica assinatura HMAC e processa.
+/// Receives Stripe events, verifies HMAC signature and processes.
 async fn handle_stripe_webhook(
     State(service): State<Arc<SaasService>>,
     headers: HeaderMap,
@@ -38,13 +38,13 @@ async fn handle_stripe_webhook(
         .and_then(|v| v.to_str().ok())
         .ok_or_else(|| (StatusCode::BAD_REQUEST, "missing stripe-signature header".to_string()))?;
 
-    // Verifica assinatura HMAC
+    // Verify HMAC signature
     let event = service
         .stripe
         .verify_webhook_signature(&body, signature)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid signature: {e}")))?;
 
-    // Parseia o tipo de evento
+    // Parse event type
     let event_type = service
         .stripe
         .parse_webhook_event(&event)
@@ -118,17 +118,17 @@ async fn handle_stripe_webhook(
     Ok(Json(serde_json::json!({ "received": true })))
 }
 
-/// Processa `checkout.session.completed`.
+/// Processes `checkout.session.completed`.
 ///
-/// 1. Atualiza fatura para "paid"
-/// 2. Marca CRM deal como "won"
-/// 3. Cria lançamento contábil no GL
-/// 4. Cria assinatura recorrente em billing_recurring
+/// 1. Updates invoice to "paid"
+/// 2. Marks CRM deal as "won"
+/// 3. Creates general ledger entry in GL
+/// 4. Creates recurring subscription in billing_recurring
 async fn process_checkout_completed(
     service: &SaasService,
     session: &botbilling::stripe_integration::StripeCheckoutSession,
 ) -> Result<(), String> {
-    // Extrai invoice_id e plan do metadata da sessão
+    // Extract invoice_id and plan from session metadata
     let metadata = session
         .metadata
         .as_ref()
@@ -142,7 +142,7 @@ async fn process_checkout_completed(
 
     let now = chrono::Utc::now();
 
-    // 1. Atualiza fatura para "paid"
+    // 1. Update invoice to "paid"
     {
         let mut conn = service
             .pool()
@@ -162,7 +162,7 @@ async fn process_checkout_completed(
         .map_err(|e| format!("update invoice: {e}"))?;
     }
 
-    // Busca invoice para ter dados do cliente
+    // Find invoice to get customer data
     let invoice = {
         let mut conn = service
             .pool()
@@ -177,12 +177,12 @@ async fn process_checkout_completed(
     let total = botbilling::api_models::bd_to_f64(&invoice.total);
     let plan_label = metadata.get("plan").cloned().unwrap_or_else(|| "unknown".to_string());
 
-    // 2. CRM: marca deal como ganho
-    let deal_name = format!("Assinatura {} - {}", plan_label, invoice.customer_name);
+    // 2. CRM: mark deal as won
+    let deal_name = format!("Subscription {} - {}", plan_label, invoice.customer_name);
     let _ = integration::win_crm_deal(service.pool(), invoice.org_id, &deal_name)
         .map_err(|e| tracing::warn!("CRM win deal failed: {e}"));
 
-    // 3. ERP (GL): lança entrada contábil
+    // 3. ERP (GL): posts accounting entry
     let _ = integration::create_gl_entry_for_invoice(
         service.pool(),
         invoice_id,
@@ -191,7 +191,7 @@ async fn process_checkout_completed(
     )
     .map_err(|e| tracing::warn!("GL entry failed: {e}"));
 
-    // 4. Subscription: cria ou atualiza billing_recurring
+    // 4. Subscription: create or update billing_recurring
     let email_ref = invoice.customer_email.clone().unwrap_or_default();
     let _ = integration::create_billing_subscription(
         service.pool(),
@@ -207,7 +207,7 @@ async fn process_checkout_completed(
     )
     .map_err(|e| tracing::warn!("Subscription creation failed: {e}"));
 
-    // --- Notificações ---
+    // --- Notifications ---
     let mut vars = notifier::EmailVars::new(
         &invoice.customer_name,
         &invoice.customer_email.as_deref().unwrap_or(""),
@@ -226,11 +226,11 @@ async fn process_checkout_completed(
     Ok(())
 }
 
-/// Processa `invoice.paid` — cobrança recorrente paga com sucesso.
+/// Processes `invoice.paid` — recurring charge paid successfully.
 ///
-/// 1. Gera nova fatura para o próximo período
-/// 2. Atualiza billing_recurring
-/// 3. Cria lançamento contábil no GL
+/// 1. Generates new invoice for next period
+/// 2. Updates billing_recurring
+/// 3. Creates general ledger entry in GL
 async fn process_invoice_paid(
     service: &SaasService,
     stripe_invoice: &botbilling::stripe_integration::StripeInvoice,
@@ -246,7 +246,7 @@ async fn process_invoice_paid(
         .get()
         .map_err(|e| format!("DB pool: {e}"))?;
 
-    // Busca a subscription pelo email do cliente (único por email no modelo single-tenant)
+    // Find subscription by customer email (unique per email in single-tenant model)
     let recurring = botbilling::schema::billing_recurring::table
         .filter(botbilling::schema::billing_recurring::customer_email.eq(Some(customer_email.to_string())))
         .filter(botbilling::schema::billing_recurring::status.eq("active"))
@@ -255,7 +255,7 @@ async fn process_invoice_paid(
 
     let total = botbilling::api_models::bd_to_f64(&recurring.amount);
 
-    // Gera nova fatura para o período
+    // Generate new invoice for the period
     let new_invoice_id = Uuid::new_v4();
     let invoice_number =
         botbilling::api_models::generate_invoice_number(&mut conn, recurring.org_id);
@@ -281,7 +281,7 @@ async fn process_invoice_paid(
         amount_paid: recurring.amount.clone(),
         amount_due: botbilling::api_models::bd(0.0),
         currency: recurring.currency.clone(),
-        notes: Some(format!("Cobrança recorrente - {}", recurring.description.as_deref().unwrap_or("assinatura"))),
+        notes: Some(format!("Recurring charge - {}", recurring.description.as_deref().unwrap_or("subscription"))),
         terms: None,
         footer: None,
         paid_at: Some(now),
@@ -300,7 +300,7 @@ async fn process_invoice_paid(
         id: Uuid::new_v4(),
         invoice_id: new_invoice_id,
         product_id: None,
-        description: recurring.description.clone().unwrap_or_else(|| "Assinatura".to_string()),
+        description: recurring.description.clone().unwrap_or_else(|| "Subscription".to_string()),
         quantity: botbilling::api_models::bd(1.0),
         unit_price: recurring.amount.clone(),
         discount_percent: botbilling::api_models::bd(0.0),
@@ -315,7 +315,7 @@ async fn process_invoice_paid(
         .execute(&mut conn)
         .map_err(|e| format!("insert invoice item: {e}"))?;
 
-    // Atualiza billing_recurring
+    // Update billing_recurring
     let _next_date = if recurring.frequency == "yearly" {
         now.date_naive() + chrono::Duration::days(365)
     } else {
@@ -346,11 +346,11 @@ async fn process_invoice_paid(
     )
     .map_err(|e| tracing::warn!("GL entry for recurring failed: {e}"));
 
-    // --- Notificação: cobrança recorrente ---
+    // --- Notification: recurring charge ---
     let mut vars = notifier::EmailVars::new(
         &recurring.customer_name,
         &recurring.customer_email.as_deref().unwrap_or(""),
-        &recurring.description.clone().unwrap_or_else(|| "assinatura".to_string()),
+        &recurring.description.clone().unwrap_or_else(|| "subscription".to_string()),
         total,
         &recurring.currency,
     );
@@ -367,9 +367,9 @@ async fn process_invoice_paid(
     Ok(())
 }
 
-/// Processa `invoice.payment_failed`.
+/// Processes `invoice.payment_failed`.
 ///
-/// Marca a fatura como "overdue" e a subscription como "past_due".
+/// Marks the invoice as "overdue" and the subscription as "past_due".
 async fn process_invoice_payment_failed(
     service: &SaasService,
     stripe_invoice: &botbilling::stripe_integration::StripeInvoice,
@@ -391,7 +391,7 @@ async fn process_invoice_payment_failed(
         .first::<botbilling::api_models::BillingRecurring>(&mut conn)
         .map_err(|_| format!("billing_recurring not found for email {customer_email}"))?;
 
-    // Marca a última invoice como overdue
+    // Mark last invoice as overdue
     if let Some(last_inv_id) = recurring.last_invoice_id {
         let _ = diesel::update(
             botbilling::schema::billing_invoices::table
@@ -404,7 +404,7 @@ async fn process_invoice_payment_failed(
         .execute(&mut conn);
     }
 
-    // Marca subscription como past_due
+    // Mark subscription as past_due
     let _ = diesel::update(
         botbilling::schema::billing_recurring::table
             .filter(botbilling::schema::billing_recurring::id.eq(recurring.id)),
@@ -418,7 +418,7 @@ async fn process_invoice_payment_failed(
     let mut vars = notifier::EmailVars::new(
         &recurring.customer_name,
         &recurring.customer_email.as_deref().unwrap_or(""),
-        &recurring.description.clone().unwrap_or_else(|| "assinatura".to_string()),
+        &recurring.description.clone().unwrap_or_else(|| "subscription".to_string()),
         botbilling::api_models::bd_to_f64(&recurring.amount),
         &recurring.currency,
     );
@@ -433,9 +433,9 @@ async fn process_invoice_payment_failed(
     Ok(())
 }
 
-/// Processa eventos de ciclo de vida da subscription.
+/// Processes subscription lifecycle events.
 ///
-/// Cria ou atualiza `billing_recurring` com os dados da assinatura Stripe.
+/// Creates or updates `billing_recurring` with Stripe subscription data.
 async fn process_subscription_lifecycle(
     service: &SaasService,
     stripe_subscription_id: &str,
@@ -449,8 +449,8 @@ async fn process_subscription_lifecycle(
         .get()
         .map_err(|e| format!("DB pool: {e}"))?;
 
-    // Tenta encontrar billing_recurring pelo stripe_subscription_id armazenado
-    // Como não temos coluna para isso, usamos o customer email do metadata
+    // Try to find billing_recurring by stored stripe_subscription_id
+    // Since we don't have a column for this, use customer email from metadata
     let account_email = metadata
         .get("account_email")
         .cloned()

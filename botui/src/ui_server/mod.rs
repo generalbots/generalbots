@@ -151,6 +151,7 @@ pub async fn index(
                 && **part != "api"
                 && **part != "auth"
                 && **part != "suite"
+                && **part != "cloud"
                 && !part.ends_with(".js")
                 && !part.ends_with(".css")
         })
@@ -294,6 +295,7 @@ pub async fn index(
                 && **part != "api"
                 && **part != "auth"
                 && **part != "suite"
+                && **part != "cloud"
                 && !part.ends_with(".js")
                 && !part.ends_with(".css")
         })
@@ -921,7 +923,7 @@ async fn ws_proxy(
             path_parts
                 .iter()
                 .find(|part| {
-                    !part.is_empty() && **part != "chat" && **part != "app" && **part != "ws"
+                    !part.is_empty() && **part != "chat" && **part != "app" && **part != "ws" && **part != "cloud"
                 })
                 .map(|s| s.to_string())
         })
@@ -1394,6 +1396,42 @@ fn add_static_routes(router: Router<AppState>, _suite_path: &Path) -> Router<App
     }
 }
 
+async fn serve_cloud_file(file_path: std::path::PathBuf) -> axum::response::Response {
+    match tokio::fs::read(&file_path).await {
+        Ok(bytes) => {
+            let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
+            (
+                [(
+                    axum::http::header::CONTENT_TYPE,
+                    mime.as_ref(),
+                )],
+                bytes,
+            )
+                .into_response()
+        }
+        Err(_) => axum::http::StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+async fn serve_cloud_index() -> axum::response::Response {
+    let cloud_root = get_ui_root().join("cloud");
+    serve_cloud_file(cloud_root.join("index.html")).await
+}
+
+async fn serve_cloud(axum::extract::Path(path): axum::extract::Path<String>) -> axum::response::Response {
+    let cloud_root = get_ui_root().join("cloud");
+    let normalized = path.strip_prefix('/').unwrap_or(&path);
+    let file_path = if normalized.contains('.') {
+        cloud_root.join(normalized)
+    } else if normalized.is_empty() || normalized.ends_with('/') {
+        cloud_root.join("index.html")
+    } else {
+        cloud_root.join(format!("{normalized}.html"))
+    };
+
+    serve_cloud_file(file_path).await
+}
+
 pub fn configure_router() -> Router {
     let suite_path = get_ui_root().join("suite");
     let state = AppState::new();
@@ -1420,6 +1458,10 @@ pub fn configure_router() -> Router {
     {
         router = router.route("/auth/*path", get(handle_auth_asset));
     }
+
+    router = router.route("/cloud", get(serve_cloud_index));
+    router = router.route("/cloud/", get(serve_cloud_index));
+    router = router.route("/cloud/*path", get(serve_cloud));
 
     router = add_static_routes(router, &suite_path);
 

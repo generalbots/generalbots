@@ -6,7 +6,7 @@
 - **❌ NEVER use `scp`, direct SSH binary copy, or manual deployment to system container**
 - **✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically**
 - **✅ NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change (~10s)**
-8080 is server 3000 is client ui 
+8080 is server 3000 is client ui. cloud management at http://localhost:3000/cloud
 if you are in trouble with some tool, please go to the ofiical website to get proper install or instructions
 To test web is http://localhost:3000 (botui!)
 Use apenas a lingua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
@@ -44,22 +44,31 @@ See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from Mi
 
 ## 📁 WORKSPACE STRUCTURE
 
-| Crate | Purpose | Port | Tech Stack |
-|-------|---------|------|------------|
-| **botserver** | Main API server, business logic | 8080 | Axum, Diesel, Rhai BASIC |
-| **botui** | Web UI server (dev) + proxy | 3000 | Axum, HTML/HTMX/CSS |
-| **botapp** | Desktop app wrapper | - | Tauri 2 |
-| **botlib** | Shared library | - | Core types, errors |
-| **botbook** | Documentation | - | mdBook |
-| **bottest** | Integration tests | - | tokio-test |
-| **botdevice** | IoT/Device support | - | Rust |
-| **botplugin** | Browser extension | - | JS |
+### Three Listeners (Ports)
+
+| Listener | Crate | Purpose | Port | Serves |
+|----------|-------|---------|------|--------|
+| **botui** | `botui` | Web UI server (dev) + proxy | **3000** | Static HTMX pages (`ui/suite/`, `ui/cloud/`), reverse proxy to botserver |
+| **botserver** | `botserver` | Main API + fragments | **8080** | API endpoints (`/api/*`), HTMX fragments (`/cloud/partials/*`), bot WebSocket |
+| **botapp** | `botapp` | Desktop app wrapper | - | Tauri 2 desktop shell |
+
+### Cloud UI Architecture
+
+| Layer | Port | Responsibility | Content |
+|-------|------|---------------|---------|
+| **botui** | 3000 | Serves cloud static files | `ui/cloud/*.html`, `ui/cloud/css/*`, `ui/cloud/js/*` (full pages with URL rewriting: `/cloud/dashboard` → `dashboard.html`) |
+| **botserver** | 8080 | Serves cloud API + fragments | `/api/cloud/*` (data endpoints), `/cloud/partials/sidebar.html` (HTMX fragment) |
+
+**Rule:** botserver NEVER serves full HTMX pages — only API endpoints and fragments. Full cloud pages are served statically by botui from `ui/cloud/`.
 
 ### Key Paths
 - **Binary:** `target/debug/botserver`
 - **Run from:** `botserver/` directory
 - **Env file:** `botserver/.env`
-- **UI Files:** `botui/ui/suite/`
+- **Suite UI Files:** `botui/ui/suite/`
+- **Cloud UI Files:** `botui/ui/cloud/`
+- **Cloud API:** botserver `/api/cloud/*`
+- **Cloud fragment:** botserver `/cloud/partials/sidebar.html`
 
 ### BotUI Development Mode
 **IMPORTANT:** BotUI serves static HTML/JS/CSS files directly from `botui/ui/` - **NO recompilation needed** for frontend changes.

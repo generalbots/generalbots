@@ -104,25 +104,6 @@ async function confirmPurchase() {
 
 function hideModal() { document.getElementById('purchase-modal').style.display = 'none'; }
 
-function requireAuth() {
-  const token = localStorage.getItem('management_token');
-  if (!token) window.location.href = '/cloud/login';
-  return token;
-}
-
-function doLogout() {
-  localStorage.removeItem('management_token');
-  localStorage.removeItem('management_email');
-  window.location.href = '/cloud';
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
 function showError(msg) {
   document.getElementById('store-grid').innerHTML = '<div class="saas-loading" style="color:red">' + escapeHtml(msg) + '</div>';
 }

@@ -5,7 +5,7 @@ println!("cargo:rustc-env=BOTUI_UI_PATH={}", ui_path.display());
 
 let commit = std::env::var("BOTUI_COMMIT")
 .ok()
-.or_else(|| git_commit_hash());
+.or_else(git_commit_hash);
 if let Some(hash) = commit {
 println!("cargo:rustc-env=BOTUI_COMMIT={}", hash);
 }

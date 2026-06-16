@@ -1,9 +1,10 @@
-use axum::{extract::State, http::StatusCode, routing::{get, post}, Json, Router};
+use axum::{extract::State, http::StatusCode, routing::{get, post, put, delete}, Json, Router};
 use diesel::deserialize::QueryableByName;
 use diesel::prelude::*;
 use diesel::{ExpressionMethods, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(QueryableByName, Debug)]
@@ -46,6 +47,11 @@ pub struct CreateOrgBody {
     pub ai_addons: Option<Vec<String>>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateOrgBody {
+    pub name: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct OrgResponse {
     pub id: Uuid,
@@ -70,13 +76,20 @@ pub fn configure_cloud_api_routes() -> Router<Arc<SaasService>> {
         .route("/api/cloud/checkout", post(handle_checkout))
         .route("/api/cloud/checkout/success", get(checkout_success))
         .route("/api/cloud/plans", get(list_plans))
-        .route("/api/cloud/plans/{plan_id}", get(get_plan_detail))
+        .route("/api/cloud/plans/:plan_id", get(get_plan_detail))
         // Organizations
         .route("/api/cloud/organizations", get(list_organizations).post(create_organization))
-        .route("/api/cloud/organizations/{org_id}/billing", get(org_billing_portal))
+        .route("/api/cloud/organizations/:org_id", get(get_organization).put(update_organization).delete(delete_organization))
+        .route("/api/cloud/organizations/:org_id/billing", get(org_billing_portal))
+        // Workspaces per organization
+        .route("/api/cloud/organizations/:org_id/workspaces", get(list_workspaces).post(create_workspace))
+        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id", put(update_workspace).delete(delete_workspace))
+        // Resources per workspace
+        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id/resources", get(list_workspace_resources).post(assign_resource))
+        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id/resources/:res_id", delete(remove_resource))
         // Services (purchased add-ons)
         .route("/api/cloud/services", get(list_services))
-        .route("/api/cloud/services/{id}/cancel", post(cancel_service))
+        .route("/api/cloud/services/:id/cancel", post(cancel_service))
         // Invoices
         .route("/api/cloud/invoices", get(list_invoices))
         // Payment cards (stub — real impl via Stripe SetupIntent)
@@ -91,11 +104,15 @@ pub fn configure_cloud_api_routes() -> Router<Arc<SaasService>> {
         .route("/api/cloud/topup", post(handle_topup))
         // App Store Publishing Consultancy
         .route("/api/cloud/appstore/purchase", post(handle_appstore_purchase))
+        // Offers (combo bundles)
+        .route("/api/cloud/offers", get(list_offers))
+        // LLM Providers catalog
+        .route("/api/cloud/llm-providers", get(list_llm_providers))
 }
 
 /// `POST /api/cloud/auth/signup`
 ///
-/// Cria organização no banco + contato no CRM, retornando os IDs.
+/// Creates organization in DB + contact in CRM, returning the IDs.
 async fn handle_signup(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<SignupBody>,
@@ -133,7 +150,7 @@ async fn handle_signup(
 
 /// `POST /api/cloud/checkout`
 ///
-/// Cria fatura no billing + contato/deal no CRM + sessão no Stripe.
+/// Creates invoice in billing + contact/deal in CRM + Stripe session.
 async fn handle_checkout(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<CheckoutBody>,
@@ -207,14 +224,14 @@ async fn handle_checkout(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert item: {e}")))?;
 
-    // --- Notificação: fatura gerada ---
+    // --- Notification: invoice generated ---
     let mut vars = notifier::EmailVars::new(
         &customer_name, &customer_email, &payload.plan, total_value, &payload.currency,
     );
     vars.invoice_id = invoice_id.to_string();
     notifier::notify_invoice_created(&vars);
 
-    // --- Integração CRM: cria contato e deal (oportunidade) ---
+    // --- CRM integration: creates contact and deal ---
     let contact_id = integration::create_crm_contact(
         service.pool(),
         effective_org_id,
@@ -325,7 +342,7 @@ async fn checkout_success(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update: {e}")))?;
     }
 
-    // --- Integrações pós-pagamento ---
+    // --- Post-payment integrations ---
     if is_complete {
         let invoice = {
             let mut conn = service.pool().get()
@@ -346,7 +363,7 @@ async fn checkout_success(
             &deal_name,
         ).map_err(|e| tracing::warn!("CRM win deal failed: {e}"));
 
-        // 2. ERP (GL): lança entrada contábil
+        // 2. ERP (GL): posts accounting entry
         let _ = integration::create_gl_entry_for_invoice(
             service.pool(),
             invoice_id,
@@ -375,7 +392,7 @@ async fn checkout_success(
             "monthly",
         ).map_err(|e| tracing::warn!("Subscription creation failed: {e}"));
 
-        // --- Notificações de pós-pagamento ---
+        // --- Post-payment notifications ---
         let mut vars = notifier::EmailVars::new(
             &invoice.customer_name,
             invoice.customer_email.as_deref().unwrap_or(""),
@@ -469,15 +486,15 @@ async fn get_plan_detail(
 
 /// `POST /api/cloud/auth/login`
 ///
-/// Valida credenciais e devolve um token JWT de acesso ao portal de gestão.
-/// Em produção, delegar ao provedor OIDC configurado (Zitadel).
+/// Validates credentials and returns a JWT token for the management portal.
+/// In production, delegate to the configured OIDC provider (Zitadel).
 async fn handle_login(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<LoginBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    // Validação mínima de email
+    // Minimum email validation
     if !body.email.contains('@') {
         return Err((StatusCode::BAD_REQUEST, "Invalid email".to_string()));
     }
@@ -590,7 +607,7 @@ async fn create_organization(
     let period = body.period.unwrap_or_else(|| "monthly".to_string());
     let storage = body.storage_gb.unwrap_or(5.0);
 
-    // Se houver plano pago, criar sessão de checkout
+    // If paid plan, create checkout session
     let config = botbilling::default_product_config();
     if let Some(plan_cfg) = config.plans.get(&plan) {
         if matches!(plan_cfg.price, botbilling::PlanPrice::Fixed { .. }) {
@@ -624,12 +641,336 @@ async fn org_billing_portal(
     State(service): State<Arc<SaasService>>,
     axum::extract::Path(org_id): axum::extract::Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // Redireciona para o portal de faturamento Stripe do cliente
+    // Redirects to Stripe customer billing portal
     let portal_url = format!(
         "{}/api/billing/portal?org_id={}",
         service.config.base_url, org_id
     );
     Ok(Json(serde_json::json!({ "url": portal_url, "org_id": org_id })))
+}
+
+/// `GET /api/cloud/organizations/{org_id}`
+async fn get_organization(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(org_id): axum::extract::Path<Uuid>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    let rows: Vec<OrgRow> = diesel::sql_query("SELECT org_id AS id, name FROM organizations WHERE org_id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(org_id)
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    let org = rows.into_iter().next().ok_or_else(|| {
+        (StatusCode::NOT_FOUND, "Organization not found".to_string())
+    })?;
+
+    Ok(Json(serde_json::json!({
+        "id": org.id,
+        "name": org.name,
+        "plan": "personal",
+        "status": "active",
+    })))
+}
+
+/// `PUT /api/cloud/organizations/{org_id}`
+async fn update_organization(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(org_id): axum::extract::Path<Uuid>,
+    Json(body): Json<UpdateOrgBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    if let Some(ref name) = body.name {
+        if name.trim().is_empty() {
+            return Err((StatusCode::BAD_REQUEST, "Organization name cannot be empty".to_string()));
+        }
+        let slug = name.to_lowercase().replace(' ', "-").replace(|c: char| !c.is_alphanumeric() && c != '-', "");
+        let affected = diesel::sql_query("UPDATE organizations SET name = $1, slug = $2, updated_at = NOW() WHERE org_id = $3")
+            .bind::<diesel::sql_types::Text, _>(name.trim())
+            .bind::<diesel::sql_types::Text, _>(&slug)
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update: {e}")))?;
+
+        if affected == 0 {
+            return Err((StatusCode::NOT_FOUND, "Organization not found".to_string()));
+        }
+    }
+
+    Ok(Json(serde_json::json!({ "status": "updated" })))
+}
+
+/// `DELETE /api/cloud/organizations/{org_id}`
+async fn delete_organization(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(org_id): axum::extract::Path<Uuid>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    // Remove workspace resources and workspaces for this org
+    use crate::schema_ext::workspace_resources::dsl as wr;
+    diesel::delete(wr::workspace_resources.filter(wr::org_id.eq(org_id)))
+        .execute(&mut conn)
+        .ok();
+
+    use crate::schema_ext::cloud_workspaces::dsl as cw;
+    diesel::delete(cw::cloud_workspaces.filter(cw::org_id.eq(org_id)))
+        .execute(&mut conn)
+        .ok();
+
+    // Remove organization record
+    let affected = diesel::sql_query("DELETE FROM organizations WHERE org_id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(org_id)
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete: {e}")))?;
+
+    if affected == 0 {
+        return Err((StatusCode::NOT_FOUND, "Organization not found".to_string()));
+    }
+
+    Ok(Json(serde_json::json!({ "status": "deleted" })))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Workspaces
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+pub struct CreateWorkspaceBody {
+    pub name: String,
+    pub description: Option<String>,
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateWorkspaceBody {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AssignResourceBody {
+    pub store_item_id: String,
+    pub name: Option<String>,
+}
+
+/// `GET /api/cloud/organizations/{org_id}/workspaces`
+async fn list_workspaces(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(org_id_param): axum::extract::Path<Uuid>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use crate::schema_ext::cloud_workspaces::dsl as cw;
+    let rows = cw::cloud_workspaces
+        .filter(cw::org_id.eq(org_id_param))
+        .order(cw::created_at.desc())
+        .load::<(Uuid, Uuid, String, Option<String>, Option<String>, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    let result: Vec<serde_json::Value> = rows.into_iter().map(|(wid, _, wname, wdesc, wicon, _, _)| {
+        serde_json::json!({
+            "id": wid,
+            "name": wname,
+            "description": wdesc,
+            "icon": wicon,
+        })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "workspaces": result })))
+}
+
+/// `POST /api/cloud/organizations/{org_id}/workspaces`
+async fn create_workspace(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(org_id_param): axum::extract::Path<Uuid>,
+    Json(body): Json<CreateWorkspaceBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    if body.name.trim().is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Workspace name is required".to_string()));
+    }
+
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    let now = chrono::Utc::now();
+    let ws_id = Uuid::new_v4();
+
+    use crate::schema_ext::cloud_workspaces::dsl as cw;
+    diesel::insert_into(cw::cloud_workspaces)
+        .values((
+            cw::id.eq(ws_id),
+            cw::org_id.eq(org_id_param),
+            cw::name.eq(body.name.trim()),
+            cw::description.eq(body.description),
+            cw::icon.eq(body.icon),
+            cw::created_at.eq(now),
+            cw::updated_at.eq(now),
+        ))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert: {e}")))?;
+
+    Ok(Json(serde_json::json!({
+        "id": ws_id,
+        "name": body.name.trim(),
+        "org_id": org_id_param,
+    })))
+}
+
+/// `PUT /api/cloud/organizations/{org_id}/workspaces/{ws_id}`
+async fn update_workspace(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path((org_id_param, ws_id_param)): axum::extract::Path<(Uuid, Uuid)>,
+    Json(body): Json<UpdateWorkspaceBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use crate::schema_ext::cloud_workspaces::dsl as cw;
+    let filter = cw::id.eq(ws_id_param).and(cw::org_id.eq(org_id_param));
+
+    if let Some(n) = &body.name {
+        diesel::update(cw::cloud_workspaces).filter(filter.clone()).set(cw::name.eq(n.trim())).execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update: {e}")))?;
+    }
+    if let Some(d) = &body.description {
+        diesel::update(cw::cloud_workspaces).filter(filter.clone()).set(cw::description.eq(d)).execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update desc: {e}")))?;
+    }
+    if let Some(i) = &body.icon {
+        diesel::update(cw::cloud_workspaces).filter(filter.clone()).set(cw::icon.eq(i)).execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update icon: {e}")))?;
+    }
+
+    Ok(Json(serde_json::json!({ "status": "updated" })))
+}
+
+/// `DELETE /api/cloud/organizations/{org_id}/workspaces/{ws_id}`
+async fn delete_workspace(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path((org_id_param, ws_id_param)): axum::extract::Path<(Uuid, Uuid)>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    // Remove resources first
+    use crate::schema_ext::workspace_resources::dsl as wr;
+    diesel::delete(wr::workspace_resources.filter(wr::workspace_id.eq(ws_id_param)))
+        .execute(&mut conn)
+        .ok();
+
+    use crate::schema_ext::cloud_workspaces::dsl as cw;
+    let deleted = diesel::delete(cw::cloud_workspaces.filter(cw::id.eq(ws_id_param).and(cw::org_id.eq(org_id_param))))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete: {e}")))?;
+
+    if deleted == 0 {
+        return Err((StatusCode::NOT_FOUND, "Workspace not found".to_string()));
+    }
+
+    Ok(Json(serde_json::json!({ "status": "deleted" })))
+}
+
+/// `GET /api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources`
+async fn list_workspace_resources(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path((_org_id, ws_id_param)): axum::extract::Path<(Uuid, Uuid)>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use crate::schema_ext::workspace_resources::dsl as wr;
+    let rows = wr::workspace_resources
+        .filter(wr::workspace_id.eq(ws_id_param))
+        .order(wr::created_at.desc())
+        .load::<(Uuid, Uuid, Uuid, String, String, String, String, Option<serde_json::Value>, Option<chrono::DateTime<chrono::Utc>>, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    let result: Vec<serde_json::Value> = rows.into_iter().map(|(rid, _, _, sid, rname, rtype, rstatus, rconfig, rprov, _, _)| {
+        serde_json::json!({
+            "id": rid,
+            "store_item_id": sid,
+            "name": rname,
+            "resource_type": rtype,
+            "status": rstatus,
+            "config": rconfig,
+            "provisioned_at": rprov,
+        })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "resources": result })))
+}
+
+/// `POST /api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources`
+async fn assign_resource(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path((org_id_param, ws_id_param)): axum::extract::Path<(Uuid, Uuid)>,
+    Json(body): Json<AssignResourceBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    // Determine resource type from store_item_id prefix
+    let restype = if body.store_item_id.starts_with("vps-") || body.store_item_id.starts_with("gpu-") {
+        "compute"
+    } else if body.store_item_id.starts_with("storage-") {
+        "storage"
+    } else if body.store_item_id.starts_with("number-") {
+        "phone"
+    } else if body.store_item_id.starts_with("domain-") || body.store_item_id.starts_with("calls-") {
+        "comms"
+    } else {
+        "other"
+    };
+
+    let now = chrono::Utc::now();
+    let res_id = Uuid::new_v4();
+
+    use crate::schema_ext::workspace_resources::dsl as wr;
+    diesel::insert_into(wr::workspace_resources)
+        .values((
+            wr::id.eq(res_id),
+            wr::workspace_id.eq(ws_id_param),
+            wr::org_id.eq(org_id_param),
+            wr::store_item_id.eq(&body.store_item_id),
+            wr::name.eq(body.name.unwrap_or_else(|| body.store_item_id.clone())),
+            wr::resource_type.eq(restype),
+            wr::status.eq("provisioning"),
+            wr::provisioned_at.eq(now),
+            wr::created_at.eq(now),
+            wr::updated_at.eq(now),
+        ))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert: {e}")))?;
+
+    Ok(Json(serde_json::json!({
+        "id": res_id,
+        "store_item_id": body.store_item_id,
+        "resource_type": restype,
+        "status": "provisioning",
+    })))
+}
+
+/// `DELETE /api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources/{res_id}`
+async fn remove_resource(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path((_org_id, _ws_id, res_id_param)): axum::extract::Path<(Uuid, Uuid, Uuid)>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use crate::schema_ext::workspace_resources::dsl as wr;
+    diesel::delete(wr::workspace_resources.filter(wr::id.eq(res_id_param)))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete: {e}")))?;
+
+    Ok(Json(serde_json::json!({ "status": "removed" })))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -638,7 +979,7 @@ async fn org_billing_portal(
 
 /// `GET /api/cloud/services`
 ///
-/// Retorna os serviços provisionados (subscriptions activas).
+/// Returns provisioned services (active subscriptions).
 async fn list_services(
     State(service): State<Arc<SaasService>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
@@ -701,14 +1042,14 @@ async fn list_invoices(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Payment Cards (Stripe — lista os métodos de pagamento do cliente)
+// Payment Cards (Stripe — lists the customer's payment methods)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// `GET /api/cloud/payment-cards`
 async fn list_payment_cards(
     State(_service): State<Arc<SaasService>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // Stub: em produção, listar payment methods do Stripe Customer ligado ao usuário autenticado
+    // Stub: in production, list Stripe Customer payment methods linked to the authenticated user
     Ok(Json(serde_json::json!({
         "cards": [],
         "message": "Payment cards are managed via Stripe. Add a card during checkout."
@@ -716,14 +1057,14 @@ async fn list_payment_cards(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Store catalogue (produtos disponíveis para compra)
+// Store catalogue (products available for purchase)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// `GET /api/cloud/store`
 async fn list_store_items(
     State(_service): State<Arc<SaasService>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // Catálogo estático com preços dobrados, providers invisíveis
+    // Static catalog with doubled prices, invisible providers
     let items = serde_json::json!({
         "items": [
             // ── VPS ──
@@ -765,7 +1106,7 @@ async fn list_store_items(
 async fn get_profile(
     State(_service): State<Arc<SaasService>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // Em produção: decodificar JWT do header Authorization e buscar perfil
+    // In production: decode JWT from Authorization header and fetch profile
     Ok(Json(serde_json::json!({
         "name": "",
         "email": "",
@@ -778,7 +1119,7 @@ async fn update_profile(
     State(_service): State<Arc<SaasService>>,
     Json(body): Json<ProfileUpdateBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // Stub: atualizar nome/org no banco associado ao JWT do usuário autenticado
+    // Stub: update name/org in DB associated with the authenticated user's JWT
     Ok(Json(serde_json::json!({
         "status": "ok",
         "name": body.name.unwrap_or_default(),
@@ -909,8 +1250,8 @@ pub struct AppStorePurchaseBody {
 
 /// `POST /api/cloud/appstore/purchase`
 ///
-/// Cria uma fatura para o serviço de consultoria de publicação em lojas de aplicativos.
-/// O pagamento é processado via o fluxo de checkout existente.
+/// Creates an invoice for the app store publishing consultancy service.
+/// Payment is processed through the existing checkout flow.
 async fn handle_appstore_purchase(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<AppStorePurchaseBody>,
@@ -1004,6 +1345,216 @@ async fn handle_appstore_purchase(
         "customer": contact_name,
     })))
 }
+
+/// `GET /api/cloud/offers`
+async fn list_offers() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let offers = serde_json::json!([
+        {
+            "id": "shared-solo",
+            "name": "Shared Solo",
+            "description": "Standard Shared subscription with 5 workspaces, 5 organizations and 50GB shared storage.",
+            "base": "shared",
+            "addons": [],
+            "monthly_price": 3.99,
+            "original_price": 3.99,
+            "savings_percent": 0,
+            "highlight": false,
+        },
+        {
+            "id": "shared-domain",
+            "name": "Shared + Domain",
+            "description": "Shared + 1 .com domain. Ideal for professional web presence.",
+            "base": "shared",
+            "addons": ["domain_com"],
+            "monthly_price": 5.49,
+            "original_price": 5.82,
+            "savings_percent": 6,
+            "highlight": false,
+        },
+        {
+            "id": "shared-storage",
+            "name": "Shared + 50GB",
+            "description": "Shared + 50GB extra storage. Perfect for bots with many documents and files.",
+            "base": "shared",
+            "addons": ["storage_50gb"],
+            "monthly_price": 12.49,
+            "original_price": 13.98,
+            "savings_percent": 11,
+            "highlight": false,
+        },
+        {
+            "id": "shared-phone",
+            "name": "Shared + Telefone",
+            "description": "Shared + 1 local number. Connect your bot to phone with SMS and calls.",
+            "base": "shared",
+            "addons": ["local_number"],
+            "monthly_price": 8.99,
+            "original_price": 9.98,
+            "savings_percent": 10,
+            "highlight": false,
+        },
+        {
+            "id": "shared-domain-storage",
+            "name": "Shared + Domain + 50GB",
+            "description": "The essential combo: professional domain + extra storage + Shared.",
+            "base": "shared",
+            "addons": ["domain_com", "storage_50gb"],
+            "monthly_price": 13.99,
+            "original_price": 15.81,
+            "savings_percent": 12,
+            "highlight": false,
+        },
+        {
+            "id": "shared-phone-storage",
+            "name": "Shared + Telefone + 50GB",
+            "description": "Complete communication: phone + storage + Shared.",
+            "base": "shared",
+            "addons": ["local_number", "storage_50gb"],
+            "monthly_price": 17.49,
+            "original_price": 19.97,
+            "savings_percent": 12,
+            "highlight": false,
+        },
+        {
+            "id": "private-cloud-starter",
+            "name": "Private Cloud Starter",
+            "description": "Shared + 1 VPS Small. Exclusive data, dedicated infrastructure and superior performance.",
+            "base": "shared",
+            "addons": ["vps_small"],
+            "monthly_price": 12.99,
+            "original_price": 13.98,
+            "savings_percent": 7,
+            "highlight": true,
+        },
+        {
+            "id": "private-cloud-business",
+            "name": "Private Cloud Business",
+            "description": "Shared + 1 VPS Medium. For teams that need more power and scalability.",
+            "base": "shared",
+            "addons": ["vps_medium"],
+            "monthly_price": 29.99,
+            "original_price": 33.98,
+            "savings_percent": 12,
+            "highlight": true,
+        },
+    ]);
+    Ok(Json(serde_json::json!({ "offers": offers })))
+}
+
+/// `GET /api/cloud/llm-providers`
+async fn list_llm_providers() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Try to read from llm_releases.json for the complete catalog
+    let json_path = PathBuf::from("3rdparty/llm_releases.json");
+    if let Ok(content) = tokio::fs::read_to_string(&json_path).await {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(providers) = val.get("providers") {
+                return Ok(Json(serde_json::json!({ "providers": providers })));
+            }
+        }
+    }
+
+    // Fallback: return hardcoded providers so the frontend always works
+    Ok(Json(serde_json::json!({
+        "providers": [
+            {
+                "id": "zhipu", "name": "GLM (Zhipu AI)",
+                "description": "Chinese models from Zhipu AI with excellent reasoning performance and long context.",
+                "website": "https://open.bigmodel.cn", "requires_byok": true, "icon": "glm",
+                "models": [
+                    {"id": "glm-4-plus", "name": "GLM-4-Plus", "context": 131072, "description": "Flagship with advanced reasoning", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "glm-4-air", "name": "GLM-4-Air", "context": 131072, "description": "Lightweight and fast for chatbots", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "glm-4-flash", "name": "GLM-4-Flash", "context": 131072, "description": "Free tier with high request rate", "pricing": "free-tier", "capabilities": ["chat"]}
+                ]
+            },
+            {
+                "id": "alibaba", "name": "Qwen (Alibaba Cloud)",
+                "description": "Alibaba's Qwen family — high-performance open models.",
+                "website": "https://tongyi.aliyun.com", "requires_byok": true, "icon": "qwen",
+                "models": [
+                    {"id": "qwen-max", "name": "Qwen-Max", "context": 131072, "description": "Most powerful in the family", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "qwen-plus", "name": "Qwen-Plus", "context": 131072, "description": "Performance-cost balance", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "qwen-turbo", "name": "Qwen-Turbo", "context": 131072, "description": "Fast and economical", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                ]
+            },
+            {
+                "id": "deepseek", "name": "DeepSeek",
+                "description": "Deep reasoning models from DeepSeek (深度求索).",
+                "website": "https://platform.deepseek.com", "requires_byok": true, "icon": "deepseek",
+                "models": [
+                    {"id": "deepseek-v3", "name": "DeepSeek-V3", "context": 65536, "description": "High-performance general model", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "deepseek-r1", "name": "DeepSeek-R1", "context": 65536, "description": "Reasoning with chain-of-thought", "pricing": "pay-per-token", "capabilities": ["chat","reasoning"]},
+                    {"id": "deepseek-chat", "name": "DeepSeek-Chat", "context": 65536, "description": "Standard chat with good cost-benefit", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                ]
+            },
+            {
+                "id": "minimax", "name": "MiniMax",
+                "description": "Chinese models with up to 1M token context.",
+                "website": "https://www.minimaxi.com", "requires_byok": true, "icon": "minimax",
+                "models": [
+                    {"id": "minimax-text-01", "name": "MiniMax-Text-01", "context": 1048576, "description": "1M token context", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "minimax-abab-6.5", "name": "MiniMax-abab6.5", "context": 131072, "description": "Efficient for conversation", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                ]
+            },
+            {
+                "id": "yi", "name": "Yi (01.AI)",
+                "description": "Models from 01.AI (Kai-Fu Lee) with multilingual performance.",
+                "website": "https://www.lingyiwanwu.com", "requires_byok": true, "icon": "yi",
+                "models": [
+                    {"id": "yi-lightning", "name": "Yi-Lightning", "context": 131072, "description": "Flagship with advanced reasoning", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "yi-lightning-fast", "name": "Yi-Lightning-Fast", "context": 32768, "description": "Optimized for low latency", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                ]
+            },
+            {
+                "id": "openai", "name": "OpenAI",
+                "description": "Global reference in LLMs with GPT-4o, GPT-4.1 and o-3.",
+                "website": "https://platform.openai.com", "requires_byok": false, "icon": "openai",
+                "models": [
+                    {"id": "gpt-4o", "name": "GPT-4o", "context": 131072, "description": "Fastest and smartest multimodal model", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools"]},
+                    {"id": "gpt-4.1", "name": "GPT-4.1", "context": 1048576, "description": "1M token context", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]},
+                    {"id": "o3", "name": "o-3", "context": 262144, "description": "Advanced reasoning", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","reasoning"]}
+                ]
+            },
+            {
+                "id": "anthropic", "name": "Anthropic",
+                "description": "Claude models — safe and interpretable.",
+                "website": "https://console.anthropic.com", "requires_byok": false, "icon": "anthropic",
+                "models": [
+                    {"id": "claude-4-sonnet", "name": "Claude 4 Sonnet", "context": 262144, "description": "Speed-capability balance", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision"]},
+                    {"id": "claude-4-haiku", "name": "Claude 4 Haiku", "context": 262144, "description": "Fast and economical", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]}
+                ]
+            },
+            {
+                "id": "google", "name": "Google",
+                "description": "Gemini models with strong multimodal capabilities. Token packages available.",
+                "website": "https://ai.google.dev", "requires_byok": false, "icon": "google",
+                "models": [
+                    {"id": "gemini-pro", "name": "Gemini Pro", "context": 131072, "description": "Multimodal with strong reasoning", "pricing": "token-package", "capabilities": ["chat","vision","tools"]},
+                    {"id": "gemini-flash", "name": "Gemini Flash", "context": 131072, "description": "Fast and economical", "pricing": "token-package", "capabilities": ["chat","tools"]}
+                ]
+            },
+            {
+                "id": "groq", "name": "Groq",
+                "description": "Fast inference models with industry-leading speed. Token packages available.",
+                "website": "https://groq.com", "requires_byok": false, "icon": "groq",
+                "models": [
+                    {"id": "mixtral-8x7b", "name": "Mixtral 8x7B", "context": 32768, "description": "Mixture of experts for high quality", "pricing": "token-package", "capabilities": ["chat","tools"]},
+                    {"id": "llama-3.3-70b", "name": "Llama 3.3 70B", "context": 131072, "description": "Meta Llama 3.3 for chat and tools", "pricing": "token-package", "capabilities": ["chat","tools"]}
+                ]
+            },
+            {
+                "id": "generalbots", "name": "General Bots (Own GPU)",
+                "description": "Open-source models running on General Bots' own GPUs. Included in the plan.",
+                "website": "https://generalbots.com.br", "requires_byok": false, "icon": "gb",
+                "models": [
+                    {"id": "gpt-oss-20b", "name": "GPT-OSS 20B", "context": 32768, "description": "20B parameters on dedicated GPU", "pricing": "included", "capabilities": ["chat","tools"]},
+                    {"id": "deepseek-r1-distill-qwen", "name": "DeepSeek-R1-Distill-Qwen-1.5B", "context": 32768, "description": "Lightweight reasoning included in all plans", "pricing": "included", "capabilities": ["chat","reasoning"]},
+                    {"id": "llama-3.1-8b", "name": "Llama 3.1 8B", "context": 131072, "description": "Meta Llama 3.1 for chat and tools", "pricing": "included", "capabilities": ["chat","tools"]}
+                ]
+            }
+        ]
+    })))
+}
+
 async fn handle_topup(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<TopupBody>,
@@ -1011,7 +1562,7 @@ async fn handle_topup(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB Connection: {e}")))?;
 
-    // Recuperar bot_id padrão
+    // Retrieve default bot_id
     let (_, bot_id) = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
     let target_bot_id = if bot_id == Uuid::nil() {
         Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap()
@@ -1025,16 +1576,16 @@ async fn handle_topup(
 
     let zero = bigdecimal::BigDecimal::from(0);
 
-    // Gerar número de fatura único
+    // Generate unique invoice number
     use rand::Rng;
     let mut rng = rand::rng();
     let num: u32 = rng.random_range(100_000..999_999);
     let invoice_num = format!("INV-TOPUP-{}", num);
 
-    // Inserir a fatura de recarga no banco de dados como paga (paid)
+    // Insert top-up invoice in database as paid
     let new_invoice_id = Uuid::new_v4();
     
-    // Obter o nome do contato correspondente ao email, ou usar email
+    // Get contact name corresponding to the email, or use email as fallback
     use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, first_name, last_name};
     let contact_name = crm_contacts
         .filter(email.eq(&body.email))
@@ -1044,7 +1595,7 @@ async fn handle_topup(
         .map(|s| if s.trim().is_empty() { body.email.split('@').next().unwrap_or("Customer").to_string() } else { s })
         .unwrap_or_else(|_| body.email.split('@').next().unwrap_or("Customer").to_string());
 
-    // Inserir registro na tabela billing_invoices
+    // Insert record in billing_invoices table
     diesel::insert_into(botbilling::schema::billing_invoices::table)
         .values((
             botbilling::schema::billing_invoices::id.eq(new_invoice_id),
@@ -1073,7 +1624,7 @@ async fn handle_topup(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create topup invoice: {e}")))?;
 
-    // Criar o pagamento em billing_payments para registrar a transação
+    // Create payment in billing_payments to record the transaction
     let payment_id = Uuid::new_v4();
     let payment_num = format!("PAY-TOPUP-{}", num);
     diesel::insert_into(botbilling::schema::billing_payments::table)

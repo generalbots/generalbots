@@ -354,7 +354,7 @@ impl SafeCommand {
             format!("{}/bin/directory", stack_path),
         ];
         for bin_dir in component_bins {
-            let normalised = bin_dir.replace('/', &std::path::MAIN_SEPARATOR.to_string());
+            let normalised = bin_dir.replace('/', std::path::MAIN_SEPARATOR_STR);
             if std::path::Path::new(&normalised).exists() {
                 path_entries.insert(0, normalised);
             }
@@ -535,8 +535,8 @@ pub fn validate_argument(arg: &str) -> Result<(), CommandGuardError> {
 
 fn normalize_path_for_compare(p: &std::path::Path) -> String {
     let s = p.to_string_lossy();
-    let s = if s.starts_with("\\\\?\\") {
-        s[4..].to_string()
+    let s = if let Some(stripped) = s.strip_prefix("\\\\?\\") {
+        stripped.to_string()
     } else {
         s.to_string()
     };

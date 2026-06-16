@@ -402,6 +402,16 @@ pub async fn csrf_middleware(
         return next.run(request).await;
     }
 
+    // Skip CSRF for API requests using Bearer token auth (stateless)
+    let is_bearer = request
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.starts_with("Bearer "));
+    if is_bearer {
+        return next.run(request).await;
+    }
+
     let header_token = request
         .headers()
         .get(&config.header_name)

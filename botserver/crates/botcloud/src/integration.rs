@@ -1,9 +1,9 @@
-//! Integração SaaS → CRM, ERP (GL) e Assinaturas.
+//! SaaS Integration → CRM, ERP (GL) and Subscriptions.
 //!
-//! Conecta o fluxo de checkout do SaaS com:
-//! - **CRM**: cria contact e deal (oportunidade) no pipeline
-//! - **ERP (GL)**: lança entrada no razão contábil quando fatura é paga
-//! - **Subscription**: cria registro de recorrência em `billing_recurring`
+//! Connects the SaaS checkout flow with:
+//! - **CRM**: creates contact and deal (opportunity) in pipeline
+//! - **ERP (GL)**: posts entry to general ledger when invoice is paid
+//! - **Subscription**: creates recurring record in `billing_recurring`
 
 use chrono::Utc;
 use diesel::deserialize::QueryableByName;
@@ -20,7 +20,7 @@ struct IdRow {
 
 use crate::DbPool;
 
-/// Cria um contato no CRM (`crm_contacts`) e retorna o ID gerado.
+/// Creates a contact in CRM (`crm_contacts`) and returns the generated ID.
 pub fn create_crm_contact(
     pool: &DbPool,
     org_id: Uuid,
@@ -50,7 +50,7 @@ pub fn create_crm_contact(
     Ok(id)
 }
 
-/// Cria um deal (oportunidade) no CRM (`crm_deals`) vinculado ao contato e à fatura.
+/// Creates a deal (opportunity) in CRM (`crm_deals`) linked to contact and invoice.
 pub fn create_crm_deal(
     pool: &DbPool,
     org_id: Uuid,
@@ -85,7 +85,7 @@ pub fn create_crm_deal(
     Ok(id)
 }
 
-/// Marca um deal como ganho (won) e registra a data de fechamento.
+/// Marks a deal as won and records the closing date.
 pub fn win_crm_deal(
     pool: &DbPool,
     org_id: Uuid,
@@ -108,7 +108,7 @@ pub fn win_crm_deal(
     Ok(())
 }
 
-/// Cria uma organização na tabela `organizations` e retorna o ID.
+/// Creates an organization in the `organizations` table and returns the ID.
 pub fn create_organization(pool: &DbPool, name: &str) -> Result<Uuid, String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
     let id = Uuid::new_v4();
@@ -127,11 +127,11 @@ pub fn create_organization(pool: &DbPool, name: &str) -> Result<Uuid, String> {
     Ok(id)
 }
 
-/// Cria um lançamento contábil (GL) para uma fatura paga.
+/// Creates a general ledger (GL) entry for a paid invoice.
 ///
-/// Estrutura:
-/// - Débito: Contas a Receber (ou Caixa, conforme o método)
-/// - Crédito: Receita de Assinatura
+/// Structure:
+/// - Debit: Accounts Receivable (or Cash, depending on method)
+/// - Credit: Subscription Revenue
 pub fn create_gl_entry_for_invoice(
     pool: &DbPool,
     invoice_id: Uuid,
@@ -142,7 +142,7 @@ pub fn create_gl_entry_for_invoice(
     let entry_id = Uuid::new_v4();
     let now = Utc::now();
 
-    // Busca ou cria contas GL padrão
+    // Find or create default GL accounts
     let ar_account_id = get_or_create_gl_account(&mut conn, "1.1.01", "Contas a Receber - Assinaturas", "asset")?;
     let revenue_account_id = get_or_create_gl_account(&mut conn, "4.1.01", "Receita de Assinatura SaaS", "revenue")?;
 
@@ -161,7 +161,7 @@ pub fn create_gl_entry_for_invoice(
         .bind::<Timestamptz, _>(now)
         .execute(tx)?;
 
-        // Débito: Contas a Receber
+        // Debit: Accounts Receivable
         diesel::sql_query(
             "INSERT INTO gl_journal_lines (id, entry_id, account_id, debit, credit, description) \
              VALUES ($1, $2, $3, $4, 0, $5)",
@@ -173,7 +173,7 @@ pub fn create_gl_entry_for_invoice(
         .bind::<Text, _>("Recebimento assinatura SaaS")
         .execute(tx)?;
 
-        // Crédito: Receita de Assinatura
+        // Credit: Subscription Revenue
         diesel::sql_query(
             "INSERT INTO gl_journal_lines (id, entry_id, account_id, debit, credit, description) \
              VALUES ($1, $2, $3, 0, $4, $5)",
@@ -198,7 +198,7 @@ fn get_or_create_gl_account(
     name: &str,
     account_type: &str,
 ) -> Result<Uuid, String> {
-    // Tenta buscar conta existente
+    // Try to find existing account
     let existing: Option<Uuid> = diesel::sql_query(
         "SELECT id FROM gl_accounts WHERE code = $1",
     )
@@ -211,7 +211,7 @@ fn get_or_create_gl_account(
         return Ok(id);
     }
 
-    // Cria nova conta
+    // Create new account
     let id = Uuid::new_v4();
     diesel::sql_query(
         "INSERT INTO gl_accounts (id, bot_id, code, name, account_type, is_active, created_at) \
@@ -227,7 +227,7 @@ fn get_or_create_gl_account(
     Ok(id)
 }
 
-/// Cria um registro de assinatura recorrente (`billing_recurring`) para o bot.
+/// Creates a recurring subscription record (`billing_recurring`) for the bot.
 pub fn create_billing_subscription(
     pool: &DbPool,
     org_id: Uuid,

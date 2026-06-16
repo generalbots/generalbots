@@ -70,3 +70,31 @@ diesel::table! {
         created_at -> Timestamptz,
     }
 }
+
+diesel::table! {
+    cloud_workspaces (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        icon -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    workspace_resources (id) {
+        id -> Uuid,
+        workspace_id -> Uuid,
+        org_id -> Uuid,
+        store_item_id -> Varchar,
+        name -> Varchar,
+        resource_type -> Varchar,
+        status -> Varchar,
+        config -> Nullable<Jsonb>,
+        provisioned_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
