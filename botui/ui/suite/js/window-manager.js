@@ -131,6 +131,11 @@ if (typeof window.WindowManager === "undefined") {
         windowEl.style.zIndex = this.zIndexCounter++;
       }
 
+      // Blur background when a window is active
+      if (this.openWindows.length > 0) {
+        document.body.classList.add("window-active");
+      }
+
       // Update document title
       const windowObj = this.openWindows.find((w) => w.id === id);
       if (windowObj) {
@@ -165,6 +170,7 @@ if (typeof window.WindowManager === "undefined") {
         // Reset title to default when all windows are closed
         if (this.openWindows.length === 0) {
           document.title = "General Bots Desktop";
+          document.body.classList.remove("window-active");
         }
       }
     }
