@@ -4,6 +4,7 @@
 
 use anyhow::Result;
 use std::env;
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use tracing::{error, info, warn, Level};

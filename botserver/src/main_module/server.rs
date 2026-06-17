@@ -1,145 +1,30 @@
 //! HTTP server initialization and routing
 
-use axum::{
-    routing::{get, post},
-    Json, Router,
-};
+use axum::Router;
 use std::sync::Arc;
 use std::net::SocketAddr;
 use log::{error, info, warn};
 use tower_http::trace::TraceLayer;
 use tower_http::services::ServeDir;
 use crate::security::{
-    build_default_route_permissions, create_cors_layer, create_rate_limit_layer,
-    create_security_headers_layer, request_id_middleware, security_headers_middleware, csrf_middleware,
-    AuthConfig, AuthMiddlewareState, AuthProviderBuilder, ApiKeyAuthProvider,
-    CsrfConfig, CsrfManager,
-    HttpRateLimitConfig, JwtConfig, JwtKey, JwtManager, PanicHandlerConfig, RbacConfig,
-    RbacManager, SecurityHeadersConfig,
+    create_rate_limit_layer, create_security_headers_layer, request_id_middleware,
+    security_headers_middleware, csrf_middleware,
+    CsrfConfig, CsrfManager, CombinedRateLimiter,
+    HttpRateLimitConfig, PanicHandlerConfig, SecurityHeadersConfig,
 };
 use botcore::shared::state::AppState;
-use botcore::urls::ApiUrls;
 use botlib::SystemLimits;
-use diesel::prelude::*;
-use diesel::QueryDsl;
-use botcore::shared::models::schema::bot_configuration::dsl::*;
 
-use super::{health_check, health_check_simple, receive_client_errors, shutdown_signal};
+use super::routes::{security_setup, api_setup, sub_router};
 
 pub async fn run_axum_server(
     app_state: Arc<AppState>,
     port: u16,
     _worker_count: usize,
 ) -> std::io::Result<()> {
-    // Load CORS allowed origins from bot config database if available
-    // Config key: cors-allowed-origins in config.csv
-    if let Ok(mut conn) = app_state.conn.get() {
+    let sec = security_setup::setup_security(&app_state).await;
 
-        if let Ok(origins_str) = bot_configuration
-            .filter(config_key.eq("cors-allowed-origins"))
-            .select(config_value)
-            .first::<String>(&mut conn)
-        {
-            let origins: Vec<String> = origins_str
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
-            if !origins.is_empty() {
-                info!("Loaded {} CORS allowed origins from config", origins.len());
-                crate::security::set_cors_allowed_origins(origins);
-            }
-        }
-    }
-
-    let cors = create_cors_layer();
-
-    let auth_config = Arc::new(
-        AuthConfig::from_env()
-            .add_anonymous_path("/health")
-            .add_anonymous_path("/healthz")
-            .add_anonymous_path("/api/health")
-            .add_anonymous_path("/api/product")
-            .add_anonymous_path("/api/manifest")
-            .add_anonymous_path("/api/i18n")
-            .add_anonymous_path("/api/auth")
-            .add_anonymous_path("/api/auth/login")
-            .add_anonymous_path("/api/auth/refresh")
-            .add_anonymous_path("/api/auth/bootstrap")
-            .add_anonymous_path("/api/setup/status")
-            .add_anonymous_path("/api/bot/config")
-            .add_anonymous_path("/api/suggestions")
-            .add_anonymous_path("/api/client-errors")
-            .add_anonymous_path("/ws")
-            .add_anonymous_path("/auth")
-            .add_anonymous_path("/webhook/whatsapp") // WhatsApp webhook for Meta verification
-            .add_public_path("/static")
-            .add_public_path("/favicon.ico")
-            .add_public_path("/suite")
-            .add_public_path("/themes")
-            .add_public_path("/api/product") // For desktop UI initialization
-            .add_public_path("/") // Allow all bot routes (fallback to UI)
-    );
-
-    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
-        info!("JWT_SECRET not set, using default development secret");
-        "dev-secret-key-change-in-production-minimum-32-chars".to_string()
-    });
-
-    let jwt_config = JwtConfig::default();
-    let jwt_key = JwtKey::from_secret(&jwt_secret);
-    let jwt_manager = match JwtManager::new(jwt_config, jwt_key) {
-        Ok(manager) => {
-            info!("JWT Manager initialized successfully");
-            Some(Arc::new(manager))
-        }
-        Err(e) => {
-            error!("Failed to initialize JWT Manager: {e}");
-            None
-        }
-    };
-
-    let rbac_config = RbacConfig::default();
-    let rbac_manager = Arc::new(RbacManager::new(rbac_config));
-
-    let default_permissions = build_default_route_permissions();
-    rbac_manager.register_routes(default_permissions).await;
-    info!(
-        "RBAC Manager initialized with {} default route permissions",
-        rbac_manager.config().cache_ttl_seconds
-    );
-
-    let auth_provider_registry = {
-        let mut builder = AuthProviderBuilder::new()
-            .with_api_key_provider(Arc::new(ApiKeyAuthProvider::new()))
-            .with_auth_config(Arc::clone(&auth_config));
-
-        if let Some(ref manager) = jwt_manager {
-            builder = builder.with_jwt_manager(Arc::clone(manager));
-        }
-
-        let zitadel_configured = std::env::var("ZITADEL_ISSUER_URL").is_ok()
-            && std::env::var("ZITADEL_CLIENT_ID").is_ok();
-
-        if zitadel_configured {
-            info!("Zitadel environment variables detected - external IdP authentication available");
-        }
-
-        Arc::new(builder.build().await)
-    };
-
-    info!(
-        "Auth provider registry initialized with {} providers",
-        auth_provider_registry.provider_count().await
-    );
-
-    let auth_middleware_state = AuthMiddlewareState::new(
-        Arc::clone(&auth_config),
-        Arc::clone(&auth_provider_registry),
-    );
-
-    use crate::core::product::{get_product_config_json, PRODUCT_CONFIG};
-
+    use crate::core::product::PRODUCT_CONFIG;
     {
         let config = PRODUCT_CONFIG
             .read()
@@ -155,635 +40,9 @@ pub async fn run_axum_server(
         );
     }
 
-    async fn get_product_config() -> Json<serde_json::Value> {
-        Json(get_product_config_json())
-    }
+    let mut api_router = api_setup::setup_api_routes();
 
-    async fn get_workspace_manifest() -> Json<serde_json::Value> {
-        use crate::core::product::get_workspace_manifest;
-        Json(get_workspace_manifest())
-    }
-
-    let mut api_router = Router::new()
-        .route("/health", get(health_check_simple))
-        .route(ApiUrls::HEALTH, get(health_check))
-        .route("/api/config/reload", post(botcore::config_reload::reload_config))
-        .route("/api/product", get(get_product_config))
-        .route("/api/manifest", get(get_workspace_manifest))
-        .route("/api/client-errors", post(receive_client_errors))
-        // TODO: fix handler signature
-        .route("/api/bot/config", get(crate::core::bot::get_bot_config))
-        .route("/api/bots/:bot_name/access", get(crate::core::bot::check_access_handler))
-        // Gateway spawns on its own port 5860 below, no nesting needed here
-        .route(ApiUrls::SESSIONS, post(crate::core::session::create_session))
-        // TODO: fix handler signature
-        //.route(ApiUrls::SESSIONS, get(crate::core::session::get_sessions))
-        // TODO: fix handler signature
-        //.route(ApiUrls::SESSION_HISTORY, get(crate::core::session::get_session_history))
-        .route(ApiUrls::SESSION_START, post(crate::core::session::start_session))
-        .route(ApiUrls::WS, get(crate::core::bot::websocket_handler))
-        .route("/ws/:bot_name", get(crate::core::bot::websocket_handler_with_bot));
-
-    #[cfg(feature = "drive")]
-    {
-        use axum::routing::{get as axum_get, post as axum_post};
-        api_router = api_router
-            .route("/api/files/list", axum_get(crate::drive::drive_handlers::list_files))
-            .route("/api/files/buckets", axum_get(crate::drive::drive_handlers::list_buckets))
-            .route("/api/files/quota", axum_get(crate::drive::drive_handlers::quota))
-            .route("/api/files/recent", axum_get(crate::drive::drive_handlers::recent_files))
-            .route("/api/files/search", axum_get(crate::drive::drive_handlers::search_files))
-            .route(
-                "/api/files/write",
-                axum_post(crate::drive::drive_handlers::upload_file_to_drive),
-            )
-            .route(
-                "/api/files/download",
-                axum_post(crate::drive::drive_handlers::download_file),
-            )
-            .route(
-                "/api/files/download-binary",
-                axum_post(crate::drive::drive_handlers::download_file_binary),
-            )
-            .route(
-                "/api/files/delete",
-                axum_post(crate::drive::drive_handlers::delete_file),
-            )
-            .route(
-                "/api/files/createFolder",
-                axum_post(crate::drive::drive_handlers::create_folder),
-            )
-            .route(
-                "/api/files/copy",
-                axum_post(crate::drive::drive_handlers::copy_file),
-            )
-            .route(
-                "/api/files/move",
-                axum_post(crate::drive::drive_handlers::move_file),
-            )
-            .route(
-                "/api/files/open",
-                axum_post(crate::drive::drive_handlers::open_file),
-            )
-            .route(
-                "/api/files/ai/chat",
-                axum_post(crate::drive::drive_handlers::ai_chat_handler),
-            )
-            .route(
-                "/api/files/favorite",
-                axum_get(crate::drive::drive_handlers::list_favorites),
-            )
-            .route(
-                "/api/files/shared",
-                axum_get(crate::drive::drive_handlers::list_shared),
-            );
-    }
-
-    // Anonymous auth fallback — available regardless of directory feature
-    {
-        use axum::extract::State;
-        use axum::response::IntoResponse;
-        use std::collections::HashMap;
-
-        async fn anonymous_auth_handler(
-            State(state): State<Arc<AppState>>,
-            axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
-        ) -> impl IntoResponse {
-            let bot_name = params.get("bot_name").cloned().unwrap_or_default();
-            let existing_session_id = params.get("session_id").cloned();
-            let existing_user_id = params.get("user_id").cloned();
-
-            let user_id = existing_user_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-            let session_id = existing_session_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-
-            let session_uuid = match uuid::Uuid::parse_str(&session_id) {
-                Ok(uuid) => uuid,
-                Err(_) => uuid::Uuid::new_v4(),
-            };
-            let user_uuid = match uuid::Uuid::parse_str(&user_id) {
-                Ok(uuid) => uuid,
-                Err(_) => uuid::Uuid::new_v4(),
-            };
-
-            let found_bot_id = {
-                let conn = state.conn.get().ok();
-                if let Some(mut db_conn) = conn {
-                    use botcore::shared::models::schema::bots::dsl::*;
-                    use diesel::prelude::*;
-                    bots.filter(name.eq(&bot_name))
-                        .select(id)
-                        .first::<uuid::Uuid>(&mut db_conn)
-                        .ok()
-                        .unwrap_or_else(uuid::Uuid::nil)
-                } else {
-                    uuid::Uuid::nil()
-                }
-            };
-
-            let mut final_session_id = session_id.clone();
-            {
-                let mut sm = state.session_manager.lock().await;
-                sm.get_or_create_anonymous_user(Some(user_uuid)).ok();
-                let session = sm.get_or_create_session_by_id(
-                    session_uuid, user_uuid, found_bot_id, "Anonymous Chat"
-                );
-                if let Ok(sess) = session {
-                    final_session_id = sess.id.to_string();
-                }
-            }
-
-            info!("Anonymous auth for bot: {}, session: {}", bot_name, final_session_id);
-
-            (
-                axum::http::StatusCode::OK,
-                Json(serde_json::json!({
-                    "user_id": user_id,
-                    "session_id": final_session_id,
-                    "bot_id": found_bot_id,
-                    "bot_name": bot_name,
-                    "status": "anonymous"
-                })),
-        )
-    }
-
-    api_router = api_router.route(ApiUrls::AUTH, get(anonymous_auth_handler));
-    }
-
-    // Sub-router for all stateful sub-router merges (Router<()>)
-    let mut sub_router: axum::Router<()> = axum::Router::new();
-
-    api_router = crate::apps::register(api_router);
-
-    #[cfg(feature = "meet")]
-    {
-        sub_router = sub_router.merge(crate::meet::configure().with_state(app_state.clone()));
-    }
-
-    // email routes moved to base_router (crate state adapter)
-
-#[cfg(feature = "tasks")]
-{
-    sub_router = sub_router.merge(crate::tasks::configure_tasks_routes().with_state(Arc::new(bottasks::state::TasksState {
-                    pool: app_state.conn.clone(),
-                    run_command: Arc::new(|_cmd: &str, _args: &[&str]| -> Result<String, String> { Ok(String::new()) }),
-                    call_llm: Arc::new(|_prompt: &str, _ctx: &str| Box::pin(async { Ok(String::new()) })),
-                    get_config: Arc::new(|_key: &str| -> Result<String, String> { Ok(String::new()) }),
-                    cache_get: Arc::new(|_key: String| Box::pin(async { Ok(None) })),
-                    cache_set: Arc::new(|_key: String, _val: String, _ttl: Option<u64>| Box::pin(async { Ok(()) })),
-                })));
-}
-
-    #[cfg(feature = "analytics")]
-    {
-        sub_router = sub_router.merge(crate::analytics::routes::create_analytics_router(Arc::new(app_state.conn.clone())));
-        sub_router = sub_router.merge(crate::analytics::insights::configure_insights_routes().with_state(Arc::new(app_state.conn.clone())));
-    }
-    sub_router = sub_router.merge(crate::core::i18n::configure_i18n_routes().with_state(app_state.clone()));
-    #[cfg(feature = "docs")]
-    {
-        sub_router = sub_router.merge(crate::docs::configure_docs_routes().with_state(Arc::new(botdocs::state::DocState {
-                    pool: Arc::new(app_state.conn.clone()),
-                    drive: app_state.drive.clone().unwrap_or_else(|| Arc::new(NoopDrive)),
-                    bucket_name: app_state.bucket_name.clone(),
-                })));
-    }
-    #[cfg(feature = "paper")]
-    {
-        let drive = app_state.drive.clone();
-        let llm_provider = app_state.llm_provider.clone();
-
-        let s3_put = {
-            let drive = drive.clone();
-            Arc::new(move |bucket: &str, key: &str, data: Vec<u8>, content_type: Option<&str>| {
-                let drive = drive.clone();
-                let bucket = bucket.to_string();
-                let key = key.to_string();
-                let ct = content_type.map(|s| s.to_string());
-                Box::pin(async move {
-                    match drive.as_ref() {
-                        Some(d) => d.put_object(&bucket, &key, data, ct.as_deref()).await,
-                        None => Err("Drive service not available".to_string()),
-                    }
-                }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
-            }) as crate::paper::state::S3PutFn
-        };
-
-        let s3_get = {
-            let drive = drive.clone();
-            Arc::new(move |bucket: &str, key: &str| {
-                let drive = drive.clone();
-                let bucket = bucket.to_string();
-                let key = key.to_string();
-                Box::pin(async move {
-                    match drive.as_ref() {
-                        Some(d) => d.get_object(&bucket, &key).await,
-                        None => Err("Drive service not available".to_string()),
-                    }
-                }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<u8>, String>> + Send>>
-            }) as crate::paper::state::S3GetFn
-        };
-
-        let s3_delete = {
-            let drive = drive.clone();
-            Arc::new(move |bucket: &str, key: &str| {
-                let drive = drive.clone();
-                let bucket = bucket.to_string();
-                let key = key.to_string();
-                Box::pin(async move {
-                    match drive.as_ref() {
-                        Some(d) => d.delete_object(&bucket, &key).await,
-                        None => Err("Drive service not available".to_string()),
-                    }
-                }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
-            }) as crate::paper::state::S3DeleteFn
-        };
-
-        let s3_list = {
-            let drive = drive.clone();
-            Arc::new(move |bucket: &str, prefix: &str| {
-                let drive = drive.clone();
-                let bucket = bucket.to_string();
-                let prefix = prefix.to_string();
-                Box::pin(async move {
-                    match drive.as_ref() {
-                        Some(d) => d.list_objects(&bucket, Some(&prefix)).await,
-                        None => Err("Drive service not available".to_string()),
-                    }
-                }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>>
-            }) as crate::paper::state::S3ListFn
-        };
-
-        let call_llm = {
-            let llm = llm_provider.clone();
-            Arc::new(move |prompt: &str, context: &str| {
-                let llm = llm.clone();
-                let prompt = prompt.to_string();
-                let context = context.to_string();
-                Box::pin(async move {
-                    match llm.as_ref() {
-                        Some(l) => l.generate_with_context(&prompt, &context).await,
-                        None => Err("LLM service not available".to_string()),
-                    }
-                }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>>
-            }) as crate::paper::state::CallLlmFn
-        };
-
-        let paper_state = Arc::new(crate::paper::state::PaperState {
-            conn: app_state.conn.clone(),
-            bucket_name: app_state.bucket_name.clone(),
-            s3_put,
-            s3_get,
-            s3_delete,
-            s3_list,
-            call_llm,
-        });
-        sub_router = sub_router.merge(crate::paper::configure_paper_routes().with_state(paper_state));
-    }
-    // sheet routes moved to base_router (crate state adapter)
-    // slides routes moved to base_router (crate state adapter)
-    // video routes moved to base_router (crate state adapter)
-    #[cfg(feature = "research")]
-    {
-        #[derive(Debug, Clone)]
-        struct ResearchAppState(diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>);
-
-        impl crate::research::ResearchState for ResearchAppState {
-            fn db_pool(&self) -> &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>> {
-                &self.0
-            }
-        }
-
-        let research_state = std::sync::Arc::new(ResearchAppState(app_state.conn.clone()));
-        sub_router = sub_router.merge(crate::research::configure_research_routes().with_state(research_state.clone()));
-        sub_router = sub_router.merge(crate::research::ui::configure_research_ui_routes().with_state(research_state));
-    }
-    #[cfg(any(feature = "research", feature = "llm"))]
-    {
-        api_router = api_router.route(
-            "/api/website/force-recrawl",
-            post(crate::core::kb::website_crawler_service::handle_force_recrawl)
-        );
-    }
-    // sources routes moved to base_router (crate state adapter)
-    #[cfg(feature = "designer")]
-    {
-        sub_router = sub_router.merge(crate::designer::designer_api::configure_designer_routes().with_state(Arc::new(botdesigner::DesignerState {
-                    conn: Arc::new(app_state.conn.clone()),
-                    get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
-                    get_designer_error_context: Arc::new(|_err: &str| -> Option<String> { None }),
-                    get_content_type: Arc::new(|_p: &str| -> &'static str { "text/html" }),
-                    get_stack_path: Arc::new(|| "/opt/gbo/stack".to_string()),
-                    load_from_drive: Arc::new(|_: &str, _: &str| -> Result<String, String> { Err("not available".to_string()) }),
-                    write_to_drive: Arc::new(|_: &str, _: &str, _: &[u8], _: &str| -> Result<(), String> { Err("not available".to_string()) }),
-                    call_llm: Arc::new(|_: &str, _: &serde_json::Value| -> Result<String, String> { Ok(String::new()) }),
-                    get_config: Arc::new(|_: &str, _: &str, _: Option<&str>| -> Result<String, String> { Ok(String::new()) }),
-                    bucket_name: app_state.bucket_name.clone(),
-                    site_path: None,
-                })));
-        sub_router = sub_router.merge(crate::designer::ui::configure_designer_ui_routes().with_state(Arc::new(botdesigner::DesignerState {
-                    conn: Arc::new(app_state.conn.clone()),
-                    get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
-                    get_designer_error_context: Arc::new(|_err: &str| -> Option<String> { None }),
-                    get_content_type: Arc::new(|_p: &str| -> &'static str { "text/html" }),
-                    get_stack_path: Arc::new(|| "/opt/gbo/stack".to_string()),
-                    load_from_drive: Arc::new(|_: &str, _: &str| -> Result<String, String> { Err("not available".to_string()) }),
-                    write_to_drive: Arc::new(|_: &str, _: &str, _: &[u8], _: &str| -> Result<(), String> { Err("not available".to_string()) }),
-                    call_llm: Arc::new(|_: &str, _: &serde_json::Value| -> Result<String, String> { Ok(String::new()) }),
-                    get_config: Arc::new(|_: &str, _: &str, _: Option<&str>| -> Result<String, String> { Ok(String::new()) }),
-                    bucket_name: app_state.bucket_name.clone(),
-                    site_path: None,
-                })));
-    }
-    #[cfg(feature = "dashboards")]
-    {
-        fn default_bot_fn(_conn: &mut diesel::PgConnection) -> (uuid::Uuid, String) {
-            (uuid::Uuid::nil(), "default".to_string())
-        }
-        sub_router = sub_router.merge(crate::dashboards::configure_dashboards_routes(Arc::new(botdashboards::DashboardsState {
-                    pool: app_state.conn.clone(),
-                    get_default_bot: default_bot_fn,
-                })));
-        sub_router = sub_router.merge(crate::dashboards::ui::configure_dashboards_ui_routes().with_state(Arc::new(botdashboards::DashboardsState {
-                    pool: app_state.conn.clone(),
-                    get_default_bot: default_bot_fn,
-                })));
-    }
-    #[cfg(feature = "legal")]
-    {
-        let legal_pool = app_state.conn.clone();
-        sub_router = sub_router.merge(
-            crate::legal::configure_legal_routes().with_state(Arc::new(legal_pool.clone()))
-        );
-        sub_router = sub_router.merge(
-            crate::legal::configure_legal_ui_routes().with_state(Arc::new(legal_pool))
-        );
-    }
-    #[cfg(feature = "compliance")]
-    {
-        let compliance_pool = app_state.conn.clone();
-        sub_router = sub_router.merge(
-            crate::compliance::configure_compliance_routes().with_state(Arc::new(compliance_pool.clone()))
-        );
-        sub_router = sub_router.merge(
-            crate::compliance::ui::configure_compliance_ui_routes().with_state(Arc::new(compliance_pool))
-        );
-    }
-    #[cfg(feature = "monitoring")]
-    {
-        struct MonitoringAppState;
-
-        impl crate::monitoring::MonitoringState for MonitoringAppState {
-            fn active_session_count(&self) -> usize { 0 }
-            fn is_db_healthy(&self) -> bool { true }
-        }
-
-        let monitoring_state = std::sync::Arc::new(MonitoringAppState);
-        sub_router = sub_router.merge(
-            crate::monitoring::configure::<MonitoringAppState, crate::monitoring::DefaultMonitoringUrls>()
-                .with_state(monitoring_state)
-        );
-    }
-            sub_router = sub_router.merge(crate::security::configure_protection_routes().with_state(app_state.clone()));
-        sub_router = sub_router.merge(crate::settings::configure_settings_routes().with_state(app_state.clone()));
-#[cfg(feature = "scripting")]
-{
-sub_router = sub_router.merge(crate::basic::keywords::configure_app_server_routes().with_state(app_state.clone()));
-}
-#[cfg(feature = "people")]
-{
-sub_router = sub_router.merge(crate::basic::keywords::configure_db_routes().with_state(app_state.clone()));
-}
-#[cfg(feature = "vibe")]
-{
-sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
-}
-    sub_router = sub_router.merge(botcore::shared::admin::configure().with_state(app_state.clone()));
-    sub_router = sub_router.merge(botcore::shared::analytics::configure().with_state(app_state.clone()));
-    sub_router = sub_router.merge(botcore::organization_invitations::configure().with_state(app_state.clone()));
-    
-    #[cfg(feature = "project")]
-    {
-        let project_service = std::sync::Arc::new(crate::project::ProjectService::new());
-        let project_router = crate::project::configure(project_service.clone());
-        sub_router = sub_router.merge(project_router.with_state(project_service.clone()));
-        sub_router = sub_router.merge(crate::project::project_ui::configure_project_ui_routes().with_state(project_service));
-    }
-    #[cfg(all(feature = "analytics", feature = "goals"))]
-    {
-        let goals_pool = Arc::new(app_state.conn.clone());
-        let goals_bot_context: crate::analytics::GetBotContextFn = Arc::new(|| (uuid::Uuid::nil(), uuid::Uuid::nil()));
-        let goals_default_bot: crate::analytics::GetDefaultBotFn = Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string()));
-        sub_router = sub_router.merge(crate::analytics::goals::configure_goals_routes().with_state((goals_pool.clone(), goals_bot_context)));
-        sub_router = sub_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes().with_state((goals_pool.clone(), goals_default_bot)));
-    }
-    #[cfg(feature = "player")]
-    {
-        // Player disabled - needs DriveState adapter
-        // sub_router = sub_router.merge(crate::player::configure_player_routes());
-    }
-    #[cfg(feature = "canvas")]
-    {
-        sub_router = sub_router.merge(crate::canvas::configure_canvas_routes().with_state(Arc::new(botcanvas::CanvasState {
-                    pool: Arc::new(app_state.conn.clone()),
-                    get_bot_context: Arc::new(|_c: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>| (uuid::Uuid::nil(), uuid::Uuid::nil())),
-                })));
-        sub_router = sub_router.merge(crate::canvas::configure_canvas_ui_routes().with_state(Arc::new(botcanvas::CanvasState {
-                    pool: Arc::new(app_state.conn.clone()),
-                    get_bot_context: Arc::new(|_c: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>| (uuid::Uuid::nil(), uuid::Uuid::nil())),
-                })));
-    }
-    #[cfg(feature = "fraud")]
-    {
-        let fraud_state = Arc::new(crate::fraud::FraudState::new(app_state.conn.clone()));
-        sub_router = sub_router.merge(crate::fraud::configure_fraud_routes().with_state(fraud_state));
-    }
-    #[cfg(feature = "inventory")]
-    {
-        let inventory_state = Arc::new(crate::inventory::InventoryState { pool: app_state.conn.clone() });
-        sub_router = sub_router.merge(crate::inventory::configure_inventory_routes().with_state(inventory_state));
-    }
-    #[cfg(feature = "gl")]
-    {
-        let gl_state = Arc::new(crate::gl::GlState { pool: app_state.conn.clone() });
-        sub_router = sub_router.merge(crate::gl::configure_gl_routes().with_state(gl_state));
-    }
-    #[cfg(feature = "retail")]
-    {
-        sub_router = sub_router.merge(crate::retail::configure_retail_routes().with_state(Arc::new(crate::retail::RetailState)));
-    }
-    // Desktop disabled — uses axum 0.8 which is incompatible with workspace axum 0.7
-    // #[cfg(feature = "desktop")]
-    // {
-    //     let desktop_state = Arc::new(crate::desktop::AppState::new());
-    //     sub_router = sub_router.merge(crate::desktop::routes::configure_routes().with_state(desktop_state));
-    // }
-    #[cfg(feature = "weba")]
-    {
-        let weba_state = Arc::new(crate::weba::WebaState::new());
-        sub_router = sub_router.merge(crate::weba::configure_routes(weba_state));
-    }
-    api_router = api_router.nest("/api/directory", crate::directory::router::configure());
-    api_router = api_router.nest("/api/auth", crate::directory::auth_routes::configure());
-    // Directory user provisioning API routes (botcoredirectory::api)
-    {
-        let directory_api_state = Arc::new(crate::directory::api::DirectoryApiState {
-            conn: app_state.conn.clone(),
-            base_url: format!("http://localhost:{}", port),
-        });
-        api_router = api_router.merge(crate::directory::api::configure_user_routes().with_state(directory_api_state));
-    }
-    sub_router = sub_router.merge(crate::directory::scim::server::configure_scim_routes().with_state(app_state.clone()));
-
-    api_router = api_router
-        .route("/api/organizations/current", get(handle_get_organization).put(handle_update_organization).post(handle_update_organization).delete(handle_delete_organization))
-        .route("/api/organizations/current/settings", get(handle_get_org_settings))
-        .route("/api/organizations/current/stats", get(handle_get_org_stats))
-        .route("/api/organizations/current/contact", post(handle_update_organization_contact))
-        .route("/api/organizations/current/branding", post(handle_update_organization_branding))
-        .route("/api/organizations/current/audit", get(handle_get_org_audit))
-        .route("/api/organizations/current/export", get(handle_export_org_data))
-        .route("/api/admin/migrate/office365", post(handle_office365_migration));
-
-    #[cfg(feature = "social")]
-    {
-        sub_router = sub_router.merge(crate::social::configure_social_routes().with_state(Arc::new(botsocial::SocialState {
-                    pool: Arc::new(app_state.conn.clone()),
-                    get_default_bot: Arc::new(|_conn: &mut _| (uuid::Uuid::nil(), "default".to_string())),
-                })));
-        sub_router = sub_router.merge(crate::social::configure_social_ui_routes().with_state(Arc::new(botsocial::SocialState {
-                    pool: Arc::new(app_state.conn.clone()),
-                    get_default_bot: Arc::new(|_conn: &mut _| (uuid::Uuid::nil(), "default".to_string())),
-                })));
-    }
-    #[cfg(feature = "learn")]
-    {
-        sub_router = sub_router.merge(crate::learn::ui::configure_learn_ui_routes());
-        sub_router = sub_router.merge(
-            crate::learn::creator::configure_learn_api_routes()
-                .with_state(Arc::new(botlearn::GamificationService::new()))
-        );
-    }
-    // email UI routes moved to base_router (crate state adapter)
-    #[cfg(feature = "meet")]
-    {
-        sub_router = sub_router.merge(crate::meet::ui::configure_meet_ui_routes().with_state(app_state.clone()));
-    }
-    // contacts routes moved to base_router (crate state adapter)
-    #[cfg(feature = "billing")]
-    {
-        sub_router = sub_router.merge(crate::billing::billing_ui::configure_billing_routes().with_state(Arc::new(botbilling::api::BillingApiState {
-                    pool: Arc::new(app_state.conn.clone()),
-                    get_default_bot: Some((|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
-                })));
-        sub_router = sub_router.merge(crate::billing::api::configure_billing_api_routes().with_state(Arc::new(botbilling::api::BillingApiState {
-                    pool: Arc::new(app_state.conn.clone()),
-                    get_default_bot: Some((|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
-                })));
-        
-    }
-    
-    #[cfg(feature = "saas")]
-    {
-        use botcloud::{SaasService, SaasConfig, stripe::StripeClient, cloud_ui, api};
-        let stripe = StripeClient::new(
-            std::env::var("STRIPE_SECRET_KEY")
-                .unwrap_or_else(|_| "sk_test_placeholder".to_string()),
-            None,
-        );
-        let saas_config = SaasConfig {
-            base_url: std::env::var("SAAS_BASE_URL")
-                .unwrap_or_else(|_| "http://localhost:5859".to_string()),
-            jwt_secret: std::env::var("SAAS_JWT_SECRET")
-                .unwrap_or_else(|_| "change-me-in-production".to_string()),
-        };
-        let saas_service = Arc::new(SaasService::new(
-            Arc::new(botbilling::api::BillingApiState {
-                pool: Arc::new(app_state.conn.clone()),
-                get_default_bot: Some((|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
-            }),
-            stripe,
-            saas_config,
-        ));
-        sub_router = sub_router
-            .merge(cloud_ui::configure_cloud_ui_routes().with_state(saas_service.clone()))
-            .merge(api::configure_cloud_api_routes().with_state(saas_service.clone()))
-            .merge(botcloud::webhook::configure_webhook_routes().with_state(saas_service));
-    }
-    
-    #[cfg(feature = "whatsapp")]
-    {
-        sub_router = sub_router.merge(crate::whatsapp::configure(app_state.clone()).with_state(app_state.clone()));
-    }
-
-    #[cfg(feature = "marketing")]
-    {
-        sub_router = sub_router.merge(crate::marketing::routes::configure_marketing_routes().with_state(Arc::new(botmarketing::state::AppState {
-            conn: Arc::new(app_state.conn.clone()),
-            get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
-            send_email: Arc::new(|_: &str, _: &str, _: &str, _: uuid::Uuid, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-            send_whatsapp: Arc::new(|_: uuid::Uuid, _: &str, _: &str, _: Option<&str>, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-            get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-            llm_generate: Arc::new(|_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, String> { Ok("stub".to_string()) }),
-        })));
-    }
-
-    #[cfg(feature = "telegram")]
-    {
-        sub_router = sub_router.merge(crate::telegram::webhook::configure().with_state(Arc::new(bottelegram::ChannelState {
-            conn: Arc::new(app_state.conn.clone()),
-            get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
-            get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-            stream_response: Arc::new(|_: botlib::models::UserMessage, _: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-                tokio::spawn(async move { Ok(()) })
-            }),
-            attendant_broadcast: None,
-        })));
-    }
-
-    #[cfg(feature = "instagram")]
-    {
-        sub_router = sub_router.merge(crate::instagram::webhook::configure().with_state(Arc::new(botinstagram::state::ChannelState {
-            get_config: Arc::new(|_: &str, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-            stream_response: Arc::new(|_: botlib::models::UserMessage, _: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-                tokio::spawn(async move { Ok(()) })
-            }),
-            attendant_broadcast: None,
-        })));
-    }
-
-    #[cfg(feature = "msteams")]
-    {
-        sub_router = sub_router.merge(crate::msteams::webhook::configure().with_state(Arc::new(botmsteams::state::ChannelState {
-            conn: Arc::new(app_state.conn.clone()),
-            get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
-            get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-            stream_response: Arc::new(|_: botlib::models::UserMessage, _: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-                tokio::spawn(async move { Ok(()) })
-            }),
-            attendant_broadcast: None,
-        })));
-    }
-
-    #[cfg(feature = "sources")]
-    {
-        let sources_state = crate::sources::make_sources_state(app_state.conn.clone());
-        sub_router = sub_router.merge(crate::sources::configure_sources_api_routes().with_state(sources_state.clone()));
-        sub_router = sub_router.merge(crate::sources::configure_sources_ui_routes().with_state(sources_state));
-    }
-
- #[cfg(feature = "attendant")]
- {
- sub_router = sub_router.merge(crate::attendance::routes::configure_attendance_routes().with_state(Arc::new(botattendance::AttendanceConfig {
-                    pool: Arc::new(app_state.conn.clone()),
-                    get_default_bot: Arc::new(|_conn: &mut _| (uuid::Uuid::nil(), "default".to_string())),
-                    llm_generate: Arc::new(|_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, Box<dyn std::error::Error + Send + Sync>> { Ok(String::new()) }),
-                    process_content: Arc::new(|_: &str, _: &str| -> String { String::new() }),
-                    config_get: Arc::new(|_: &uuid::Uuid, _: &str| -> String { String::new() }),
-                    send_bot_response: None,
-                    broadcast_notification: None,
-                    save_message: None,
-                })));
- }
+    let sub_router = sub_router::build_sub_router(&app_state, port, &mut api_router);
 
     #[cfg(feature = "deployment")]
     {
@@ -805,22 +64,7 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
         });
     }
 
- // BotCoder IDE APIs
-    sub_router = sub_router.merge(crate::api::editor::configure_editor_routes().with_state(app_state.clone()));
-    sub_router = sub_router.merge(crate::api::database::configure_database_routes().with_state(app_state.clone()));
-    sub_router = sub_router.merge(crate::api::git::configure_git_routes().with_state(app_state.clone()));
-    sub_router = sub_router.merge(crate::api::system::configure_system_routes().with_state(app_state.clone()));
-    #[cfg(feature = "browser")]
-    {
-        sub_router = sub_router.merge(
-            crate::browser::api::configure_browser_routes::<crate::browser::AppStateBrowserState>()
-                .with_state(Arc::new(crate::browser::AppStateBrowserState(Arc::clone(&app_state)))),
-        );
-    }
-    #[cfg(feature = "terminal")]
-    {
-        sub_router = sub_router.merge(crate::api::terminal::configure_terminal_routes());
-    }
+    api_router = api_setup::add_base_api_routes(api_router);
 
     let site_path = app_state
         .config
@@ -831,17 +75,14 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     #[cfg(not(feature = "vibe"))]
     info!("Serving apps from: {}", site_path);
 
-    // Create rate limiter integrating with botlib's RateLimiter
     let http_rate_config = HttpRateLimitConfig::api();
     let system_limits = SystemLimits::default();
     let (rate_limit_extension, _rate_limiter) =
         create_rate_limit_layer(http_rate_config, system_limits);
 
-    // Create security headers layer
     let security_headers_config = SecurityHeadersConfig::default();
     let security_headers_extension = create_security_headers_layer(security_headers_config.clone());
 
-    // Determine panic handler config based on environment
     let is_production = std::env::var("BOTSERVER_ENV")
         .map(|v| v == "production" || v == "prod")
         .unwrap_or(false);
@@ -857,21 +98,11 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     });
     let csrf_config = CsrfConfig {
         exempt_paths: vec![
-            "/api/health".into(),
-            "/api/auth".into(),
-            "/api/auth/login".into(),
-            "/api/auth/refresh".into(),
-            "/api/auth/bootstrap".into(),
-            "/api/setup/status".into(),
-            "/api/product".into(),
-            "/api/manifest".into(),
-            "/api/i18n".into(),
-            "/api/client-errors".into(),
-            "/api/cloud/auth*".into(),
-            "/ws".into(),
-            "/ws/".into(),
-            "/webhook/whatsapp".into(),
-            "/webhook".into(),
+            "/api/health".into(), "/api/auth".into(), "/api/auth/login".into(),
+            "/api/auth/refresh".into(), "/api/auth/bootstrap".into(), "/api/setup/status".into(),
+            "/api/product".into(), "/api/manifest".into(), "/api/i18n".into(),
+            "/api/client-errors".into(), "/api/cloud/auth*".into(), "/ws".into(),
+            "/ws/".into(), "/webhook/whatsapp".into(), "/webhook".into(),
         ],
         ..Default::default()
     };
@@ -882,7 +113,6 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
 
     info!("Security middleware enabled: rate limiting, CSRF, security headers, panic handler, request ID tracking, authentication");
 
-    // Path to UI files (botui) - use external folder or fallback to embedded
     let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| {
         if std::path::Path::new("./botui/ui/suite").exists() {
             "./botui/ui/suite".to_string()
@@ -898,37 +128,47 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     if ui_path_exists {
         info!("Serving UI from external folder: {}", ui_path);
     } else if use_embedded_ui {
-        info!(
-            "External UI folder not found at '{}', using embedded UI",
-            ui_path
-        );
+        info!("External UI folder not found at '{}', using embedded UI", ui_path);
         let file_count = crate::embedded_ui::list_embedded_files().len();
         info!("Embedded UI contains {} files", file_count);
     } else {
-        warn!(
-            "No UI available: folder '{}' not found and no embedded UI",
-            ui_path
-        );
+        warn!("No UI available: folder '{}' not found and no embedded UI", ui_path);
     }
 
-    // Update app_state with auth components
     let mut app_state_with_auth = (*app_state).clone();
-    if let Some(jwt_mgr) = jwt_manager {
-        app_state_with_auth.jwt_manager = Some(jwt_mgr as std::sync::Arc<dyn botlib::traits::JwtService>);
+    if let Some(jwt_mgr) = sec.jwt_manager {
+        app_state_with_auth.jwt_manager = Some(jwt_mgr as Arc<dyn botlib::traits::JwtService>);
     }
-    app_state_with_auth.auth_provider_registry = Some(auth_provider_registry as std::sync::Arc<dyn std::any::Any + Send + Sync>);
-    { let rbac: std::sync::Arc<dyn botlib::traits::RbacService> = rbac_manager.clone(); app_state_with_auth.rbac_manager = Some(rbac); }
+    app_state_with_auth.auth_provider_registry = Some(sec.auth_provider_registry as Arc<dyn std::any::Any + Send + Sync>);
+    {
+        let rbac: Arc<dyn botlib::traits::RbacService> = sec.rbac_manager.clone();
+        app_state_with_auth.rbac_manager = Some(rbac);
+    }
     let app_state = Arc::new(app_state_with_auth);
 
-    let oauth_state = std::sync::Arc::new(botcoreoauth::routes::OAuthState_ {
+    let oauth_state = Arc::new(botcoreoauth::routes::OAuthState_ {
         conn: app_state.conn.clone(),
         base_url: format!("http://localhost:{}", port),
     });
 
+    let base_router = build_base_router(app_state.clone(), api_router, sub_router, oauth_state, &site_path);
+
+    let app = apply_middleware(base_router, app_state.clone(), sec.cors, csrf_manager, panic_config, security_headers_extension, rate_limit_extension, sec.rbac_manager, sec.auth_middleware_state);
+
+    listen(app, port).await
+}
+
+fn build_base_router(
+    app_state: Arc<AppState>,
+    api_router: Router<Arc<AppState>>,
+    sub_router: Router<()>,
+    oauth_state: Arc<botcoreoauth::routes::OAuthState_>,
+    site_path: &str,
+) -> Router {
     #[cfg(feature = "deployment")]
     let base_router = {
         let dep_pool = app_state.conn.clone();
-        let dep_router: axum::Router<()> = crate::deployment::configure_deployment_routes(dep_pool);
+        let dep_router = crate::deployment::configure_deployment_routes(dep_pool);
         Router::new()
             .merge(api_router.with_state(app_state.clone()))
             .merge(sub_router)
@@ -941,150 +181,41 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
         .merge(sub_router)
         .nest("/", botcoreoauth::routes::configure(oauth_state));
 
+    #[cfg(feature = "calendar")]
+    let base_router = add_calendar_routes(base_router, &app_state);
+    #[cfg(feature = "mail")]
+    let base_router = add_mail_routes(base_router, &app_state);
+    #[cfg(feature = "sheet")]
+    let base_router = add_sheet_routes(base_router);
+    #[cfg(feature = "slides")]
+    let base_router = add_slides_routes(base_router, &app_state);
+    #[cfg(feature = "plan")]
+    let base_router = add_plan_routes(base_router);
+    #[cfg(feature = "video")]
+    let base_router = add_video_routes(base_router, &app_state);
+    #[cfg(feature = "workspaces")]
+    let base_router = add_workspaces_routes(base_router, &app_state);
+    #[cfg(feature = "billing")]
+    let base_router = add_products_routes(base_router, &app_state);
+    #[cfg(feature = "tickets")]
+    let base_router = add_tickets_routes(base_router, &app_state);
+    #[cfg(feature = "people")]
+    let base_router = add_people_routes(base_router, &app_state);
+    #[cfg(feature = "attendant")]
+    let base_router = add_attendant_routes(base_router, &app_state);
     #[cfg(not(feature = "vibe"))]
     let base_router = base_router
-        // Static files fallback for legacy /apps/* paths
         .nest_service("/static", ServeDir::new(&site_path));
 
-    let base_router = {
-        let r = base_router;
-        #[cfg(feature = "calendar")]
-        {
-            r.merge(crate::calendar::configure_calendar_routes().with_state(Arc::new(app_state.conn.clone())))
-                .merge(crate::calendar::configure_calendar_ui_routes().with_state(Arc::new(app_state.conn.clone())))
-                .merge(crate::calendar::create_caldav_router().with_state(Arc::new(app_state.conn.clone())))
-        }
-        #[cfg(not(feature = "calendar"))]
-        r
-    };
+    let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| {
+        if std::path::Path::new("./botui/ui/suite").exists() { "./botui/ui/suite".to_string() }
+        else if std::path::Path::new("../botui/ui/suite").exists() { "../botui/ui/suite".to_string() }
+        else { "./botui/ui/suite".to_string() }
+    });
+    let ui_path_exists = std::path::Path::new(&ui_path).exists();
+    let use_embedded_ui = !ui_path_exists && crate::embedded_ui::has_embedded_ui();
 
-let base_router = {
-    let r = base_router;
-    #[cfg(feature = "mail")]
-    {
-        let email_state = crate::email::models::AppState {
-            pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: std::sync::Arc::new(|_conn: &mut diesel::PgConnection| {
-                (uuid::Uuid::nil(), "default".to_string())
-            }),
-            secrets_provider: std::sync::Arc::new(|_key: &str| {
-                Err("secrets not available".to_string())
-            }),
-        };
-        r.merge(crate::email::routes::configure(std::sync::Arc::new(email_state)))
-    }
-    #[cfg(not(feature = "mail"))]
-    r
-};
-
-let base_router = {
-    let r = base_router;
-    #[cfg(feature = "sheet")]
-    {
-        r.merge(crate::sheet::routes::configure_sheet_routes().with_state(Arc::new(crate::sheet::state::SheetState { drive: None })))
-    }
-    #[cfg(not(feature = "sheet"))]
-    r
-};
-
-let base_router = {
-    let r = base_router;
-    #[cfg(feature = "slides")]
-    {
-        r.merge(crate::slides::configure_slides_routes(app_state.clone()))
-    }
-    #[cfg(not(feature = "slides"))]
-    r
-};
-
-let base_router = {
-    let r = base_router;
-    #[cfg(feature = "plan")]
-    {
-        r.merge(crate::plan::configure_plan_routes())
-    }
-    #[cfg(not(feature = "plan"))]
-    r
-};
-
-let base_router = {
-    let r = base_router;
-    #[cfg(feature = "video")]
-    {
-        r.merge(crate::video::configure_video_routes().with_state(Arc::new(botvideo::routes::AppState { conn: app_state.conn.clone(), cache: None })))
-        .merge(crate::video::configure_video_ui_routes().with_state(Arc::new(botvideo::routes::AppState { conn: app_state.conn.clone(), cache: None })))
-    }
-    #[cfg(not(feature = "video"))]
-    r
-};
-
-// Sources/contacts disabled — requires ConfigManagerOps/crate state construction
-// #[cfg(feature = "sources")] ... 
-// #[cfg(feature = "contacts")] ...
-
-let base_router = {
-    let r = base_router;
-    #[cfg(feature = "workspaces")]
-    {
-        r.merge(crate::workspaces::configure_workspaces_routes().with_state(Arc::new(botworkspaces::WorkspacesState { pool: Arc::new(app_state.conn.clone()), get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) })))
-        .merge(crate::workspaces::configure_workspaces_ui_routes().with_state(Arc::new(botworkspaces::WorkspacesState { pool: Arc::new(app_state.conn.clone()), get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) })))
-    }
-    #[cfg(not(feature = "workspaces"))]
-    r
-};
-
-    let base_router = {
-        let r = base_router;
-        #[cfg(feature = "billing")]
-        {
-            r.merge(crate::products::configure_products_routes().with_state(Arc::new(botproducts::ProductsState { pool: Arc::new(app_state.conn.clone()), get_default_bot: None })))
-                .merge(crate::products::configure_products_api_routes().with_state(Arc::new(botproducts::ProductsState { pool: Arc::new(app_state.conn.clone()), get_default_bot: None })))
-        }
-        #[cfg(not(feature = "billing"))]
-        r
-    };
-
-    let base_router = {
-        let r = base_router;
-        #[cfg(feature = "tickets")]
-        {
-            r.merge(crate::tickets::configure_tickets_routes().with_state(Arc::new(bottickets::TicketsState { pool: Arc::new(app_state.conn.clone()), get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) })))
-                .merge(crate::tickets::ui::configure_tickets_ui_routes().with_state(Arc::new(bottickets::TicketsState { pool: Arc::new(app_state.conn.clone()), get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) })))
-        }
-        #[cfg(not(feature = "tickets"))]
-        r
-    };
-
-    let base_router = {
-        let r = base_router;
-        #[cfg(feature = "people")]
-        {
-            let people_state = std::sync::Arc::new(crate::people::PeopleState {
-                pool: Arc::new(app_state.conn.clone()),
-                get_default_bot: std::sync::Arc::new(|_conn: &mut diesel::PgConnection| {
-                    (uuid::Uuid::nil(), "default".to_string())
-                }),
-            });
-            r.merge(crate::people::configure_people_routes().with_state(people_state.clone()))
-                .merge(crate::people::ui::configure_people_ui_routes().with_state(people_state))
-        }
-        #[cfg(not(feature = "people"))]
-        r
-    };
-
-    let base_router = {
-        let r = base_router;
-        #[cfg(feature = "attendant")]
-        {
-            r.merge(crate::attendant::configure_attendant_routes().with_state(Arc::new(botattendant::AttendantConfig { pool: Arc::new(app_state.conn.clone()), get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) })))
-                .merge(crate::attendant::configure_attendant_ui_routes().with_state(Arc::new(botattendant::AttendantConfig { pool: Arc::new(app_state.conn.clone()), get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) })))
-        }
-        #[cfg(not(feature = "attendant"))]
-        r
-    };
-
-    // Add UI routes based on availability
-    let app_with_ui = if ui_path_exists {
+    if ui_path_exists {
         base_router
             .nest_service("/auth", ServeDir::new(format!("{}/auth", ui_path)))
             .nest_service("/suite", ServeDir::new(&ui_path))
@@ -1096,11 +227,20 @@ let base_router = {
         base_router.merge(crate::embedded_ui::embedded_ui_router())
     } else {
         base_router
-    };
+    }
+}
 
-    // Clone rbac_manager for use in middleware
-    let rbac_manager_for_middleware = Arc::clone(&rbac_manager);
-
+fn apply_middleware(
+    app: Router,
+    app_state: Arc<AppState>,
+    cors: tower_http::cors::CorsLayer,
+    csrf_manager: Arc<CsrfManager>,
+    panic_config: PanicHandlerConfig,
+    security_headers_extension: axum::Extension<SecurityHeadersConfig>,
+    rate_limit_extension: axum::Extension<Arc<CombinedRateLimiter>>,
+    rbac_manager: Arc<crate::security::RbacManager>,
+    auth_middleware_state: crate::security::AuthMiddlewareState,
+) -> Router {
     async fn csrf_cookie_injector(
         manager: Arc<CsrfManager>,
         request: axum::http::Request<axum::body::Body>,
@@ -1111,7 +251,7 @@ let base_router = {
             .headers()
             .get_all(axum::http::header::SET_COOKIE)
             .iter()
-            .any(|v| v.to_str().ok().map_or(false, |s| s.contains("csrf_token")));
+            .any(|v| v.to_str().ok().is_some_and(|s| s.contains("csrf_token")));
         if !has_csrf {
             let token = manager.generate_signed_token();
             let cookie = manager.build_cookie(&token);
@@ -1122,482 +262,149 @@ let base_router = {
         response
     }
 
-    let app =
-        app_with_ui
-            // W3C Distributed Tracing middleware — injects/parses traceparent headers
-            .layer(axum::middleware::from_fn({
-                let name = app_state.config.as_ref()
-                    .map(|c| format!("botserver:{}", c.server.host))
-                    .unwrap_or_else(|| "botserver".to_string());
-                move |req, next| {
-                    let name = name.clone();
-                    async move { botcore::tracing::tracing_middleware_fn(name, req, next).await }
-                }
-            }))
-            // CSRF cookie injector — outermost so it runs last (on response) to set cookies
-            .layer(axum::middleware::from_fn({
-                let csrf_manager = csrf_manager.clone();
-                move |req, next| {
-                    let mgr = csrf_manager.clone();
-                    async move { csrf_cookie_injector(mgr, req, next).await }
-                }
-            }))
-            // Sec middleware stack (order matters — last added is outermost/runs first)
-            .layer(axum::middleware::from_fn(security_headers_middleware))
-            .layer(security_headers_extension)
-            .layer(rate_limit_extension)
-            // Request ID tracking for all requests
-            .layer(axum::middleware::from_fn(request_id_middleware))
-            // CSRF validation middleware — runs before auth
-            .layer(axum::middleware::from_fn({
-                let csrf_manager = csrf_manager.clone();
-                move |req, next| {
-                    let mgr = csrf_manager.clone();
-                    async move { csrf_middleware(mgr, req, next).await }
-                }
-            }))
-            // RBAC middleware - checks permissions AFTER authentication
-            // NOTE: In Axum, layers run in reverse order (last added = first to run)
-            // So RBAC is added BEFORE auth, meaning auth runs first, then RBAC
-            .layer(axum::middleware::from_fn(
-                move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
-                    let rbac = Arc::clone(&rbac_manager_for_middleware);
-                    async move { crate::security::rbac_middleware_fn(req, next, rbac).await }
-                },
-            ))
-            // Authentication middleware - MUST run before RBAC (so added after)
-            .layer(axum::middleware::from_fn(
-                move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
-                    let state = auth_middleware_state.clone();
-                    async move {
-                        crate::security::auth_middleware_with_providers(req, next, state).await
-                    }
-                },
-            ))
-            // Panic handler catches panics and returns safe 500 responses
-            .layer(axum::middleware::from_fn(move |req, next| {
-                let config = panic_config.clone();
+    app
+        .layer(axum::middleware::from_fn({
+            let name = app_state.config.as_ref()
+                .map(|c| format!("botserver:{}", c.server.host))
+                .unwrap_or_else(|| "botserver".to_string());
+            move |req, next| {
+                let name = name.clone();
+                async move { botcore::tracing::tracing_middleware_fn(name, req, next).await }
+            }
+        }))
+        .layer(axum::middleware::from_fn({
+            let csrf_manager = csrf_manager.clone();
+            move |req, next| {
+                let mgr = csrf_manager.clone();
+                async move { csrf_cookie_injector(mgr, req, next).await }
+            }
+        }))
+        .layer(axum::middleware::from_fn(security_headers_middleware))
+        .layer(security_headers_extension)
+        .layer(rate_limit_extension)
+        .layer(axum::middleware::from_fn(request_id_middleware))
+        .layer(axum::middleware::from_fn({
+            let csrf_manager = csrf_manager.clone();
+            move |req, next| {
+                let mgr = csrf_manager.clone();
+                async move { csrf_middleware(mgr, req, next).await }
+            }
+        }))
+        .layer(axum::middleware::from_fn(
+            move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+                let rbac = rbac_manager.clone();
+                async move { crate::security::rbac_middleware_fn(req, next, rbac).await }
+            },
+        ))
+        .layer(axum::middleware::from_fn(
+            move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+                let state = auth_middleware_state.clone();
                 async move {
-                    crate::security::panic_handler_middleware_with_config(req, next, &config).await
+                    crate::security::auth_middleware_with_providers(req, next, state).await
                 }
-            }))
-            .layer(axum::Extension(app_state.clone()))
-            .layer(cors)
-            .layer(TraceLayer::new_for_http());
-
-    let stack = botcore::shared::utils::get_stack_path();
-    let cert_dir = std::path::PathBuf::from(format!("{}/conf/system/certificates", stack));
-    let cert_path = cert_dir.join("api/server.crt");
-    let key_path = cert_dir.join("api/server.key");
-
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-
-    let disable_tls = std::env::var("BOTSERVER_DISABLE_TLS")
-        .map(|v| v == "true" || v == "1")
-        .unwrap_or(false);
-
-    if !disable_tls && cert_path.exists() && key_path.exists() {
-        let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert_path, key_path)
-            .await
-            .map_err(std::io::Error::other)?;
-
-        info!("HTTPS server listening on {} with TLS", addr);
-
-        let handle = axum_server::Handle::new();
-        let handle_clone = handle.clone();
-
-        tokio::spawn(async move {
-            shutdown_signal().await;
-            info!("Shutting down HTTPS server - draining active connections (10s timeout)...");
-            handle_clone.graceful_shutdown(Some(std::time::Duration::from_secs(10)));
-            info!("HTTPS graceful shutdown initiated, waiting for connections to drain...");
-        });
-
-        axum_server::bind_rustls(addr, tls_config)
-            .handle(handle)
-            .serve(app.into_make_service())
-            .await
-            .map_err(|e| {
-                error!("HTTPS server failed on {}: {}", addr, e);
-                std::io::Error::other(e)
-            })?;
-    } else {
-        if disable_tls {
-            info!("TLS disabled via BOTSERVER_DISABLE_TLS environment variable");
-        } else {
-            info!("TLS certificates not found, using HTTP");
-        }
-
-        let listener = match tokio::net::TcpListener::bind(addr).await {
-            Ok(l) => l,
-            Err(e) => {
-                error!(
-                    "Failed to bind to {}: {} - is another instance running?",
-                    addr, e
-                );
-                return Err(e);
+            },
+        ))
+        .layer(axum::middleware::from_fn(move |req, next| {
+            let config = panic_config.clone();
+            async move {
+                crate::security::panic_handler_middleware_with_config(req, next, &config).await
             }
-        };
-        info!("HTTP server listening on {}", addr);
-        info!("Server ready - shutdown via SIGINT (Ctrl+C) or SIGTERM (systemctl stop)");
-        let result = axum::serve(listener, app.into_make_service())
-            .with_graceful_shutdown(shutdown_signal())
-            .await;
-        match &result {
-            Ok(()) => info!("HTTP server shut down gracefully"),
-            Err(e) => error!("HTTP server shutdown with error: {}", e),
-        }
-        result.map_err(std::io::Error::other)?;
-    }
-
-    Ok(())
+        }))
+        .layer(axum::Extension(app_state))
+        .layer(cors)
+        .layer(TraceLayer::new_for_http())
 }
 
-async fn handle_get_organization(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": "No auth service"
-        })))
-    })?.lock().await;
-
-    match auth_service.list_organizations().await {
-        Ok(data) => {
-            let orgs = data.as_array().cloned().unwrap_or_default();
-            if let Some(org) = orgs.first() {
-                Ok(Json(org.clone()))
-            } else {
-                Ok(Json(serde_json::json!({
-                    "name": "Default Organization",
-                    "id": "default",
-                    "description": ""
-                })))
-            }
-        }
-        Err(e) => {
-            log::warn!("Failed to list organizations: {}", e);
-            Ok(Json(serde_json::json!({
-                "name": "Default Organization",
-                "id": "default",
-                "description": ""
-            })))
-        }
-    }
+#[cfg(feature = "calendar")]
+fn add_calendar_routes(r: Router, s: &Arc<AppState>) -> Router {
+    r.merge(crate::calendar::configure_calendar_routes().with_state(Arc::new(s.conn.clone())))
+        .merge(crate::calendar::configure_calendar_ui_routes().with_state(Arc::new(s.conn.clone())))
+        .merge(crate::calendar::create_caldav_router().with_state(Arc::new(s.conn.clone())))
 }
 
-async fn handle_get_org_settings(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let stack = botcore::shared::utils::get_stack_path();
-    let config_path = format!("{}/conf/directory/org-settings.json", stack);
-
-    let settings = std::fs::read_to_string(&config_path)
-        .ok()
-        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
-        .unwrap_or_else(|| serde_json::json!({}));
-
-    Ok(Json(settings))
+#[cfg(feature = "mail")]
+fn add_mail_routes(r: Router, s: &Arc<AppState>) -> Router {
+    let email_state = crate::email::models::AppState {
+        pool: Arc::new(s.conn.clone()),
+        get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| {
+            (uuid::Uuid::nil(), "default".to_string())
+        }),
+        secrets_provider: Arc::new(|_key: &str| Err("secrets not available".to_string())),
+    };
+    r.merge(crate::email::routes::configure(Arc::new(email_state)))
 }
 
-async fn handle_get_org_stats(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let mut users_total: i64 = 0;
-    let mut bots_total: i64 = 0;
-
-    if let Some(auth) = state.auth_service.as_ref() {
-        let auth_service = auth.lock().await;
-        if let Ok(data) = auth_service.list_users(1000, 0).await {
-            users_total = data.as_array().map(|a| a.len() as i64).unwrap_or(0);
-        }
-    }
-
-    if let Ok(mut conn) = state.conn.get() {
-        use botcore::shared::models::schema::bots::dsl::*;
-        if let Ok(count) = bots.count().get_result::<i64>(&mut conn) {
-            bots_total = count;
-        }
-    }
-
-    let mut kb_total: i64 = 0;
-    let mut storage_bytes: i64 = 0;
-
-    if let Ok(mut conn) = state.conn.get() {
-        use botcore::shared::models::schema::drive_files::dsl::*;
-        if let Ok(count) = drive_files
-            .filter(file_type.eq("gbkb"))
-            .count()
-            .get_result::<i64>(&mut conn)
-        {
-            kb_total = count;
-        }
-        if let Ok(bytes) = drive_files
-            .filter(file_size.is_not_null())
-            .select(diesel::dsl::sql::<diesel::sql_types::BigInt>("COALESCE(SUM(file_size), 0)"))
-            .first::<i64>(&mut conn)
-        {
-            storage_bytes = bytes;
-        }
-    }
-
-    let storage_mb_val = storage_bytes / 1_048_576;
-
-    Ok(Json(serde_json::json!({
-        "users": { "used": users_total, "limit": 50 },
-        "bots": { "used": bots_total, "limit": 20 },
-        "kb_documents": { "used": kb_total, "limit": 500 },
-        "storage_mb": { "used": storage_mb_val, "limit": 5120 }
-    })))
+#[cfg(feature = "sheet")]
+fn add_sheet_routes(r: Router) -> Router {
+    r.merge(crate::sheet::routes::configure_sheet_routes().with_state(Arc::new(crate::sheet::state::SheetState { drive: None })))
 }
 
-async fn handle_delete_organization(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    info!("Organization deletion requested");
-
-    let auth = state.auth_service.as_ref().ok_or_else(|| {
-        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": "No auth service"
-        })))
-    })?;
-
-    let auth_service = auth.lock().await;
-
-    let orgs_data = auth_service.list_organizations().await
-        .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": format!("Failed to list organizations: {}", e)
-        }))))?;
-
-    let orgs = orgs_data.as_array().cloned().unwrap_or_default();
-    let org_id = orgs.first()
-        .and_then(|o| o.get("id").or_else(|| o.get("orgId")))
-        .and_then(|v| v.as_str())
-        .unwrap_or("default");
-
-    if org_id == "default" {
-        return Err((axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({
-            "error": "Cannot delete the default organization"
-        }))));
-    }
-
-    let _ = auth_service.http_delete(format!("{}/v2/organizations/{}", auth_service.api_url(), org_id)).await;
-
-    let stack = botcore::shared::utils::get_stack_path();
-    let settings_path = std::path::PathBuf::from(format!("{}/conf/directory/org-settings.json", stack));
-    let _ = std::fs::remove_file(settings_path);
-
-    Ok(Json(serde_json::json!({"success": true, "message": format!("Organization {} deleted", org_id)})))
+#[cfg(feature = "slides")]
+fn add_slides_routes(r: Router, s: &Arc<AppState>) -> Router {
+    r.merge(crate::slides::configure_slides_routes(s.clone()))
 }
 
-async fn handle_get_org_audit(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let stack = botcore::shared::utils::get_stack_path();
-    let log_path = std::path::PathBuf::from(format!("{}/conf/directory/audit-log.json", stack));
-
-    let entries: Vec<serde_json::Value> = std::fs::read_to_string(&log_path)
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default();
-
-    let recent: Vec<serde_json::Value> = entries.into_iter().rev().take(50).collect();
-
-    Ok(Json(serde_json::json!({
-        "entries": recent,
-        "total": recent.len()
-    })))
+#[cfg(feature = "plan")]
+fn add_plan_routes(r: Router) -> Router {
+    r.merge(crate::plan::configure_plan_routes())
 }
 
-async fn handle_export_org_data(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    info!("Organization data export requested");
+#[cfg(feature = "video")]
+fn add_video_routes(r: Router, s: &Arc<AppState>) -> Router {
+    r.merge(crate::video::configure_video_routes().with_state(Arc::new(botvideo::routes::AppState { conn: s.conn.clone(), cache: None })))
+        .merge(crate::video::configure_video_ui_routes().with_state(Arc::new(botvideo::routes::AppState { conn: s.conn.clone(), cache: None })))
+}
 
-    let mut export = serde_json::json!({
-        "exported_at": chrono::Utc::now().to_rfc3339(),
-        "users": [],
-        "bots": [],
-        "settings": {}
+#[cfg(feature = "workspaces")]
+fn add_workspaces_routes(r: Router, s: &Arc<AppState>) -> Router {
+    let make_state = || Arc::new(botworkspaces::WorkspacesState {
+        pool: Arc::new(s.conn.clone()),
+        get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String),
     });
+    r.merge(crate::workspaces::configure_workspaces_routes().with_state(make_state()))
+        .merge(crate::workspaces::configure_workspaces_ui_routes().with_state(make_state()))
+}
 
-    if let Some(auth) = state.auth_service.as_ref() {
-        let auth_service = auth.lock().await;
-        if let Ok(data) = auth_service.list_users(1000, 0).await {
-            export["users"] = data;
-        }
-    }
+#[cfg(feature = "billing")]
+fn add_products_routes(r: Router, s: &Arc<AppState>) -> Router {
+    r.merge(crate::products::configure_products_routes().with_state(Arc::new(botproducts::ProductsState { pool: Arc::new(s.conn.clone()), get_default_bot: None })))
+        .merge(crate::products::configure_products_api_routes().with_state(Arc::new(botproducts::ProductsState { pool: Arc::new(s.conn.clone()), get_default_bot: None })))
+}
 
-    if let Ok(mut conn) = state.conn.get() {
-        use botcore::shared::models::schema::bots::dsl::*;
-        if let Ok(bot_list) = bots.limit(100).load::<botcore::shared::models::core::Bot>(&mut conn) {
-            let bot_names: Vec<serde_json::Value> = bot_list.iter().map(|b| {
-                serde_json::json!({"id": b.id.to_string(), "name": b.name})
-            }).collect();
-            export["bots"] = serde_json::json!(bot_names);
-        }
-    }
+#[cfg(feature = "tickets")]
+fn add_tickets_routes(r: Router, s: &Arc<AppState>) -> Router {
+    let make_state = || Arc::new(bottickets::TicketsState {
+        pool: Arc::new(s.conn.clone()),
+        get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String),
+    });
+    r.merge(crate::tickets::configure_tickets_routes().with_state(make_state()))
+        .merge(crate::tickets::ui::configure_tickets_ui_routes().with_state(make_state()))
+}
 
-    let stack = botcore::shared::utils::get_stack_path();
-    let settings_path = format!("{}/conf/directory/org-settings.json", stack);
-    if let Ok(settings_str) = std::fs::read_to_string(&settings_path) {
-        if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&settings_str) {
-            export["settings"] = settings;
-        }
-    }
+#[cfg(feature = "people")]
+fn add_people_routes(r: Router, s: &Arc<AppState>) -> Router {
+    let people_state = Arc::new(crate::people::PeopleState {
+        pool: Arc::new(s.conn.clone()),
+        get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| {
+            (uuid::Uuid::nil(), "default".to_string())
+        }),
+    });
+    r.merge(crate::people::configure_people_routes().with_state(people_state.clone()))
+        .merge(crate::people::ui::configure_people_ui_routes().with_state(people_state))
+}
 
-    let export_path = format!("{}/tmp/org-export-{}.json", stack, chrono::Utc::now().timestamp());
-    let _ = std::fs::write(&export_path, serde_json::to_string_pretty(&export).unwrap_or_default());
-
-    Ok(Json(serde_json::json!({
-        "success": true,
-        "message": "Export complete",
-        "download_url": format!("/api/files/download?path={}", export_path)
+#[cfg(feature = "attendant")]
+fn add_attendant_routes(r: Router, s: &Arc<AppState>) -> Router {
+    r.merge(crate::attendant::configure_attendant_routes().with_state(Arc::new(botattendant::AttendantConfig {
+        pool: Arc::new(s.conn.clone()),
+        get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String),
+    })))
+    .merge(crate::attendant::configure_attendant_ui_routes().with_state(Arc::new(botattendant::AttendantConfig {
+        pool: Arc::new(s.conn.clone()),
+        get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String),
     })))
 }
 
-async fn handle_update_organization(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
-    Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    info!("Organization settings update: {:?}", body);
-
-    let stack = botcore::shared::utils::get_stack_path();
-    let config_path = format!("{}/conf/directory/org-settings.json", stack);
-
-    if let Some(parent) = std::path::Path::new(&config_path).parent() {
-        if let Err(e) = std::fs::create_dir_all(parent) {
-            log::error!("Failed to create config directory: {}", e);
-        }
-    }
-
-    let existing = std::fs::read_to_string(&config_path)
-        .ok()
-        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
-        .unwrap_or_else(|| serde_json::json!({}));
-
-    let mut merged = existing;
-    if let (Some(obj), Some(patch)) = (merged.as_object_mut(), body.as_object()) {
-        for (k, v) in patch {
-            obj.insert(k.clone(), v.clone());
-        }
-    }
-
-    if let Err(e) = std::fs::write(&config_path, serde_json::to_string_pretty(&merged).unwrap_or_default()) {
-        log::error!("Failed to save organization settings: {}", e);
-        return Err((axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": "Failed to save settings"
-        }))));
-    }
-
-    append_audit_log("settings_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
-
-    Ok(Json(serde_json::json!({"success": true})))
-}
-
-fn append_audit_log(action: &str, detail: &str) {
-    let stack = botcore::shared::utils::get_stack_path();
-    let log_path = format!("{}/conf/directory/audit-log.json", stack);
-
-    if let Some(parent) = std::path::Path::new(&log_path).parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-
-    let mut entries: Vec<serde_json::Value> = std::fs::read_to_string(&log_path)
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default();
-
-    entries.push(serde_json::json!({
-        "timestamp": chrono::Utc::now().to_rfc3339(),
-        "actor": "admin",
-        "action": action,
-        "detail": detail
-    }));
-
-    if entries.len() > 500 {
-        entries = entries.split_off(entries.len() - 500);
-    }
-
-    let _ = std::fs::write(&log_path, serde_json::to_string_pretty(&entries).unwrap_or_default());
-}
-
-async fn handle_update_organization_contact(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-    Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    info!("Organization contact update: {:?}", body);
-    let result = handle_update_organization(axum::extract::State(state), Json(body.clone())).await?;
-    append_audit_log("contact_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
-    Ok(result)
-}
-
-async fn handle_update_organization_branding(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-    Json(body): Json<serde_json::Value>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    info!("Organization branding update: {:?}", body);
-    let result = handle_update_organization(axum::extract::State(state), Json(body.clone())).await?;
-    append_audit_log("branding_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
-    Ok(result)
-}
-
-#[derive(serde::Deserialize)]
-struct Office365MigrationRequest {
-    tenant_id: String,
-    client_id: String,
-    client_secret: String,
-    sync_mode: Option<String>,
-}
-
-async fn handle_office365_migration(
-    axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
-    Json(req): Json<Office365MigrationRequest>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    info!("Office 365 migration requested for tenant: {}", req.tenant_id);
-
-    let mode = match req.sync_mode.as_deref() {
-        Some("delta") => crate::directory::scim::sync::SyncMode::Delta,
-        _ => crate::directory::scim::sync::SyncMode::Full,
-    };
-
-    let config = crate::directory::scim::sync::AzureAdConfig {
-        tenant_id: req.tenant_id,
-        client_id: req.client_id,
-        client_secret: req.client_secret,
-        sync_mode: mode,
-    };
-
-    let syncer = crate::directory::scim::sync::AzureAdSyncer::new(config);
-
-    let auth_service = _state.auth_service.as_ref().ok_or_else(|| {
-        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": "No auth service available"
-        })))
-    })?.lock().await;
-
-    match syncer.sync(&*auth_service).await {
-        Ok(result) => {
-            info!("Office 365 migration complete: {:?}", result);
-            Ok(Json(serde_json::json!({
-                "success": true,
-                "groups_created": result.groups_created,
-                "groups_updated": result.groups_updated,
-                "users_mapped": result.users_mapped,
-                "users_created": result.users_created,
-                "users_updated": result.users_updated,
-                "errors": result.errors,
-                "duration_ms": result.duration_ms
-            })))
-        }
-        Err(e) => {
-            log::error!("Office 365 migration failed: {}", e);
-            Err((
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": format!("Migration failed: {}", e)
-                }))
-            ))
-        }
-    }
+pub(crate) async fn listen(app: Router, port: u16) -> std::io::Result<()> {
+    crate::main_module::listen_impl::listen(app, port).await
 }

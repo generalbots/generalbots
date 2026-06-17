@@ -1,6 +1,6 @@
 use super::{empty_fragment, html_escape};
 use axum::{response::Html, Json};
-use crate::types_core::{Document, DocumentComment, DocumentStyle, Endnote, Footnote, OutlineItem, TableOfContents, TocEntry, TrackChange};
+use crate::types_core::{DocumentComment, DocumentStyle, Endnote, Footnote, OutlineItem, TableOfContents, TrackChange};
 
 pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let toc: Option<TableOfContents> = serde_json::from_value(payload.get("toc").cloned().unwrap_or(serde_json::Value::Null)).ok();

@@ -773,11 +773,11 @@ impl DocumentProcessor {
             // Align to line boundary: advance to the next newline to avoid splitting lines
             if start < total_chars && start > 0 {
                 // Find the next newline after the overlap-adjusted start
-                for i in start..std::cmp::min(start + 200, total_chars) {
-                    if chars[i] == '\n' {
-                        start = i + 1;
-                        break;
-                    }
+                if let Some(pos) = chars[start..std::cmp::min(start + 200, total_chars)]
+                    .iter()
+                    .position(|&c| c == '\n')
+                {
+                    start += pos + 1;
                 }
             }
 

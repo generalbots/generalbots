@@ -74,6 +74,12 @@ impl Default for DocxStyles {
     }
 }
 
+impl Default for DocxDocument {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DocxDocument {
     pub fn new() -> Self {
         Self {
@@ -152,12 +158,12 @@ impl DocxDocument {
 </Relationships>"#).map_err(|e| e.to_string())?;
 
         zip.start_file("word/_rels/document.xml.rels", <zip::write::FileOptions<()>>::default()).map_err(|e| e.to_string())?;
-        let mut rels = format!(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        let mut rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
-"#);
+"#.to_string();
         for (i, _img) in self.images.iter().enumerate() {
             rels.push_str(&format!(r#"  <Relationship Id="rImage{}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image{}.png"/>"#, i + 1, i + 1));
         }
@@ -292,7 +298,7 @@ impl DocxDocument {
 
 pub fn from_html(html: &str) -> Result<DocxDocument, String> {
     let mut doc = DocxDocument::new();
-    let re_heading = regex::Regex::new(r"<h([1-6])[^>]*>(.*?)</h\1>").map_err(|e| e.to_string())?;
+    let re_heading = regex::Regex::new(r"<h([1-6])[^>]*>(.*?)</h[1-6]>").map_err(|e| e.to_string())?;
     let re_para = regex::Regex::new(r"<p[^>]*>(.*?)</p>").map_err(|e| e.to_string())?;
     let re_table = regex::Regex::new(r"<table[^>]*>(.*?)</table>").map_err(|e| e.to_string())?;
     let re_tr = regex::Regex::new(r"<tr[^>]*>(.*?)</tr>").map_err(|e| e.to_string())?;

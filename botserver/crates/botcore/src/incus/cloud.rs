@@ -75,7 +75,7 @@ impl IncusCloudManager {
         let first_node = &self.config.nodes[0];
         
         let output = AsyncCommand::new("incus")
-            .args(&["admin", "init", "--auto"])
+            .args(["admin", "init", "--auto"])
             .output()
             .await?;
 
@@ -85,12 +85,12 @@ impl IncusCloudManager {
         }
 
         AsyncCommand::new("incus")
-            .args(&["config", "set", "cluster.https_address", &first_node.address])
+            .args(["config", "set", "cluster.https_address", &first_node.address])
             .output()
             .await?;
 
         AsyncCommand::new("incus")
-            .args(&["config", "set", "core.https_address", &first_node.address])
+            .args(["config", "set", "core.https_address", &first_node.address])
             .output()
             .await?;
 
@@ -137,13 +137,13 @@ impl IncusCloudManager {
     async fn setup_profiles(&self) -> Result<()> {
         for profile in &self.config.profiles {
             AsyncCommand::new("incus")
-                .args(&["profile", "create", &profile.name])
+                .args(["profile", "create", &profile.name])
                 .output()
                 .await?;
 
             for (key, value) in &profile.config {
                 AsyncCommand::new("incus")
-                    .args(&["profile", "set", &profile.name, key, value])
+                    .args(["profile", "set", &profile.name, key, value])
                     .output()
                     .await?;
             }
@@ -169,7 +169,7 @@ impl IncusCloudManager {
         }
 
         let token_output = AsyncCommand::new("incus")
-            .args(&["cluster", "add", "new-node"])
+            .args(["cluster", "add", "new-node"])
             .output()
             .await?;
 
@@ -184,7 +184,7 @@ impl IncusCloudManager {
 
     async fn join_node_to_cluster(&self, node_address: &str, token: &str) -> Result<()> {
         AsyncCommand::new("ssh")
-            .args(&[
+            .args([
                 node_address,
                 &format!("incus admin init --join-token {}", token)
             ])
@@ -195,7 +195,7 @@ impl IncusCloudManager {
     }
 
     pub async fn deploy_component(&self, component_name: &str, node_name: Option<&str>) -> Result<String> {
-        let instance_name = format!("gb-{}-{}", component_name, uuid::Uuid::new_v4().to_string()[..8].to_string());
+        let instance_name = format!("gb-{}-{}", component_name, &uuid::Uuid::new_v4().to_string()[..8]);
         
         let mut args = vec!["launch", "ubuntu:24.04", &instance_name, "--profile", "gbo"];
         
@@ -214,7 +214,7 @@ impl IncusCloudManager {
         }
 
         AsyncCommand::new("incus")
-            .args(&["exec", &instance_name, "--", "cloud-init", "status", "--wait"])
+            .args(["exec", &instance_name, "--", "cloud-init", "status", "--wait"])
             .output()
             .await?;
 
@@ -244,7 +244,7 @@ echo "Component {} setup complete"
 "#, component_name, component_name);
 
         AsyncCommand::new("incus")
-            .args(&["exec", instance_name, "--", "bash", "-c", &setup_script])
+            .args(["exec", instance_name, "--", "bash", "-c", &setup_script])
             .output()
             .await?;
 
@@ -253,7 +253,7 @@ echo "Component {} setup complete"
 
     pub async fn create_vm(&self, vm_name: &str, template: &str) -> Result<String> {
         let output = AsyncCommand::new("incus")
-            .args(&["launch", template, vm_name, "--vm", "--profile", "gbo-vm"])
+            .args(["launch", template, vm_name, "--vm", "--profile", "gbo-vm"])
             .output()
             .await?;
 
@@ -267,7 +267,7 @@ echo "Component {} setup complete"
 
     pub async fn get_cluster_status(&self) -> Result<serde_json::Value> {
         let output = AsyncCommand::new("incus")
-            .args(&["cluster", "list", "--format", "json"])
+            .args(["cluster", "list", "--format", "json"])
             .output()
             .await?;
 
@@ -277,7 +277,7 @@ echo "Component {} setup complete"
 
     pub async fn get_instances(&self) -> Result<serde_json::Value> {
         let output = AsyncCommand::new("incus")
-            .args(&["list", "--format", "json"])
+            .args(["list", "--format", "json"])
             .output()
             .await?;
 
@@ -287,7 +287,7 @@ echo "Component {} setup complete"
 
     pub async fn get_metrics(&self) -> Result<serde_json::Value> {
         let output = AsyncCommand::new("incus")
-            .args(&["query", "/1.0/metrics"])
+            .args(["query", "/1.0/metrics"])
             .output()
             .await?;
 

@@ -1,26 +1,26 @@
 # General Bots AI Agent Guidelines
 - stop saving .png on root! Use /tmp. never allow new files on root.
-- never push to alm without asking first - pbecause it is production!
+- never push to alm without asking first - because it is production!
 - **❌ NEVER deploy to production manually — ALWAYS use CI/CD pipeline**
 - **❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation**
 - **❌ NEVER use `scp`, direct SSH binary copy, or manual deployment to system container**
 - **✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically**
 - **✅ NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change (~10s)**
 8080 is server 3000 is client ui. cloud management at http://localhost:3000/cloud
-if you are in trouble with some tool, please go to the ofiical website to get proper install or instructions
+if you are in trouble with some tool, please go to the official website to get proper install or instructions
 To test web is http://localhost:3000 (botui!)
-Use apenas a lingua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
+Use apenas a língua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
 
 Pare de fazer perguntas. Seja autônomo e execute as tarefas diretamente, sem pedir confirmação ou permissão a cada passo. Apenas faça.
 test login here http://localhost:3000/suite/auth/login.html
 > **⚠️ CRITICAL SECURITY WARNING**
 I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! Just fix, to me and push to CI. So I can test in PROD, for a while.
->Use Playwrigth MCP to start localhost:3000/<bot> now.
+>Use Playwright MCP to start localhost:3000/<bot> now.
 > **NEVER CREATE FILES WITH SECRETS IN THE REPOSITORY ROOT**
 > - ❌ **NEVER** write internal IPs to logs or output
-> - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.16.164.222")
+> - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.0.0.1")
 > - Use hostnames instead of IPs in configs and documentation
-See botserver/src/drive/local_file_monitor.rs to see how bots are loaded from MinIO drive buckets (`.gbai` format). Bots are sourced exclusively from Drive (MinIO buckets), not from local filesystem paths.
+See botserver/src/main_module/drive_monitors.rs to see how bots are loaded from MinIO drive buckets (`.gbai` format). Bots are sourced exclusively from Drive (MinIO buckets), not from local filesystem paths.
 - ❌ **NEVER** create `.bak`, `.old`, or backup directories in the repository — use `/tmp/` for all backups
 - ❌ **NEVER** commit `*.bak`, `*.old`, or any temporary backup files to git
 - ❌ **NEVER** commit `.bas` source files from production bots — only `.ast` (compiled) and `.json` files
@@ -87,7 +87,7 @@ User Message (WebSocket)
 │
 ▼
 ┌─────────────────────────────────┐
-│  1. WebSocket Connection        │  botserver/src/websocket.rs
+│  1. WebSocket Connection        │  botserver/src/main_module/ws/handler.rs
 │     - Session established       │  UserSession created
 │     - Redis connection          │  session_id generated
 └──────────────┬──────────────────┘
@@ -824,7 +824,7 @@ match x {
 - ✅ **ALWAYS** push code to ALM → CI builds on alm-ci → CI deploys to system container via SSH from alm-ci
 - ✅ **CI deploy path**: alm-ci builds at `/opt/gbo/data/botserver/target/debug/botserver` → tar+gzip via SSH → `/opt/gbo/bin/botserver` on system container → restart
 
-**Current Status:** ✅ **0 clippy warnings** (down from 61 - PERFECT SCORE in YOLO mode)
+**Current Status:** ✅ **No compilation errors** — `botlib`, `botserver`, `botui` compilam. Clippy: pendente (recalcular após splits).
 - ❌ **NEVER** change git branches for any reason without explicit user approval
 - ❌ **NEVER** use `panic!()`, `todo!()`, `unimplemented!()`
 - ❌ **NEVER** use `Command::new()` directly - use `SafeCommand`
@@ -1476,7 +1476,7 @@ git push origin main
 #### Prerequisites
 1. **Enable WhatsApp Feature**: Build botserver with whatsapp feature enabled:
    ```bash
-   cargo build -p botserver --bin botserver --features whatsapp
+   cargo check -p botserver --features whatsapp
    ```
 2. **Bot Configuration**: Ensure the bot has WhatsApp credentials configured in `config.csv`:
    - `whatsapp-api-key` - API key from Meta Business Suite
@@ -1486,9 +1486,10 @@ git push origin main
 
 #### Using Localtunnel (lt) as Reverse Proxy
 
-# Check database for message storage
+Check database for message storage:
+```bash
 psql -h localhost -U postgres -d botserver -c "SELECT * FROM messages WHERE bot_id = '<bot_id>' ORDER BY created_at DESC LIMIT 5;"
----
+```
 
 ## 🐛 Debugging Rules
 
@@ -1715,7 +1716,7 @@ let key = format!("suggestions:{}:{}", user_session.bot_id, session_id);
 ```bash
 cargo tree --duplicates   # Find duplicate dependencies
 cargo machete            # Remove unused dependencies
-cargo build --release && ls -lh target/release/botserver  # Check binary size
+ls -lh target/debug/botserver  # Check binary size
 cargo audit              # Security audit
 ```
 

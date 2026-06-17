@@ -1,10 +1,21 @@
 use super::ModelHandler;
 use log;
-use regex::Regex;
-use std::sync::LazyLock;
 
-static TEXT_NUMBER_REGEX: LazyLock<Result<Regex, regex::Error>> =
-    LazyLock::new(|| Regex::new(r"(?<=\p{L})(?=\d)|(?<=\d)(?=\p{L})"));
+fn separate_text_number(text: &str) -> String {
+    let mut result = String::with_capacity(text.len() + 8);
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        result.push(c);
+        if let Some(&next) = chars.peek() {
+            if c.is_alphabetic() && next.is_ascii_digit()
+                || c.is_ascii_digit() && next.is_alphabetic()
+            {
+                result.push(' ');
+            }
+        }
+    }
+    result
+}
 
 /// Handler for GPT-OSS 120B model with thinking tags filtering
 #[derive(Debug)]
@@ -111,11 +122,7 @@ impl ModelHandler for GptOss120bHandler {
             return String::new();
         }
         // Final safety net: fix text-number boundaries in the full response
-        if let Ok(re) = &*TEXT_NUMBER_REGEX {
-            re.replace_all(&cleaned, " ").to_string()
-        } else {
-            cleaned
-        }
+        separate_text_number(&cleaned)
     }
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
@@ -136,12 +143,8 @@ impl ModelHandler for GptOss120bHandler {
             return String::new();
         }
 
-        // Apply text-number regex to the full accumulated buffer
-        let result = if let Ok(re) = &*TEXT_NUMBER_REGEX {
-            re.replace_all(state, " ").to_string()
-        } else {
-            state.clone()
-        };
+        // Apply text-number separation to the full accumulated buffer
+        let result = separate_text_number(state);
 
         state.clear();
         result

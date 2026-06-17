@@ -1,6 +1,6 @@
 use super::{empty_fragment, html_escape};
 use axum::{response::Html, Json};
-use crate::types::{MediaElement, Presentation, Slide, TransitionConfig};
+use crate::types::{MediaElement, Slide, TransitionConfig};
 
 pub async fn handle_slide_list_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let presentation_id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");

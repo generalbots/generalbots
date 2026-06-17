@@ -21,7 +21,7 @@ impl TransitionEffect {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_ooxml_name(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "fade" => Self::Fade,
             "slide" | "slide-left" | "slide-right" => Self::Slide,
@@ -144,6 +144,12 @@ pub struct PptxDocument {
     pub subject: Option<String>,
 }
 
+impl Default for PptxDocument {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PptxDocument {
     pub fn new() -> Self {
         Self {
@@ -165,41 +171,42 @@ impl PptxDocument {
         body: &str,
         background_color: Option<&str>,
     ) {
-        let mut elements = Vec::new();
-        elements.push(SlideElement {
-            element_type: SlideElementType::Text {
-                content: title.to_string(),
-                font_size: Some(44),
-                bold: true,
-                italic: false,
-                underline: false,
-                color: Some("#1F3864".to_string()),
-                font_family: Some("Calibri Light".to_string()),
-                alignment: Some("center".to_string()),
+        let elements = vec![
+            SlideElement {
+                element_type: SlideElementType::Text {
+                    content: title.to_string(),
+                    font_size: Some(44),
+                    bold: true,
+                    italic: false,
+                    underline: false,
+                    color: Some("#1F3864".to_string()),
+                    font_family: Some("Calibri Light".to_string()),
+                    alignment: Some("center".to_string()),
+                },
+                x: 457200,
+                y: 685800,
+                width: 11277600,
+                height: 914400,
+                rotation: None,
             },
-            x: 457200,
-            y: 685800,
-            width: 11277600,
-            height: 914400,
-            rotation: None,
-        });
-        elements.push(SlideElement {
-            element_type: SlideElementType::Text {
-                content: body.to_string(),
-                font_size: Some(24),
-                bold: false,
-                italic: false,
-                underline: false,
-                color: Some("#333333".to_string()),
-                font_family: Some("Calibri".to_string()),
-                alignment: Some("left".to_string()),
+            SlideElement {
+                element_type: SlideElementType::Text {
+                    content: body.to_string(),
+                    font_size: Some(24),
+                    bold: false,
+                    italic: false,
+                    underline: false,
+                    color: Some("#333333".to_string()),
+                    font_family: Some("Calibri".to_string()),
+                    alignment: Some("left".to_string()),
+                },
+                    x: 914400,
+                y: 2286000,
+                width: 10363200,
+                height: 3657600,
+                rotation: None,
             },
-            x: 914400,
-            y: 2286000,
-            width: 10363200,
-            height: 3657600,
-            rotation: None,
-        });
+        ];
         self.slides.push(Slide {
             title: Some(title.to_string()),
             body: Some(body.to_string()),
@@ -335,15 +342,13 @@ impl PptxDocument {
         // ppt/_rels/presentation.xml.rels
         zip.start_file("ppt/_rels/presentation.xml.rels", <zip::write::FileOptions<()>>::default())
             .map_err(|e| e.to_string())?;
-        let mut pres_rels = format!(
-            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        let mut pres_rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rIdSlM" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
   <Relationship Id="rIdThm" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
   <Relationship Id="rIdPrPr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps" Target="presProps.xml"/>
   <Relationship Id="rIdVwPr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/viewProps" Target="viewProps.xml"/>
-"#
-        );
+"#.to_string();
         for (i, _slide) in self.slides.iter().enumerate() {
             let r_id = i + 256;
             pres_rels.push_str(&format!(
@@ -528,12 +533,10 @@ impl PptxDocument {
         let mut image_counter = 0u32;
         for (i, slide) in self.slides.iter().enumerate() {
             let slide_num = i + 1;
-            let mut rels = format!(
-                r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            let mut rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rIdLay" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
-"#
-            );
+"#.to_string();
 
             let mut sp_tree = String::from(r#"<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>"#);
 
@@ -576,18 +579,19 @@ impl PptxDocument {
                         let cy = element.height;
                         let off_x = element.x;
                         let off_y = element.y;
+                        let font_decor = format!("{bold_xml}{italic_xml}{underline_xml}");
 
                         sp_tree.push_str(&format!(
                             r#"<p:sp>
         <p:nvSpPr>
-          <p:cNvPr id="{}" name="TextBox{}"/>
+          <p:cNvPr id="{el_id}" name="TextBox{el_id}"/>
           <p:cNvSpPr txBox="1"/>
           <p:nvPr/>
         </p:nvSpPr>
         <p:spPr>
           <a:xfrm>
-            <a:off x="{}" y="{}"/>
-            <a:ext cx="{}" cy="{}"/>
+            <a:off x="{off_x}" y="{off_y}"/>
+            <a:ext cx="{cx}" cy="{cy}"/>
           </a:xfrm>
           <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
           <a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>
@@ -596,23 +600,17 @@ impl PptxDocument {
           <a:bodyPr rtlCol="0" anchor="t"/>
           <a:lstStyle/>
           <a:p>
-            <a:pPr algn="{}"/>
+            <a:pPr algn="{align_val}"/>
             <a:r>
-              <a:rPr lang="en-US" sz="{}" dirty="0" smtClean="0"{}>
-                <a:solidFill><a:srgbClr val="{}"/></a:solidFill>
-                <a:latin typeface="{}"/>
+              <a:rPr lang="en-US" sz="{sz}" dirty="0" smtClean="0"{font_decor}>
+                <a:solidFill><a:srgbClr val="{color_val}"/></a:solidFill>
+                <a:latin typeface="{font}"/>
               </a:rPr>
-              <a:t xml:space="preserve">{}</a:t>
+              <a:t xml:space="preserve">{escaped}</a:t>
             </a:r>
           </a:p>
         </p:txBody>
       </p:sp>"#,
-                            el_id, el_id,
-                            off_x, off_y, cx, cy,
-                            align_val,
-                            sz,
-                            format!("{}{}{}", bold_xml, italic_xml, underline_xml),
-                            color_val, font, escaped
                         ));
                     }
                     SlideElementType::Image {
@@ -1277,7 +1275,7 @@ pub fn from_json(json: &str) -> Result<PptxDocument, String> {
         let transition = js
             .transition
             .as_deref()
-            .map(TransitionEffect::from_str)
+            .map(TransitionEffect::from_ooxml_name)
             .unwrap_or(TransitionEffect::Fade);
         let layout = match js.layout.as_deref() {
             Some("title") => SlideLayout::Title,

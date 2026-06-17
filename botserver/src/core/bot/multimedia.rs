@@ -96,6 +96,12 @@ pub trait MultimediaHandler: Send + Sync {
 #[derive(Debug)]
 pub struct DefaultMultimediaHandler;
 
+impl Default for DefaultMultimediaHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DefaultMultimediaHandler {
     pub fn new() -> Self {
         Self

@@ -66,7 +66,6 @@ pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<St
     let total = pres.slides.len();
     let current = 0;
     let bg = pres.theme.colors.background.clone();
-    let text = pres.theme.colors.text.clone();
     let primary = pres.theme.colors.primary.clone();
     let current_slide = pres.slides.first();
     let slide_html = current_slide.map(render_slide).unwrap_or_default();

@@ -14,7 +14,6 @@ use axum::{
     Json,
 };
 use chrono::Utc;
-use log::error;
 use std::sync::Arc;
 use uuid::Uuid;
 

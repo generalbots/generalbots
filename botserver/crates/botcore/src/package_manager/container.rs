@@ -665,7 +665,7 @@ impl ContainerOperations for PackageManager {
         let cert_dir = cert_base.join(&settings.cert_name);
 
         for (src, dest) in [
-            (&ca_cert, format!("/opt/gbo/conf/system/certificates/ca/ca.crt")),
+            (&ca_cert, "/opt/gbo/conf/system/certificates/ca/ca.crt".to_string()),
             (&cert_dir.join("server.crt"), format!("/opt/gbo/conf/system/certificates/{}/server.crt", settings.cert_name)),
             (&cert_dir.join("server.key"), format!("/opt/gbo/conf/system/certificates/{}/server.key", settings.cert_name)),
         ] {
@@ -719,7 +719,7 @@ impl ContainerOperations for PackageManager {
 
         // Copy certs to temp, then SCP to host, then incus push
         for (src, dest) in [
-            (&ca_cert, format!("/opt/gbo/conf/system/certificates/ca/ca.crt")),
+            (&ca_cert, "/opt/gbo/conf/system/certificates/ca/ca.crt".to_string()),
             (&cert_dir.join("server.crt"), format!("/opt/gbo/conf/system/certificates/{}/server.crt", settings.cert_name)),
             (&cert_dir.join("server.key"), format!("/opt/gbo/conf/system/certificates/{}/server.key", settings.cert_name)),
         ] {

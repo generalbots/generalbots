@@ -154,8 +154,8 @@ pub async fn handle_add_chart_form(Json(payload): Json<serde_json::Value>) -> Ht
 <label style="color:#f8fafc;font-size:13px;">Título
 <input type="text" name="chart_title" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">Dados (JSON: {labels: [], datasets: [{label, data, color}]})
-<textarea name="data" rows="3" placeholder='{{"labels":["A","B","C"],"datasets":[{"label":"X","data":[1,2,3],"color":"#3b82f6"}]}}' style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;margin-top:4px;font-family:monospace;font-size:11px;resize:vertical;">{{}}</textarea>
+<label style="color:#f8fafc;font-size:13px;">Dados (JSON: {{labels: [], datasets: [{{label, data, color}}]}})
+<textarea name="data" rows="3" placeholder='{{"labels":["A","B","C"],"datasets":[{{"label":"X","data":[1,2,3],"color":"#3b82f6"}}]}}' style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#cbd5e1;margin-top:4px;font-family:monospace;font-size:11px;resize:vertical;">{{}}</textarea>
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Adicionar Gráfico</button>
 </form>"##,

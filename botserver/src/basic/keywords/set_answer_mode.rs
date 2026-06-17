@@ -15,7 +15,7 @@ pub fn register_set_answer_mode_keyword(
         true,
         move |context, inputs| {
             let mode_str = context.eval_expression_tree(&inputs[0])?.to_string();
-            let mode = crate::core::bot::answer_mode::AnswerMode::from_str(&mode_str);
+            let mode = mode_str.parse::<crate::core::bot::answer_mode::AnswerMode>().unwrap_or(crate::core::bot::answer_mode::AnswerMode::Default);
 
             let (tx, rx) = std::sync::mpsc::channel();
             let state_for_thread = state_clone.clone();

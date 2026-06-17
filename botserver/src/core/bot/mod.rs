@@ -1,14 +1,11 @@
 pub use botcorebot::*;
-pub mod ws_handler;
+pub mod ws;
 pub mod manager;
+pub mod manager_ops;
 pub mod tool_context;
 pub mod multimedia;
 
-pub use ws_handler::{websocket_handler, websocket_handler_with_bot};
-use std::collections::HashMap;
-use std::sync::Arc;
-use axum::response::IntoResponse;
-use uuid::Uuid;
+pub use ws::{websocket_handler, websocket_handler_with_bot};
 
 pub mod channels {
     pub use botlib::traits::ChannelAdapter;
@@ -96,6 +93,8 @@ impl TeamsAdapter {
 }
 
 pub mod answer_mode;
+pub mod answer_mode_config;
+pub mod answer_mode_ops;
 pub mod kb_context;
 
 pub struct BotOrchestrator;
@@ -116,139 +115,4 @@ impl BotOrchestrator {
     }
 }
 
-pub fn get_default_bot() -> (String, String) { ("default".to_string(), "Default Bot".to_string()) }
-pub async fn get_bot_config(
-    axum::extract::State(state): axum::extract::State<Arc<botcore::shared::state::AppState>>,
-    axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
-) -> Result<axum::Json<serde_json::Value>, crate::security::SafeErrorResponse> {
-    use diesel::prelude::*;
-    use botcore::shared::models::schema::bot_configuration::dsl::*;
-    use botcore::shared::models::schema::bots;
-
-    let mut conn = state.conn.get().map_err(|e| {
-        log::error!("DB connection error in get_bot_config: {}", e);
-        crate::security::SafeErrorResponse::internal_error()
-    })?;
-
-    let bot_uuid = if let Some(name) = params.get("bot_name") {
-        bots::table
-            .filter(bots::name.eq(name))
-            .select(bots::id)
-            .first::<Uuid>(&mut conn)
-            .ok()
-    } else {
-        None
-    };
-
-    let rows: Vec<(String, String)> = if let Some(bid) = bot_uuid {
-        bot_configuration
-            .select((config_key, config_value))
-            .filter(bot_id.eq(bid))
-            .load(&mut conn)
-    } else {
-        bot_configuration
-            .select((config_key, config_value))
-            .load(&mut conn)
-    }
-    .map_err(|e| {
-        log::error!("DB query error in get_bot_config: {}", e);
-        crate::security::SafeErrorResponse::internal_error()
-    })?;
-
-    let sensitive_prefixes = ["llm-key", "llm-url", "llm-server", "secret", "token", "password", "api-key"];
-    let mut map: HashMap<String, String> = rows
-        .into_iter()
-        .filter(|(k, _)| !sensitive_prefixes.iter().any(|prefix| k.to_lowercase().contains(prefix)))
-        .collect();
-
-    // Add is_public flag from bots table
-    if let Some(name) = params.get("bot_name") {
-        let is_public_val: bool = bots::table
-            .filter(bots::name.eq(name))
-            .select(bots::is_public)
-            .first(&mut conn)
-            .unwrap_or(false);
-        map.insert("is_public".to_string(), if is_public_val { "true".to_string() } else { "false".to_string() });
-    }
-
-    Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()))
-}
-
-pub async fn check_bot_access(state: &Arc<botcore::shared::state::AppState>, bot_name: &str, user_id: Uuid) -> Result<(), String> {
-    use diesel::prelude::*;
-    use botcore::shared::schema::bots::dsl as bots_dsl;
-    use botcore::shared::schema::user_organizations::dsl as uo_dsl;
-
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| format!("DB connection error: {}", e))?;
-
-    let bot_record = bots_dsl::bots
-        .filter(bots_dsl::name.eq(bot_name))
-        .select((bots_dsl::is_public, bots_dsl::org_id))
-        .first::<(bool, Option<Uuid>)>(&mut *conn)
-        .optional()
-        .map_err(|e| format!("DB query error: {}", e))?;
-
-    let (is_public, org_id) = match bot_record {
-        Some(record) => record,
-        None => return Err("Bot not found".to_string()),
-    };
-
-    if is_public {
-        return Ok(());
-    }
-
-    if let Some(org_id) = org_id {
-        let is_member = uo_dsl::user_organizations
-            .filter(uo_dsl::user_id.eq(user_id))
-            .filter(uo_dsl::org_id.eq(org_id))
-            .count()
-            .get_result::<i64>(&mut *conn)
-            .map_err(|e| format!("DB query error: {}", e))? > 0;
-
-        if is_member {
-            return Ok(());
-        }
-    }
-
-    Err("Access denied".to_string())
-}
-
-pub async fn check_access_handler(
-    axum::extract::State(state): axum::extract::State<Arc<botcore::shared::state::AppState>>,
-    axum::extract::Path(bot_name): axum::extract::Path<String>,
-    req: axum::extract::Request,
-) -> impl IntoResponse {
-    // 1. Verificamos primeiro se o bot é público no banco de dados.
-    let is_public = {
-        use diesel::prelude::*;
-        use botcore::shared::schema::bots::dsl as bots_dsl;
-        if let Ok(mut conn) = state.conn.get() {
-            bots_dsl::bots
-                .filter(bots_dsl::name.eq(&bot_name))
-                .select(bots_dsl::is_public)
-                .first::<bool>(&mut *conn)
-                .unwrap_or(false)
-        } else {
-            false
-        }
-    };
-
-    if is_public || bot_name == "default" {
-        return axum::http::StatusCode::OK.into_response();
-    }
-
-    // 2. Se não for público, exigimos autenticação.
-    let user = req.extensions().get::<crate::security::auth_api::types::AuthenticatedUser>();
-    let user_id = match user {
-        Some(u) if u.is_authenticated() => u.user_id,
-        _ => return axum::http::StatusCode::UNAUTHORIZED.into_response(),
-    };
-
-    match check_bot_access(&state, &bot_name, user_id).await {
-        Ok(_) => axum::http::StatusCode::OK.into_response(),
-        Err(_) => axum::http::StatusCode::FORBIDDEN.into_response(),
-    }
-}
+pub use manager_ops::{get_default_bot, get_bot_config, check_bot_access, check_access_handler};

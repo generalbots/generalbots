@@ -18,7 +18,7 @@ pub fn get_service_list() -> Vec<ServiceCert> {
 }
 
 /// Generate CA if not exists, then generate certs for all services
-pub fn generate_all_certs(base_path: &PathBuf) -> Result<()> {
+pub fn generate_all_certs(base_path: &std::path::Path) -> Result<()> {
     let cert_base = base_path.join("conf/system/certificates");
     let ca_key = cert_base.join("ca/ca.key");
     let ca_crt = cert_base.join("ca/ca.crt");
@@ -110,7 +110,7 @@ pub fn generate_all_certs(base_path: &PathBuf) -> Result<()> {
 }
 
 /// Push all certs to their respective containers via SSH to incus host
-pub fn push_all_certs_ssh(base_path: &PathBuf, ssh_host: &str) -> Result<()> {
+pub fn push_all_certs_ssh(base_path: &std::path::Path, ssh_host: &str) -> Result<()> {
     let cert_base = base_path.join("conf/system/certificates");
     let ca_crt = cert_base.join("ca/ca.crt");
     if !ca_crt.exists() {

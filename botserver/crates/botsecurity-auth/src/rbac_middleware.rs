@@ -27,8 +27,8 @@ pub fn match_wildcard(pattern: &str, value: &str) -> bool {
         return true;
     }
 
-    let pattern_parts: Vec<&str> = p_lower.split(|c| c == ':' || c == '.').collect();
-    let value_parts: Vec<&str> = v_lower.split(|c| c == ':' || c == '.').collect();
+    let pattern_parts: Vec<&str> = p_lower.split([':', '.']).collect();
+    let value_parts: Vec<&str> = v_lower.split([':', '.']).collect();
 
     for (i, part) in pattern_parts.iter().enumerate() {
         if *part == "*" || *part == "**" {
