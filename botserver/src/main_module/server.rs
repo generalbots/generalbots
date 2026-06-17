@@ -336,6 +336,7 @@ pub async fn run_axum_server(
     #[cfg(feature = "analytics")]
     {
         sub_router = sub_router.merge(crate::analytics::routes::create_analytics_router(Arc::new(app_state.conn.clone())));
+        sub_router = sub_router.merge(crate::analytics::insights::configure_insights_routes().with_state(Arc::new(app_state.conn.clone())));
     }
     sub_router = sub_router.merge(crate::core::i18n::configure_i18n_routes().with_state(app_state.clone()));
     #[cfg(feature = "docs")]
@@ -611,6 +612,14 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     // }
     api_router = api_router.nest("/api/directory", crate::directory::router::configure());
     api_router = api_router.nest("/api/auth", crate::directory::auth_routes::configure());
+    // Directory user provisioning API routes (botcoredirectory::api)
+    {
+        let directory_api_state = Arc::new(crate::directory::api::DirectoryApiState {
+            conn: app_state.conn.clone(),
+            base_url: format!("http://localhost:{}", port),
+        });
+        api_router = api_router.merge(crate::directory::api::configure_user_routes().with_state(directory_api_state));
+    }
     sub_router = sub_router.merge(crate::directory::scim::server::configure_scim_routes().with_state(app_state.clone()));
 
     api_router = api_router
