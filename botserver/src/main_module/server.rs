@@ -565,7 +565,8 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     {
         let project_service = std::sync::Arc::new(crate::project::ProjectService::new());
         let project_router = crate::project::configure(project_service.clone());
-        sub_router = sub_router.merge(project_router.with_state(project_service));
+        sub_router = sub_router.merge(project_router.with_state(project_service.clone()));
+        sub_router = sub_router.merge(crate::project::project_ui::configure_project_ui_routes().with_state(project_service));
     }
     #[cfg(all(feature = "analytics", feature = "goals"))]
     {
@@ -605,6 +606,10 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     {
         let gl_state = Arc::new(crate::gl::GlState { pool: app_state.conn.clone() });
         sub_router = sub_router.merge(crate::gl::configure_gl_routes().with_state(gl_state));
+    }
+    #[cfg(feature = "retail")]
+    {
+        sub_router = sub_router.merge(crate::retail::configure_retail_routes().with_state(Arc::new(crate::retail::RetailState)));
     }
     // Desktop disabled — uses axum 0.8 which is incompatible with workspace axum 0.7
     // #[cfg(feature = "desktop")]

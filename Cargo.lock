@@ -2628,6 +2628,7 @@ dependencies = [
  "botproject",
  "botqdrant",
  "botresearch",
+ "botretail",
  "botsearch",
  "botsecurity",
  "botsettings",

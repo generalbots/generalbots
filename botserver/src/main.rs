@@ -111,6 +111,9 @@ pub mod inventory;
 #[cfg(feature = "gl")]
 pub mod gl;
 
+#[cfg(feature = "retail")]
+pub mod retail;
+
 #[cfg(feature = "attendant")]
 pub mod attendance;
 
