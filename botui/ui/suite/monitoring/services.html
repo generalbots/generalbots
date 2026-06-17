@@ -52,24 +52,7 @@
                 <option value="warning">Warning</option>
                 <option value="stopped">Stopped</option>
             </select>
-            <button
-                class="action-btn"
-                onclick="restartAllServices()"
-                title="Restart All"
-            >
-                <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <polyline points="23 4 23 10 17 10"></polyline>
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                </svg>
-                Restart All
-            </button>
+
         </div>
     </div>
 
@@ -228,40 +211,7 @@
                     <line x1="12" y1="8" x2="12.01" y2="8"></line>
                 </svg>
             </button>
-            <button
-                class="card-btn"
-                onclick="restartService('service-id')"
-                title="Restart"
-            >
-                <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <polyline points="23 4 23 10 17 10"></polyline>
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                </svg>
-            </button>
-            <button
-                class="card-btn"
-                onclick="stopService('service-id')"
-                title="Stop"
-            >
-                <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <rect x="6" y="4" width="4" height="16"></rect>
-                    <rect x="14" y="4" width="4" height="16"></rect>
-                </svg>
-            </button>
+
             <button
                 class="card-btn"
                 onclick="viewServiceLogs('service-id')"
@@ -334,34 +284,6 @@
             .classList.remove("open");
     }
 
-    function restartService(serviceId) {
-        if (confirm(`Are you sure you want to restart ${serviceId}?`)) {
-            htmx.ajax("POST", `/api/services/${serviceId}/restart`, {
-                swap: "none",
-            }).then(() => {
-                htmx.trigger("#services-grid", "refresh");
-            });
-        }
-    }
-
-    function stopService(serviceId) {
-        if (confirm(`Are you sure you want to stop ${serviceId}?`)) {
-            htmx.ajax("POST", `/api/services/${serviceId}/stop`, {
-                swap: "none",
-            }).then(() => {
-                htmx.trigger("#services-grid", "refresh");
-            });
-        }
-    }
-
-    function startService(serviceId) {
-        htmx.ajax("POST", `/api/services/${serviceId}/start`, {
-            swap: "none",
-        }).then(() => {
-            htmx.trigger("#services-grid", "refresh");
-        });
-    }
-
     function viewServiceLogs(serviceId) {
         // Navigate to logs with service filter
         const logsLink = document.querySelector('.nav-item[href="#logs"]');
@@ -374,20 +296,6 @@
                     serviceFilter.dispatchEvent(new Event("change"));
                 }
             }, 300);
-        }
-    }
-
-    function restartAllServices() {
-        if (
-            confirm(
-                "Are you sure you want to restart all services? This may cause temporary downtime.",
-            )
-        ) {
-            htmx.ajax("POST", "/api/services/restart-all", {
-                swap: "none",
-            }).then(() => {
-                htmx.trigger("#services-grid", "refresh");
-            });
         }
     }
 
