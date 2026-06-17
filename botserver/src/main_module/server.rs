@@ -612,6 +612,11 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     //     let desktop_state = Arc::new(crate::desktop::AppState::new());
     //     sub_router = sub_router.merge(crate::desktop::routes::configure_routes().with_state(desktop_state));
     // }
+    #[cfg(feature = "weba")]
+    {
+        let weba_state = Arc::new(crate::weba::WebaState::new());
+        sub_router = sub_router.merge(crate::weba::configure_routes(weba_state));
+    }
     api_router = api_router.nest("/api/directory", crate::directory::router::configure());
     api_router = api_router.nest("/api/auth", crate::directory::auth_routes::configure());
     // Directory user provisioning API routes (botcoredirectory::api)
@@ -752,6 +757,13 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
             }),
             attendant_broadcast: None,
         })));
+    }
+
+    #[cfg(feature = "sources")]
+    {
+        let sources_state = crate::sources::make_sources_state(app_state.conn.clone());
+        sub_router = sub_router.merge(crate::sources::configure_sources_api_routes().with_state(sources_state.clone()));
+        sub_router = sub_router.merge(crate::sources::configure_sources_ui_routes().with_state(sources_state));
     }
 
  #[cfg(feature = "attendant")]

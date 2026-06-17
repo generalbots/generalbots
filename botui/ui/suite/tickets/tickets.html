@@ -75,8 +75,20 @@
                 </svg>
                 <span data-i18n="tickets-new">New Case</span>
             </button>
+            <button class="btn-secondary" id="tickets-sla-btn"
+                    hx-get="/suite/tickets/partials/sla.html"
+                    hx-target="#tickets-sla-panel"
+                    hx-trigger="click"
+                    onclick="this.classList.toggle('active')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span data-i18n="tickets-sla">SLA</span>
+            </button>
         </div>
     </header>
+    <div id="tickets-sla-panel"></div>
 
     <!-- Search Results -->
     <div id="tickets-search-results" class="tickets-search-results"></div>
