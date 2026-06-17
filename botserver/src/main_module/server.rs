@@ -588,6 +588,21 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
                     get_bot_context: Arc::new(|_c: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>| (uuid::Uuid::nil(), uuid::Uuid::nil())),
                 })));
     }
+    #[cfg(feature = "fraud")]
+    {
+        let fraud_state = Arc::new(crate::fraud::FraudState::new(app_state.conn.clone()));
+        sub_router = sub_router.merge(crate::fraud::configure_fraud_routes().with_state(fraud_state));
+    }
+    #[cfg(feature = "inventory")]
+    {
+        let inventory_state = Arc::new(crate::inventory::InventoryState { pool: app_state.conn.clone() });
+        sub_router = sub_router.merge(crate::inventory::configure_inventory_routes().with_state(inventory_state));
+    }
+    #[cfg(feature = "gl")]
+    {
+        let gl_state = Arc::new(crate::gl::GlState { pool: app_state.conn.clone() });
+        sub_router = sub_router.merge(crate::gl::configure_gl_routes().with_state(gl_state));
+    }
     // Desktop disabled — uses axum 0.8 which is incompatible with workspace axum 0.7
     // #[cfg(feature = "desktop")]
     // {
@@ -622,6 +637,10 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     #[cfg(feature = "learn")]
     {
         sub_router = sub_router.merge(crate::learn::ui::configure_learn_ui_routes());
+        sub_router = sub_router.merge(
+            crate::learn::creator::configure_learn_api_routes()
+                .with_state(Arc::new(botlearn::GamificationService::new()))
+        );
     }
     // email UI routes moved to base_router (crate state adapter)
     #[cfg(feature = "meet")]
