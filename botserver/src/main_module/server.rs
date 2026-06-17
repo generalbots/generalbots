@@ -558,6 +558,8 @@ sub_router = sub_router.merge(crate::basic::keywords::configure_db_routes().with
 sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
 }
     sub_router = sub_router.merge(botcore::shared::admin::configure().with_state(app_state.clone()));
+    sub_router = sub_router.merge(botcore::shared::analytics::configure().with_state(app_state.clone()));
+    sub_router = sub_router.merge(botcore::organization_invitations::configure().with_state(app_state.clone()));
     
     #[cfg(feature = "project")]
     {
@@ -718,6 +720,30 @@ sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(&app_state));
     #[cfg(feature = "telegram")]
     {
         sub_router = sub_router.merge(crate::telegram::webhook::configure().with_state(Arc::new(bottelegram::ChannelState {
+            conn: Arc::new(app_state.conn.clone()),
+            get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
+            get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
+            stream_response: Arc::new(|_: botlib::models::UserMessage, _: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+                tokio::spawn(async move { Ok(()) })
+            }),
+            attendant_broadcast: None,
+        })));
+    }
+
+    #[cfg(feature = "instagram")]
+    {
+        sub_router = sub_router.merge(crate::instagram::webhook::configure().with_state(Arc::new(botinstagram::state::ChannelState {
+            get_config: Arc::new(|_: &str, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
+            stream_response: Arc::new(|_: botlib::models::UserMessage, _: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+                tokio::spawn(async move { Ok(()) })
+            }),
+            attendant_broadcast: None,
+        })));
+    }
+
+    #[cfg(feature = "msteams")]
+    {
+        sub_router = sub_router.merge(crate::msteams::webhook::configure().with_state(Arc::new(botmsteams::state::ChannelState {
             conn: Arc::new(app_state.conn.clone()),
             get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
             get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
