@@ -103,6 +103,9 @@ legal = ["automation", "drive", "cache", "dep:botlegal"]
 attendance = ["automation", "drive", "cache", "dep:botattendance"]
 maintenance = ["automation", "drive", "cache", "dep:botmaintenance"]
 deployment = ["automation", "drive", "cache", "dep:botdeployment"]
+fraud = ["automation", "drive", "cache", "dep:botfraud"]
+inventory = ["automation", "drive", "cache", "dep:botinventory"]
+gl = ["automation", "drive", "cache", "dep:botgl"]
 vibe = ["automation", "dep:botvibe", "botbasic_system/vibe"]
 kb = ["automation", "drive", "cache", "dep:botkb"]
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
@@ -131,6 +134,7 @@ allbutooxmlsdk = [
     "vibe", "kb", "multimodal", "search", "desktop",
     "browser", "terminal", "external_sync", "nvidia",
     "deployment",
+    "fraud", "inventory", "gl",
     "security", "directory", "llm", "vectordb", "crawler", "console",
     "saas",
 ]
@@ -341,6 +345,9 @@ botplayer = { workspace = true, optional = true }
 botmultimodal = { workspace = true, optional = true }
 botsearch = { workspace = true, optional = true }
 botdesktop = { workspace = true, optional = true }
+botfraud = { workspace = true, optional = true }
+botinventory = { workspace = true, optional = true }
+botgl = { workspace = true, optional = true }
 botapps = { workspace = true }
 botmodelsbridge = { workspace = true }
 botcloud = { path = "crates/botcloud", optional = true }

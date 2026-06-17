@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use log::{error, info, warn};
+use log::{info, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;

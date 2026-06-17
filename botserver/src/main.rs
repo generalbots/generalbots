@@ -102,6 +102,15 @@ pub mod apps;
 #[cfg(feature = "desktop")]
 pub mod desktop;
 
+#[cfg(feature = "fraud")]
+pub mod fraud;
+
+#[cfg(feature = "inventory")]
+pub mod inventory;
+
+#[cfg(feature = "gl")]
+pub mod gl;
+
 #[cfg(feature = "attendant")]
 pub mod attendance;
 
