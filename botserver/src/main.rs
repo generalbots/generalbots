@@ -198,37 +198,7 @@ async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
 
-    // Handle `botserver security fix` and `botserver security status` CLI subcommands
-    #[cfg(feature = "security")]
-    if args.get(1).map(|s| s.as_str()) == Some("security") {
-        let subcommand = args.get(2).map(|s| s.as_str()).unwrap_or("status");
-        match subcommand {
-            "fix" => {
-                if args.get(3).map(|s| s.as_str()) == Some("--bootstrap") {
-                    crate::security::protection::print_bootstrap_instructions();
-                    std::process::exit(0);
-                }
-                let report = crate::security::protection::run_security_fix().await;
-                println!("=== Security Fix Report ===");
-                println!("Firewall : {} — {}", if report.firewall.ok { "OK" } else { "FAIL" }, report.firewall.output.trim());
-                println!("Fail2ban : {} — {}", if report.fail2ban.ok { "OK" } else { "FAIL" }, report.fail2ban.output.trim());
-                println!("Caddy    : {} — {}", if report.caddy.ok { "OK" } else { "FAIL" }, report.caddy.output.trim());
-                println!("Overall  : {}", if report.success { "SUCCESS" } else { "PARTIAL" });
-                std::process::exit(if report.success { 0 } else { 1 });
-            }            "status" => {
-                let report = crate::security::protection::run_security_status().await;
-                println!("=== Security Status ===");
-                println!("Firewall : {}", report.firewall.output.trim());
-                println!("Fail2ban : {}", report.fail2ban.output.trim());
-                println!("Caddy    : {}", report.caddy.output.trim());
-                std::process::exit(0);
-            }
-            _ => {
-                eprintln!("Usage: botserver security <fix|status>");
-                std::process::exit(1);
-            }
-        }
-    }
+    crate::main_module::handle_security_command(&args).await;
 
     #[cfg(feature = "console")]
     let no_console = args.contains(&"--noconsole".to_string());
@@ -267,27 +237,7 @@ async fn main() -> std::io::Result<()> {
         trace!("Bootstrap not complete - skipping early SecretsManager init");
     }
 
-let noise_filters = "vaultrs=off,rustify=off,rustify_derive=off,\
-aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
-aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
-mio=off,tokio=off,tokio_util=off,tower=off,tower_http=off,\
-tokio_tungstenite=off,tungstenite=off,\
-reqwest=off,hyper=off,hyper_util=off,h2=off,\
-rustls=off,rustls_pemfile=off,tokio_rustls=off,\
-         tracing=off,tracing_core=off,tracing_subscriber=off,\
-         diesel=off,diesel_migrations=off,r2d2=warn,\
-         serde=off,serde_json=off,\
-         axum=off,axum_core=off,\
-         tonic=off,prost=off,\
-         lettre=off,imap=off,mailparse=off,\
-         crossterm=off,ratatui=off,\
-         tauri=off,tauri_runtime=off,tauri_utils=off,\
-         notify=off,ignore=off,walkdir=off,\
-         want=off,try_lock=off,futures=off,\
-         base64=off,bytes=off,encoding_rs=off,\
-         url=off,percent_encoding=off,\
-         ring=off,webpki=off,\
-         hickory_resolver=off,hickory_proto=off";
+    let noise_filters = crate::main_module::get_noise_filters();
 
     let rust_log = match std::env::var("RUST_LOG") {
         Ok(existing) if !existing.is_empty() => format!("{},{}", existing, noise_filters),
@@ -387,29 +337,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
         log::warn!("Failed to resume workflows on startup: {}", e);
     }
 
-    #[cfg(feature = "tasks")]
-    {
-        let tasks_state = Arc::new(crate::tasks::TasksState {
-            pool: app_state.conn.clone(),
-            run_command: Arc::new(|_cmd: &str, _args: &[&str]| -> Result<String, String> {
-                Ok("stub".to_string())
-            }),
-            call_llm: Arc::new(|_sys: &str, _prompt: &str| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {
-                Box::pin(async { Ok("stub".to_string()) })
-            }),
-            get_config: Arc::new(|_key: &str| -> Result<String, String> {
-                Ok("stub".to_string())
-            }),
-            cache_get: Arc::new(|_key: String| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send>> {
-                Box::pin(async { Ok(None) })
-            }),
-            cache_set: Arc::new(|_key: String, _value: String, _ttl: Option<u64>| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>> {
-                Box::pin(async { Ok(()) })
-            }),
-        });
-        let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(tasks_state));
-        task_scheduler.start();
-    }
+    crate::main_module::init_task_scheduler(&app_state);
 
     #[cfg(any(feature = "research", feature = "llm"))]
     if let Err(e) = crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {
@@ -451,25 +379,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
 
     start_background_services(app_state.clone(), &app_state.conn).await;
 
-    #[cfg(feature = "automation")]
-    {
-        let automation_state = app_state.clone();
-        tokio::spawn(async move {
-            register_thread("automation-service", "automation");
-            let automation = crate::core::automation::AutomationService::new(automation_state);
-            trace!(
-                "[TASK] AutomationService starting, RSS={}",
-                MemoryStats::format_bytes(MemoryStats::current().rss_bytes)
-            );
-            loop {
-                botcore::shared::memory_monitor::record_thread_activity("automation-service");
-                if let Err(e) = automation.check_scheduled_tasks().await {
-                    error!("Error checking scheduled tasks: {}", e);
-                }
-                tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-            }
-        });
-    }
+    crate::main_module::start_automation_service(app_state.clone());
 
     trace!("Initial data setup task spawned");
     trace!("All system threads started, starting HTTP server...");
@@ -489,8 +399,5 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
 }
 
 use std::sync::Arc;
-use botcore::shared::memory_monitor::MemoryStats;
-use botcore::shared::memory_monitor::register_thread;
-#[cfg(feature = "security")]
 #[cfg(feature = "security")]
 use crate::security::set_global_panic_hook;

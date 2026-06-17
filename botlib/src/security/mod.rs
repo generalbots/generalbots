@@ -1,10 +1,15 @@
 pub mod command_guard;
+pub mod command_utils;
+pub mod command_validation;
 mod utils;
 
-pub use command_guard::{
-    sanitize_filename, safe_pdftotext, safe_pdftotext_async, safe_pandoc_async,
-    safe_nvidia_smi, has_nvidia_gpu_safe, validate_argument, validate_path,
-    CommandGuardError, SafeCommand,
+pub use command_guard::SafeCommand;
+pub use command_utils::{
+    has_nvidia_gpu_safe, safe_nvidia_smi, safe_pandoc_async, safe_pdftotext,
+    safe_pdftotext_async,
+};
+pub use command_validation::{
+    sanitize_filename, validate_argument, validate_path, CommandGuardError,
 };
 pub use utils::{ca_cert_path, get_stack_path};
 #[cfg(feature = "http-client")]

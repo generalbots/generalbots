@@ -9,8 +9,21 @@ static ANALYSIS_MARKER_REGEX: LazyLock<Result<Regex, regex::Error>> =
 static FINAL_MARKER_REGEX: LazyLock<Result<Regex, regex::Error>> =
     LazyLock::new(|| Regex::new(r"<\|message\|>final<\|message\|>"));
 
-static TEXT_NUMBER_REGEX: LazyLock<Result<Regex, regex::Error>> =
-    LazyLock::new(|| Regex::new(r"(?<=\p{L})(?=\d)|(?<=\d)(?=\p{L})"));
+fn separate_text_number(text: &str) -> String {
+    let mut result = String::with_capacity(text.len() + 8);
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        result.push(c);
+        if let Some(&next) = chars.peek() {
+            if c.is_alphabetic() && next.is_ascii_digit()
+                || c.is_ascii_digit() && next.is_alphabetic()
+            {
+                result.push(' ');
+            }
+        }
+    }
+    result
+}
 
 #[derive(Debug)]
 pub struct GptOss20bHandler;
@@ -36,11 +49,7 @@ impl ModelHandler for GptOss20bHandler {
             without_think
         };
         // Safety net: fix text-number boundaries across the full text
-        if let Ok(re) = &*TEXT_NUMBER_REGEX {
-            re.replace_all(&cleaned, " ").to_string()
-        } else {
-            cleaned
-        }
+        separate_text_number(&cleaned)
     }
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
@@ -62,11 +71,7 @@ impl ModelHandler for GptOss20bHandler {
         }
 
         // Apply text-number regex to the full accumulated buffer
-        let result = if let Ok(re) = &*TEXT_NUMBER_REGEX {
-            re.replace_all(state, " ").to_string()
-        } else {
-            state.clone()
-        };
+        let result = separate_text_number(state);
 
         state.clear();
         result

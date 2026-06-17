@@ -8,8 +8,6 @@ pub use botcore::shared::UserSession;
 
 pub use botbasic_compiler as compiler;
 pub mod keywords;
-#[path = "keywords/set_answer_mode.rs"]
-mod set_answer_mode;
 
 #[derive(QueryableByName)]
 struct ParamConfigRow {
@@ -44,7 +42,7 @@ impl ScriptService {
         botbasic_system::register_system_keywords(runtime, bt_user, &mut engine);
 
         // Register local (botserver-only) keywords that need Arc<AppState>
-        set_answer_mode::register_set_answer_mode_keyword(state_for_local.clone(), user.clone(), &mut engine);
+        keywords::set_answer_mode::register_set_answer_mode_keyword(state_for_local.clone(), user.clone(), &mut engine);
         register_universal_messaging(state_for_local.clone(), user.clone(), &mut engine);
         send_mail_keyword(state_for_local, user, &mut engine);
 
@@ -109,8 +107,7 @@ impl ScriptService {
                 return Err(Box::new(e.into()));
             }
         };
-        let result = self.engine.eval_ast_with_scope(&mut self.scope, &ast);
-        result
+        self.engine.eval_ast_with_scope(&mut self.scope, &ast)
     }
 
     pub async fn execute_script(

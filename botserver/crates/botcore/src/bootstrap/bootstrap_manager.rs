@@ -88,7 +88,8 @@ impl BootstrapManager {
 
         // Phase 2: Start all other services IN PARALLEL (vault credentials now available).
         // Start them all first (fast nohup launches), then wait for readiness concurrently.
-        let other_services: [(&str, fn() -> bool, u32, bool); 6] = [
+        type ServiceConfig = (&'static str, fn() -> bool, u32, bool);
+        let other_services: [ServiceConfig; 6] = [
             ("vector_db", vector_db_health_check, 45, true),
             ("tables", tables_health_check, 0, false),
             ("cache", cache_health_check, 30, true),
@@ -97,7 +98,8 @@ impl BootstrapManager {
             ("alm", alm_health_check, 0, false),
         ];
 
-        let mut wait_services: Vec<(&str, fn() -> bool, u32)> = Vec::new();
+        type WaitService = (&'static str, fn() -> bool, u32);
+        let mut wait_services: Vec<WaitService> = Vec::new();
 
         for (name, check_fn, max_wait, need_wait) in &other_services {
             if !pm.is_installed(name) {

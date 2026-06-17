@@ -56,7 +56,7 @@ impl botlib::traits::LLMProvider for BotlibLLMProviderWrapper {
         let config = config.clone();
         let model = model.to_string();
         let key = key.to_string();
-        let tools = tools.map(|t| t.clone());
+        let tools = tools.cloned();
         let inner = self.inner.clone();
         Box::pin(async move {
             inner.generate_stream(&prompt, &config, tx, &model, &key, tools.as_ref()).await.map_err(|e| e.to_string())

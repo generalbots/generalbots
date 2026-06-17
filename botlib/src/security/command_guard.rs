@@ -3,133 +3,29 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::{Child, Output};
 use std::sync::LazyLock;
+use super::command_validation::{validate_argument, validate_path};
+pub use super::command_validation::CommandGuardError;
 use super::utils::get_stack_path;
 
 static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
-        "pdftotext",
-        "pandoc",
-        "nvidia-smi",
-        "powershell",
-        "clamscan",
-        "freshclam",
-        "mc",
-        "ffmpeg",
-        "ffprobe",
-        "convert",
-        "gs",
-        "tesseract",
-        "which",
-        "where",
-        "sh",
-        "bash",
-        "cmd",
-        "pkill",
-        "pgrep",
-        "kill",
-        "fuser",
-        "curl",
-        "tar",
-        "unzip",
-        "openssl",
-        "pg_dump",
-        "pg_isready",
-        "lxc",
-        "lxc-execute",
-        "lxd",
-        "docker",
-        "apt-get",
-        "brew",
-        "rustc",
-        "nvcc",
-        "rclone",
-        "notify-send",
-        "osascript",
-        "true",
-        "rm",
-        "find",
-        "ss",
-        "cargo",
-        "redis-server",
-        "redis-cli",
-        "valkey-cli",
-        "valkey-server",
-        "minio",
-        "chromedriver",
-        "chrome",
-        "chromium",
-        "brave",
-        "diesel",
-        "initdb",
-        "pg_ctl",
-        "createdb",
-        "psql",
-        "forgejo",
-        "forgejo-runner",
-        "incus",
-        "lxc",
-        "lxd",
-        "lynis",
-        "rkhunter",
-        "chkrootkit",
-        "suricata",
-        "suricata-update",
-        "maldet",
-        "systemctl",
-        "sudo",
-        "visudo",
-        "id",
-        "netsh",
-        "llama-server",
-        "ollama",
-        "vault",
-        "nc",
-        "netcat",
-        "python",
-        "python3",
-        "python3.11",
-        "python3.12",
-        "tasklist",
-        "tar.exe",
+        "pdftotext", "pandoc", "nvidia-smi", "powershell", "clamscan",
+        "freshclam", "mc", "ffmpeg", "ffprobe", "convert", "gs",
+        "tesseract", "which", "where", "sh", "bash", "cmd", "pkill",
+        "pgrep", "kill", "fuser", "curl", "tar", "unzip", "openssl",
+        "pg_dump", "pg_isready", "lxc", "lxc-execute", "lxd", "docker",
+        "apt-get", "brew", "rustc", "nvcc", "rclone", "notify-send",
+        "osascript", "true", "rm", "find", "ss", "cargo",
+        "redis-server", "redis-cli", "valkey-cli", "valkey-server",
+        "minio", "chromedriver", "chrome", "chromium", "brave", "diesel",
+        "initdb", "pg_ctl", "createdb", "psql", "forgejo",
+        "forgejo-runner", "incus", "lynis", "rkhunter", "chkrootkit",
+        "suricata", "suricata-update", "maldet", "systemctl", "sudo",
+        "visudo", "id", "netsh", "llama-server", "ollama", "vault",
+        "nc", "netcat", "python", "python3", "python3.11", "python3.12",
+        "tasklist", "tar.exe",
     ])
 });
-
-static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> = LazyLock::new(|| {
-    HashSet::from([
-        ';', '|', '&', '$', '`', '<', '>', '\n', '\r', '\0',
-    ])
-});
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CommandGuardError {
-    CommandNotAllowed(String),
-    InvalidArgument(String),
-    PathTraversal(String),
-    ExecutionFailed(String),
-    ShellInjectionAttempt(String),
-}
-
-impl std::fmt::Display for CommandGuardError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::CommandNotAllowed(cmd) => write!(f, "Command not in allowlist: {cmd}"),
-            Self::InvalidArgument(arg) => write!(f, "Invalid argument: {arg}"),
-            Self::PathTraversal(path) => write!(f, "Path traversal detected: {path}"),
-            Self::ExecutionFailed(msg) => write!(f, "Command execution failed: {msg}"),
-            Self::ShellInjectionAttempt(input) => {
-                write!(f, "Shell injection attempt detected: {input}")
-            }
-        }
-    }
-}
-
-impl From<CommandGuardError> for String {
-    fn from(val: CommandGuardError) -> Self {
-        val.to_string()
-    }
-}
-
-impl std::error::Error for CommandGuardError {}
 
 pub struct SafeCommand {
     command: String,
@@ -376,7 +272,10 @@ impl SafeCommand {
                     .to_string_lossy()
                     .to_string(),
             );
-            cmd.env("SYSTEMROOT", std::env::var("SYSTEMROOT").unwrap_or_else(|_| "C:\\Windows".into()));
+            cmd.env(
+                "SYSTEMROOT",
+                std::env::var("SYSTEMROOT").unwrap_or_else(|_| "C:\\Windows".into()),
+            );
         }
 
         #[cfg(not(target_os = "windows"))]
@@ -487,270 +386,9 @@ impl SafeCommand {
     }
 }
 
-pub fn validate_argument(arg: &str) -> Result<(), CommandGuardError> {
-    if arg.is_empty() {
-        return Err(CommandGuardError::InvalidArgument(
-            "Empty argument".to_string(),
-        ));
-    }
-
-    if arg.len() > 4096 {
-        return Err(CommandGuardError::InvalidArgument(
-            "Argument too long".to_string(),
-        ));
-    }
-
-    let is_url = arg.starts_with("http://") || arg.starts_with("https://");
-
-    for c in arg.chars() {
-        if FORBIDDEN_SHELL_CHARS.contains(&c) {
-            if is_url && (c == '&' || c == '?' || c == '=') {
-                continue;
-            }
-            return Err(CommandGuardError::ShellInjectionAttempt(format!(
-                "Forbidden character '{}' in argument",
-                c.escape_default()
-            )));
-        }
-    }
-
-    let dangerous_patterns = [
-        "$(", "`", "&&", "||", ">>", "<<", "..", "//", "\\\\",
-    ];
-
-    for pattern in dangerous_patterns {
-        if arg.contains(pattern) {
-            if is_url && pattern == "//" {
-                continue;
-            }
-            return Err(CommandGuardError::ShellInjectionAttempt(format!(
-                "Dangerous pattern '{}' detected",
-                pattern
-            )));
-        }
-    }
-
-    Ok(())
-}
-
-fn normalize_path_for_compare(p: &std::path::Path) -> String {
-    let s = p.to_string_lossy();
-    let s = if let Some(stripped) = s.strip_prefix("\\\\?\\") {
-        stripped.to_string()
-    } else {
-        s.to_string()
-    };
-    let s = if s.starts_with("Z:\\") || s.starts_with("Z:/")
-        || s.starts_with("z:\\") || s.starts_with("z:/")
-    {
-        s.replacen("Z:\\", "/", 1)
-            .replacen("Z:/", "/", 1)
-            .replacen("z:\\", "/", 1)
-            .replacen("z:/", "/", 1)
-    } else {
-        s
-    };
-    s.replace('\\', "/")
-}
-
-pub fn validate_path(
-    path: &std::path::Path,
-    allowed_roots: &[PathBuf],
-) -> Result<PathBuf, CommandGuardError> {
-    let canonical = match path.canonicalize() {
-        Ok(c) => c,
-        Err(_) => match path.parent() {
-            Some(parent) => match parent.canonicalize() {
-                Ok(p) => p.join(path.file_name().unwrap_or_default()),
-                Err(_) => path.to_path_buf(),
-            },
-            None => path.to_path_buf(),
-        },
-    };
-
-    let path_str = canonical.to_string_lossy();
-    if path_str.contains("..") {
-        return Err(CommandGuardError::PathTraversal(format!(
-            "Path contains traversal: {}",
-            path.display()
-        )));
-    }
-
-    let is_allowed = allowed_roots.iter().any(|root| {
-        if canonical.starts_with(root) {
-            return true;
-        }
-        let np = normalize_path_for_compare(&canonical);
-        let nr = normalize_path_for_compare(root);
-        np.starts_with(&nr)
-    });
-
-    if !is_allowed {
-        return Err(CommandGuardError::PathTraversal(format!(
-            "Path outside allowed directories: {}",
-            path.display()
-        )));
-    }
-
-    Ok(canonical)
-}
-
-pub fn sanitize_filename(filename: &str) -> String {
-    filename
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '-' || *c == '_')
-        .collect::<String>()
-        .trim_start_matches('.')
-        .to_string()
-}
-
-pub fn safe_pdftotext(
-    pdf_path: &std::path::Path,
-    _allowed_paths: &[PathBuf],
-) -> Result<String, CommandGuardError> {
-    let output = SafeCommand::new("pdftotext")?
-        .allow_path(
-            pdf_path
-                .parent()
-                .unwrap_or(std::path::Path::new("/tmp"))
-                .to_path_buf(),
-        )
-        .arg("-layout")?
-        .path_arg(pdf_path)?
-        .arg("-")?
-        .execute()?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        Err(CommandGuardError::ExecutionFailed(
-            String::from_utf8_lossy(&output.stderr).to_string(),
-        ))
-    }
-}
-
-pub async fn safe_pdftotext_async(
-    pdf_path: &std::path::Path,
-) -> Result<String, CommandGuardError> {
-    let parent = pdf_path
-        .parent()
-        .unwrap_or(std::path::Path::new("/tmp"))
-        .to_path_buf();
-
-    let output = SafeCommand::new("pdftotext")?
-        .allow_path(parent)
-        .arg("-layout")?
-        .path_arg(pdf_path)?
-        .arg("-")?
-        .execute_async()
-        .await?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        Err(CommandGuardError::ExecutionFailed(
-            String::from_utf8_lossy(&output.stderr).to_string(),
-        ))
-    }
-}
-
-pub async fn safe_pandoc_async(
-    input_path: &std::path::Path,
-    from_format: &str,
-    to_format: &str,
-) -> Result<String, CommandGuardError> {
-    validate_argument(from_format)?;
-    validate_argument(to_format)?;
-
-    let allowed_formats = ["docx", "plain", "html", "markdown", "rst", "latex", "txt"];
-    if !allowed_formats.contains(&from_format) || !allowed_formats.contains(&to_format) {
-        return Err(CommandGuardError::InvalidArgument(
-            "Invalid format specified".to_string(),
-        ));
-    }
-
-    let parent = input_path
-        .parent()
-        .unwrap_or(std::path::Path::new("/tmp"))
-        .to_path_buf();
-
-    let output = SafeCommand::new("pandoc")?
-        .allow_path(parent)
-        .arg("-f")?
-        .arg(from_format)?
-        .arg("-t")?
-        .arg(to_format)?
-        .path_arg(input_path)?
-        .execute_async()
-        .await?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        Err(CommandGuardError::ExecutionFailed(
-            String::from_utf8_lossy(&output.stderr).to_string(),
-        ))
-    }
-}
-
-pub fn safe_nvidia_smi() -> Result<HashMap<String, f32>, CommandGuardError> {
-    let output = SafeCommand::new("nvidia-smi")?
-        .arg("--query-gpu=utilization.gpu,utilization.memory")?
-        .arg("--format=csv,noheader,nounits")?
-        .execute()?;
-
-    if !output.status.success() {
-        return Err(CommandGuardError::ExecutionFailed(
-            "Failed to query GPU utilization".to_string(),
-        ));
-    }
-
-    let output_str = String::from_utf8_lossy(&output.stdout);
-    let mut util = HashMap::new();
-
-    for line in output_str.lines() {
-        let parts: Vec<&str> = line.split(',').collect();
-        if parts.len() >= 2 {
-            util.insert("gpu".to_string(), parts[0].trim().parse::<f32>().unwrap_or_default());
-            util.insert("memory".to_string(), parts[1].trim().parse::<f32>().unwrap_or_default());
-        }
-    }
-
-    Ok(util)
-}
-
-pub fn has_nvidia_gpu_safe() -> bool {
-    SafeCommand::new("nvidia-smi")
-        .and_then(|cmd| {
-            cmd.arg("--query-gpu=utilization.gpu")?
-                .arg("--format=csv,noheader,nounits")
-        })
-        .and_then(|cmd| cmd.execute())
-        .map(|output| output.status.success())
-        .unwrap_or(false)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_validate_argument_valid() {
-        assert!(validate_argument("hello").is_ok());
-        assert!(validate_argument("-f").is_ok());
-        assert!(validate_argument("--format=csv").is_ok());
-        assert!(validate_argument("/path/to/file.txt").is_ok());
-    }
-
-    #[test]
-    fn test_validate_argument_invalid() {
-        assert!(validate_argument("hello; rm -rf /").is_err());
-        assert!(validate_argument("$(whoami)").is_err());
-        assert!(validate_argument("file | cat").is_err());
-        assert!(validate_argument("test && echo").is_err());
-        assert!(validate_argument("`id`").is_err());
-        assert!(validate_argument("").is_err());
-    }
 
     #[test]
     fn test_safe_command_allowed() {
@@ -766,32 +404,5 @@ mod tests {
         assert!(SafeCommand::new("netcat").is_err());
         assert!(SafeCommand::new("dd").is_err());
         assert!(SafeCommand::new("mkfs").is_err());
-    }
-
-    #[test]
-    fn test_sanitize_filename() {
-        assert_eq!(sanitize_filename("test.pdf"), "test.pdf");
-        assert_eq!(sanitize_filename("my-file_v1.txt"), "my-file_v1.txt");
-        assert_eq!(sanitize_filename("../../../etc/passwd"), "etcpasswd");
-        assert_eq!(sanitize_filename(".hidden"), "hidden");
-        assert_eq!(
-            sanitize_filename("file;rm -rf.txt"),
-            "filerm-rf.txt"
-        );
-    }
-
-    #[test]
-    fn test_path_traversal_detection() {
-        let result = validate_argument("../../../etc/passwd");
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_command_guard_error_display() {
-        let err = CommandGuardError::CommandNotAllowed("bash".to_string());
-        assert!(err.to_string().contains("bash"));
-
-        let err2 = CommandGuardError::ShellInjectionAttempt("$(id)".to_string());
-        assert!(err2.to_string().contains("injection"));
     }
 }

@@ -1,7 +1,9 @@
 mod bundle;
 mod locale;
+mod translation_parser;
 
-pub use bundle::{I18nBundle, MessageArgs};
+pub use bundle::I18nBundle;
+pub use translation_parser::MessageArgs;
 pub use locale::Locale;
 
 use crate::error::{BotError, BotResult};

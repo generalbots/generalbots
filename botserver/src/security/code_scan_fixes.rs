@@ -3,9 +3,7 @@
 
 /// Sanitizes a filename for path operations to prevent path traversal.
 pub fn sanitize_filename(name: &str) -> String {
-    name.replace('/', "_")
-        .replace('\\', "_")
-        .replace("..", "_")
+    name.replace(['/', '\\'], "_").replace("..", "_")
         .chars()
         .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
         .collect()
