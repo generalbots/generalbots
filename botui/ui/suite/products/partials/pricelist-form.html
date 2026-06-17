@@ -1,0 +1,63 @@
+<!-- Price List Form - Products Partial -->
+<form class="product-form" hx-post="/api/products/pricelists" hx-target="#products-modal-content" hx-swap="innerHTML" hx-on::after-request="closeProductsModal()">
+    <div class="product-form-header">
+        <h2 class="product-form-title" data-i18n="products-new-pricelist">New Price List</h2>
+        <button type="button" class="form-close" onclick="closeProductsModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-pricelist-name">Price List Name *</label>
+            <input type="text" name="name" class="form-input" required placeholder="e.g., Standard Pricing 2026">
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-pricelist-currency">Currency</label>
+            <select name="currency" class="form-select">
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="BRL">BRL (R$)</option>
+                <option value="GBP">GBP (£)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" data-i18n="products-pricelist-description">Description</label>
+        <textarea name="description" class="form-textarea" rows="3" placeholder="Price list description..."></textarea>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-pricelist-valid-from">Valid From</label>
+            <input type="date" name="valid_from" class="form-input">
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="products-pricelist-valid-until">Valid Until</label>
+            <input type="date" name="valid_until" class="form-input">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" data-i18n="products-pricelist-type">Price List Type</label>
+        <select name="price_list_type" class="form-select">
+            <option value="standard" data-i18n="products-pricelist-type-standard">Standard</option>
+            <option value="promotional" data-i18n="products-pricelist-type-promotional">Promotional</option>
+            <option value="contract" data-i18n="products-pricelist-type-contract">Contract</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" data-i18n="products-pricelist-markup">Default Markup %</label>
+        <input type="number" name="default_markup" class="form-input" placeholder="0.00" min="0" step="0.01">
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="form-btn secondary" onclick="closeProductsModal()" data-i18n="common-cancel">Cancel</button>
+        <button type="submit" class="form-btn primary" data-i18n="products-pricelist-create">Create Price List</button>
+    </div>
+</form>

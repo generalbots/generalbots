@@ -95,7 +95,7 @@
                 </svg>
             </button>
         </div>
-        <form id="campaign-form" hx-post="/api/crm/campaigns" hx-swap="none">
+        <form id="campaign-form">
             <div class="crm-form-group">
                 <label for="campaign-name" data-i18n="campaign-name">Campaign Name</label>
                 <input type="text" id="campaign-name" name="name" required 
@@ -298,19 +298,28 @@ function hideCampaignModal() {
 }
 
 function showListModal() {
-    alert('List creation coming soon!');
+    var existing = document.getElementById('coming-soon-banner');
+    if (!existing) {
+        var banner = document.createElement('div');
+        banner.id = 'coming-soon-banner';
+        banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--accent,#3b82f6);color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.15)';
+        banner.textContent = '📋 List creation — coming soon!';
+        document.body.appendChild(banner);
+        setTimeout(function(){banner.remove()}, 3000);
+    }
 }
 
 function showTemplateModal() {
-    alert('Template creation coming soon!');
-}
-
-document.getElementById('campaign-form').addEventListener('htmx:afterRequest', function(e) {
-    if (e.detail.successful) {
-        hideCampaignModal();
-        document.getElementById('campaignsList').dispatchEvent(new Event('refresh'));
+    var existing = document.getElementById('coming-soon-banner');
+    if (!existing) {
+        var banner = document.createElement('div');
+        banner.id = 'coming-soon-banner';
+        banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--accent,#3b82f6);color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.15)';
+        banner.textContent = '📋 Template creation — coming soon!';
+        document.body.appendChild(banner);
+        setTimeout(function(){banner.remove()}, 3000);
     }
-});
+}
 
 // Tab switching
 document.querySelectorAll('.crm-tab[data-view]').forEach(tab => {
