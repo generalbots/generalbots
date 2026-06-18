@@ -112,7 +112,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         org_id: &str,
     ) -> BoxFutureValue {
-        let _ = org_id;
+        let _ = (org_id);
         Box::pin(async { Err("get_organization: not implemented".to_string()) })
     }
 
@@ -120,7 +120,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         name: &str,
     ) -> BoxFutureString {
-        let _ = name;
+        let _ = (name);
         Box::pin(async { Err("create_organization: not implemented".to_string()) })
     }
 
@@ -128,7 +128,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         url: String,
     ) -> BoxFutureValue {
-        let _ = url;
+        let _ = (url);
         Box::pin(async { Err("http_get: not implemented".to_string()) })
     }
 
@@ -145,7 +145,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         user_id: &str,
     ) -> BoxFutureValue {
-        let _ = user_id;
+        let _ = (user_id);
         Box::pin(async { Err("get_user: not implemented".to_string()) })
     }
 
@@ -153,7 +153,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         query: &str,
     ) -> BoxFutureVecValue {
-        let _ = query;
+        let _ = (query);
         Box::pin(async { Err("search_users: not implemented".to_string()) })
     }
 
@@ -161,7 +161,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         phone: &str,
     ) -> BoxFutureVecValue {
-        let _ = phone;
+        let _ = (phone);
         Box::pin(async { Err("search_users_by_phone: not implemented".to_string()) })
     }
 
@@ -169,7 +169,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         email: &str,
     ) -> BoxFutureVecValue {
-        let _ = email;
+        let _ = (email);
         Box::pin(async { Err("search_users_by_email: not implemented".to_string()) })
     }
 
@@ -215,7 +215,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         org_id: &str,
     ) -> BoxFutureVecValue {
-        let _ = org_id;
+        let _ = (org_id);
         Box::pin(async { Err("get_org_members: not implemented".to_string()) })
     }
 
@@ -232,7 +232,7 @@ pub trait AuthServiceTrait: Send + Sync + Debug {
         &self,
         url: String,
     ) -> BoxFutureValue {
-        let _ = url;
+        let _ = (url);
         Box::pin(async { Err("http_delete: not implemented".to_string()) })
     }
 

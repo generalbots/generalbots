@@ -575,7 +575,7 @@ let file_key = format!("temp/instagram/{}_{}.bin", user.id, uuid::Uuid::new_v4()
 let file_url = format!("https://s3.amazonaws.com/uploads/{}", file_key);
 
         // TODO: implement send_media_message for InstagramAdapter
-            let _ = (&adapter, recipient_id, &file_url);
+            let _ = ((&adapter, recipient_id), &file_url);
 
         if !caption.is_empty() {
             adapter
@@ -600,7 +600,7 @@ async fn send_teams_file(
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = user;
+    let _ = (user);
     let _ = TeamsAdapter::new();
 
     let conversation_id = get_teams_conversation_id(&state, recipient_id).await?;
@@ -724,7 +724,7 @@ fn send_email(
 
     #[cfg(not(feature = "mail"))]
     {
-        let _ = (state, bot_id, email, message);
+        let _ = ((state, bot_id), email, message);
         log::error!("Email feature not enabled");
         Err("Email feature not enabled".into())
     }
@@ -755,7 +755,7 @@ fn send_email_attachment(
 
     #[cfg(not(feature = "mail"))]
     {
-        let _ = (state, bot_id, email, file_data, caption);
+        let _ = ((state, bot_id), email, file_data, caption);
         log::error!("Email feature not enabled for attachments");
         Err("Email feature not enabled".into())
     }

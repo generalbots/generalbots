@@ -1133,7 +1133,7 @@ mod tests {
     #[test]
     fn test_weba_state_creation() {
         let state = WebaState::new();
-        let _ = &state;
+        let _ = (&state);
     }
 
     #[test]

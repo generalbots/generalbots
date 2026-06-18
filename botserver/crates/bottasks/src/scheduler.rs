@@ -115,7 +115,7 @@ fn should_run_now(schedule_expr: &str) -> bool {
     match schedule_expr.parse::<Schedule>() {
         Ok(schedule) => {
             let now = Utc::now();
-            schedule.upcoming(Utc).next().map_or(false, |next| {
+            schedule.upcoming(Utc).next().is_some_and(|next| {
                 (next - now).num_seconds() < 60
             })
         }

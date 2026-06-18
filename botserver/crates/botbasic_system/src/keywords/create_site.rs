@@ -203,7 +203,7 @@ mod llm_impl {
         let serve_path = base_path.join(&alias_str);
         sync_to_serve_path(&serve_path, &generated_html, &template_path)?;
 
-        let _ = bot_id;
+        let _ = (bot_id);
         info!("CREATE SITE: {} completed, available at /apps/{}", alias_str, alias_str);
         Ok(format!("/apps/{alias_str}"))
     }

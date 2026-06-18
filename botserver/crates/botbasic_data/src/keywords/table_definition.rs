@@ -408,10 +408,10 @@ pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> Strin
 
     if driver == "mysql" || driver == "mariadb" {
         use std::fmt::Write;
-        let _ = write!(
+        let _ = (write!(
             &mut sql,
             " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-        );
+        ));
     }
 
     sql.push(';');

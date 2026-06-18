@@ -669,7 +669,7 @@ pub async fn index_single_file_with_id(
         kb_name: &str,
         document_count: usize,
     ) -> Result<()> {
-        let _ = self;
+        let _ = (self);
         info!(
             "Updated collection {} metadata: bot={}, kb={}, docs={}",
             collection_name, bot_name, kb_name, document_count

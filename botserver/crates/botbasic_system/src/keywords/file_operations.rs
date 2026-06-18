@@ -30,16 +30,12 @@
 
 // Re-export all functionality from the file_ops module
 // This maintains backward compatibility with existing imports
-#[path = "file_ops/mod.rs"]
-pub mod file_ops;
-
-// Re-export all public functions from the file_ops module
-pub use file_ops::*;
+pub use crate::keywords::file_ops::*;
 
 use std::sync::Arc;
 use botbasic_types::{BasicRuntime, UserSession};
 use rhai::Engine;
 
 pub fn register_file_operations_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    file_ops::register_file_ops_keywords(state, user, engine);
+    crate::keywords::file_ops::register_file_ops_keywords(state, user, engine);
 }

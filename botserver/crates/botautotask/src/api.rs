@@ -304,7 +304,7 @@ async fn list_tasks(
     State(_api): State<Arc<AutoTaskApi>>,
     Query(query): Query<ListTasksQuery>,
 ) -> impl IntoResponse {
-    let _ = query;
+    let _ = (query);
     Json(Vec::<serde_json::Value>::new())
 }
 

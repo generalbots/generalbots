@@ -134,7 +134,7 @@ impl VibeTelemetry {
         }
 
         if is_run_end {
-            let _ = use_case;
+            let _ = (use_case);
             let mut metrics = self.run_metrics.write().await;
             metrics.remove(&run_id);
         }

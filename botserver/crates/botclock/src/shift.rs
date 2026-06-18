@@ -1,6 +1,6 @@
 //! Shift and shift-assignment types.
 
-use chrono::{DateTime, NaiveTime, Utc};
+use chrono::{DateTime, NaiveTime, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
