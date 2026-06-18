@@ -106,10 +106,22 @@ pub async fn run_axum_server(
         ],
         ..Default::default()
     };
-    let csrf_manager = Arc::new(
-        CsrfManager::new(csrf_config, csrf_secret.as_bytes())
-            .expect("Failed to create CSRF manager"),
-    );
+    let csrf_manager = {
+        let fallback_secret = "dev-csrf-fallback-32byte-minimum!!";
+        let secret = if csrf_secret.len() >= 32 {
+            csrf_secret.as_bytes()
+        } else {
+            log::warn!("CSRF secret too short ({} bytes), using fallback", csrf_secret.len());
+            fallback_secret.as_bytes()
+        };
+        match CsrfManager::new(csrf_config, secret) {
+            Ok(manager) => Arc::new(manager),
+            Err(e) => {
+                log::error!("Failed to create CSRF manager: {e}");
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("CSRF init failed: {e}")));
+            }
+        }
+    };
 
     info!("Security middleware enabled: rate limiting, CSRF, security headers, panic handler, request ID tracking, authentication");
 

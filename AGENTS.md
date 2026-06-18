@@ -6,7 +6,7 @@
 - **❌ NEVER use `scp`, direct SSH binary copy, or manual deployment to system container**
 - **✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically**
 - **✅ NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change (~10s)**
-8080 is server 3000 is client ui. cloud management at http://localhost:3000/cloud
+8080 é a porta do servidor (botserver), 3000 é a porta do cliente (botui). Cloud management em http://localhost:3000/cloud
 if you are in trouble with some tool, please go to the official website to get proper install or instructions
 To test web is http://localhost:3000 (botui!)
 Use apenas a língua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
@@ -167,9 +167,9 @@ User Message (WebSocket)
 **Example:**
 ```basic
 ' start.bas
-ADD SUGGESTION "Check inventory"
-ADD SUGGESTION "Create report"
-ADD SUGGESTION "Send email"
+ADD_SUGGESTION "Check inventory"
+ADD_SUGGESTION "Create report"
+ADD_SUGGESTION "Send email"
 
 TALK "Hello! I'm your assistant. How can I help?"
 ```
@@ -430,9 +430,9 @@ TALK "How can I help with our product?"
 
 ```basic
 ' In start.bas - shown as quick reply buttons
-ADD SUGGESTION "Check status"
-ADD SUGGESTION "Create ticket"
-ADD SUGGESTION "Contact support"
+ADD_SUGGESTION "Check status"
+ADD_SUGGESTION "Create ticket"
+ADD_SUGGESTION "Contact support"
 
 ' Deduplicated with Redis SADD
 ' Key: suggestions:{bot_id}:{session_id}
@@ -824,7 +824,7 @@ match x {
 - ✅ **ALWAYS** push code to ALM → CI builds on alm-ci → CI deploys to system container via SSH from alm-ci
 - ✅ **CI deploy path**: alm-ci builds at `/opt/gbo/data/botserver/target/debug/botserver` → tar+gzip via SSH → `/opt/gbo/bin/botserver` on system container → restart
 
-**Current Status:** ✅ **No compilation errors** — `botlib`, `botserver`, `botui` compilam. Clippy: pendente (recalcular após splits).
+
 - ❌ **NEVER** change git branches for any reason without explicit user approval
 - ❌ **NEVER** use `panic!()`, `todo!()`, `unimplemented!()`
 - ❌ **NEVER** use `Command::new()` directly - use `SafeCommand`
@@ -1045,8 +1045,6 @@ When compilation fails due to memory issues (process "Killed"):
 pkill -9 cargo; pkill -9 rustc; pkill -9 botserver
 CARGO_BUILD_JOBS=1 cargo check -p botserver 2>&1 | tail -200
 ```
-
----
 
 ---
 
@@ -1384,7 +1382,7 @@ diesel migration run
 ./restart.sh
 
 # 3. Test via API
-curl -X POST http://localhost:9000/api/features \
+curl -X POST http://localhost:8080/api/features \
   -H "Content-Type: application/json" \
   -d '{"name": "test"}'
 
@@ -2376,7 +2374,7 @@ AutoTask is an AI-driven task execution system that:
 | `GET BOT MEMORY` | `GET BOT MEMORY "{key}"` | Retrieve bot-level data |
 | `REMEMBER` | `REMEMBER "{key}" = {value}` | Store session data |
 | `SET CONTEXT` | `SET CONTEXT "{key}" = {value}` | Set conversation context |
-| `ADD SUGGESTION` | `ADD SUGGESTION "{text}"` | Add response suggestion |
+| `ADD_SUGGESTION` | `ADD_SUGGESTION "{text}"` | Add response suggestion |
 | `CLEAR SUGGESTIONS` | `CLEAR SUGGESTIONS` | Clear suggestions |
 
 #### User & Session

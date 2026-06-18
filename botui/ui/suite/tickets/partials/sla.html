@@ -1,5 +1,8 @@
 <!-- SLA Management partial for Tickets app -->
-<div class="tickets-sla" id="tickets-sla-panel">
+<div class="tickets-sla" id="tickets-sla-panel"
+     hx-get="/api/tickets/sla"
+     hx-trigger="load"
+     hx-swap="innerHTML">
   <h3>SLA Management</h3>
   <p class="hint">Service Level Agreements by priority · breach forecast next 24h</p>
   <div class="sla-grid">
