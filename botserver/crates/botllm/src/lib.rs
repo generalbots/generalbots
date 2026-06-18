@@ -661,7 +661,7 @@ impl LLMProvider for OpenAIClient {
                         if !is_reasoning_model {
                             // Send reasoning_content only if there's no content delta (thinking-only chunks)
                             if let Some(ref reasoning) = reasoning_text {
-                                if !reasoning.is_empty() && content_text.as_ref().map_or(true, |c| c.is_empty()) {
+                                if !reasoning.is_empty() && content_text.as_ref().is_none_or(|c| c.is_empty()) {
                                     let processed = handler.process_content_streaming(reasoning, &mut stream_state);
                                     if !processed.is_empty() {
                                         content_sent += processed.len();

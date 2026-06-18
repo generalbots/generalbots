@@ -59,7 +59,7 @@ pub async fn create_invoice(
     for item in &items {
         let item_amount = item.quantity * item.unit_price;
         let item_discount = item_amount * item.discount_percent.unwrap_or(0.0) / 100.0;
-        subtotal = subtotal + bd(item_amount - item_discount);
+        subtotal += bd(item_amount - item_discount);
     }
 
     let discount_amount = &subtotal * &discount_percent / bd(100.0);
@@ -465,7 +465,7 @@ pub async fn create_quote(
     for item in &items {
         let item_amount = item.quantity * item.unit_price;
         let item_discount = item_amount * item.discount_percent.unwrap_or(0.0) / 100.0;
-        subtotal = subtotal + bd(item_amount - item_discount);
+        subtotal += bd(item_amount - item_discount);
     }
 
     let discount_amount = &subtotal * &discount_percent / bd(100.0);

@@ -109,8 +109,7 @@ fn render_meeting_card(id: &str, title: &str, date: &str, time: &str, dur: u64, 
 }
 
 async fn live() -> Result<Html<String>, (StatusCode, String)> {
-    Ok(Html(format!(
-        r##"<section class="min-live" hx-get="/suite/minutes/fragments/live" hx-trigger="every 5s" hx-swap="outerHTML">
+    Ok(Html(r##"<section class="min-live" hx-get="/suite/minutes/fragments/live" hx-trigger="every 5s" hx-swap="outerHTML">
   <header class="min-live-header">
 <h3>Reunião em andamento</h3>
 <span class="min-rec-dot"></span>
@@ -138,8 +137,7 @@ async fn live() -> Result<Html<String>, (StatusCode, String)> {
   </ul>
 </aside>
   </div>
-</section>"##
-    )))
+</section>"##.to_string()))
 }
 
 async fn transcripts() -> Result<Html<String>, (StatusCode, String)> {
@@ -249,14 +247,12 @@ async fn actions() -> Result<Html<String>, (StatusCode, String)> {
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     if rows.is_empty() {
-        return Ok(Html(format!(
-            r##"<div class="min-actions" hx-get="/suite/minutes/fragments/actions" hx-trigger="every 30s" hx-swap="outerHTML">
+        return Ok(Html(r##"<div class="min-actions" hx-get="/suite/minutes/fragments/actions" hx-trigger="every 30s" hx-swap="outerHTML">
   <header class="gb-toolbar">
 <button class="gb-btn gb-btn-primary" hx-get="/suite/minutes/forms/action-modal" hx-target="#min-action-modal" hx-swap="innerHTML">+ Nova ação</button>
   </header>
   <p class="gb-empty">Nenhuma ação cadastrada.</p>
-</div>"##
-        )));
+</div>"##.to_string()));
     }
     let body = rows.iter().map(|r| {
         let due = r.due.map(|d| d.to_string()).unwrap_or_else(|| "—".into());
@@ -300,8 +296,7 @@ async fn actions() -> Result<Html<String>, (StatusCode, String)> {
 }
 
 async fn templates() -> Result<Html<String>, (StatusCode, String)> {
-    Ok(Html(format!(
-        r##"<div class="min-templates" hx-get="/suite/minutes/fragments/templates" hx-trigger="every 5m" hx-swap="outerHTML">
+    Ok(Html(r##"<div class="min-templates" hx-get="/suite/minutes/fragments/templates" hx-trigger="every 5m" hx-swap="outerHTML">
   <div class="min-template-grid">
 <article class="min-template-card">
   <h4>☕ Stand-up diário</h4>
@@ -328,8 +323,7 @@ async fn templates() -> Result<Html<String>, (StatusCode, String)> {
   <button class="gb-btn gb-btn-primary" hx-post="/api/minutes/forms/template/board" hx-swap="none">Usar template</button>
 </article>
   </div>
-</div>"##
-    )))
+</div>"##.to_string()))
 }
 
 async fn signatures() -> Result<Html<String>, (StatusCode, String)> {

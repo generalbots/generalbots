@@ -90,7 +90,7 @@ pub async fn execute_copy_with_account(
 
     let content = if source_is_account {
         let (email, path) = parse_account_path(source).ok_or("Invalid account:// path format")?;
-        let creds = get_account_credentials(&state.db_pool(), &email, user.bot_id)
+        let creds = get_account_credentials(state.db_pool(), &email, user.bot_id)
             .await
             .map_err(|e| format!("Failed to get credentials: {e}"))?;
         download_from_account(&creds, &path).await?
@@ -101,7 +101,7 @@ pub async fn execute_copy_with_account(
     if dest_is_account {
         let (email, path) =
             parse_account_path(destination).ok_or("Invalid account:// path format")?;
-        let creds = get_account_credentials(&state.db_pool(), &email, user.bot_id)
+        let creds = get_account_credentials(state.db_pool(), &email, user.bot_id)
             .await
             .map_err(|e| format!("Failed to get credentials: {e}"))?;
         upload_to_account(&creds, &path, &content).await?;

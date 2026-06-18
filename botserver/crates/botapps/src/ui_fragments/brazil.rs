@@ -207,8 +207,7 @@ fn render_sped_table(items: &[tax::Sped]) -> String {
 }
 
 async fn history() -> Result<Html<String>, (StatusCode, String)> {
-    Ok(Html(format!(
-        r##"<div class="gb-history" hx-get="/suite/brazil/fragments/history" hx-trigger="every 60s" hx-swap="outerHTML">
+    Ok(Html(r##"<div class="gb-history" hx-get="/suite/brazil/fragments/history" hx-trigger="every 60s" hx-swap="outerHTML">
   <form class="gb-toolbar" hx-get="/suite/brazil/fragments/history" hx-trigger="change, keyup delay:300ms from:input" hx-target="#gb-history-body" hx-swap="innerHTML">
 <input type="search" name="q" placeholder="Buscar por número, CNPJ ou status…" class="gb-search">
 <select name="type" class="gb-select"><option value="">Todos os tipos</option><option>NFe</option><option>NFSe</option><option>CTe</option></select>
@@ -220,8 +219,7 @@ async fn history() -> Result<Html<String>, (StatusCode, String)> {
   <div id="gb-history-body" hx-get="/suite/brazil/fragments/nfe" hx-trigger="load delay:200ms" hx-swap="innerHTML">
 <p class="gb-loading">Carregando histórico…</p>
   </div>
-</div>"##
-    )))
+</div>"##.to_string()))
 }
 
 async fn sefaz() -> Result<Html<String>, (StatusCode, String)> {

@@ -27,12 +27,11 @@ pub fn scan_for_empty_files(work_dir: &Path) -> Vec<String> {
                     if let Ok(files) = std::fs::read_dir(&gbdialog) {
                         for file in files.flatten() {
                             let fpath = file.path();
-                            if fpath.extension().map_or(false, |e| e == "bas" || e == "ast") {
-                                if is_file_empty_or_missing(&fpath) {
+                            if fpath.extension().is_some_and(|e| e == "bas" || e == "ast")
+                                && is_file_empty_or_missing(&fpath) {
                                     needs_sync.push(bot_name.clone());
                                     break;
                                 }
-                            }
                         }
                     }
                 }

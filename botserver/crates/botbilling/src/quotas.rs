@@ -111,7 +111,7 @@ impl QuotaManager {
             LimitValue::Unlimited => (true, None, 0.0),
             LimitValue::Limited(max) => {
                 let allowed = new_value <= max;
-                let remaining = if new_value > max { 0 } else { max - new_value };
+                let remaining = max.saturating_sub(new_value);
                 let percentage = (new_value as f64 / max as f64) * 100.0;
                 (allowed, Some(remaining), percentage)
             }
@@ -225,7 +225,7 @@ impl QuotaManager {
                 let (remaining, percentage) = match limit {
                     LimitValue::Unlimited => (None, 0.0),
                     LimitValue::Limited(max) => {
-                        let remaining = if current > max { 0 } else { max - current };
+                        let remaining = max.saturating_sub(current);
                         let percentage = (current as f64 / max as f64) * 100.0;
                         (Some(remaining), percentage)
                     }

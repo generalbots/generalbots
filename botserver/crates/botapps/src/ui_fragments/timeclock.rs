@@ -28,8 +28,7 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
 }
 
 async fn dashboard() -> Result<Html<String>, (StatusCode, String)> {
-    Ok(Html(format!(
-        r##"<section class="tc-dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-trigger="every 30s" hx-swap="outerHTML">
+    Ok(Html(r##"<section class="tc-dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-trigger="every 30s" hx-swap="outerHTML">
   <div class="tc-kpi-grid">
 <article class="tc-kpi"><span class="tc-kpi-label">Horas hoje</span><span class="tc-kpi-value blue">7h 32m</span></article>
 <article class="tc-kpi"><span class="tc-kpi-label">Saldo banco</span><span class="tc-kpi-value green">+12h 15m</span></article>
@@ -46,8 +45,7 @@ async fn dashboard() -> Result<Html<String>, (StatusCode, String)> {
 <h3>Eventos de hoje</h3>
 <p class="tc-loading">Carregando…</p>
   </section>
-</section>"##
-    )))
+</section>"##.to_string()))
 }
 
 async fn today() -> Result<Html<String>, (StatusCode, String)> {

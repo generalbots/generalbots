@@ -549,7 +549,7 @@ fn execute_via_postgres_sync(
             (0..row.len())
                 .map(|i| {
                     let col = &row.columns()[i];
-                    pg_value_to_json(row, i, &col.type_().name())
+                    pg_value_to_json(row, i, col.type_().name())
                 })
                 .collect()
         })

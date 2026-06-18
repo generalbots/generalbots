@@ -120,11 +120,7 @@ fn parse_simple_interval(input: &str) -> Option<String> {
 fn parse_at_time(input: &str) -> Option<String> {
     let time_str = if let Some(rest) = input.strip_prefix("_at_") {
         rest
-    } else if let Some(rest) = input.strip_prefix("at_") {
-        rest
-    } else {
-        return None;
-    };
+    } else { input.strip_prefix("at_")? };
 
     parse_time_to_cron(time_str, "*", "*")
 }

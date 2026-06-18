@@ -205,7 +205,7 @@ pub fn collect_dependents(
             ready.push_back(r);
         }
     }
-    for (k, _) in &local {
+    for k in local.keys() {
         if in_degree.get(k).copied().unwrap_or(0) == 0 && !ready.contains(k) {
             ready.push_back(*k);
         }

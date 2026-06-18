@@ -559,7 +559,7 @@ pub async fn ai_chat_handler(
         let key = format!("{prefix}{}", normalize_path(path));
         file_content_context.push_str(&format!("\nActive File Selected: {}\n", path));
 
-        let ext = path.split('.').last().unwrap_or("").to_lowercase();
+        let ext = path.split('.').next_back().unwrap_or("").to_lowercase();
         if ext == "txt" || ext == "md" || ext == "json" || ext == "csv" {
             if let Ok(data) = drive.get_object(&bucket, &key).await {
                 if data.len() < 10240 {

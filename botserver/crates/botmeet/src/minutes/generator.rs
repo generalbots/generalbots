@@ -148,7 +148,7 @@ impl MinutesGenerator {
                     .or_else(|| lower.find("@"))
                     .map(|pos| {
                         let start = if lower[pos..].starts_with("assign to ") { pos + 10 } else { pos + 1 };
-                        seg.text[start..].split(|c: char| c == '.' || c == ',' || c == ' ').next().unwrap_or("").to_string()
+                        seg.text[start..].split(['.', ',', ' ']).next().unwrap_or("").to_string()
                     });
                 action_items.push(MinuteActionItem {
                     task: seg.text.clone(),

@@ -106,7 +106,7 @@ pub async fn handle_import_named_ranges_csv(
         if parts.is_empty() {
             continue;
         }
-        let name = parts.get(0).cloned().unwrap_or_default();
+        let name = parts.first().cloned().unwrap_or_default();
         let range = parts.get(1).cloned().unwrap_or_default();
         let desc = parts.get(2).cloned().unwrap_or_default();
         if name.is_empty() || range.is_empty() {

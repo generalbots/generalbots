@@ -157,8 +157,8 @@ impl BasicCompiler {
     ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
         let upper = content.to_uppercase();
 
-        let to_pos = upper.find(" TO ").ok_or_else(|| "No TO found")?;
-        let where_pos = upper.find(" WHERE ").ok_or_else(|| "No WHERE found")?;
+        let to_pos = upper.find(" TO ").ok_or("No TO found")?;
+        let where_pos = upper.find(" WHERE ").ok_or("No WHERE found")?;
 
         let data_part = content[..to_pos].trim();
         let table_part = content[to_pos + 4..where_pos].trim();

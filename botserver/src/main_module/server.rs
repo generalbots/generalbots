@@ -205,7 +205,7 @@ fn build_base_router(
     let base_router = add_attendant_routes(base_router, &app_state);
     #[cfg(not(feature = "vibe"))]
     let base_router = base_router
-        .nest_service("/static", ServeDir::new(&site_path));
+        .nest_service("/static", ServeDir::new(site_path));
 
     let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| {
         if std::path::Path::new("./botui/ui/suite").exists() { "./botui/ui/suite".to_string() }

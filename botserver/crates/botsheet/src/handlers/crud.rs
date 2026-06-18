@@ -104,7 +104,7 @@ pub async fn handle_load_from_drive(
     let file_name = req.path.rsplit('/').next().unwrap_or("Spreadsheet");
     let sheet_name = file_name
         .rsplit('.')
-        .last()
+        .next_back()
         .unwrap_or("Spreadsheet")
         .to_string();
 

@@ -56,11 +56,11 @@ pub fn evaluate_rule(rule: &FraudRule, request: &FraudAssessmentRequest) -> bool
         }
         "==" => {
             let expected = cond.get("value");
-            actual.map(|v| v == expected).unwrap_or(false)
+            actual.is_some_and(|v| v == expected.unwrap_or(&serde_json::Value::Null))
         }
         "!=" => {
             let expected = cond.get("value");
-            actual.map(|v| v != expected).unwrap_or(false)
+            actual.is_some_and(|v| v != expected.unwrap_or(&serde_json::Value::Null))
         }
         "in" => {
             let list = cond.get("value").and_then(|v| v.as_array());

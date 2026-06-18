@@ -210,7 +210,7 @@ async fn process_checkout_completed(
     // --- Notifications ---
     let mut vars = notifier::EmailVars::new(
         &invoice.customer_name,
-        &invoice.customer_email.as_deref().unwrap_or(""),
+        invoice.customer_email.as_deref().unwrap_or(""),
         &plan_label,
         total,
         &invoice.currency,
@@ -349,7 +349,7 @@ async fn process_invoice_paid(
     // --- Notification: recurring charge ---
     let mut vars = notifier::EmailVars::new(
         &recurring.customer_name,
-        &recurring.customer_email.as_deref().unwrap_or(""),
+        recurring.customer_email.as_deref().unwrap_or(""),
         &recurring.description.clone().unwrap_or_else(|| "subscription".to_string()),
         total,
         &recurring.currency,
@@ -417,7 +417,7 @@ async fn process_invoice_payment_failed(
 
     let mut vars = notifier::EmailVars::new(
         &recurring.customer_name,
-        &recurring.customer_email.as_deref().unwrap_or(""),
+        recurring.customer_email.as_deref().unwrap_or(""),
         &recurring.description.clone().unwrap_or_else(|| "subscription".to_string()),
         botbilling::api_models::bd_to_f64(&recurring.amount),
         &recurring.currency,

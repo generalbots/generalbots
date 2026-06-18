@@ -53,7 +53,7 @@ pub async fn list_schemas() -> Result<Json<Vec<TableSchema>>, (StatusCode, Strin
         struct CountRow {
             #[diesel(sql_type = diesel::sql_types::BigInt)] count: i64,
         }
-        let count: CountRow = diesel::sql_query(&format!(
+        let count: CountRow = diesel::sql_query(format!(
             "SELECT COUNT(*) AS count FROM {}",
             sanitize_table_name(&table.table_name)?
         ))
@@ -128,7 +128,7 @@ pub async fn execute_query(Json(req): Json<SqlQuery>) -> Result<Json<QueryResult
     for row in rows {
         match row.data {
             serde_json::Value::Array(arr) => {
-                out_rows.push(arr.into_iter().map(|v| v).collect());
+                out_rows.push(arr.into_iter().collect());
             }
             other => {
                 out_rows.push(vec![other]);

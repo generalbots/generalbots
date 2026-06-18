@@ -785,7 +785,7 @@ async fn handle_whiteboard_socket(
     if let Some(whiteboard) = manager.get_whiteboard(&whiteboard_id).await {
         let sync_msg = whiteboard.to_sync_message();
         if let Ok(json) = serde_json::to_string(&sync_msg) {
-            let _ = sender.send(Message::Text(json.into())).await;
+            let _ = sender.send(Message::Text(json)).await;
         }
     }
 
@@ -795,7 +795,7 @@ async fn handle_whiteboard_socket(
     let send_task = tokio::spawn(async move {
         while let Ok(msg) = broadcast_receiver.recv().await {
             if let Ok(json) = serde_json::to_string(&msg) {
-                if sender.send(Message::Text(json.into())).await.is_err() {
+                if sender.send(Message::Text(json)).await.is_err() {
                     break;
                 }
             }

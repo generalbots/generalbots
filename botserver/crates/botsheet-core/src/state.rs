@@ -124,7 +124,7 @@ pub async fn list_sheets_from_drive(
         if key.ends_with(".json") {
             let id = key
                 .split('/')
-                .last()
+                .next_back()
                 .unwrap_or("")
                 .strip_suffix(".json")
                 .unwrap_or("")
