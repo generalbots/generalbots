@@ -10,7 +10,7 @@
                 title: "",
                 tags: "",
                 source: "",
-                enrichedOnly: false,
+
             },
         };
 
@@ -103,7 +103,6 @@
                 if (f.company && (c.company || "").toLowerCase() !== f.company.toLowerCase()) return false;
                 if (f.title && (c.title || "").toLowerCase() !== f.title.toLowerCase()) return false;
                 if (f.source && c.source !== f.source) return false;
-                if (f.enrichedOnly && !c.enrichment) return false;
                 if (f.tags) {
                     const wanted = f.tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
                     const have = (c.tags || []).map((t) => (t || "").toLowerCase());
@@ -347,8 +346,6 @@
                     state.filters.title = (document.getElementById("adv-search-title") || {}).value || "";
                     state.filters.tags = (document.getElementById("adv-search-tags") || {}).value || "";
                     state.filters.source = (document.getElementById("adv-search-source") || {}).value || "";
-                    const enr = document.getElementById("adv-search-enriched");
-                    state.filters.enrichedOnly = enr ? enr.checked : false;
                     loadContacts();
                 });
             }
@@ -360,8 +357,7 @@
                 importBtn.addEventListener("click", () => importInput.click());
                 importInput.addEventListener("change", importCsv);
             }
-            const enrichBtn = document.getElementById("adv-search-enrich");
-            if (enrichBtn) enrichBtn.addEventListener("click", () => alert("Enrichment is not available in this build."));
+
         }
 
         function exportCsv() {
