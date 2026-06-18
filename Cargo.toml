@@ -72,6 +72,7 @@ members = [
   "botserver/crates/botplayer",
   "botserver/crates/botproducts",
   "botserver/crates/botproject",
+  "botserver/crates/botproviders",
   "botserver/crates/botqdrant",
   "botserver/crates/botresearch",
   "botserver/crates/botretail",
@@ -162,6 +163,7 @@ botplan = { path = "botserver/crates/botplan" }
 botplayer = { path = "botserver/crates/botplayer" }
 botproducts = { path = "botserver/crates/botproducts" }
 botproject = { path = "botserver/crates/botproject" }
+botproviders = { path = "botserver/crates/botproviders" }
 botqdrant = { path = "botserver/crates/botqdrant" }
 botresearch = { path = "botserver/crates/botresearch" }
 botretail = { path = "botserver/crates/botretail" }
