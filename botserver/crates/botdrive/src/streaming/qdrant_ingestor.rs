@@ -150,7 +150,6 @@ impl QdrantStreamIngestor {
         .cloned()
         .unwrap_or_default()
         .into_iter()
-        .map(|(k, v)| (k, v))
         .collect::<serde_json::Map<String, serde_json::Value>>();
 
         PointStruct::new(id, embedding, payload)

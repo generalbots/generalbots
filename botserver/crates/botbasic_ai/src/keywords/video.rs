@@ -131,7 +131,7 @@ fn register_monitor_camera(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["MONITOR", "CAMERA", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("monitor-camera", async move {
@@ -153,7 +153,7 @@ fn register_describe_video(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["DESCRIBE", "VIDEO", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("describe-video", async move {
@@ -176,7 +176,7 @@ fn register_detect_event(state: Arc<dyn BasicRuntime>, user: UserSession, engine
             ["DETECT", "EVENT", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("detect-event", async move {
@@ -201,7 +201,7 @@ fn register_count_people(state: Arc<dyn BasicRuntime>, user: UserSession, engine
             ["COUNT", "PEOPLE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("count-people", async move {
@@ -227,7 +227,7 @@ fn register_motion_detected(state: Arc<dyn BasicRuntime>, user: UserSession, eng
             ["MOTION", "DETECTED", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_video("motion-detected", async move {

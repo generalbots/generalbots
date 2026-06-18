@@ -8,7 +8,7 @@ pub fn evaluate_let(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[4..expr.len() - 1];
     let parts = split_args(inner);
-    if parts.len() < 3 || parts.len() % 2 == 0 {
+    if parts.len() < 3 || parts.len().is_multiple_of(2) {
         return Some("#ERROR!".to_string());
     }
     let mut bindings: Vec<(String, String)> = Vec::new();

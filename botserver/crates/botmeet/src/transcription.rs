@@ -130,6 +130,12 @@ pub struct TranscriptionService {
     segments: Vec<TranscriptionSegment>,
 }
 
+impl Default for TranscriptionService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TranscriptionService {
     pub fn new() -> Self {
         Self {

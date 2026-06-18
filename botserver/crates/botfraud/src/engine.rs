@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<PgConnection>>;
 
+#[derive(Clone)]
 pub struct FraudEngine {
     pub pool: DbPool,
 }

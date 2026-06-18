@@ -836,15 +836,15 @@ async fn update_workspace(
     let filter = cw::id.eq(ws_id_param).and(cw::org_id.eq(org_id_param));
 
     if let Some(n) = &body.name {
-        diesel::update(cw::cloud_workspaces).filter(filter.clone()).set(cw::name.eq(n.trim())).execute(&mut conn)
+        diesel::update(cw::cloud_workspaces).filter(filter).set(cw::name.eq(n.trim())).execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update: {e}")))?;
     }
     if let Some(d) = &body.description {
-        diesel::update(cw::cloud_workspaces).filter(filter.clone()).set(cw::description.eq(d)).execute(&mut conn)
+        diesel::update(cw::cloud_workspaces).filter(filter).set(cw::description.eq(d)).execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update desc: {e}")))?;
     }
     if let Some(i) = &body.icon {
-        diesel::update(cw::cloud_workspaces).filter(filter.clone()).set(cw::icon.eq(i)).execute(&mut conn)
+        diesel::update(cw::cloud_workspaces).filter(filter).set(cw::icon.eq(i)).execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update icon: {e}")))?;
     }
 

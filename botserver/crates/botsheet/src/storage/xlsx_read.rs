@@ -13,7 +13,7 @@ pub fn load_xlsx_from_bytes(
     let workbook = umya_spreadsheet::reader::xlsx::read_reader(cursor, true)
         .map_err(|e| format!("Failed to parse xlsx: {e}"))?;
 
-    let raw_name = file_path.split('/').last().unwrap_or("Untitled");
+    let raw_name = file_path.split('/').next_back().unwrap_or("Untitled");
     let file_name = raw_name
         .strip_suffix(".xlsx")
         .or_else(|| raw_name.strip_suffix(".xlsm"))

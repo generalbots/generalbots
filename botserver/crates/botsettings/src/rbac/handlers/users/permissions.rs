@@ -32,10 +32,7 @@ pub async fn list_users_with_roles(
         use botcore::shared::models::schema::{rbac_user_roles, rbac_roles, users};
 
         let offset_val = (page - 1) * per_page;
-        let pattern = match &search {
-            Some(term) => Some(format!("%{}%", term.to_lowercase())),
-            None => None,
-        };
+        let pattern = search.as_ref().map(|term| format!("%{}%", term.to_lowercase()));
 
         let users_list: Vec<User> = if let Some(ref pat) = pattern {
             users::table

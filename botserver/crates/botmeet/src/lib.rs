@@ -484,7 +484,7 @@ async fn handle_meeting_socket(socket: axum::extract::ws::WebSocket, state: Arc<
             Ok(axum::extract::ws::Message::Text(text)) => {
                 info!("Meeting message received: {text}");
                 if sender
-                    .send(axum::extract::ws::Message::Text(format!("Echo: {text}").into()))
+                    .send(axum::extract::ws::Message::Text(format!("Echo: {text}")))
                     .await
                     .is_err()
                 {

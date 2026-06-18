@@ -100,7 +100,7 @@ pub fn register_clear_kb_keyword(
         let session_id = user_fn.id;
         let conn = state_fn.db_pool().clone();
         if let Ok(result) = std::thread::spawn(move || clear_all_kbs(conn, session_id)).join() {
-            if let Ok(_) = result {
+            if result.is_ok() {
                 info!("CLEAR_KB completed for session {}", session_id);
             }
         }

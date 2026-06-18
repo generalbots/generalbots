@@ -37,6 +37,12 @@ impl fmt::Debug for CompilerCallbacks {
     }
 }
 
+impl Default for CompilerCallbacks {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CompilerCallbacks {
     pub fn new() -> Self {
         Self {
@@ -309,7 +315,7 @@ impl BasicCompiler {
             let do_call_re = Regex::new(on_update_do_call).ok();
             let base_re = Regex::new(on_update_base).ok();
 
-            if do_call_re.as_ref().map_or(false, |re| re.is_match(&normalized)) {
+            if do_call_re.as_ref().is_some_and(|re| re.is_match(&normalized)) {
                 found_directives.insert(basic_errors::Directive::OnUpdateOf);
                 if let Some(re) = do_call_re.as_ref().and_then(|r| r.captures(&normalized)) {
                     let table_name = re.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
@@ -342,7 +348,7 @@ impl BasicCompiler {
                 continue;
             }
 
-            if base_re.as_ref().map_or(false, |re| re.is_match(&normalized)) {
+            if base_re.as_ref().is_some_and(|re| re.is_match(&normalized)) {
                 found_directives.insert(basic_errors::Directive::OnUpdateOf);
                 let table_name = normalized
                     .split('"')

@@ -86,7 +86,7 @@ pub fn convert_date_to_iso_format(date_str: &str) -> String {
             if day.chars().all(|c| c.is_ascii_digit()) && month.chars().all(|c| c.is_ascii_digit()) {
                 let d: i32 = day.parse().unwrap_or(0);
                 let m: i32 = month.parse().unwrap_or(0);
-                if d >= 1 && d <= 31 && m >= 1 && m <= 12 {
+                if (1..=31).contains(&d) && (1..=12).contains(&m) {
                     let time_part = if rest.contains(' ') {
                         " ".to_string() + rest.split(' ').nth(1).unwrap_or("")
                     } else {

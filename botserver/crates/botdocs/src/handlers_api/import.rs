@@ -54,7 +54,7 @@ pub async fn handle_import_document(
         .next()
         .unwrap_or(&filename)
         .rsplit('.')
-        .last()
+        .next_back()
         .unwrap_or(&filename)
         .to_string();
 

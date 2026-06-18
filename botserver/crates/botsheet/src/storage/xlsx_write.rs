@@ -152,7 +152,7 @@ pub fn apply_umya_style(cell: &mut umya_spreadsheet::Cell, style: &CellStyle) {
         cell_style
             .get_font_mut()
             .get_color_mut()
-            .set_argb(&format!("FF{color_str}"));
+            .set_argb(format!("FF{color_str}"));
     }
 
     if let Some(ref bg) = style.background {
@@ -161,7 +161,7 @@ pub fn apply_umya_style(cell: &mut umya_spreadsheet::Cell, style: &CellStyle) {
             .get_fill_mut()
             .get_pattern_fill_mut()
             .get_foreground_color_mut()
-            .set_argb(&format!("FF{bg_str}"));
+            .set_argb(format!("FF{bg_str}"));
         cell_style
             .get_fill_mut()
             .get_pattern_fill_mut()
@@ -259,7 +259,7 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
         .filter(|c| c != "#FFFFFF");
 
     let text_align = alignment
-        .map(|a| {
+        .and_then(|a| {
             use umya_spreadsheet::structs::HorizontalAlignmentValues;
             match a.get_horizontal() {
                 HorizontalAlignmentValues::Left => Some("left".to_string()),
@@ -267,11 +267,10 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
                 HorizontalAlignmentValues::Right => Some("right".to_string()),
                 _ => None,
             }
-        })
-        .flatten();
+        });
 
     let vertical_align = alignment
-        .map(|a| {
+        .and_then(|a| {
             use umya_spreadsheet::structs::VerticalAlignmentValues;
             match a.get_vertical() {
                 VerticalAlignmentValues::Top => Some("top".to_string()),
@@ -279,8 +278,7 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
                 VerticalAlignmentValues::Bottom => Some("bottom".to_string()),
                 _ => None,
             }
-        })
-        .flatten();
+        });
 
     if font_weight.is_some()
         || font_style.is_some()

@@ -407,6 +407,12 @@ pub struct BackupVerificationService {
     restore_tests: Arc<RwLock<Vec<RestoreTestResult>>>,
 }
 
+impl Default for BackupVerificationService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BackupVerificationService {
     pub fn new() -> Self {
         Self {

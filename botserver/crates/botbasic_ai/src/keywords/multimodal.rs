@@ -64,7 +64,7 @@ fn register_generate_image(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["GENERATE", "IMAGE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let prompt = eval_string(&mut context, &inputs[0])?;
+                let prompt = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("generate-image", async move {
@@ -85,7 +85,7 @@ fn register_describe_image(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["DESCRIBE", "IMAGE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("describe-image", async move {
@@ -106,7 +106,7 @@ fn register_read_text(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &
             ["READ", "TEXT", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("read-text", async move {
@@ -127,7 +127,7 @@ fn register_scan_barcode(state: Arc<dyn BasicRuntime>, user: UserSession, engine
             ["SCAN", "BARCODE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("scan-barcode", async move {
@@ -148,7 +148,7 @@ fn register_detect_objects(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["DETECT", "OBJECTS", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("detect-objects", async move {
@@ -169,7 +169,7 @@ fn register_read_plate(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
             ["READ", "PLATE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("read-plate", async move {
@@ -191,7 +191,7 @@ fn register_detect_damage(state: Arc<dyn BasicRuntime>, user: UserSession, engin
             ["DETECT", "DAMAGE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("detect-damage", async move {
@@ -213,7 +213,7 @@ fn register_generate_video(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["GENERATE", "VIDEO", "$expr$"],
             false,
             move |mut context, inputs| {
-                let prompt = eval_string(&mut context, &inputs[0])?;
+                let prompt = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("generate-video", async move {
@@ -234,7 +234,7 @@ fn register_speech_to_text(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["SPEECH", "TO", "TEXT", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("speech-to-text", async move {
@@ -255,7 +255,7 @@ fn register_text_to_speech(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["TEXT", "TO", "SPEECH", "$expr$"],
             false,
             move |mut context, inputs| {
-                let text = eval_string(&mut context, &inputs[0])?;
+                let text = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("text-to-speech", async move {
@@ -276,7 +276,7 @@ fn register_analyze_image(state: Arc<dyn BasicRuntime>, user: UserSession, engin
             ["ANALYZE", "IMAGE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("analyze-image", async move {
@@ -297,8 +297,8 @@ fn register_compare_images(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["COMPARE", "IMAGES", "$expr$", "WITH", "$expr$"],
             false,
             move |mut context, inputs| {
-                let a = eval_string(&mut context, &inputs[0])?;
-                let b = eval_string(&mut context, &inputs[1])?;
+                let a = eval_string(context, &inputs[0])?;
+                let b = eval_string(context, &inputs[1])?;
                 let combined = format!("{a}|{b}");
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
@@ -320,7 +320,7 @@ fn register_classify_image(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["CLASSIFY", "IMAGE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("classify-image", async move {
@@ -341,7 +341,7 @@ fn register_detect_defects(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["DETECT", "DEFECTS", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("detect-defects", async move {
@@ -362,7 +362,7 @@ fn register_detect_faces(state: Arc<dyn BasicRuntime>, user: UserSession, engine
             ["DETECT", "FACES", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("detect-faces", async move {
@@ -383,7 +383,7 @@ fn register_extract_colors(state: Arc<dyn BasicRuntime>, user: UserSession, engi
             ["EXTRACT", "COLORS", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("extract-colors", async move {
@@ -404,7 +404,7 @@ fn register_assess_image(state: Arc<dyn BasicRuntime>, user: UserSession, engine
             ["ASSESS", "IMAGE", "$expr$"],
             false,
             move |mut context, inputs| {
-                let source = eval_string(&mut context, &inputs[0])?;
+                let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
                 spawn_multimodal("assess-image", async move {

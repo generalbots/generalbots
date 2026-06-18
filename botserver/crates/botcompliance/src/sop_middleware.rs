@@ -767,11 +767,10 @@ fn determine_severity(method: &Method, path: &str, status: StatusCode) -> SopSev
         return SopSeverity::Medium;
     }
 
-    if path_lower.contains("/config") || path_lower.contains("/settings") {
-        if *method != Method::GET {
+    if (path_lower.contains("/config") || path_lower.contains("/settings"))
+        && *method != Method::GET {
             return SopSeverity::Medium;
         }
-    }
 
     SopSeverity::Info
 }

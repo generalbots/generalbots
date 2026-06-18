@@ -258,7 +258,7 @@ pub async fn load_docx_from_bytes(
     user_identifier: &str,
     file_path: &str,
 ) -> Result<Document, String> {
-    let raw_name = file_path.split('/').last().unwrap_or("Untitled");
+    let raw_name = file_path.split('/').next_back().unwrap_or("Untitled");
     let file_name = raw_name
         .strip_suffix(".docx")
         .or_else(|| raw_name.strip_suffix(".doc"))

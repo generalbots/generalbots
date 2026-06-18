@@ -230,6 +230,12 @@ pub struct WhiteboardExportService {
     export_history: Arc<RwLock<HashMap<Uuid, Vec<ExportResult>>>>,
 }
 
+impl Default for WhiteboardExportService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WhiteboardExportService {
     pub fn new() -> Self {
         Self {
@@ -717,7 +723,7 @@ impl WhiteboardExportService {
         if let Some(stroke) = &shape.stroke_color {
             pdf.set_stroke_color(stroke);
         }
-        pdf.set_line_width(shape.stroke_width as f32);
+        pdf.set_line_width(shape.stroke_width);
 
         match shape.shape_type {
             ShapeType::Rectangle | ShapeType::Sticky => {
@@ -740,7 +746,7 @@ impl WhiteboardExportService {
             }
             ShapeType::Text => {
                 if let Some(text) = &shape.text {
-                    let font_size = (shape.font_size.unwrap_or(12.0) * options.scale) as f32;
+                    let font_size = (shape.font_size.unwrap_or(12.0) * options.scale);
                     pdf.draw_text(text, x, y, font_size);
                 }
             }
@@ -857,15 +863,11 @@ impl WhiteboardExportService {
         let h = shape.height * scale;
 
         let fill = shape
-            .fill_color
-            .as_ref()
-            .map(|c| c.as_str())
+            .fill_color.as_deref()
             .unwrap_or("none");
 
         let stroke = shape
-            .stroke_color
-            .as_ref()
-            .map(|c| c.as_str())
+            .stroke_color.as_deref()
             .unwrap_or("none");
 
         let stroke_width = shape.stroke_width * options.scale;

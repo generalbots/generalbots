@@ -412,6 +412,12 @@ pub struct EvidenceCollectionService {
     collection_schedules: Arc<RwLock<Vec<CollectionSchedule>>>,
 }
 
+impl Default for EvidenceCollectionService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EvidenceCollectionService {
     pub fn new() -> Self {
         let service = Self {

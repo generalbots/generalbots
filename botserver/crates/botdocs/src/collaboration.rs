@@ -402,7 +402,7 @@ async fn handle_docs_connection(socket: WebSocket, doc_id: String, auth: Option<
                 continue;
             }
             if let Ok(json) = serde_json::to_string(&msg) {
-                if sender.send(Message::Text(json.into())).await.is_err() {
+                if sender.send(Message::Text(json)).await.is_err() {
                     break;
                 }
             }

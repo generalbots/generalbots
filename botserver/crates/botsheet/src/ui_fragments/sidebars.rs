@@ -97,7 +97,7 @@ pub async fn handle_worksheet_tabs_sidebar(Json(sheet): Json<Spreadsheet>) -> Ht
 }
 
 pub fn render_worksheet_grid_preview(ws: &Worksheet, idx: usize) -> String {
-    let mut html = String::from(format!(
+    let mut html = format!(
         r##"<div class="ss-grid-preview" id="worksheet-{idx}" data-index="{idx}" style="padding:12px;">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
 <strong style="color:#f8fafc;">{}</strong>
@@ -106,7 +106,7 @@ pub fn render_worksheet_grid_preview(ws: &Worksheet, idx: usize) -> String {
 <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:2px;background:#334155;border-radius:4px;overflow:hidden;">"##,
         html_escape(&ws.name),
         ws.data.len()
-    ));
+    );
     let entries: Vec<(&String, &botsheet_core::types::CellData)> = ws.data.iter().take(64).collect();
     for (k, v) in entries {
         let display = v.value.as_deref().or(v.formula.as_deref()).unwrap_or("");

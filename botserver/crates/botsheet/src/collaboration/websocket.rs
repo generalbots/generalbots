@@ -297,7 +297,7 @@ pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: 
                 continue;
             }
             if let Ok(json) = serde_json::to_string(&msg) {
-                if sender.send(Message::Text(json.into())).await.is_err() {
+                if sender.send(Message::Text(json)).await.is_err() {
                     break;
                 }
             }

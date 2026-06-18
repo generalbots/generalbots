@@ -152,8 +152,7 @@ pub async fn handle_ai_panel(Json(payload): Json<serde_json::Value>) -> Html<Str
 }
 
 pub async fn handle_advanced_ranges_panel(Json(_payload): Json<serde_json::Value>) -> Html<String> {
-    Html(format!(
-        r##"<div class="ss-panel" id="advanced-ranges-panel" style="padding:16px;">
+    Html(r##"<div class="ss-panel" id="advanced-ranges-panel" style="padding:16px;">
 <h3 style="color:#f8fafc;margin-top:0;">Ranges Avançados</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <button hx-get="/suite/sheet/modals/conditional-format" hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
@@ -181,6 +180,5 @@ pub async fn handle_advanced_ranges_panel(Json(_payload): Json<serde_json::Value
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Buscar texto na planilha</div>
 </button>
 </div>
-</div>"##
-    ))
+</div>"##.to_string())
 }

@@ -262,7 +262,7 @@ impl UsageMeteringService {
             .get(&organization_id)
             .map(|s| {
                 let len = s.len();
-                let start = if len > days { len - days } else { 0 };
+                let start = len.saturating_sub(days);
                 s[start..].to_vec()
             })
             .unwrap_or_default();

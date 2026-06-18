@@ -5,7 +5,6 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::platform::DeliveryPlatform;
 use super::transaction::{BankTransaction, TransactionSide};
 
 /// Confidence level of a match.
