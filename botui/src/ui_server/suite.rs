@@ -242,7 +242,7 @@ pub async fn serve_suite_impl(_state: &AppState, bot_name: Option<String>, _head
     match raw_html_res {
         Ok(raw_html) => {
             let mut html = raw_html;
-            let _ = (&mut html);
+            let _ = &mut html ;
 
             if let Some(head_end) = html.find("</head>") {
                 let is_auth_page = bot_name.as_ref()
