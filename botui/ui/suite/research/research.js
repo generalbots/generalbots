@@ -138,7 +138,7 @@
             if (collectionItem) {
                 const collectionId = collectionItem.dataset.id;
                 if (typeof htmx !== 'undefined') {
-                    htmx.ajax('GET', `/api/research/collections/${collectionId}`, {
+                    htmx.ajax('GET', `/api/ui/research/collections/${collectionId}`, {
                         target: '#main-results'
                     });
                 }
@@ -159,7 +159,7 @@
             cat.addEventListener('click', function() {
                 const category = this.dataset.category;
                 if (typeof htmx !== 'undefined') {
-                    htmx.ajax('GET', `/api/research/sources?category=${category}`, {
+                    htmx.ajax('GET', `/api/ui/research/sources?category=${category}`, {
                         target: '#sources-list'
                     });
                 }

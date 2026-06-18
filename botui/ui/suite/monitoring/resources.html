@@ -5,7 +5,7 @@
     <div class="resource-cards">
         <!-- CPU Card -->
         <div class="resource-card cpu-card"
-             hx-get="/api/ui/monitoring/resources/cpu"
+             hx-get="/api/monitoring/resources/cpu"
              hx-trigger="load, every 5s"
              hx-swap="innerHTML">
             <div class="card-icon">
@@ -34,7 +34,7 @@
 
         <!-- Memory Card -->
         <div class="resource-card memory-card"
-             hx-get="/api/ui/monitoring/resources/memory"
+             hx-get="/api/monitoring/resources/memory"
              hx-trigger="load, every 5s"
              hx-swap="innerHTML">
             <div class="card-icon">
@@ -58,7 +58,7 @@
 
         <!-- Disk Card -->
         <div class="resource-card disk-card"
-             hx-get="/api/ui/monitoring/resources/disk"
+             hx-get="/api/monitoring/resources/disk"
              hx-trigger="load, every 30s"
              hx-swap="innerHTML">
             <div class="card-icon">
@@ -80,7 +80,7 @@
 
         <!-- Network Card -->
         <div class="resource-card network-card"
-             hx-get="/api/ui/monitoring/resources/network"
+             hx-get="/api/monitoring/resources/network"
              hx-trigger="load, every 5s"
              hx-swap="innerHTML">
             <div class="card-icon">
@@ -132,7 +132,7 @@
                 </div>
             </div>
             <div class="chart-container" id="cpu-chart"
-                 hx-get="/api/ui/monitoring/charts/cpu"
+                 hx-get="/api/monitoring/charts/cpu"
                  hx-trigger="load, every 10s"
                  hx-swap="innerHTML">
                 <div class="chart-placeholder">
@@ -173,7 +173,7 @@
                 </div>
             </div>
             <div class="chart-container" id="memory-chart"
-                 hx-get="/api/ui/monitoring/charts/memory"
+                 hx-get="/api/monitoring/charts/memory"
                  hx-trigger="load, every 10s"
                  hx-swap="innerHTML">
                 <div class="chart-placeholder">
@@ -217,7 +217,7 @@
                 </button>
             </div>
             <div class="detail-content" id="disk-partitions"
-                 hx-get="/api/ui/monitoring/resources/disk/partitions"
+                 hx-get="/api/monitoring/resources/disk/partitions"
                  hx-trigger="load, every 60s"
                  hx-swap="innerHTML">
                 <div class="partition-row">
@@ -259,7 +259,7 @@
                 </select>
             </div>
             <div class="detail-content" id="process-list"
-                 hx-get="/api/ui/monitoring/resources/processes"
+                 hx-get="/api/monitoring/resources/processes"
                  hx-trigger="load, every 5s"
                  hx-swap="innerHTML">
                 <table class="process-table">
@@ -295,7 +295,7 @@
                 </h3>
             </div>
             <div class="detail-content" id="network-interfaces"
-                 hx-get="/api/ui/monitoring/resources/network/interfaces"
+                 hx-get="/api/monitoring/resources/network/interfaces"
                  hx-trigger="load, every 10s"
                  hx-swap="innerHTML">
                 <div class="interface-row">
@@ -334,7 +334,7 @@
                 </h3>
             </div>
             <div class="detail-content system-info"
-                 hx-get="/api/ui/monitoring/resources/system"
+                 hx-get="/api/monitoring/resources/system"
                  hx-trigger="load"
                  hx-swap="innerHTML">
                 <div class="info-row">

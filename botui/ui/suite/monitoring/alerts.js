@@ -97,7 +97,7 @@ function acknowledgeAlert(alertId) {
 
 function acknowledgeAllAlerts() {
     if (confirm('Are you sure you want to acknowledge all active alerts?')) {
-        htmx.ajax('POST', '/api/ui/monitoring/alerts/acknowledge-all', {
+        htmx.ajax('POST', '/api/monitoring/alerts/acknowledge-all', {
             swap: 'none'
         }).then(() => {
             htmx.trigger('#alerts-list', 'refresh');

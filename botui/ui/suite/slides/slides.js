@@ -184,7 +184,7 @@
         height: el.offsetHeight,
         rotation: parseFloat(el.dataset.rotation || "0")
       };
-      fetch("/api/slides/element", {
+      fetch("/api/slides/element/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -198,7 +198,7 @@
       if (!this.canvas) return;
       const slide = this.canvas.dataset.slideId;
       const elements = $$(".sl-element", this.canvas).map(function (el) { return el.dataset.id; });
-      fetch("/api/slides/elements", {
+      fetch("/api/slides/element/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ presentation_id: "current", slide_id: slide, elements: elements })

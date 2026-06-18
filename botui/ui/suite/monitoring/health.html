@@ -3,7 +3,7 @@
 <div class="health-container">
     <!-- Health Overview -->
     <div class="health-overview"
-         hx-get="/api/ui/monitoring/health/overview"
+         hx-get="/api/monitoring/health/overview"
          hx-trigger="load, every 10s"
          hx-swap="innerHTML">
         <div class="health-status healthy">
@@ -24,7 +24,7 @@
     <!-- Uptime Stats -->
     <div class="uptime-stats">
         <div class="stat-card"
-             hx-get="/api/ui/monitoring/health/uptime"
+             hx-get="/api/monitoring/health/uptime"
              hx-trigger="load, every 60s"
              hx-swap="innerHTML">
             <div class="stat-icon">
@@ -39,7 +39,7 @@
             </div>
         </div>
         <div class="stat-card"
-             hx-get="/api/ui/monitoring/health/uptime-percent"
+             hx-get="/api/monitoring/health/uptime-percent"
              hx-trigger="load, every 60s"
              hx-swap="innerHTML">
             <div class="stat-icon success">
@@ -53,7 +53,7 @@
             </div>
         </div>
         <div class="stat-card"
-             hx-get="/api/ui/monitoring/health/last-incident"
+             hx-get="/api/monitoring/health/last-incident"
              hx-trigger="load, every 60s"
              hx-swap="innerHTML">
             <div class="stat-icon warning">
@@ -69,7 +69,7 @@
             </div>
         </div>
         <div class="stat-card"
-             hx-get="/api/ui/monitoring/health/response-time"
+             hx-get="/api/monitoring/health/response-time"
              hx-trigger="load, every 30s"
              hx-swap="innerHTML">
             <div class="stat-icon info">
@@ -113,7 +113,7 @@
         </div>
 
         <div class="health-checks-grid" id="health-checks"
-             hx-get="/api/ui/monitoring/health/checks"
+             hx-get="/api/monitoring/health/checks"
              hx-trigger="load, every 10s"
              hx-swap="innerHTML">
             <div class="health-check-card">
@@ -200,7 +200,7 @@
         </div>
 
         <div class="dependencies-list" id="dependencies"
-             hx-get="/api/ui/monitoring/health/dependencies"
+             hx-get="/api/monitoring/health/dependencies"
              hx-trigger="load, every 30s"
              hx-swap="innerHTML">
             <div class="dependency-row">
@@ -277,7 +277,7 @@
         </div>
 
         <div class="uptime-chart" id="uptime-chart"
-             hx-get="/api/ui/monitoring/health/uptime-history"
+             hx-get="/api/monitoring/health/uptime-history"
              hx-trigger="load"
              hx-swap="innerHTML">
             <div class="uptime-bars">
@@ -319,7 +319,7 @@
         </div>
 
         <div class="incidents-list" id="incidents"
-             hx-get="/api/ui/monitoring/health/incidents"
+             hx-get="/api/monitoring/health/incidents"
              hx-trigger="load"
              hx-swap="innerHTML">
             <div class="incident-placeholder">

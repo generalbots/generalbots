@@ -246,11 +246,11 @@
                 <rect x="0" y="0" width="160" height="85" rx="10" class="card-bg" stroke="var(--border, #334155)" stroke-width="1"/>
                 <text x="12" y="24" class="label-secondary" font-family="system-ui" font-size="10" font-weight="500">ACTIVE SESSIONS</text>
                 <text x="12" y="58" class="label-text" font-family="system-ui" font-size="32" font-weight="700"
-                      hx-get="/api/ui/monitoring/metric/sessions"
+                      hx-get="/api/monitoring/metric/sessions"
                       hx-trigger="load, every 5s"
                       hx-swap="innerHTML">--</text>
                 <text x="148" y="70" fill="var(--success, #10b981)" font-family="system-ui" font-size="11" text-anchor="end"
-                      hx-get="/api/ui/monitoring/trend/sessions"
+                      hx-get="/api/monitoring/trend/sessions"
                       hx-trigger="load, every 5s"
                       hx-swap="innerHTML">↑ 0%</text>
             </g>
@@ -260,11 +260,11 @@
                 <rect x="0" y="0" width="160" height="85" rx="10" class="card-bg" stroke="var(--border, #334155)" stroke-width="1"/>
                 <text x="12" y="24" class="label-secondary" font-family="system-ui" font-size="10" font-weight="500">MESSAGES TODAY</text>
                 <text x="12" y="58" class="label-text" font-family="system-ui" font-size="32" font-weight="700"
-                      hx-get="/api/ui/monitoring/metric/messages"
+                      hx-get="/api/monitoring/metric/messages"
                       hx-trigger="load, every 10s"
                       hx-swap="innerHTML">--</text>
                 <text x="148" y="70" class="label-secondary" font-family="system-ui" font-size="11" text-anchor="end"
-                      hx-get="/api/ui/monitoring/rate/messages"
+                      hx-get="/api/monitoring/rate/messages"
                       hx-trigger="load, every 10s"
                       hx-swap="innerHTML">0/hr</text>
             </g>
@@ -274,7 +274,7 @@
                 <rect x="0" y="0" width="160" height="85" rx="10" class="card-bg" stroke="var(--border, #334155)" stroke-width="1"/>
                 <text x="12" y="24" class="label-secondary" font-family="system-ui" font-size="10" font-weight="500">AVG RESPONSE</text>
                 <text x="12" y="58" class="label-text" font-family="system-ui" font-size="32" font-weight="700"
-                      hx-get="/api/ui/monitoring/metric/response_time"
+                      hx-get="/api/monitoring/metric/response_time"
                       hx-trigger="load, every 10s"
                       hx-swap="innerHTML">--</text>
                 <text x="148" y="70" class="label-secondary" font-family="system-ui" font-size="11" text-anchor="end">ms</text>
@@ -283,7 +283,7 @@
             <!-- ==================== RESOURCE BARS ==================== -->
 
             <g transform="translate(320, 580)" class="resource-bars"
-               hx-get="/api/ui/monitoring/resources/bars"
+               hx-get="/api/monitoring/resources/bars"
                hx-trigger="load, every 15s"
                hx-swap="innerHTML">
                 <!-- CPU -->
@@ -320,7 +320,7 @@
                 <rect x="0" y="0" width="520" height="40" rx="8" class="card-bg" stroke="var(--border, #334155)" stroke-width="1"/>
                 <circle cx="18" cy="20" r="5" fill="var(--success, #10b981)" class="pulse-dot"/>
                 <text x="34" y="25" class="label-secondary" font-family="system-ui" font-size="12"
-                      hx-get="/api/ui/monitoring/activity/latest"
+                      hx-get="/api/monitoring/activity/latest"
                       hx-trigger="load, every 5s"
                       hx-swap="innerHTML">System monitoring active...</text>
             </g>
@@ -330,7 +330,7 @@
             <g transform="translate(600, 45)">
                 <text text-anchor="middle" class="label-text" font-family="system-ui" font-size="22" font-weight="600">Live System Monitor</text>
                 <text y="24" text-anchor="middle" class="label-secondary" font-family="system-ui" font-size="12"
-                      hx-get="/api/ui/monitoring/timestamp"
+                      hx-get="/api/monitoring/timestamp"
                       hx-trigger="load, every 5s"
                       hx-swap="innerHTML">Last updated: --</text>
             </g>
@@ -356,7 +356,7 @@
 
     <!-- Hidden service status updater -->
     <div id="service-status-container" style="display: none;"
-         hx-get="/api/ui/monitoring/services"
+         hx-get="/api/monitoring/services"
          hx-trigger="load, every 30s"
          hx-swap="innerHTML">
     </div>

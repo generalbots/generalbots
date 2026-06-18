@@ -43,30 +43,30 @@ use std::sync::Arc;
 
 use crate::state::PaperState;
 
-pub const PAPER_NEW: &str = "/paper/new";
-pub const PAPER_LIST: &str = "/paper/list";
-pub const PAPER_SEARCH: &str = "/paper/search";
-pub const PAPER_SAVE: &str = "/paper/save";
-pub const PAPER_AUTOSAVE: &str = "/paper/autosave";
-pub const PAPER_BY_ID: &str = "/paper/:id";
-pub const PAPER_DELETE: &str = "/paper/delete/:id";
-pub const PAPER_TEMPLATE_BLANK: &str = "/paper/template/blank";
-pub const PAPER_TEMPLATE_MEETING: &str = "/paper/template/meeting";
-pub const PAPER_TEMPLATE_TODO: &str = "/paper/template/todo";
-pub const PAPER_TEMPLATE_RESEARCH: &str = "/paper/template/research";
-pub const PAPER_TEMPLATE_REPORT: &str = "/paper/template/report";
-pub const PAPER_TEMPLATE_LETTER: &str = "/paper/template/letter";
-pub const PAPER_AI_SUMMARIZE: &str = "/paper/ai/summarize";
-pub const PAPER_AI_EXPAND: &str = "/paper/ai/expand";
-pub const PAPER_AI_IMPROVE: &str = "/paper/ai/improve";
-pub const PAPER_AI_SIMPLIFY: &str = "/paper/ai/simplify";
-pub const PAPER_AI_TRANSLATE: &str = "/paper/ai/translate";
-pub const PAPER_AI_CUSTOM: &str = "/paper/ai/custom";
-pub const PAPER_EXPORT_PDF: &str = "/paper/export/pdf";
-pub const PAPER_EXPORT_DOCX: &str = "/paper/export/docx";
-pub const PAPER_EXPORT_MD: &str = "/paper/export/md";
-pub const PAPER_EXPORT_HTML: &str = "/paper/export/html";
-pub const PAPER_EXPORT_TXT: &str = "/paper/export/txt";
+pub const PAPER_NEW: &str = "/api/ui/paper/new";
+pub const PAPER_LIST: &str = "/api/ui/paper/list";
+pub const PAPER_SEARCH: &str = "/api/ui/paper/search";
+pub const PAPER_SAVE: &str = "/api/ui/paper/save";
+pub const PAPER_AUTOSAVE: &str = "/api/ui/paper/autosave";
+pub const PAPER_BY_ID: &str = "/api/ui/paper/:id";
+pub const PAPER_DELETE: &str = "/api/ui/paper/delete/:id";
+pub const PAPER_TEMPLATE_BLANK: &str = "/api/ui/paper/template/blank";
+pub const PAPER_TEMPLATE_MEETING: &str = "/api/ui/paper/template/meeting";
+pub const PAPER_TEMPLATE_TODO: &str = "/api/ui/paper/template/todo";
+pub const PAPER_TEMPLATE_RESEARCH: &str = "/api/ui/paper/template/research";
+pub const PAPER_TEMPLATE_REPORT: &str = "/api/ui/paper/template/report";
+pub const PAPER_TEMPLATE_LETTER: &str = "/api/ui/paper/template/letter";
+pub const PAPER_AI_SUMMARIZE: &str = "/api/ui/paper/ai/summarize";
+pub const PAPER_AI_EXPAND: &str = "/api/ui/paper/ai/expand";
+pub const PAPER_AI_IMPROVE: &str = "/api/ui/paper/ai/improve";
+pub const PAPER_AI_SIMPLIFY: &str = "/api/ui/paper/ai/simplify";
+pub const PAPER_AI_TRANSLATE: &str = "/api/ui/paper/ai/translate";
+pub const PAPER_AI_CUSTOM: &str = "/api/ui/paper/ai/custom";
+pub const PAPER_EXPORT_PDF: &str = "/api/ui/paper/export/pdf";
+pub const PAPER_EXPORT_DOCX: &str = "/api/ui/paper/export/docx";
+pub const PAPER_EXPORT_MD: &str = "/api/ui/paper/export/md";
+pub const PAPER_EXPORT_HTML: &str = "/api/ui/paper/export/html";
+pub const PAPER_EXPORT_TXT: &str = "/api/ui/paper/export/txt";
 
 pub fn configure_paper_routes() -> Router<Arc<PaperState>> {
     Router::new()
