@@ -16,6 +16,16 @@ struct OrgRow {
 }
 
 use crate::{integration, notifier, CalculatorPayload, SaasService};
+use botproviders::{ComputeProvider, MachineSpec};
+use botproviders::runpod::RunPodProvider;
+use botproviders::vultr::VultrProvider;
+use botproviders::vast::VastAiProvider;
+
+#[derive(diesel::QueryableByName, Debug)]
+struct ProviderKeyRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    key: String,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct CheckoutBody {
@@ -76,20 +86,20 @@ pub fn configure_cloud_api_routes() -> Router<Arc<SaasService>> {
         .route("/api/cloud/checkout", post(handle_checkout))
         .route("/api/cloud/checkout/success", get(checkout_success))
         .route("/api/cloud/plans", get(list_plans))
-        .route("/api/cloud/plans/:plan_id", get(get_plan_detail))
+        .route("/api/cloud/plans/{plan_id}", get(get_plan_detail))
         // Organizations
         .route("/api/cloud/organizations", get(list_organizations).post(create_organization))
-        .route("/api/cloud/organizations/:org_id", get(get_organization).put(update_organization).delete(delete_organization))
-        .route("/api/cloud/organizations/:org_id/billing", get(org_billing_portal))
+        .route("/api/cloud/organizations/{org_id}", get(get_organization).put(update_organization).delete(delete_organization))
+        .route("/api/cloud/organizations/{org_id}/billing", get(org_billing_portal))
         // Workspaces per organization
-        .route("/api/cloud/organizations/:org_id/workspaces", get(list_workspaces).post(create_workspace))
-        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id", put(update_workspace).delete(delete_workspace))
+        .route("/api/cloud/organizations/{org_id}/workspaces", get(list_workspaces).post(create_workspace))
+        .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}", put(update_workspace).delete(delete_workspace))
         // Resources per workspace
-        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id/resources", get(list_workspace_resources).post(assign_resource))
-        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id/resources/:res_id", delete(remove_resource))
+        .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources", get(list_workspace_resources).post(assign_resource))
+        .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources/{res_id}", delete(remove_resource))
         // Services (purchased add-ons)
         .route("/api/cloud/services", get(list_services))
-        .route("/api/cloud/services/:id/cancel", post(cancel_service))
+        .route("/api/cloud/services/{id}/cancel", post(cancel_service))
         // Invoices
         .route("/api/cloud/invoices", get(list_invoices))
         // Payment cards (stub — real impl via Stripe SetupIntent)
@@ -916,7 +926,6 @@ async fn assign_resource(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
-    // Determine resource type from store_item_id prefix
     let restype = if body.store_item_id.starts_with("vps-") || body.store_item_id.starts_with("gpu-") {
         "compute"
     } else if body.store_item_id.starts_with("storage-") {
@@ -949,12 +958,122 @@ async fn assign_resource(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert: {e}")))?;
 
+    let db_pool = service.pool().clone();
+    let item_id = body.store_item_id.clone();
+    let rid = res_id;
+    let wid = ws_id_param;
+    let oid = org_id_param;
+
+    tokio::spawn(async move {
+        if let Err(e) = provision_compute_resource(&db_pool, &item_id, rid, wid, oid).await {
+            tracing::error!("Provisioning failed for resource {rid} ({item_id}): {e}");
+        }
+    });
+
     Ok(Json(serde_json::json!({
         "id": res_id,
         "store_item_id": body.store_item_id,
         "resource_type": restype,
         "status": "provisioning",
     })))
+}
+
+fn store_item_to_spec(store_item_id: &str) -> Option<(MachineSpec, Vec<&'static str>)> {
+    match store_item_id {
+        "vps-small" => Some((MachineSpec { cpu_cores: 4, ram_gb: 8, disk_gb: 100, gpu_type: None, gpu_count: 0, bandwidth_tb: 2 }, vec!["runpod", "vultr", "vast"])),
+        "vps-medium" => Some((MachineSpec { cpu_cores: 6, ram_gb: 16, disk_gb: 200, gpu_type: None, gpu_count: 0, bandwidth_tb: 4 }, vec!["runpod", "vultr", "vast"])),
+        "vps-large" => Some((MachineSpec { cpu_cores: 8, ram_gb: 32, disk_gb: 400, gpu_type: None, gpu_count: 0, bandwidth_tb: 8 }, vec!["runpod", "vultr"])),
+        "vps-xl" => Some((MachineSpec { cpu_cores: 16, ram_gb: 64, disk_gb: 800, gpu_type: None, gpu_count: 0, bandwidth_tb: 16 }, vec!["runpod", "vultr"])),
+        "gpu-basic" => Some((MachineSpec { cpu_cores: 4, ram_gb: 8, disk_gb: 50, gpu_type: Some("GT 730".into()), gpu_count: 1, bandwidth_tb: 2 }, vec!["vast"])),
+        "gpu-pro" => Some((MachineSpec { cpu_cores: 8, ram_gb: 32, disk_gb: 200, gpu_type: Some("RTX 4090".into()), gpu_count: 1, bandwidth_tb: 4 }, vec!["runpod", "vultr", "vast"])),
+        "gpu-enterprise" => Some((MachineSpec { cpu_cores: 16, ram_gb: 64, disk_gb: 500, gpu_type: Some("A100".into()), gpu_count: 1, bandwidth_tb: 8 }, vec!["runpod", "vast"])),
+        _ => None,
+    }
+}
+
+async fn provision_compute_resource(
+    pool: &crate::DbPool,
+    store_item_id: &str,
+    resource_id: Uuid,
+    _workspace_id: Uuid,
+    org_id: Uuid,
+) -> Result<(), String> {
+    let (spec, candidates) = store_item_to_spec(store_item_id)
+        .ok_or_else(|| format!("Unknown store item: {store_item_id}"))?;
+
+    use crate::schema_ext::workspace_resources::dsl as wr;
+    let mut conn = pool.get().map_err(|e| format!("DB: {e}"))?;
+
+    let org_provider_key: Option<String> = {
+        diesel::sql_query(
+            "SELECT COALESCE(config->>'provider_api_key', '') AS key FROM cloud_organizations WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(org_id)
+        .get_result::<ProviderKeyRow>(&mut conn)
+        .ok()
+        .map(|r| r.key)
+    };
+
+    let api_key = match org_provider_key {
+        Some(k) if !k.is_empty() => k,
+        _ => {
+            diesel::update(wr::workspace_resources.filter(wr::id.eq(resource_id)))
+                .set(wr::status.eq("provisioning_no_key"))
+                .execute(&mut conn)
+                .ok();
+            return Err("No provider API key configured for organization".into());
+        }
+    };
+
+    let preferred_provider = std::env::var("GB_PROVIDER").unwrap_or_else(|_| "vultr".into());
+    let provider_name = if candidates.contains(&preferred_provider.as_str()) {
+        preferred_provider.clone()
+    } else {
+        candidates.first().unwrap_or(&"vultr").to_string()
+    };
+
+    let provider: Box<dyn ComputeProvider> = match provider_name.as_str() {
+        "runpod" => Box::new(RunPodProvider::new()),
+        "vultr" => Box::new(VultrProvider::new()),
+        "vast" => Box::new(VastAiProvider::new()),
+        other => return Err(format!("Unknown provider: {other}")),
+    };
+
+    match provider.provision(&spec, "US", &api_key).await {
+        Ok(result) => {
+            let config: serde_json::Value = serde_json::json!({
+                "provider": result.provider,
+                "instance_id": result.instance_id,
+                "ip": result.ip_address,
+                "region": result.region,
+                "hourly_cost": result.hourly_cost,
+            });
+
+            diesel::update(wr::workspace_resources.filter(wr::id.eq(resource_id)))
+                .set((
+                    wr::status.eq("active"),
+                    wr::config.eq(Some(config)),
+                ))
+                .execute(&mut conn)
+                .ok();
+            tracing::info!("Provisioned {store_item_id} via {provider_name}: instance={}", result.instance_id);
+        }
+        Err(e) => {
+            let err_msg = e.to_string();
+            let config: serde_json::Value = serde_json::json!({ "error": err_msg });
+            diesel::update(wr::workspace_resources.filter(wr::id.eq(resource_id)))
+                .set((
+                    wr::status.eq("provisioning_failed"),
+                    wr::config.eq(Some(config)),
+                ))
+                .execute(&mut conn)
+                .ok();
+            tracing::warn!("Failed to provision {store_item_id} via {provider_name}: {err_msg}");
+            return Err(err_msg);
+        }
+    }
+
+    Ok(())
 }
 
 /// `DELETE /api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources/{res_id}`

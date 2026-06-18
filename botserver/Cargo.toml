@@ -112,7 +112,8 @@ kb = ["automation", "drive", "cache", "dep:botkb"]
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
 search = ["automation", "drive", "cache", "dep:botsearch"]
 desktop = ["automation", "drive", "cache", "dep:botdesktop"]
-saas = ["dep:botcloud", "billing"]
+saas = ["dep:botcloud", "billing", "providers"]
+providers = ["dep:botproviders"]
 
 # ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat"]
@@ -353,6 +354,7 @@ botretail = { workspace = true, optional = true }
 botapps = { workspace = true }
 botmodelsbridge = { workspace = true }
 botcloud = { path = "crates/botcloud", optional = true }
+botproviders = { path = "crates/botproviders", optional = true }
 
 [dev-dependencies]
 mockito = { workspace = true }
