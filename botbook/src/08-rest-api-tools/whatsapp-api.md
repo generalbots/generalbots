@@ -24,8 +24,10 @@ The WhatsApp API provides integration with the WhatsApp Business Platform (Meta)
 - Sending outbound text messages
 - Monitoring connection status
 - Managing active WhatsApp sessions
+- Automatic session management with user lookup and creation
+- Audio message transcription (when available)
 
-> **Feature Flag:** This API is only available when the `whatsapp` feature is enabled at compile time.
+> **Feature Flag:** This API is only available when the `whatsapp` feature is enabled at compile time (included in default features). The integration follows the same ChannelState dependency injection pattern as Telegram, Instagram, and Microsoft Teams channels.
 
 ---
 

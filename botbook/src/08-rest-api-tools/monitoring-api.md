@@ -447,6 +447,104 @@ llm_tokens_total{model="llama-3.3-70b",bot="default"} 3450000
 
 ---
 
+## Alert Management
+
+### List Alerts
+
+**`GET /api/monitoring/alerts`**
+
+Lists all active monitoring alerts.
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "rule_id": "uuid",
+    "rule_name": "High CPU Usage",
+    "severity": "Warning",
+    "status": "Firing",
+    "metric_name": "system_cpu_usage_percent",
+    "metric_value": 92.5,
+    "threshold": 90.0,
+    "message": "High CPU Usage: system_cpu_usage_percent is 92.5 (threshold: 90.0)",
+    "started_at": "2025-06-04T12:00:00Z",
+    "resolved_at": null,
+    "acknowledged_at": null
+  }
+]
+```
+
+### Get Alert
+
+**`GET /api/monitoring/alerts/{id}`**
+
+Returns a single alert by ID.
+
+### Acknowledge Alert
+
+**`POST /api/monitoring/alerts/{id}/acknowledge`**
+
+Marks an alert as acknowledged.
+
+### Silence Alert
+
+**`POST /api/monitoring/alerts/{id}/silence?duration=3600`**
+
+Silences an alert for the specified duration in seconds.
+
+### Acknowledge All
+
+**`POST /api/monitoring/alerts/acknowledge-all`**
+
+Acknowledges all active alerts at once.
+
+---
+
+## Alert Rules
+
+### List Rules
+
+**`GET /api/monitoring/alerts/rules`**
+
+Lists all configured alert rules.
+
+### Get Rule
+
+**`GET /api/monitoring/alerts/rules/{id}`**
+
+Returns a single alert rule.
+
+### Update Rule
+
+**`PATCH /api/monitoring/alerts/rules/{id}`**
+
+Updates an existing alert rule.
+
+### Delete Rule
+
+**`DELETE /api/monitoring/alerts/rules/{id}`**
+
+Deletes an alert rule.
+
+---
+
+## Data Export
+
+### Export Alerts History
+
+**`GET /api/monitoring/alerts/history/export?range=24h`**
+
+Exports alert history within the specified time range.
+
+### Export Monitoring Data
+
+**`GET /api/monitoring/export?range=24h`**
+
+Exports all monitoring data (metrics and alerts) within the specified time range.
+
+---
+
 ## See Also
 
 - [Dashboards API](./dashboards-api.md) — custom dashboard creation
