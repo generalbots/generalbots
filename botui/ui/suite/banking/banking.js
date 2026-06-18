@@ -168,7 +168,7 @@ const BankingApp = {
 
     async autoMatch() {
         try {
-            await this.api('/api/banking/reconcile/auto');
+            await this.api('/api/banking/reconcile', { method: 'POST' });
             this.loadReconcile();
         } catch (e) {
             alert('Auto-match failed: ' + e.message);

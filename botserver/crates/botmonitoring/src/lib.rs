@@ -182,7 +182,7 @@ async fn services<S: MonitoringState, U: MonitoringUrls>(_state: State<Arc<S>>) 
   <td>{desc}</td>
   <td><span class="status-badge {status_class}">{status_text}</span></td>
   <td>
-    <button class="btn-sm" hx-post="/api/monitoring/services/{name_lower}/restart" hx-swap="none">Restart</button>
+    <span class="status-badge {status_class}">{status_text}</span>
   </td>
 </tr>"##,
             name_lower = name.to_lowercase().replace(' ', "-"),

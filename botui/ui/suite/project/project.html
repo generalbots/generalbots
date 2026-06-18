@@ -12,7 +12,7 @@
                 class="btn-icon"
                 id="new-project-btn"
                 title="New Project"
-                hx-get="/api/ui/project/new"
+                hx-get="/suite/partials/new-project.html"
                 hx-target="#project-modal"
                 hx-swap="innerHTML"
             >
@@ -23,22 +23,14 @@
         <div class="sidebar-search">
             <input
                 type="search"
+                id="project-search"
                 placeholder="Search projects..."
-                hx-get="/projects"
-                hx-trigger="keyup changed delay:300ms"
-                hx-target="#project-list"
-                hx-swap="innerHTML"
-                name="q"
+                oninput="loadProjectList(this.value)"
             />
         </div>
 
         <nav class="sidebar-nav">
-            <div
-                id="project-list"
-                hx-get="/projects"
-                hx-trigger="load, projectCreated from:body, projectDeleted from:body"
-                hx-swap="innerHTML"
-            >
+            <div id="project-list">
                 <div class="loading-placeholder">Loading projects...</div>
             </div>
         </nav>
@@ -64,24 +56,22 @@
             <div class="project-actions">
                 <div class="view-toggle">
                     <button class="view-btn active" data-view="gantt" onclick="switchView('gantt')">
-                        <span>📊</span> Gantt
+                        <span>&#x1F4CA;</span> Gantt
                     </button>
                     <button class="view-btn" data-view="timeline" onclick="switchView('timeline')">
-                        <span>📅</span> Timeline
+                        <span>&#x1F4C5;</span> Timeline
                     </button>
                     <button class="view-btn" data-view="list" onclick="switchView('list')">
-                        <span>📋</span> List
+                        <span>&#x1F4CB;</span> List
                     </button>
                     <button class="view-btn" data-view="board" onclick="switchView('board')">
-                        <span>📌</span> Board
+                        <span>&#x1F4CC;</span> Board
                     </button>
                 </div>
                 <button
                     class="btn-primary"
                     id="add-task-btn"
-                    hx-get="/api/ui/project/task/new"
-                    hx-target="#project-modal"
-                    hx-swap="innerHTML"
+                    onclick="showNewTaskForm()"
                     disabled
                 >
                     <span>+</span> Add Task
@@ -128,9 +118,6 @@
                         <div
                             id="gantt-table-body"
                             class="gantt-table-body"
-                            hx-get="/api/ui/project/tasks"
-                            hx-trigger="projectSelected from:body"
-                            hx-swap="innerHTML"
                         >
                             <div class="empty-state-inline">
                                 Select a project to view tasks
@@ -145,9 +132,6 @@
                         <div
                             id="gantt-chart-body"
                             class="gantt-chart-body"
-                            hx-get="/api/ui/project/gantt"
-                            hx-trigger="projectSelected from:body"
-                            hx-swap="innerHTML"
                         >
                             <div class="empty-state-inline">
                                 <p>No tasks to display</p>
@@ -160,10 +144,8 @@
             <!-- Timeline View -->
             <div id="timeline-view" class="view-container">
                 <div
+                    id="timeline-container"
                     class="timeline-container"
-                    hx-get="/api/ui/project/timeline"
-                    hx-trigger="projectSelected from:body"
-                    hx-swap="innerHTML"
                 >
                     <div class="empty-state-inline">Select a project to view timeline</div>
                 </div>
@@ -172,10 +154,8 @@
             <!-- List View -->
             <div id="list-view" class="view-container">
                 <div
+                    id="list-container"
                     class="list-container"
-                    hx-get="/api/ui/project/tasks/list"
-                    hx-trigger="projectSelected from:body"
-                    hx-swap="innerHTML"
                 >
                     <div class="empty-state-inline">Select a project to view tasks</div>
                 </div>
@@ -186,15 +166,15 @@
                 <div class="board-columns">
                     <div class="board-column" data-status="not-started">
                         <h3>Not Started</h3>
-                        <div class="column-tasks" hx-get="/api/ui/project/tasks?status=not_started" hx-trigger="projectSelected from:body" hx-swap="innerHTML"></div>
+                        <div id="board-tasks-not-started" class="column-tasks"></div>
                     </div>
                     <div class="board-column" data-status="in-progress">
                         <h3>In Progress</h3>
-                        <div class="column-tasks" hx-get="/api/ui/project/tasks?status=in_progress" hx-trigger="projectSelected from:body" hx-swap="innerHTML"></div>
+                        <div id="board-tasks-in-progress" class="column-tasks"></div>
                     </div>
                     <div class="board-column" data-status="completed">
                         <h3>Completed</h3>
-                        <div class="column-tasks" hx-get="/api/ui/project/tasks?status=completed" hx-trigger="projectSelected from:body" hx-swap="innerHTML"></div>
+                        <div id="board-tasks-completed" class="column-tasks"></div>
                     </div>
                 </div>
             </div>
@@ -202,12 +182,12 @@
 
         <!-- Empty State -->
         <div id="project-empty" class="empty-state">
-            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-icon">&#x1F4CB;</div>
             <h2>No Project Selected</h2>
             <p>Select a project from the sidebar or create a new one</p>
             <button
                 class="btn-primary"
-                hx-get="/api/ui/project/new"
+                hx-get="/suite/partials/new-project.html"
                 hx-target="#project-modal"
                 hx-swap="innerHTML"
             >
@@ -219,7 +199,7 @@
     <!-- Details Panel -->
     <aside class="details-panel collapsed" id="details-panel">
         <button class="panel-toggle" onclick="toggleDetailsPanel()">
-            <span>ℹ️</span>
+            <span>&#x2139;&#xFE0F;</span>
         </button>
         <div class="panel-content">
             <div id="task-details">
@@ -232,527 +212,5 @@
     <div id="project-modal" class="modal-container"></div>
 </div>
 
-<style>
-.project-app {
-    display: flex;
-    height: 100%;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-}
-
-.project-sidebar {
-    width: 280px;
-    min-width: 280px;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.sidebar-header h2 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0;
-}
-
-.sidebar-search {
-    padding: 0.75rem 1rem;
-}
-
-.sidebar-search input {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-size: 0.875rem;
-}
-
-.sidebar-nav {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0.5rem;
-}
-
-.project-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.project-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-}
-
-.project-info h1 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 0.25rem 0;
-}
-
-.project-meta {
-    display: flex;
-    gap: 1.5rem;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-}
-
-.status-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--text-muted);
-    margin-right: 0.375rem;
-}
-
-.project-actions {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-}
-
-.view-toggle {
-    display: flex;
-    background: var(--bg-primary);
-    border-radius: 6px;
-    padding: 2px;
-    border: 1px solid var(--border-color);
-}
-
-.view-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.5rem 0.75rem;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.15s;
-}
-
-.view-btn:hover {
-    color: var(--text-primary);
-}
-
-.view-btn.active {
-    background: var(--accent-color);
-    color: white;
-}
-
-.project-views {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-}
-
-.view-container {
-    display: none;
-    height: 100%;
-    overflow: auto;
-}
-
-.view-container.active {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Gantt Chart Styles */
-.gantt-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.gantt-zoom {
-    display: flex;
-    gap: 0.25rem;
-}
-
-.zoom-btn {
-    padding: 0.375rem 0.75rem;
-    border: 1px solid var(--border-color);
-    background: var(--bg-primary);
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    cursor: pointer;
-    border-radius: 4px;
-}
-
-.zoom-btn.active {
-    background: var(--accent-color);
-    color: white;
-    border-color: var(--accent-color);
-}
-
-.gantt-filters {
-    display: flex;
-    gap: 1rem;
-}
-
-.gantt-filters label {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-
-.gantt-container {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-}
-
-.gantt-table {
-    width: 400px;
-    min-width: 400px;
-    border-right: 2px solid var(--border-color);
-    overflow-y: auto;
-}
-
-.gantt-table-header {
-    display: grid;
-    grid-template-columns: 1fr 80px 80px 70px 70px 90px;
-    padding: 0.75rem 0.5rem;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.gantt-table-body {
-    font-size: 0.875rem;
-}
-
-.gantt-chart {
-    flex: 1;
-    overflow: auto;
-    position: relative;
-}
-
-.gantt-timeline-header {
-    display: flex;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    min-width: max-content;
-}
-
-.gantt-chart-body {
-    position: relative;
-    min-height: 200px;
-}
-
-/* Board View */
-.board-columns {
-    display: flex;
-    gap: 1rem;
-    padding: 1rem;
-    height: 100%;
-    overflow-x: auto;
-}
-
-.board-column {
-    width: 300px;
-    min-width: 300px;
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-}
-
-.board-column h3 {
-    padding: 1rem;
-    margin: 0;
-    font-size: 0.875rem;
-    font-weight: 600;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.column-tasks {
-    flex: 1;
-    padding: 0.5rem;
-    overflow-y: auto;
-}
-
-/* Details Panel */
-.details-panel {
-    width: 320px;
-    background: var(--bg-secondary);
-    border-left: 1px solid var(--border-color);
-    transition: width 0.2s;
-}
-
-.details-panel.collapsed {
-    width: 48px;
-}
-
-.details-panel.collapsed .panel-content {
-    display: none;
-}
-
-.panel-toggle {
-    width: 100%;
-    padding: 0.75rem;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    font-size: 1.25rem;
-}
-
-.panel-content {
-    padding: 1rem;
-    overflow-y: auto;
-    height: calc(100% - 48px);
-}
-
-/* Empty State */
-.empty-state {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    text-align: center;
-    color: var(--text-muted);
-}
-
-.project-app:not(.has-project) .project-views {
-    display: none;
-}
-
-.project-app:not(.has-project) .empty-state {
-    display: flex;
-}
-
-.empty-state-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-}
-
-.empty-state-inline {
-    padding: 2rem;
-    text-align: center;
-    color: var(--text-muted);
-}
-
-/* Buttons */
-.btn-icon {
-    width: 28px;
-    height: 28px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-icon:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.btn-primary:hover {
-    background: var(--accent-hover);
-}
-
-.btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.btn-secondary {
-    padding: 0.375rem 0.75rem;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-size: 0.875rem;
-    cursor: pointer;
-}
-
-.loading-placeholder {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    padding: 1rem;
-    text-align: center;
-}
-
-.modal-container:empty {
-    display: none;
-}
-
-@media (max-width: 1024px) {
-    .gantt-table {
-        width: 300px;
-        min-width: 300px;
-    }
-
-    .gantt-table-header {
-        grid-template-columns: 1fr 70px 70px 60px;
-    }
-
-    .gantt-table-header .col-progress,
-    .gantt-table-header .col-assignee {
-        display: none;
-    }
-}
-
-@media (max-width: 768px) {
-    .project-sidebar {
-        position: absolute;
-        left: -280px;
-        height: 100%;
-        z-index: 50;
-        transition: left 0.2s;
-    }
-
-    .project-sidebar.open {
-        left: 0;
-    }
-
-    .details-panel {
-        display: none;
-    }
-
-    .view-toggle {
-        display: none;
-    }
-}
-</style>
-
-<script>
-let currentView = 'gantt';
-let currentZoom = 'week';
-
-function switchView(view) {
-    currentView = view;
-
-    document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.view === view);
-    });
-
-    document.querySelectorAll('.view-container').forEach(container => {
-        container.classList.toggle('active', container.id === `${view}-view`);
-    });
-}
-
-function zoomGantt(level) {
-    currentZoom = level;
-
-    document.querySelectorAll('.zoom-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent.toLowerCase() === level);
-    });
-
-    htmx.trigger('#gantt-chart-body', 'ganttZoomChanged');
-}
-
-function toggleCriticalPath() {
-    const show = document.getElementById('show-critical').checked;
-    document.querySelectorAll('.gantt-bar.critical').forEach(bar => {
-        bar.style.display = show ? '' : 'none';
-    });
-}
-
-function toggleMilestones() {
-    const show = document.getElementById('show-milestones').checked;
-    document.querySelectorAll('.gantt-milestone').forEach(ms => {
-        ms.style.display = show ? '' : 'none';
-    });
-}
-
-function fitGanttToScreen() {
-    const container = document.querySelector('.gantt-chart');
-    if (container) {
-        container.scrollLeft = 0;
-    }
-}
-
-function toggleDetailsPanel() {
-    const panel = document.getElementById('details-panel');
-    panel.classList.toggle('collapsed');
-}
-
-function selectProject(projectId) {
-    document.querySelector('.project-app').classList.add('has-project');
-    document.getElementById('add-task-btn').disabled = false;
-    htmx.trigger(document.body, 'projectSelected', { projectId: projectId });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    generateTimelineHeaders();
-});
-
-function generateTimelineHeaders() {
-    const header = document.getElementById('gantt-timeline-header');
-    if (!header) return;
-
-    const today = new Date();
-    let html = '';
-
-    for (let i = 0; i < 30; i++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() + i);
-        const day = date.getDate();
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-        html += `
-            <div class="timeline-day ${isWeekend ? 'weekend' : ''}" style="width: 40px; text-align: center; padding: 0.5rem 0; border-right: 1px solid var(--border-color);">
-                <div style="font-size: 0.625rem; color: var(--text-muted);">${dayName}</div>
-                <div style="font-size: 0.75rem; font-weight: 600;">${day}</div>
-            </div>
-        `;
-    }
-
-    header.innerHTML = html;
-}
-</script>
+<link rel="stylesheet" href="project.css" />
+<script src="project.js"></script>
