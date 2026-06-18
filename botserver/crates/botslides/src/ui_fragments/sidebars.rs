@@ -138,9 +138,10 @@ fn render_slide(slide: &Slide) -> String {
         let text = e.content.text.clone().unwrap_or_default();
         let text_align = e.style.text_align.clone().unwrap_or_else(|| "left".to_string());
         html.push_str(&format!(
-            r##"<div class="sl-element" data-id="{id}" data-type="{kind}" style="{style}background:{fill};color:{color};font-size:{fs}px;font-family:{ff};text-align:{ta};display:flex;align-items:center;padding:4px;">{text}</div>"##,
+            r##"<div class="sl-element" data-id="{id}" data-type="{kind}" data-rotation="{r}" style="{style}background:{fill};color:{color};font-size:{fs}px;font-family:{ff};text-align:{ta};display:flex;align-items:center;padding:4px;">{text}</div>"##,
             id = html_escape(&e.id),
             kind = html_escape(&e.element_type),
+            r = e.rotation as i32,
             style = style,
             fill = html_escape(&fill),
             color = html_escape(&color),
