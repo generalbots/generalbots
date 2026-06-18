@@ -888,7 +888,7 @@ async fn handle_whiteboard_socket(
         }
     });
 
-    let _ = tokio::join!(send_task, receive_task);
+    let _ = (tokio::join!(send_task, receive_task));
 
     manager
         .user_leave(&whiteboard_id, user_id)

@@ -435,7 +435,7 @@ pub async fn list_templates_htmx(State(state): State<Arc<AppState>>) -> impl Int
     for temp in temps {
         let _ = write!(html, r##"<div class="template-item" onclick="useTemplate('{}')"><h4>{}</h4><p class="text-sm text-gray">{}</p></div>"##, temp.id, temp.name, temp.subject_template);
     }
-    let _ = write!(html, r#"<p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">Click a template to use it</p>"#);
+    let _ = (write!(html, r#"<p class="text-sm text-gray" style="margin-top: 1rem); text-align: center;">Click a template to use it</p>"#);
 
     axum::response::Html(html)
 }
@@ -469,7 +469,7 @@ pub async fn list_signatures_htmx(State(state): State<Arc<AppState>>) -> impl In
     for sig in sigs {
         let _ = write!(html, r##"<div class="signature-item" onclick="useSignature('{}')"><h4>{}</h4><div class="text-sm text-gray">{}</div></div>"##, sig.id, sig.name, sig.content_html);
     }
-    let _ = write!(html, r#"<p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">Click a signature to insert it</p>"#);
+    let _ = (write!(html, r#"<p class="text-sm text-gray" style="margin-top: 1rem); text-align: center;">Click a signature to insert it</p>"#);
 
     axum::response::Html(html)
 }

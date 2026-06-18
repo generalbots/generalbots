@@ -130,7 +130,7 @@ fn register_monitor_camera(state: Arc<dyn BasicRuntime>, user: UserSession, engi
         .register_custom_syntax(
             ["MONITOR", "CAMERA", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
@@ -152,7 +152,7 @@ fn register_describe_video(state: Arc<dyn BasicRuntime>, user: UserSession, engi
         .register_custom_syntax(
             ["DESCRIBE", "VIDEO", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
@@ -175,7 +175,7 @@ fn register_detect_event(state: Arc<dyn BasicRuntime>, user: UserSession, engine
         .register_custom_syntax(
             ["DETECT", "EVENT", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
@@ -200,7 +200,7 @@ fn register_count_people(state: Arc<dyn BasicRuntime>, user: UserSession, engine
         .register_custom_syntax(
             ["COUNT", "PEOPLE", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;
@@ -226,7 +226,7 @@ fn register_motion_detected(state: Arc<dyn BasicRuntime>, user: UserSession, eng
         .register_custom_syntax(
             ["MOTION", "DETECTED", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let source = eval_string(context, &inputs[0])?;
                 let runtime = Arc::clone(&state);
                 let bot_id = user.bot_id;

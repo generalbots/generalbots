@@ -1034,7 +1034,7 @@ impl DistributedTracingService {
         if exporter_config.enabled {
             for span in spans_to_export {
                 log::debug!("Exporting span: {} ({})", span.operation_name, span.span_id);
-                let _ = span;
+                let _ = (span);
             }
         }
     }

@@ -746,7 +746,7 @@ impl WhiteboardExportService {
             }
             ShapeType::Text => {
                 if let Some(text) = &shape.text {
-                    let font_size = (shape.font_size.unwrap_or(12.0) * options.scale);
+                    let font_size = shape.font_size.unwrap_or(12.0) * options.scale ;
                     pdf.draw_text(text, x, y, font_size);
                 }
             }

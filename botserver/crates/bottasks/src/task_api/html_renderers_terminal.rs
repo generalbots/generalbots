@@ -65,7 +65,7 @@ pub fn render_terminal(manifest: &TaskManifest) -> String {
     html.push_str("</span>");
     html.push_str("<span class=\"terminal-progress\">");
     html.push_str(&manifest.completed_steps.to_string());
-    html.push_str("/");
+    html.push('/');
     html.push_str(&manifest.total_steps.to_string());
     html.push_str(" steps</span>");
     html.push_str("</div>");

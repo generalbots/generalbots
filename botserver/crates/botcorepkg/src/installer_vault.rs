@@ -276,7 +276,7 @@ VAULT_CACERT={}
 
     #[cfg(not(unix))]
     {
-        let _ = &unseal_keys_file;
+        let _ = (&unseal_keys_file);
     }
     info!("Created {} (chmod 600)", unseal_keys_file.display());
 

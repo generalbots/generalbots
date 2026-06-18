@@ -700,12 +700,12 @@ impl SopLogger {
 
     async fn send_to_webhook(&self, webhook_url: &str, entry: &SopLogEntry) {
         log::debug!("Sending SOP entry to webhook: {}", webhook_url);
-        let _ = entry;
+        let _ = (entry);
     }
 
     async fn send_to_siem(&self, siem_endpoint: &str, entry: &SopLogEntry) {
         log::debug!("Sending SOP entry to SIEM: {}", siem_endpoint);
-        let _ = entry;
+        let _ = (entry);
     }
 }
 

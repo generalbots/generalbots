@@ -184,7 +184,7 @@ impl DocumentProcessor {
     }
 
     fn extract_pdf_with_library(&self, file_path: &Path) -> Result<String> {
-        let _ = self;
+        let _ = (self);
         #[cfg(feature = "drive")]
         {
             use pdf_extract::extract_text;
@@ -199,7 +199,7 @@ impl DocumentProcessor {
             }
         }
         #[cfg(not(feature = "drive"))]
-        let _ = file_path;
+        let _ = (file_path);
         Self::extract_pdf_basic_sync(file_path)
     }
 

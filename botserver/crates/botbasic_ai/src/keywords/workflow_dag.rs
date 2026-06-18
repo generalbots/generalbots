@@ -122,7 +122,7 @@ fn register_branch_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
         .register_custom_syntax(
             ["IF", "$expr$", "THEN", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let condition = eval_string(context, &inputs[0])?;
                 let label = eval_string(context, &inputs[1])?;
                 let state_for_task = Arc::clone(&state_clone);
@@ -177,7 +177,7 @@ fn register_parallel_start(state: Arc<dyn BasicRuntime>, user: UserSession, engi
         .register_custom_syntax(
             ["PARALLEL", "$expr$", "WITH", "$expr$", "AND", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let name = eval_string(context, &inputs[0])?;
                 let first = eval_string(context, &inputs[1])?;
                 let second = eval_string(context, &inputs[2])?;
@@ -234,7 +234,7 @@ fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
         .register_custom_syntax(
             ["MERGE", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let name = eval_string(context, &inputs[0])?;
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
@@ -289,7 +289,7 @@ fn register_error_handler(state: Arc<dyn BasicRuntime>, user: UserSession, engin
         .register_custom_syntax(
             ["ON", "ERROR", "CALL", "$expr$"],
             false,
-            move |mut context, inputs| {
+            move |context, inputs| {
                 let handler = eval_string(context, &inputs[0])?;
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();

@@ -11,7 +11,7 @@ async fn setup_auth_mocks(ctx: &TestContext, email: &str, password: &str) {
         mock_zitadel.expect_any_introspect_active().await;
         mock_zitadel.expect_any_userinfo().await;
         mock_zitadel.expect_revoke().await;
-        let _ = user;
+        let _ = (user);
     }
 }
 

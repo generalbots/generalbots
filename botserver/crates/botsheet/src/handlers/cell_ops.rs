@@ -13,8 +13,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 fn reevaluate_cascade(worksheet: &mut Worksheet, changed: (u32, u32)) {
-    let _ = worksheet;
-    let _ = changed;
+    let _ = (worksheet);
+    let _ = (changed);
     recalc_cascade(worksheet, cell_key(changed.0, changed.1), |formula, ws| {
         evaluate_formula(formula, ws).value
     }, 1000);

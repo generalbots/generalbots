@@ -23,5 +23,5 @@ pub fn start_automation_service(app_state: std::sync::Arc<botcore::shared::state
         });
     }
     #[cfg(not(feature = "automation"))]
-    let _ = app_state;
+    let _ = (app_state);
 }

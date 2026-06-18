@@ -228,7 +228,7 @@ impl AppGenerator {
 
     fn generate_tools(&self, app_name: &str, intent: &str) -> Vec<GeneratedFile> {
         let tool_name = app_name.to_lowercase().replace(' ', "-");
-        let _ = intent;
+        let _ = (intent);
         vec![GeneratedFile {
             filename: format!("{tool_name}.bas"),
             content: format!("' Tool: {app_name}\nTALK \"Running {app_name}\"\n"),
