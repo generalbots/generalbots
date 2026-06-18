@@ -136,7 +136,7 @@ pub async fn handle_list_collections<S: ResearchState>(
         html.push_str(&html_escape(description));
         html.push_str("</span>");
         html.push_str("</div>");
-        html.push_str("<button class=\"btn-icon-sm\" hx-get=\"/api/research/collections/");
+        html.push_str("<button class=\"btn-icon-sm\" hx-get=\"/api/ui/research/collections/");
         html.push_str(&html_escape(id));
         html.push_str("\" hx-target=\"#main-results\">");
         html.push_str("<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><polyline points=\"9 18 15 12 9 6\"></polyline></svg>");
@@ -409,7 +409,7 @@ pub async fn handle_recent_searches<S: ResearchState>(
 
     for search in &recent_searches {
         html.push_str(
-            "<div class=\"recent-item\" hx-post=\"/api/research/search\" hx-vals='{\"query\":\"",
+            "<div class=\"recent-item\" hx-post=\"/api/ui/research/search\" hx-vals='{\"query\":\"",
         );
         html.push_str(&html_escape(search));
         html.push_str("\"}' hx-target=\"#main-results\">");
@@ -448,7 +448,7 @@ pub async fn handle_trending_tags<S: ResearchState>(
 
     for (tag, count) in &tags {
         html.push_str(
-            "<span class=\"tag\" hx-post=\"/api/research/search\" hx-vals='{\"query\":\"",
+            "<span class=\"tag\" hx-post=\"/api/ui/research/search\" hx-vals='{\"query\":\"",
         );
         html.push_str(&html_escape(tag));
         html.push_str("\"}' hx-target=\"#main-results\">");
@@ -481,7 +481,7 @@ pub async fn handle_prompts<S: ResearchState>(
 
     for (icon, title, description) in &prompts {
         html.push_str(
-            "<div class=\"prompt-card\" hx-post=\"/api/research/search\" hx-vals='{\"query\":\"",
+            "<div class=\"prompt-card\" hx-post=\"/api/ui/research/search\" hx-vals='{\"query\":\"",
         );
         html.push_str(&html_escape(title));
         html.push_str("\"}' hx-target=\"#main-results\">");

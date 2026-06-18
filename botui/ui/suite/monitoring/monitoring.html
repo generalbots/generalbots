@@ -82,7 +82,7 @@
             </button>
             <span
                 class="last-updated"
-                hx-get="/api/ui/monitoring/timestamp"
+                hx-get="/api/monitoring/timestamp"
                 hx-trigger="load, every 5s"
                 hx-swap="innerHTML"
                 >--</span
@@ -780,7 +780,7 @@
                     font-family="system-ui"
                     font-size="28"
                     font-weight="700"
-                    hx-get="/api/ui/monitoring/metric/sessions"
+                    hx-get="/api/monitoring/metric/sessions"
                     hx-trigger="load, every 5s"
                     hx-swap="innerHTML"
                 >
@@ -793,7 +793,7 @@
                     font-family="system-ui"
                     font-size="10"
                     text-anchor="end"
-                    hx-get="/api/ui/monitoring/trend/sessions"
+                    hx-get="/api/monitoring/trend/sessions"
                     hx-trigger="load, every 5s"
                     hx-swap="innerHTML"
                 >
@@ -830,7 +830,7 @@
                     font-family="system-ui"
                     font-size="28"
                     font-weight="700"
-                    hx-get="/api/ui/monitoring/metric/messages"
+                    hx-get="/api/monitoring/metric/messages"
                     hx-trigger="load, every 10s"
                     hx-swap="innerHTML"
                 >
@@ -843,7 +843,7 @@
                     font-family="system-ui"
                     font-size="10"
                     text-anchor="end"
-                    hx-get="/api/ui/monitoring/rate/messages"
+                    hx-get="/api/monitoring/rate/messages"
                     hx-trigger="load, every 10s"
                     hx-swap="innerHTML"
                 >
@@ -880,7 +880,7 @@
                     font-family="system-ui"
                     font-size="28"
                     font-weight="700"
-                    hx-get="/api/ui/monitoring/metric/response_time"
+                    hx-get="/api/monitoring/metric/response_time"
                     hx-trigger="load, every 10s"
                     hx-swap="innerHTML"
                 >
@@ -902,7 +902,7 @@
 
             <g
                 transform="translate(330, 545)"
-                hx-get="/api/ui/monitoring/resources/bars"
+                hx-get="/api/monitoring/resources/bars"
                 hx-trigger="load, every 15s"
                 hx-swap="innerHTML"
             >
@@ -1097,7 +1097,7 @@
                     fill="#94a3b8"
                     font-family="system-ui"
                     font-size="11"
-                    hx-get="/api/ui/monitoring/activity/latest"
+                    hx-get="/api/monitoring/activity/latest"
                     hx-trigger="load, every 5s"
                     hx-swap="innerHTML"
                 >
@@ -1153,7 +1153,7 @@
         <!-- Sessions Panel -->
         <div
             class="monitor-panel"
-            hx-get="/api/ui/monitoring/sessions"
+            hx-get="/api/monitoring/sessions"
             hx-trigger="load, every 5s"
             hx-swap="innerHTML"
         >
@@ -1191,7 +1191,7 @@
         <!-- Messages Panel -->
         <div
             class="monitor-panel"
-            hx-get="/api/ui/monitoring/messages"
+            hx-get="/api/monitoring/messages"
             hx-trigger="load, every 10s"
             hx-swap="innerHTML"
         >
@@ -1222,7 +1222,7 @@
         <!-- Resources Panel -->
         <div
             class="monitor-panel resources-panel"
-            hx-get="/api/ui/monitoring/resources"
+            hx-get="/api/monitoring/resources"
             hx-trigger="load, every 15s"
             hx-swap="innerHTML"
         >
@@ -1273,7 +1273,7 @@
         <!-- Services Panel -->
         <div
             class="monitor-panel services-panel"
-            hx-get="/api/ui/monitoring/services"
+            hx-get="/api/monitoring/services"
             hx-trigger="load, every 30s"
             hx-swap="innerHTML"
         >
@@ -1326,7 +1326,7 @@
         <!-- Bots Panel -->
         <div
             class="monitor-panel bots-panel"
-            hx-get="/api/ui/monitoring/bots"
+            hx-get="/api/monitoring/bots"
             hx-trigger="load, every 30s"
             hx-swap="innerHTML"
         >
@@ -1371,7 +1371,7 @@
     <div
         id="service-status-container"
         style="display: none"
-        hx-get="/api/ui/monitoring/services/status"
+        hx-get="/api/monitoring/services/status"
         hx-trigger="load, every 30s"
         hx-swap="innerHTML"
     ></div>

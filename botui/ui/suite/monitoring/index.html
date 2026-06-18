@@ -31,7 +31,7 @@
             <a
                 href="#dashboard"
                 class="nav-item active"
-                hx-get="/api/ui/monitoring/dashboard"
+                hx-get="/api/monitoring/dashboard"
                 hx-target="#monitoring-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -55,7 +55,7 @@
             <a
                 href="#services"
                 class="nav-item"
-                hx-get="/api/ui/monitoring/services"
+                hx-get="/api/monitoring/services"
                 hx-target="#monitoring-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -93,7 +93,7 @@
             <a
                 href="#resources"
                 class="nav-item"
-                hx-get="/api/ui/monitoring/resources"
+                hx-get="/api/monitoring/resources"
                 hx-target="#monitoring-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -123,7 +123,7 @@
             <a
                 href="#logs"
                 class="nav-item"
-                hx-get="/api/ui/monitoring/logs"
+                hx-get="/api/monitoring/logs"
                 hx-target="#monitoring-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -150,7 +150,7 @@
             <a
                 href="#metrics"
                 class="nav-item"
-                hx-get="/api/ui/monitoring/metrics"
+                hx-get="/api/monitoring/metrics"
                 hx-target="#monitoring-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -173,7 +173,7 @@
             <a
                 href="#alerts"
                 class="nav-item"
-                hx-get="/api/ui/monitoring/alerts"
+                hx-get="/api/monitoring/alerts"
                 hx-target="#monitoring-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -196,7 +196,7 @@
                 <span
                     class="alert-badge"
                     id="alert-count"
-                    hx-get="/api/ui/monitoring/alerts/count"
+                    hx-get="/api/monitoring/alerts/count"
                     hx-trigger="load, every 30s"
                     hx-swap="innerHTML"
                     >0</span
@@ -205,7 +205,7 @@
             <a
                 href="#health"
                 class="nav-item"
-                hx-get="/api/ui/monitoring/health"
+                hx-get="/api/monitoring/health"
                 hx-target="#monitoring-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -224,7 +224,7 @@
                 <span>Health</span>
                 <span
                     class="health-indicator"
-                    hx-get="/api/ui/monitoring/health/status"
+                    hx-get="/api/monitoring/health/status"
                     hx-trigger="load, every 10s"
                     hx-swap="outerHTML"
                 ></span>
@@ -250,7 +250,7 @@
                 <span class="status-indicator running"></span>
                 <span
                     class="status-text"
-                    hx-get="/api/ui/monitoring/system/status"
+                    hx-get="/api/monitoring/system/status"
                     hx-trigger="load, every 15s"
                     hx-swap="innerHTML"
                     >All Systems Operational</span
@@ -266,7 +266,7 @@
                 <h1 id="page-title">Dashboard</h1>
                 <span
                     class="last-updated"
-                    hx-get="/api/ui/monitoring/timestamp"
+                    hx-get="/api/monitoring/timestamp"
                     hx-trigger="load, every 5s"
                     hx-swap="innerHTML"
                     >--</span
@@ -369,7 +369,7 @@
         <div
             class="monitoring-content"
             id="monitoring-content"
-            hx-get="/api/ui/monitoring/dashboard"
+            hx-get="/api/monitoring/dashboard"
             hx-trigger="load"
             hx-swap="innerHTML"
         >
@@ -386,7 +386,7 @@
 <div class="quick-stats-bar">
     <div
         class="quick-stat"
-        hx-get="/api/ui/monitoring/quick/cpu"
+        hx-get="/api/monitoring/quick/cpu"
         hx-trigger="load, every 5s"
         hx-swap="innerHTML"
     >
@@ -406,7 +406,7 @@
     </div>
     <div
         class="quick-stat"
-        hx-get="/api/ui/monitoring/quick/memory"
+        hx-get="/api/monitoring/quick/memory"
         hx-trigger="load, every 5s"
         hx-swap="innerHTML"
     >
@@ -429,7 +429,7 @@
     </div>
     <div
         class="quick-stat"
-        hx-get="/api/ui/monitoring/quick/disk"
+        hx-get="/api/monitoring/quick/disk"
         hx-trigger="load, every 30s"
         hx-swap="innerHTML"
     >
@@ -450,7 +450,7 @@
     </div>
     <div
         class="quick-stat"
-        hx-get="/api/ui/monitoring/quick/network"
+        hx-get="/api/monitoring/quick/network"
         hx-trigger="load, every 5s"
         hx-swap="innerHTML"
     >
@@ -472,7 +472,7 @@
     </div>
     <div
         class="quick-stat"
-        hx-get="/api/ui/monitoring/quick/requests"
+        hx-get="/api/monitoring/quick/requests"
         hx-trigger="load, every 5s"
         hx-swap="innerHTML"
     >

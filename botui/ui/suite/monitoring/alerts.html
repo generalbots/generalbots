@@ -12,7 +12,7 @@
                 Alert Configuration
             </h2>
             <span class="alert-summary"
-                  hx-get="/api/ui/monitoring/alerts/summary"
+                  hx-get="/api/monitoring/alerts/summary"
                   hx-trigger="load, every 30s"
                   hx-swap="innerHTML">
                 <span class="summary-item critical">0 Critical</span>
@@ -95,7 +95,7 @@
         </div>
 
         <div class="alerts-list" id="alerts-list"
-             hx-get="/api/ui/monitoring/alerts/active"
+             hx-get="/api/monitoring/alerts/active"
              hx-trigger="load, every 30s"
              hx-swap="innerHTML">
             <div class="alert-placeholder">
@@ -137,7 +137,7 @@
         </div>
 
         <div class="rules-grid" id="rules-grid"
-             hx-get="/api/ui/monitoring/alerts/rules"
+             hx-get="/api/monitoring/alerts/rules"
              hx-trigger="load"
              hx-swap="innerHTML">
             <div class="rule-card skeleton">
@@ -178,7 +178,7 @@
         </div>
 
         <div class="history-list" id="history-list"
-             hx-get="/api/ui/monitoring/alerts/history"
+             hx-get="/api/monitoring/alerts/history"
              hx-trigger="load"
              hx-swap="innerHTML">
             <div class="loading-state">
@@ -210,7 +210,7 @@
             </button>
         </div>
         <form id="create-alert-form"
-              hx-post="/api/ui/monitoring/alerts/rules"
+              hx-post="/api/monitoring/alerts/rules"
               hx-target="#rules-grid"
               hx-swap="innerHTML"
               hx-on::after-request="closeCreateAlertModal()">

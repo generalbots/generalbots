@@ -1,7 +1,7 @@
 /* General Bots Desktop - Unified Theme System with HSL Bridge */
 /* This file bridges shadcn-style HSL theme variables with working CSS properties */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+/* Inter font loaded via local theme files */
 
 /* ============================================ */
 /* DEFAULT THEME (Light Mode Base)             */

@@ -1,7 +1,8 @@
+pub mod alert_routes;
 pub mod real_time;
 pub mod tracing;
 
-use axum::{extract::State, response::Html, routing::get, Router};
+use axum::{extract::State, response::Html, routing::{delete, get, patch, post}, Router};
 use chrono::Local;
 use std::sync::Arc;
 
@@ -37,24 +38,24 @@ pub trait MonitoringUrls: Send + Sync + 'static {
 pub struct DefaultMonitoringUrls;
 
 impl MonitoringUrls for DefaultMonitoringUrls {
-    fn monitoring_dashboard() -> &'static str { "/api/ui/monitoring/dashboard" }
-    fn monitoring_services() -> &'static str { "/api/ui/monitoring/services" }
-    fn monitoring_resources() -> &'static str { "/api/ui/monitoring/resources" }
-    fn monitoring_logs() -> &'static str { "/api/ui/monitoring/logs" }
-    fn monitoring_llm() -> &'static str { "/api/ui/monitoring/llm" }
-    fn monitoring_health() -> &'static str { "/api/ui/monitoring/health" }
-    fn monitoring_timestamp() -> &'static str { "/api/ui/monitoring/timestamp" }
-    fn monitoring_bots() -> &'static str { "/api/ui/monitoring/bots" }
-    fn monitoring_services_status() -> &'static str { "/api/ui/monitoring/services/status" }
-    fn monitoring_resources_bars() -> &'static str { "/api/ui/monitoring/resources/bars" }
-    fn monitoring_activity_latest() -> &'static str { "/api/ui/monitoring/activity/latest" }
-    fn monitoring_metric_sessions() -> &'static str { "/api/ui/monitoring/metric/sessions" }
-    fn monitoring_metric_messages() -> &'static str { "/api/ui/monitoring/metric/messages" }
-    fn monitoring_metric_response_time() -> &'static str { "/api/ui/monitoring/metric/response_time" }
-    fn monitoring_trend_sessions() -> &'static str { "/api/ui/monitoring/trend/sessions" }
-    fn monitoring_rate_messages() -> &'static str { "/api/ui/monitoring/rate/messages" }
-    fn monitoring_sessions_panel() -> &'static str { "/api/ui/monitoring/sessions" }
-    fn monitoring_messages_panel() -> &'static str { "/api/ui/monitoring/messages" }
+    fn monitoring_dashboard() -> &'static str { "/api/monitoring/dashboard" }
+    fn monitoring_services() -> &'static str { "/api/monitoring/services" }
+    fn monitoring_resources() -> &'static str { "/api/monitoring/resources" }
+    fn monitoring_logs() -> &'static str { "/api/monitoring/logs" }
+    fn monitoring_llm() -> &'static str { "/api/monitoring/llm" }
+    fn monitoring_health() -> &'static str { "/api/monitoring/health" }
+    fn monitoring_timestamp() -> &'static str { "/api/monitoring/timestamp" }
+    fn monitoring_bots() -> &'static str { "/api/monitoring/bots" }
+    fn monitoring_services_status() -> &'static str { "/api/monitoring/services/status" }
+    fn monitoring_resources_bars() -> &'static str { "/api/monitoring/resources/bars" }
+    fn monitoring_activity_latest() -> &'static str { "/api/monitoring/activity/latest" }
+    fn monitoring_metric_sessions() -> &'static str { "/api/monitoring/metric/sessions" }
+    fn monitoring_metric_messages() -> &'static str { "/api/monitoring/metric/messages" }
+    fn monitoring_metric_response_time() -> &'static str { "/api/monitoring/metric/response_time" }
+    fn monitoring_trend_sessions() -> &'static str { "/api/monitoring/trend/sessions" }
+    fn monitoring_rate_messages() -> &'static str { "/api/monitoring/rate/messages" }
+    fn monitoring_sessions_panel() -> &'static str { "/api/monitoring/sessions" }
+    fn monitoring_messages_panel() -> &'static str { "/api/monitoring/messages" }
 }
 
 pub fn configure<S: MonitoringState, U: MonitoringUrls>() -> Router<Arc<S>> {
@@ -77,6 +78,17 @@ pub fn configure<S: MonitoringState, U: MonitoringUrls>() -> Router<Arc<S>> {
         .route(U::monitoring_rate_messages(), get(rate_messages::<S, U>))
         .route(U::monitoring_sessions_panel(), get(sessions_panel::<S, U>))
         .route(U::monitoring_messages_panel(), get(messages_panel::<S, U>))
+        .route("/api/monitoring/alerts", get(alert_routes::list_alerts::<S>))
+        .route("/api/monitoring/alerts/{id}", get(alert_routes::get_alert::<S>))
+        .route("/api/monitoring/alerts/{id}/acknowledge", post(alert_routes::acknowledge_alert::<S>))
+        .route("/api/monitoring/alerts/{id}/silence", post(alert_routes::silence_alert::<S>))
+        .route("/api/monitoring/alerts/acknowledge-all", post(alert_routes::acknowledge_all_alerts::<S>))
+        .route("/api/monitoring/alerts/rules", get(alert_routes::list_rules::<S>))
+        .route("/api/monitoring/alerts/rules/{id}", get(alert_routes::get_rule::<S>))
+        .route("/api/monitoring/alerts/rules/{id}", patch(alert_routes::update_rule::<S>))
+        .route("/api/monitoring/alerts/rules/{id}", delete(alert_routes::delete_rule::<S>))
+        .route("/api/monitoring/alerts/history/export", get(alert_routes::export_history::<S>))
+        .route("/api/monitoring/export", get(alert_routes::export_monitoring_data::<S>))
 }
 
 async fn dashboard<S: MonitoringState, U: MonitoringUrls>(State(state): State<Arc<S>>) -> Html<String> {
@@ -185,7 +197,6 @@ async fn services<S: MonitoringState, U: MonitoringUrls>(_state: State<Arc<S>>) 
     <span class="status-badge {status_class}">{status_text}</span>
   </td>
 </tr>"##,
-            name_lower = name.to_lowercase().replace(' ', "-"),
         ));
     }
 
