@@ -198,19 +198,41 @@
     const article = host.querySelector("article[contenteditable]");
     if (!article) return;
     let lastTextLength = getPlainTextLength(article);
+    let pendingEdit = null;
+    article.addEventListener("beforeinput", function (e) {
+      pendingEdit = { inputType: e.inputType, data: e.data, targetRanges: e.getTargetRanges ? e.getTargetRanges() : [] };
+    });
     article.addEventListener("input", function (e) {
       scheduleSave(article.dataset.docId, article.innerHTML);
+      updatePageCount();
       if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
         const sel = window.getSelection();
         const pos = sel && sel.rangeCount ? getCaretCharacterOffsetWithin(article) : 0;
         const newLength = getPlainTextLength(article);
-        const insertText = e && e.inputType === "insertText" && e.data ? e.data : null;
-        const removeLength = Math.max(0, lastTextLength - (newLength - (insertText ? insertText.length : 0)));
-        const content = insertText !== null ? insertText : (article.textContent || "").slice(pos, pos + Math.max(0, newLength - lastTextLength + removeLength));
-        window.GBCollab.debouncedTypingStart(pos);
-        window.GBCollab.sendEdit({ position: pos, content: content, length: insertText ? insertText.length : 0, removeLength: removeLength });
+        const ed = pendingEdit || {};
+        var content = null;
+        var removeLen = 0;
+        if (ed.inputType === "insertText" && ed.data) {
+          content = ed.data;
+        } else if (ed.inputType === "insertFromPaste" || ed.inputType === "insertFromDrop") {
+          content = (article.textContent || "").substring(pos, pos + (newLength - lastTextLength));
+        } else if (ed.inputType === "deleteContentBackward") {
+          removeLen = lastTextLength - newLength;
+        } else if (ed.inputType === "deleteContentForward") {
+          removeLen = lastTextLength - newLength;
+        } else if (ed.inputType && ed.inputType.indexOf("delete") >= 0) {
+          removeLen = lastTextLength - newLength;
+        } else if (newLength !== lastTextLength) {
+          content = (article.textContent || "").substring(pos, pos + Math.max(0, newLength - lastTextLength));
+          removeLen = Math.max(0, lastTextLength - newLength);
+        }
+        if (content !== null || removeLen > 0) {
+          window.GBCollab.debouncedTypingStart(pos);
+          window.GBCollab.sendEdit({ position: pos, content: content, length: content ? content.length : 0, removeLength: removeLen });
+        }
       }
       lastTextLength = getPlainTextLength(article);
+      pendingEdit = null;
     });
     article.addEventListener("blur", function () {
       if (saveTimer) {
@@ -272,6 +294,17 @@
       }).then(function (r) { return r.json(); }).then(function (j) { return j.result || ""; }).catch(function () { return ""; });
     }
   };
+
+  function updatePageCount() {
+    const el = document.getElementById("pageCount");
+    if (!el) return;
+    const article = getActiveArticle();
+    if (!article) { el.textContent = "1 page"; return; }
+    const h = article.scrollHeight;
+    const pageH = 1056;
+    var count = Math.max(1, Math.ceil(h / pageH));
+    el.textContent = count + " page" + (count !== 1 ? "s" : "");
+  }
 
   function injectEditorStyles() {
     if (document.getElementById("docs-editor-styles")) return;
@@ -436,7 +469,8 @@
       AI: DocumentAIDriver,
       insertPageBreak: insertPageBreak,
       openHeaderFooterModal: openHeaderFooterModal,
-      insertHeaderFooterZone: insertHeaderFooterZone
+      insertHeaderFooterZone: insertHeaderFooterZone,
+      updatePageCount: updatePageCount
     };
   });
 })();
