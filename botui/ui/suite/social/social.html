@@ -6,9 +6,7 @@
             <button
                 class="social-tab active"
                 data-tab="feed"
-                hx-get="/api/ui/social/feed"
-                hx-target="#social-content"
-                hx-swap="innerHTML"
+                onclick="showFeed()"
             >
                 <svg
                     width="18"
@@ -26,9 +24,7 @@
             <button
                 class="social-tab"
                 data-tab="communities"
-                hx-get="/api/ui/social/communities"
-                hx-target="#social-content"
-                hx-swap="innerHTML"
+                onclick="showCommunities()"
             >
                 <svg
                     width="18"
@@ -60,9 +56,7 @@
             <button
                 class="social-tab"
                 data-tab="announcements"
-                hx-get="/api/ui/social/announcements"
-                hx-target="#social-content"
-                hx-swap="innerHTML"
+                onclick="showAnnouncements()"
             >
                 <svg
                     width="18"
@@ -327,6 +321,39 @@
         window.handlePostCreated = handlePostCreated;
         window.togglePollCreator = togglePollCreator;
         window.addPollOption = addPollOption;
+
+        window.showFeed = function() {
+            var content = document.getElementById('social-content');
+            content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">Loading feed...</div>';
+            fetch('/api/social/feed').then(function(r){return r.json()}).then(function(d){
+                if (!d || !d.posts || !d.posts.length) {
+                    content.innerHTML = '<div class="empty-feed"><p>No posts yet. Be the first to share something!</p></div>';
+                    return;
+                }
+                content.innerHTML = d.posts.map(function(p) {
+                    return '<div class="social-post"><div class="post-header"><strong>' + (p.author || 'User') + '</strong></div><div class="post-body">' + (p.content || '') + '</div></div>';
+                }).join('');
+            }).catch(function(){ content.innerHTML = '<div class="empty-feed"><p>Could not load feed.</p></div>'; });
+        };
+
+        window.showCommunities = function() {
+            var content = document.getElementById('social-content');
+            content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">Loading communities...</div>';
+            fetch('/api/social/communities').then(function(r){return r.json()}).then(function(d){
+                if (!d || !d.length) {
+                    content.innerHTML = '<div class="empty-feed"><p>No communities yet.</p></div>';
+                    return;
+                }
+                content.innerHTML = d.map(function(c) {
+                    return '<div class="social-post"><div class="post-header"><strong>' + (c.name || 'Community') + '</strong></div><div class="post-body">' + (c.description || '') + '</div></div>';
+                }).join('');
+            }).catch(function(){ content.innerHTML = '<div class="empty-feed"><p>Could not load communities.</p></div>'; });
+        };
+
+        window.showAnnouncements = function() {
+            var content = document.getElementById('social-content');
+            content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">No announcements yet.</div>';
+        };
 
         window.showAnalytics = function() {
             var content = document.getElementById('social-content');
