@@ -1,4 +1,4 @@
-# Chapter 02 – Package Documentation Overview
+# Chapter 02 – Package Documentation Overview 🟡 BETA
 
 This chapter provides a concise overview of the GeneralBots package types introduced in Chapter 02. Each package type is documented in its own markdown file. Below is a quick reference with brief descriptions and links to the full documentation.
 

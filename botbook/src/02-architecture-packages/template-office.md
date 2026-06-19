@@ -1,4 +1,4 @@
-# Office Automation Template (office.gbai)
+# Office Automation Template (office.gbai) 🟡 BETA
 
 A General Bots template for role-based office productivity with department-specific knowledge bases and context-aware assistance.
 

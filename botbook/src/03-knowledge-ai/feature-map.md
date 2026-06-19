@@ -1,4 +1,4 @@
-# Cargo Feature Map
+# Cargo Feature Map 🟡 BETA
 
 This document provides a comprehensive reference for all Cargo.toml feature flags in General Bots, their dependencies, and how to use them for optimized builds.
 

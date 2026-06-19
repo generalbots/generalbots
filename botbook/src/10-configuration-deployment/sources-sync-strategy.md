@@ -1,4 +1,4 @@
-# Sources Sync Strategy
+# Sources Sync Strategy 🟡 BETA
 
 Connect external data sources (Gmail, Outlook, Google Drive, OneDrive) to General Bots for LLM search and file operations.
 

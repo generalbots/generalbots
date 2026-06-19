@@ -1,4 +1,4 @@
-# KB and TOOL System Documentation
+# KB and TOOL System Documentation 🟡 BETA
 
 ## Overview
 

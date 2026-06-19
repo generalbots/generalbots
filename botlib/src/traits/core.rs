@@ -48,7 +48,7 @@ pub trait ChannelAdapter: Send + Sync + Debug {
     }
 
     fn remove_connection(&self, session_id: &str) -> Result<(), String> {
-        let _ = (session_id);
+        let _ = session_id;
         Err("remove_connection: not implemented".to_string())
     }
 
@@ -58,7 +58,7 @@ pub trait ChannelAdapter: Send + Sync + Debug {
     }
 
     fn stop_voice_session(&self, session_id: &str) -> BoxFutureUnit {
-        let _ = (session_id);
+        let _ = session_id;
         Box::pin(async { Err("stop_voice_session: not implemented".to_string()) })
     }
 }

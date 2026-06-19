@@ -1,4 +1,4 @@
-# ON CHANGE
+# ON CHANGE 🟡 BETA
 
 Monitors folders for file changes and triggers a script when files are created, modified, or deleted.
 

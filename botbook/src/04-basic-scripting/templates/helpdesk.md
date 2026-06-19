@@ -1,4 +1,4 @@
-# IT Helpdesk Template
+# IT Helpdesk Template 🟡 BETA
 
 The IT Helpdesk template provides a complete IT support ticketing system that helps users report problems, track ticket status, and get help with common technical issues.
 

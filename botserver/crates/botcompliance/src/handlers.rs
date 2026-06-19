@@ -8,17 +8,18 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::schema::{
-    compliance_audit_log, compliance_checks, compliance_issues, compliance_training_records,
+    compliance_audit_log, compliance_checks, compliance_issues, compliance_risks,
+    compliance_training_records,
 };
 use crate::storage::{
     db_audit_to_entry, db_check_to_result, db_issue_to_result, DbAuditLog, DbComplianceCheck,
-    DbComplianceIssue, DbTrainingRecord,
+    DbComplianceIssue, DbRisk, DbTrainingRecord,
 };
 use crate::types::{
     AuditLogEntry, ComplianceCheckResult, ComplianceFramework, ComplianceIssueResult,
     ComplianceReport, CreateAuditLogRequest, CreateIssueRequest, CreateTrainingRequest,
     ListAuditLogsQuery, ListChecksQuery, ListIssuesQuery, RunCheckRequest, TrainingRecord,
-    UpdateIssueRequest,
+    TrainingType, UpdateIssueRequest,
 };
 use crate::ComplianceError;
 
@@ -441,6 +442,121 @@ pub async fn handle_create_training(
             valid_until: req.valid_until,
             certificate_url: req.certificate_url,
         })
+    })
+    .await
+    .map_err(|e| ComplianceError::Internal(e.to_string()))??;
+
+    Ok(Json(result))
+}
+
+pub async fn handle_list_training(
+    State(pool): State<Arc<crate::DbPool>>,
+) -> Result<Json<Vec<TrainingRecord>>, ComplianceError> {
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool
+            .get()
+            .map_err(|e| ComplianceError::Database(e.to_string()))?;
+
+        let db_records: Vec<DbTrainingRecord> = compliance_training_records::table
+            .order(compliance_training_records::completion_date.desc())
+            .load(&mut conn)
+            .map_err(|e| ComplianceError::Database(e.to_string()))?;
+
+        let records: Vec<TrainingRecord> = db_records
+            .into_iter()
+            .map(|r| TrainingRecord {
+                id: r.id,
+                user_id: r.user_id,
+                training_type: r.training_type.parse().unwrap_or(TrainingType::SecurityAwareness),
+                training_name: r.training_name,
+                provider: r.provider,
+                score: r.score,
+                passed: r.passed,
+                completion_date: r.completion_date,
+                valid_until: r.valid_until,
+                certificate_url: r.certificate_url,
+            })
+            .collect();
+
+        Ok::<_, ComplianceError>(records)
+    })
+    .await
+    .map_err(|e| ComplianceError::Internal(e.to_string()))??;
+
+    Ok(Json(result))
+}
+
+pub async fn handle_list_risks(
+    State(pool): State<Arc<crate::DbPool>>,
+) -> Result<Json<Vec<serde_json::Value>>, ComplianceError> {
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool
+            .get()
+            .map_err(|e| ComplianceError::Database(e.to_string()))?;
+
+        let db_risks: Vec<DbRisk> = compliance_risks::table
+            .order(compliance_risks::created_at.desc())
+            .load(&mut conn)
+            .map_err(|e| ComplianceError::Database(e.to_string()))?;
+
+        let items: Vec<serde_json::Value> = db_risks
+            .into_iter()
+            .map(|r| {
+                serde_json::json!({
+                    "id": r.id,
+                    "title": r.title,
+                    "description": r.description,
+                    "category": r.category,
+                    "likelihood_score": r.likelihood_score,
+                    "impact_score": r.impact_score,
+                    "risk_score": r.risk_score,
+                    "risk_level": r.risk_level,
+                    "status": r.status,
+                    "owner_id": r.owner_id,
+                    "due_date": r.due_date,
+                })
+            })
+            .collect();
+
+        Ok::<_, ComplianceError>(items)
+    })
+    .await
+    .map_err(|e| ComplianceError::Internal(e.to_string()))??;
+
+    Ok(Json(result))
+}
+
+pub async fn handle_run_check_by_id(
+    State(pool): State<Arc<crate::DbPool>>,
+    Path(check_id): Path<Uuid>,
+) -> Result<Json<ComplianceCheckResult>, ComplianceError> {
+    let result = tokio::task::spawn_blocking(move || {
+        let mut conn = pool
+            .get()
+            .map_err(|e| ComplianceError::Database(e.to_string()))?;
+        let now = Utc::now();
+
+        let mut db_check: DbComplianceCheck = compliance_checks::table
+            .find(check_id)
+            .first(&mut conn)
+            .map_err(|_| ComplianceError::NotFound("Check not found".to_string()))?;
+
+        db_check.checked_at = now;
+        db_check.status = "in_progress".to_string();
+
+        diesel::update(compliance_checks::table.find(check_id))
+            .set(&db_check)
+            .execute(&mut conn)
+            .map_err(|e| ComplianceError::Database(e.to_string()))?;
+
+        let db_issues: Vec<DbComplianceIssue> = compliance_issues::table
+            .filter(compliance_issues::check_id.eq(check_id))
+            .load(&mut conn)
+            .unwrap_or_default();
+        let issues: Vec<ComplianceIssueResult> =
+            db_issues.into_iter().map(db_issue_to_result).collect();
+
+        Ok::<_, ComplianceError>(db_check_to_result(db_check, issues))
     })
     .await
     .map_err(|e| ComplianceError::Internal(e.to_string()))??;

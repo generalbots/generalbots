@@ -1,4 +1,4 @@
-# Beginner's Guide: Buying Your First SBC
+# Beginner's Guide: Buying Your First SBC 🟡 BETA
 
 A complete guide for beginners who want to buy a Single Board Computer (SBC) and start automating their home or workplace with General Bots.
 

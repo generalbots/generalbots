@@ -1,4 +1,4 @@
-# Player - Media Viewer
+# Player 🟡 BETA - Media Viewer
 
 > **Integrated viewing for documents, audio, video, and presentations**
 

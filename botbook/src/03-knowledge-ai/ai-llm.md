@@ -1,4 +1,4 @@
-# AI and LLM
+# AI and LLM 🟡 BETA
 
 botserver integrates with Large Language Models to provide intelligent conversational capabilities and natural language understanding. This integration forms the core of what makes General Bots conversations feel natural and contextually aware.
 

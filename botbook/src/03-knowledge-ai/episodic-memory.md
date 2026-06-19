@@ -1,4 +1,4 @@
-# Episodic Memory
+# Episodic Memory 🟡 BETA
 
 Episodic memory automatically manages conversation history to stay within LLM token limits while preserving important information through intelligent summarization. This system handles context compaction transparently, ensuring conversations remain coherent without manual intervention.
 

@@ -5,9 +5,8 @@ use uuid::Uuid;
 use botcore::shared::utils::DbPool;
 
 use super::{
-    KbContext, SessionKbAssociation, SessionWebsiteAssociation,
+    KbContext, RagMode, SessionKbAssociation, SessionWebsiteAssociation,
 };
-use super::kb_context_search::search_qdrant;
 
 pub fn get_active_kbs(db_pool: &DbPool, session_id: Uuid) -> Vec<SessionKbAssociation> {
     let mut conn = match db_pool.get() {
@@ -161,6 +160,16 @@ pub async fn inject_kb_context(
 
     let mention_config = MentionConfig::from_string(&mention_class_str);
 
+    let rag_mode_str = cfg.get_config(&bot_id, "rag-mode", Some("standard"))
+        .unwrap_or_else(|_| "standard".to_string());
+    let rag_mode = RagMode::from_str(&rag_mode_str);
+
+    info!(
+        "KB context injection for session {}: rag-mode={}",
+        session_id,
+        rag_mode.as_str()
+    );
+
     let active_kbs = if mention_config.kbs { get_active_kbs(db_pool, session_id) } else { Vec::new() };
     let active_websites = if mention_config.websites { get_active_websites(db_pool, session_id) } else { Vec::new() };
 
@@ -179,34 +188,36 @@ pub async fn inject_kb_context(
     let mut all_contexts = Vec::new();
 
     for kb in &active_kbs {
-        match search_qdrant(&kb.qdrant_collection, user_query, 10, bot_id, db_pool).await {
-            Ok(results) if !results.is_empty() => {
-                let total_tokens: usize = results.iter().map(|r| estimate_tokens(&r.content)).sum();
-                info!("Found {} results from KB '{}' ({} tokens)", results.len(), kb.kb_name, total_tokens);
-                all_contexts.push(KbContext {
-                    kb_name: kb.kb_name.clone(),
-                    total_tokens,
-                    search_results: results,
-                });
-            }
-            Ok(_) => debug!("No results from KB '{}'", kb.kb_name),
-            Err(e) => warn!("Failed to search KB '{}': {}", kb.kb_name, e),
+        let results = super::rag_modes::search_by_mode(
+            rag_mode, &kb.qdrant_collection, user_query, 10, bot_id, db_pool,
+        ).await;
+        if !results.is_empty() {
+            let total_tokens: usize = results.iter().map(|r| estimate_tokens(&r.content)).sum();
+            info!("Found {} results from KB '{}' using {} mode ({} tokens)", results.len(), kb.kb_name, rag_mode.as_str(), total_tokens);
+            all_contexts.push(KbContext {
+                kb_name: kb.kb_name.clone(),
+                total_tokens,
+                search_results: results,
+            });
+        } else {
+            debug!("No results from KB '{}' using {} mode", kb.kb_name, rag_mode.as_str());
         }
     }
 
     for website in &active_websites {
-        match search_qdrant(&website.collection_name, user_query, 10, bot_id, db_pool).await {
-            Ok(results) if !results.is_empty() => {
-                let total_tokens: usize = results.iter().map(|r| estimate_tokens(&r.content)).sum();
-                info!("Found {} results from website '{}' ({} tokens)", results.len(), website.website_url, total_tokens);
-                all_contexts.push(KbContext {
-                    kb_name: website.website_url.clone(),
-                    total_tokens,
-                    search_results: results,
-                });
-            }
-            Ok(_) => debug!("No results from website '{}'", website.website_url),
-            Err(e) => warn!("Failed to search website '{}': {}", website.website_url, e),
+        let results = super::rag_modes::search_by_mode(
+            rag_mode, &website.collection_name, user_query, 10, bot_id, db_pool,
+        ).await;
+        if !results.is_empty() {
+            let total_tokens: usize = results.iter().map(|r| estimate_tokens(&r.content)).sum();
+            info!("Found {} results from website '{}' using {} mode ({} tokens)", results.len(), website.website_url, rag_mode.as_str(), total_tokens);
+            all_contexts.push(KbContext {
+                kb_name: website.website_url.clone(),
+                total_tokens,
+                search_results: results,
+            });
+        } else {
+            debug!("No results from website '{}' using {} mode", website.website_url, rag_mode.as_str());
         }
     }
 

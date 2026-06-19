@@ -1,4 +1,4 @@
-# USE KB
+# USE KB 🟡 BETA
 
 Activate a knowledge base collection for semantic search.
 

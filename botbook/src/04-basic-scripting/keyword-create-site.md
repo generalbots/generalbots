@@ -1,4 +1,4 @@
-# CREATE SITE Keyword
+# CREATE SITE Keyword 🟡 BETA
 
 > **Generate Complete HTMX Web Applications Autonomously**
 

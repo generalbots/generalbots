@@ -1,4 +1,4 @@
-# Projects
+# Projects 🟡 BETA
 
 Projects organize work and enable team collaboration within General Bots. A project groups related tasks, conversations, documents, and team members into a shared workspace where everyone stays aligned.
 

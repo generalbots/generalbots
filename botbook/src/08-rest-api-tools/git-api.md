@@ -1,4 +1,4 @@
-# Git API
+# Git API 🟡 BETA
 
 > **Git version control operations: status, diff, commit, push, and branch management**
 

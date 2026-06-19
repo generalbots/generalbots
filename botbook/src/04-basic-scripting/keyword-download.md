@@ -1,4 +1,4 @@
-# DOWNLOAD
+# DOWNLOAD 🟡 BETA
 
 The `DOWNLOAD` keyword retrieves files from the bot's storage and sends them to users or saves them to external locations, enabling bots to share documents, export data, and deliver files through chat channels.
 

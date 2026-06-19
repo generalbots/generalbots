@@ -1,4 +1,4 @@
-# COMPRESS
+# COMPRESS 🟡 BETA
 
 The `COMPRESS` keyword creates ZIP archives from files and directories in the bot's storage, enabling bots to bundle multiple files for download or transfer.
 

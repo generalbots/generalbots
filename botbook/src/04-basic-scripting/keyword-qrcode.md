@@ -1,4 +1,4 @@
-# QR CODE
+# QR CODE 🟡 BETA
 
 Generate QR code images from text or data.
 

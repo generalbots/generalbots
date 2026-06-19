@@ -1,4 +1,4 @@
-# Database Optimization
+# Database Optimization 🟡 BETA
 
 This document covers database schema design and optimization strategies for billion-user scale deployments.
 

@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod arrays;
 pub mod criteria;
 pub mod date;
@@ -35,6 +36,7 @@ pub fn evaluate_formula(formula: &str, worksheet: &Worksheet) -> FormulaResult {
     if expr.ends_with(')') {
         if let Some((func_name, _)) = expr.split_once('(') {
             resolved = match func_name.trim() {
+                "BOT_AI_PROMPT" => ai::evaluate_bot_ai_prompt(&expr, worksheet),
                 "SUM" => math::evaluate_sum(&expr, worksheet),
                 "AVERAGE" => math::evaluate_average(&expr, worksheet),
                 "COUNT" => math::evaluate_count(&expr, worksheet),

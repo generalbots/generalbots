@@ -1,4 +1,4 @@
-# KB STATISTICS
+# KB STATISTICS 🟡 BETA
 
 The `KB STATISTICS` keyword retrieves comprehensive statistics about the bot's knowledge base, including document counts, vector counts, storage usage, and collection information from the Qdrant vector database.
 

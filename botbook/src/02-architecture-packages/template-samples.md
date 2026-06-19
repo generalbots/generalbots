@@ -1,4 +1,4 @@
-# Template Samples & Conversations
+# Template Samples & Conversations 🟡 BETA
 
 > **Ready-to-use bots for common business needs**
 >

@@ -1,4 +1,4 @@
-# Troubleshooting Guide
+# Troubleshooting Guide 🟡 BETA
 
 This comprehensive guide helps you diagnose and resolve common issues when integrating WhatsApp Business API with Twilio phone numbers in General Bots.
 

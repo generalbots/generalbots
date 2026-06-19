@@ -1,4 +1,4 @@
-# POST TO
+# POST TO 🟡 BETA
 
 Publish content to social media platforms and messaging channels. Supports text, images, videos, and multi-platform posting.
 

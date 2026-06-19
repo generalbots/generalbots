@@ -1,4 +1,4 @@
-# Vector Collections
+# Vector Collections 🟡 BETA
 
 This chapter explains how botserver organizes knowledge into vector collections, the searchable units that power semantic retrieval. Understanding how collections work helps you structure documents effectively and optimize the knowledge your bots can access.
 

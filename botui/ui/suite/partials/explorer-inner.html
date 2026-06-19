@@ -11,7 +11,7 @@
 
         <nav class="nav-section">
             <div class="nav-item active"
-                 hx-get="/api/drive/files?path=/"
+                 hx-get="/api/files/files?path=/"
                  hx-target="closest .window-body #file-grid"
                  hx-swap="innerHTML"
                  onclick="setActiveNav(this)">
@@ -23,7 +23,7 @@
             </div>
 
             <div class="nav-item"
-                 hx-get="/api/drive/files?filter=shared"
+                 hx-get="/api/files/files?filter=shared"
                  hx-target="closest .window-body #file-grid"
                  hx-swap="innerHTML"
                  onclick="setActiveNav(this)">
@@ -37,7 +37,7 @@
             </div>
 
             <div class="nav-item"
-                 hx-get="/api/drive/files?filter=recent"
+                 hx-get="/api/files/files?filter=recent"
                  hx-target="closest .window-body #file-grid"
                  hx-swap="innerHTML"
                  onclick="setActiveNav(this)">
@@ -49,7 +49,7 @@
             </div>
 
             <div class="nav-item"
-                 hx-get="/api/drive/files?filter=starred"
+                 hx-get="/api/files/files?filter=starred"
                  hx-target="closest .window-body #file-grid"
                  hx-swap="innerHTML"
                  onclick="setActiveNav(this)">
@@ -60,7 +60,7 @@
             </div>
 
             <div class="nav-item"
-                 hx-get="/api/drive/files?filter=trash"
+                 hx-get="/api/files/files?filter=trash"
                  hx-target="closest .window-body #file-grid"
                  hx-swap="innerHTML"
                  onclick="setActiveNav(this)">
@@ -76,7 +76,7 @@
             <div class="storage-header">
                 <span class="storage-label">Storage</span>
                 <span class="storage-value" id="storage-used"
-                      hx-get="/api/drive/storage"
+                      hx-get="/api/files/storage"
                       hx-trigger="load"
                       hx-swap="innerHTML">
                     Loading...
@@ -132,7 +132,7 @@
         <!-- Toolbar -->
         <div class="drive-toolbar">
             <div class="breadcrumb" id="breadcrumb"
-                 hx-get="/api/drive/breadcrumb"
+                 hx-get="/api/files/breadcrumb"
                  hx-trigger="load"
                  hx-swap="innerHTML">
                 <div class="breadcrumb-item current">
@@ -168,7 +168,7 @@
                 </div>
 
                 <select class="sort-dropdown" id="sort-dropdown"
-                        hx-get="/api/drive/files"
+                        hx-get="/api/files/files"
                         hx-target="closest .window-body #file-grid"
                         hx-swap="innerHTML"
                         hx-include="[name='path']">
@@ -203,7 +203,7 @@
 
             <!-- File Grid -->
             <div class="file-grid" id="file-grid"
-                 hx-get="/api/drive/files?path=/"
+                 hx-get="/api/files/files?path=/"
                  hx-trigger="load"
                  hx-swap="innerHTML">
                 <div class="loading-state">
@@ -218,7 +218,7 @@
             <span class="selection-count"><span id="selected-count">0</span> selected</span>
             <div class="selection-actions">
                 <button class="action-btn" title="Share"
-                        hx-post="/api/drive/share"
+                        hx-post="/api/files/share"
                         hx-include=".file-checkbox:checked"
                         hx-swap="none">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -231,7 +231,7 @@
                     Share
                 </button>
                 <button class="action-btn" title="Download"
-                        hx-get="/api/drive/download"
+                        hx-get="/api/files/download"
                         hx-include=".file-checkbox:checked">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -256,7 +256,7 @@
                     Move
                 </button>
                 <button class="action-btn danger" title="Delete"
-                        hx-delete="/api/drive/files"
+                        hx-delete="/api/files/files"
                         hx-include=".file-checkbox:checked"
                         hx-confirm="Move selected items to trash?"
                         hx-target="closest .window-body #file-grid"
@@ -315,7 +315,7 @@
         </div>
         <div class="modal-body">
             <div class="upload-zone" id="upload-zone"
-                 hx-post="/api/drive/upload"
+                 hx-post="/api/files/upload"
                  hx-encoding="multipart/form-data"
                  hx-target="closest .window-body #file-grid"
                  hx-swap="innerHTML">
@@ -346,7 +346,7 @@
 <!-- New Folder Modal -->
 <dialog class="modal" id="folder-modal">
     <form class="modal-content"
-          hx-post="/api/drive/folder"
+          hx-post="/api/files/folder"
           hx-target="closest .window-body #file-grid"
           hx-swap="innerHTML"
           hx-on::after-request="document.getElementById('folder-modal').close()">
@@ -430,7 +430,7 @@
             <div class="form-group">
                 <label for="copy-destination">Destination folder</label>
                 <select id="copy-destination" name="destination" class="sort-dropdown" style="width: 100%;"
-                        hx-get="/api/drive/folders"
+                        hx-get="/api/files/folders"
                         hx-trigger="load"
                         hx-swap="innerHTML">
                     <option value="/">/ (Root)</option>
@@ -465,7 +465,7 @@
             <div class="form-group">
                 <label for="move-destination">Destination folder</label>
                 <select id="move-destination" name="destination" class="sort-dropdown" style="width: 100%;"
-                        hx-get="/api/drive/folders"
+                        hx-get="/api/files/folders"
                         hx-trigger="load"
                         hx-swap="innerHTML">
                     <option value="/">/ (Root)</option>

@@ -1,4 +1,4 @@
-# Console Mode
+# Console Mode 🟡 BETA
 
 The botserver console mode provides a text-based interface for monitoring your bot's operation directly in the terminal.
 

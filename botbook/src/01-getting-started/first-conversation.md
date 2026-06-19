@@ -1,4 +1,4 @@
-# First Conversation
+# First Conversation 🟡 BETA
 
 After botserver starts, you can immediately start chatting with your bot. No programming required!
 

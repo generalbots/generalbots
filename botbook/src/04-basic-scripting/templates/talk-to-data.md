@@ -1,4 +1,4 @@
-# Talk to Data Template
+# Talk to Data Template 🟡 BETA
 
 The Talk to Data template enables natural language queries against your structured data, transforming plain English questions into SQL queries and visualizations. It's like having a data analyst available 24/7.
 

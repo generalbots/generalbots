@@ -1,4 +1,4 @@
-# Enrollment Tool Example
+# Enrollment Tool Example 🟡 BETA
 
 This example shows a complete enrollment tool with parameter definitions and data saving.
 

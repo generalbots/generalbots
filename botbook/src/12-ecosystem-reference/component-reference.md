@@ -1,4 +1,4 @@
-# Component Reference
+# Component Reference 🟡 BETA
 
 This reference provides detailed information about each component in the botserver stack, including current versions, alternatives, and configuration options.
 

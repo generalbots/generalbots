@@ -1,4 +1,4 @@
-# Google Workspace Migration Guide
+# Google Workspace Migration Guide 🟡 BETA
 
 Migrating from Google Workspace to self-hosted infrastructure.
 

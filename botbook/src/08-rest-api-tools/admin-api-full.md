@@ -1,4 +1,4 @@
-# Admin API (Full)
+# Admin API (Full) 🟡 BETA
 
 > **System administration — configuration, organization management, user lifecycle, groups, permissions, and role management.**
 

@@ -1,4 +1,4 @@
-# Users API
+# Users API 🟡 BETA
 
 The Users API provides endpoints for user management operations. User authentication is handled through Zitadel, with botserver maintaining session associations and user preferences.
 

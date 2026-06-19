@@ -1,3 +1,4 @@
+pub mod email_triage;
 pub mod schema;
 pub mod models;
 pub mod types;

@@ -1,4 +1,4 @@
-# Creating an LLM REST Server
+# Creating an LLM REST Server 🟡 BETA
 
 General Bots offers an incredibly simple way to transform a Large Language Model (LLM) into a fully functional REST API server. With just a few lines of our proprietary BASIC-like syntax, you can create sophisticated AI-powered applications.
 

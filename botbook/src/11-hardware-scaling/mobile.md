@@ -1,4 +1,4 @@
-# Mobile Deployment - Android & HarmonyOS
+# Mobile Deployment - Android & HarmonyOS 🟡 BETA
 
 Deploy General Bots as the primary interface on Android and HarmonyOS devices, transforming them into dedicated AI assistants.
 

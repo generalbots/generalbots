@@ -1,4 +1,4 @@
-# Multi-Channel Support
+# Multi-Channel Support 🟡 BETA
 
 This chapter describes how botserver enables bots to communicate with users across different platforms through its flexible multi-channel architecture. The design ensures that conversation logic remains consistent regardless of how users choose to interact, while still taking advantage of each channel's unique capabilities.
 

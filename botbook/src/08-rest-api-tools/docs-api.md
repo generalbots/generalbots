@@ -1,4 +1,4 @@
-# Docs API
+# Docs API 🟡 BETA
 
 > **Word processor API for creating, editing, and collaborating on rich-text documents with AI assistance, commenting, track changes, and multi-format export.**
 

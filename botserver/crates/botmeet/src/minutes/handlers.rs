@@ -21,8 +21,8 @@ pub async fn handle_create_recording(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateRecordingRequest>,
 ) -> Result<Json<MeetRecording>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (req);
+    let _ = state;
+    let _ = req;
     Err((StatusCode::NOT_IMPLEMENTED, "Minutes handlers pending real DbPool implementation".into()))
 }
 
@@ -30,8 +30,8 @@ pub async fn handle_get_recording(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MeetRecording>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (id);
+    let _ = state;
+    let _ = id;
     Err((StatusCode::NOT_IMPLEMENTED, "Minutes handlers pending real DbPool implementation".into()))
 }
 
@@ -40,9 +40,9 @@ pub async fn handle_list_recordings(
     Path(bot_id): Path<Uuid>,
     Query(p): Query<PaginationParams>,
 ) -> Result<Json<Vec<MeetRecording>>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (bot_id);
-    let _ = (p);
+    let _ = state;
+    let _ = bot_id;
+    let _ = p;
     Ok(Json(Vec::new()))
 }
 
@@ -50,8 +50,8 @@ pub async fn handle_transcribe_recording(
     State(state): State<Arc<AppState>>,
     Path(recording_id): Path<Uuid>,
 ) -> Result<Json<Transcription>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (recording_id);
+    let _ = state;
+    let _ = recording_id;
     Err((StatusCode::NOT_IMPLEMENTED, "Transcription pending implementation".into()))
 }
 
@@ -59,8 +59,8 @@ pub async fn handle_generate_minutes(
     State(state): State<Arc<AppState>>,
     Path(recording_id): Path<Uuid>,
 ) -> Result<Json<MeetingMinute>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (recording_id);
+    let _ = state;
+    let _ = recording_id;
     Err((StatusCode::NOT_IMPLEMENTED, "Minute generation pending implementation".into()))
 }
 
@@ -68,8 +68,8 @@ pub async fn handle_get_minutes(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MeetingMinute>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (id);
+    let _ = state;
+    let _ = id;
     Err((StatusCode::NOT_IMPLEMENTED, "Minute retrieval pending implementation".into()))
 }
 
@@ -78,9 +78,9 @@ pub async fn handle_list_minutes(
     Path(bot_id): Path<Uuid>,
     Query(p): Query<PaginationParams>,
 ) -> Result<Json<Vec<MeetingMinute>>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (bot_id);
-    let _ = (p);
+    let _ = state;
+    let _ = bot_id;
+    let _ = p;
     Ok(Json(Vec::new()))
 }
 
@@ -89,9 +89,9 @@ pub async fn handle_update_minutes(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateMinutesRequest>,
 ) -> Result<Json<MeetingMinute>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (id);
-    let _ = (req);
+    let _ = state;
+    let _ = id;
+    let _ = req;
     Err((StatusCode::NOT_IMPLEMENTED, "Minute update pending implementation".into()))
 }
 
@@ -99,8 +99,8 @@ pub async fn handle_finalize_minutes(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (id);
+    let _ = state;
+    let _ = id;
     Ok(Json(serde_json::json!({"status": "finalized"})))
 }
 
@@ -108,8 +108,8 @@ pub async fn handle_export_pdf(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Vec<u8>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (id);
+    let _ = state;
+    let _ = id;
     Ok(Vec::new())
 }
 
@@ -117,8 +117,8 @@ pub async fn handle_get_signatures(
     State(state): State<Arc<AppState>>,
     Path(minute_id): Path<Uuid>,
 ) -> Result<Json<Vec<MinuteSignature>>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (minute_id);
+    let _ = state;
+    let _ = minute_id;
     Ok(Json(Vec::new()))
 }
 
@@ -127,9 +127,9 @@ pub async fn handle_sign_minutes(
     Path(id): Path<Uuid>,
     Json(req): Json<SignMinutesRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let _ = (state);
-    let _ = (id);
-    let _ = (req);
+    let _ = state;
+    let _ = id;
+    let _ = req;
     Err((StatusCode::NOT_IMPLEMENTED, "Digital signature pending implementation".into()))
 }
 

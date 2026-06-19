@@ -1,4 +1,4 @@
-# Updating Components
+# Updating Components 🟡 BETA
 
 botserver's stack components are regularly updated by their respective maintainers. This guide explains how to check for updates, apply them safely, and verify everything works correctly.
 

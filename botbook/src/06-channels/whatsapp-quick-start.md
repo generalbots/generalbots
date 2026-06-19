@@ -1,4 +1,4 @@
-# Quick Start Guide
+# Quick Start Guide 🟡 BETA
 
 Get your WhatsApp Business bot up and running in 30 minutes with this streamlined setup guide.
 

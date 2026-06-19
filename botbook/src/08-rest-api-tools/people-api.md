@@ -1,4 +1,4 @@
-# People API
+# People API 🟡 BETA
 
 > **Human resources management for people profiles, teams, departments, skills, and time-off tracking.**
 

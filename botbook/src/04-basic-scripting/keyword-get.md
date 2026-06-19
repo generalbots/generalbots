@@ -1,4 +1,4 @@
-# GET Keyword
+# GET Keyword 🟡 BETA
 
 The **GET** keyword retrieves content from a specified source — either a remote URL or a local file stored in the bot’s configured storage system.  
 It is used to fetch data dynamically during script execution.

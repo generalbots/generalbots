@@ -1,4 +1,4 @@
-# Secrets Management
+# Secrets Management 🟡 BETA
 
 General Bots uses a layered approach to configuration and secrets management. The goal is to keep `.env` **minimal** - containing only Vault connection info - while all sensitive data is stored securely in Vault.
 

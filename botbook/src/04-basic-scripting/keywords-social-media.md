@@ -1,4 +1,4 @@
-# Social Media Keywords
+# Social Media Keywords 🟡 BETA
 
 General Bots provides native social media integration through BASIC keywords for posting content, scheduling, retrieving metrics, and managing posts across multiple platforms.
 

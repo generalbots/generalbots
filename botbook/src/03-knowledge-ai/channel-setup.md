@@ -1,4 +1,4 @@
-# Channel Setup Guide
+# Channel Setup Guide 🟡 BETA
 
 This guide provides step-by-step instructions for connecting General Bots to various messaging platforms and social media channels.
 

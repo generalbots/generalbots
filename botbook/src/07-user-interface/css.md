@@ -1,4 +1,4 @@
-# CSS Customization
+# CSS Customization 🟡 BETA
 
 The **gbtheme** CSS files define the visual style of the bot UI. They are split into three layers to make them easy to extend.
 

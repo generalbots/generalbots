@@ -1,4 +1,4 @@
-# Chapter 12: Ecosystem & Reference
+# Chapter 12: Ecosystem & Reference 🟡 BETA
 
 General Bots supports full white-label customization, allowing you to rebrand the entire platform.
 

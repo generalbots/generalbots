@@ -1,4 +1,4 @@
-# Tool Definition
+# Tool Definition 🟡 BETA
 
 In botserver, a **tool** is simply a `.bas` file. That's it!
 

@@ -1,4 +1,4 @@
-# WEATHER / FORECAST Keywords
+# WEATHER / FORECAST Keywords 🟡 BETA
 
 Get weather information for any location using OpenWeatherMap API.
 

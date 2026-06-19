@@ -1,4 +1,4 @@
-# FOR EACH Keyword
+# FOR EACH Keyword 🟡 BETA
 
 **Syntax**
 

@@ -1,4 +1,4 @@
-# Tickets API
+# Tickets API 🟡 BETA
 
 > **Full-featured ticketing system with SLA tracking, canned responses, categories, and comments.**
 

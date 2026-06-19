@@ -1,4 +1,4 @@
-# HTMX Architecture
+# HTMX Architecture 🟡 BETA
 
 ## Overview
 

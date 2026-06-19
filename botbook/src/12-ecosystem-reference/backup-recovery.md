@@ -1,4 +1,4 @@
-# Backup and Recovery
+# Backup and Recovery 🟡 BETA
 
 Protecting your botserver data requires regular backups of databases, configurations, and file storage. This guide covers backup strategies, procedures, and disaster recovery.
 

@@ -131,7 +131,7 @@ async fn find_contacts_handler(
 ) -> impl IntoResponse {
     let service = CalendarIntegrationService::new(Arc::new(state.db_pool.clone()));
     let (org_id, _) = state.get_bot_context();
-    let _ = (event_id);
+    let _ = event_id;
     match service.find_contacts_for_event(org_id, &emails).await {
         Ok(results) => Json(results).into_response(),
         Err(e) => e.into_response(),
@@ -145,7 +145,7 @@ async fn create_contacts_from_attendees_handler(
 ) -> impl IntoResponse {
     let service = CalendarIntegrationService::new(Arc::new(state.db_pool.clone()));
     let (org_id, user_id) = state.get_bot_context();
-    let _ = (event_id);
+    let _ = event_id;
     match service.create_contacts_from_attendees(org_id, user_id, &attendees).await {
         Ok(created) => Json(created).into_response(),
         Err(e) => e.into_response(),

@@ -1,5 +1,6 @@
 use axum::{Router, routing::post};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
+use std::collections::HashMap;
 use botcore::shared::state::AppState;
 
 #[cfg(feature = "deployment")]
@@ -151,6 +152,11 @@ fn inner_build_sub_router(
             crate::monitoring::configure::<MonitoringAppState, crate::monitoring::DefaultMonitoringUrls>()
                 .with_state(monitoring_state)
         );
+        sub_router = sub_router.merge(
+            crate::monitoring::governance::configure_routes(
+                Arc::new(app_state.metrics_collector.clone())
+            )
+        );
     }
 
     #[cfg(feature = "scripting")]
@@ -177,6 +183,12 @@ fn inner_build_sub_router(
         let goals_default_bot: crate::analytics::GetDefaultBotFn = Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string()));
         sub_router = sub_router.merge(crate::analytics::goals::configure_goals_routes().with_state((goals_pool.clone(), goals_bot_context)));
         sub_router = sub_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes().with_state((goals_pool, goals_default_bot)));
+    }
+
+    #[cfg(feature = "sheet")]
+    {
+        let sheet_state = Arc::new(crate::sheet::state::SheetState::new(None));
+        sub_router = sub_router.merge(crate::sheet::routes::configure_sheet_routes().with_state(sheet_state));
     }
 
     #[cfg(feature = "canvas")]
@@ -251,19 +263,82 @@ fn inner_build_sub_router(
         sub_router = sub_router.merge(crate::sources::configure_sources_ui_routes().with_state(sources_state));
     }
 
+    #[cfg(feature = "mail")]
+    {
+        use diesel::PgConnection;
+        let pb = app_state.conn.clone();
+        let email_state = Arc::new(crate::email::models::AppState {
+            pool: Arc::new(pb),
+            get_default_bot: Arc::new(|_c: &mut PgConnection| (uuid::Uuid::nil(), "default".to_string())),
+            secrets_provider: Arc::new(|_key: &str| Ok(String::new())),
+        });
+        sub_router = sub_router.merge(crate::email::routes::configure(email_state));
+    }
+
     #[cfg(feature = "attendant")]
     { sub_router = sub_router.merge(super::feature_routers::make_attendant_router(app_state)); }
 
     #[cfg(feature = "browser")]
     {
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
         sub_router = sub_router.merge(
-            crate::browser::api::configure_browser_routes::<crate::browser::AppStateBrowserState>()
-                .with_state(Arc::new(crate::browser::AppStateBrowserState(Arc::clone(app_state)))),
+            crate::browser::api::configure_routes()
+                .with_state(Arc::new(Mutex::new(std::collections::HashMap::new()))),
         );
     }
 
     #[cfg(feature = "terminal")]
     { sub_router = sub_router.merge(crate::api::terminal::configure_terminal_routes()); }
+
+    // AutoTask routes
+    {
+        use botautotask::types::{AutoTaskState, ConfigOps};
+
+        struct AutoTaskStateImpl {
+            pool: Arc<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>>,
+            bucket_name: String,
+            manifests: Arc<RwLock<HashMap<String, botautotask::TaskManifest>>>,
+        }
+
+        impl AutoTaskState for AutoTaskStateImpl {
+            fn db_pool(&self) -> &botautotask::types::DbPool {
+                &self.pool
+            }
+            fn bucket_name(&self) -> &str {
+                &self.bucket_name
+            }
+            fn broadcast_task_progress(&self, _event: botautotask::types::TaskProgressEvent) {}
+            fn emit_activity(&self, _task_id: &str, _step: &str, _message: &str, _current: u8, _total: u8, _activity: botautotask::types::AgentActivity) {}
+            fn emit_task_started(&self, _task_id: &str, _message: &str, _total_steps: u8) {}
+            fn emit_task_error(&self, _task_id: &str, _step: &str, _error: &str) {}
+            fn task_manifests(&self) -> &Arc<RwLock<HashMap<String, botautotask::TaskManifest>>> {
+                &self.manifests
+            }
+            fn task_progress_broadcast(&self) -> Option<&tokio::sync::broadcast::Sender<botautotask::types::TaskProgressEvent>> {
+                None
+            }
+        }
+
+        struct ConfigOpsImpl;
+
+        impl ConfigOps for ConfigOpsImpl {
+            fn get_config(&self, _bot_id: &uuid::Uuid, _key: &str, _default: Option<&str>) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+                Ok(_default.unwrap_or_default().to_string())
+            }
+            fn set_config(&self, _bot_id: &uuid::Uuid, _key: &str, _value: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                Ok(())
+            }
+        }
+
+        let autotask_state = Arc::new(AutoTaskStateImpl {
+            pool: Arc::new(app_state.conn.clone()),
+            bucket_name: app_state.bucket_name.clone(),
+            manifests: Arc::new(RwLock::new(HashMap::new())),
+        });
+        let config_ops = Arc::new(ConfigOpsImpl);
+        sub_router = sub_router.merge(botautotask::api::router(autotask_state, config_ops));
+    }
 
     sub_router
 }

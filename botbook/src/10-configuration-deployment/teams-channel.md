@@ -1,4 +1,4 @@
-# Microsoft Teams Channel Configuration
+# Microsoft Teams Channel Configuration 🟡 BETA
 
 This guide covers setting up Microsoft Teams as a communication channel for your General Bots deployment, enabling bots to interact with users directly in Teams conversations.
 

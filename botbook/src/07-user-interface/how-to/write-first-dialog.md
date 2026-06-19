@@ -1,4 +1,4 @@
-# How To: Write Your First Dialog
+# How To: Write Your First Dialog 🟡 BETA
 
 > **Tutorial 5 of the BASIC Dialogs Series**
 >

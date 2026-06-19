@@ -1,4 +1,4 @@
-# SEND TEMPLATE Keywords
+# SEND TEMPLATE Keywords 🟡 BETA
 
 Send templated messages across multiple channels (email, WhatsApp, SMS, Telegram, push notifications).
 

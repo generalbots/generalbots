@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 
 pub mod kb_context_ops;
 pub mod kb_context_search;
+pub mod rag_modes;
 
 pub use kb_context_ops::*;
 pub use kb_context_search::*;
+pub use rag_modes::RagMode;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbSearchResult {

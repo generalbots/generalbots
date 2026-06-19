@@ -1,4 +1,4 @@
-# Mail - Email Client
+# Mail 🟡 BETA - Email Client
 
 > **Your intelligent inbox**
 
@@ -336,3 +336,4 @@ apps=...,mail
 - [Chat App](./chat.md) - Send quick emails via chat
 - [Email API](../../08-rest-api-tools/email-api.md) - API reference
 - [SEND MAIL Keyword](../../04-basic-scripting/keyword-send-mail.md) - BASIC integration
+- [Intelligent Email Triaging](../../03-knowledge-ai/intelligent-email-triaging.md) - LLM-powered email classification & calendar conflict resolution

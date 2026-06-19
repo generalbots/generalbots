@@ -1,4 +1,4 @@
-# Auth - Login
+# Auth 🟡 BETA - Login
 
 > **Secure authentication**
 

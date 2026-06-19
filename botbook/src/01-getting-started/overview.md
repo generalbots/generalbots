@@ -1,4 +1,4 @@
-# Overview
+# Overview 🟡 BETA
 
 botserver is an open-source conversational AI platform built in Rust that enables developers to create, deploy, and manage intelligent bots with minimal configuration. This chapter provides a comprehensive introduction to the platform's architecture, capabilities, and design philosophy.
 

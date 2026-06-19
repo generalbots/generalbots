@@ -1,4 +1,4 @@
-# Complete Keyword Reference
+# Complete Keyword Reference 🟡 BETA
 
 This document provides a comprehensive reference of all BASIC keywords in General Bots, including existing implementations and planned additions.
 

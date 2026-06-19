@@ -1,4 +1,4 @@
-# CLEAR KB
+# CLEAR KB 🟡 BETA
 
 Remove knowledge bases from the current session.
 

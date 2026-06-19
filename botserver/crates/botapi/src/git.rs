@@ -12,11 +12,11 @@ use botcore::shared::state::AppState;
 pub fn configure_git_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/git/status", get(git_status))
-        .route("/api/git/diff/:file", get(git_diff))
+        .route("/api/git/diff/{file}", get(git_diff))
         .route("/api/git/commit", post(git_commit))
         .route("/api/git/push", post(git_push))
         .route("/api/git/branches", get(git_branches))
-        .route("/api/git/branch/:name", post(git_create_or_switch_branch))
+        .route("/api/git/branch/{name}", post(git_create_or_switch_branch))
         .route("/api/git/log", get(git_log))
 }
 

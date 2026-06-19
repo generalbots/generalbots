@@ -1,4 +1,4 @@
-# config.csv Format
+# config.csv Format 🟡 BETA
 
 The `config.csv` file is the heart of bot configuration in General Bots. Located in each bot's `.gbot` package, it uses a simple, human-readable format that anyone can edit.
 

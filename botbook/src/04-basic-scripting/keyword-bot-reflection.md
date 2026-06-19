@@ -1,4 +1,4 @@
-# BOT REFLECTION
+# BOT REFLECTION 🟡 BETA
 
 Enables agent self-analysis and improvement by using LLM to evaluate conversation quality, identify issues, and suggest improvements. This is a key feature for continuous agent optimization.
 

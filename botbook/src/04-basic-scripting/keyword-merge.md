@@ -1,4 +1,4 @@
-# MERGE
+# MERGE 🟡 BETA
 
 Combines data from multiple sources or upserts records into a database table.
 

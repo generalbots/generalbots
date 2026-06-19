@@ -1,4 +1,4 @@
-# Configuration Parameters
+# Configuration Parameters 🟡 BETA
 
 Complete reference of all available parameters in `config.csv`.
 

@@ -1,4 +1,4 @@
-# Introduction to General Bots
+# Introduction to General Bots 🟡 BETA
 
 > **⚡ Want to skip ahead?** [Quick Start →](./01-getting-started/quick-start.md) gets you running in 5 minutes.
 

@@ -15,7 +15,7 @@ use botlib::db_pool::DbPool;
 
 pub const ROUTE_RESEARCH_COLLECTIONS: &str = "/api/ui/research/collections";
 pub const ROUTE_RESEARCH_COLLECTIONS_NEW: &str = "/api/ui/research/collections/new";
-pub const ROUTE_RESEARCH_COLLECTION_BY_ID: &str = "/api/ui/research/collections/:id";
+pub const ROUTE_RESEARCH_COLLECTION_BY_ID: &str = "/api/ui/research/collections/{id}";
 pub const ROUTE_RESEARCH_SEARCH: &str = "/api/ui/research/search";
 pub const ROUTE_RESEARCH_RECENT: &str = "/api/ui/research/recent";
 pub const ROUTE_RESEARCH_TRENDING: &str = "/api/ui/research/trending";

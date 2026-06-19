@@ -1,3 +1,4 @@
+pub mod plugin;
 pub mod db_utils;
 pub mod alm_setup;
 pub mod cache;

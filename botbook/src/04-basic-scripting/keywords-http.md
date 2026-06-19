@@ -1,4 +1,4 @@
-# HTTP & API Operations
+# HTTP & API Operations 🟡 BETA
 
 This section covers keywords for making HTTP requests and integrating with external APIs. These keywords enable bots to communicate with REST APIs, GraphQL endpoints, SOAP services, and any HTTP-based web service.
 

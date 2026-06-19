@@ -1,4 +1,4 @@
-# SOAP
+# SOAP 🟡 BETA
 
 The `SOAP` keyword enables bots to communicate with legacy SOAP/XML web services, allowing integration with enterprise systems, government APIs, and older corporate infrastructure that still relies on SOAP protocols.
 

@@ -1,4 +1,4 @@
-# ADD MEMBER Keywords
+# ADD MEMBER Keywords 🟡 BETA
 
 Manage team and group membership within bots.
 

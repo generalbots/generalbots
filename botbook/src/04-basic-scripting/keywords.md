@@ -1,4 +1,4 @@
-# Keyword Reference
+# Keyword Reference 🟡 BETA
 
 This section lists every BASIC keyword implemented in the GeneralBots engine. Each keyword page includes:
 

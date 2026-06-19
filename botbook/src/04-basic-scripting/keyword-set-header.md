@@ -1,4 +1,4 @@
-# SET HEADER
+# SET HEADER 🟡 BETA
 
 The `SET HEADER` keyword configures HTTP request headers for subsequent API calls, enabling authentication, content type specification, and custom headers.
 

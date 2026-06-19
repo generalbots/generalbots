@@ -1,4 +1,4 @@
-# GET USER MEMORY
+# GET USER MEMORY 🟡 BETA
 
 Retrieves data stored at the user level, accessible across sessions and bots. This is the companion to `SET USER MEMORY` for reading persistent user data.
 

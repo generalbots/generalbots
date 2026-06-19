@@ -32,5 +32,5 @@ pub async fn handle_security_command(args: &[String]) {
         }
     }
     #[cfg(not(feature = "security"))]
-    let _ = (args);
+    let _ = args;
 }

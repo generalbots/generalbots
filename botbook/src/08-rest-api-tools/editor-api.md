@@ -1,4 +1,4 @@
-# Code Editor API
+# Code Editor API 🟡 BETA
 
 > **File browsing and editing API for in-browser code editor**
 

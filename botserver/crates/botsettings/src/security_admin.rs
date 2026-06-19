@@ -387,15 +387,15 @@ pub fn configure_security_admin_routes() -> Router<Arc<AppState>> {
             "/api/settings/security/api-keys",
             get(list_api_keys).post(create_api_key),
         )
-        .route("/api/settings/security/api-keys/:key_id", delete(revoke_api_key))
+        .route("/api/settings/security/api-keys/{key_id}", delete(revoke_api_key))
         .route(
             "/api/settings/security/mfa",
             get(get_mfa_settings).put(update_mfa_settings),
         )
         .route("/api/settings/security/sessions", get(list_active_sessions))
-        .route("/api/settings/security/sessions/:session_id", delete(revoke_session))
+        .route("/api/settings/security/sessions/{session_id}", delete(revoke_session))
         .route(
-            "/api/settings/security/users/:user_id/sessions",
+            "/api/settings/security/users/{user_id}/sessions",
             delete(revoke_all_user_sessions),
         )
         .route(

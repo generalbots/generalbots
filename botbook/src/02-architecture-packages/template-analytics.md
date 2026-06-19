@@ -1,4 +1,4 @@
-# Platform Analytics Template (analytics.gbai)
+# Platform Analytics Template (analytics.gbai) 🟡 BETA
 
 A General Bots template for platform metrics, performance monitoring, and custom report generation.
 

@@ -1,4 +1,4 @@
-# Development Setup
+# Development Setup 🟡 BETA
 
 This guide covers setting up a development environment for contributing to General Bots.
 

@@ -1,4 +1,4 @@
-# System Limits Reference
+# System Limits Reference 🟡 BETA
 
 This document provides a comprehensive reference for all system limits, rate limits, package sizes, and configurable parameters in General Bots. Each limit includes the config.csv key, default value, and the source code location where it's enforced.
 

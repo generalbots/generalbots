@@ -1,4 +1,4 @@
-# Monitoring Dashboard
+# Monitoring Dashboard 🟡 BETA
 
 The Monitoring Dashboard is the **live operations homepage** for your General Bots deployment. It provides real-time visibility into system health, active sessions, and resource utilization through an animated, interactive SVG visualization.
 

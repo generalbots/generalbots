@@ -1,4 +1,4 @@
-# IS NUMERIC
+# IS NUMERIC 🟡 BETA
 
 The `IS NUMERIC` function tests whether a string value can be converted to a number. This is essential for input validation before performing mathematical operations.
 

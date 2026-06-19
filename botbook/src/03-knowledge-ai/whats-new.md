@@ -1,4 +1,4 @@
-# What's New
+# What's New 🟡 BETA
 
 This page has been consolidated with the Multi-Agent Orchestration documentation.
 

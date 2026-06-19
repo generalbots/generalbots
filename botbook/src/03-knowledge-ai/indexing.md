@@ -1,4 +1,4 @@
-# Document Indexing
+# Document Indexing 🟡 BETA
 
 Documents in `.gbkb` folders are indexed automatically. No manual configuration required.
 

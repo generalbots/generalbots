@@ -1,4 +1,4 @@
-# TABLE Keyword
+# TABLE Keyword 🟡 BETA
 
 The `TABLE` keyword defines database tables directly in your `.bas` files. Tables are automatically created on the specified database connection when the script is compiled.
 

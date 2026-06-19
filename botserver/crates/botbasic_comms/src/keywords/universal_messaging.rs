@@ -600,7 +600,7 @@ async fn send_teams_file(
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _ = (user);
+    let _ = user;
     let _ = TeamsAdapter::new();
 
     let conversation_id = get_teams_conversation_id(&state, recipient_id).await?;

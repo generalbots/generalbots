@@ -1,4 +1,4 @@
-# Template for Creating Templates (template.gbai)
+# Template for Creating Templates (template.gbai) 🟡 BETA
 
 A General Bots meta-template that serves as a starting point for creating new bot templates.
 

@@ -1,4 +1,4 @@
-# Caching
+# Caching 🟡 BETA
 
 botserver includes automatic caching to improve response times and reduce redundant processing, including semantic caching for LLM responses using an in-memory cache component.
 

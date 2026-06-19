@@ -1,4 +1,4 @@
-# Tasks API
+# Tasks API 🟡 BETA
 
 botserver provides RESTful endpoints for creating, managing, and tracking tasks and workflows within bot conversations.
 

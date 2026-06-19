@@ -1,4 +1,4 @@
-# How To: Create Your First Bot
+# How To: Create Your First Bot 🟡 BETA
 
 > **Tutorial 1 of the Getting Started Series**
 >

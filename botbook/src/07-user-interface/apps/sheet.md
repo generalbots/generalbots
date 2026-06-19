@@ -1,4 +1,4 @@
-# Sheet - Spreadsheets
+# Sheet 🟡 BETA - Spreadsheets
 
 > **Excel-like spreadsheet with AI**
 
@@ -38,6 +38,7 @@ Sheet is the spreadsheet application in General Bots Suite. Create, analyze, and
 | MAX | `=MAX(A1:A10)` | Maximum value |
 | MIN | `=MIN(A1:A10)` | Minimum value |
 | DATE | `=DATE(2025,5,15)` | Create date |
+| BOT_AI_PROMPT | `=BOT_AI_PROMPT("Analyze ", A1)` | AI-powered cell evaluation with intelligent caching — see [AI Sheet Cache](../../03-knowledge-ai/ai-sheet-cache.md) |
 
 ### Charts
 

@@ -1,4 +1,4 @@
-# Meeting Whiteboard User Guide
+# Meeting Whiteboard User Guide 🟡 BETA
 
 The Meeting Whiteboard provides a collaborative canvas for real-time visual collaboration during meetings, enabling teams to sketch ideas, diagram workflows, and brainstorm together.
 

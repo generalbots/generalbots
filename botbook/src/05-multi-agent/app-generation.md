@@ -1,4 +1,4 @@
-# App Generation
+# App Generation 🟡 BETA
 
 From natural language to complete application, the generation process handles database design, UI creation, and automation setup.
 

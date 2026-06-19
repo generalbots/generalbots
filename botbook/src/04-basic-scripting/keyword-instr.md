@@ -1,4 +1,4 @@
-# INSTR
+# INSTR 🟡 BETA
 
 The `INSTR` keyword returns the position of a substring within a string, following classic BASIC semantics.
 

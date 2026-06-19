@@ -1,4 +1,4 @@
-# Groups API
+# Groups API 🟡 BETA
 
 The Groups API provides endpoints for managing groups and organizations through Zitadel integration.
 

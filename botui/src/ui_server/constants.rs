@@ -54,6 +54,8 @@ pub const SUITE_DIRS: &[&str] = &[
     "dashboards",
     #[cfg(feature = "monitoring")]
     "monitoring",
+    #[cfg(feature = "monitoring")]
+    "governance",
     // Admin & Tools
     #[cfg(feature = "admin")]
     "admin",

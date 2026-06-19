@@ -1,4 +1,4 @@
-# Platform Comparison Matrix
+# Platform Comparison Matrix 🟡 BETA
 
 This comprehensive comparison helps organizations evaluate General Bots against major productivity, automation, and AI platforms.
 

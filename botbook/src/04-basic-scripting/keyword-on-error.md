@@ -1,4 +1,4 @@
-# ON ERROR RESUME NEXT
+# ON ERROR RESUME NEXT 🟡 BETA
 
 The `ON ERROR RESUME NEXT` keyword enables BASIC error handling, allowing scripts to continue execution when errors occur instead of terminating immediately.
 

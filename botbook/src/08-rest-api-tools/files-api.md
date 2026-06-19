@@ -1,4 +1,4 @@
-# Files API Reference
+# Files API Reference 🟡 BETA
 
 Complete file and document management operations including upload, download, copy, move, search, sharing, and synchronization.
 

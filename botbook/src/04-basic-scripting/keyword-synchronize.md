@@ -1,4 +1,4 @@
-# SYNCHRONIZE
+# SYNCHRONIZE 🟡 BETA
 
 Synchronizes data from an external API endpoint to a local database table with automatic pagination.
 

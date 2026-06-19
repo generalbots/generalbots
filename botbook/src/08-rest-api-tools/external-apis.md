@@ -1,4 +1,4 @@
-# External APIs
+# External APIs 🟡 BETA
 
 botserver enables integration with external APIs through BASIC scripts, allowing bots to connect with third-party services and extend functionality beyond built-in capabilities.
 

@@ -1,4 +1,4 @@
-# MCP Format
+# MCP Format 🟡 BETA
 
 Model Context Protocol (MCP) is a standardized format for defining tools that language models can discover and invoke. botserver generates MCP-compatible tool definitions from BASIC scripts.
 

@@ -1458,5 +1458,5 @@ pub fn configure_social_ui_routes() -> Router<Arc<SocialState>> {
     Router::new()
         .route("/suite/social", get(handle_social_list_page))
         .route("/suite/social/compose", get(handle_social_compose_page))
-        .route("/suite/social/:id", get(handle_social_post_page))
+        .route("/suite/social/{id}", get(handle_social_post_page))
 }

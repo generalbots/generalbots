@@ -1,1 +1,1 @@
-# Supported Hardware
+# Supported Hardware 🟡 BETA

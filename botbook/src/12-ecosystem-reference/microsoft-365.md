@@ -1,4 +1,4 @@
-# Microsoft 365 Migration Guide
+# Microsoft 365 Migration Guide 🟡 BETA
 
 Migrating from Microsoft 365 to self-hosted infrastructure.
 

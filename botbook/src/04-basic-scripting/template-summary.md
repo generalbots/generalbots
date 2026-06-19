@@ -1,4 +1,4 @@
-# generate-summary.bas Template
+# generate-summary.bas Template 🟡 BETA
 
 The `update-summary.bas` template demonstrates how to create scheduled tasks that automatically update bot memory with fresh content summaries.
 

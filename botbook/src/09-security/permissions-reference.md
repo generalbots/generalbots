@@ -1,4 +1,4 @@
-# Complete Permissions Reference
+# Complete Permissions Reference 🟡 BETA
 
 This document provides a comprehensive reference of all permissions available in General Bots Suite. These permissions are designed to provide enterprise-grade access control comparable to Microsoft 365 and Google Workspace.
 

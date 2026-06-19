@@ -217,8 +217,8 @@ pub fn router(state: Arc<dyn AutoTaskState>, config_ops: Arc<dyn ConfigOps>) -> 
         .route("/api/autotask/create-and-execute", axum::routing::post(create_and_execute))
         .route("/api/autotask/tasks", axum::routing::get(list_tasks))
         .route("/api/autotask/stats", axum::routing::get(get_stats))
-        .route("/api/autotask/tasks/:task_id/approve", axum::routing::post(approve_task))
-        .route("/api/autotask/tasks/:task_id/cancel", axum::routing::post(cancel_task))
+        .route("/api/autotask/tasks/{task_id}/approve", axum::routing::post(approve_task))
+        .route("/api/autotask/tasks/{task_id}/cancel", axum::routing::post(cancel_task))
         .route("/api/autotask/decide", axum::routing::post(make_decision))
         .with_state(api)
 }
@@ -304,7 +304,7 @@ async fn list_tasks(
     State(_api): State<Arc<AutoTaskApi>>,
     Query(query): Query<ListTasksQuery>,
 ) -> impl IntoResponse {
-    let _ = (query);
+    let _ = query;
     Json(Vec::<serde_json::Value>::new())
 }
 

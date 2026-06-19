@@ -1,4 +1,4 @@
-# DELETE HTTP
+# DELETE HTTP 🟡 BETA
 
 > **Deprecated:** The `DELETE HTTP` syntax is kept for backwards compatibility. Use the unified `DELETE` keyword instead, which auto-detects HTTP URLs.
 

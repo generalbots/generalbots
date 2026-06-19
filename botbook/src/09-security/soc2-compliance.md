@@ -1,4 +1,4 @@
-# SOC 2 Type II Compliance
+# SOC 2 Type II Compliance 🟡 BETA
 
 This guide covers General Bots' SOC 2 Type II compliance implementation, including security controls, audit logging, evidence collection, and compliance reporting.
 

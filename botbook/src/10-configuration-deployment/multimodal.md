@@ -1,4 +1,4 @@
-# Multimodal Configuration
+# Multimodal Configuration 🟡 BETA
 
 General Bots integrates with botmodels—a Python service for multimodal AI tasks—to enable image generation, video creation, audio synthesis, and vision capabilities directly from BASIC scripts.
 

@@ -32,6 +32,7 @@ serde_json = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 
 botcore = { path = "../botcore" }
+botcorepkg = { path = "../botcorepkg" }
 botsecurity = { path = "../botsecurity" }
 botmodelsbridge = { path = "../botmodelsbridge" }
 botbasic_core = { path = "../botbasic_core" }

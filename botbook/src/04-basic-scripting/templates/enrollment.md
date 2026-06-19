@@ -1,4 +1,4 @@
-# Enrollment Template
+# Enrollment Template 🟡 BETA
 
 The enrollment template demonstrates how to build a complete data collection workflow that gathers user information step-by-step, validates inputs, confirms details, and saves the data.
 

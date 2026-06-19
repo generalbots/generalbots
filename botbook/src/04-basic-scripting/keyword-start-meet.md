@@ -1,4 +1,4 @@
-# START MEET / JOIN MEET Keywords
+# START MEET / JOIN MEET Keywords 🟡 BETA
 
 The `START MEET` and `JOIN MEET` keywords enable bots to create and participate in video meetings, bringing AI capabilities directly into video conferencing.
 

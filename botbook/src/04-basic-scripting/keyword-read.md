@@ -1,4 +1,4 @@
-# READ
+# READ 🟡 BETA
 
 The `READ` keyword loads content from files stored in the bot's drive storage, enabling bots to access documents, data files, and other stored resources.
 

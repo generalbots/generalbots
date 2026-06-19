@@ -1,4 +1,4 @@
-# Semantic Search
+# Semantic Search 🟡 BETA
 
 Semantic search finds relevant content by meaning, not just keywords. When a user asks "How many days off do I get?", the system matches documents about "vacation policy" or "PTO allowance" even though the words differ.
 

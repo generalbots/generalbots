@@ -1,4 +1,4 @@
-# Workspaces API
+# Workspaces API 🟡 BETA
 
 > **Collaborative workspace management for organizing pages, members, and shared content.**
 

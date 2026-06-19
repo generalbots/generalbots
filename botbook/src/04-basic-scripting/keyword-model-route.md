@@ -1,4 +1,4 @@
-# MODEL ROUTE Keywords
+# MODEL ROUTE Keywords 🟡 BETA
 
 Route LLM requests to different models based on task type, cost, or capability requirements.
 

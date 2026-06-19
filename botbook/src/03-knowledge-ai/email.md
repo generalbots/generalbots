@@ -1,4 +1,4 @@
-# Email Integration
+# Email Integration 🟡 BETA
 
 botserver provides email integration capabilities through IMAP/SMTP protocols, allowing bots to read, send, and manage emails.
 

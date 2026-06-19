@@ -1,4 +1,4 @@
-# Conversation Management
+# Conversation Management 🟡 BETA
 
 This chapter explores how botserver manages conversations through sessions, message history, and context tracking. Understanding these mechanisms helps you build bots that maintain coherent, contextual interactions across multiple turns and sessions.
 

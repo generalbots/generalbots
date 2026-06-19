@@ -67,6 +67,54 @@ pub async fn list_documents() -> Result<Json<serde_json::Value>, (StatusCode, St
     Ok(Json(serde_json::json!({"items": items})))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct MeetingFormData {
+    pub title: Option<String>,
+    pub date: Option<String>,
+    pub participants: Option<Vec<String>>,
+    pub agenda: Option<String>,
+    pub discussion: Option<String>,
+    pub decisions: Option<String>,
+    pub action_items: Option<Vec<String>>,
+    pub status: Option<String>,
+}
+
+pub async fn start_meeting(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {e}")))?;
+    let meeting = Meeting {
+        id: id.clone(),
+        title: format!("Meeting {id}"),
+        date: chrono::Utc::now().to_rfc3339(),
+        duration_minutes: 0,
+        participants: vec![],
+        status: "in_progress".to_string(),
+        transcript_id: None,
+    };
+    s.meetings.insert(id.clone(), meeting);
+    Ok(Json(serde_json::json!({"success": true, "id": id})))
+}
+
+pub async fn update_meeting(Path(id): Path<String>, Json(item): Json<MeetingFormData>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {e}")))?;
+    if let Some(existing) = s.meetings.get_mut(&id) {
+        if let Some(title) = item.title {
+            existing.title = title;
+        }
+        if let Some(date) = item.date {
+            existing.date = date;
+        }
+        if let Some(participants) = item.participants {
+            existing.participants = participants;
+        }
+        if let Some(status) = item.status {
+            existing.status = status;
+        }
+        Ok(Json(serde_json::json!({"success": true, "item": existing})))
+    } else {
+        Err((StatusCode::NOT_FOUND, "Meeting not found".to_string()))
+    }
+}
+
 pub async fn update_document(Path(id): Path<String>, Json(item): Json<Document>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let mut s = state().write().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("RwLock poisoned: {}", e)))?;
     if let Some(existing) = s.documents.get_mut(&id) {

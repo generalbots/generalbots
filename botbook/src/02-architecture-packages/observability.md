@@ -1,4 +1,4 @@
-# Observability
+# Observability 🟡 BETA
 
 This chapter describes the observability infrastructure that General Bots provides for monitoring system health, collecting logs, and tracking metrics. The observability system operates automatically without requiring code changes, giving administrators visibility into platform behavior and helping identify issues before they impact users.
 

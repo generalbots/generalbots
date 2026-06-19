@@ -1,4 +1,4 @@
-# Migrating BotServer to LXC Containers
+# Migrating BotServer to LXC Containers 🟡 BETA
 
 This guide explains how to migrate botserver to connect with already-running LXC containers. This setup allows General Bots to control containers directly. This is useful when you need to reinstall or update botserver while keeping your existing services running.
 

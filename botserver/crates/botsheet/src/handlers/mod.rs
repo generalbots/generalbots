@@ -19,7 +19,7 @@ pub use advanced_ranges::{
     handle_array_formula, handle_create_named_range, handle_delete_array_formula,
     handle_delete_named_range, handle_list_named_ranges, handle_update_named_range,
 };
-pub use ai::handle_sheet_ai;
+pub use ai::{handle_batch_evaluate_ai, handle_evaluate_ai_prompt, handle_sheet_ai};
 pub use cell_ops::{
     handle_evaluate_formula, handle_format_cells, handle_freeze_panes, handle_get_range,
     handle_merge_cells, handle_unmerge_cells, handle_update_cell, handle_worksheet_meta,

@@ -1,4 +1,4 @@
-# SET
+# SET 🟡 BETA
 
 Assign values to variables in BASIC dialogs.
 

@@ -31,9 +31,9 @@ pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<
         .route("/api/slides/delete", post(handle_delete_presentation::<D>))
         .route("/api/slides/new", get(handle_new_presentation::<D>))
         .route("/api/slides/ai", post(handle_slides_ai::<D>))
-        .route("/api/slides/:id", get(handle_get_presentation_by_id::<D>))
+        .route("/api/slides/{id}", get(handle_get_presentation_by_id::<D>))
         .route(
-            "/api/slides/:id/collaborators",
+            "/api/slides/{id}/collaborators",
             get(handle_get_collaborators),
         )
         .route("/api/slides/slide/add", post(handle_add_slide::<D>))
@@ -123,23 +123,23 @@ pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<
             get(handle_get_presenter_notes::<D>),
         )
         .route(
-            "/api/slides/:presentation_id/presence",
+            "/api/slides/{presentation_id}/presence",
             get(handle_get_presence),
         )
         .route(
-            "/api/slides/:presentation_id/typing",
+            "/api/slides/{presentation_id}/typing",
             get(handle_get_typing),
         )
         .route(
-            "/api/slides/:presentation_id/selections",
+            "/api/slides/{presentation_id}/selections",
             get(handle_get_selections),
         )
         .route(
-            "/api/slides/mentions/:user_id",
+            "/api/slides/mentions/{user_id}",
             get(handle_get_mentions),
         )
         .route(
-            "/ws/slides/:presentation_id",
+            "/ws/slides/{presentation_id}",
             get(handle_slides_websocket::<D>),
         )
 }

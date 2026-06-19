@@ -1,4 +1,4 @@
-# Drive Monitor Test - Upload via MinIO Console
+# Drive Monitor Test - Upload via MinIO Console 🟡 BETA
 
 ## Objective
 Test the complete sync flow for bot files uploaded through MinIO Console:

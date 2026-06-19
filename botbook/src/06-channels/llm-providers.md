@@ -1,4 +1,4 @@
-# LLM Providers
+# LLM Providers 🟡 BETA
 
 General Bots supports multiple Large Language Model (LLM) providers, both cloud-based services and local deployments. This guide helps you choose the right provider for your use case.
 

@@ -1,4 +1,4 @@
-# Canvas - Whiteboard
+# Canvas 🟡 BETA - Whiteboard
 
 > **Collaborative visual workspace**
 

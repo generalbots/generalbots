@@ -1,4 +1,4 @@
-# Marketing Automation Template (marketing.gbai)
+# Marketing Automation Template (marketing.gbai) 🟡 BETA
 
 A General Bots template for marketing campaign management, content creation, and multi-channel broadcast messaging.
 

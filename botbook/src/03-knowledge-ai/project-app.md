@@ -1,4 +1,4 @@
-# Project App User Guide
+# Project App User Guide 🟡 BETA
 
 The Project app is a comprehensive project management tool built into General Bots, providing Gantt charts, task dependencies, resource management, and critical path analysis.
 

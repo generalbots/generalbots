@@ -1,4 +1,4 @@
-# RBAC Configuration Guide
+# RBAC Configuration Guide 🟡 BETA
 
 This guide covers how to configure Role-Based Access Control (RBAC) in General Bots, including role management, group setup, permission assignment, and best practices for enterprise deployments.
 

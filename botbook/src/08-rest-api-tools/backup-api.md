@@ -1,4 +1,4 @@
-# Backup API
+# Backup API 🟡 BETA
 
 The Backup API provides endpoints for creating, managing, and restoring backups of bot data and configurations.
 

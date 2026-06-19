@@ -1,4 +1,4 @@
-# Hybrid RAG Search
+# Hybrid RAG Search 🟡 BETA
 
 Hybrid search combines dense (semantic) and sparse (keyword) retrieval for better search quality than either method alone.
 

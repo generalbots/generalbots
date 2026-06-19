@@ -8,7 +8,7 @@ pub fn configure_video_ui_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/suite/video", get(handle_video_list_page))
         .route("/suite/video/upload", get(handle_video_upload_page))
-        .route("/suite/video/:id", get(handle_video_detail_page))
+        .route("/suite/video/{id}", get(handle_video_detail_page))
 }
 
 pub async fn handle_video_list_page(
@@ -130,7 +130,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans
 <div class="video-description" id="videoDescription"></div>
 <div class="actions">
 <button class="btn btn-outline" onclick="navigator.clipboard.writeText(window.location.href);alert('Link copied!')">Share</button>
-<button class="btn btn-outline" onclick="window.open('/api/video/projects/{video_id}/export','_blank')">Download</button>
+<button class="btn btn-outline" onclick="fetch(&#39;/api/video/projects/&#39;+videoId+&#39;/export&#39;,{{method:&#39;POST&#39;}}).then(r=>r.blob()).then(b=>{{const a=document.createElement(&#39;a&#39;);a.href=URL.createObjectURL(b);a.download=videoId+&#39;.mp4&#39;;a.click()}})">Download</button>
 </div>
 </div>
 <script>
@@ -220,16 +220,19 @@ if (!document.getElementById('title').value) document.getElementById('title').va
 }
 document.getElementById('uploadForm').addEventListener('submit', async e => {
 e.preventDefault(); if (!selectedFile) return;
-const formData = new FormData(); formData.append('file', selectedFile);
-formData.append('title', document.getElementById('title').value);
-formData.append('description', document.getElementById('description').value);
+const title = document.getElementById('title').value;
+const description = document.getElementById('description').value;
 document.getElementById('progressBar').style.display = 'block'; submitBtn.disabled = true;
 try {
+const projectResp = await fetch('/api/video/projects', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name: title, description: description}) });
+const project = await projectResp.json();
+if (!project || !project.id) { alert('Failed to create project'); submitBtn.disabled=false; document.getElementById('progressBar').style.display='none'; return; }
+const formData = new FormData(); formData.append('file', selectedFile);
 const xhr = new XMLHttpRequest();
 xhr.upload.addEventListener('progress', e => { if (e.lengthComputable) document.getElementById('progressFill').style.width = (e.loaded/e.total*100)+'%'; });
-xhr.addEventListener('load', () => { if (xhr.status===200) window.location='/suite/video'; else { alert('Upload failed'); submitBtn.disabled=false; } });
-xhr.open('POST', '/api/video/upload'); xhr.send(formData);
-} catch (e) { alert('Upload failed: ' + e.message); submitBtn.disabled=false; }
+xhr.addEventListener('load', () => { if (xhr.status===200) window.location='/suite/video'; else { alert('Upload failed'); submitBtn.disabled=false; document.getElementById('progressBar').style.display='none'; } });
+xhr.open('POST', '/api/video/projects/' + project.id + '/upload'); xhr.send(formData);
+} catch (e) { alert('Upload failed: ' + e.message); submitBtn.disabled=false; document.getElementById('progressBar').style.display='none'; }
 });
 </script>
 </body>

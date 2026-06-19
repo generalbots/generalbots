@@ -1,4 +1,4 @@
-# .gbai Architecture
+# .gbai Architecture 🟡 BETA
 
 **A bot is just a folder.** The `.gbai` extension marks a directory as a botserver package containing everything needed to run a conversational AI bot - scripts, documents, configuration, and themes.
 

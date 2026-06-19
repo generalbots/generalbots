@@ -1,4 +1,4 @@
-# Database Schema Overview
+# Database Schema Overview 🟡 BETA
 
 General Bots uses PostgreSQL as its primary database with Diesel ORM for type-safe database operations. The schema is designed to support multi-tenant bot hosting with comprehensive session management, user authentication, and content storage.
 

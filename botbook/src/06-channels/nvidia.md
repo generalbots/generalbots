@@ -1,4 +1,4 @@
-# NVIDIA GPU Module
+# NVIDIA GPU Module 🟡 BETA
 
 System monitoring for NVIDIA GPU utilization and performance metrics.
 

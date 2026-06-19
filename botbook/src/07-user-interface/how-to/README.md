@@ -1,4 +1,4 @@
-# How To... Tutorials
+# How To... Tutorials 🟡 BETA
 
 > **📖 Step-by-Step Guides for General Bots Suite**
 >

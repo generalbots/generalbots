@@ -1,4 +1,4 @@
-# Installation
+# Installation 🟡 BETA
 
 botserver installs itself automatically through the bootstrap process. Just run the binary.
 

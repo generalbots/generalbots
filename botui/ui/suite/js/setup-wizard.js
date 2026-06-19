@@ -218,7 +218,7 @@ function uploadTrainingFiles(botName) {
       var formData = new FormData();
       formData.append("file", file);
 
-      fetch("/api/drive/upload?path=" + encodeURIComponent(botName + ".gbai/" + botName + ".gbkb/training/"), {
+      fetch("/api/files/upload?path=" + encodeURIComponent(botName + ".gbai/" + botName + ".gbkb/training/"), {
         method: "POST",
         body: formData
       })

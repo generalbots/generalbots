@@ -1,4 +1,4 @@
-# TALK
+# TALK 🟡 BETA
 
 Sends a message to the current conversation or to a specific recipient on any supported channel.
 

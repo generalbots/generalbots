@@ -1,6 +1,7 @@
 pub mod bas_analyzer;
 pub mod canvas_api;
 pub mod designer_api;
+pub mod plugin_manifest;
 pub mod ui;
 pub mod workflow_canvas;
 

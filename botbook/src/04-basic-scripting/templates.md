@@ -1,4 +1,4 @@
-# Template Examples
+# Template Examples 🟡 BETA
 
 Templates are pre-built BASIC scripts that demonstrate common use cases and patterns. Each template includes complete code, explanations, and **interactive WhatsApp-style sample dialogs** showing how the bot behaves in real conversations.
 

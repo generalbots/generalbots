@@ -1,4 +1,4 @@
-# Chapter 10: Configuration & Deployment
+# Chapter 10: Configuration & Deployment 🟡 BETA
 
 This chapter covers bot configuration and deployment options. Each bot's behavior is controlled by a simple CSV configuration file in its `.gbot` package.
 

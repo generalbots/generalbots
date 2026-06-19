@@ -1,4 +1,4 @@
-# Migration Resources
+# Migration Resources 🟡 BETA
 
 General Bots provides comprehensive tools and resources for organizations transitioning from cloud-based productivity platforms to self-hosted infrastructure.
 

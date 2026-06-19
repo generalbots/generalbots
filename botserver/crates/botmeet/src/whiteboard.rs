@@ -715,8 +715,8 @@ impl Clone for WhiteboardState {
 
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/whiteboard/:id/ws", get(whiteboard_websocket))
-        .route("/whiteboard/create/:conversation_id", get(create_whiteboard))
+        .route("/whiteboard/{id}/ws", get(whiteboard_websocket))
+        .route("/whiteboard/create/{conversation_id}", get(create_whiteboard))
 }
 
 async fn create_whiteboard(
@@ -888,7 +888,7 @@ async fn handle_whiteboard_socket(
         }
     });
 
-    let _ = (tokio::join!(send_task, receive_task));
+    let _ = tokio::join!(send_task, receive_task);
 
     manager
         .user_leave(&whiteboard_id, user_id)

@@ -1,4 +1,4 @@
-# SET_CONTEXT Keyword
+# SET_CONTEXT Keyword 🟡 BETA
 
 The **SET_CONTEXT** keyword defines the operational context for the bot’s current session.  
 It allows scripts to switch between different logical modes or workflows, influencing how subsequent commands are interpreted.

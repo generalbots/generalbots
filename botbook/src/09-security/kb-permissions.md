@@ -1,4 +1,4 @@
-# Knowledge Base Permissions Guide
+# Knowledge Base Permissions Guide 🟡 BETA
 
 This guide explains how to configure folder-level permissions in General Bots Knowledge Bases (.gbkb), enabling fine-grained access control that integrates with Qdrant vector search.
 

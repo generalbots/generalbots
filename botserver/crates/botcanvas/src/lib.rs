@@ -1255,7 +1255,7 @@ async fn get_collaboration_info(
     State(_state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
 ) -> Result<Json<Vec<CollaborationSession>>, (StatusCode, String)> {
-    let _ = (canvas_id);
+    let _ = canvas_id;
     Ok(Json(vec![]))
 }
 

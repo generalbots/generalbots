@@ -1,4 +1,4 @@
-# Terminal - Console
+# Terminal 🟡 BETA - Console
 
 > **Command-line terminal**
 

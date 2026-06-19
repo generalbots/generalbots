@@ -1,4 +1,4 @@
-# Attendant Console API
+# Attendant Console API 🟡 BETA
 
 > **Agent management, queue configuration, session control, canned responses, and real-time statistics**
 

@@ -1,4 +1,4 @@
-# Data Model
+# Data Model 🟡 BETA
 
 Tables store your application data. When you describe what you need, the system creates table definitions automatically in `tables.bas`.
 

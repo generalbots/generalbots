@@ -1,4 +1,4 @@
-# FILTER
+# FILTER 🟡 BETA
 
 Selects elements from an array that match a specified condition.
 

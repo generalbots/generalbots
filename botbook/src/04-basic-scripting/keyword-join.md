@@ -1,4 +1,4 @@
-# JOIN
+# JOIN 🟡 BETA
 
 Combines elements of an array into a single string with a specified separator.
 

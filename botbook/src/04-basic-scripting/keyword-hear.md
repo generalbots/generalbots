@@ -1,4 +1,4 @@
-# HEAR Keyword
+# HEAR Keyword 🟡 BETA
 
 The `HEAR` keyword pauses script execution and waits for user input. With optional type validation, it automatically verifies and normalizes input, retrying with helpful error messages when validation fails.
 

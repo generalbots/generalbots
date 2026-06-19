@@ -1,4 +1,4 @@
-# Slides - Presentations
+# Slides 🟡 BETA - Presentations
 
 > **AI-powered presentation builder**
 
@@ -66,6 +66,28 @@ Slides is the presentation editor in General Bots Suite. Build professional pres
 | Notes | Speaker notes panel |
 | Timer | Presentation duration |
 | Controls | Previous, next, pointer |
+
+### Transform Controls (2026-06)
+
+Elements on the canvas support full interactive manipulation:
+
+| Control | Action |
+|---------|--------|
+| **Resize handles** | Drag corners/sides to resize elements |
+| **Rotation handle** | Drag rotation control above selected elements |
+| **Move** | Drag elements to reposition |
+| **Shapes** | Insert rectangles, circles, lines from toolbar |
+| **Images** | Upload and insert images directly into slides |
+
+### Real-Time Collaboration (2026-06)
+
+| Feature | Status |
+|---------|--------|
+| Element creation/deletion sync | ✅ Broadcast to all collaborators |
+| Coordinate/bounds broadcasting | ✅ Real-time position sync |
+| Cursor visualization | ✅ Collaborator cursor positions visible |
+
+Previously only coordinate changes were synced. Now all structural changes (add/delete elements, add/delete slides) are broadcast to all connected collaborators.
 
 ### Export
 

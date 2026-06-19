@@ -1,4 +1,4 @@
-# Feature Editions
+# Feature Editions 🟡 BETA
 
 General Bots offers flexible feature configurations to match different deployment needs. Features can be enabled at compile time using Cargo feature flags or selected through pre-configured edition bundles.
 

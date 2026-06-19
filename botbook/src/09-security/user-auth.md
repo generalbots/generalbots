@@ -1,4 +1,4 @@
-# User Authentication
+# User Authentication 🟡 BETA
 
 General Bots uses a directory service component for user authentication and authorization. No passwords are stored internally in General Bots.
 

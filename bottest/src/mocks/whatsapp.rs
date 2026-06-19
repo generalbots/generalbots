@@ -481,7 +481,7 @@ impl MockWhatsApp {
 
     #[must_use]
     pub fn expect_send_message(&self, to: &str) -> MessageExpectation {
-        let _ = (self);
+        let _ = self;
         MessageExpectation {
             to: to.to_string(),
             message_type: None,
@@ -491,7 +491,7 @@ impl MockWhatsApp {
 
     #[must_use]
     pub fn expect_send_template(&self, name: &str) -> TemplateExpectation {
-        let _ = (self);
+        let _ = self;
         TemplateExpectation {
             name: name.to_string(),
             to: None,

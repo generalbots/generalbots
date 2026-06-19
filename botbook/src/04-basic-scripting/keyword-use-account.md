@@ -1,4 +1,4 @@
-# USE ACCOUNT
+# USE ACCOUNT 🟡 BETA
 
 Activate a connected account for LLM search and file operations.
 

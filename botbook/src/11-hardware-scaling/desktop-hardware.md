@@ -1,4 +1,4 @@
-# Desktop & Workstation Hardware Guide
+# Desktop & Workstation Hardware Guide 🟡 BETA
 
 A detailed guide crossing high-performance AI models with hardware availability and pricing (prices in BRL).
 

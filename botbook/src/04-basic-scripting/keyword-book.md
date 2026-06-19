@@ -1,4 +1,4 @@
-# BOOK / BOOK_MEETING / CHECK_AVAILABILITY Keywords
+# BOOK / BOOK_MEETING / CHECK_AVAILABILITY Keywords 🟡 BETA
 
 The `BOOK` family of keywords provides calendar and scheduling functionality, allowing bots to create appointments, schedule meetings with attendees, and check availability.
 

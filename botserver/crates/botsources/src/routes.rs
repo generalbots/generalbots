@@ -10,6 +10,8 @@ const API_UI_SOURCES: &str = "/api/ui/sources";
 const API_INTEGRATIONS: &str = "/api/integrations";
 
 pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
+    let m365_routes = crate::routes_m365::configure_m365_api_routes();
+
     let kb_routes = Router::new()
         .route("/", get(handle_list_sources).post(handle_upload_document))
         .route("/query", axum::routing::post(handle_query_knowledge_base))
@@ -77,4 +79,5 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .nest(API_UI_SOURCES, ui_sources_routes)
         .nest(API_INTEGRATIONS, integrations_routes)
         .merge(crate::ui::configure_sources_ui_routes())
+        .merge(m365_routes)
 }

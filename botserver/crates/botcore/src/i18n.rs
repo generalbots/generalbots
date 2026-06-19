@@ -892,7 +892,7 @@ pub fn get_translations_json(locale: &Locale) -> serde_json::Value {
 pub fn configure_i18n_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/i18n/locales", get(handle_get_locales))
-        .route("/api/i18n/:locale", get(handle_get_translations))
+        .route("/api/i18n/{locale}", get(handle_get_translations))
 }
 
 async fn handle_get_locales(

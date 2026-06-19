@@ -1,4 +1,4 @@
-# Knowledge Base Migration
+# Knowledge Base Migration 🟡 BETA
 
 Converting documents from cloud storage to General Bots knowledge bases.
 

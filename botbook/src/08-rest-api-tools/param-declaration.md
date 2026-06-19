@@ -1,4 +1,4 @@
-# PARAM Declaration
+# PARAM Declaration 🟡 BETA
 
 The `PARAM` keyword defines input parameters for tools, enabling type checking, validation, and documentation.
 

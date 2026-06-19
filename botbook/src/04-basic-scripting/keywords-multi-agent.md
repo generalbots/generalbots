@@ -1,4 +1,4 @@
-# Multi-Agent Keywords
+# Multi-Agent Keywords 🟡 BETA
 
 This section covers keywords for building multi-agent systems where multiple specialized bots collaborate to handle complex tasks.
 

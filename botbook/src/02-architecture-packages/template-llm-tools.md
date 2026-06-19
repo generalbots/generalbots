@@ -1,4 +1,4 @@
-# LLM Tools Template (llm-tools.gbai)
+# LLM Tools Template (llm-tools.gbai) 🟡 BETA
 
 A General Bots template demonstrating how to create and register custom tools (functions) that LLMs can call during conversations.
 

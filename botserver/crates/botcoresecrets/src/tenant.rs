@@ -313,7 +313,7 @@ impl SecretsManager {
     }
 
     pub fn get_tenant_id_for_org(&self, org_id: Uuid) -> Result<String> {
-        let _ = (org_id);
+        let _ = org_id;
         Ok("default".to_string())
     }
 }

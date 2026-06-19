@@ -88,5 +88,5 @@ pub fn configure_designer_ui_routes() -> Router<Arc<DesignerState>> {
     Router::new()
         .route("/suite/designer", get(handle_designer_list_page))
         .route("/suite/designer/new", get(handle_designer_new_page))
-        .route("/suite/designer/edit/:id", get(handle_designer_edit_page))
+        .route("/suite/designer/edit/{id}", get(handle_designer_edit_page))
 }

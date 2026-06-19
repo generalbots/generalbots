@@ -1,4 +1,4 @@
-# Community Guidelines
+# Community Guidelines 🟡 BETA
 
 Welcome to the General Bots community! These guidelines ensure a welcoming environment.
 

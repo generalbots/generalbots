@@ -1,4 +1,4 @@
-# DELETE
+# DELETE 🟡 BETA
 
 The `DELETE` keyword is a unified command that automatically detects context and handles HTTP requests, database operations, and file deletions through a single interface.
 

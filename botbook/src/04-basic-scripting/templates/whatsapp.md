@@ -1,4 +1,4 @@
-# WhatsApp Template
+# WhatsApp Template 🟡 BETA
 
 The WhatsApp template provides specialized tools for WhatsApp Business API integration, including template message sending, task creation, and WhatsApp-specific features.
 

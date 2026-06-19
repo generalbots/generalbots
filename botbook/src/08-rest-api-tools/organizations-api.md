@@ -1,4 +1,4 @@
-# Organizations API
+# Organizations API 🟡 BETA
 
 > **Manage organization settings, branding, audit logs, and Office 365 migration.**
 

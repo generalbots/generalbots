@@ -1,4 +1,4 @@
-# KB COLLECTION STATS
+# KB COLLECTION STATS 🟡 BETA
 
 The `KB COLLECTION STATS` keyword retrieves detailed statistics for a specific knowledge base collection, allowing granular monitoring of individual collections within the bot's KB.
 

@@ -1,4 +1,4 @@
-# ERP - Enterprise Resource Planning
+# ERP 🟡 BETA - Enterprise Resource Planning
 
 > **Financial, inventory & procurement**
 

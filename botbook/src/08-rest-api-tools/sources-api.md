@@ -1,4 +1,4 @@
-# Sources API
+# Sources API 🟡 BETA
 
 > **Unified interface for managing knowledge bases, MCP integrations, and browsing available resources.**
 

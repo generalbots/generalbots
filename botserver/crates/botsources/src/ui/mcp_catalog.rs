@@ -57,7 +57,7 @@ let categories = [];
 
 async function loadCatalog() {
 try {
-const response = await fetch('/api/ui/sources/mcp-servers');
+const response = await fetch('/api/sources/mcp');
 const data = await response.json();
 allServers = data.mcp_servers || [];
 categories = data.categories || [];

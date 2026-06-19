@@ -1,4 +1,4 @@
-# Data Operations
+# Data Operations 🟡 BETA
 
 This section covers keywords for working with structured data in databases, spreadsheets, and in-memory collections. These keywords enable bots to query, transform, and persist data across various storage backends.
 

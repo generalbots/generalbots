@@ -1,4 +1,4 @@
-# ON UPDATE OF
+# ON UPDATE OF 🟡 BETA
 
 Monitora uma tabela do banco de dados e executa um script automaticamente sempre que um registro é alterado (INSERT, UPDATE ou DELETE).
 

@@ -1,4 +1,4 @@
-# Chapter 3: Knowledge & AI
+# Chapter 3: Knowledge & AI 🟡 BETA
 
 Quick reference for all General Bots knowledge and AI capabilities.
 

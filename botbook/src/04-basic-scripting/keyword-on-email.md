@@ -1,4 +1,4 @@
-# ON EMAIL
+# ON EMAIL 🟡 BETA
 
 Monitors an email address and triggers a script when new emails arrive.
 

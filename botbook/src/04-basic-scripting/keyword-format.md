@@ -1,4 +1,4 @@
-# FORMAT Keyword
+# FORMAT Keyword 🟡 BETA
 
 The **FORMAT** keyword formats numbers, dates, and text for display. Use it when you need a quick, readable representation without writing custom code.
 

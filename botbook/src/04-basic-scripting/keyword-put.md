@@ -1,4 +1,4 @@
-# PUT
+# PUT 🟡 BETA
 
 The `PUT` keyword sends HTTP PUT requests to external APIs, used for replacing or updating entire resources.
 

@@ -1,4 +1,4 @@
-# Attendance API
+# Attendance API 🟡 BETA
 
 > **Queue management, attendant assignment, session handling, webhooks, and LLM-powered assistance**
 

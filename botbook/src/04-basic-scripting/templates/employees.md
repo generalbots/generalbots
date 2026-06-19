@@ -1,4 +1,4 @@
-# HR Employees Template
+# HR Employees Template 🟡 BETA
 
 The HR Employees template provides a comprehensive employee management system that helps HR teams manage employee records, organizational structure, and personnel information through a conversational interface.
 

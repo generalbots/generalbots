@@ -1,4 +1,4 @@
-# PLAY
+# PLAY 🟡 BETA
 
 Open a content projector/player to display various media types including videos, images, documents, and presentations.
 

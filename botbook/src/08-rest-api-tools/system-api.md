@@ -1,4 +1,4 @@
-# System API
+# System API 🟡 BETA
 
 > **System information, version management, and environment setup**
 

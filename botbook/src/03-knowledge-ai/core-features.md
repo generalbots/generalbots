@@ -1,4 +1,4 @@
-# Core Features
+# Core Features 🟡 BETA
 
 Technical overview of botserver capabilities. For the complete feature matrix, see [Feature Reference](./README.md).
 

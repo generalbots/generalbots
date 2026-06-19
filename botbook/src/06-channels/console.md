@@ -1,4 +1,4 @@
-# Console Module (XtreeUI)
+# Console Module (XtreeUI) 🟡 BETA
 
 Terminal-based admin interface for managing General Bots instances.
 

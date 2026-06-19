@@ -1,4 +1,4 @@
-# WAIT Keyword
+# WAIT Keyword 🟡 BETA
 
 The **WAIT** keyword pauses script execution for a specified duration.  
 It is used to introduce delays between actions, synchronize processes, or control timing in automation flows.

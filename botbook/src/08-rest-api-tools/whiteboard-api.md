@@ -1,4 +1,4 @@
-# Whiteboard API
+# Whiteboard API 🟡 BETA
 
 The Whiteboard API provides endpoints for collaborative drawing, diagramming, and visual collaboration within botserver.
 

@@ -1,4 +1,4 @@
-# Minutes - Meeting Minutes
+# Minutes 🟡 BETA - Meeting Minutes
 
 > **AI-powered meeting notes with automatic transcription and signature approval**
 

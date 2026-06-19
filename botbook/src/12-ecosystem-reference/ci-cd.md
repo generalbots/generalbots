@@ -1,4 +1,4 @@
-# CI/CD Integration
+# CI/CD Integration 🟡 BETA
 
 General Bots uses Forgejo (ALM) as Git server with Forgejo Runner for CI/CD. The runner lives in a separate container (alm-ci) and builds are triggered by pushing to the ALM repository.
 

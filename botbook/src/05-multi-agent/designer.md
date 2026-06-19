@@ -1,4 +1,4 @@
-# Designer
+# Designer 🟡 BETA
 
 Designer is an AI assistant that appears alongside your application. Use natural conversation to modify any aspect of your app without writing code.
 

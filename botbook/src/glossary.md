@@ -1,4 +1,4 @@
-# Glossary
+# Glossary 🟡 BETA
 
 Quick lookup for General Bots terms. If you're lost, start here.
 

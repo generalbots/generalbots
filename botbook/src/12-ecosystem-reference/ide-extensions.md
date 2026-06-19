@@ -1,4 +1,4 @@
-# IDEs
+# IDEs 🟡 BETA
 
 General Bots supports development with any text editor or IDE. Choose the one that works best for your workflow.
 

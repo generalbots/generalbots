@@ -1,4 +1,4 @@
-# API Client Template (api-client.gbai)
+# API Client Template (api-client.gbai) 🟡 BETA
 
 A General Bots template demonstrating REST API integration patterns for connecting to external services and data sources.
 

@@ -1,4 +1,4 @@
-# MAP
+# MAP 🟡 BETA
 
 Transforms each element of an array by applying a function or expression.
 

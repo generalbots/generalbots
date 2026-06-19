@@ -1,4 +1,4 @@
-# WhatsApp API
+# WhatsApp API 🟡 BETA
 
 > **Send and receive WhatsApp messages via the WhatsApp Business API integration.**
 

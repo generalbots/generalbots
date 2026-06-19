@@ -4,7 +4,7 @@ pub struct ApiUrls;
 impl ApiUrls {
     // User management - JSON APIs
     pub const USERS: &'static str = "/api/users";
-    pub const USER_BY_ID: &'static str = "/api/users/:id";
+    pub const USER_BY_ID: &'static str = "/api/users/{id}";
     pub const USER_LOGIN: &'static str = "/api/users/login";
     pub const USER_LOGOUT: &'static str = "/api/users/logout";
     pub const USER_REGISTER: &'static str = "/api/users/register";
@@ -12,15 +12,15 @@ impl ApiUrls {
     pub const USER_PASSWORD: &'static str = "/api/users/password";
     pub const USER_SETTINGS: &'static str = "/api/users/settings";
     pub const USER_PROVISION: &'static str = "/api/users/provision";
-    pub const USER_DEPROVISION: &'static str = "/api/users/:id/deprovision";
+    pub const USER_DEPROVISION: &'static str = "/api/users/{id}/deprovision";
 
     // Groups - JSON APIs
     pub const GROUPS: &'static str = "/api/groups";
-    pub const GROUP_BY_ID: &'static str = "/api/groups/:id";
-    pub const GROUP_MEMBERS: &'static str = "/api/groups/:id/members";
-    pub const GROUP_ADD_MEMBER: &'static str = "/api/groups/:id/members/:user_id";
-    pub const GROUP_REMOVE_MEMBER: &'static str = "/api/groups/:id/members/:user_id";
-    pub const GROUP_PERMISSIONS: &'static str = "/api/groups/:id/permissions";
+    pub const GROUP_BY_ID: &'static str = "/api/groups/{id}";
+    pub const GROUP_MEMBERS: &'static str = "/api/groups/{id}/members";
+    pub const GROUP_ADD_MEMBER: &'static str = "/api/groups/{id}/members/{user_id}";
+    pub const GROUP_REMOVE_MEMBER: &'static str = "/api/groups/{id}/members/{user_id}";
+    pub const GROUP_PERMISSIONS: &'static str = "/api/groups/{id}/permissions";
 
     // Product - JSON APIs
     pub const PRODUCT: &'static str = "/api/product";
@@ -35,47 +35,63 @@ impl ApiUrls {
 
     // Sessions - JSON APIs
     pub const SESSIONS: &'static str = "/api/sessions";
-    pub const SESSION_BY_ID: &'static str = "/api/sessions/:id";
-    pub const SESSION_HISTORY: &'static str = "/api/sessions/:id/history";
-    pub const SESSION_START: &'static str = "/api/sessions/:id/start";
-    pub const SESSION_END: &'static str = "/api/sessions/:id/end";
+    pub const SESSION_BY_ID: &'static str = "/api/sessions/{id}";
+    pub const SESSION_HISTORY: &'static str = "/api/sessions/{id}/history";
+    pub const SESSION_START: &'static str = "/api/sessions/{id}/start";
+    pub const SESSION_END: &'static str = "/api/sessions/{id}/end";
 
     // Bots - JSON APIs
     pub const BOTS: &'static str = "/api/bots";
-    pub const BOT_BY_ID: &'static str = "/api/bots/:id";
-    pub const BOT_CONFIG: &'static str = "/api/bots/:id/config";
-    pub const BOT_DEPLOY: &'static str = "/api/bots/:id/deploy";
-    pub const BOT_LOGS: &'static str = "/api/bots/:id/logs";
-    pub const BOT_METRICS: &'static str = "/api/bots/:id/metrics";
+    pub const BOT_BY_ID: &'static str = "/api/bots/{id}";
+    pub const BOT_CONFIG: &'static str = "/api/bots/{id}/config";
+    pub const BOT_DEPLOY: &'static str = "/api/bots/{id}/deploy";
+    pub const BOT_LOGS: &'static str = "/api/bots/{id}/logs";
+    pub const BOT_METRICS: &'static str = "/api/bots/{id}/metrics";
 
-    // Drive - JSON APIs
-    pub const DRIVE_LIST: &'static str = "/api/drive/list";
-    pub const DRIVE_UPLOAD: &'static str = "/api/drive/upload";
-    pub const DRIVE_DOWNLOAD: &'static str = "/api/drive/download/:path";
-    pub const DRIVE_DELETE: &'static str = "/api/drive/delete/:path";
-    pub const DRIVE_MKDIR: &'static str = "/api/drive/mkdir";
-    pub const DRIVE_MOVE: &'static str = "/api/drive/move";
-    pub const DRIVE_COPY: &'static str = "/api/drive/copy";
-    pub const DRIVE_SHARE: &'static str = "/api/drive/share";
-    pub const DRIVE_FILE: &'static str = "/api/drive/file/:path";
+    // Drive / Files - JSON APIs (actual routes match /api/files/*)
+    pub const FILES_LIST: &'static str = "/api/files/list";
+    pub const FILES_BUCKETS: &'static str = "/api/files/buckets";
+    pub const FILES_QUOTA: &'static str = "/api/files/quota";
+    pub const FILES_RECENT: &'static str = "/api/files/recent";
+    pub const FILES_SEARCH: &'static str = "/api/files/search";
+    pub const FILES_WRITE: &'static str = "/api/files/write";
+    pub const FILES_DOWNLOAD: &'static str = "/api/files/download";
+    pub const FILES_DOWNLOAD_BINARY: &'static str = "/api/files/download-binary";
+    pub const FILES_DELETE: &'static str = "/api/files/delete";
+    pub const FILES_CREATE_FOLDER: &'static str = "/api/files/createFolder";
+    pub const FILES_COPY: &'static str = "/api/files/copy";
+    pub const FILES_MOVE: &'static str = "/api/files/move";
+    pub const FILES_OPEN: &'static str = "/api/files/open";
+    pub const FILES_AI_CHAT: &'static str = "/api/files/ai/chat";
+    pub const FILES_FAVORITE: &'static str = "/api/files/favorite";
+    pub const FILES_SHARED: &'static str = "/api/files/shared";
+    // Legacy aliases (deprecated, use FILES_* instead)
+    pub const DRIVE_LIST: &'static str = "/api/files/list";
+    pub const DRIVE_UPLOAD: &'static str = "/api/files/write";
+    pub const DRIVE_DOWNLOAD: &'static str = "/api/files/download";
+    pub const DRIVE_DELETE: &'static str = "/api/files/delete";
+    pub const DRIVE_MKDIR: &'static str = "/api/files/createFolder";
+    pub const DRIVE_MOVE: &'static str = "/api/files/move";
+    pub const DRIVE_COPY: &'static str = "/api/files/copy";
+    pub const DRIVE_SHARE: &'static str = "/api/files/shared";
 
     // Email - JSON APIs
     pub const EMAIL_ACCOUNTS: &'static str = "/api/email/accounts";
-    pub const EMAIL_ACCOUNT_BY_ID: &'static str = "/api/email/accounts/:id";
+    pub const EMAIL_ACCOUNT_BY_ID: &'static str = "/api/email/accounts/{id}";
     pub const EMAIL_LIST: &'static str = "/api/email/list";
     pub const EMAIL_SEND: &'static str = "/api/email/send";
     pub const EMAIL_DRAFT: &'static str = "/api/email/draft";
-    pub const EMAIL_FOLDERS: &'static str = "/api/email/folders/:account_id";
+    pub const EMAIL_FOLDERS: &'static str = "/api/email/folders/{account_id}";
     pub const EMAIL_LATEST: &'static str = "/api/email/latest";
-    pub const EMAIL_GET: &'static str = "/api/email/get/:campaign_id";
-    pub const EMAIL_CLICK: &'static str = "/api/email/click/:campaign_id/:email";
+    pub const EMAIL_GET: &'static str = "/api/email/get/{campaign_id}";
+    pub const EMAIL_CLICK: &'static str = "/api/email/click/{campaign_id}/{email}";
 
     // Email - HTMX/HTML APIs
     pub const EMAIL_ACCOUNTS_HTMX: &'static str = "/api/ui/email/accounts";
     pub const EMAIL_LIST_HTMX: &'static str = "/api/ui/email/list";
-    pub const EMAIL_FOLDERS_HTMX: &'static str = "/api/ui/email/folders/:account_id";
+    pub const EMAIL_FOLDERS_HTMX: &'static str = "/api/ui/email/folders/{account_id}";
     pub const EMAIL_COMPOSE_HTMX: &'static str = "/api/ui/email/compose";
-    pub const EMAIL_CONTENT_HTMX: &'static str = "/api/ui/email/content/:id";
+    pub const EMAIL_CONTENT_HTMX: &'static str = "/api/ui/email/content/{id}";
     pub const EMAIL_LABELS_HTMX: &'static str = "/api/ui/email/labels";
     pub const EMAIL_TEMPLATES_HTMX: &'static str = "/api/ui/email/templates";
     pub const EMAIL_SIGNATURES_HTMX: &'static str = "/api/ui/email/signatures";
@@ -85,7 +101,7 @@ impl ApiUrls {
 
     // Calendar - JSON APIs
     pub const CALENDAR_EVENTS: &'static str = "/api/calendar/events";
-    pub const CALENDAR_EVENT_BY_ID: &'static str = "/api/calendar/events/:id";
+    pub const CALENDAR_EVENT_BY_ID: &'static str = "/api/calendar/events/{id}";
     pub const CALENDAR_REMINDERS: &'static str = "/api/calendar/reminders";
     pub const CALENDAR_SHARE: &'static str = "/api/calendar/share";
     pub const CALENDAR_SYNC: &'static str = "/api/calendar/sync";
@@ -102,16 +118,16 @@ impl ApiUrls {
 
     // Tasks - JSON APIs
     pub const TASKS: &'static str = "/api/tasks";
-    pub const TASK_BY_ID: &'static str = "/api/tasks/:id";
-    pub const TASK_ASSIGN: &'static str = "/api/tasks/:id/assign";
-    pub const TASK_STATUS: &'static str = "/api/tasks/:id/status";
-    pub const TASK_PRIORITY: &'static str = "/api/tasks/:id/priority";
-    pub const TASK_COMMENTS: &'static str = "/api/tasks/:id/comments";
+    pub const TASK_BY_ID: &'static str = "/api/tasks/{id}";
+    pub const TASK_ASSIGN: &'static str = "/api/tasks/{id}/assign";
+    pub const TASK_STATUS: &'static str = "/api/tasks/{id}/status";
+    pub const TASK_PRIORITY: &'static str = "/api/tasks/{id}/priority";
+    pub const TASK_COMMENTS: &'static str = "/api/tasks/{id}/comments";
     pub const TASKS_STATS_JSON: &'static str = "/api/tasks/stats/json";
 
     // Tasks - HTMX/HTML APIs
     pub const TASKS_LIST_HTMX: &'static str = "/api/ui/tasks";
-    pub const TASKS_GET_HTMX: &'static str = "/api/ui/tasks/:id";
+    pub const TASKS_GET_HTMX: &'static str = "/api/ui/tasks/{id}";
     pub const TASKS_STATS: &'static str = "/api/ui/tasks/stats";
     pub const TASKS_COMPLETED: &'static str = "/api/ui/tasks/completed";
     pub const TASKS_TIME_SAVED: &'static str = "/api/ui/tasks/time-saved";
@@ -119,16 +135,16 @@ impl ApiUrls {
     // Meet - JSON APIs
     pub const MEET_CREATE: &'static str = "/api/meet/create";
     pub const MEET_ROOMS: &'static str = "/api/meet/rooms";
-    pub const MEET_ROOM_BY_ID: &'static str = "/api/meet/rooms/:id";
-    pub const MEET_JOIN: &'static str = "/api/meet/rooms/:id/join";
-    pub const MEET_LEAVE: &'static str = "/api/meet/rooms/:id/leave";
+    pub const MEET_ROOM_BY_ID: &'static str = "/api/meet/rooms/{id}";
+    pub const MEET_JOIN: &'static str = "/api/meet/rooms/{id}/join";
+    pub const MEET_LEAVE: &'static str = "/api/meet/rooms/{id}/leave";
     pub const MEET_TOKEN: &'static str = "/api/meet/token";
     pub const MEET_INVITE: &'static str = "/api/meet/invite";
-    pub const MEET_TRANSCRIPTION: &'static str = "/api/meet/rooms/:id/transcription";
+    pub const MEET_TRANSCRIPTION: &'static str = "/api/meet/rooms/{id}/transcription";
     pub const MEET_TURN_CREDENTIALS: &'static str = "/api/meet/turn-credentials";
     pub const MEET_SCHEDULE: &'static str = "/api/meet/schedule";
     pub const MEET_DASHBOARD_STATS: &'static str = "/api/meet/dashboard/stats";
-    pub const WS_MEET_SIGNALING: &'static str = "/ws/meet/:room_id";
+    pub const WS_MEET_SIGNALING: &'static str = "/ws/meet/{room_id}";
 
     // Meet - HTMX/HTML APIs
     pub const MEET_ROOMS_HTMX: &'static str = "/api/ui/meet/rooms";
@@ -199,14 +215,14 @@ impl ApiUrls {
     pub const SERVICES_STATUS: &'static str = "/api/services/status";
 
     // i18n - JSON APIs
-    pub const I18N_TRANSLATIONS: &'static str = "/api/i18n/:locale";
+    pub const I18N_TRANSLATIONS: &'static str = "/api/i18n/{locale}";
     pub const I18N_LOCALES: &'static str = "/api/i18n/locales";
 
     // Knowledge Base - JSON APIs
     pub const KB_SEARCH: &'static str = "/api/kb/search";
     pub const KB_UPLOAD: &'static str = "/api/kb/upload";
     pub const KB_DOCUMENTS: &'static str = "/api/kb/documents";
-    pub const KB_DOCUMENT_BY_ID: &'static str = "/api/kb/documents/:id";
+    pub const KB_DOCUMENT_BY_ID: &'static str = "/api/kb/documents/{id}";
     pub const KB_INDEX: &'static str = "/api/kb/index";
     pub const KB_EMBEDDINGS: &'static str = "/api/kb/embeddings";
 
@@ -223,7 +239,7 @@ impl ApiUrls {
     pub const ATTENDANCE_ATTENDANTS: &'static str = "/api/attendance/attendants";
     pub const ATTENDANCE_ASSIGN: &'static str = "/api/attendance/assign";
     pub const ATTENDANCE_TRANSFER: &'static str = "/api/attendance/transfer";
-    pub const ATTENDANCE_RESOLVE: &'static str = "/api/attendance/resolve/:session_id";
+    pub const ATTENDANCE_RESOLVE: &'static str = "/api/attendance/resolve/{session_id}";
     pub const ATTENDANCE_INSIGHTS: &'static str = "/api/attendance/insights";
     pub const ATTENDANCE_RESPOND: &'static str = "/api/attendance/respond";
     pub const ATTENDANCE_KANBAN: &'static str = "/api/attendance/kanban";
@@ -231,41 +247,41 @@ impl ApiUrls {
     pub const ATTENDANCE_LLM_TIPS: &'static str = "/api/attendance/llm/tips";
     pub const ATTENDANCE_LLM_POLISH: &'static str = "/api/attendance/llm/polish";
     pub const ATTENDANCE_LLM_SMART_REPLIES: &'static str = "/api/attendance/llm/smart-replies";
-    pub const ATTENDANCE_LLM_SUMMARY: &'static str = "/api/attendance/llm/summary/:session_id";
+    pub const ATTENDANCE_LLM_SUMMARY: &'static str = "/api/attendance/llm/summary/{session_id}";
     pub const ATTENDANCE_LLM_SENTIMENT: &'static str = "/api/attendance/llm/sentiment";
-    pub const ATTENDANCE_LLM_CONFIG: &'static str = "/api/attendance/llm/config/:bot_id";
+    pub const ATTENDANCE_LLM_CONFIG: &'static str = "/api/attendance/llm/config/{bot_id}";
 
     // AutoTask - JSON APIs
     pub const AUTOTASK_CREATE: &'static str = "/api/autotask/create";
     pub const AUTOTASK_CLASSIFY: &'static str = "/api/autotask/classify";
     pub const AUTOTASK_COMPILE: &'static str = "/api/autotask/compile";
     pub const AUTOTASK_EXECUTE: &'static str = "/api/autotask/execute";
-    pub const AUTOTASK_SIMULATE: &'static str = "/api/autotask/simulate/:plan_id";
-    pub const AUTOTASK_GET: &'static str = "/api/autotask/tasks/:task_id";
+    pub const AUTOTASK_SIMULATE: &'static str = "/api/autotask/simulate/{plan_id}";
+    pub const AUTOTASK_GET: &'static str = "/api/autotask/tasks/{task_id}";
     pub const AUTOTASK_STATS: &'static str = "/api/autotask/stats";
-    pub const AUTOTASK_PAUSE: &'static str = "/api/autotask/:task_id/pause";
-    pub const AUTOTASK_RESUME: &'static str = "/api/autotask/:task_id/resume";
-    pub const AUTOTASK_CANCEL: &'static str = "/api/autotask/:task_id/cancel";
-    pub const AUTOTASK_TASK_SIMULATE: &'static str = "/api/autotask/:task_id/simulate";
-    pub const AUTOTASK_DECISIONS: &'static str = "/api/autotask/:task_id/decisions";
-    pub const AUTOTASK_DECIDE: &'static str = "/api/autotask/:task_id/decide";
-    pub const AUTOTASK_APPROVALS: &'static str = "/api/autotask/:task_id/approvals";
-    pub const AUTOTASK_APPROVE: &'static str = "/api/autotask/:task_id/approve";
-    pub const AUTOTASK_TASK_EXECUTE: &'static str = "/api/autotask/:task_id/execute";
-    pub const AUTOTASK_LOGS: &'static str = "/api/autotask/:task_id/logs";
+    pub const AUTOTASK_PAUSE: &'static str = "/api/autotask/{task_id}/pause";
+    pub const AUTOTASK_RESUME: &'static str = "/api/autotask/{task_id}/resume";
+    pub const AUTOTASK_CANCEL: &'static str = "/api/autotask/{task_id}/cancel";
+    pub const AUTOTASK_TASK_SIMULATE: &'static str = "/api/autotask/{task_id}/simulate";
+    pub const AUTOTASK_DECISIONS: &'static str = "/api/autotask/{task_id}/decisions";
+    pub const AUTOTASK_DECIDE: &'static str = "/api/autotask/{task_id}/decide";
+    pub const AUTOTASK_APPROVALS: &'static str = "/api/autotask/{task_id}/approvals";
+    pub const AUTOTASK_APPROVE: &'static str = "/api/autotask/{task_id}/approve";
+    pub const AUTOTASK_TASK_EXECUTE: &'static str = "/api/autotask/{task_id}/execute";
+    pub const AUTOTASK_LOGS: &'static str = "/api/autotask/{task_id}/logs";
     pub const AUTOTASK_RECOMMENDATIONS_APPLY: &'static str =
-        "/api/autotask/recommendations/:rec_id/apply";
+        "/api/autotask/recommendations/{rec_id}/apply";
     pub const AUTOTASK_PENDING: &'static str = "/api/autotask/pending";
-    pub const AUTOTASK_PENDING_ITEM: &'static str = "/api/autotask/pending/:item_id";
+    pub const AUTOTASK_PENDING_ITEM: &'static str = "/api/autotask/pending/{item_id}";
 
     // AutoTask - HTMX/HTML APIs
     pub const AUTOTASK_LIST: &'static str = "/api/ui/autotask/list";
 
     // DB - JSON APIs
-    pub const DB_TABLE: &'static str = "/api/db/:table";
-    pub const DB_TABLE_RECORD: &'static str = "/api/db/:table/:id";
-    pub const DB_TABLE_COUNT: &'static str = "/api/db/:table/count";
-    pub const DB_TABLE_SEARCH: &'static str = "/api/db/:table/search";
+    pub const DB_TABLE: &'static str = "/api/db/{table}";
+    pub const DB_TABLE_RECORD: &'static str = "/api/db/{table}/{id}";
+    pub const DB_TABLE_COUNT: &'static str = "/api/db/{table}/count";
+    pub const DB_TABLE_SEARCH: &'static str = "/api/db/{table}/search";
 
     // Designer - HTMX/HTML APIs
     pub const DESIGNER_FILES: &'static str = "/api/ui/designer/files";
@@ -275,14 +291,14 @@ impl ApiUrls {
     pub const DESIGNER_EXPORT: &'static str = "/api/ui/designer/export";
     pub const DESIGNER_MODIFY: &'static str = "/api/ui/designer/modify";
     pub const DESIGNER_DIALOGS: &'static str = "/api/ui/designer/dialogs";
-    pub const DESIGNER_DIALOG_BY_ID: &'static str = "/api/ui/designer/dialogs/:id";
+    pub const DESIGNER_DIALOG_BY_ID: &'static str = "/api/ui/designer/dialogs/{id}";
 
     // Mail/WhatsApp - JSON APIs
     pub const MAIL_SEND: &'static str = "/api/mail/send";
     pub const WHATSAPP_SEND: &'static str = "/api/whatsapp/send";
 
     // Files - JSON APIs
-    pub const FILES_BY_ID: &'static str = "/api/files/:id";
+    pub const FILES_BY_ID: &'static str = "/api/files/{id}";
 
     // Messages - JSON APIs
     pub const MESSAGES: &'static str = "/api/messages";
@@ -329,8 +345,8 @@ impl ApiUrls {
     pub const DOCS_SEARCH: &'static str = "/api/ui/docs/search";
     pub const DOCS_SAVE: &'static str = "/api/ui/docs/save";
     pub const DOCS_AUTOSAVE: &'static str = "/api/ui/docs/autosave";
-    pub const DOCS_BY_ID: &'static str = "/api/ui/docs/:id";
-    pub const DOCS_DELETE: &'static str = "/api/ui/docs/:id/delete";
+    pub const DOCS_BY_ID: &'static str = "/api/ui/docs/{id}";
+    pub const DOCS_DELETE: &'static str = "/api/ui/docs/{id}/delete";
     pub const DOCS_TEMPLATE_BLANK: &'static str = "/api/ui/docs/template/blank";
     pub const DOCS_TEMPLATE_MEETING: &'static str = "/api/ui/docs/template/meeting";
     pub const DOCS_TEMPLATE_REPORT: &'static str = "/api/ui/docs/template/report";
@@ -346,7 +362,7 @@ impl ApiUrls {
     pub const DOCS_EXPORT_MD: &'static str = "/api/ui/docs/export/md";
     pub const DOCS_EXPORT_HTML: &'static str = "/api/ui/docs/export/html";
     pub const DOCS_EXPORT_TXT: &'static str = "/api/ui/docs/export/txt";
-    pub const DOCS_WS: &'static str = "/ws/docs/:doc_id";
+    pub const DOCS_WS: &'static str = "/ws/docs/{doc_id}";
 
     // Paper (Notes App) - HTMX/HTML APIs
     pub const PAPER_NEW: &'static str = "/api/ui/paper/new";
@@ -354,8 +370,8 @@ impl ApiUrls {
     pub const PAPER_SEARCH: &'static str = "/api/ui/paper/search";
     pub const PAPER_SAVE: &'static str = "/api/ui/paper/save";
     pub const PAPER_AUTOSAVE: &'static str = "/api/ui/paper/autosave";
-    pub const PAPER_BY_ID: &'static str = "/api/ui/paper/:id";
-    pub const PAPER_DELETE: &'static str = "/api/ui/paper/:id/delete";
+    pub const PAPER_BY_ID: &'static str = "/api/ui/paper/{id}";
+    pub const PAPER_DELETE: &'static str = "/api/ui/paper/{id}/delete";
     pub const PAPER_TEMPLATE_BLANK: &'static str = "/api/ui/paper/template/blank";
     pub const PAPER_TEMPLATE_MEETING: &'static str = "/api/ui/paper/template/meeting";
     pub const PAPER_TEMPLATE_TODO: &'static str = "/api/ui/paper/template/todo";
@@ -377,7 +393,7 @@ impl ApiUrls {
     // Research - HTMX/HTML APIs
     pub const RESEARCH_COLLECTIONS: &'static str = "/api/ui/research/collections";
     pub const RESEARCH_COLLECTIONS_NEW: &'static str = "/api/ui/research/collections/new";
-    pub const RESEARCH_COLLECTION_BY_ID: &'static str = "/api/ui/research/collections/:id";
+    pub const RESEARCH_COLLECTION_BY_ID: &'static str = "/api/ui/research/collections/{id}";
     pub const RESEARCH_SEARCH: &'static str = "/api/ui/research/search";
     pub const RESEARCH_RECENT: &'static str = "/api/ui/research/recent";
     pub const RESEARCH_TRENDING: &'static str = "/api/ui/research/trending";
@@ -403,15 +419,15 @@ impl ApiUrls {
         "/api/ui/sources/repositories/disconnect";
     pub const SOURCES_APPS: &'static str = "/api/ui/sources/apps";
     pub const SOURCES_MCP: &'static str = "/api/ui/sources/mcp";
-    pub const SOURCES_MCP_BY_NAME: &'static str = "/api/ui/sources/mcp/:name";
-    pub const SOURCES_MCP_ENABLE: &'static str = "/api/ui/sources/mcp/:name/enable";
-    pub const SOURCES_MCP_DISABLE: &'static str = "/api/ui/sources/mcp/:name/disable";
-    pub const SOURCES_MCP_TOOLS: &'static str = "/api/ui/sources/mcp/:name/tools";
-    pub const SOURCES_MCP_TEST: &'static str = "/api/ui/sources/mcp/:name/test";
+    pub const SOURCES_MCP_BY_NAME: &'static str = "/api/ui/sources/mcp/{name}";
+    pub const SOURCES_MCP_ENABLE: &'static str = "/api/ui/sources/mcp/{name}/enable";
+    pub const SOURCES_MCP_DISABLE: &'static str = "/api/ui/sources/mcp/{name}/disable";
+    pub const SOURCES_MCP_TOOLS: &'static str = "/api/ui/sources/mcp/{name}/tools";
+    pub const SOURCES_MCP_TEST: &'static str = "/api/ui/sources/mcp/{name}/test";
     pub const SOURCES_MCP_SCAN: &'static str = "/api/ui/sources/mcp/scan";
     pub const SOURCES_MCP_EXAMPLES: &'static str = "/api/ui/sources/mcp/examples";
     pub const SOURCES_API_KEYS: &'static str = "/api/ui/sources/api-keys";
-    pub const SOURCES_API_KEYS_BY_ID: &'static str = "/api/ui/sources/api-keys/:id";
+    pub const SOURCES_API_KEYS_BY_ID: &'static str = "/api/ui/sources/api-keys/{id}";
     pub const SOURCES_MENTIONS: &'static str = "/api/ui/sources/mentions";
     pub const SOURCES_TOOLS: &'static str = "/api/ui/sources/tools";
 
@@ -419,38 +435,38 @@ impl ApiUrls {
     pub const SOURCES_KB_UPLOAD: &'static str = "/api/ui/sources/kb/upload";
     pub const SOURCES_KB_LIST: &'static str = "/api/ui/sources/kb/list";
     pub const SOURCES_KB_QUERY: &'static str = "/api/ui/sources/kb/query";
-    pub const SOURCES_KB_BY_ID: &'static str = "/api/ui/sources/kb/:id";
+    pub const SOURCES_KB_BY_ID: &'static str = "/api/ui/sources/kb/{id}";
     pub const SOURCES_KB_REINDEX: &'static str = "/api/ui/sources/kb/reindex";
     pub const SOURCES_KB_STATS: &'static str = "/api/ui/sources/kb/stats";
 
     // Workspaces - JSON APIs
     pub const WORKSPACES: &'static str = "/api/workspaces";
-    pub const WORKSPACE_BY_ID: &'static str = "/api/workspaces/:workspace_id";
-    pub const WORKSPACE_PAGES: &'static str = "/api/workspaces/:workspace_id/pages";
-    pub const WORKSPACE_MEMBERS: &'static str = "/api/workspaces/:workspace_id/members";
-    pub const WORKSPACE_MEMBER: &'static str = "/api/workspaces/:workspace_id/members/:user_id";
-    pub const WORKSPACE_SEARCH: &'static str = "/api/workspaces/:workspace_id/search";
+    pub const WORKSPACE_BY_ID: &'static str = "/api/workspaces/{workspace_id}";
+    pub const WORKSPACE_PAGES: &'static str = "/api/workspaces/{workspace_id}/pages";
+    pub const WORKSPACE_MEMBERS: &'static str = "/api/workspaces/{workspace_id}/members";
+    pub const WORKSPACE_MEMBER: &'static str = "/api/workspaces/{workspace_id}/members/{user_id}";
+    pub const WORKSPACE_SEARCH: &'static str = "/api/workspaces/{workspace_id}/search";
     pub const WORKSPACE_COMMANDS: &'static str = "/api/workspaces/commands";
-    pub const PAGE_BY_ID: &'static str = "/api/pages/:page_id";
+    pub const PAGE_BY_ID: &'static str = "/api/pages/{page_id}";
 
     // Project - JSON APIs
     pub const PROJECTS: &'static str = "/projects";
-    pub const PROJECT_BY_ID: &'static str = "/projects/:project_id";
-    pub const PROJECT_TASKS: &'static str = "/projects/:project_id/tasks";
-    pub const PROJECT_GANTT: &'static str = "/projects/:project_id/gantt";
-    pub const PROJECT_TIMELINE: &'static str = "/projects/:project_id/timeline";
-    pub const PROJECT_CRITICAL_PATH: &'static str = "/projects/:project_id/critical-path";
-    pub const PROJECT_TASK_PROGRESS: &'static str = "/tasks/:task_id/progress";
-    pub const PROJECT_TASK_DEPENDENCIES: &'static str = "/tasks/:task_id/dependencies";
-    pub const PROJECT_TASK: &'static str = "/tasks/:task_id";
+    pub const PROJECT_BY_ID: &'static str = "/projects/{project_id}";
+    pub const PROJECT_TASKS: &'static str = "/projects/{project_id}/tasks";
+    pub const PROJECT_GANTT: &'static str = "/projects/{project_id}/gantt";
+    pub const PROJECT_TIMELINE: &'static str = "/projects/{project_id}/timeline";
+    pub const PROJECT_CRITICAL_PATH: &'static str = "/projects/{project_id}/critical-path";
+    pub const PROJECT_TASK_PROGRESS: &'static str = "/tasks/{task_id}/progress";
+    pub const PROJECT_TASK_DEPENDENCIES: &'static str = "/tasks/{task_id}/dependencies";
+    pub const PROJECT_TASK: &'static str = "/tasks/{task_id}";
 
     // Goals (OKR) - JSON APIs
     pub const GOALS_OBJECTIVES: &'static str = "/api/goals/objectives";
-    pub const GOALS_OBJECTIVE_BY_ID: &'static str = "/api/goals/objectives/:id";
-    pub const GOALS_KEY_RESULTS: &'static str = "/api/goals/objectives/:id/key-results";
-    pub const GOALS_KEY_RESULT_BY_ID: &'static str = "/api/goals/key-results/:id";
-    pub const GOALS_CHECK_IN: &'static str = "/api/goals/key-results/:id/check-in";
-    pub const GOALS_HISTORY: &'static str = "/api/goals/key-results/:id/history";
+    pub const GOALS_OBJECTIVE_BY_ID: &'static str = "/api/goals/objectives/{id}";
+    pub const GOALS_KEY_RESULTS: &'static str = "/api/goals/objectives/{id}/key-results";
+    pub const GOALS_KEY_RESULT_BY_ID: &'static str = "/api/goals/key-results/{id}";
+    pub const GOALS_CHECK_IN: &'static str = "/api/goals/key-results/{id}/check-in";
+    pub const GOALS_HISTORY: &'static str = "/api/goals/key-results/{id}/history";
     pub const GOALS_DASHBOARD: &'static str = "/api/goals/dashboard";
     pub const GOALS_ALIGNMENT: &'static str = "/api/goals/alignment";
     pub const GOALS_AI_SUGGEST: &'static str = "/api/goals/ai/suggest";
@@ -463,25 +479,25 @@ impl ApiUrls {
     pub const SECURITY_CORS: &'static str = "/api/security/cors";
     pub const SECURITY_AUDIT: &'static str = "/api/security/audit";
     pub const SECURITY_API_KEYS: &'static str = "/api/security/api-keys";
-    pub const SECURITY_API_KEY_BY_ID: &'static str = "/api/security/api-keys/:key_id";
+    pub const SECURITY_API_KEY_BY_ID: &'static str = "/api/security/api-keys/{key_id}";
     pub const SECURITY_MFA: &'static str = "/api/security/mfa";
     pub const SECURITY_SESSIONS: &'static str = "/api/security/sessions";
-    pub const SECURITY_SESSION_BY_ID: &'static str = "/api/security/sessions/:session_id";
-    pub const SECURITY_USER_SESSIONS: &'static str = "/api/security/users/:user_id/sessions";
+    pub const SECURITY_SESSION_BY_ID: &'static str = "/api/security/sessions/{session_id}";
+    pub const SECURITY_USER_SESSIONS: &'static str = "/api/security/users/{user_id}/sessions";
     pub const SECURITY_PASSWORD_POLICY: &'static str = "/api/security/password-policy";
 
     // Player - JSON APIs
-    pub const PLAYER_FILE: &'static str = "/api/player/:bot_id/file/*path";
-    pub const PLAYER_STREAM: &'static str = "/api/player/:bot_id/stream/*path";
-    pub const PLAYER_THUMBNAIL: &'static str = "/api/player/:bot_id/thumbnail/*path";
+    pub const PLAYER_FILE: &'static str = "/api/player/{bot_id}/file/*path";
+    pub const PLAYER_STREAM: &'static str = "/api/player/{bot_id}/stream/*path";
+    pub const PLAYER_THUMBNAIL: &'static str = "/api/player/{bot_id}/thumbnail/*path";
 
     // Canvas - JSON APIs
     pub const CANVAS_LIST: &'static str = "/api/canvas";
-    pub const CANVAS_BY_ID: &'static str = "/api/canvas/:id";
-    pub const CANVAS_ELEMENTS: &'static str = "/api/canvas/:id/elements";
-    pub const CANVAS_ELEMENT_BY_ID: &'static str = "/api/canvas/:id/elements/:element_id";
-    pub const CANVAS_EXPORT: &'static str = "/api/canvas/:id/export";
-    pub const CANVAS_COLLABORATE: &'static str = "/api/canvas/:id/collaborate";
+    pub const CANVAS_BY_ID: &'static str = "/api/canvas/{id}";
+    pub const CANVAS_ELEMENTS: &'static str = "/api/canvas/{id}/elements";
+    pub const CANVAS_ELEMENT_BY_ID: &'static str = "/api/canvas/{id}/elements/{element_id}";
+    pub const CANVAS_EXPORT: &'static str = "/api/canvas/{id}/export";
+    pub const CANVAS_COLLABORATE: &'static str = "/api/canvas/{id}/collaborate";
 
     // WebSocket endpoints
     pub const WS: &'static str = "/ws";

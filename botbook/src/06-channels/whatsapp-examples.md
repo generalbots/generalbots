@@ -1,4 +1,4 @@
-# Code Examples for WhatsApp Integration
+# Code Examples for WhatsApp Integration 🟡 BETA
 
 This page provides practical code examples for integrating WhatsApp Business API with General Bots, covering common use cases and implementations in multiple languages.
 

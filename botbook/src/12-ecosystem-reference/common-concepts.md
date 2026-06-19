@@ -1,4 +1,4 @@
-# Common Migration Concepts
+# Common Migration Concepts 🟡 BETA
 
 This chapter establishes the foundational concepts that apply across all migration scenarios, regardless of which cloud platform you're leaving or which specific services you're transitioning. Understanding these common patterns helps plan effective migrations and avoid pitfalls that derail projects.
 

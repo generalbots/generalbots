@@ -1,4 +1,4 @@
-# Notifications API
+# Notifications API 🟡 BETA
 
 botserver provides RESTful endpoints for managing notifications across multiple channels including push notifications, in-app alerts, and message broadcasting.
 

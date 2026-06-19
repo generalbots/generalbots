@@ -1,4 +1,4 @@
-# Attendance Suite - Plano Completo
+# Attendance Suite - Plano Completo 🟡 BETA
 
 ## Visão Geral
 

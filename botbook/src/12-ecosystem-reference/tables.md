@@ -1,4 +1,4 @@
-# Database Tables
+# Database Tables 🟡 BETA
 
 This section documents all database tables in General Bots, their structures, and purposes.
 

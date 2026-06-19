@@ -1,4 +1,4 @@
-# Memory Management
+# Memory Management 🟡 BETA
 
 General Bots provides a comprehensive memory system that enables persistent storage, cross-session continuity, and multi-agent data sharing. This chapter covers all memory types, their use cases, and best practices.
 

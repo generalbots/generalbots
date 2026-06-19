@@ -1,4 +1,4 @@
-# LLM Server Template (llm-server.gbai)
+# LLM Server Template (llm-server.gbai) 🟡 BETA
 
 A General Bots template for deploying LLM-powered web services that process orders and requests via API endpoints.
 

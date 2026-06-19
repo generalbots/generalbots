@@ -1,4 +1,4 @@
-# CLEAR TOOLS Keyword
+# CLEAR TOOLS Keyword 🟡 BETA
 
 **Syntax**
 

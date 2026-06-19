@@ -284,7 +284,7 @@ impl OpenCvFaceDetector {
         let nose_y = center_y + bbox.height as f64 * 0.05;
         let mouth_y = center_y + bbox.height as f64 * 0.25;
 
-        let _ = (image_data);
+        let _ = image_data;
 
         Ok(FaceLandmarks {
             left_eye: Point {
@@ -317,7 +317,7 @@ impl OpenCvFaceDetector {
     ) -> Result<FaceAttributes, OpenCvError> {
         log::debug!("Analyzing face attributes for face at ({}, {})", bbox.x, bbox.y);
 
-        let _ = (image_data);
+        let _ = image_data;
 
         Ok(FaceAttributes {
             estimated_age: Some(30.0),
@@ -380,7 +380,7 @@ impl OpenCvFaceDetector {
     ) -> Result<FaceEmbedding, OpenCvError> {
         log::debug!("Extracting face embedding for face at ({}, {})", bbox.x, bbox.y);
 
-        let _ = (image_data);
+        let _ = image_data;
 
         let embedding_size = 128;
         let mut embedding = Vec::with_capacity(embedding_size);

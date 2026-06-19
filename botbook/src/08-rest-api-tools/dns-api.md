@@ -1,4 +1,4 @@
-# DNS API
+# DNS API 🟡 BETA
 
 > **Dynamic DNS hostname registration and removal for service discovery.**
 

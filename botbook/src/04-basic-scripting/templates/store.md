@@ -1,4 +1,4 @@
-# Store Template
+# Store Template 🟡 BETA
 
 The store template provides a complete e-commerce assistant that helps customers browse products, manage shopping carts, and complete purchases through conversational AI.
 

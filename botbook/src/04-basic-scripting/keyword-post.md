@@ -1,4 +1,4 @@
-# POST
+# POST 🟡 BETA
 
 The `POST` keyword sends HTTP POST requests to external APIs and web services, enabling bots to create resources, submit data, and integrate with third-party systems.
 

@@ -1,4 +1,4 @@
-# COPY
+# COPY 🟡 BETA
 
 The `COPY` keyword duplicates files within the bot's drive storage, creating copies in the same or different directories.
 

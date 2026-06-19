@@ -1,4 +1,4 @@
-# Creating Custom Keywords
+# Creating Custom Keywords 🟡 BETA
 
 botserver's BASIC scripting language can be extended with custom keywords. All keywords are implemented as Rust functions in the `src/basic/keywords/` directory.
 

@@ -229,24 +229,106 @@ pub async fn handle_delete_mcp_server(
     }
 }
 
+fn set_mcp_server_enabled(work_path: &str, bot_id: &str, name: &str, enabled: bool) -> Result<(), String> {
+    let csv_path = std::path::PathBuf::from(work_path)
+        .join(format!("{}.gbai", bot_id))
+        .join("mcp.csv");
+
+    if !csv_path.exists() {
+        return Err("mcp.csv not found".to_string());
+    }
+
+    let content = std::fs::read_to_string(&csv_path).map_err(|e| e.to_string())?;
+    let mut lines: Vec<String> = Vec::new();
+    let mut found = false;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with('/') {
+            lines.push(line.to_string());
+            continue;
+        }
+
+        let columns = parse_csv_columns(&trimmed);
+        let server_name = columns.first().map(|s| s.trim().trim_matches('"')).unwrap_or("");
+
+        if server_name == name {
+            found = true;
+            let new_columns: Vec<String> = columns.iter().enumerate().map(|(idx, col)| {
+                if idx == 5 {
+                    enabled.to_string()
+                } else {
+                    col.to_string()
+                }
+            }).collect();
+            lines.push(new_columns.join(","));
+        } else {
+            lines.push(line.to_string());
+        }
+    }
+
+    if !found {
+        return Err(format!("MCP server '{}' not found", name));
+    }
+
+    std::fs::write(&csv_path, lines.join("\n") + "\n").map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn parse_csv_columns(line: &str) -> Vec<String> {
+    let mut columns = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut chars = line.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match c {
+            '"' if !in_quotes => { in_quotes = true; }
+            '"' if in_quotes => {
+                if chars.peek() == Some(&'"') {
+                    chars.next();
+                    current.push('"');
+                } else {
+                    in_quotes = false;
+                }
+            }
+            ',' if !in_quotes => {
+                columns.push(current.clone());
+                current.clear();
+            }
+            _ => { current.push(c); }
+        }
+    }
+    columns.push(current);
+    columns
+}
+
 pub async fn handle_enable_mcp_server(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(name): Path<String>,
-    Query(_params): Query<BotQuery>,
+    Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
-    Json(ApiResponse::success(format!(
-        "MCP server '{}' enabled", name
-    )))
+    let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
+    let work_path = get_work_path_or_default(&state.get_work_path);
+
+    match set_mcp_server_enabled(&work_path, &bot_id, &name, true) {
+        Ok(()) => Json(ApiResponse::success(format!("MCP server '{}' enabled", name))),
+        Err(e) => Json(ApiResponse::<String>::error(&e)),
+    }
 }
 
 pub async fn handle_disable_mcp_server(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(name): Path<String>,
-    Query(_params): Query<BotQuery>,
+    Query(params): Query<BotQuery>,
 ) -> impl IntoResponse {
-    Json(ApiResponse::success(format!(
-        "MCP server '{}' disabled", name
-    )))
+    let bot_id = params.bot_id.unwrap_or_else(|| "default".to_string());
+    let work_path = get_work_path_or_default(&state.get_work_path);
+
+    match set_mcp_server_enabled(&work_path, &bot_id, &name, false) {
+        Ok(()) => Json(ApiResponse::success(format!("MCP server '{}' disabled", name))),
+        Err(e) => Json(ApiResponse::<String>::error(&e)),
+    }
 }
 
 pub async fn handle_list_mcp_server_tools(
@@ -416,7 +498,7 @@ pub async fn handle_mcp_servers(
 
     html.push_str("<div style=\"margin-bottom:2rem;\">");
     html.push_str("<h4 style=\"font-size:1.1rem;margin-bottom:0.75rem;\">🔧 Configured Servers</h4>");
-    let _ = (write!(
+    let _ = write!(
         html,
         "<div style=\"font-size:0.85rem);color:#666;margin-bottom:0.75rem;\"><span>Config:</span> <code style=\"background:#f5f5f5;padding:0.2rem 0.4rem;border-radius:0.25rem;\">{}</code>{}</div>",
         scan_result.file_path.to_string_lossy(),
@@ -434,7 +516,7 @@ pub async fn handle_mcp_servers(
             let status_bg = if is_active { "#e8f5e9" } else { "#ffebee" };
             let status_color = if is_active { "#2e7d32" } else { "#c62828" };
 
-            let _ = (write!(
+            let _ = write!(
                 html,
                 "<div style=\"background:#fff);border:1px solid #e0e0e0;border-left:3px solid #2196F3;border-radius:0.5rem;padding:1rem;\">
                 <div style=\"display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;\">
@@ -467,7 +549,7 @@ pub async fn handle_mcp_servers(
         html.push_str("<div style=\"display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;\" id=\"mcp-category-filter\">");
         html.push_str("<button class=\"category-btn active\" style=\"padding:0.4rem 0.8rem;border:1px solid #ddd;border-radius:1rem;background:#f5f5f5;cursor:pointer;font-size:0.8rem;\" onclick=\"filterMcpCategory(this, 'all')\">All</button>");
         for category in &catalog.categories {
-            let _ = (write!(
+            let _ = write!(
                 html,
                 "<button class=\"category-btn\" style=\"padding:0.4rem 0.8rem);border:1px solid #ddd;border-radius:1rem;background:#f5f5f5;cursor:pointer;font-size:0.8rem;\" onclick=\"filterMcpCategory(this, '{}')\"> {}</button>",
                 html_escape(category),

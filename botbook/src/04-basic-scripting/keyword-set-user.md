@@ -1,4 +1,4 @@
-# SET USER Keyword
+# SET USER Keyword 🟡 BETA
 
 Switch the current user context within a script execution.
 

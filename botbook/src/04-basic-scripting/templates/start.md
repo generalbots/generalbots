@@ -1,4 +1,4 @@
-# Start Template
+# Start Template 🟡 BETA
 
 The start template is the simplest possible bot - a greeting flow that demonstrates the core interaction pattern of BASIC: greeting users and responding to their input.
 

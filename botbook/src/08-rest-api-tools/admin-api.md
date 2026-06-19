@@ -1,4 +1,4 @@
-# Admin API
+# Admin API 🟡 BETA
 
 The Admin API provides endpoints for system administration, user management, and configuration management.
 

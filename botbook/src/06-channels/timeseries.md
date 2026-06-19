@@ -1,4 +1,4 @@
-# Time-Series Database Module
+# Time-Series Database Module 🟡 BETA
 
 InfluxDB 3 integration for metrics, analytics, and operational data.
 

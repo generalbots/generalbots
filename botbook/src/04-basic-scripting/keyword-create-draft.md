@@ -1,4 +1,4 @@
-# CREATE DRAFT Keyword
+# CREATE DRAFT Keyword 🟡 BETA
 
 **Syntax**
 

@@ -1,4 +1,4 @@
-# THINK KB
+# THINK KB 🟡 BETA
 
 Perform explicit knowledge base reasoning with structured results.
 

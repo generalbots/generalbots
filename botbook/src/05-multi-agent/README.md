@@ -1,4 +1,4 @@
-# Chapter 5: Multi-Agent Orchestration
+# Chapter 5: Multi-Agent Orchestration 🟡 BETA
 
 Build complete applications through natural conversation. Describe what you want, and the system creates it automatically.
 

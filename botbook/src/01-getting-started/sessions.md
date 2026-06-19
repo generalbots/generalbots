@@ -1,4 +1,4 @@
-# Sessions and Channels
+# Sessions and Channels 🟡 BETA
 
 Every conversation has memory. Sessions are the beating heart of botserver because they remember who you are, what you have said, and where you left off. Even if you close your browser and come back tomorrow, your conversation continues right where it paused.
 

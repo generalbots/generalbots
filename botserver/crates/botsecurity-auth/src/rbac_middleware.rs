@@ -1046,8 +1046,8 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/i18n/**", "GET", "").with_anonymous(true),
 
         // WhatsApp webhook - anonymous for Meta verification and message delivery
-        RoutePermission::new("/webhook/whatsapp/:bot_id", "GET", "").with_anonymous(true),
-        RoutePermission::new("/webhook/whatsapp/:bot_id", "POST", "").with_anonymous(true),
+        RoutePermission::new("/webhook/whatsapp/{bot_id}", "GET", "").with_anonymous(true),
+        RoutePermission::new("/webhook/whatsapp/{bot_id}", "POST", "").with_anonymous(true),
 
         // Auth routes - login must be anonymous
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
@@ -1068,7 +1068,7 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/ws/**", "GET", "").with_anonymous(true),
 
         // Bot access check - anonymous so is_public bots can be accessed without login
-        RoutePermission::new("/api/bots/:bot_name/access", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/bots/{bot_name}/access", "GET", "").with_anonymous(true),
 
         // Chat - ANONYMOUS for customer support
         RoutePermission::new("/api/chat/**", "GET", "").with_anonymous(true),
@@ -1207,8 +1207,8 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
 
         // Bots (read for all authenticated users)
         RoutePermission::new("/api/bots", "GET", ""),
-        RoutePermission::new("/api/bots/:id", "GET", ""),
-        RoutePermission::new("/api/bots/:id/**", "GET", ""),
+        RoutePermission::new("/api/bots/{id}", "GET", ""),
+        RoutePermission::new("/api/bots/{id}/**", "GET", ""),
 
         // Autotask
         RoutePermission::new("/api/autotask/**", "GET", ""),
@@ -1378,11 +1378,11 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/users", "POST", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/users/:id", "GET", "")
+        RoutePermission::new("/api/users/{id}", "GET", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/users/:id", "PUT", "")
+        RoutePermission::new("/api/users/{id}", "PUT", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/users/:id", "DELETE", "")
+        RoutePermission::new("/api/users/{id}", "DELETE", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
         RoutePermission::new("/api/users/**", "GET", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
@@ -1406,13 +1406,13 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // Bot management (create/delete)
         RoutePermission::new("/api/bots", "POST", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/bots/:id", "PUT", "")
+        RoutePermission::new("/api/bots/{id}", "PUT", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/bots/:id", "DELETE", "")
+        RoutePermission::new("/api/bots/{id}", "DELETE", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/bots/:id/**", "PUT", "")
+        RoutePermission::new("/api/bots/{id}/**", "PUT", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/bots/:id/**", "DELETE", "")
+        RoutePermission::new("/api/bots/{id}/**", "DELETE", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
         // Analytics (admin view)
@@ -1569,7 +1569,7 @@ mod tests {
 
     #[test]
     fn test_route_permission_param_match() {
-        let route = RoutePermission::new("/api/users/:id", "GET", "users.read");
+        let route = RoutePermission::new("/api/users/{id}", "GET", "users.read");
 
         assert!(route.matches_path("/api/users/123"));
         assert!(route.matches_path("/api/users/abc"));

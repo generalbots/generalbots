@@ -1,4 +1,4 @@
-# The gbapp Philosophy: Let Machines Do Machine Work
+# The gbapp Philosophy: Let Machines Do Machine Work 🟡 BETA
 
 ## Core Principle: Automation First
 

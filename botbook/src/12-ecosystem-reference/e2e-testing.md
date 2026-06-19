@@ -1,4 +1,4 @@
-# End-to-End Testing
+# End-to-End Testing 🟡 BETA
 
 End-to-end (E2E) testing validates complete user workflows from platform loading through authentication, interaction, and logout.
 
