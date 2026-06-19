@@ -38,10 +38,29 @@ diesel::table! {
 }
 
 diesel::table! {
+    branches (id) {
+        id -> Uuid,
+        org_id -> Uuid,
+        tenant_id -> Uuid,
+        slug -> Varchar,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::joinable!(branches -> organizations (org_id));
+diesel::joinable!(branches -> tenants (tenant_id));
+
+diesel::table! {
     bots (id) {
         id -> Uuid,
-        org_id -> Nullable<Uuid>,
+        org_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
+        slug -> Varchar,
         description -> Nullable<Text>,
         llm_provider -> Varchar,
         llm_config -> Jsonb,
@@ -52,8 +71,11 @@ diesel::table! {
         is_active -> Nullable<Bool>,
         database_name -> Nullable<Varchar>,
         is_public -> Bool,
+        is_default_for_branch -> Bool,
     }
 }
+
+diesel::joinable!(bots -> branches (branch_id));
 
 diesel::joinable!(bots -> organizations (org_id));
 
@@ -424,4 +446,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     tasks,
     kb_collections,
     kb_group_associations,
+    branches,
 );

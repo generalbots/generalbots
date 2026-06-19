@@ -76,8 +76,16 @@
       } else {
         _tokenExpires = null;
       }
+      // Store access token in sessionStorage as fallback for page-navigation
+      // survival. Primary storage is the closure (_accessToken) for XSS
+      // protection (Issue #575). SessionStorage is cleared on tab close.
+      if (accessToken) {
+        sessionStorage.setItem(AUTH_KEYS.ACCESS_TOKEN, accessToken);
+      } else {
+        sessionStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);
+      }
       // Store refresh token in sessionStorage for cross-page navigation
-      // (cleared when tab closes). Access token stays in memory only.
+      // (cleared when tab closes).
       if (refreshToken) {
         sessionStorage.setItem(AUTH_KEYS.REFRESH_TOKEN, refreshToken);
       } else {
@@ -88,6 +96,44 @@
         sessionStorage.setItem("gb-persistent", "1");
       } else {
         sessionStorage.removeItem("gb-persistent");
+      }
+    },
+
+    refreshTokenFromStorage: async function () {
+      var refreshToken = _refreshToken || sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
+      if (!refreshToken) {
+        console.log("[GBSecurity] No refresh token found, skipping refresh");
+        return false;
+      }
+      try {
+        var response = await fetch("/api/auth/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+        if (!response.ok) {
+          console.warn("[GBSecurity] Token refresh failed:", response.status);
+          if (response.status === 401) {
+            this.clearTokens();
+          }
+          return false;
+        }
+        var data = await response.json();
+        if (data.access_token) {
+          this.setTokens(
+            data.access_token,
+            data.refresh_token || null,
+            data.expires_in || null,
+            true,
+          );
+          console.log("[GBSecurity] Token refreshed successfully after page load");
+          return true;
+        }
+        console.warn("[GBSecurity] Refresh response missing access_token");
+        return false;
+      } catch (e) {
+        console.warn("[GBSecurity] Token refresh error:", e);
+        return false;
       }
     },
 
@@ -142,15 +188,31 @@
       var self = this;
 
       // Restore tokens from sessionStorage into memory closure.
-      // After page navigation, the access token must be re-obtained via
-      // refresh token (sessionStorage persists across same-tab reloads).
+      // Access token is stored in sessionStorage by setTokens() as a
+      // fallback, so it survives page navigation. Primary storage is
+      // the closure for XSS protection (Issue #575).
+      var storedAccess = sessionStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
+      if (storedAccess) {
+        _accessToken = storedAccess;
+        console.log("[GBSecurity] Access token restored from sessionStorage");
+      }
       var storedRefresh = sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
       if (storedRefresh) {
         _refreshToken = storedRefresh;
       }
-      // Access token cannot persist in storage - on page reload it's gone.
-      // The token was passed via setTokens() during login flow which kept
-      // it in the closure for the current page lifetime.
+      // Also check token expiry from sessionStorage
+      var storedExpires = sessionStorage.getItem(AUTH_KEYS.TOKEN_EXPIRES);
+      if (storedExpires) {
+        var expires = parseInt(storedExpires, 10);
+        if (!isNaN(expires)) {
+          _tokenExpires = expires;
+          // If already expired, refresh immediately
+          if (Date.now() > expires) {
+            _accessToken = null;
+            console.log("[GBSecurity] Stored token expired, will refresh");
+          }
+        }
+      }
 
       this.initHTMXInterceptor();
       this.initFetchInterceptor();
@@ -165,6 +227,21 @@
       );
 
       window.dispatchEvent(new CustomEvent("gb:security:ready"));
+
+      // Asynchronously refresh token in background if refresh token exists.
+      // This ensures we have a fresh access token even if the stored one
+      // is expired or about to expire.
+      if (_refreshToken && !_accessToken) {
+        console.log("[GBSecurity] No access token, attempting refresh...");
+        setTimeout(function () {
+          self.refreshTokenFromStorage();
+        }, 100);
+      } else if (_refreshToken && _accessToken) {
+        // Even with a token, refresh in background to extend session
+        setTimeout(function () {
+          self.refreshTokenFromStorage();
+        }, 1000);
+      }
     },
 
     initHTMXInterceptor: function () {
@@ -405,4 +482,23 @@
   GBSecurity.init();
 
   window.GBSecurity = GBSecurity;
+
+  // Global accessor for backwards compatibility with legacy modules
+  // that read gb-access-token from localStorage/sessionStorage directly.
+  // Priority: GBSecurity closure → sessionStorage → localStorage.
+  window.getGBAccessToken = function () {
+    var t = window.GBSecurity && window.GBSecurity.getToken();
+    if (t) return t;
+    t = sessionStorage.getItem("gb-access-token");
+    if (t) return t;
+    return localStorage.getItem("gb-access-token") || null;
+  };
+
+  window.getGBRefreshToken = function () {
+    var t = window.GBSecurity && window.GBSecurity.getRefreshToken();
+    if (t) return t;
+    t = sessionStorage.getItem("gb-refresh-token");
+    if (t) return t;
+    return localStorage.getItem("gb-refresh-token") || null;
+  };
 })(window, document);

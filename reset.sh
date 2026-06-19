@@ -1,6 +1,35 @@
 #!/bin/bash
 set -e
 
+echo "╔══════════════════════════════════════════════════╗"
+echo "║           General Bots Stack Reset              ║"
+echo "╚══════════════════════════════════════════════════╝"
+echo ""
+echo "This will:"
+echo "  • Clean botserver-stack/ and work/ directories"
+echo "  • Kill all botserver/botui/botmodels processes"
+echo "  • Rebuild botserver and botui from source"
+echo "  • Restart the full stack"
+echo ""
+
+# Pre-flight check: warn if services are running
+BOTSRV=$(pgrep -f 'botserver' 2>/dev/null | head -3 | tr '\n' ' ')
+BOTUI=$(pgrep -f 'botui' 2>/dev/null | head -3 | tr '\n' ' ')
+if [ -n "$BOTSRV" ] || [ -n "$BOTUI" ]; then
+  echo "⚠ WARNING: Services currently running:"
+  [ -n "$BOTSRV" ] && echo "  botserver PIDs: $BOTSRV"
+  [ -n "$BOTUI" ] && echo "  botui PIDs: $BOTUI"
+  echo ""
+fi
+
+# Require 'y' confirmation
+read -r -p "Type 'y' to proceed with reset: " CONFIRM
+if [ "$CONFIRM" != "y" ]; then
+  echo "Reset cancelled."
+  exit 1
+fi
+echo ""
+
 echo "Cleaning up..."
 rm -rf botserver-stack/ botserver/botserver-stack/ ./work/ botserver/work/ .env botserver/.env \
   botserver.log botserver/botserver.log botui.log botserver/botui.log botmodels.log botserver/botmodels.log
@@ -8,4 +37,37 @@ rm -rf botserver-stack/ botserver/botserver-stack/ ./work/ botserver/work/ .env 
 echo "Starting services..."
 ./restart.sh
 
-echo "Reset complete!"
+echo ""
+echo "=== Post-Reset Verification ==="
+
+# Wait for botserver health
+echo -n "Waiting for botserver health (up to 120s) ."
+for i in $(seq 1 24); do
+  STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health 2>/dev/null)
+  if [ "$STATUS" = "200" ]; then
+    echo ""
+    echo "✅ botserver health: 200 OK"
+    break
+  fi
+  echo -n "."
+  sleep 5
+done
+
+# Check botui
+BOTUI_PID=$(pgrep -f 'target/debug/botui' 2>/dev/null || echo "not running")
+echo "  botui PID: $BOTUI_PID"
+
+# Check botmodels
+BOTMODELS_PID=$(pgrep -f 'uvicorn.*src.main' 2>/dev/null || echo "not running")
+echo "  botmodels PID: $BOTMODELS_PID"
+
+# Quick log scan for errors (skip MinIO 403 noise)
+ERR_COUNT=$(grep -c -E " ERROR | panic" botserver.log 2>/dev/null || echo 0)
+echo "  Errors in botserver.log: $ERR_COUNT"
+if [ "$ERR_COUNT" -gt 0 ]; then
+  echo "  (non-MinIO errors shown below)"
+  grep -E " ERROR " botserver.log 2>/dev/null | grep -v "InvalidAccessKeyId\|tokio_backend\|Got HTTP 403\|Retrying" | head -5
+fi
+
+echo ""
+echo "=== Reset complete! ==="

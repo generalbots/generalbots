@@ -179,12 +179,9 @@ fn build_base_router(
 ) -> Router {
     #[cfg(feature = "deployment")]
     let base_router = {
-        let dep_pool = app_state.conn.clone();
-        let dep_router = crate::deployment::configure_deployment_routes(dep_pool);
         Router::new()
             .merge(api_router.with_state(app_state.clone()))
             .merge(sub_router)
-            .merge(dep_router)
             .nest("/", botcoreoauth::routes::configure(oauth_state))
     };
     #[cfg(not(feature = "deployment"))]

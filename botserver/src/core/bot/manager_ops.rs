@@ -321,7 +321,7 @@ pub async fn check_bot_access(
     let bot_record = bots_dsl::bots
         .filter(bots_dsl::name.eq(bot_name))
         .select((bots_dsl::is_public, bots_dsl::org_id))
-        .first::<(bool, Option<Uuid>)>(&mut *conn)
+        .first::<(bool, Uuid)>(&mut *conn)
         .optional()
         .map_err(|e| format!("DB query error: {}", e))?;
 
@@ -334,7 +334,7 @@ pub async fn check_bot_access(
         return Ok(());
     }
 
-    if let Some(org_id) = org_id {
+    {
         let is_member = uo_dsl::user_organizations
             .filter(uo_dsl::user_id.eq(user_id))
             .filter(uo_dsl::org_id.eq(org_id))

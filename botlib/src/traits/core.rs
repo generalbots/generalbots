@@ -146,6 +146,12 @@ pub trait DriveRepository: Send + Sync + Debug {
         prefix: Option<&str>,
     ) -> BoxFutureVecDriveObject;
 
+    fn list_common_prefixes(
+        &self,
+        bucket: &str,
+        delimiter: &str,
+    ) -> BoxFutureVecString;
+
     fn list_all_buckets(
         &self,
     ) -> BoxFutureVecString;
