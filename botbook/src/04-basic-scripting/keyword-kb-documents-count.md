@@ -1,4 +1,4 @@
-# KB DOCUMENTS COUNT
+# KB DOCUMENTS COUNT 🟡 BETA
 
 The `KB DOCUMENTS COUNT` keyword returns the total number of documents stored in the bot's knowledge base.
 

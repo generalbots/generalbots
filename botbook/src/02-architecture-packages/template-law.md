@@ -1,4 +1,4 @@
-# Legal Document Processing Template (law.gbai)
+# Legal Document Processing Template (law.gbai) 🟡 BETA
 
 A General Bots template for legal case management, document analysis, and AI-powered legal Q&A.
 

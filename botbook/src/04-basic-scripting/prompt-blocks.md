@@ -1,4 +1,4 @@
-# Prompt Blocks: BEGIN SYSTEM PROMPT & BEGIN TALK
+# Prompt Blocks: BEGIN SYSTEM PROMPT & BEGIN TALK 🟡 BETA
 
 Prompt blocks are special multi-line constructs in General Bots BASIC that define AI behavior and formatted user messages. Unlike regular keywords, these blocks preserve formatting, line breaks, and support rich content.
 

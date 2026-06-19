@@ -1,4 +1,4 @@
-# Sales CRM Template (crm.gbai)
+# Sales CRM Template (crm.gbai) 🟡 BETA
 
 A comprehensive General Bots template for sales customer relationship management with lead tracking, opportunity management, and sales pipeline automation.
 

@@ -1,4 +1,4 @@
-# OAuth API
+# OAuth API 🟡 BETA
 
 > **Social login via OAuth 2.0 providers (Google, GitHub, Microsoft, etc.).**
 

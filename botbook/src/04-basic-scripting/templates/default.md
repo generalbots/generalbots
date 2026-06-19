@@ -1,4 +1,4 @@
-# Default Template
+# Default Template 🟡 BETA
 
 The default template is the starter bot that comes with General Bots, providing essential utility tools like weather forecasts, email sending, SMS messaging, calculations, and translations.
 

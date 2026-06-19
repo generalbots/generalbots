@@ -1,4 +1,4 @@
-# Initial Setup & Admin Bootstrap
+# Initial Setup & Admin Bootstrap 🟡 BETA
 
 When General Bots is installed for the first time, it automatically creates an administrator account. This page explains the bootstrap process and how to access your new installation.
 

@@ -1,4 +1,4 @@
-# Instructions for Logging Issues
+# Instructions for Logging Issues 🟡 BETA
 
 ## 1. Search for Duplicates
 

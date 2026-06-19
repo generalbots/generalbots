@@ -1,4 +1,4 @@
-# SEND MAIL
+# SEND MAIL 🟡 BETA
 
 Send email messages.
 

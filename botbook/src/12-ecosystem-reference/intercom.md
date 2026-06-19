@@ -1,4 +1,4 @@
-# Intercom Migration Guide
+# Intercom Migration Guide 🟡 BETA
 
 Migrating customer messaging and support from Intercom to General Bots.
 

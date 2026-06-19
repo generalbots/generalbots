@@ -1,4 +1,4 @@
-# Business Intelligence Template (bi.gbai)
+# Business Intelligence Template (bi.gbai) 🟡 BETA
 
 A General Bots template for automated business intelligence reporting and data visualization.
 

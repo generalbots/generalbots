@@ -1,4 +1,4 @@
-# Perplexity Migration Guide
+# Perplexity Migration Guide 🟡 BETA
 
 Migrating from Perplexity to General Bots for AI-powered search and knowledge retrieval.
 

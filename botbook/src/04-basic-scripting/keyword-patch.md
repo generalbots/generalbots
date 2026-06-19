@@ -1,4 +1,4 @@
-# PATCH
+# PATCH 🟡 BETA
 
 The `PATCH` keyword sends HTTP PATCH requests to external APIs, used for partial updates to existing resources.
 

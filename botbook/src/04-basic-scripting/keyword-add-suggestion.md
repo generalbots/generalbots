@@ -1,4 +1,4 @@
-# ADD SUGGESTION / CLEAR SUGGESTIONS Keywords
+# ADD SUGGESTION / CLEAR SUGGESTIONS Keywords 🟡 BETA
 
 Display quick-reply suggestion buttons to users during conversations.
 

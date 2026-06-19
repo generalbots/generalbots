@@ -1,4 +1,4 @@
-# Transfer to Human
+# Transfer to Human 🟡 BETA
 
 The `TRANSFER TO HUMAN` keyword enables seamless handoff from bot conversations to human attendants. This is a critical feature for hybrid support workflows where complex issues require human intervention.
 

@@ -1,4 +1,4 @@
-# RUN PYTHON / RUN JAVASCRIPT / RUN BASH
+# RUN PYTHON / RUN JAVASCRIPT / RUN BASH 🟡 BETA
 
 Executes code in a sandboxed environment. Enables safe execution of dynamic code for data processing, calculations, and automation tasks.
 

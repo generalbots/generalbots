@@ -1,4 +1,4 @@
-# REMEMBER / RECALL Keywords
+# REMEMBER / RECALL Keywords 🟡 BETA
 
 The `REMEMBER` and `RECALL` keywords provide a powerful time-based memory system for storing and retrieving data associated with users. Unlike standard memory operations, `REMEMBER` supports automatic expiration of stored values.
 

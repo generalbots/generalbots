@@ -1,4 +1,4 @@
-# Troubleshooting
+# Troubleshooting 🟡 BETA
 
 This guide covers common issues you may encounter with botserver and their solutions.
 

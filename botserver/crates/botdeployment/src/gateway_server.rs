@@ -74,7 +74,7 @@ pub fn configure_gateway_routes(state: Arc<GatewayState>) -> Router {
         .route("/deploy", post(gateway_deploy))
         .route("/deploy/stop", post(gateway_stop))
         .route("/deploy/start", post(gateway_start))
-        .route("/deploy/status/:org/:app_name", get(gateway_status))
+        .route("/deploy/status/{org}/{app_name}", get(gateway_status))
         .route("/deploy/keys", post(gateway_rotate_key))
         .with_state((state, registry))
 }

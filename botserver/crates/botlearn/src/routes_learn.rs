@@ -18,16 +18,16 @@ use crate::types::*;
 pub fn configure_learn_api_routes() -> Router<Arc<GamificationService>> {
     Router::new()
         .route("/api/learn/courses", post(create_course_handler))
-        .route("/api/learn/courses/:id/publish", post(publish_course_handler))
+        .route("/api/learn/courses/{id}/publish", post(publish_course_handler))
         .route("/api/learn/enroll", post(enroll_handler))
-        .route("/api/learn/progress/:enrollment_id", put(update_progress_handler))
-        .route("/api/learn/complete/:enrollment_id", post(complete_course_handler))
+        .route("/api/learn/progress/{enrollment_id}", put(update_progress_handler))
+        .route("/api/learn/complete/{enrollment_id}", post(complete_course_handler))
         .route("/api/learn/certificates/issue", post(issue_certificate_handler))
         .route("/api/learn/certificates/verify", get(verify_certificate_handler))
         .route("/api/learn/badges/award", post(award_badge_handler))
-        .route("/api/learn/achievements/:user_id", get(get_achievements_handler))
+        .route("/api/learn/achievements/{user_id}", get(get_achievements_handler))
         .route("/api/learn/leaderboard", get(get_leaderboard_handler))
-        .route("/api/learn/xp/:user_id", get(get_user_xp_handler))
+        .route("/api/learn/xp/{user_id}", get(get_user_xp_handler))
         .route("/api/learn/badges", get(get_badge_definitions_handler))
 }
 

@@ -1,4 +1,4 @@
-# Channel Integrations
+# Channel Integrations 🟡 BETA
 
 This guide covers integrating messaging channels with General Bots, focusing on WhatsApp Business API integration using Twilio-purchased phone numbers.
 

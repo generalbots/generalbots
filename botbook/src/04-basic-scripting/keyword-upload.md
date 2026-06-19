@@ -1,4 +1,4 @@
-# UPLOAD
+# UPLOAD 🟡 BETA
 
 The `UPLOAD` keyword transfers files from external URLs or local paths to the bot's drive storage, enabling bots to collect documents, images, and other files from users or external sources.
 

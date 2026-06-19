@@ -56,6 +56,8 @@ pub fn configure(state: Arc<crate::models::AppState>) -> Router {
         .route("/api/email/crm/link", post(integration::link_email_to_crm))
         .route("/api/ai/categorize-email", post(integration::categorize_email))
         .route("/api/ai/generate-reply", post(integration::generate_smart_reply))
+        .route("/api/email/refine-draft", post(integration::handle_refine_draft))
+        .route("/api/email/meeting/resolve", post(integration::handle_resolve_meeting))
         .route("/api/email/snooze", post(snooze::snooze_emails))
         .route("/api/email/snoozed", get(snooze::get_snoozed_emails))
         .route("/api/email/nudges", post(nudges::check_nudges))

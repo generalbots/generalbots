@@ -1,4 +1,4 @@
-# USE MCP
+# USE MCP 🟡 BETA
 
 > **Invoke MCP Server Tools from BASIC**
 

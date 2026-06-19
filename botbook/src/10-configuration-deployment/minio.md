@@ -1,4 +1,4 @@
-# Drive Integration
+# Drive Integration 🟡 BETA
 
 The drive component provides S3-compatible object storage for botserver, storing bot packages, documents, and user files.
 

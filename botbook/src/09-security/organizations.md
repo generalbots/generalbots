@@ -1,4 +1,4 @@
-# Organization Management Guide
+# Organization Management Guide 🟡 BETA
 
 This guide covers how to manage organizations in General Bots, including creating organizations, managing members, configuring settings, and switching between organizations.
 

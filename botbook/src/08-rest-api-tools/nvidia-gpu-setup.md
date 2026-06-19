@@ -1,4 +1,4 @@
-# NVIDIA GPU Setup for LXC Containers
+# NVIDIA GPU Setup for LXC Containers 🟡 BETA
 
 This guide covers setting up NVIDIA GPU passthrough for botserver running in LXC containers, enabling hardware acceleration for local LLM inference.
 

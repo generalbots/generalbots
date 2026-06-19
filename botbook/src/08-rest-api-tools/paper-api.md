@@ -1,4 +1,4 @@
-# Paper API
+# Paper API 🟡 BETA
 
 > **Lightweight notes API for quick document creation, AI-powered editing, templates, and multi-format export.**
 

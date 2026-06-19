@@ -112,7 +112,8 @@ pub(super) fn make_designer_router(app_state: &Arc<AppState>) -> Router<()> {
     let state = make_state();
     Router::new()
         .merge(crate::designer::designer_api::configure_designer_routes().with_state(state.clone()))
-        .merge(crate::designer::ui::configure_designer_ui_routes().with_state(state))
+        .merge(crate::designer::ui::configure_designer_ui_routes().with_state(state.clone()))
+        .merge(crate::designer::plugin_manifest::configure_plugin_routes().with_state(state))
 }
 
 #[cfg(feature = "dashboards")]

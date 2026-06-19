@@ -1,4 +1,4 @@
-# Group Membership API
+# Group Membership API 🟡 BETA
 
 botserver provides RESTful endpoints for managing user groups, team memberships, and collaborative workspaces.
 

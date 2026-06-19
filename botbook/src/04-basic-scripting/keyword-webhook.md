@@ -1,4 +1,4 @@
-# WEBHOOK
+# WEBHOOK 🟡 BETA
 
 Creates an instant HTTP endpoint for your bot. With WEBHOOK, you can expose any BASIC script as an API endpoint that external systems can call - perfect for integrations, notifications, and building custom APIs with LLM-powered responses.
 

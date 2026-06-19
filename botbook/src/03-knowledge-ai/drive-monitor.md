@@ -1,4 +1,4 @@
-# Drive Monitor
+# Drive Monitor 🟡 BETA
 
 The Drive Monitor is a real-time file synchronization system that watches for changes in bot storage buckets and automatically updates the database and runtime configuration.
 

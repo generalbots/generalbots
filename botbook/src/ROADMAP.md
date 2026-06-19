@@ -1,4 +1,4 @@
-# General Bots Roadmap 2018-2026
+# General Bots Roadmap 2018-2026 🟡 BETA
 
 <style>
 .roadmap-btn {

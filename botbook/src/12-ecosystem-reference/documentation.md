@@ -1,4 +1,4 @@
-# Documentation
+# Documentation 🟡 BETA
 
 Good documentation is essential for maintaining and growing botserver. This guide covers documentation standards and practices for contributors.
 

@@ -1,4 +1,4 @@
-# Bank Template
+# Bank Template 🟡 BETA
 
 The bank template provides a complete digital banking assistant for financial institutions, enabling customers to manage accounts, transfers, payments, cards, and investments through conversational AI.
 

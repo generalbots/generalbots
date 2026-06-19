@@ -1,4 +1,4 @@
-# GOTO Keyword
+# GOTO Keyword 🟡 BETA
 
 > ⚠️ **WARNING: GOTO is supported but NOT RECOMMENDED**
 >

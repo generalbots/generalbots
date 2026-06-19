@@ -1,4 +1,4 @@
-# Chapter 11: Hardware & Scaling
+# Chapter 11: Hardware & Scaling 🟡 BETA
 
 This chapter covers hardware requirements and horizontal scaling strategies for General Bots.
 

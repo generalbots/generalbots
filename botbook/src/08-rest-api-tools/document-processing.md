@@ -1,4 +1,4 @@
-# Document Processing API
+# Document Processing API 🟡 BETA
 
 botserver provides RESTful endpoints for processing, extracting, and analyzing various document formats including PDFs, Office documents, and images.
 

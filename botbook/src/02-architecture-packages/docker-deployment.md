@@ -1,4 +1,4 @@
-# Docker Deployment
+# Docker Deployment 🟡 BETA
 
 > **Note**: Docker support is currently **experimental**.
 

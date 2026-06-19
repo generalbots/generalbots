@@ -1,4 +1,4 @@
-# Configuring Local Development Access
+# Configuring Local Development Access 🟡 BETA
 
 After bootstrap, botserver services are immediately accessible via **IP addresses** - no configuration required. For those who prefer friendly hostnames, optional DNS setup is also available.
 

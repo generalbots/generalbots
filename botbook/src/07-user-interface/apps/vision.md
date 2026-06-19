@@ -1,4 +1,4 @@
-# Vision - Image Recognition
+# Vision 🟡 BETA - Image Recognition
 
 > **AI-powered image analysis — OCR, object detection, damage assessment, and license plates**
 

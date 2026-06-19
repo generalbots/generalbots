@@ -19,13 +19,13 @@ use task_api::handlers::*;
 
 pub const TASKS_LIST: &str = "/api/tasks";
 pub const TASKS_CREATE: &str = "/api/tasks";
-pub const TASKS_BY_ID: &str = "/api/tasks/:id";
-pub const TASKS_EXECUTE: &str = "/api/tasks/:id/execute";
-pub const TASKS_CANCEL: &str = "/api/tasks/:id/cancel";
-pub const TASKS_MANIFEST: &str = "/api/tasks/:id/manifest";
-pub const TASKS_CARDS: &str = "/api/tasks/:id/cards";
-pub const TASKS_TERMINAL: &str = "/api/tasks/:id/terminal";
-pub const TASKS_LOG: &str = "/api/tasks/:id/log";
+pub const TASKS_BY_ID: &str = "/api/tasks/{id}";
+pub const TASKS_EXECUTE: &str = "/api/tasks/{id}/execute";
+pub const TASKS_CANCEL: &str = "/api/tasks/{id}/cancel";
+pub const TASKS_MANIFEST: &str = "/api/tasks/{id}/manifest";
+pub const TASKS_CARDS: &str = "/api/tasks/{id}/cards";
+pub const TASKS_TERMINAL: &str = "/api/tasks/{id}/terminal";
+pub const TASKS_LOG: &str = "/api/tasks/{id}/log";
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 

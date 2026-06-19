@@ -1,4 +1,4 @@
-# LIST
+# LIST 🟡 BETA
 
 The `LIST` keyword retrieves a directory listing from the bot's drive storage, returning information about files and subdirectories.
 

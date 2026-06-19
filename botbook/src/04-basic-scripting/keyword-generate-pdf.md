@@ -1,4 +1,4 @@
-# GENERATE PDF
+# GENERATE PDF 🟡 BETA
 
 The `GENERATE PDF` keyword creates PDF documents from HTML templates or Markdown content, enabling bots to produce professional reports, invoices, certificates, and other documents.
 

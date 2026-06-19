@@ -1,4 +1,4 @@
-# Chapter 8: REST API & Tools
+# Chapter 8: REST API & Tools 🟡 BETA
 
 HTTP API endpoints for integrating with botserver.
 

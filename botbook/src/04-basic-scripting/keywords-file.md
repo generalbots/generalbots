@@ -1,4 +1,4 @@
-# File Operations
+# File Operations 🟡 BETA
 
 This section covers keywords for working with files in the bot's storage system. These keywords enable bots to read, write, copy, move, and manage files stored in the bot's drive bucket.
 

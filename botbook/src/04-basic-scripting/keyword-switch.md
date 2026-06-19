@@ -1,4 +1,4 @@
-# SWITCH
+# SWITCH 🟡 BETA
 
 The `SWITCH` statement provides multi-way branching based on a value, allowing clean handling of multiple conditions without nested IF statements.
 

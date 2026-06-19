@@ -1,4 +1,4 @@
-# SAVE
+# SAVE 🟡 BETA
 
 Saves data to a database table using upsert (insert or update) semantics.
 

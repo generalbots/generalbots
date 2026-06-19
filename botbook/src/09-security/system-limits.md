@@ -1,4 +1,4 @@
-# System Limits & Rate Limiting
+# System Limits & Rate Limiting 🟡 BETA
 
 General Bots enforces strict system limits to ensure fair resource usage, prevent abuse, and maintain platform stability for all users.
 

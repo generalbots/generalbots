@@ -546,14 +546,14 @@ fn resolve_source_url(_state: &Arc<dyn BasicRuntime>, session_id: Uuid, source: 
 
     if source.starts_with('/') || source.contains(".gbdrive") {
         let file_url = format!(
-            "/api/drive/file/{}?session={session_id}",
+            "/api/files/download?path={}&session={session_id}",
             urlencoding::encode(source)
         );
         return Ok(file_url);
     }
 
     let file_url = format!(
-        "/api/drive/file/{}?session={session_id}",
+        "/api/files/download?path={}&session={session_id}",
         urlencoding::encode(source)
     );
 

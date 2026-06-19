@@ -1,4 +1,4 @@
-# Attendance CRM Template (attendance-crm.gbai)
+# Attendance CRM Template (attendance-crm.gbai) 🟡 BETA
 
 A hybrid AI + Human support template that combines intelligent bot routing with human attendant management and full CRM automation. This template demonstrates the power of General Bots as an LLM orchestrator for customer service operations.
 

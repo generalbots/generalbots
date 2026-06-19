@@ -1,1 +1,1 @@
-# Local LLM with llama.cpp
+# Local LLM with llama.cpp 🟡 BETA

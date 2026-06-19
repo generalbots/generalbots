@@ -1,4 +1,4 @@
-# Example: Creating a New gbapp Virtual Crate
+# Example: Creating a New gbapp Virtual Crate 🟡 BETA
 
 This guide walks through creating a new gbapp virtual crate called `analytics` that adds analytics capabilities to botserver.
 

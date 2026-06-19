@@ -15,7 +15,7 @@ impl StreamProcessor for XlsxStreamProcessor {
         }
         #[cfg(not(feature = "sheet"))]
         {
-            let _ = (path);
+            let _ = path;
             Err("XLSX extraction requires 'sheet' feature".to_string())
         }
     }

@@ -1,4 +1,4 @@
-# Designer API
+# Designer API 🟡 BETA
 
 > **UI designer for visual bot dialog creation — load, edit, validate, and export `.gbdialog` files through a visual interface.**
 

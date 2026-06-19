@@ -1,4 +1,4 @@
-# FIRST Keyword
+# FIRST Keyword 🟡 BETA
 
 **Syntax**
 

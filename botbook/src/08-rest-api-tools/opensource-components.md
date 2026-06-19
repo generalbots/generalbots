@@ -1,4 +1,4 @@
-# Open Source Components in GeneralBots Installer
+# Open Source Components in GeneralBots Installer 🟡 BETA
 
 This article lists all open-source components integrated into the GeneralBots system through the `PackageManager` installer. Each component is registered automatically and downloaded from verified open-source repositories, ensuring transparency, security, and extensibility throughout the platform.
 

@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod audio;
+pub mod cctv;
 pub mod clip;
 pub mod export;
 pub mod keyframe;

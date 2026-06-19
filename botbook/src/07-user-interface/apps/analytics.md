@@ -1,4 +1,4 @@
-# Analytics - Dashboards
+# Analytics 🟡 BETA - Dashboards
 
 > **Your business intelligence center**
 

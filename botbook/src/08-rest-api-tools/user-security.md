@@ -1,4 +1,4 @@
-# User Security API
+# User Security API 🟡 BETA
 
 botserver provides RESTful endpoints for user management, authentication, authorization, and security features.
 

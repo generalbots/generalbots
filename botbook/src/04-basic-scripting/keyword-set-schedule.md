@@ -1,4 +1,4 @@
-# SET SCHEDULE
+# SET SCHEDULE 🟡 BETA
 
 Schedule a script or task to run at specified times using natural language or cron expressions.
 

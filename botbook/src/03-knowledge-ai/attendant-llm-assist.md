@@ -1,4 +1,4 @@
-# LLM-Assisted Attendant Features
+# LLM-Assisted Attendant Features 🟡 BETA
 
 General Bots provides AI-powered assistance to human attendants during customer conversations. These features help attendants respond faster, more professionally, and with better context awareness.
 

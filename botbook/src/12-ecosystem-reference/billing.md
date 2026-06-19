@@ -1,4 +1,4 @@
-# Subscription & Billing Guide
+# Subscription & Billing Guide 🟡 BETA
 
 This guide covers General Bots' subscription management, billing integration, quota systems, and white-label billing configuration.
 

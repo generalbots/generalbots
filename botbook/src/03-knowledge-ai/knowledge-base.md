@@ -1,4 +1,4 @@
-# Knowledge Base
+# Knowledge Base 🟡 BETA
 
 The Knowledge Base (KB) system enables semantic search and document retrieval for intelligent bot responses.
 

@@ -1,4 +1,4 @@
-# GRAPHQL
+# GRAPHQL 🟡 BETA
 
 The `GRAPHQL` keyword executes GraphQL queries and mutations against external APIs, enabling bots to interact with modern GraphQL-based services.
 

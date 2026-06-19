@@ -1,4 +1,4 @@
-# Slides API
+# Slides API 🟡 BETA
 
 > **API for creating, editing, and managing presentation slides with AI-powered content generation.**
 

@@ -1,4 +1,4 @@
-# DELETE FILE
+# DELETE FILE 🟡 BETA
 
 > **Deprecated:** The `DELETE FILE` keyword has been unified into the [`DELETE`](keyword-delete.md) keyword. Use `DELETE` instead.
 

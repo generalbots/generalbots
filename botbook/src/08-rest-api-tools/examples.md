@@ -1,4 +1,4 @@
-# API Examples
+# API Examples 🟡 BETA
 
 This section provides practical examples of using the botserver REST API in various programming languages and scenarios.
 

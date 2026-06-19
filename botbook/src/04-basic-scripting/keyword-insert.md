@@ -1,4 +1,4 @@
-# INSERT
+# INSERT 🟡 BETA
 
 The `INSERT` keyword adds new records to database tables, enabling bots to store data collected from conversations and integrations.
 

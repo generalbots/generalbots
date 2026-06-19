@@ -1,4 +1,4 @@
-# AI API
+# AI API 🟡 BETA
 
 The AI API provides endpoints for managing AI models, inference, training, and advanced AI operations.
 

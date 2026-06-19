@@ -1,4 +1,4 @@
-# Chapter 9: Security
+# Chapter 9: Security 🟡 BETA
 
 This chapter covers advanced security topics for General Bots.
 

@@ -206,6 +206,8 @@ pub async fn create_app_state(
         }
     }
 
+    botcorepkg::plugin::init_global_registry();
+
     let app_state = Arc::new(AppState {
         #[cfg(feature = "drive")]
         drive: Some(std::sync::Arc::new(drive) as std::sync::Arc<dyn botlib::traits::DriveRepository>),

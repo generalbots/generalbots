@@ -1,4 +1,4 @@
-# POS - Point of Sale
+# POS 🟡 BETA - Point of Sale
 
 > **Retail checkout system with cart management, payment processing, and receipt generation**
 

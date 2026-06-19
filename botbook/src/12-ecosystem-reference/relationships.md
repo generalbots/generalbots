@@ -1,4 +1,4 @@
-# Database Relationships
+# Database Relationships 🟡 BETA
 
 This document describes the relationships between tables in the General Bots database schema.
 

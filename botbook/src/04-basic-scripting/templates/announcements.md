@@ -1,4 +1,4 @@
-# Announcements Template
+# Announcements Template 🟡 BETA
 
 The announcements template provides a company communication system for sharing weekly updates, circulars, and organizational news through an AI-powered conversational interface.
 

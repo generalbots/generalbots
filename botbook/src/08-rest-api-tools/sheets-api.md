@@ -1,4 +1,4 @@
-# Sheets API
+# Sheets API 🟡 BETA
 
 > **Spreadsheet creation, editing, formatting, formulas, charts, collaboration, and real-time synchronization**
 

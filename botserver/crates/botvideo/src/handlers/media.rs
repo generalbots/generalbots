@@ -17,7 +17,7 @@ pub async fn upload_media(
     mut multipart: axum::extract::Multipart,
 ) -> impl IntoResponse {
     let engine = VideoEngine::new(state.conn.clone());
-    let _ = (engine);
+    let _ = engine;
     let upload_dir =
         std::env::var("VIDEO_UPLOAD_DIR").unwrap_or_else(|_| "./uploads/video".to_string());
 

@@ -1,4 +1,4 @@
-# BASIC vs Automation Tools: A Practical Comparison
+# BASIC vs Automation Tools: A Practical Comparison 🟡 BETA
 
 > **Understanding how General Bots BASIC compares to other automation platforms**
 

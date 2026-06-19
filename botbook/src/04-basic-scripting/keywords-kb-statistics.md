@@ -1,4 +1,4 @@
-# KB Statistics Keywords
+# KB Statistics Keywords 🟡 BETA
 
 Knowledge Base Statistics keywords provide real-time information about your Qdrant vector database collections. Use these keywords to monitor document counts, storage usage, and indexing activity.
 

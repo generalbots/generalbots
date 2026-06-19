@@ -1,4 +1,4 @@
-# Admin vs User Views
+# Admin vs User Views 🟡 BETA
 
 The General Bots Suite separates functionality into two distinct interfaces: the **User View** for personal productivity and the **Admin View** for organization management. This separation ensures users only see features relevant to their role while administrators have access to system-wide controls.
 

@@ -1,4 +1,4 @@
-# Sales Pipeline Template
+# Sales Pipeline Template 🟡 BETA
 
 The sales pipeline template provides a complete CRM (Customer Relationship Management) system for managing deals, tracking opportunities through sales stages, and generating revenue forecasts.
 

@@ -1,4 +1,4 @@
-# Infrastructure Design
+# Infrastructure Design 🟡 BETA
 
 This chapter covers the complete infrastructure design for General Bots, including scaling, security, secrets management, observability, and high availability.
 

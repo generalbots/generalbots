@@ -1,4 +1,4 @@
-# Quick Start
+# Quick Start 🟡 BETA
 
 ## Installation in 3 Steps
 

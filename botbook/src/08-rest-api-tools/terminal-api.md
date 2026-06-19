@@ -1,4 +1,4 @@
-# Terminal API
+# Terminal API 🟡 BETA
 
 > **WebSocket-based terminal for interactive shell sessions**
 

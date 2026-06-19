@@ -1,4 +1,4 @@
-# Bot Authentication
+# Bot Authentication 🟡 BETA
 
 This section describes how General Bots handles bot authentication through its session-based architecture. Unlike traditional systems where bots might have independent credentials, General Bots implements a model where bots operate within the context of authenticated user sessions.
 

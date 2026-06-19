@@ -1,4 +1,4 @@
-# Web Crawler Template (crawler.gbai)
+# Web Crawler Template (crawler.gbai) 🟡 BETA
 
 A General Bots template for automated web crawling and content extraction for knowledge base population.
 

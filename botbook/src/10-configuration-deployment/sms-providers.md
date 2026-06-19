@@ -1,4 +1,4 @@
-# SMS Provider Configuration
+# SMS Provider Configuration 🟡 BETA
 
 This guide covers configuration for SMS messaging in General Bots, supporting multiple providers including Twilio, AWS SNS, Vonage, and MessageBird.
 

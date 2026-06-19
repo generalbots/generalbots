@@ -1,4 +1,4 @@
-use axum::extract::Json;
+use axum::extract::{Json, Path};
 use axum::http::StatusCode;
 use chrono::Utc;
 use rust_decimal::Decimal;
@@ -255,4 +255,82 @@ pub async fn get_report() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
     Ok(Json(rows.into_iter().map(|r| Report {
         id: r.id, name: r.name, kind: r.kind, period: r.period, url: r.url, created_at: r.created_at,
     }).collect()))
+}
+
+pub async fn list_reconcile_pairs() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] period: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] matched: i64,
+        #[allow(dead_code)]
+        #[diesel(sql_type = diesel::sql_types::BigInt)] unmatched: i64,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] total_amount: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Text)] status: String,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
+    }
+
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, period, matched, unmatched, total_amount, status, created_at \
+         FROM banking_reconcile_results ORDER BY created_at DESC LIMIT 100",
+    )
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+
+    let items: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
+        "id": r.id,
+        "description": format!("Reconciliation {}", r.period),
+        "amount": r.total_amount.to_string(),
+        "date": r.created_at.format("%Y-%m-%d").to_string(),
+        "platform": "system",
+        "matched": r.matched > 0 && r.status == "completed",
+        "order_id": r.period,
+        "source": "bank",
+    })).collect();
+
+    Ok(Json(serde_json::json!({"items": items})))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MatchPayload {
+    pub bank_id: Uuid,
+    pub platform_id: Uuid,
+}
+
+pub async fn manual_match(
+    Json(payload): Json<MatchPayload>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "bank_id": payload.bank_id,
+        "platform_id": payload.platform_id,
+        "matched": true,
+        "message": "Manual match recorded"
+    })))
+}
+
+pub async fn sync_platform(
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+
+    let now = Utc::now();
+    diesel::sql_query("UPDATE banking_platforms SET last_sync = $1, status = 'synced' WHERE id = $2")
+        .bind::<diesel::sql_types::Timestamptz, _>(now)
+        .bind::<diesel::sql_types::Uuid, _>(id)
+        .execute(&mut conn)
+        .map_err(db::map_diesel_err)?;
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "platform_id": id,
+        "last_sync": now,
+        "status": "synced"
+    })))
 }

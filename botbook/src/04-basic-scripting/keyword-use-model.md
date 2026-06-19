@@ -1,4 +1,4 @@
-# USE MODEL
+# USE MODEL 🟡 BETA
 
 Dynamically switches the LLM model used for AI operations within a script. Enables model routing based on task requirements, cost optimization, or performance needs.
 

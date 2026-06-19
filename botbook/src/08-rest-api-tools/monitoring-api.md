@@ -1,4 +1,4 @@
-# Monitoring API
+# Monitoring API 🟡 BETA
 
 > **Real-time system health, performance metrics, logs, analytics dashboards, and activity tracking.**
 

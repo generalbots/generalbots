@@ -1,4 +1,4 @@
-# Feature System
+# Feature System 🟡 BETA
 
 **Version:** 6.2.0
 

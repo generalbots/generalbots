@@ -1,4 +1,4 @@
-# AGGREGATE
+# AGGREGATE 🟡 BETA
 
 The `AGGREGATE` keyword performs calculations on collections of data, computing sums, counts, averages, and other statistical operations.
 

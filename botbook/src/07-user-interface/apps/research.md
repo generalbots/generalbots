@@ -1,4 +1,4 @@
-# Research - AI Search
+# Research 🟡 BETA - AI Search
 
 > **Your intelligent research assistant**
 

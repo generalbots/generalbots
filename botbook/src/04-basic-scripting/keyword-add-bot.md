@@ -1,4 +1,4 @@
-# ADD BOT Keywords
+# ADD BOT Keywords 🟡 BETA
 
 Dynamically add bots to a session with specific triggers, tools, or schedules.
 

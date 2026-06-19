@@ -1,4 +1,4 @@
-# General Bots Suite - User Manual
+# General Bots Suite - User Manual 🟡 BETA
 
 > **The Complete Productivity Workspace**
 > 

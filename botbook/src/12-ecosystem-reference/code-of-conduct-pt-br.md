@@ -1,4 +1,4 @@
-# Código de Conduta do Convênio do Colaborador
+# Código de Conduta do Convênio do Colaborador 🟡 BETA
 
 ## Nosso Compromisso
 

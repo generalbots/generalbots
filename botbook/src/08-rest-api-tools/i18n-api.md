@@ -1,4 +1,4 @@
-# Internationalization API
+# Internationalization API 🟡 BETA
 
 > **Retrieve available locales and translated strings for the BotServer UI.**
 

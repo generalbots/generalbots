@@ -1,4 +1,4 @@
-# Security Auditing
+# Security Auditing 🟡 BETA
 
 Regular security audits ensure your botserver installation remains protected against known vulnerabilities. This guide covers automated scanning, manual reviews, and best practices.
 

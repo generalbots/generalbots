@@ -1,4 +1,4 @@
-# Calls API
+# Calls API 🟡 BETA
 
 The Calls API provides endpoints for managing voice and video calls, conference rooms, and real-time communication within botserver.
 

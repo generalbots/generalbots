@@ -1,4 +1,4 @@
-# EXIT FOR Keyword
+# EXIT FOR Keyword 🟡 BETA
 
 **Syntax**
 

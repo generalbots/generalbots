@@ -1,4 +1,4 @@
-# start.bas Template
+# start.bas Template 🟡 BETA
 
 The `start.bas` template is the entry point dialog that runs when a user begins a conversation with the bot. It sets up the initial context, loads bot memories, and presents the user with options.
 

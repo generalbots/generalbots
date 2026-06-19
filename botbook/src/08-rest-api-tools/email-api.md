@@ -1,4 +1,4 @@
-# Email API
+# Email API 🟡 BETA
 
 The Email API provides endpoints for email operations including sending, receiving, and managing email accounts through the Stalwart mail server integration.
 

@@ -1,4 +1,4 @@
-# Backup Template
+# Backup Template 🟡 BETA
 
 The backup template provides automated file archiving and restoration capabilities, helping you protect important data with scheduled backups and easy recovery options.
 

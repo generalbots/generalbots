@@ -1,4 +1,4 @@
-# How To: Add Documents to Knowledge Base
+# How To: Add Documents to Knowledge Base 🟡 BETA
 
 > **Tutorial 3 of the Knowledge Base Series**
 >

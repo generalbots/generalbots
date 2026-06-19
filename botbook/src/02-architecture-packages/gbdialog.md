@@ -1,4 +1,4 @@
-# .gbdialog Dialogs
+# .gbdialog Dialogs 🟡 BETA
 
 The [`.gbdialog`](../02-architecture-packages/gbdialog.md) package contains BASIC scripts that define conversation flows, tool integrations, and bot behavior.
 

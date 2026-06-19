@@ -1,4 +1,4 @@
-# .gbot Bot Configuration
+# .gbot Bot Configuration 🟡 BETA
 
 The .gbot package serves as the configuration center for your bot, containing the settings that define how the bot behaves, which AI models it uses, and how it interacts with users. This chapter explains the configuration system and guides you through the available options.
 

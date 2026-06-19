@@ -1,4 +1,4 @@
-# KB STORAGE SIZE
+# KB STORAGE SIZE 🟡 BETA
 
 The `KB STORAGE SIZE` keyword returns the total disk storage used by the bot's knowledge base in megabytes.
 

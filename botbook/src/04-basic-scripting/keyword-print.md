@@ -1,4 +1,4 @@
-# PRINT
+# PRINT 🟡 BETA
 
 Debug output keyword. `PRINT` is an alias for `TALK` - both send messages to the current conversation.
 

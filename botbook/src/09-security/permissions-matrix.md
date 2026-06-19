@@ -1,4 +1,4 @@
-# Permissions Matrix
+# Permissions Matrix 🟡 BETA
 
 This chapter documents the permission system in General Bots, explaining how role-based access control governs what users can do within the platform. Understanding this permission model is essential for administrators configuring access policies and developers building applications that respect security boundaries.
 

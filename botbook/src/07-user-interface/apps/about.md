@@ -1,4 +1,4 @@
-# About - General Bots
+# About 🟡 BETA - General Bots
 
 > **Product information**
 

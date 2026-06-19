@@ -1,4 +1,4 @@
-# Database - Schema Browser
+# Database 🟡 BETA - Schema Browser
 
 > **Browse and edit database tables**
 

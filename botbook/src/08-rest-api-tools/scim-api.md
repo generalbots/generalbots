@@ -1,4 +1,4 @@
-# SCIM API
+# SCIM API 🟡 BETA
 
 > **SCIM 2.0 (System for Cross-domain Identity Management) for automated user and group provisioning.**
 

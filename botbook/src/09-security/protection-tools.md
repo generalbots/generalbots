@@ -1,4 +1,4 @@
-# Security Protection Tools
+# Security Protection Tools 🟡 BETA
 
 The Security Protection module provides comprehensive host-level security through integration with industry-standard Linux security tools. This module allows administrators to manage security audits, rootkit detection, intrusion detection, and malware scanning through the General Bots UI.
 

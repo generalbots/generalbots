@@ -1,4 +1,4 @@
-# Container Deployment (LXC)
+# Container Deployment (LXC) 🟡 BETA
 
 botserver uses LXC (Linux Containers) for isolated component deployment with system-level containerization.
 

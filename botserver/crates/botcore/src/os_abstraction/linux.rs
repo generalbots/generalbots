@@ -40,8 +40,8 @@ impl OsAbstraction for LinuxAbstraction {
         }
         #[cfg(not(unix))]
         {
-            let _ = (path);
-            let _ = (mode);
+            let _ = path;
+            let _ = mode;
             Err("set_permissions not supported on this platform".to_string())
         }
     }
@@ -53,7 +53,7 @@ impl OsAbstraction for LinuxAbstraction {
         }
         #[cfg(not(unix))]
         {
-            let _ = (path);
+            let _ = path;
             Err("set_executable not supported on this platform".to_string())
         }
     }
@@ -65,7 +65,7 @@ impl OsAbstraction for LinuxAbstraction {
         }
         #[cfg(not(unix))]
         {
-            let _ = (path);
+            let _ = path;
             Err("set_readonly_owner not supported on this platform".to_string())
         }
     }

@@ -1,4 +1,4 @@
-# ML API
+# ML API 🟡 BETA
 
 The ML API provides endpoints for machine learning operations, model training, and predictive analytics.
 

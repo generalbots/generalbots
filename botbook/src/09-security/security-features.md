@@ -1,4 +1,4 @@
-# General Bots Security Features Guide
+# General Bots Security Features Guide 🟡 BETA
 
 ## Overview
 

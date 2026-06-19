@@ -1,4 +1,4 @@
-# Products API
+# Products API 🟡 BETA
 
 > **Inventory and product catalog management with stock tracking, price lists, and movement history.**
 

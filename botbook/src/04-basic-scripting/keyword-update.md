@@ -1,4 +1,4 @@
-# UPDATE
+# UPDATE 🟡 BETA
 
 The `UPDATE` keyword modifies existing records in database tables, enabling bots to change stored data based on conditions.
 

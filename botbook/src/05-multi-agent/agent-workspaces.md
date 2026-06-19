@@ -1,4 +1,4 @@
-# Agent Workspaces
+# Agent Workspaces 🟡 BETA
 
 General Bots supports an advanced "Agent Mode" UI where the interaction with an AI agent shifts from a simple chat interface to a fully realized multi-panel workspace. This design empowers users to monitor complex autonomous tasks in real-time, providing deep visibility into what the AI is doing.
 

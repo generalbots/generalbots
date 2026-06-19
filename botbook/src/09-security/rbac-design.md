@@ -1,4 +1,4 @@
-# RBAC & Security Design
+# RBAC & Security Design 🟡 BETA
 
 This document describes the Role-Based Access Control (RBAC) system and security architecture for General Bots.
 

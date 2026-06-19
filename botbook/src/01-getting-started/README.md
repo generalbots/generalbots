@@ -1,4 +1,4 @@
-# Chapter 01: Run and Talk
+# Chapter 01: Run and Talk 🟡 BETA
 
 > **⚡ In a hurry?** Jump straight to [Quick Start](./quick-start.md) — you'll be chatting with your bot in 5 minutes.
 

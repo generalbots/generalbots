@@ -1,4 +1,4 @@
-# Attendant - Human Agent Console
+# Attendant 🟡 BETA - Human Agent Console
 
 > **AI-assisted customer support**
 

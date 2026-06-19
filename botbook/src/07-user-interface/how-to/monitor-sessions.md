@@ -1,4 +1,4 @@
-# How To: Monitor Your Bot
+# How To: Monitor Your Bot 🟡 BETA
 
 > **Tutorial 12 of the Analytics & Monitoring Series**
 >

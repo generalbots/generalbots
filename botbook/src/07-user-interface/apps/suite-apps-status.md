@@ -1,4 +1,4 @@
-# Suite Apps — Documentation Coverage Status
+# Suite Apps — Documentation Coverage Status 🟡 BETA
 
 This page tracks which Suite applications have documentation in the botbook and their current status.
 

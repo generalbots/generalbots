@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 
-/// GET /groups/:group_id/kbs — returns an HTML fragment for the Knowledge Bases tab
+/// GET /groups/{group_id}/kbs — returns an HTML fragment for the Knowledge Bases tab
 pub async fn get_group_kbs(
     State(state): State<Arc<AppState>>,
     Path(group_id_str): Path<String>,
@@ -199,7 +199,7 @@ pub async fn get_group_kbs(
     }
 }
 
-/// POST /groups/:group_id/kbs/toggle/:kb_id — toggles KB access for a group
+/// POST /groups/{group_id}/kbs/toggle/{kb_id} — toggles KB access for a group
 pub async fn toggle_group_kb(
     State(state): State<Arc<AppState>>,
     Path((group_id_str, kb_id_str)): Path<(String, String)>,

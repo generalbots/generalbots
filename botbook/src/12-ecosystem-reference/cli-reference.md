@@ -1,4 +1,4 @@
-# CLI Reference
+# CLI Reference 🟡 BETA
 
 botserver provides a command-line interface for managing components, secrets, and services.
 

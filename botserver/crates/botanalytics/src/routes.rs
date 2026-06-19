@@ -33,7 +33,7 @@ pub fn create_goals_api_router(state: (Arc<DbPool>, GetBotContextFn)) -> Router 
     }
     #[cfg(not(feature = "goals"))]
     {
-        let _ = (state);
+        let _ = state;
         Router::new()
     }
 }
@@ -46,7 +46,7 @@ pub fn create_goals_ui_router(state: (Arc<DbPool>, GetDefaultBotFn)) -> Router {
     }
     #[cfg(not(feature = "goals"))]
     {
-        let _ = (state);
+        let _ = state;
         Router::new()
     }
 }

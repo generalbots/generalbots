@@ -1,4 +1,4 @@
-# Script Execution Flow & Entry Points
+# Script Execution Flow & Entry Points 🟡 BETA
 
 Understanding how General Bots BASIC scripts are loaded, compiled, and executed is essential for building effective automation. This document covers the complete execution lifecycle.
 

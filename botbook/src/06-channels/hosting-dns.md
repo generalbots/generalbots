@@ -1,4 +1,4 @@
-# Hosting, DNS, and MDA Integration
+# Hosting, DNS, and MDA Integration 🟡 BETA
 
 General Bots integrates with hosting providers, DNS services, and Mail Delivery Agents (MDA) for complete platform deployment.
 
@@ -78,14 +78,57 @@ records = DNS LIST "example.com"
 
 General Bots runs on any Linux VPS:
 
-| Provider | Minimum Spec | Recommended |
-|----------|--------------|-------------|
-| DigitalOcean | 2GB RAM, 1 vCPU | 4GB RAM, 2 vCPU |
-| Linode | 2GB RAM, 1 vCPU | 4GB RAM, 2 vCPU |
-| Vultr | 2GB RAM, 1 vCPU | 4GB RAM, 2 vCPU |
-| Hetzner | 2GB RAM, 2 vCPU | 4GB RAM, 2 vCPU |
-| AWS EC2 | t3.small | t3.medium |
-| GCP | e2-small | e2-medium |
+| Provider | Minimum Spec | Recommended | GPU Available |
+|----------|--------------|-------------|---------------|
+| DigitalOcean | 2GB RAM, 1 vCPU | 4GB RAM, 2 vCPU | ❌ |
+| Linode | 2GB RAM, 1 vCPU | 4GB RAM, 2 vCPU | ❌ |
+| Vultr | 2GB RAM, 1 vCPU | 4GB RAM, 2 vCPU | ✅ (3060, A100) |
+| Hetzner | 2GB RAM, 2 vCPU | 4GB RAM, 2 vCPU | ❌ |
+| AWS EC2 | t3.small | t3.medium | ✅ (g4dn, p3) |
+| GCP | e2-small | e2-medium | ✅ (L4, A100) |
+
+### GPU / AI Accelerator Providers
+
+For LLM inference, image generation, and multimodal AI workloads requiring GPU acceleration:
+
+| Provider | GPU Options | API | Best For | Pricing |
+|----------|-------------|-----|----------|---------|
+| **RunPod** | RTX 3060, RTX 4090, A100, H100 | ✅ Complete REST API | Serverless GPU endpoints, persistent instances | Pay-per-second, competitive |
+| **Vast.ai** | RTX 3060–4090, A100, H100, custom | ✅ REST API | Budget GPU rentals, marketplace pricing | Cheapest RTX 3060 |
+| **Vultr** | RTX 3060, A100 | ✅ Mature cloud API | Global coverage (32 DCs), quick deployments | Hourly billing |
+| **Contabo** | Mid-tier GPUs | ❌ Limited API | Entry-level GPU dedicated servers | Low monthly rates |
+
+#### RunPod
+
+RunPod provides the most comprehensive REST API for GPU compute, supporting:
+- **Serverless endpoints** — Deploy models without managing infrastructure
+- **Persistent GPU instances** — Full SSH access, persistent storage
+- **Template management** — Pre-built and custom templates
+- **Real-time logs and monitoring** — Stream logs during execution
+- **Billing API** — Track usage and costs programmatically
+
+```bash
+# RunPod API example: list available GPU pods
+curl -H "Authorization: Bearer $RUNPOD_API_KEY" \
+  https://api.runpod.io/v2/pods
+```
+
+#### Vast.ai
+
+A GPU marketplace with the lowest entry prices, suitable for batch processing and experimentation:
+- Marketplace pricing (rent from other users' hardware)
+- Docker-based deployment
+- Automatic port forwarding and SSH access
+- Weaker uptime SLAs than dedicated providers
+
+#### Configuration
+
+Add GPU provider credentials to `config.csv`:
+```csv
+runpod-api-key, your-key-here
+vastai-api-key, your-key-here
+vultr-api-key, your-key-here
+```
 
 ### LXC Container Deployment
 

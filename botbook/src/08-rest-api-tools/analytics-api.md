@@ -1,4 +1,4 @@
-# Analytics API
+# Analytics API 🟡 BETA
 
 The Analytics API provides endpoints for tracking, analyzing, and reporting on bot usage and performance metrics.
 

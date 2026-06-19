@@ -1,4 +1,4 @@
-# Template Variables
+# Template Variables 🟡 BETA
 
 Templates support variable substitution using double curly braces `{{variable_name}}`. Variables are replaced at send time with values from the provided data object.
 

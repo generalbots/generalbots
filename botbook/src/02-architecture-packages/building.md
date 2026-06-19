@@ -1,4 +1,4 @@
-# Building from Source
+# Building from Source 🟡 BETA
 
 This guide covers building botserver from source, including dependencies, feature flags, and platform-specific considerations.
 

@@ -1,4 +1,4 @@
-# KB LIST COLLECTIONS
+# KB LIST COLLECTIONS 🟡 BETA
 
 The `KB LIST COLLECTIONS` keyword returns a list of all knowledge base collection names associated with the current bot.
 

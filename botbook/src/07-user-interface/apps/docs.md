@@ -1,4 +1,4 @@
-# Docs - AI Writing
+# Docs 🟡 BETA - AI Writing
 
 > **Intelligent document editor**
 
@@ -75,6 +75,32 @@ Docs is the AI-powered document editor in General Bots Suite. Create, format, an
 | Fix Grammar | Correct grammar and spelling |
 | Change Tone | Adjust formality level |
 | Translate | Translate to another language |
+
+### Real-Time Collaboration (2026-06)
+
+| Feature | Before | After |
+|---------|--------|-------|
+| Text sync | Full innerHTML replacement (cursor jumping) | Delta-based operational transformation |
+| Cursor position | Reset on every remote keystroke | Stable, in-place updates |
+| Remote edits | Visible only after full page redraw | Applied as precise range insertions/deletions |
+
+### Print Layout (2026-06)
+
+| Feature | Status |
+|---------|--------|
+| Page breaks | ✅ A4/Letter page containers with dynamic content flow |
+| Headers & Footers | ✅ Per-section header/footer editing |
+| Page count | ✅ Live page count displayed in status bar |
+| Margins | ✅ Configurable page margins |
+
+### Document Structure (2026-06)
+
+| Feature | Status |
+|---------|--------|
+| Table of Contents | ✅ Auto-generated from heading hierarchy, auto-updating |
+| Footnotes | ✅ Insert/edit/delete with sequential numbering |
+| Endnotes | ✅ Insert/edit/delete with sequential numbering |
+| Paragraph styles | ✅ Create/apply/update/delete custom styles |
 
 ---
 

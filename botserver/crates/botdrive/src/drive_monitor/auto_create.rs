@@ -29,7 +29,7 @@ pub async fn ensure_bot_exists(
     // alternativo para uso programático.
     // TODO(#506): Implementar query direta: SELECT EXISTS(SELECT 1 FROM bots WHERE name = $1)
     // Se false: INSERT INTO bots (id, name, org_id, created_at) VALUES (gen_random_uuid(), $1, $2, NOW())
-    let _ = (bot_name);
+    let _ = bot_name;
     Ok(false)
 }
 

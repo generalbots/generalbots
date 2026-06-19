@@ -1,4 +1,4 @@
-# Multi-Agent Orchestration
+# Multi-Agent Orchestration 🟡 BETA
 
 General Bots supports sophisticated multi-agent systems where multiple specialized bots collaborate to handle complex tasks. This chapter covers the architecture, keywords, and best practices for building multi-agent solutions.
 

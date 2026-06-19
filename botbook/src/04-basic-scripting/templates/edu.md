@@ -1,4 +1,4 @@
-# Education Template
+# Education Template 🟡 BETA
 
 The education template provides a comprehensive educational institution assistant that helps students and staff with enrollment, course management, schedules, grades, tuition information, and academic support.
 

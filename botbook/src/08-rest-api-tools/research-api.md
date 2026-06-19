@@ -1,4 +1,4 @@
-# Research API
+# Research API 🟡 BETA
 
 > **API for managing research collections, web search, content summarization, and deep research workflows.**
 

@@ -1,4 +1,4 @@
-# Dev Chat Widget
+# Dev Chat Widget 🟡 BETA
 
 > **Test Your App Without Leaving the Page**
 

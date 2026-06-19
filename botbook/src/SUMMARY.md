@@ -1,4 +1,4 @@
-# Summary
+# Summary 🟡 BETA
 
 [Executive Vision](./executive-vision.md)
 [Roadmap 2024-2026](./ROADMAP.md)
@@ -40,8 +40,9 @@
    - [.gbkb Knowledge Base](./02-architecture-packages/gbkb.md)
    - [.gbot Bot Configuration](./02-architecture-packages/gbot.md)
    - [.gbtheme UI Theming](./02-architecture-packages/gbtheme.md)
-   - [.gbdrive File Storage](./02-architecture-packages/gbdrive.md)
-   - [Templates Overview](./02-architecture-packages/templates.md)
+    - [.gbdrive File Storage](./02-architecture-packages/gbdrive.md)
+    - [Dynamic Plugin Manifest](./02-architecture-packages/dynamic-plugin-manifest.md)
+    - [Templates Overview](./02-architecture-packages/templates.md)
    - [Template: BI](./02-architecture-packages/template-bi.md)
    - [Template: Web Crawler](./02-architecture-packages/template-crawler.md)
    - [Template: CRM](./02-architecture-packages/template-crm.md)
@@ -57,14 +58,16 @@
    - [Document Indexing](./03-knowledge-ai/indexing.md)
    - [Semantic Search](./03-knowledge-ai/semantic-search.md)
    - [Episodic Memory](./03-knowledge-ai/episodic-memory.md)
-   - [Semantic Caching](./03-knowledge-ai/caching.md)
-   - [AI and LLM Integration](./03-knowledge-ai/ai-llm.md)
+    - [Semantic Caching](./03-knowledge-ai/caching.md)
+    - [AI Sheet Cache](./03-knowledge-ai/ai-sheet-cache.md)
+    - [AI and LLM Integration](./03-knowledge-ai/ai-llm.md)
    - [Hybrid RAG Search](./03-knowledge-ai/hybrid-search.md)
    - [Memory Management](./03-knowledge-ai/memory-management.md)
    - [Conversation Management](./03-knowledge-ai/conversation.md)
    - [Automation](./03-knowledge-ai/automation.md)
-   - [Email Integration](./03-knowledge-ai/email.md)
-   - [Transfer to Human](./03-knowledge-ai/transfer-to-human.md)
+    - [Email Integration](./03-knowledge-ai/email.md)
+    - [Intelligent Email Triaging](./03-knowledge-ai/intelligent-email-triaging.md)
+    - [Transfer to Human](./03-knowledge-ai/transfer-to-human.md)
    - [LLM-Assisted Attendant](./03-knowledge-ai/attendant-llm-assist.md)
 
 ---
@@ -145,8 +148,9 @@
 - [Chapter 6: Channels & Connectivity](./06-channels/README.md)
    - [Channel Integrations](./06-channels/channels.md)
    - [Service Catalog](./06-channels/catalog.md)
-   - [WhatsApp Quick Start](./06-channels/whatsapp-quick-start.md)
-   - [WhatsApp Webhooks](./06-channels/whatsapp-webhooks.md)
+    - [WhatsApp Quick Start](./06-channels/whatsapp-quick-start.md)
+    - [WhatsApp Admin Automation](./06-channels/whatsapp-admin-automation.md)
+    - [WhatsApp Webhooks](./06-channels/whatsapp-webhooks.md)
    - [Teams Channel](./06-channels/teams-channel.md)
    - [SMS Providers](./06-channels/sms-providers.md)
    - [Attendance Queue](./06-channels/attendance-queue.md)
@@ -312,7 +316,8 @@
    - [Knowledge Base Permissions](./09-security/kb-permissions.md)
    - [SOC 2 Compliance](./09-security/soc2-compliance.md)
    - [Security Matrix Reference](./09-security/security-matrix.md)
-   - [Endpoint Security Checklist](./09-security/endpoint-checklist.md)
+    - [Endpoint Security Checklist](./09-security/endpoint-checklist.md)
+    - [Enterprise Agent Governance](./09-security/enterprise-agent-governance.md)
 
 ---
 

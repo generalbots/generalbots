@@ -1,4 +1,4 @@
-# Billing API
+# Billing API 🟡 BETA
 
 > **Invoicing, payments, quotes, tax rates, and recurring billing management.**
 

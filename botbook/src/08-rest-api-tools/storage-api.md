@@ -1,4 +1,4 @@
-# Storage API
+# Storage API 🟡 BETA
 
 botserver provides a RESTful API for managing file storage and object management through its S3-compatible storage backend.
 

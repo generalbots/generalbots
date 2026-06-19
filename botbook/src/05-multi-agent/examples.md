@@ -1,4 +1,4 @@
-# Examples
+# Examples 🟡 BETA
 
 Real-world applications built through natural conversation.
 

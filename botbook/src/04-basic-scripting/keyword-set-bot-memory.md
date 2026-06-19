@@ -1,4 +1,4 @@
-# SET BOT MEMORY
+# SET BOT MEMORY 🟡 BETA
 
 Store persistent key-value data at the bot level that persists across all conversations.
 

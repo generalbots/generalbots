@@ -1,4 +1,4 @@
-# Dashboards API
+# Dashboards API 🟡 BETA
 
 > **Endpoints for creating, managing, and querying custom dashboards with configurable widgets and data sources.**
 

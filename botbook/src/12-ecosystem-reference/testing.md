@@ -1,4 +1,4 @@
-# Testing
+# Testing 🟡 BETA
 
 botserver follows comprehensive testing practices to ensure reliability, performance, and maintainability of the codebase.
 

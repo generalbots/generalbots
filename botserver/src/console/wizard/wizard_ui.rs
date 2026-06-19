@@ -11,7 +11,7 @@ use super::wizard_core::{ComponentChoice, StartupWizard};
 
 impl StartupWizard {
     pub(super) fn show_welcome(&self, stdout: &mut io::Stdout) -> io::Result<()> {
-        let _ = (self); // kept for API consistency
+        let _ = self; // kept for API consistency
         execute!(
             stdout,
             terminal::Clear(ClearType::All),
@@ -128,7 +128,7 @@ impl StartupWizard {
         options: &[(&str, &str, T)],
         default: usize,
     ) -> io::Result<usize> {
-        let _ = (self); // kept for API consistency
+        let _ = self; // kept for API consistency
         let mut selected = default;
         let start_row = 10;
 
@@ -187,7 +187,7 @@ impl StartupWizard {
         stdout: &mut io::Stdout,
         options: &[(ComponentChoice, bool, bool)],
     ) -> io::Result<Vec<ComponentChoice>> {
-        let _ = (self); // kept for API consistency
+        let _ = self; // kept for API consistency
         let mut selected: Vec<bool> = options.iter().map(|(_, s, _)| *s).collect();
         let mut cursor = 0;
         let start_row = 10;
@@ -267,7 +267,7 @@ impl StartupWizard {
     }
 
     pub(super) fn wait_for_enter(&self) -> io::Result<()> {
-        let _ = (self); // kept for API consistency
+        let _ = self; // kept for API consistency
         loop {
             if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 if code == KeyCode::Enter {

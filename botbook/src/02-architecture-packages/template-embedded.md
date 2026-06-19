@@ -1,4 +1,4 @@
-# Template: Embedded Devices
+# Template: Embedded Devices 🟡 BETA
 
 Ready-to-use templates for home automation, IoT projects, and embedded displays. Copy these templates to your `.gbdialog` folder and customize.
 

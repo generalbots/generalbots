@@ -1,4 +1,4 @@
-# .gbtheme UI Theming
+# .gbtheme UI Theming 🟡 BETA
 
 The .gbtheme package provides visual customization for your bot's web interface through straightforward CSS-based theming. This approach prioritizes simplicity—you create CSS files that override default styles, without needing complex build tools, template engines, or JavaScript frameworks.
 

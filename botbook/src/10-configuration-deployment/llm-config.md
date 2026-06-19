@@ -1,4 +1,4 @@
-# LLM Configuration
+# LLM Configuration 🟡 BETA
 
 Configuration for Language Model integration in botserver, supporting both local GGUF models and external API services.
 

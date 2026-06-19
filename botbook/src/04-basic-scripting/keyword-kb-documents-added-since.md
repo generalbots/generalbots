@@ -1,4 +1,4 @@
-# KB DOCUMENTS ADDED SINCE
+# KB DOCUMENTS ADDED SINCE 🟡 BETA
 
 The `KB DOCUMENTS ADDED SINCE` keyword returns the count of documents added to the knowledge base within a specified number of days, useful for tracking ingestion activity and monitoring growth.
 

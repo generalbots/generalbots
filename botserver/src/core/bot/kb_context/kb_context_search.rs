@@ -274,6 +274,38 @@ async fn search_qdrant_by_keyword(
     Ok(all_points)
 }
 
+#[cfg(any(feature = "research", feature = "llm"))]
+pub async fn search_keyword_only(
+    collection_name: &str,
+    query: &str,
+    limit: usize,
+) -> Vec<KbSearchResult> {
+    let client = match reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            warn!("Failed to build HTTP client for keyword search: {e}");
+            return Vec::new();
+        }
+    };
+    let qdrant_url = get_vectordb_url();
+    let api_key = get_vectordb_api_key();
+    search_qdrant_by_keyword(&client, &qdrant_url, collection_name, query, limit, &api_key)
+        .await
+        .unwrap_or_default()
+}
+
+#[cfg(not(any(feature = "research", feature = "llm")))]
+pub async fn search_keyword_only(
+    _collection_name: &str,
+    _query: &str,
+    _limit: usize,
+) -> Vec<KbSearchResult> {
+    Vec::new()
+}
+
 #[cfg(not(any(feature = "research", feature = "llm")))]
 pub async fn search_qdrant(
     _collection_name: &str,

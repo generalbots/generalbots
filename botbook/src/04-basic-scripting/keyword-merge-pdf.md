@@ -1,4 +1,4 @@
-# MERGE PDF
+# MERGE PDF 🟡 BETA
 
 The `MERGE PDF` keyword combines multiple PDF files into a single document, enabling bots to consolidate reports, compile documents, and create comprehensive file packages.
 

@@ -1,4 +1,4 @@
-# Video API
+# Video API 🟡 BETA
 
 > **API for video project management, editing, scene composition, AI-powered enhancement, and export.**
 

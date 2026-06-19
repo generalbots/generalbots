@@ -1,4 +1,4 @@
-# Security API
+# Security API 🟡 BETA
 
 The Security API provides endpoints for security management, access control, and threat monitoring.
 

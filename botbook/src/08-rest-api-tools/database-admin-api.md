@@ -1,4 +1,4 @@
-# Database Admin API
+# Database Admin API 🟡 BETA
 
 > **Advanced database administration: schema inspection, data manipulation, and direct queries**
 

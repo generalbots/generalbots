@@ -1,4 +1,4 @@
-# Suite Apps
+# Suite Apps 🟡 BETA
 
 > **Everything you need, all in one place**
 

@@ -1,4 +1,4 @@
-# Password Security
+# Password Security 🟡 BETA
 
 General Bots delegates all password security to the Directory Service (currently Zitadel, can be migrated to Keycloak), an enterprise-grade identity management platform. No passwords are ever stored, hashed, or managed within General Bots itself.
 

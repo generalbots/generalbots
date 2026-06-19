@@ -1,4 +1,4 @@
-# Service Catalog
+# Service Catalog 🟡 BETA
 
 This catalog provides detailed information about every external service that General Bots integrates with.
 

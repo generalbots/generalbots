@@ -1,4 +1,4 @@
-# DELEGATE TO BOT
+# DELEGATE TO BOT 🟡 BETA
 
 Delegates a task or message to another bot in a multi-agent system. This enables agent-to-agent communication using the A2A (Agent-to-Agent) protocol.
 

@@ -1,4 +1,4 @@
-# Pull Requests
+# Pull Requests 🟡 BETA
 
 This guide covers the pull request process for contributing to botserver, from creation to merge. Understanding this process helps ensure your contributions are reviewed efficiently and merged successfully.
 

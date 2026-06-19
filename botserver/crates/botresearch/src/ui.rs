@@ -382,7 +382,7 @@ pub fn configure_research_ui_routes<S: ResearchState>() -> Router<Arc<S>> {
         .route("/suite/research", get(handle_research_list_page::<S>))
         .route("/suite/research/new", get(handle_research_new_page::<S>))
         .route(
-            "/suite/research/:id",
+            "/suite/research/{id}",
             get(handle_research_detail_page::<S>),
         )
 }

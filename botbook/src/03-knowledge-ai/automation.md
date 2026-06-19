@@ -1,4 +1,4 @@
-# Automation
+# Automation 🟡 BETA
 
 This chapter explains how botserver enables bots to perform scheduled and event-driven tasks without requiring direct user interaction. Through automation capabilities, bots can proactively maintain content, process data, and respond to system events, transforming them from reactive assistants into active participants in organizational workflows.
 

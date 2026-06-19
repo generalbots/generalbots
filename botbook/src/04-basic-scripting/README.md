@@ -1,4 +1,4 @@
-# Chapter 4: BASIC Scripting
+# Chapter 4: BASIC Scripting 🟡 BETA
 
 ## Why BASIC?
 

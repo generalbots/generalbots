@@ -1,4 +1,4 @@
-# WRITE
+# WRITE 🟡 BETA
 
 The `WRITE` keyword saves content to files in the bot's drive storage, enabling bots to create documents, export data, and persist information.
 

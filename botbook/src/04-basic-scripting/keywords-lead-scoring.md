@@ -1,4 +1,4 @@
-# Lead Scoring Keywords
+# Lead Scoring Keywords 🟡 BETA
 
 General Bots includes native lead scoring capabilities through BASIC keywords, enabling automated lead qualification, AI-enhanced scoring, and CRM integration directly from conversational flows.
 

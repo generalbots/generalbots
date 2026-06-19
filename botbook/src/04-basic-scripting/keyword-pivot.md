@@ -1,4 +1,4 @@
-# PIVOT
+# PIVOT 🟡 BETA
 
 Transforms rows into columns, creating a cross-tabulation summary of data.
 

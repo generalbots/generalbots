@@ -1,4 +1,4 @@
-# CARD
+# CARD 🟡 BETA
 
 Creates beautiful Instagram-style social media posts by combining AI-generated images with optimized text overlays.
 

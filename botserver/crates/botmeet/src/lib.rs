@@ -69,87 +69,87 @@ pub fn configure() -> Router<Arc<AppState>> {
             post(conversations::create_conversation),
         )
         .route(
-            "/conversations/:id/join",
+            "/conversations/{id}/join",
             post(conversations::join_conversation),
         )
         .route(
-            "/conversations/:id/leave",
+            "/conversations/{id}/leave",
             post(conversations::leave_conversation),
         )
         .route(
-            "/conversations/:id/members",
+            "/conversations/{id}/members",
             get(conversations::get_conversation_members),
         )
         .route(
-            "/conversations/:id/messages",
+            "/conversations/{id}/messages",
             get(conversations::get_conversation_messages),
         )
         .route(
-            "/conversations/:id/messages/send",
+            "/conversations/{id}/messages/send",
             post(conversations::send_message),
         )
         .route(
-            "/conversations/:id/messages/:message_id/edit",
+            "/conversations/{id}/messages/{message_id}/edit",
             post(conversations::edit_message),
         )
         .route(
-            "/conversations/:id/messages/:message_id/delete",
+            "/conversations/{id}/messages/{message_id}/delete",
             post(conversations::delete_message),
         )
         .route(
-            "/conversations/:id/messages/:message_id/react",
+            "/conversations/{id}/messages/{message_id}/react",
             post(conversations::react_to_message),
         )
         .route(
-            "/conversations/:id/messages/:message_id/pin",
+            "/conversations/{id}/messages/{message_id}/pin",
             post(conversations::pin_message),
         )
         .route(
-            "/conversations/:id/messages/search",
+            "/conversations/{id}/messages/search",
             get(conversations::search_messages),
         )
         .route(
-            "/conversations/:id/calls/start",
+            "/conversations/{id}/calls/start",
             post(conversations::start_call),
         )
         .route(
-            "/conversations/:id/calls/join",
+            "/conversations/{id}/calls/join",
             post(conversations::join_call),
         )
         .route(
-            "/conversations/:id/calls/leave",
+            "/conversations/{id}/calls/leave",
             post(conversations::leave_call),
         )
         .route(
-            "/conversations/:id/calls/mute",
+            "/conversations/{id}/calls/mute",
             post(conversations::mute_call),
         )
         .route(
-            "/conversations/:id/calls/unmute",
+            "/conversations/{id}/calls/unmute",
             post(conversations::unmute_call),
         )
         .route(
-            "/conversations/:id/screen/share",
+            "/conversations/{id}/screen/share",
             post(conversations::start_screen_share),
         )
         .route(
-            "/conversations/:id/screen/stop",
+            "/conversations/{id}/screen/stop",
             post(conversations::stop_screen_share),
         )
         .route(
-            "/conversations/:id/recording/start",
+            "/conversations/{id}/recording/start",
             post(conversations::start_recording),
         )
         .route(
-            "/conversations/:id/recording/stop",
+            "/conversations/{id}/recording/stop",
             post(conversations::stop_recording),
         )
         .route(
-            "/conversations/:id/whiteboard/create",
+            "/conversations/{id}/whiteboard/create",
             post(conversations::create_whiteboard),
         )
         .route(
-            "/conversations/:id/whiteboard/collaborate",
+            "/conversations/{id}/whiteboard/collaborate",
             post(conversations::collaborate_whiteboard),
         )
         .route(

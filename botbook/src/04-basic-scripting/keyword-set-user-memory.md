@@ -1,4 +1,4 @@
-# SET USER MEMORY
+# SET USER MEMORY 🟡 BETA
 
 Persists data at the user level, accessible across sessions and bots. Unlike `SET BOT MEMORY` which stores data per-bot, user memory follows the user wherever they go.
 

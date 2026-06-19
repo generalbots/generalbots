@@ -1,4 +1,4 @@
-# Tool Format
+# Tool Format 🟡 BETA
 
 botserver generates OpenAI-compatible function definitions from BASIC scripts, enabling integration with OpenAI's function calling API.
 

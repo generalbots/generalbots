@@ -1,4 +1,4 @@
-# Configuration Management
+# Configuration Management 🟡 BETA
 
 Configuration in General Bots is designed to be simple and transparent. Each bot uses a `config.csv` file for settings, with additional environment variables for system-level configuration.
 

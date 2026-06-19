@@ -1,4 +1,4 @@
-# GROUP BY
+# GROUP BY 🟡 BETA
 
 Groups data by specified columns and optionally applies aggregate functions.
 

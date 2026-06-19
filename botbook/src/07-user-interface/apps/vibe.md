@@ -1,4 +1,4 @@
-# Vibe — AI Development Environment
+# Vibe — AI Development Environment 🟡 BETA
 
 > **Chat-driven coding, deployment, and infrastructure management**
 

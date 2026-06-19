@@ -14,7 +14,7 @@
             <input
                 type="search"
                 placeholder="Search files..."
-                hx-get="/api/drive/list"
+                hx-get="/api/files/list"
                 hx-trigger="keyup changed delay:300ms"
                 hx-target="#file-list"
                 hx-swap="innerHTML"
@@ -27,7 +27,7 @@
                 <h3>Recent</h3>
                 <div
                     id="recent-files"
-                    hx-get="/api/drive/list?filter=recent&types=media"
+                    hx-get="/api/files/list?filter=recent&types=media"
                     hx-trigger="load"
                     hx-swap="innerHTML"
                 >
@@ -76,7 +76,7 @@
                 </div>
                 <div
                     id="file-list"
-                    hx-get="/api/drive/list?types=media"
+                    hx-get="/api/files/list?types=media"
                     hx-trigger="load, fileUploaded from:body"
                     hx-swap="innerHTML"
                 >
@@ -1110,7 +1110,7 @@
         });
 
         const typeParam = type === "all" ? "media" : type;
-        htmx.ajax("GET", `/api/drive/list?types=${typeParam}`, {
+        htmx.ajax("GET", `/api/files/list?types=${typeParam}`, {
             target: "#file-list",
             swap: "innerHTML",
         });

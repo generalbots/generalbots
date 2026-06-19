@@ -1,4 +1,4 @@
-# Reminder Template (reminder.gbai)
+# Reminder Template (reminder.gbai) 🟡 BETA
 
 A General Bots template for managing personal and team reminders with multi-channel notifications.
 

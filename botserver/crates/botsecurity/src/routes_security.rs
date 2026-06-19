@@ -17,12 +17,12 @@ where
 {
     Router::new()
         .route("/api/security/kyc/profiles", post(create_kyc_profile))
-        .route("/api/security/kyc/profiles/:id", get(get_kyc_profile))
-        .route("/api/security/kyc/profiles/:id/checks", post(run_kyc_check))
+        .route("/api/security/kyc/profiles/{id}", get(get_kyc_profile))
+        .route("/api/security/kyc/profiles/{id}/checks", post(run_kyc_check))
         .route("/api/security/biometric/verify", post(verify_biometric))
         .route("/api/security/signatures/requests", post(create_signature_request))
-        .route("/api/security/signatures/requests/:id/complete", post(complete_signature))
-        .route("/api/security/signatures/:id/validate", get(validate_signature))
+        .route("/api/security/signatures/requests/{id}/complete", post(complete_signature))
+        .route("/api/security/signatures/{id}/validate", get(validate_signature))
 }
 
 #[derive(Debug, Serialize, Deserialize)]

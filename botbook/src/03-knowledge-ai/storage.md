@@ -1,4 +1,4 @@
-# Storage and Data
+# Storage and Data 🟡 BETA
 
 This chapter explains how botserver organizes and manages data across its multiple storage layers. Understanding this architecture helps you make informed decisions about where to store different types of information and how to optimize storage performance for your deployment.
 

@@ -190,7 +190,7 @@ async fn get_supported_formats(
 pub fn configure_player_routes() -> Router<Arc<dyn DriveStore>> {
     Router::new()
         .route("/api/player/formats", get(get_supported_formats))
-        .route("/api/player/:bot_id/info/*path", get(get_file_info))
-        .route("/api/player/:bot_id/stream/*path", get(stream_file))
-        .route("/api/player/:bot_id/thumbnail/*path", get(get_thumbnail))
+        .route("/api/player/{bot_id}/info/*path", get(get_file_info))
+        .route("/api/player/{bot_id}/stream/*path", get(stream_file))
+        .route("/api/player/{bot_id}/thumbnail/*path", get(get_thumbnail))
 }

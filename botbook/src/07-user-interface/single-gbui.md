@@ -1,4 +1,4 @@
-# single.gbui - Simplified Chat Interface
+# single.gbui - Simplified Chat Interface 🟡 BETA
 
 The `single.gbui` template provides a streamlined, single-page chat interface focused on conversation without distractions.
 

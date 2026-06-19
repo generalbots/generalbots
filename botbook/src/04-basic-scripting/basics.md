@@ -1,4 +1,4 @@
-# Dialog Basics
+# Dialog Basics 🟡 BETA
 
 BASIC dialogs in General Bots are designed for the LLM era - you write tools and context setters, not complex conversation flows.
 

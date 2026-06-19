@@ -1,4 +1,4 @@
-# Legal / LGPD API
+# Legal / LGPD API 🟡 BETA
 
 > **LGPD (Lei Geral de Proteção de Dados) compliance — consent management, cookie policy, legal document hosting, and GDPR data subject rights.**
 

@@ -1,4 +1,4 @@
-# Autonomous Task AI
+# Autonomous Task AI 🟡 BETA
 
 > **The Machine Does the Work**
 

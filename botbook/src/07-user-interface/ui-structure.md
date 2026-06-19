@@ -1,4 +1,4 @@
-# UI Structure
+# UI Structure 🟡 BETA
 
 The botserver UI system provides two interface implementations designed for different deployment scenarios. Choose the right interface based on your use case and performance requirements.
 

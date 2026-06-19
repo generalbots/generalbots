@@ -1,4 +1,4 @@
-# Conversations API
+# Conversations API 🟡 BETA
 
 The Conversations API provides endpoints for managing chat conversations, message history, and real-time communication.
 

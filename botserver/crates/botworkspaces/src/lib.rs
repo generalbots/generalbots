@@ -3774,6 +3774,58 @@ pub async fn search_results(
     ))
 }
 
+fn resolve_current_workspace_id(state: &WorkspacesState) -> Uuid {
+    let Ok(mut conn) = state.pool.get() else { return Uuid::nil(); };
+    let (org_id, bot_id) = ui_get_bot_context(state);
+    aiworkspaces::table
+        .filter(aiworkspaces::org_id.eq(org_id))
+        .filter(aiworkspaces::bot_id.eq(bot_id))
+        .select(aiworkspaces::id)
+        .first(&mut conn)
+        .unwrap_or(Uuid::nil())
+}
+
+async fn workspace_current_detail(State(state): State<Arc<WorkspacesState>>) -> Html<String> {
+    let id = resolve_current_workspace_id(&state);
+    workspace_detail(State(state), Path(id)).await
+}
+
+async fn workspace_current_pages(State(state): State<Arc<WorkspacesState>>) -> Html<String> {
+    let id = resolve_current_workspace_id(&state);
+    ui_workspace_pages(State(state), Path(id), Query(UiPageListQuery { parent_id: None })).await
+}
+
+async fn workspace_current_members(State(state): State<Arc<WorkspacesState>>) -> Html<String> {
+    let id = resolve_current_workspace_id(&state);
+    ui_workspace_members(State(state), Path(id)).await
+}
+
+async fn workspace_current_settings(State(state): State<Arc<WorkspacesState>>) -> Html<String> {
+    let id = resolve_current_workspace_id(&state);
+    workspace_settings(State(state), Path(id)).await
+}
+
+async fn workspace_current_search(State(state): State<Arc<WorkspacesState>>, Query(query): Query<UiListQuery>) -> Html<String> {
+    let id = resolve_current_workspace_id(&state);
+    search_results(State(state), Path(id), Query(query)).await
+}
+
+async fn workspace_current_page_new(State(state): State<Arc<WorkspacesState>>, Query(query): Query<UiPageListQuery>) -> Html<String> {
+    let id = resolve_current_workspace_id(&state);
+    new_page_form(State(state), Path(id), Query(query)).await
+}
+
+async fn workspace_current_page_create(
+    State(state): State<Arc<WorkspacesState>>,
+    Json(req): Json<CreatePageRequest>,
+) -> axum::response::Html<String> {
+    let id = resolve_current_workspace_id(&state);
+    match create_page(State(state), Path(id), Json(req)).await {
+        Ok(page) => axum::response::Html(format!("<div class='page-item' data-page-id='{}'>{}</div>", page.id, html_escape(&page.title))),
+        Err(_) => axum::response::Html("<div class='error'>Failed to create page</div>".to_string()),
+    }
+}
+
 pub fn configure_workspaces_ui_routes() -> Router<Arc<WorkspacesState>> {
     Router::new()
         .route("/api/ui/workspaces", get(workspace_list))
@@ -3781,11 +3833,28 @@ pub fn configure_workspaces_ui_routes() -> Router<Arc<WorkspacesState>> {
         .route("/api/ui/workspaces/count", get(workspace_count))
         .route("/api/ui/workspaces/new", get(new_workspace_form))
         .route("/api/ui/workspaces/{workspace_id}", get(workspace_detail))
-        .route("/api/ui/workspaces/{workspace_id}/pages", get(ui_workspace_pages))
+        .route("/api/ui/workspaces/{workspace_id}/pages", get(ui_workspace_pages).post(workspace_ui_create_page))
         .route("/api/ui/workspaces/{workspace_id}/pages/new", get(new_page_form))
         .route("/api/ui/workspaces/{workspace_id}/members", get(ui_workspace_members))
         .route("/api/ui/workspaces/{workspace_id}/members/add", get(add_member_form))
         .route("/api/ui/workspaces/{workspace_id}/settings", get(workspace_settings))
         .route("/api/ui/workspaces/{workspace_id}/search", get(search_results))
         .route("/api/ui/pages/{page_id}", get(page_detail))
+        .route("/api/ui/workspaces/current", get(workspace_current_detail))
+        .route("/api/ui/workspaces/current/pages", get(workspace_current_pages).post(workspace_current_page_create))
+        .route("/api/ui/workspaces/current/pages/new", get(workspace_current_page_new))
+        .route("/api/ui/workspaces/current/members", get(workspace_current_members))
+        .route("/api/ui/workspaces/current/settings", get(workspace_current_settings))
+        .route("/api/ui/workspaces/current/search", get(workspace_current_search))
+}
+
+async fn workspace_ui_create_page(
+    State(state): State<Arc<WorkspacesState>>,
+    Path(workspace_id): Path<Uuid>,
+    Json(req): Json<CreatePageRequest>,
+) -> axum::response::Html<String> {
+    match create_page(State(state), Path(workspace_id), Json(req)).await {
+        Ok(page) => axum::response::Html(format!("<div class='page-item' data-page-id='{}'>{}</div>", page.id, html_escape(&page.title))),
+        Err(_) => axum::response::Html("<div class='error'>Failed to create page</div>".to_string()),
+    }
 }

@@ -1,4 +1,4 @@
-# Adding Dependencies
+# Adding Dependencies 🟡 BETA
 
 botserver is a single-crate Rust application, so all dependencies are managed through the root `Cargo.toml` file. This guide covers how to add, update, and manage dependencies effectively.
 

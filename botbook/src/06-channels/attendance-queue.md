@@ -1,4 +1,4 @@
-# Attendance Queue Module
+# Attendance Queue Module 🟡 BETA
 
 Human-attendant queue management for hybrid bot/human support workflows, plus CRM automations for follow-ups, collections, scheduling, and sales.
 

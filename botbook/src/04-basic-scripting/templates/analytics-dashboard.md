@@ -1,4 +1,4 @@
-# Analytics Dashboard Template
+# Analytics Dashboard Template 🟡 BETA
 
 The analytics dashboard template provides real-time insights into your knowledge base performance, document statistics, and system health metrics. It uses pre-computed statistics stored in bot memory for fast loading.
 

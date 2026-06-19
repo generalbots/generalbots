@@ -1,4 +1,4 @@
-# Automation Scripts
+# Automation Scripts 🟡 BETA
 
 High-level approaches to automate migration from cloud services to self-hosted infrastructure.
 

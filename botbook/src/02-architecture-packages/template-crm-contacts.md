@@ -1,4 +1,4 @@
-# CRM Contacts Template
+# CRM Contacts Template 🟡 BETA
 
 The CRM Contacts template provides a complete contact management solution with natural language interface. Users can add, search, update, and manage contacts through conversational interactions.
 

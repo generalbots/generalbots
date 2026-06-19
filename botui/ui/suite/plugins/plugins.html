@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Plugin Manager</title>
+    <script src="/suite/js/htmx.min.js"></script>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;color:#1a1a1a}
+        .container{max-width:1200px;margin:0 auto;padding:24px}
+        .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+        .header h1{font-size:28px;font-weight:600}
+        .btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+        .btn-primary{background:#0066cc;color:#fff}.btn-primary:hover{background:#0052a3}
+        .btn-outline{background:transparent;border:1px solid #0066cc;color:#0066cc}.btn-outline:hover{background:#e8f4ff}
+        .btn-danger{background:#dc3545;color:#fff}.btn-danger:hover{background:#b02a37}
+        .btn-sm{padding:6px 12px;font-size:12px}
+        #plugin-list{display:grid;gap:16px}
+        .plugin-card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+        .plugin-card.active{border-left:4px solid #28a745}
+        .plugin-card.inactive{border-left:4px solid #dc3545}
+        .plugin-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+        .plugin-info{display:flex;align-items:center;gap:10px}
+        .plugin-name{font-size:16px;font-weight:600}
+        .plugin-version{font-size:12px;color:#888;background:#f0f0f0;padding:2px 8px;border-radius:12px}
+        .plugin-status{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500}
+        .plugin-status.active{background:#d4edda;color:#155724}
+        .plugin-status.inactive{background:#f8d7da;color:#721c24}
+        .plugin-desc{font-size:14px;color:#555;margin-bottom:12px;line-height:1.4}
+        .plugin-meta{display:flex;gap:16px;margin-bottom:12px;font-size:12px;color:#888}
+        .meta-item{background:#f5f5f5;padding:2px 8px;border-radius:4px}
+        .plugin-functions{background:#fafafa;border-radius:8px;padding:12px;margin-bottom:12px}
+        .plugin-functions h4{font-size:13px;color:#333;margin-bottom:8px}
+        .func-item{padding:8px;border-bottom:1px solid #eee;font-size:13px}
+        .func-item:last-child{border-bottom:none}
+        .func-name{font-family:monospace;color:#0066cc;font-weight:500}
+        .func-desc{color:#666;margin-left:8px}
+        .func-params{color:#999;font-size:12px;margin-left:8px}
+        .plugin-actions{display:flex;gap:8px;padding-top:12px;border-top:1px solid #eee}
+        .empty-state{text-align:center;padding:60px 24px;color:#666;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+        .empty-state h3{margin-bottom:8px;color:#1a1a1a}
+        .file-input{display:none}
+        .nav-bar{display:flex;gap:12px;margin-bottom:24px}
+        .nav-link{color:#0066cc;text-decoration:none;font-size:14px;padding:6px 12px;border-radius:6px;border:1px solid transparent}
+        .nav-link:hover{background:#e8f4ff}
+        .nav-link.active{border-color:#0066cc;font-weight:600}
+        .alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:14px}
+        .alert-warning{background:#fff3cd;color:#856404;border:1px solid #ffeeba}
+        .alert-success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <a href="/suite/designer" class="nav-link">&larr; Designer</a>
+            <a href="/suite/plugins" class="nav-link active">Plugins</a>
+        </div>
+        <div class="header">
+            <h1>Plugin Manager</h1>
+            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                Upload Manifest
+            </button>
+            <input type="file" id="fileInput" class="file-input" accept=".json"
+                   onchange="uploadManifest(this)">
+        </div>
+        <div id="plugin-list" hx-get="/api/ui/plugins" hx-trigger="load">
+            <div style="text-align:center;padding:40px;color:#888">Loading plugins...</div>
+        </div>
+    </div>
+    <script>
+        function uploadManifest(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('manifest', file);
+            fetch('/api/ui/plugins/upload', {
+                method: 'POST',
+                body: formData
+            }).then(r => r.text()).then(html => {
+                document.getElementById('plugin-list').outerHTML = html;
+                htmx.process(document.body);
+            }).catch(e => alert('Upload failed: ' + e.message));
+            input.value = '';
+        }
+    </script>
+</body>
+</html>

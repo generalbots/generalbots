@@ -1,4 +1,4 @@
-# Reports API
+# Reports API 🟡 BETA
 
 The Reports API provides endpoints for generating, managing, and exporting various types of reports from bot data and analytics.
 

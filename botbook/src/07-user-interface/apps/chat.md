@@ -1,4 +1,4 @@
-# Chat - AI Assistant
+# Chat 🟢 GA - AI Assistant
 
 > **Your intelligent conversation partner**
 

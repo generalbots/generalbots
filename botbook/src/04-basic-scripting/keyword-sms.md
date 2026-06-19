@@ -1,4 +1,4 @@
-# SEND SMS
+# SEND SMS 🟡 BETA
 
 Send SMS text messages to phone numbers using various providers with optional priority levels.
 

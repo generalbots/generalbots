@@ -1,4 +1,4 @@
-# Broadcast Template
+# Broadcast Template 🟡 BETA
 
 The broadcast template enables mass messaging to contact lists, perfect for announcements, marketing campaigns, and bulk notifications through WhatsApp and other channels.
 

@@ -1,4 +1,4 @@
-# Architecture Overview
+# Architecture Overview 🟡 BETA
 
 botserver follows a modular architecture designed for scalability, maintainability, and extensibility. Each module handles specific responsibilities and communicates through well-defined interfaces. This chapter provides a comprehensive tour of the system architecture and how components work together.
 

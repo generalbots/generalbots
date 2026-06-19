@@ -1,4 +1,4 @@
-# Universal Messaging & Multi-Channel
+# Universal Messaging & Multi-Channel 🟡 BETA
 
 botserver automatically handles conversations across different channels (Web, WhatsApp, Email, etc.) using the same BASIC scripts. Write once, deploy everywhere.
 

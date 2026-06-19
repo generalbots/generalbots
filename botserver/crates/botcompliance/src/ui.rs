@@ -530,5 +530,5 @@ pub fn configure_compliance_ui_routes() -> Router<Arc<DbPool>> {
     Router::new()
         .route("/suite/compliance", get(handle_compliance_dashboard_page))
         .route("/suite/compliance/issues", get(handle_compliance_issues_page))
-        .route("/suite/compliance/issues/:id", get(handle_compliance_issue_detail_page))
+        .route("/suite/compliance/issues/{id}", get(handle_compliance_issue_detail_page))
 }

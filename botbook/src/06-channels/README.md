@@ -1,4 +1,4 @@
-# Chapter 6: Channels & Connectivity
+# Chapter 6: Channels & Connectivity 🟡 BETA
 
 This chapter catalogs all external services that General Bots integrates with.
 

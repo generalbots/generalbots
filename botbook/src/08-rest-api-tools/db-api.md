@@ -1,4 +1,4 @@
-# Database API
+# Database API 🟡 BETA
 
 > **Generic CRUD API for direct database table operations**
 

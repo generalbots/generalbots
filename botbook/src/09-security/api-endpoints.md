@@ -1,4 +1,4 @@
-# API Endpoints
+# API Endpoints 🟡 BETA
 
 This chapter provides a comprehensive reference for the API endpoints exposed by General Bots. The platform offers RESTful endpoints for authentication, session management, user operations, and bot interactions, as well as WebSocket connections for real-time communication.
 

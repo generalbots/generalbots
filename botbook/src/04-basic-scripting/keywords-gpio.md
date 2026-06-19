@@ -1,4 +1,4 @@
-# GPIO & IoT Keywords
+# GPIO & IoT Keywords 🟡 BETA
 
 Control hardware directly from BASIC dialogs. These keywords work on Raspberry Pi, Orange Pi, and other SBCs running botserver.
 

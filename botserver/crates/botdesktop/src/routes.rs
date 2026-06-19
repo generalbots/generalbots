@@ -93,7 +93,7 @@ pub async fn list_connections(State(state): State<AppState>) -> impl IntoRespons
 }
 
 // ---------------------------------------------------------------------------
-// GET /connections/:id — single connection detail
+// GET /connections/{id} — single connection detail
 // ---------------------------------------------------------------------------
 
 pub async fn get_connection(
@@ -110,7 +110,7 @@ pub async fn get_connection(
 }
 
 // ---------------------------------------------------------------------------
-// DELETE /connections/:id — terminate a connection
+// DELETE /connections/{id} — terminate a connection
 // ---------------------------------------------------------------------------
 
 pub async fn delete_connection(
@@ -159,7 +159,7 @@ pub async fn health_check_tcp(
 }
 
 // ---------------------------------------------------------------------------
-// GET /ws/:session_id — WebSocket proxy endpoint
+// GET /ws/{session_id} — WebSocket proxy endpoint
 // ---------------------------------------------------------------------------
 
 pub async fn ws_proxy_handler(

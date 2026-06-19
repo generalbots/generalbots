@@ -219,7 +219,7 @@
   function showPromptDetail(promptId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("GET", `/api/sources/prompts/${promptId}`, {
+        .ajax("GET", `/api/ui/sources/prompts/${promptId}`, {
           target: "#prompt-detail-panel",
           swap: "innerHTML",
         })
@@ -237,7 +237,7 @@
   function usePrompt(promptId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("POST", `/api/sources/prompts/${promptId}/use`, {
+        .ajax("POST", `/api/ui/sources/prompts/${promptId}/use`, {
           swap: "none",
         })
         .then(() => {
@@ -253,7 +253,7 @@
   function copyPrompt(promptId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("GET", `/api/sources/prompts/${promptId}/content`, {
+        .ajax("GET", `/api/ui/sources/prompts/${promptId}/content`, {
           swap: "none",
         })
         .then((response) => {
@@ -441,7 +441,7 @@
     // Fetch matching repos and apps
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("GET", `/api/sources/mentions?q=${encodeURIComponent(query)}`, {
+        .ajax("GET", `/api/ui/sources/mentions?q=${encodeURIComponent(query)}`, {
           swap: "none",
         })
         .then((response) => {
@@ -628,7 +628,7 @@
   function showRepoDetail(repoId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("GET", `/api/sources/repositories/${repoId}`, {
+        .ajax("GET", `/api/ui/sources/repositories/${repoId}`, {
           target: "#repo-detail-panel",
           swap: "innerHTML",
         })
@@ -646,7 +646,7 @@
   function connectRepo(repoId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("POST", `/api/sources/repositories/${repoId}/connect`, {
+        .ajax("POST", `/api/ui/sources/repositories/${repoId}/connect`, {
           swap: "none",
         })
         .then(() => {
@@ -667,7 +667,7 @@
     if (confirm("Disconnect this repository?")) {
       if (typeof htmx !== "undefined") {
         htmx
-          .ajax("DELETE", `/api/sources/repositories/${repoId}/connect`, {
+          .ajax("DELETE", `/api/ui/sources/repositories/${repoId}/connect`, {
             swap: "none",
           })
           .then(() => {
@@ -687,7 +687,7 @@
   function browseRepo(repoId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("GET", `/api/sources/repositories/${repoId}/files`, {
+        .ajax("GET", `/api/ui/sources/repositories/${repoId}/files`, {
           target: "#repo-browser-panel",
           swap: "innerHTML",
         })
@@ -705,7 +705,7 @@
   function showAppDetail(appId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("GET", `/api/sources/apps/${appId}`, {
+        .ajax("GET", `/api/ui/sources/apps/${appId}`, {
           target: "#app-detail-panel",
           swap: "innerHTML",
         })
@@ -740,7 +740,7 @@
   function showServerDetail(serverId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("GET", `/api/sources/mcp-servers/${serverId}`, {
+        .ajax("GET", `/api/ui/sources/mcp-servers/${serverId}`, {
           target: "#server-detail-panel",
           swap: "innerHTML",
         })
@@ -758,7 +758,7 @@
   function showModelDetail(modelId) {
     if (typeof htmx !== "undefined") {
       htmx
-        .ajax("GET", `/api/sources/models/${modelId}`, {
+        .ajax("GET", `/api/ui/sources/models/${modelId}`, {
           target: "#model-detail-panel",
           swap: "innerHTML",
         })
@@ -940,7 +940,7 @@
     }
 
     try {
-      const response = await fetch("/api/skills/install", {
+      const response = await fetch("/api/ui/skills/install", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: skillId, bot_id: botId }),

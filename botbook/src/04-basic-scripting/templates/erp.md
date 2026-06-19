@@ -1,4 +1,4 @@
-# ERP Template
+# ERP Template 🟡 BETA
 
 The ERP (Enterprise Resource Planning) template provides comprehensive inventory management, purchasing, and warehouse operations through a conversational AI interface.
 

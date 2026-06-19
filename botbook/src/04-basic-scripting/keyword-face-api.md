@@ -1,4 +1,4 @@
-# Face API Keywords
+# Face API Keywords 🟡 BETA
 
 General Bots provides face detection and analysis capabilities through BASIC keywords that integrate with Azure Face API and other providers.
 

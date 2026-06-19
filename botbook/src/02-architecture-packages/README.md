@@ -1,4 +1,4 @@
-# Chapter 2: Architecture & Packages
+# Chapter 2: Architecture & Packages 🟡 BETA
 
 Architecture and deployment reference for developers.
 

@@ -1,4 +1,4 @@
-# Privacy Template
+# Privacy Template 🟡 BETA
 
 The privacy template provides a complete LGPD/GDPR/CCPA-compliant Privacy Rights Center, enabling users to exercise their data protection rights through a conversational interface.
 

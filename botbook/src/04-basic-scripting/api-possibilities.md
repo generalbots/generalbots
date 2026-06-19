@@ -1,4 +1,4 @@
-# API Possibilities
+# API Possibilities 🟡 BETA
 
 Your bot can connect to hundreds of external services. This chapter shows what's possible when you integrate APIs into your bot conversations.
 

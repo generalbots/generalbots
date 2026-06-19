@@ -1,4 +1,4 @@
-# Chapter 7: User Interface
+# Chapter 7: User Interface 🟡 BETA
 
 Customize your bot's appearance and build complete productivity suites.
 

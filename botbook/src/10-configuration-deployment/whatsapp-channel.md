@@ -1,4 +1,4 @@
-# WhatsApp Channel Configuration
+# WhatsApp Channel Configuration 🟡 BETA
 
 This guide covers setting up WhatsApp Business API as a communication channel for your General Bots deployment, enabling bots to interact with users on WhatsApp.
 

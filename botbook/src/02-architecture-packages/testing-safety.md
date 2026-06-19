@@ -1,4 +1,4 @@
-# Testing and Safety Tooling
+# Testing and Safety Tooling 🟡 BETA
 
 This guide covers advanced testing and safety tools for General Bots development, including formal verification, undefined behavior detection, and memory safety analysis.
 

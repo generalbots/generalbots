@@ -1,4 +1,4 @@
-# General Bots Security Policy
+# General Bots Security Policy 🟡 BETA
 
 ## Overview
 

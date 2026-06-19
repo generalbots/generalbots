@@ -21,7 +21,7 @@ pub mod database;
 pub mod db;
 pub mod ui_fragments;
 
-use axum::routing::{get, post, put, delete};
+use axum::routing::{get, post, put, delete, patch};
 use axum::Router;
 
 pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
@@ -69,7 +69,9 @@ pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
         // banking
         .route("/api/banking/transactions", get(banking::list_transactions).post(banking::create_transaction))
         .route("/api/banking/platforms", get(banking::list_platforms))
-        .route("/api/banking/reconcile", post(banking::reconcile))
+        .route("/api/banking/reconcile", get(banking::list_reconcile_pairs).post(banking::reconcile))
+        .route("/api/banking/reconcile/match", post(banking::manual_match))
+        .route("/api/banking/platforms/{id}/sync", post(banking::sync_platform))
         .route("/api/banking/reports", get(banking::get_report))
         // sales
         .route("/api/sales/deals", get(sales::list_deals).post(sales::create_deal))
@@ -109,6 +111,8 @@ pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
         .route("/api/minutes/transcripts", get(minutes::list_transcripts))
         .route("/api/minutes/documents", get(minutes::list_documents))
         .route("/api/minutes/documents/{id}", put(minutes::update_document))
+        .route("/api/minutes/forms/meeting/start/{id}", post(minutes::start_meeting))
+        .route("/api/minutes/forms/meeting/{id}", patch(minutes::update_meeting))
         // templates
         .route("/api/templates/list", get(templates_app::list_templates))
         .route("/api/templates/preview/{id}", get(templates_app::preview_template))

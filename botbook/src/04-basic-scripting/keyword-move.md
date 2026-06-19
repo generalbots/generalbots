@@ -1,4 +1,4 @@
-# MOVE
+# MOVE 🟡 BETA
 
 The `MOVE` keyword relocates or renames files within the bot's drive storage.
 

@@ -1,4 +1,4 @@
-# API Reference
+# API Reference 🟡 BETA
 
 Complete API reference for the AutoTask system. All endpoints require authentication.
 

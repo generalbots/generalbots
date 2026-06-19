@@ -68,7 +68,7 @@ pub fn evaluate_pivotby(expr: &str, worksheet: &Worksheet) -> Option<String> {
         let val: f64 = value_data.get(i).and_then(|v| v.parse().ok()).unwrap_or(0.0);
         out.push(format!("{}|{}|{}", row_key, col_key, format_number(val)));
     }
-    let _ = (agg);
+    let _ = agg;
     Some(out.join(","))
 }
 

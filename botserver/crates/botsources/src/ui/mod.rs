@@ -101,7 +101,7 @@ grid.innerHTML = '<div class="empty-state"><h3>Failed to load sources</h3></div>
 }
 
 async function loadMcpServers() {
-const response = await fetch('/api/ui/sources/mcp');
+const response = await fetch('/api/sources/mcp');
 const data = await response.json();
 const servers = data.data || data.servers || data || [];
 renderMcpServers(Array.isArray(servers) ? servers : []);
@@ -198,7 +198,7 @@ grid.innerHTML = apps.map(a => `
 
 async function testServer(name) {
 try {
-const response = await fetch('/api/ui/sources/mcp/' + encodeURIComponent(name) + '/test', { method: 'POST' });
+const response = await fetch('/api/sources/mcp/' + encodeURIComponent(name) + '/test', { method: 'POST' });
 const data = await response.json();
 alert(data.success ? 'Server is working!' : 'Server test failed');
 } catch (e) { alert('Failed to test server: ' + e.message); }
@@ -207,7 +207,7 @@ alert(data.success ? 'Server is working!' : 'Server test failed');
 async function toggleServer(name, enable) {
 try {
 const endpoint = enable ? 'enable' : 'disable';
-await fetch('/api/ui/sources/mcp/' + encodeURIComponent(name) + '/' + endpoint, { method: 'POST' });
+await fetch('/api/sources/mcp/' + encodeURIComponent(name) + '/' + endpoint, { method: 'POST' });
 loadSources();
 } catch (e) { alert('Failed to toggle server: ' + e.message); }
 }

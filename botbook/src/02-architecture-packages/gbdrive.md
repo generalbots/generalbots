@@ -1,4 +1,4 @@
-# .gbdrive File Storage
+# .gbdrive File Storage 🟡 BETA
 
 The .gbdrive system provides centralized file storage for all bot packages, leveraging S3-compatible object storage to deliver reliable, scalable storage infrastructure. This chapter explains how file storage works, how files are organized, and how to interact with stored content.
 

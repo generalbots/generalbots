@@ -1,4 +1,4 @@
-# How To: Connect WhatsApp
+# How To: Connect WhatsApp 🟡 BETA
 
 > **Tutorial 5 of the Channels Series**
 >

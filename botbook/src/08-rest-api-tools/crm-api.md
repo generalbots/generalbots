@@ -1,4 +1,4 @@
-# CRM / Contacts API
+# CRM / Contacts API 🟡 BETA
 
 > **Contact, account, lead, opportunity, and deal management with full pipeline visibility**
 

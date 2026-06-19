@@ -1,4 +1,4 @@
-# EXTRACT
+# EXTRACT 🟡 BETA
 
 The `EXTRACT` keyword unpacks ZIP archives to a specified destination in the bot's storage, enabling bots to process uploaded archives and access their contents.
 

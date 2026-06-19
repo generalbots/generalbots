@@ -1,4 +1,4 @@
-# BASIC Execution Modes: RUNTIME vs WORKFLOW
+# BASIC Execution Modes: RUNTIME vs WORKFLOW 🟡 BETA
 
 General Bots BASIC scripts run in one of two execution modes. The mode is selected by a pragma at the top of the `.bas` file.
 

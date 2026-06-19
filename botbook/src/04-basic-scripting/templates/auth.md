@@ -1,4 +1,4 @@
-# Authentication Template
+# Authentication Template 🟡 BETA
 
 The authentication template demonstrates secure user verification flows including login, registration, password validation, and session management.
 

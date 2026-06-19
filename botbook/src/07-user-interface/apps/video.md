@@ -1,4 +1,4 @@
-# Video - AI Monitoring
+# Video 🟡 BETA - AI Monitoring
 
 > **AI-powered camera monitoring**
 

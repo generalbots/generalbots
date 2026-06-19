@@ -409,5 +409,5 @@ pub fn configure_dashboards_ui_routes() -> Router<Arc<DashboardsState>> {
     Router::new()
         .route("/suite/dashboards", get(handle_dashboards_list_page))
         .route("/suite/dashboards/new", get(handle_dashboard_new_page))
-        .route("/suite/dashboards/:id", get(handle_dashboard_detail_page))
+        .route("/suite/dashboards/{id}", get(handle_dashboard_detail_page))
 }

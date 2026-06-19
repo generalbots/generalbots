@@ -1,4 +1,4 @@
-# Weather API Integration
+# Weather API Integration 🟡 BETA
 
 The `WEATHER` and `FORECAST` keywords provide real-time weather information and multi-day forecasts using the OpenWeatherMap API.
 

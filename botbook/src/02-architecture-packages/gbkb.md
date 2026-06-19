@@ -1,4 +1,4 @@
-# .gbkb Knowledge Base
+# .gbkb Knowledge Base 🟡 BETA
 
 The `.gbkb` package contains your bot's domain knowledge - documents that the AI uses to answer questions accurately about your specific organization, products, or services.
 

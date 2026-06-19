@@ -1,4 +1,4 @@
-# GET Keyword Integration
+# GET Keyword Integration 🟡 BETA
 
 The `GET` keyword in botserver provides file retrieval capabilities from both local filesystem and drive (S3-compatible) storage, enabling tools to access documents, data files, and other resources.
 

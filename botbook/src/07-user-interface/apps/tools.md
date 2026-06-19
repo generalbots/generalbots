@@ -1,4 +1,4 @@
-# Tools - Security
+# Tools 🟡 BETA - Security
 
 > **Security dashboard & compliance**
 

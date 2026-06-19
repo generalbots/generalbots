@@ -1,4 +1,4 @@
-# Sharding Architecture
+# Sharding Architecture 🟡 BETA
 
 This document describes how General Bots distributes data across multiple database shards for horizontal scaling.
 

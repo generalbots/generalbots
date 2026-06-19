@@ -1,4 +1,4 @@
-# Integrations - Connector Platform
+# Integrations 🟡 BETA - Connector Platform
 
 > **Connect external services**
 

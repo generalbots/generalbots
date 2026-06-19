@@ -1,4 +1,4 @@
-# User Context vs System Context
+# User Context vs System Context 🟡 BETA
 
 This chapter explains the two execution contexts in General Bots: User Context and System Context. Understanding these contexts is essential for building secure, properly scoped bot interactions.
 

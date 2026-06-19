@@ -1,4 +1,4 @@
-# Role-Based Access Control (RBAC) Overview
+# Role-Based Access Control (RBAC) Overview 🟡 BETA
 
 General Bots implements a comprehensive **Role-Based Access Control (RBAC)** system designed as a secure, enterprise-grade alternative to Microsoft 365 / Google Workspace permission models. This system provides fine-grained access control across all suite applications.
 

@@ -1,4 +1,4 @@
-# Paper - AI Writing
+# Paper 🟡 BETA - AI Writing
 
 > **Your intelligent document editor**
 

@@ -1,4 +1,4 @@
-# Multimodal Module
+# Multimodal Module 🟡 BETA
 
 Image, video, and audio generation with vision/captioning capabilities.
 

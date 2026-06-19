@@ -1,4 +1,4 @@
-# GET BOT MEMORY
+# GET BOT MEMORY 🟡 BETA
 
 Retrieve persistent key-value data stored at the bot level.
 

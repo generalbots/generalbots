@@ -1,4 +1,4 @@
-# Theme Structure
+# Theme Structure 🟡 BETA
 
 The **gbtheme** package is simply CSS files that style the bot's UI. Themes don't include HTML or JavaScript - they only control appearance.
 

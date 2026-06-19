@@ -1,4 +1,4 @@
-# Scaling and Load Balancing
+# Scaling and Load Balancing 🟡 BETA
 
 General Bots is designed to scale from a single instance to a distributed cluster using LXC containers. This chapter covers auto-scaling, load balancing, sharding strategies, and failover systems.
 

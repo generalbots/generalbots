@@ -1,4 +1,4 @@
-# AI Search Template
+# AI Search Template 🟡 BETA
 
 The AI Search template provides an intelligent document search bot that uses AI to answer questions based on your uploaded documents. It combines vector search with large language models for accurate, context-aware responses.
 

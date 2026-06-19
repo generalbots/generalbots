@@ -134,7 +134,7 @@ pub async fn send_whatsapp_message(
                 .ok();
             }
 
-            let _ = (media_type);
+            let _ = media_type;
             Ok(WhatsAppSendResult {
                 success: false,
                 message_id: None,

@@ -1,4 +1,4 @@
-# Platform Capabilities
+# Platform Capabilities 🟡 BETA
 
 General Bots provides a unique combination of capabilities that differentiate it from other AI platforms. This document outlines what makes General Bots suitable for organizations seeking customizable, self-hosted AI automation.
 

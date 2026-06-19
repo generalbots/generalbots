@@ -310,6 +310,36 @@ pub struct AuthenticatedUser {
     pub is_super_admin: bool,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct MeetingResolveRequest {
+    pub subject: String,
+    pub proposed_start: String,
+    pub proposed_end: String,
+    pub organizer: String,
+    pub attendees: Vec<String>,
+    pub calendar_id: Option<String>,
+    pub body: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct MeetingResolveResponse {
+    pub has_conflicts: bool,
+    pub conflicts: Vec<String>,
+    pub suggested_alternatives: Vec<String>,
+    pub reply_draft: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RefineDraftRequest {
+    pub draft: String,
+    pub instruction: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RefineDraftResponse {
+    pub draft: String,
+}
+
 pub struct EmailTrackingParams<'a> {
     pub tracking_id: Uuid,
     pub account_id: Uuid,
