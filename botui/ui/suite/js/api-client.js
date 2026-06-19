@@ -19,15 +19,13 @@
    * Get the current auth token from storage
    */
   function getAuthToken() {
-    // Try localStorage first (persistent login)
-    let token = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (token) return token;
+    // Try GBSecurity first (closure + sessionStorage fallback)
+    if (window.getGBAccessToken) {
+      const token = window.getGBAccessToken();
+      if (token) return token;
+    }
 
-    // Fall back to sessionStorage
-    token = sessionStorage.getItem(AUTH_TOKEN_KEY);
-    if (token) return token;
-
-    // Try to get from cookie
+    // Fallback: try from cookie
     const cookies = document.cookie.split(";");
     for (const cookie of cookies) {
       const [name, value] = cookie.trim().split("=");
@@ -36,7 +34,11 @@
       }
     }
 
-    return null;
+    // Last resort: direct storage reads
+    let token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (token) return token;
+    token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+    return token || null;
   }
 
   /**

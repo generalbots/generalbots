@@ -1197,10 +1197,9 @@
                     isStreaming = false;
                     streamingMessageId = null;
                     currentStreamingContent = "";
-                } else {
-                    if (r.content && r.content.trim() !== "") {
-                        addMessage("assistant", r.content, false);
-                    }
+                }
+                if (r.content && r.content.trim() !== "") {
+                    addMessage("assistant", r.content, false);
                 }
             } else {
                 if (!isStreaming) {

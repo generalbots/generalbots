@@ -1318,9 +1318,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function loadUserProfile() {
-    var token =
-      localStorage.getItem("gb-access-token") ||
-      sessionStorage.getItem("gb-access-token");
+    var token = window.getGBAccessToken && window.getGBAccessToken();
     
     if (!token) {
       console.log("No auth token found - user is signed out");

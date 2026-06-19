@@ -124,6 +124,29 @@ impl S3Repository {
         Ok(target_bucket.object_exists(key).await?)
     }
 
+    /// List common prefixes (sub-folders) within a bucket using a delimiter.
+    /// Ex: list_common_prefixes("cristo.gborg", "/") → ["cristo.gbai/", "rh.gbai/"]
+    pub async fn list_common_prefixes(&self, bucket: &str, delimiter: &str) -> Result<Vec<String>> {
+        debug!("Listing common prefixes in S3: {} with delimiter {:?}", bucket, delimiter);
+
+        let region = self.bucket.region().clone();
+        let creds = s3::creds::Credentials::new(
+            Some(&self.access_key),
+            Some(&self.secret_key),
+            None, None, None
+        ).map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
+
+        let target_bucket = Bucket::new(bucket, region, creds)?.with_path_style();
+
+        let results = target_bucket.list(String::new(), Some(delimiter.to_string())).await?;
+        let common_prefixes: Vec<String> = results.iter()
+            .flat_map(|r| r.common_prefixes.iter().flat_map(|v| v.iter().map(|cp| cp.prefix.clone())))
+            .collect();
+
+        debug!("Found {} common prefixes in bucket {}: {:?}", common_prefixes.len(), bucket, common_prefixes);
+        Ok(common_prefixes)
+    }
+
     /// List objects with prefix, returning only keys
     pub async fn list_objects(&self, bucket: &str, prefix: Option<&str>) -> Result<Vec<String>> {
         let infos = self.list_objects_with_metadata(bucket, prefix).await?;

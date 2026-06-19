@@ -210,7 +210,8 @@ function processMessage(data) {
   if (data.is_complete) {
     if (ChatState.isStreaming) {
       finalizeStreaming();
-    } else if (data.content && data.content.trim() !== "") {
+    }
+    if (data.content && data.content.trim() !== "") {
       addMessage("bot", data.content);
     }
     ChatState.isStreaming = false;

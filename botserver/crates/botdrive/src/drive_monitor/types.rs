@@ -45,11 +45,12 @@ impl DriveMonitor {
         // Isto garante que bots criados via upload direto ao MinIO são auto-registrados.
 
         if let Some(s3) = &self.state.drive {
-            match s3.list_objects_with_metadata(&self.bucket_name, None).await {
+            let list_prefix = self.s3_prefix.as_deref();
+            match s3.list_objects_with_metadata(&self.bucket_name, list_prefix).await {
                 Ok(objects) => {
-                    log::trace!("Found {} objects in bucket {}", objects.len(), self.bucket_name);
+                    log::trace!("Found {} objects in bucket {} (prefix: {:?})", objects.len(), self.bucket_name, list_prefix);
 
-                    let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
+                    let bot_name = &self.bot_name;
 
                     // Auto-create bot in database if not exists (Issue #506)
                     // First check if bot already exists by name
@@ -82,7 +83,7 @@ impl DriveMonitor {
                         log::trace!("DriveMonitor: bot {} already exists in database, skipping auto-create", bot_name);
                     }
 
-                    let current_keys: Vec<String> = objects.iter().map(|o| o.key.clone()).collect();
+                    let current_keys: Vec<String> = objects.iter().map(|o| self.strip_prefix(&o.key).to_string()).collect();
 
         for obj in &objects {
             if obj.key.ends_with('/') {
@@ -91,7 +92,8 @@ impl DriveMonitor {
             }
 
             let file_type = classify_file(&obj.key);
-                        let full_key = format!("{}.gbai/{}", bot_name, obj.key);
+                        let relative_key = self.strip_prefix(&obj.key);
+                        let full_key = format!("{}.gbai/{}", bot_name, relative_key);
                         let etag = obj.etag.as_deref().map(normalize_etag);
 
             let existing = self.file_repo.get_file_state(self.bot_id, &full_key);
@@ -365,7 +367,8 @@ impl DriveMonitor {
             }
         }
 
-        let full_key = format!("{}.gbai/{}", bot_name, s3_key);
+        let relative_key = self.strip_prefix(s3_key);
+        let full_key = format!("{}.gbai/{}", bot_name, relative_key);
         let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
     }
 
@@ -378,21 +381,27 @@ impl DriveMonitor {
             }
         };
 
-        let data = match s3.get_object_direct(&self.bucket_name, s3_key).await {
+        let actual_s3_key = if self.s3_prefix.is_some() {
+            s3_key  // s3_key already includes prefix for org buckets
+        } else {
+            s3_key
+        };
+        let data = match s3.get_object_direct(&self.bucket_name, actual_s3_key).await {
             Ok(d) => d,
             Err(e) => {
-                log::error!("Failed to download .bas from {}/{}: {}", self.bucket_name, s3_key, e);
+                log::error!("Failed to download .bas from {}/{}: {}", self.bucket_name, actual_s3_key, e);
                 return;
             }
         };
 
-        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+        let work_dir = self.bot_work_dir("gbdialog");
         if let Err(e) = std::fs::create_dir_all(&work_dir) {
             log::error!("Failed to create work dir {}: {}", work_dir.display(), e);
             return;
         }
 
-        let file_name = s3_key.split('/').next_back().unwrap_or(s3_key);
+        let relative_key = self.strip_prefix(s3_key);
+        let file_name = relative_key.split('/').next_back().unwrap_or(relative_key);
         let work_path = work_dir.join(file_name);
 
         match String::from_utf8(data) {
@@ -401,7 +410,7 @@ impl DriveMonitor {
                     log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
                 } else {
                     log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
-                    let full_key = format!("{}.gbai/{}", bot_name, s3_key);
+                    let full_key = format!("{}.gbai/{}", bot_name, relative_key);
                     let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
                 }
             }
@@ -428,13 +437,14 @@ impl DriveMonitor {
             }
         };
 
-        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbot", bot_name, bot_name));
+        let work_dir = self.bot_work_dir("gbot");
         if let Err(e) = std::fs::create_dir_all(&work_dir) {
             log::error!("Failed to create work dir {}: {}", work_dir.display(), e);
             return;
         }
 
-        let file_name = s3_key.split('/').next_back().unwrap_or(s3_key);
+        let relative_key = self.strip_prefix(s3_key);
+        let file_name = relative_key.split('/').next_back().unwrap_or(relative_key);
         let work_path = work_dir.join(file_name);
 
         match String::from_utf8(data) {
@@ -443,7 +453,7 @@ impl DriveMonitor {
                     log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
                 } else {
                     log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
-                    let full_key = format!("{}.gbai/{}", bot_name, s3_key);
+                    let full_key = format!("{}.gbai/{}", bot_name, relative_key);
                     let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
                 }
             }
@@ -459,7 +469,7 @@ impl DriveMonitor {
         use uuid::Uuid;
 
         if let Ok(mut conn) = self.state.conn.get() {
-            let folder_path = format!("{}.gbai/{}.gbkb/{}", bot_name, bot_name, kb_name);
+            let folder_path = format!("{}.gbai/{}.gbkb/{}", self.branch_slug, bot_name, kb_name);
             diesel::sql_query(
                 "INSERT INTO kb_collections (id, bot_id, name, folder_path, qdrant_collection, document_count)
                 VALUES ($1, $2, $3, $4, $5, $6)
@@ -487,7 +497,10 @@ impl DriveMonitor {
     pub fn start_kb_processor(&self) {
         let kb_manager = self.kb_manager.clone();
         let bot_id = self.bot_id;
-        let bucket_name = self.bucket_name.clone();
+        let bot_name = self.bot_name.clone();
+        let branch_slug = self.branch_slug.clone();
+        let tenant_slug = self.tenant_slug.clone();
+        let org_slug = self.org_slug.clone();
         let work_root = self.work_root.clone();
         let pending_kb_index = self.pending_kb_index.clone();
         let files_being_indexed = self.files_being_indexed.clone();
@@ -496,7 +509,6 @@ impl DriveMonitor {
         let is_processing = self.is_processing.clone();
 
         tokio::spawn(async move {
-            let bot_name = bucket_name.strip_suffix(".gbai").unwrap_or(&bucket_name).to_string();
 
             while is_processing.load(Ordering::SeqCst) {
                 let kb_key = {
@@ -518,7 +530,9 @@ impl DriveMonitor {
 
                 let kb_folder_name = parts[1];
                 let kb_folder_path =
-                    work_root.join(&bot_name).join(format!("{}.gbkb/", bot_name)).join(kb_folder_name);
+                    work_root.join(&tenant_slug).join(&org_slug)
+                        .join(format!("{}.gbai/{}.gbkb", branch_slug, bot_name))
+                        .join(kb_folder_name);
 
                 {
                     let indexing = files_being_indexed.read().await;
@@ -675,6 +689,11 @@ pub struct DriveMonitor {
     pub state: Arc<AppState>,
     pub bucket_name: String,
     pub bot_id: uuid::Uuid,
+    pub bot_name: String,
+    pub branch_slug: String,
+    pub s3_prefix: Option<String>,
+    pub tenant_slug: String,
+    pub org_slug: String,
     #[cfg(any(feature = "research", feature = "llm"))]
     pub kb_manager: Arc<KnowledgeBaseManager>,
     pub work_root: PathBuf,
@@ -694,6 +713,20 @@ pub struct DriveMonitor {
 
 impl DriveMonitor {
     pub fn new(state: Arc<AppState>, bucket_name: String, bot_id: uuid::Uuid) -> Self {
+        let bot_name = bucket_name.strip_suffix(".gbai").unwrap_or(&bucket_name).to_string();
+        Self::new_with_params(state, bucket_name, bot_id, bot_name.clone(), bot_name, None, "default".into(), "default".into())
+    }
+
+    pub fn new_with_params(
+        state: Arc<AppState>,
+        bucket_name: String,
+        bot_id: uuid::Uuid,
+        bot_name: String,
+        branch_slug: String,
+        s3_prefix: Option<String>,
+        tenant_slug: String,
+        org_slug: String,
+    ) -> Self {
         let work_root = PathBuf::from(botcore::shared::utils::get_work_path());
         #[cfg(any(feature = "research", feature = "llm"))]
         let kb_manager = Arc::new(KnowledgeBaseManager::with_bot_config(
@@ -708,6 +741,11 @@ impl DriveMonitor {
             state,
             bucket_name,
             bot_id,
+            bot_name,
+            branch_slug,
+            s3_prefix,
+            tenant_slug,
+            org_slug,
             #[cfg(any(feature = "research", feature = "llm"))]
             kb_manager,
             work_root,
@@ -724,5 +762,20 @@ impl DriveMonitor {
             _pending_kb_index: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             file_repo,
         }
+    }
+
+    fn strip_prefix<'a>(&self, key: &'a str) -> &'a str {
+        if let Some(prefix) = &self.s3_prefix {
+            key.strip_prefix(prefix.as_str()).unwrap_or(key)
+        } else {
+            key
+        }
+    }
+
+    fn bot_work_dir(&self, subdir: &str) -> PathBuf {
+        self.work_root
+            .join(&self.tenant_slug)
+            .join(&self.org_slug)
+            .join(format!("{}.gbai/{}.{}", self.branch_slug, self.bot_name, subdir))
     }
 }

@@ -1,0 +1,78 @@
+:root {
+    /* Minimalista Orgânico — soft earth tones, super-rounded corners, fluid transitions */
+    --background: 40 20% 96%;
+    --foreground: 30 25% 12%;
+    --card: 40 15% 100%;
+    --card-foreground: 30 25% 12%;
+    --popover: 40 15% 98%;
+    --popover-foreground: 30 25% 12%;
+    --primary: 145 40% 40%;
+    --primary-foreground: 40 20% 96%;
+    --secondary: 30 15% 88%;
+    --secondary-foreground: 30 25% 15%;
+    --muted: 30 15% 92%;
+    --muted-foreground: 30 15% 45%;
+    --accent: 25 60% 50%;
+    --accent-foreground: 40 20% 96%;
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 40 20% 96%;
+    --border: 30 15% 85%;
+    --input: 30 15% 90%;
+    --ring: 145 40% 40%;
+    --radius: 1.5rem;
+    --chart-1: 145 40% 40%;
+    --chart-2: 25 60% 50%;
+    --chart-3: 200 50% 50%;
+    --chart-4: 340 40% 55%;
+    --chart-5: 50 60% 50%;
+    --glass-opacity: 0.9;
+    --glass-blur: 12px;
+    --glass-border: rgba(0,0,0,0.06);
+
+    --sentient-bg-primary: hsl(var(--background));
+    --sentient-bg-secondary: hsl(var(--card));
+    --sentient-bg-tertiary: hsl(var(--muted));
+    --sentient-bg-hover: hsla(var(--primary) / 0.06);
+    --sentient-bg-active: hsla(var(--primary) / 0.12);
+    --sentient-text-primary: hsl(var(--foreground));
+    --sentient-text-secondary: hsl(var(--muted-foreground));
+    --sentient-text-tertiary: hsla(var(--muted-foreground) / 0.7);
+    --sentient-text-muted: hsla(var(--muted-foreground) / 0.45);
+    --sentient-accent: hsl(var(--primary));
+    --sentient-accent-hover: hsl(var(--primary) / 0.85);
+    --sentient-accent-light: hsla(var(--primary) / 0.08);
+    --sentient-accent-dark: hsl(var(--primary) / 0.7);
+    --sentient-border: hsl(var(--border));
+    --sentient-border-light: hsla(var(--border) / 0.5);
+    --sentient-border-accent: hsla(var(--primary) / 0.2);
+    --sentient-surface: hsl(var(--card));
+    --sentient-surface-hover: hsla(var(--primary) / 0.04);
+    --sentient-surface-active: hsla(var(--primary) / 0.08);
+    --sentient-surface-elevated: hsl(var(--popover));
+    --sentient-input-bg: hsl(var(--input));
+    --sentient-input-border: hsl(var(--border));
+    --sentient-input-focus: hsl(var(--ring));
+    --sentient-success: hsl(142 40% 35%);
+    --sentient-success-bg: hsla(142 40% 35% / 0.1);
+    --sentient-warning: hsl(38 60% 45%);
+    --sentient-warning-bg: hsla(38 60% 45% / 0.1);
+    --sentient-error: hsl(var(--destructive));
+    --sentient-error-bg: hsla(var(--destructive) / 0.1);
+    --sentient-font-family:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+    --sentient-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --sentient-shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --sentient-shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+    --sentient-radius: 1.5rem;
+    --sentient-radius-sm: 0.75rem;
+    --sentient-radius-md: 1rem;
+    --sentient-radius-lg: 1.5rem;
+    --sentient-radius-xl: 2rem;
+
+    --glass-bg: rgba(255,252,248,0.8);
+    --glass-border-color: rgba(0,0,0,0.06);
+    --glass-highlight: rgba(255,255,255,0.5);
+    --glass-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    --glass-backdrop: blur(12px) saturate(120%);
+}

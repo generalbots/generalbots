@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::shared::schema::{
-    kb_collections,
-    kb_group_associations,
+    branches, kb_collections, kb_group_associations,
     bot_configuration, bot_memories, bots, clicks, message_history, organizations,
     system_automations, tenants, user_login_tokens, user_preferences, user_sessions, users,
 };
@@ -126,8 +125,10 @@ pub struct User {
 #[diesel(table_name = bots)]
 pub struct Bot {
     pub id: Uuid,
-    pub org_id: Option<Uuid>,
+    pub org_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
+    pub slug: String,
     pub description: Option<String>,
     pub llm_provider: String,
     pub llm_config: serde_json::Value,
@@ -138,6 +139,31 @@ pub struct Bot {
     pub is_active: Option<bool>,
     pub database_name: Option<String>,
     pub is_public: bool,
+    pub is_default_for_branch: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[diesel(table_name = branches)]
+pub struct Branch {
+    pub id: Uuid,
+    pub org_id: Uuid,
+    pub tenant_id: Uuid,
+    pub slug: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Insertable, Serialize, Deserialize)]
+#[diesel(table_name = branches)]
+pub struct NewBranch {
+    pub org_id: Uuid,
+    pub tenant_id: Uuid,
+    pub slug: String,
+    pub name: String,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]

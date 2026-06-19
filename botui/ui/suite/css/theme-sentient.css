@@ -59,6 +59,20 @@
     --shadow-accent: 0 0 20px rgba(212, 245, 5, 0.2);
     --shadow-glow: 0 0 30px rgba(212, 245, 5, 0.15);
 
+    /* Generic App Variable Aliases (theme-agnostic names for app CSS) */
+    --bg-primary: var(--bg);
+    --bg-secondary: var(--bg-secondary);
+    --bg-tertiary: #1a1a1a;
+    --bg-card: var(--surface);
+    --bg-hover: var(--surface-hover);
+    --border-color: var(--border);
+    --text-primary: var(--text);
+    --text-muted: #444444;
+    --danger: var(--error);
+    --shadow: var(--shadow-md);
+    --radius: 0.5rem;
+    --transition: all 0.2s ease;
+
     /* HSL Bridge Variables for compatibility */
     --background: 0 0% 4%;
     --foreground: 0 0% 100%;

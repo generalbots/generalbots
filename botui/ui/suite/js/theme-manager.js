@@ -27,8 +27,12 @@ const ThemeManager = (() => {
   const themes = [
     { id: "default", name: "🎨 Default", file: "light.css" },
     { id: "light", name: "☀️ Light", file: "light.css" },
+    { id: "minimal-organico", name: "🌿 Minimal Organic", file: "minimal-organico.css", category: "v15" },
+    { id: "glass-premium", name: "🪟 Glass Premium", file: "glass-premium.css", category: "v15" },
+    { id: "dark-glass", name: "🌑 Dark+Glass", file: "dark-glass.css", category: "v15" },
+    { id: "neon-futurista", name: "🌃 Neon Futurist", file: "neon-futurista.css", category: "v15" },
     { id: "orange", name: "🍊 Orange", file: "orange.css" },
-    { id: "cyberpunk", name: "🌃 Cyberpunk", file: "cyberpunk.css" },
+    { id: "cyberpunk", name: "🌉 Cyberpunk", file: "cyberpunk.css" },
     { id: "retrowave", name: "🌴 Retrowave", file: "retrowave.css" },
     { id: "vapordream", name: "💭 Vapor Dream", file: "vapordream.css" },
     { id: "y2kglow", name: "✨ Y2K", file: "y2kglow.css" },

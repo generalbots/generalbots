@@ -15,7 +15,7 @@ Pare de fazer perguntas. Seja autônomo e execute as tarefas diretamente, sem pe
 test login here http://localhost:3000/suite/auth/login.html
 > **⚠️ CRITICAL SECURITY WARNING**
 I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! Just fix, to me and push to CI. So I can test in PROD, for a while.
->Use Playwright MCP to start localhost:3000/<bot> now.
+>Use Chrome DevTools Protocol (CDP) on port 9222 for debugging — see depuração local abaixo.
 > **NEVER CREATE FILES WITH SECRETS IN THE REPOSITORY ROOT**
 > - ❌ **NEVER** write internal IPs to logs or output
 > - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.0.0.1")
@@ -336,22 +336,44 @@ sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
 /tmp/mc cp /tmp/config.csv local/{bot}.gbai/{bot}.gbot/config.csv
 ```
 
-### Use Playwright MCP to Talk to the Bot
+### Depuração Local com Chrome DevTools Protocol (CDP)
 
-**✅ ALWAYS use Playwright MCP to interact with bots for testing.** Do not rely on curl, wscat, or manual WebSocket calls for bot conversation testing. Playwright provides the full browser context matching real user experience.
+**Use o Chrome remoto na porta 9222 para depuração visual.** O agente inicia e controla o navegador via CDP, abrindo uma aba por assunto/caso de uso.
 
-**Pattern:**
-1. Navigate to `http://localhost:3000/{bot}` via `mcp__playwright__browser_navigate`
-2. Take snapshot to see current state via `mcp__playwright__browser_snapshot`
-3. Type messages in chat input and send
-4. Verify bot responses, suggestion buttons, and tool execution results
-5. Take screenshots for evidence via `mcp__playwright__browser_take_screenshot`
-6. **🚨 NEVER close the browser** — keep it open for user inspection via `await new Promise(() => {})`
+**Fluxo obrigatório:**
 
-**Summary — the three pillars for bot testing:**
-- **Drive (mc)** — all bot files come from MinIO, manipulated via `mc` with Vault credentials
-- **Vault (.env)** — credentials are ALWAYS retrieved from Vault; only `VAULT_*` variables may be loaded from `.env`, nothing else
-- **Playwright** — bot conversation testing is ALWAYS done via Playwright MCP at `http://localhost:3000/{bot}`
+1. **Verificar se o Chrome já está aberto com depuração remota:**
+   ```bash
+   ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep
+   ```
+   Se não estiver rodando, iniciar:
+   ```bash
+   google-chrome --no-sandbox --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug &
+   ```
+
+2. **Para cada caso de uso, abrir uma aba separada:**
+   ```bash
+   # Abre URL em nova aba via CDP
+   python3 -c "
+   import requests, json
+   tabs = requests.get('http://localhost:9222/json').json()
+   # Abre nova aba
+   r = requests.put('http://localhost:9222/json/new?' + sys.argv[1]) if len(sys.argv) > 1 else None
+   print('Navegador aberto em http://localhost:9222 — use o DevTools para inspecionar')
+   "
+   ```
+   Ou manualmente: `http://localhost:3000/{bot}` no Chrome já aberto.
+
+3. **Navegar para o bot:** `http://localhost:3000/{bot}` ou `http://localhost:8080`
+
+4. **Interagir:** digitar mensagens no chat, clicar em botões de sugestão, executar ferramentas.
+
+5. **🚨 NUNCA fechar o navegador** — manter aberto para inspeção do usuário. Cada aba representa um caso de uso diferente.
+
+**Resumo — os três pilares para testes de bot:**
+- **Drive (mc)** — todos os arquivos de bot vêm do MinIO, manipulados via `mc` com credenciais do Vault
+- **Vault (.env)** — credenciais são SEMPRE obtidas do Vault; apenas variáveis `VAULT_*` podem estar no `.env`
+- **Chrome CDP (9222)** — depuração visual é SEMPRE feita via Chrome remoto na porta 9222, com abas separadas por caso de uso
 
 ---
 
@@ -1059,7 +1081,7 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
 
 ## 🎯 Automatic Bot Testing Workflow
 
-**When user says "test bot" or similar — do this autonomously:**
+ **When user says "test bot" or similar — do this autonomously:**
 
 1. **Ask** "What bot would you like to test today?" (do NOT assume a specific bot name)
 2. **Get Drive credentials from Vault** — follow the pattern in [Bot File Operations - MANDATORY RULES](#-bot-file-operations---mandatory-rules). Load ONLY `VAULT_*` from `.env`, retrieve credentials from `secret/gbo/drive`
@@ -1068,9 +1090,55 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
 5. **Find the bot** — check MinIO drive buckets via `mc`: `/tmp/mc ls local/` (each bucket = `{bot}.gbai`)
 6. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
 7. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
-8. **Open browser via Playwright MCP** — `mcp__playwright__browser_navigate` to `http://localhost:3000/{bot}`
-9. **Test chat flow via Playwright** — send messages, verify suggestions, execute tools
-10. **Report results** — screenshot + backend validation
+8. **Start Chrome CDP** — verificar se Chrome está rodando com `--remote-debugging-port=9222`; se não, iniciar: `export DISPLAY=:1 && google-chrome --no-sandbox --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug --start-maximized &`
+9. **Abrir 3 abas (casos de teste)** — cada aba é um caso de uso diferente, via CDP:
+   ```bash
+   # Usar Node.js para abrir abas via CDP HTTP
+   node -e "
+   const http = require('http');
+   function openTab(url) {
+     return new Promise(r => {
+       const opts = { hostname: '127.0.0.1', port: 9222, path: '/json/new?' + encodeURI(url), method: 'PUT' };
+       http.request(opts, res => { let d=''; res.on('data',c=>d+=c); res.on('end',()=>r(JSON.parse(d))); }).end();
+     });
+   }
+   (async () => {
+     const t1 = await openTab('http://localhost:3000/{bot}');
+     const t2 = await openTab('http://localhost:3000/{bot}');
+     const t3 = await openTab('http://localhost:3000/{bot}');
+     console.log('3 abas abertas');
+   })();
+   "
+   ```
+10. **Testar 3 casos de uso no chat** — após 8s de carregamento, enviar mensagens via CDP:
+    - **Caso 1 (Saudação):** Enviar "Olá", verificar TALK de boas-vindas e botões de sugestão
+    - **Caso 2 (Serviço principal):** Enviar mensagem sobre o serviço principal do bot, verificar fluxo de coleta de dados
+    - **Caso 3 (Segundo serviço ou pendência):** Testar segundo serviço ou listar pendências
+11. **Verificar respostas** — usar `getLastBotMessage()` no CDP para capturar resposta do bot (último `.message.bot .bot-message`)
+12. **Capturar screenshots** — salvar em `/tmp/{bot}_case{N}_{before|after}.png`
+13. **Report results** — evidencias visuais + resumo de cada caso: mensagens enviadas, respostas obtidas, sugestões
+
+**Script padrão para interagir via CDP (Node.js):**
+```javascript
+const CDP = require('./cdp-client'); // ou inline ws + net
+const cdp = new CDP(wsUrl);
+await cdp.eval(\`document.getElementById('messageInput').value = 'mensagem'\`);
+cdp.eval(\`document.getElementById('chatForm').dispatchEvent(new Event('submit', {bubbles:true,cancelable:true}))\`);
+const response = await cdp.eval(\`
+  (() => {
+    var msgs = document.getElementById('messages');
+    if (!msgs) return '';
+    for (var i = msgs.children.length - 1; i >= 0; i--) {
+      var msg = msgs.children[i];
+      if (msg.classList.contains('bot')) {
+        var content = msg.querySelector('.bot-message');
+        return content ? content.textContent.trim().substring(0, 800) : '';
+      }
+    }
+    return '';
+  })()
+\`);
+```
 
 **Key commands:**
 ```bash
@@ -1154,100 +1222,115 @@ BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info
 
 ---
 
-## 🎭 Playwright Browser Testing - YOLO Mode
+## 🎭 Chrome CDP Debugging - YOLO Mode
 
-**When user requests to start YOLO mode with Playwright:**
+**Use o Chrome DevTools Protocol (porta 9222) para depuração visual interativa.**
 
-### 0. DISCOVER DISPLAY (always do this first)
-
-Check if a VNC/desktop display is available for showing the browser:
+### 0. VERIFICAR DISPLAY
 
 ```bash
-# Check for existing VNC/X11 display
 echo $DISPLAY
 ps aux | grep -E "Xvfb|Xorg|vnc|VNC|Xtigervnc" | grep -v grep
 ls /tmp/.X11-unix/ 2>/dev/null
-ss -tlnp | grep 590  # VNC ports
-ss -tlnp | grep 6080 # noVNC web port
+ss -tlnp | grep 590   # VNC ports
+ss -tlnp | grep 9222  # Chrome CDP port
 ```
 
-If VNC/noVNC is running:
-- User can connect via browser at `http://<host-ip>:6080` or via `https://desktop1.pragmatismo.com.br` (production)
-- Resolution: **1280×720**, depth 24 (set via `-geometry 1280x720 -depth 24` in TigerVNC)
-- noVNC available at `http://localhost:6080`
-- Find browser: `which google-chrome chromium-browser firefox 2>/dev/null`
-- **To show Chrome on display :1:** First verify Chrome is open with `ps aux | grep chrome | grep -v grep`. If already running, it's already visible on :1. If not, launch:
-  ```bash
-  export DISPLAY=:1
-  google-chrome --no-sandbox --start-maximized "URL"
-  ```
-- **To check what's currently visible on display :1**, take a screenshot and save to `/tmp/`:
-  ```bash
-  DISPLAY=:1 import -window root /tmp/display1.png
-  ```
-  (requires `imagemagick`) or use Playwright MCP `mcp__playwright__browser_take_screenshot`.
-- Always use `--display=:1` or `export DISPLAY=:1` before launching GUI apps.
+### 1. INICIAR CHROME COM DEBUG REMOTO
 
-If NO display:
-- Use `headless: true` in Playwright
-- Screenshots to `/tmp/` for later review
-
-### 1. LOCAL DEV TESTING (Playwright MCP - preferred when available)
-
-**Prerequisites:** Playwright MCP server is configured in `~/.config/opencode/opencode.json` as `@playwright/mcp@latest` and auto-started by opencode.
-
-**Workflow — USE THIS EVERY TIME (mandatory):**
-
-1. **Navigate to the bot** — Use `mcp__playwright__browser_navigate` to open `http://localhost:3000/{botname}`
-2. **Take snapshot** — Use `mcp__playwright__browser_snapshot` to see current page state
-3. **Test conversation** — Send messages via `mcp__playwright__browser_type` + click interactions
-4. **Verify responses** — Check WebSocket output, suggestion buttons, tool execution
-5. **Take screenshots** — Use `mcp__playwright__browser_take_screenshot` to save evidence to `/tmp/`
-6. **🚨 KEEP BROWSER OPEN** — NEVER close the browser at the end of the test. Use `await new Promise(() => {})` (or equivalent no-op) to keep the Node process alive so the browser stays visible. The user wants to inspect the final state themselves. Only close when the user explicitly says to.
-
-### 2. PRODUCTION TESTING (Node script via Playwright API)
-
-**When testing against `chat.pragmatismo.com.br` (no Playwright MCP available or production domain):**
+Se o Chrome ainda não estiver rodando com `--remote-debugging-port=9222`:
 
 ```bash
-# First check display availability
-echo $DISPLAY
-# If VNC available (e.g. :1), launch visible browser
+# Se VNC disponível (display :1), Chrome visível
 export DISPLAY=:1
-chromium-browser --no-sandbox --start-maximized "https://chat.pragmatismo.com.br/{botname}" &
+google-chrome --no-sandbox --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug &
+
+# Ou headless (sem display)
+google-chrome --no-sandbox --remote-debugging-port=9222 --headless --user-data-dir=/tmp/chrome-debug &
 ```
 
-**Node script pattern (headless with browser kept open for user):**
-```javascript
-import { chromium } from 'playwright';
-const browser = await chromium.launch({ headless: true });
-// ... test 10+ questions ...
-// ❌ DO NOT call browser.close()
-// ✅ Keep process alive for user inspection:
-await new Promise(() => {});
-```
+### 2. ABRIR URL POR CASO DE USO
 
-**Rules:**
-1. **headless: true** if no display available; **headless: false** + `DISPLAY=:1` if VNC running
-2. **10 questions minimum** — test conversation depth
-3. **Screenshots to /tmp/** — for later inspection
-4. **🚨 NEVER browser.close()** — leave process hanging so browser stays open
-5. **Log ALL responses** — print each Q&A to stdout
-6. **Capture ALL errors** — log all `console` and failed `response` events
+Cada caso de uso ganha uma aba separada no mesmo Chrome:
 
-**Bot-Specific Testing URL Pattern:**
-- Local dev: `http://localhost:3000/<botname>`
-- Production: `https://chat.pragmatismo.com.br/<botname>`
-
-**Example of launching visible browser on VNC display:**
 ```bash
-export DISPLAY=:1
-google-chrome --no-sandbox --start-maximized "https://chat.pragmatismo.com.br/salesianos" &
-echo "Browser iniciado em DISPLAY=:1. Acesse https://desktop1.pragmatismo.com.br para ver."
+# Abrir bot em nova aba via CDP
+python3 -c "
+import requests, json, sys
+tabs = requests.get('http://localhost:9222/json').json()
+base = 'http://localhost:3000'
+url = sys.argv[1] if len(sys.argv) > 1 else ''
+r = requests.put(f'http://localhost:9222/json/new?{base}{url}')
+print(f'Aba criada: {base}{url}')
+" "/cristo"
 ```
 
-**Backend Validation Checks:**
-After UI interactions, validate backend state via `psql` or `tail` logs.
+Ou navegue manualmente no Chrome já aberto para `http://localhost:3000/{bot}`.
+
+### 3. CAPTURAR CONSOLE VIA CDP (websocat)
+
+Quando não for possível usar o DevTools interativo (ex: agente headless), use `websocat` para enviar comandos CDP via pipe:
+
+```bash
+# Download websocat (uma vez)
+curl -sL "https://github.com/vi/websocat/releases/latest/download/websocat.x86_64-unknown-linux-musl" -o /tmp/websocat && chmod +x /tmp/websocat
+
+# Descobrir WebSocket URL da aba desejada
+WS_URL=$(python3 -c "
+import requests
+tabs = requests.get('http://localhost:9222/json').json()
+for t in tabs:
+    if 'desktop' in t.get('url',''):
+        print(t['webSocketDebuggerUrl'])
+        break
+")
+
+# Capturar console logs + erros de rede 404
+(echo '{"id":1,"method":"Console.enable","params":{}}'
+ echo '{"id":2,"method":"Runtime.evaluate","params":{"expression":"JSON.stringify({resources404:performance.getEntriesByType(\"resource\").filter(r=>r.responseStatus===404).map(r=>r.name)})"}}'
+ sleep 3) | timeout 6 /tmp/websocat --no-line "$WS_URL" 2>&1 | python3 -c "
+import sys, json
+for line in sys.stdin:
+    line = line.strip()
+    if not line: continue
+    try:
+        msg = json.loads(line)
+        if msg.get('method') == 'Console.messageAdded':
+            m = msg['params']['message']
+            print(f\"[CONSOLE {m.get('level','')}] {m.get('text','')}\")
+        elif 'result' in msg and 'result' in msg.get('result',{}):
+            val = msg['result']['result'].get('value','')
+            if val: print(f\"RESULT: {val}\")
+    except: pass
+"
+```
+
+**Vantagens:**
+- Não requer npm/pip — binário estático único
+- Funciona headless (sem display)
+- Captura tanto console logs quanto resultados de `Runtime.evaluate`
+- Útil para CI/CD e depuração automatizada
+
+### 4. DEPURAR
+
+- Inspecionar elementos, console, rede, WebSocket
+- Digitar mensagens no chat, testar ferramentas, verificar respostas
+- Usar o DevTools do próprio Chrome (F12) para depuração completa
+
+### 4. 🚨 NUNCA FECHAR O NAVEGADOR
+
+Manter aberto para o usuário inspecionar. Cada aba representa um caso de uso diferente. Fechar apenas quando o usuário pedir explicitamente.
+
+### Padrão de URLs
+- Dev local: `http://localhost:3000/{bot}`
+- Produção: `https://chat.pragmatismo.com.br/{bot}`
+
+### Validação no Backend
+Após interagir, validar estado no PostgreSQL ou logs:
+```bash
+psql -h localhost -U postgres -d botserver -c "SELECT * FROM messages ORDER BY created_at DESC LIMIT 5;"
+tail -20 botserver.log | grep -E "ERROR|WARN|cristo"
+```
 
 ---
 

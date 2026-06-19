@@ -108,6 +108,21 @@ impl DriveRepository for S3Repository {
         })
     }
 
+    fn list_common_prefixes(
+        &self,
+        bucket: &str,
+        delimiter: &str,
+    ) -> Pin<Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>> {
+        let repo = self.clone();
+        let bucket = bucket.to_string();
+        let delimiter = delimiter.to_string();
+        Box::pin(async move {
+            repo.list_common_prefixes(&bucket, &delimiter)
+                .await
+                .map_err(|e| e.to_string())
+        })
+    }
+
     fn list_all_buckets(
         &self,
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>> {
