@@ -390,7 +390,8 @@ var activeSessions = new Map();
         showModal("New Connection", formHtml);
     }
 
-    async function saveNewConnection() {
+    window.saveNewConnection = async function saveNewConnection() {
+    window.showNewConnectionForm = showNewConnectionForm;
         var name = (document.getElementById("new-conn-name") || {}).value || "";
         var host = (document.getElementById("new-conn-host") || {}).value || "";
         var port = parseInt((document.getElementById("new-conn-port") || {}).value || "5900");

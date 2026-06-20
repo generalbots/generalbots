@@ -4,6 +4,9 @@
  * Comunica-se com a API REST /api/crm/campaigns e /api/instagram/campaigns.
  */
 
+(function() {
+'use strict';
+
 const CampaignsAPI = {
     baseUrl: '/api/crm/campaigns',
     instagramUrl: '/api/instagram/campaigns',
@@ -273,3 +276,5 @@ window.editCampaign = editCampaign;
 window.runCampaign = runCampaign;
 window.deleteCampaign = deleteCampaign;
 window.filterCampaigns = filterCampaigns;
+
+})();

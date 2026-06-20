@@ -98,6 +98,19 @@ members = [
   "botserver/crates/botwhatsapp",
   "botserver/crates/botworkspaces",
   "botserver/crates/botdesktop",
+  "botserver/crates/botvision",
+  "botserver/crates/boterp",
+  "botserver/crates/botintegrations",
+  "botserver/crates/bothr",
+  "botserver/crates/botsales",
+  "botserver/crates/botminutes",
+  "botserver/crates/bottemplates",
+  "botserver/crates/botitsm",
+  "botserver/crates/botpos",
+  "botserver/crates/bothandoff",
+  "botserver/crates/botkyc",
+  "botserver/crates/bottimeclock",
+  "botserver/crates/bottax",
 ]
 
 [workspace.package]
@@ -204,6 +217,19 @@ botschema = { path = "botschema" }
 botmodelsbridge = { path = "botserver/crates/botmodelsbridge" }
 botapi = { path = "botserver/crates/botapi" }
 botapps = { path = "botserver/crates/botapps" }
+bottax = { path = "botserver/crates/bottax" }
+botvision = { path = "botserver/crates/botvision" }
+boterp = { path = "botserver/crates/boterp" }
+botintegrations = { path = "botserver/crates/botintegrations" }
+bothr = { path = "botserver/crates/bothr" }
+botsales = { path = "botserver/crates/botsales" }
+botminutes = { path = "botserver/crates/botminutes" }
+bottemplates = { path = "botserver/crates/bottemplates" }
+botitsm = { path = "botserver/crates/botitsm" }
+botpos = { path = "botserver/crates/botpos" }
+bothandoff = { path = "botserver/crates/bothandoff" }
+botkyc = { path = "botserver/crates/botkyc" }
+bottimeclock = { path = "botserver/crates/bottimeclock" }
 botcore = { path = "botserver/crates/botcore" }
 botdrive = { path = "botserver/crates/botdrive" }
 botmeet = { path = "botserver/crates/botmeet" }

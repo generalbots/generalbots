@@ -187,13 +187,10 @@ async fn main() -> std::io::Result<()> {
         init_database, init_logging_and_i18n, load_config, parse_cli_args, run_axum_server,
         run_bootstrap, start_background_services, BootstrapProgress,
     };
-    #[cfg(feature = "security")]
-
     #[cfg(not(feature = "security"))]
     fn set_global_panic_hook() {}
 
     set_global_panic_hook();
-    let _ = 1 + 1;
 
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());

@@ -103,6 +103,19 @@ legal = ["automation", "drive", "cache", "dep:botlegal"]
 attendance = ["automation", "drive", "cache", "dep:botattendance"]
 maintenance = ["automation", "drive", "cache", "dep:botmaintenance"]
 deployment = ["automation", "drive", "cache", "dep:botdeployment"]
+tax = ["automation", "drive", "cache", "dep:bottax"]
+vision = ["automation", "drive", "cache", "dep:botvision"]
+erp = ["automation", "drive", "cache", "dep:boterp"]
+integrations = ["automation", "drive", "cache", "dep:botintegrations"]
+hr = ["automation", "drive", "cache", "dep:bothr"]
+sales = ["automation", "drive", "cache", "dep:botsales"]
+minutes = ["automation", "drive", "cache", "dep:botminutes"]
+templates = ["automation", "drive", "cache", "dep:bottemplates"]
+itsm = ["automation", "drive", "cache", "dep:botitsm"]
+pos = ["automation", "drive", "cache", "dep:botpos"]
+handoff = ["automation", "drive", "cache", "dep:bothandoff"]
+kyc = ["automation", "drive", "cache", "dep:botkyc"]
+timeclock = ["automation", "drive", "cache", "dep:bottimeclock"]
 fraud = ["automation", "drive", "cache", "dep:botfraud"]
 inventory = ["automation", "drive", "cache", "dep:botinventory"]
 gl = ["automation", "drive", "cache", "dep:botgl"]
@@ -119,7 +132,7 @@ providers = ["dep:botproviders"]
 minimal = ["chat"]
 minimal-chat = ["chat", "automation", "cache"]  # No security at all
 lightweight = ["chat", "tasks", "people"]
-full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance"]
+full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance", "tax"]
 embed-ui = ["dep:rust-embed"]
 
 allbutooxmlsdk = [
@@ -136,6 +149,8 @@ allbutooxmlsdk = [
     "vibe", "kb", "multimodal", "search", "desktop",
     "browser", "terminal", "external_sync", "nvidia",
     "deployment",
+    "tax", "vision", "erp", "integrations", "hr", "sales", "minutes", "templates",
+    "itsm", "pos", "handoff", "kyc", "timeclock",
     "fraud", "inventory", "gl", "retail",
     "security", "directory", "llm", "vectordb", "crawler", "console",
     "saas",
@@ -352,6 +367,19 @@ botinventory = { workspace = true, optional = true }
 botgl = { workspace = true, optional = true }
 botretail = { workspace = true, optional = true }
 botapps = { workspace = true }
+bottax = { workspace = true, optional = true }
+botvision = { workspace = true, optional = true }
+boterp = { workspace = true, optional = true }
+botintegrations = { workspace = true, optional = true }
+bothr = { workspace = true, optional = true }
+botsales = { workspace = true, optional = true }
+botminutes = { workspace = true, optional = true }
+bottemplates = { workspace = true, optional = true }
+botitsm = { workspace = true, optional = true }
+botpos = { workspace = true, optional = true }
+bothandoff = { workspace = true, optional = true }
+botkyc = { workspace = true, optional = true }
+bottimeclock = { workspace = true, optional = true }
 botmodelsbridge = { workspace = true }
 botcloud = { path = "crates/botcloud", optional = true }
 botproviders = { path = "crates/botproviders", optional = true }

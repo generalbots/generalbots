@@ -168,7 +168,7 @@
     const totalW = leftW + totalDays * dayW;
     const wrap = el("div", { class: "plan-gantt-wrap", style: { width: totalW + "px" } });
 
-    const header = el("div", { class: "plan-gantt-header", style: { height: headerH + "px" });
+    const header = el("div", { class: "plan-gantt-header", style: { height: headerH + "px" }});
     header.appendChild(el("div", { class: "plan-gantt-corner", style: { width: leftW + "px" } }));
     for (let i = 0; i < totalDays; i++) {
       const d = new Date(minS + i * 86400000);

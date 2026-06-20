@@ -61,7 +61,7 @@
         init: init,
         connectSaved: connectSaved,
         deleteSaved: deleteSavedConnection,
-        saveNewConnection: saveNewConnection,
+        saveNewConnection: window.saveNewConnection,
         closeModal: hideModal,
     };
 

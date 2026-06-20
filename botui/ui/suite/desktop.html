@@ -9,7 +9,7 @@
         <link rel="stylesheet" href="/suite/css/app.css" />
         <link rel="stylesheet" href="/suite/css/base.css" />
         <link rel="stylesheet" href="/suite/css/theme-sentient.css" />
-        <link rel="stylesheet" href="/suite/css/desktop.css" />
+        <link rel="stylesheet" href="/suite/css/desktop.css?v=2" />
         <link rel="stylesheet" href="/suite/css/config-colors.css" />
 
         <!-- Local JS requirements per AGENTS.md / UI.md -->
@@ -250,19 +250,15 @@
 
     
             /* Fullscreen Mode Styles */
-            body.fullscreen .sidebar {
+            body.fullscreen .chat-sidebar {
                 display: none !important;
             }
 
-            body.fullscreen .toolbar {
+            body.fullscreen .toolbar-v15 {
                 display: none !important;
             }
 
-            body.fullscreen .panel-section {
-                display: none !important;
-            }
-
-            body.fullscreen .workspace {
+            body.fullscreen .workspace-v15 {
                 height: 100vh !important;
             }
 
@@ -272,6 +268,16 @@
 
             body.fullscreen .window-titlebar {
                 display: none !important;
+            }
+
+            body.fullscreen .window-element-glass {
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
             }
 
             body.fullscreen .window-element {
@@ -285,6 +291,9 @@
             }
         
             /* Hide window title bar in fullscreen */
+            body.fullscreen .window-element-glass > div:first-child {
+                display: none !important;
+            }
             body.fullscreen .window-element > div:first-child {
                 display: none !important;
             }

@@ -246,15 +246,15 @@
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
             e.preventDefault();
-            GBTerminal.find();
+            window.GBTerminal.find();
         }
         if ((e.ctrlKey || e.metaKey) && e.key === 't') {
             e.preventDefault();
-            GBTerminal.addTab();
+            window.GBTerminal.addTab();
         }
         if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
             e.preventDefault();
-            GBTerminal.closeTab(activeTab);
+            window.GBTerminal.closeTab(activeTab);
         }
     });
 })();
