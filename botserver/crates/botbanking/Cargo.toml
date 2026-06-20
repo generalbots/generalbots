@@ -7,12 +7,15 @@ authors.workspace = true
 description = "Banking reconciliation and delivery-platform integration."
 
 [dependencies]
+botcore = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
-rust_decimal = { workspace = true, features = ["serde-with-str"] }
+rust_decimal = { workspace = true, features = ["serde-with-str", "db-diesel2-postgres"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
+axum = { workspace = true, features = ["macros"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "serde_json", "chrono", "uuid", "numeric"] }
 
 [lints]
 workspace = true

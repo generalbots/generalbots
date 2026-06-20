@@ -254,6 +254,12 @@ fn inner_build_sub_router(
     #[cfg(feature = "retail")]
     { sub_router = sub_router.merge(crate::retail::configure_retail_routes().with_state(Arc::new(crate::retail::RetailState))); }
 
+    #[cfg(feature = "banking")]
+    { *api_router = api_router.clone().merge(botbanking::configure()); }
+
+    #[cfg(feature = "m365")]
+    { *api_router = api_router.clone().merge(botm365::configure()); }
+
     #[cfg(feature = "weba")]
     {
         let weba_state = Arc::new(crate::weba::WebaState::new());
