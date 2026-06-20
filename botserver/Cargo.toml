@@ -120,6 +120,8 @@ fraud = ["automation", "drive", "cache", "dep:botfraud"]
 inventory = ["automation", "drive", "cache", "dep:botinventory"]
 gl = ["automation", "drive", "cache", "dep:botgl"]
 retail = ["automation", "drive", "cache", "dep:botretail"]
+banking = ["automation", "drive", "cache", "dep:botbanking"]
+m365 = ["automation", "drive", "cache", "dep:botm365"]
 vibe = ["automation", "dep:botvibe", "botbasic_system/vibe"]
 kb = ["automation", "drive", "cache", "dep:botkb"]
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
@@ -366,6 +368,8 @@ botfraud = { workspace = true, optional = true }
 botinventory = { workspace = true, optional = true }
 botgl = { workspace = true, optional = true }
 botretail = { workspace = true, optional = true }
+botbanking = { workspace = true, optional = true }
+botm365 = { workspace = true, optional = true }
 botapps = { workspace = true }
 bottax = { workspace = true, optional = true }
 botvision = { workspace = true, optional = true }
