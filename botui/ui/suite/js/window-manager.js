@@ -264,7 +264,7 @@ if (typeof window.WindowManager === "undefined") {
       this.activeWindowId = id;
       const el = document.getElementById(`window-${id}`);
       if (el) el.style.zIndex = this.zIndexCounter++;
-      if (this.openWindows.length > 0) document.body.classList.add("window-active");
+      
       const obj = this.openWindows.find((w) => w.id === id);
       if (obj) document.title = `${obj.title} - General Bots`;
       this._updateDockActive();
@@ -298,7 +298,6 @@ if (typeof window.WindowManager === "undefined") {
         this._updateDockActive();
         if (this.openWindows.length === 0) {
           document.title = "General Bots Desktop";
-          document.body.classList.remove("window-active");
         }
       }
       if (window.Desktop3D && window.Desktop3D.initialized) {
@@ -342,7 +341,7 @@ if (typeof window.WindowManager === "undefined") {
       } else {
         obj.previousState = { width: el.style.width, height: el.style.height, top: el.style.top, left: el.style.left };
         el.style.width = "100%";
-        el.style.height = "calc(100% - 56px)";
+        el.style.height = "100%";
         el.style.top = "0";
         el.style.left = "0";
         el.style.borderRadius = "0";

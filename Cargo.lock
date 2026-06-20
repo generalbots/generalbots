@@ -1154,6 +1154,9 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botcore",
+ "botminutes",
+ "bottax",
+ "bottimeclock",
  "chrono",
  "diesel",
  "rust_decimal",
@@ -1954,6 +1957,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "boterp"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "boteval"
 version = "6.5.0"
 dependencies = [
@@ -2001,6 +2020,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "bothandoff"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "bothr"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "botinstagram"
 version = "6.3.0"
 dependencies = [
@@ -2013,6 +2064,22 @@ dependencies = [
  "serde_json",
  "tokio",
  "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botintegrations"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
  "uuid",
 ]
 
@@ -2031,6 +2098,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "botitsm"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "botkb"
 version = "6.3.0"
 dependencies = [
@@ -2039,6 +2122,22 @@ dependencies = [
  "chrono",
  "log",
  "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "botkyc"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
  "serde",
  "serde_json",
  "tokio",
@@ -2199,6 +2298,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "botminutes"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "botmodelsbridge"
 version = "6.3.0"
 dependencies = [
@@ -2325,6 +2440,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "botpos"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "botproducts"
 version = "6.3.0"
 dependencies = [
@@ -2413,6 +2544,22 @@ dependencies = [
  "rust_decimal_macros",
  "serde",
  "thiserror 2.0.18",
+ "uuid",
+]
+
+[[package]]
+name = "botsales"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
  "uuid",
 ]
 
@@ -2627,11 +2774,17 @@ dependencies = [
  "botdocs",
  "botdrive",
  "botemail",
+ "boterp",
  "botfraud",
  "botgl",
+ "bothandoff",
+ "bothr",
  "botinstagram",
+ "botintegrations",
  "botinventory",
+ "botitsm",
  "botkb",
+ "botkyc",
  "botlearn",
  "botlegal",
  "botlib",
@@ -2639,6 +2792,7 @@ dependencies = [
  "botmaintenance",
  "botmarketing",
  "botmeet",
+ "botminutes",
  "botmodelsbridge",
  "botmonitoring",
  "botmsteams",
@@ -2648,12 +2802,14 @@ dependencies = [
  "botpeople",
  "botplan",
  "botplayer",
+ "botpos",
  "botproducts",
  "botproject",
  "botproviders",
  "botqdrant",
  "botresearch",
  "botretail",
+ "botsales",
  "botsearch",
  "botsecurity",
  "botsettings",
@@ -2662,11 +2818,15 @@ dependencies = [
  "botsocial",
  "botsources",
  "bottasks",
+ "bottax",
  "bottelegram",
+ "bottemplates",
  "bottickets",
+ "bottimeclock",
  "bottimeseries",
  "botvibe",
  "botvideo",
+ "botvision",
  "botweba",
  "botwhatsapp",
  "botworkspaces",
@@ -2884,6 +3044,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bottax"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "bottelegram"
 version = "6.3.0"
 dependencies = [
@@ -2894,6 +3069,22 @@ dependencies = [
  "diesel",
  "log",
  "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "bottemplates"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
  "serde",
  "serde_json",
  "tokio",
@@ -2939,6 +3130,22 @@ dependencies = [
  "r2d2",
  "serde",
  "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "bottimeclock"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
  "uuid",
 ]
 
@@ -3015,6 +3222,22 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "botvision"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "tokio",
  "uuid",
 ]
 

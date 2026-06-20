@@ -1,5 +1,5 @@
 (function(){
-var state={kyc:[],signatures:[],certificates:[],audit:[],livenessSessions:[],currentTab:'kyc',selectedSignDoc=null,signaturePad=null,drawing=false,lastX=0,lastY=0,livenessActive=false};
+var state={kyc:[],signatures:[],certificates:[],audit:[],livenessSessions:[],currentTab:'kyc',selectedSignDoc:null,signaturePad:null,drawing:false,lastX:0,lastY:0,livenessActive:false};
 
 function showFeedback(msg,type){
     var el=document.getElementById('bio-feedback');

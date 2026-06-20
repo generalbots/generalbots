@@ -3,7 +3,8 @@
  * =============================================================================*/
 use super::*;
 use axum::Json;
-use crate::tax;
+use bottax::handlers as tax_handlers;
+use bottax::models as tax_models;
 
 use super::brazil_queries::{count_cte, count_nfe, count_nfse, sum_nfe_total};
 
@@ -65,13 +66,13 @@ async fn render_dashboard() -> Result<String, String> {
 }
 
 async fn list_nfe() -> Result<Html<String>, (StatusCode, String)> {
-    match tax::list_nfe().await {
+    match tax_handlers::list_nfe().await {
         Ok(Json(items)) => Ok(Html(render_nfe_table(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("NFe error: {e}")))),
     }
 }
 
-fn render_nfe_table(items: &[tax::NFe]) -> String {
+fn render_nfe_table(items: &[tax_models::NFe]) -> String {
     if items.is_empty() {
         return r#"<div class="gb-empty">Nenhuma NFe emitida. Crie uma para começar.</div>"#.to_string();
     }
@@ -113,13 +114,13 @@ fn render_nfe_table(items: &[tax::NFe]) -> String {
 }
 
 async fn list_nfse() -> Result<Html<String>, (StatusCode, String)> {
-    match tax::list_nfse().await {
+    match tax_handlers::list_nfse().await {
         Ok(Json(items)) => Ok(Html(render_nfse_table(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("NFSe error: {e}")))),
     }
 }
 
-fn render_nfse_table(items: &[tax::NFSe]) -> String {
+fn render_nfse_table(items: &[tax_models::NFSe]) -> String {
     if items.is_empty() {
         return r#"<div class="gb-empty">Nenhuma NFSe emitida.</div>"#.to_string();
     }
@@ -143,13 +144,13 @@ fn render_nfse_table(items: &[tax::NFSe]) -> String {
 }
 
 async fn list_cte() -> Result<Html<String>, (StatusCode, String)> {
-    match tax::list_cte().await {
+    match tax_handlers::list_cte().await {
         Ok(Json(items)) => Ok(Html(render_cte_table(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("CTe error: {e}")))),
     }
 }
 
-fn render_cte_table(items: &[tax::CTe]) -> String {
+fn render_cte_table(items: &[tax_models::CTe]) -> String {
     if items.is_empty() {
         return r#"<div class="gb-empty">Nenhum CTe emitido.</div>"#.to_string();
     }
@@ -178,13 +179,13 @@ async fn list_mdfe() -> Result<Html<String>, (StatusCode, String)> {
 }
 
 async fn list_sped() -> Result<Html<String>, (StatusCode, String)> {
-    match tax::list_sped().await {
+    match tax_handlers::list_sped().await {
         Ok(Json(items)) => Ok(Html(render_sped_table(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("SPED error: {e}")))),
     }
 }
 
-fn render_sped_table(items: &[tax::Sped]) -> String {
+fn render_sped_table(items: &[tax_models::Sped]) -> String {
     if items.is_empty() {
         return r#"<div class="gb-empty">Nenhum arquivo SPED gerado.</div>"#.to_string();
     }
@@ -269,14 +270,14 @@ pub struct NFeForm {
 async fn create_nfe_form(
     Form(f): Form<NFeForm>,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let req = tax::NewNFe {
+    let req = tax_models::NewNFe {
         number: f.number,
         series: f.series,
         emitter_cnpj: f.emitter_cnpj,
         recipient_cnpj: f.recipient_cnpj,
         total: f.total,
     };
-    match tax::create_nfe(Json(req)).await {
+    match tax_handlers::create_nfe(Json(req)).await {
         Ok(Json(n)) => Ok(Html(format!(
             r##"<div id="nfe-new-result" hx-get="/suite/brazil/fragments/nfe" hx-trigger="load delay:200ms" hx-swap="innerHTML" hx-target="#gb-nfe-body">
 <input type="hidden" name="nfe_id" value="{id}">
@@ -290,7 +291,7 @@ async fn create_nfe_form(
 }
 
 async fn authorize_nfe_form(Path(id): Path<String>) -> Result<Html<String>, (StatusCode, String)> {
-    match tax::authorize_nfe(Path(id)).await {
+    match tax_handlers::authorize_nfe(Path(id)).await {
         Ok(_) => Ok(Html(r#"<span class="gb-ok">✓ Autorizada</span>"#.to_string())),
         Err((c, e)) => Ok(Html(err_fragment(&format!("HTTP {c}: {e}")))),
     }
@@ -308,14 +309,14 @@ pub struct CTeForm {
 async fn create_cte_form(
     Form(f): Form<CTeForm>,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let req = tax::NewCTe {
+    let req = tax_models::NewCTe {
         number: f.number,
         sender_cnpj: f.sender_cnpj,
         recipient_cnpj: f.recipient_cnpj,
         modality: f.modality,
         total: f.total,
     };
-    match tax::create_cte(Json(req)).await {
+    match tax_handlers::create_cte(Json(req)).await {
         Ok(Json(c)) => Ok(Html(format!(
             r##"<div hx-get="/suite/brazil/fragments/cte" hx-trigger="load delay:200ms" hx-swap="innerHTML" hx-target="#gb-cte-body">
 <p class="gb-ok">CTe {number} criado.</p>
@@ -337,13 +338,13 @@ pub struct NFSeForm {
 async fn create_nfse_form(
     Form(f): Form<NFSeForm>,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let req = tax::NewNFSe {
+    let req = tax_models::NewNFSe {
         number: f.number,
         service_code: f.service_code,
         provider_cnpj: f.provider_cnpj,
         total: f.total,
     };
-    match tax::create_nfse(Json(req)).await {
+    match tax_handlers::create_nfse(Json(req)).await {
         Ok(Json(n)) => Ok(Html(format!(
             r##"<div hx-get="/suite/brazil/fragments/nfse" hx-trigger="load delay:200ms" hx-swap="innerHTML" hx-target="#gb-nfse-body">
 <p class="gb-ok">NFSe {number} criada.</p>
@@ -388,7 +389,10 @@ fn only_digits(s: &str) -> String {
 fn validate_cnpj(raw: &str) -> (bool, String) {
     let d = only_digits(raw);
     if d.len() != 14 { return (false, format!("CNPJ deve ter 14 dígitos (recebido {})", d.len())); }
-    if d.chars().all(|c| c == d.chars().next().unwrap_or('0')) { return (false, "CNPJ com dígitos repetidos".into()); }
+    match d.chars().next() {
+        Some(first) => if d.chars().all(|c| c == first) { return (false, "CNPJ com dígitos repetidos".into()); },
+        None => return (false, "CNPJ vazio".into()),
+    }
     (true, format!("{} válido", format_cnpj(&d)))
 }
 

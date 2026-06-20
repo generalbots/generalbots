@@ -4,7 +4,7 @@
 use super::*;
 use axum::Json;
 use crate::db;
-use crate::timeclock;
+use bottimeclock::handlers as timeclock;
 
 pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
     Router::new()

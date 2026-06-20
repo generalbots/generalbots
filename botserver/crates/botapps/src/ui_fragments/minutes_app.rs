@@ -4,7 +4,7 @@
 use super::*;
 use axum::Json;
 use crate::db;
-use crate::minutes;
+use botminutes::handlers as minutes;
 
 use super::minutes_app_forms::{complete_action, create_action, ensure_actions_table, schedule_meeting, sign_document, update_document};
 

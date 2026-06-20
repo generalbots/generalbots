@@ -43,7 +43,7 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--border, #e5e7eb);
+    border: 2px solid var(--border, rgba(0,0,0,0.12));
     overflow: hidden;
     z-index: 100;
 }
@@ -55,7 +55,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    border-bottom: 1px solid var(--border, #e5e7eb);
+    border-bottom: 2px solid var(--border, rgba(0,0,0,0.12));
     user-select: none;
     cursor: move;
     position: relative;
@@ -212,7 +212,7 @@
 .window-header {
     height: 40px;
     background-color: var(--surface, #ffffff);
-    border-bottom: 1px solid var(--border, #e5e7eb);
+    border-bottom: 2px solid var(--border, rgba(0,0,0,0.12));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -222,30 +222,6 @@
     position: relative;
     z-index: 10;
 }
-.window-header .font-mono {
-    font-family: "Fira Code", monospace;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--accent, #16a34a);
-    letter-spacing: 0.025em;
-}
-.window-header .flex {
-    display: flex;
-    gap: 12px;
-    color: var(--text-muted, #9ca3af);
-}
-.window-header button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: color 0.15s ease;
-}
-.window-header button:hover {
-    color: var(--text, #4b5563);
-}
-.window-header .btn-close:hover {
-    color: var(--error, #ef4444);
-}
 .window-content {
     flex: 1;
     overflow-y: auto;
@@ -253,40 +229,21 @@
     background-color: var(--bg, #ffffff);
 }
 
-/* Blur background content when a window is active */
-body.window-active .sidebar,
-body.window-active .sidebar-item,
-body.window-active .desktop-icon,
-body.window-active .panel-grid,
-body.window-active .workspace-grid,
-body.window-active .bg-grid,
-body.window-active .bg-svg,
-body.window-active .toolbar {
-    filter: blur(3px);
-    transition: filter 0.2s ease;
-    pointer-events: none;
-}
+/* No dim/overlay — windows float naturally above content */
 
-/* Hide background content when window is maximized */
-body.window-maximized .sidebar,
-body.window-maximized .toolbar,
-body.window-maximized .sidebar-item,
-body.window-maximized .desktop-icon,
-body.window-maximized .panel-grid,
-body.window-maximized .workspace-grid,
-body.window-maximized .bg-grid,
-body.window-maximized .bg-svg {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-}
-
-/* Ensure maximized window fills the screen without minibar offset */
+/* Maximized window fills workspace */
 body.window-maximized .window-element {
-    z-index: 9998 !important; /* Lower than minibar's 9999 */
-    top: 0 !important; /* No minibar offset - start at top */
-    height: 100vh !important; /* Fill entire screen height */
-    width: 100vw !important; /* Fill entire screen width */
+    z-index: 9998 !important;
+    top: 0 !important;
+    height: calc(100vh - 56px) !important;
+    width: 100% !important;
+}
+body.window-maximized .window-element-glass {
+    z-index: 9998 !important;
+    top: 0 !important;
+    height: calc(100vh - 56px) !important;
+    width: 100% !important;
+    border-radius: 0 !important;
 }
 
 /* Ensure window body is opaque */
@@ -336,7 +293,7 @@ select.theme-dropdown {
     background: var(--glass-bg, rgba(20, 22, 35, 0.82));
     backdrop-filter: var(--glass-backdrop, blur(24px) saturate(180%));
     -webkit-backdrop-filter: var(--glass-backdrop, blur(24px) saturate(180%));
-    border: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.08));
+    border: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.12));
     border-radius: 20px;
     box-shadow: var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.4));
     display: flex;
@@ -352,7 +309,7 @@ select.theme-dropdown {
 
 .start-menu-search-wrap {
     padding: 16px 20px;
-    border-bottom: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.06));
+    border-bottom: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.10));
 }
 
 .start-menu-search {
@@ -584,7 +541,7 @@ select.theme-dropdown {
     background: var(--glass-bg, rgba(20, 22, 35, 0.6));
     backdrop-filter: var(--glass-backdrop, blur(16px) saturate(150%));
     -webkit-backdrop-filter: var(--glass-backdrop, blur(16px) saturate(150%));
-    border-right: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.06));
+    border-right: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.12));
     display: flex;
     flex-direction: column;
     z-index: 100;
@@ -605,7 +562,7 @@ select.theme-dropdown {
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    border-bottom: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.06));
+    border-bottom: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.10));
     flex-shrink: 0;
 }
 
@@ -641,7 +598,7 @@ select.theme-dropdown {
 
 .chat-sidebar-header {
     padding: 14px 16px 10px;
-    border-bottom: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.06));
+    border-bottom: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.10));
 }
 
 .chat-sidebar-title {
@@ -804,7 +761,7 @@ select.theme-dropdown {
     background: var(--glass-bg, rgba(20, 22, 35, 0.65));
     backdrop-filter: var(--glass-backdrop, blur(20px) saturate(180%));
     -webkit-backdrop-filter: var(--glass-backdrop, blur(20px) saturate(180%));
-    border-top: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.06));
+    border-top: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.10));
     display: flex;
     align-items: center;
     padding: 0 12px;
@@ -920,7 +877,7 @@ select.theme-dropdown {
     box-shadow: var(--glass-shadow, 0 12px 48px rgba(0, 0, 0, 0.5));
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.08));
+    border: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.15));
     overflow: hidden;
     z-index: 100;
     animation: windowOpenIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -946,7 +903,7 @@ select.theme-dropdown {
     display: flex;
     align-items: center;
     padding: 0 16px;
-    border-bottom: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.06));
+    border-bottom: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.12));
     user-select: none;
     cursor: move;
     flex-shrink: 0;

@@ -1,5 +1,5 @@
 (function(){
-var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],teamsChats:[],outlookMessages:[],currentTab:'sharepoint',currentFolder='root',folderStack=['root']};
+var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],teamsChats:[],outlookMessages:[],currentTab:'sharepoint',currentFolder:'root',folderStack:['root']};
 
 function showFeedback(msg,type){
     var el=document.getElementById('o365-feedback');

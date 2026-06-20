@@ -42,6 +42,45 @@ fn inner_build_sub_router(
 
     *api_router = api_router.clone().merge(crate::apps::register(Router::new()));
 
+    #[cfg(feature = "tax")]
+    { *api_router = api_router.clone().merge(bottax::configure()); }
+
+    #[cfg(feature = "vision")]
+    { *api_router = api_router.clone().merge(botvision::configure()); }
+
+    #[cfg(feature = "erp")]
+    { *api_router = api_router.clone().merge(boterp::configure()); }
+
+    #[cfg(feature = "integrations")]
+    { *api_router = api_router.clone().merge(botintegrations::configure()); }
+
+    #[cfg(feature = "hr")]
+    { *api_router = api_router.clone().merge(bothr::configure()); }
+
+    #[cfg(feature = "sales")]
+    { *api_router = api_router.clone().merge(botsales::configure()); }
+
+    #[cfg(feature = "minutes")]
+    { *api_router = api_router.clone().merge(botminutes::configure()); }
+
+    #[cfg(feature = "templates")]
+    { *api_router = api_router.clone().merge(bottemplates::configure()); }
+
+    #[cfg(feature = "itsm")]
+    { *api_router = api_router.clone().merge(botitsm::configure()); }
+
+    #[cfg(feature = "pos")]
+    { *api_router = api_router.clone().merge(botpos::configure()); }
+
+    #[cfg(feature = "handoff")]
+    { *api_router = api_router.clone().merge(bothandoff::configure()); }
+
+    #[cfg(feature = "kyc")]
+    { *api_router = api_router.clone().merge(botkyc::configure()); }
+
+    #[cfg(feature = "timeclock")]
+    { *api_router = api_router.clone().merge(bottimeclock::configure()); }
+
     sub_router = sub_router.merge(crate::core::i18n::configure_i18n_routes().with_state(app_state.clone()));
     sub_router = sub_router.merge(crate::security::configure_protection_routes().with_state(app_state.clone()));
     sub_router = sub_router.merge(crate::settings::configure_settings_routes().with_state(app_state.clone()));

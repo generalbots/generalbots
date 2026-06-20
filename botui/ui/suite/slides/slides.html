@@ -109,7 +109,13 @@
     <div class="modal-host" id="modal-container"></div>
 </div>
 
-<script src="js/vendor/htmx.min.js"></script>
+<script>
+if (typeof htmx === 'undefined') {
+    var s = document.createElement('script');
+    s.src = 'js/vendor/htmx.min.js';
+    document.body.appendChild(s);
+}
+</script>
 <script src="js/vendor/htmx-json-enc.js"></script>
 <script src="js/collab.js"></script>
 <script src="js/auth-guard.js"></script>
