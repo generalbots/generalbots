@@ -1,24 +1,11 @@
 use axum::{
     extract::{Path, State},
     response::Json,
-    routing::{get, post},
-    Router,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use botcore::shared::state::AppState;
-
-pub fn configure_git_routes() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/api/git/status", get(git_status))
-        .route("/api/git/diff/{file}", get(git_diff))
-        .route("/api/git/commit", post(git_commit))
-        .route("/api/git/push", post(git_push))
-        .route("/api/git/branches", get(git_branches))
-        .route("/api/git/branch/{name}", post(git_create_or_switch_branch))
-        .route("/api/git/log", get(git_log))
-}
 
 #[derive(Serialize)]
 pub struct GitStatusResponse {
@@ -29,6 +16,11 @@ pub struct GitStatusResponse {
 pub struct GitFileStatus {
     pub file: String,
     pub status: String,
+}
+
+#[derive(Deserialize)]
+pub struct CommitRequest {
+    pub message: String,
 }
 
 pub async fn git_status(
@@ -48,13 +40,8 @@ pub async fn git_diff(
     Path(file): Path<String>,
 ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
     Ok(Json(serde_json::json!({
-        "diff": format!("--- a/{}\n+++ b/{}\n@@ -1,3 +1,4 @@\n // Sample file\n+ // Added functionality\n- // Old functionality", file, file)
+        "diff": format!("--- a/{file}\n+++ b/{file}\n@@ -1,3 +1,4 @@\n // Sample file\n+ // Added functionality\n- // Old functionality")
     })))
-}
-
-#[derive(Deserialize)]
-pub struct CommitRequest {
-    pub message: String,
 }
 
 pub async fn git_commit(
@@ -86,7 +73,7 @@ pub async fn git_create_or_switch_branch(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
 ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
-    Ok(Json(serde_json::json!({ "status": "success", "message": format!("Switched to branch {}", name) })))
+    Ok(Json(serde_json::json!({ "status": "success", "message": format!("Switched to branch {name}") })))
 }
 
 pub async fn git_log(

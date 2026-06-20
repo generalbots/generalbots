@@ -353,4 +353,3 @@ async fn attendance(Path(id): Path<String>) -> Result<Html<String>, (StatusCode,
         id = htmx_escape(&id),
     )))
 }
-

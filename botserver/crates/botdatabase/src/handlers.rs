@@ -2,8 +2,6 @@ use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::Json,
-    routing::{delete, get, post, put},
-    Router,
 };
 use diesel::prelude::*;
 use diesel::sql_query;
@@ -12,6 +10,8 @@ use std::sync::Arc;
 
 use botcore::shared::sql_guard::sanitize_identifier;
 use botcore::shared::state::AppState;
+
+use crate::db;
 
 const MAX_QUERY_ROWS: i64 = 10_000;
 const DEFAULT_PAGE_SIZE: i64 = 100;
@@ -175,7 +175,8 @@ fn get_bot_conn(
 
 fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
     let db_name: String = {
-        let mut conn = state.conn.get().map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
+        let pool = db::pool().map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
+        let mut conn = pool.get().map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
 
         #[derive(QueryableByName, Debug)]
         struct DbName {
@@ -197,26 +198,6 @@ fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, 
         .map(|pos| &base_url[..pos])
         .unwrap_or(&base_url);
     Ok(format!("{base}/{db_name}"))
-}
-
-pub fn configure_database_routes() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/api/database/schema", get(get_schema))
-        .route("/api/database/table/{name}/data", get(get_table_data))
-        .route("/api/database/query", post(execute_query))
-        .route("/api/database/table/{name}/row", post(insert_row).put(update_row))
-        .route("/api/database/table/{name}/row/{id}", delete(delete_row))
-        .route("/api/database/table/{name}/rows/batch-delete", post(batch_delete))
-        .route("/api/database/table", post(create_table))
-        .route(
-            "/api/database/table/{name}",
-            put(alter_table).delete(drop_table),
-        )
-        .route("/api/database/table/{name}/column", post(add_column))
-        .route(
-            "/api/database/table/{name}/foreign-keys",
-            get(get_foreign_keys),
-        )
 }
 
 #[derive(QueryableByName, Debug)]
@@ -746,11 +727,7 @@ pub async fn insert_row(
             serde_json::Value::Null => "NULL".to_string(),
             serde_json::Value::Number(n) => n.to_string(),
             serde_json::Value::Bool(b) => {
-                if *b {
-                    "TRUE".to_string()
-                } else {
-                    "FALSE".to_string()
-                }
+                if *b { "TRUE".to_string() } else { "FALSE".to_string() }
             }
             other => format!("'{}'", other.to_string().replace('\'', "''")),
         })
@@ -840,11 +817,7 @@ pub async fn create_table(
         .iter()
         .map(|col| {
             let col_name = sanitize_identifier(&col.name);
-            let nullable = if col.nullable.unwrap_or(true) {
-                ""
-            } else {
-                " NOT NULL"
-            };
+            let nullable = if col.nullable.unwrap_or(true) { "" } else { " NOT NULL" };
             let default = col
                 .default
                 .as_ref()
@@ -887,11 +860,7 @@ pub async fn alter_table(
     if let Some(add_cols) = &payload.add_columns {
         for col in add_cols {
             let col_name = sanitize_identifier(&col.name);
-            let nullable = if col.nullable.unwrap_or(true) {
-                ""
-            } else {
-                " NOT NULL"
-            };
+            let nullable = if col.nullable.unwrap_or(true) { "" } else { " NOT NULL" };
             let default = col
                 .default
                 .as_ref()
@@ -984,11 +953,7 @@ pub async fn add_column(
 
     let mut conn = get_bot_conn(&state, bot_id)?;
 
-    let nullable = if payload.nullable.unwrap_or(true) {
-        ""
-    } else {
-        " NOT NULL"
-    };
+    let nullable = if payload.nullable.unwrap_or(true) { "" } else { " NOT NULL" };
     let default = payload
         .default
         .as_ref()
@@ -1060,11 +1025,7 @@ pub async fn update_row(
                 serde_json::Value::Null => "NULL".to_string(),
                 serde_json::Value::Number(n) => n.to_string(),
                 serde_json::Value::Bool(b) => {
-                    if *b {
-                        "TRUE".to_string()
-                    } else {
-                        "FALSE".to_string()
-                    }
+                    if *b { "TRUE".to_string() } else { "FALSE".to_string() }
                 }
                 other => format!("'{}'", other.to_string().replace('\'', "''")),
             };

@@ -89,9 +89,12 @@ fn inner_build_sub_router(
     sub_router = sub_router.merge(botcore::organization_invitations::configure().with_state(app_state.clone()));
 
     // BotCoder IDE APIs
-    sub_router = sub_router.merge(crate::api::editor::configure_editor_routes().with_state(app_state.clone()));
-    sub_router = sub_router.merge(crate::api::database::configure_database_routes().with_state(app_state.clone()));
-    sub_router = sub_router.merge(crate::api::git::configure_git_routes().with_state(app_state.clone()));
+    #[cfg(feature = "editor")]
+    { sub_router = sub_router.merge(boteditor::configure().with_state(app_state.clone())); }
+    #[cfg(feature = "database")]
+    { sub_router = sub_router.merge(botdatabase::configure().with_state(app_state.clone())); }
+    #[cfg(feature = "git")]
+    { sub_router = sub_router.merge(botgit::configure().with_state(app_state.clone())); }
     sub_router = sub_router.merge(crate::api::system::configure_system_routes().with_state(app_state.clone()));
 
     #[cfg(feature = "meet")]
