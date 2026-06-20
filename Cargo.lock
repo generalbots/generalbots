@@ -1149,24 +1149,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "botapps"
-version = "6.3.1"
-dependencies = [
- "axum 0.7.9",
- "botcore",
- "botminutes",
- "bottax",
- "bottimeclock",
- "chrono",
- "diesel",
- "rust_decimal",
- "serde",
- "serde_json",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "botattendance"
 version = "6.3.0"
 dependencies = [
@@ -1824,6 +1806,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "botdatabase"
+version = "6.3.1"
+dependencies = [
+ "anyhow",
+ "axum 0.7.9",
+ "base64 0.22.1",
+ "botcore",
+ "chrono",
+ "diesel",
+ "log",
+ "postgres",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "botdeployment"
 version = "6.3.0"
 dependencies = [
@@ -1931,6 +1931,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "boteditor"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "diesel",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "botemail"
 version = "6.3.0"
 dependencies = [
@@ -2005,6 +2018,18 @@ dependencies = [
  "serde_json",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "botgit"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "diesel",
+ "log",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2747,7 +2772,6 @@ dependencies = [
  "bigdecimal",
  "botanalytics",
  "botapi",
- "botapps",
  "botattendance",
  "botattendant",
  "botautotask",
@@ -2775,14 +2799,17 @@ dependencies = [
  "botcoresecrets",
  "botcoresession",
  "botdashboards",
+ "botdatabase",
  "botdeployment",
  "botdesigner",
  "botdesktop",
  "botdocs",
  "botdrive",
+ "boteditor",
  "botemail",
  "boterp",
  "botfraud",
+ "botgit",
  "botgl",
  "bothandoff",
  "bothr",
@@ -2832,6 +2859,7 @@ dependencies = [
  "bottickets",
  "bottimeclock",
  "bottimeseries",
+ "botuifragments",
  "botvibe",
  "botvideo",
  "botvision",
@@ -3189,6 +3217,23 @@ dependencies = [
  "tokio",
  "tokio-tungstenite 0.24.0",
  "tower-http",
+]
+
+[[package]]
+name = "botuifragments"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "botcore",
+ "botminutes",
+ "bottax",
+ "bottimeclock",
+ "chrono",
+ "diesel",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]

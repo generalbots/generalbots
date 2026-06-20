@@ -12,7 +12,7 @@ members = [
   "botserver/crates/botanalytics",
   "botserver/crates/botcloud",
   "botserver/crates/botapi",
-  "botserver/crates/botapps",
+  "botserver/crates/botuifragments",
   "botserver/crates/botattendance",
   "botserver/crates/botattendant",
   "botserver/crates/botautotask",
@@ -43,6 +43,9 @@ members = [
   "botserver/crates/botcorebot",
   "botserver/crates/botcoredirectory",
   "botserver/crates/botcoreoauth",
+  "botserver/crates/boteditor",
+  "botserver/crates/botdatabase",
+  "botserver/crates/botgit",
   "botserver/crates/botcorepkg",
   "botserver/crates/botcoresecrets",
   "botserver/crates/botcoresession",
@@ -216,7 +219,7 @@ botbasic_compiler = { path = "botserver/crates/botbasic_compiler" }
 botschema = { path = "botschema" }
 botmodelsbridge = { path = "botserver/crates/botmodelsbridge" }
 botapi = { path = "botserver/crates/botapi" }
-botapps = { path = "botserver/crates/botapps" }
+botuifragments = { path = "botserver/crates/botuifragments" }
 bottax = { path = "botserver/crates/bottax" }
 botvision = { path = "botserver/crates/botvision" }
 boterp = { path = "botserver/crates/boterp" }
@@ -236,6 +239,9 @@ botmeet = { path = "botserver/crates/botmeet" }
 botsettings = { path = "botserver/crates/botsettings" }
 botcorebot = { path = "botserver/crates/botcorebot" }
 botcorepkg = { path = "botserver/crates/botcorepkg" }
+boteditor = { path = "botserver/crates/boteditor" }
+botdatabase = { path = "botserver/crates/botdatabase" }
+botgit = { path = "botserver/crates/botgit" }
 
 # ─── CORE / ERROR HANDLING ───
 anyhow = "1.0"

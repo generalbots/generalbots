@@ -225,9 +225,8 @@ async fn history() -> Result<Html<String>, (StatusCode, String)> {
 
 async fn sefaz() -> Result<Html<String>, (StatusCode, String)> {
     let env_label = "Produção";
-    let env = if env_label == "Produção" { "production" } else { "homologation" };
     Ok(Html(format!(
-        r##"<div class="gb-sefaz-bar" data-env="{env}">
+        r##"<div class="gb-sefaz-bar" data-env="production">
   <div class="gb-sefaz-dot ok" title="SEFAZ SP"><span>SP</span></div>
   <div class="gb-sefaz-dot ok" title="SEFAZ RJ"><span>RJ</span></div>
   <div class="gb-sefaz-dot ok" title="SEFAZ MG"><span>MG</span></div>
@@ -236,7 +235,6 @@ async fn sefaz() -> Result<Html<String>, (StatusCode, String)> {
   <span class="gb-sefaz-cert">Certificado A1: <strong>vence em 47 dias</strong></span>
   <button class="gb-btn gb-btn-secondary" hx-get="/suite/brazil/fragments/sefaz" hx-swap="outerHTML">Atualizar</button>
 </div>"##,
-        env = env,
         env_label = env_label,
     )))
 }

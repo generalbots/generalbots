@@ -75,7 +75,9 @@ monitoring = ["automation", "drive", "cache", "dep:sysinfo", "dep:botmonitoring"
 
 # Development
 designer = ["automation", "drive", "cache", "dep:botdesigner"]
-editor = ["automation", "drive", "cache"]
+editor = ["automation", "drive", "cache", "dep:boteditor"]
+database = ["automation", "drive", "cache", "dep:botdatabase"]
+git = ["automation", "drive", "cache", "dep:botgit"]
 
 # Admin
 attendant = ["automation", "drive", "cache", "dep:botattendant"]
@@ -144,7 +146,7 @@ allbutooxmlsdk = [
     "video", "player", "canvas",
     "learn", "research", "sources",
     "analytics", "dashboards", "monitoring",
-    "designer", "editor",
+    "designer", "editor", "database", "git",
     "attendant", "settings",
     "whatsapp", "telegram", "instagram", "msteams",
     "compliance", "timeseries", "weba", "contacts", "products", "legal", "attendance",
@@ -312,6 +314,9 @@ botbasic_ai = { path = "crates/botbasic_ai" }
 botbasic_system = { path = "crates/botbasic_system" }
 botbasic_compiler = { path = "crates/botbasic_compiler" }
 botapi = { path = "crates/botapi" }
+boteditor = { path = "crates/boteditor", optional = true }
+botdatabase = { path = "crates/botdatabase", optional = true }
+botgit = { path = "crates/botgit", optional = true }
 botmeet = { path = "crates/botmeet" }
 botsettings = { path = "crates/botsettings" }
 botdrive = { path = "crates/botdrive", features = ["llm", "vectordb", "drive"] }
@@ -370,7 +375,7 @@ botgl = { workspace = true, optional = true }
 botretail = { workspace = true, optional = true }
 botbanking = { workspace = true, optional = true }
 botm365 = { workspace = true, optional = true }
-botapps = { workspace = true }
+botuifragments = { workspace = true }
 bottax = { workspace = true, optional = true }
 botvision = { workspace = true, optional = true }
 boterp = { workspace = true, optional = true }
