@@ -98,3 +98,30 @@ diesel::table! {
         updated_at -> Timestamptz,
     }
 }
+
+diesel::table! {
+    cloud_vouchers (id) {
+        id -> Uuid,
+        code -> Varchar,
+        plan -> Varchar,
+        trial_days -> Int4,
+        max_uses -> Int4,
+        uses_count -> Int4,
+        created_by -> Nullable<Uuid>,
+        expires_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    cloud_voucher_redemptions (id) {
+        id -> Uuid,
+        voucher_id -> Uuid,
+        contact_id -> Uuid,
+        org_id -> Uuid,
+        branch_id -> Uuid,
+        subscription_id -> Nullable<Uuid>,
+        trial_days -> Int4,
+        redeemed_at -> Timestamptz,
+    }
+}

@@ -78,6 +78,21 @@
 
       <div class="divider"></div>
 
+      <!-- Resgatar Voucher -->
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-card-title">Resgatar Voucher</div>
+          <div class="settings-card-desc">Insira um código de voucher promocional (ex: GB30-XXXX) para ativar ou prolongar seu período de testes (trial).</div>
+          <div style="display:flex;gap:.75rem;align-items:center">
+            <input type="text" id="voucher-code-input" placeholder="GB30-XXXX" style="padding:.5rem .75rem;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:monospace;width:250px" spellcheck="false" autocomplete="off">
+            <button class="btn btn-primary btn-sm" onclick="redeemVoucher()">Resgatar</button>
+          </div>
+          <div id="voucher-message" style="margin-top:.75rem;font-size:.85rem"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
       <!-- BYOK API Keys -->
       <div class="settings-section">
         <div class="settings-card">
@@ -213,6 +228,45 @@
     });
 
     alert('API keys saved locally. In production, keys are encrypted and stored server-side.');
+  };
+
+  window.redeemVoucher = async function() {
+    const input = document.getElementById('voucher-code-input');
+    const msg = document.getElementById('voucher-message');
+    const code = input.value.trim();
+    if (!code) {
+      msg.style.color = '#ef4444';
+      msg.textContent = 'Por favor, insira o código do voucher.';
+      return;
+    }
+    
+    msg.style.color = 'var(--muted)';
+    msg.textContent = 'Processando resgate...';
+    
+    try {
+      const res = await fetch('/api/cloud/vouchers/redeem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('management_token')
+        },
+        body: JSON.stringify({ code })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        msg.style.color = '#34d399';
+        msg.textContent = `Sucesso! Voucher resgatado: ${data.subscription.trial_days} dias de trial concedidos. Expira em ${data.subscription.trial_end}.`;
+        input.value = '';
+        setTimeout(() => window.location.reload(), 3000);
+      } else {
+        msg.style.color = '#ef4444';
+        msg.textContent = `Erro: ${data.message || data.error || 'Código inválido ou já utilizado.'}`;
+      }
+    } catch (e) {
+      msg.style.color = '#ef4444';
+      msg.textContent = 'Erro ao conectar ao servidor.';
+    }
   };
 
   // Plan info

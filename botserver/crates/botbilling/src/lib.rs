@@ -485,14 +485,21 @@ pub fn default_product_config() -> ProductConfig {
 pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (Uuid, String);
 
 pub fn get_bot_context(pool: &DbPool, get_default_bot: &Option<GetDefaultBotFn>) -> (Uuid, Uuid) {
+    use diesel::prelude::*;
+    use crate::schema::bots;
+
     let Ok(mut conn) = pool.get() else {
         return (Uuid::nil(), Uuid::nil());
     };
     match get_default_bot {
         Some(f) => {
             let (bot_id, _) = f(&mut conn);
-            let org_id = Uuid::nil();
-            (org_id, bot_id)
+            let branch_id = bots::table
+                .filter(bots::id.eq(bot_id))
+                .select(bots::branch_id)
+                .first::<Uuid>(&mut conn)
+                .unwrap_or_else(|_| Uuid::nil());
+            (branch_id, bot_id)
         }
         None => (Uuid::nil(), Uuid::nil()),
     }

@@ -45,14 +45,13 @@ impl CrateState {
         };
         let (bot_id, _bot_name) = (self.get_default_bot)(&mut conn);
 
-        let org_id = bots::table
+        let branch_id = bots::table
             .filter(bots::id.eq(bot_id))
-            .select(bots::org_id)
-            .first::<Option<Uuid>>(&mut conn)
-            .unwrap_or(None)
-            .unwrap_or(Uuid::nil());
+            .select(bots::branch_id)
+            .first::<Uuid>(&mut conn)
+            .unwrap_or_else(|_| Uuid::nil());
 
-        (org_id, bot_id)
+        (branch_id, bot_id)
     }
 }
 

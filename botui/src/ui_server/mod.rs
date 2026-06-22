@@ -101,13 +101,23 @@ pub fn configure_router() -> Router {
     #[cfg(feature = "embed-ui")]
     {
         router = router.route("/auth/*path", get(handle_auth_asset));
-    }
-
-    router = router.route("/cloud", get(serve_cloud_index));
-    router = router.route("/cloud/", get(serve_cloud_index));
-    router = router.route("/cloud/*path", get(serve_cloud));
-
     router = add_static_routes(router, &suite_path);
 
     router.fallback(get(index)).with_state(state)
+}
+
+pub fn configure_cloud_router() -> Router {
+    let state = AppState::new();
+
+    Router::new()
+        .route("/health", get(health))
+        .route("/cloud", get(serve_cloud_index))
+        .route("/cloud/", get(serve_cloud_index))
+        .route("/cloud/*path", get(serve_cloud))
+        .nest("/api", create_api_router())
+        .nest("/ui", create_ui_router())
+        .nest("/ws", create_ws_router())
+        .route("/", get(serve_cloud_index))
+        .fallback(get(serve_cloud_index))
+        .with_state(state)
 }

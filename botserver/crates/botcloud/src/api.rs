@@ -102,6 +102,10 @@ pub fn configure_cloud_api_routes() -> Router<Arc<SaasService>> {
         .route("/api/cloud/services/{id}/cancel", post(cancel_service))
         // Invoices
         .route("/api/cloud/invoices", get(list_invoices))
+        // Vouchers
+        .route("/api/cloud/vouchers", post(crate::vouchers::create_voucher).get(crate::vouchers::list_vouchers))
+        .route("/api/cloud/vouchers/redeem", post(crate::vouchers::redeem_voucher))
+        .route("/api/cloud/vouchers/my", get(crate::vouchers::get_my_redemptions))
         // Payment cards (stub — real impl via Stripe SetupIntent)
         .route("/api/cloud/payment-cards", get(list_payment_cards))
         // Store items
@@ -603,6 +607,36 @@ fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
     Ok(out)
 }
 
+fn get_branch_id_from_jwt(
+    headers: &HeaderMap,
+    conn: &mut diesel::PgConnection,
+) -> Result<Option<Uuid>, String> {
+    use diesel::prelude::*;
+    if let Some(auth_val) = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+    {
+        let parts: Vec<&str> = auth_val.split('.').collect();
+        if parts.len() == 3 {
+            if let Ok(decoded) = base64_url_decode(parts[1]) {
+                if let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&decoded) {
+                    if let Some(user_email) = payload.get("email").and_then(|v| v.as_str()) {
+                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, org_id};
+                        let contact_branch: Option<Uuid> = crm_contacts
+                            .filter(email.eq(user_email))
+                            .select(org_id)
+                            .first(conn)
+                            .optional()
+                            .map_err(|e| format!("Query: {e}"))?;
+                        return Ok(contact_branch);
+                    }
+                }
+            }
+        }
+    }
+    Ok(None)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Organizations
 // ─────────────────────────────────────────────────────────────────────────────
@@ -615,32 +649,12 @@ async fn list_organizations(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
-    let user_org_id: Option<Uuid> = if let Some(auth_val) = headers.get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-    {
-        let parts: Vec<&str> = auth_val.split('.').collect();
-        if parts.len() == 3 {
-            if let Ok(decoded) = base64_url_decode(parts[1]) {
-                if let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&decoded) {
-                    if let Some(user_email) = payload.get("email").and_then(|v| v.as_str()) {
-                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, org_id};
-                        let contact_org: Option<Uuid> = crm_contacts
-                            .filter(email.eq(user_email))
-                            .select(org_id)
-                            .first(&mut conn)
-                            .optional()
-                            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
-                        contact_org
-                    } else { None }
-                } else { None }
-            } else { None }
-        } else { None }
-    } else { None };
+    let user_branch_id = get_branch_id_from_jwt(&headers, &mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let orgs: Vec<OrgRow> = if let Some(uid) = user_org_id {
-        diesel::sql_query("SELECT org_id AS id, name FROM organizations WHERE org_id = $1")
-            .bind::<diesel::sql_types::Uuid, _>(uid)
+    let orgs: Vec<OrgRow> = if let Some(bid) = user_branch_id {
+        diesel::sql_query("SELECT org_id AS id, name FROM organizations WHERE org_id = (SELECT org_id FROM branches WHERE id = $1)")
+            .bind::<diesel::sql_types::Uuid, _>(bid)
             .load(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
     } else {
@@ -1157,17 +1171,27 @@ async fn remove_resource(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// `GET /api/cloud/services`
-///
 /// Returns provisioned services (active subscriptions).
 async fn list_services(
     State(service): State<Arc<SaasService>>,
+    headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
+    let user_branch_id = get_branch_id_from_jwt(&headers, &mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
     use crate::schema_ext::billing_recurring::dsl::*;
-    let subs = billing_recurring
+    let mut query = billing_recurring
         .select((id, customer_name, frequency, status, amount, currency, interval_count))
+        .into_boxed();
+
+    if let Some(bid) = user_branch_id {
+        query = query.filter(org_id.eq(bid));
+    }
+
+    let subs = query
         .load::<(Uuid, String, String, String, bigdecimal::BigDecimal, String, i32)>(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
 
@@ -1193,13 +1217,24 @@ async fn list_services(
 /// `GET /api/cloud/invoices`
 async fn list_invoices(
     State(service): State<Arc<SaasService>>,
+    headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
+    let user_branch_id = get_branch_id_from_jwt(&headers, &mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
     use botbilling::schema::billing_invoices::dsl::*;
-    let invs = billing_invoices
+    let mut query = billing_invoices
         .select((id, invoice_number, customer_name, total, status, issue_date, due_date))
+        .into_boxed();
+
+    if let Some(bid) = user_branch_id {
+        query = query.filter(org_id.eq(bid));
+    }
+
+    let invs = query
         .order(issue_date.desc())
         .limit(50)
         .load::<(Uuid, String, String, bigdecimal::BigDecimal, String, chrono::NaiveDate, chrono::NaiveDate)>(&mut conn)

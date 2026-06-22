@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vouchers — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .vouchers-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-muted); margin-bottom: .4rem; }
+    .form-group input, .form-group select {
+      width: 100%; padding: .55rem .75rem; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg3); color: var(--text); font-size: .85rem;
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+    .vouchers-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    .vouchers-table th, .vouchers-table td { padding: .75rem; border-bottom: 1px solid var(--border); text-align: left; font-size: .85rem; }
+    .vouchers-table th { font-weight: 700; color: var(--muted); }
+    .code-badge { font-family: monospace; background: var(--accent-dim); color: var(--accent2); padding: .2rem .5rem; border-radius: 4px; font-weight: 600; }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Manage Vouchers</span>
+      <div class="mgmt-topbar-actions"></div>
+    </div>
+
+    <div style="padding:2rem">
+      <div class="vouchers-grid">
+        
+        <!-- Create Voucher -->
+        <div class="card">
+          <h2 style="font-size:1.1rem;margin-bottom:1rem">Criar Novo Voucher</h2>
+          <form id="create-voucher-form" onsubmit="handleCreateVoucher(event)" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;align-items:end">
+            <div class="form-group">
+              <label for="trial_days">Dias de Avaliação (Trial Days)</label>
+              <input type="number" id="trial_days" name="trial_days" value="30" min="1" max="180" required>
+            </div>
+            <div class="form-group">
+              <label for="plan">Plano Assinatura</label>
+              <select id="plan" name="plan">
+                <option value="shared">Shared</option>
+                <option value="personal">Personal</option>
+                <option value="business">Business</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="max_uses">Limite de Usos (Max Uses)</label>
+              <input type="number" id="max_uses" name="max_uses" value="1" min="1" required>
+            </div>
+            <div class="form-group">
+              <label for="expires_at">Expiração (Opcional)</label>
+              <input type="datetime-local" id="expires_at" name="expires_at">
+            </div>
+            <div class="form-group">
+              <button type="submit" class="btn btn-primary" style="width:100%">Gerar Voucher</button>
+            </div>
+          </form>
+          <div id="create-message" style="margin-top:1rem;font-size:.85rem"></div>
+        </div>
+
+        <!-- Voucher List -->
+        <div class="card">
+          <h2 style="font-size:1.1rem;margin-bottom:1rem">Vouchers Disponíveis</h2>
+          <div style="overflow-x:auto">
+            <table class="vouchers-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Plano</th>
+                  <th>Dias Trial</th>
+                  <th>Usos</th>
+                  <th>Criador</th>
+                  <th>Expiração</th>
+                  <th>Criado Em</th>
+                </tr>
+              </thead>
+              <tbody id="vouchers-table-body">
+                <tr>
+                  <td colspan="7" style="text-align:center;color:var(--muted)">Carregando vouchers...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/cloud/js/cloud.js"></script>
+<script>
+(async function() {
+  const token = await requireAuth();
+  
+  async function loadVouchers() {
+    try {
+      const res = await fetch('/api/cloud/vouchers', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const tbody = document.getElementById('vouchers-table-body');
+        if (!data.vouchers || data.vouchers.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhum voucher cadastrado.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.vouchers.map(v => {
+          const expires = v.expires_at ? new Date(v.expires_at).toLocaleString() : 'Nunca';
+          const created = new Date(v.created_at).toLocaleString();
+          return `<tr>
+            <td><span class="code-badge">${v.code}</span></td>
+            <td>${v.plan}</td>
+            <td>${v.trial_days} dias</td>
+            <td>${v.uses_count} / ${v.max_uses}</td>
+            <td style="font-size:.75rem;color:var(--muted)">${v.created_by || 'Sistema'}</td>
+            <td>${expires}</td>
+            <td>${created}</td>
+          </tr>`;
+        }).join('');
+      } else {
+        showToast('Erro ao carregar vouchers.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Falha de conexão ao carregar vouchers.', 'error');
+    }
+  }
+
+  window.handleCreateVoucher = async function(e) {
+    e.preventDefault();
+    const trial_days = parseInt(document.getElementById('trial_days').value);
+    const plan = document.getElementById('plan').value;
+    const max_uses = parseInt(document.getElementById('max_uses').value);
+    const expires_val = document.getElementById('expires_at').value;
+    const expires_at = expires_val ? new Date(expires_val).toISOString() : null;
+
+    const msg = document.getElementById('create-message');
+    msg.style.color = 'var(--muted)';
+    msg.textContent = 'Gerando voucher promocional...';
+
+    try {
+      const res = await fetch('/api/cloud/vouchers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ trial_days, plan, max_uses, expires_at })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.style.color = '#34d399';
+        msg.innerHTML = `Voucher gerado com sucesso: <span class="code-badge">${data.code}</span>`;
+        showToast('Voucher criado!', 'success');
+        document.getElementById('create-voucher-form').reset();
+        await loadVouchers();
+      } else {
+        msg.style.color = '#ef4444';
+        msg.textContent = `Erro: ${data.message || data.error || 'Falha ao criar.'}`;
+      }
+    } catch (err) {
+      msg.style.color = '#ef4444';
+      msg.textContent = 'Erro ao processar criação.';
+    }
+  };
+
+  await loadVouchers();
+})();
+</script>
+</body>
+</html>
