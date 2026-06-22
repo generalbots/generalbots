@@ -63,8 +63,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sidebar = document.querySelector('.mgmt-sidebar');
   if (sidebar) initNavActive(sidebar);
 
-  // Fill user email + avatar
   const email = localStorage.getItem('management_email') || '';
+  if (email === 'admin@localhost' || email.startsWith('admin')) {
+    const navVouchers = document.getElementById('nav-vouchers');
+    if (navVouchers) navVouchers.style.display = 'flex';
+  }
+
+  // Fill user email + avatar
   const emailEl = document.getElementById('sidebar-email');
   if (emailEl) emailEl.textContent = email;
 

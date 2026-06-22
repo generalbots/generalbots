@@ -13,7 +13,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::api::BillingApiState;
-use crate::schema::{billing_invoices, billing_payments, billing_quotes};
+use crate::schema::{billing_invoices, billing_payments, billing_quotes, billing_recurring};
 
 fn bd_to_f64(bd: &BigDecimal) -> f64 {
     bd.to_f64().unwrap_or(0.0)
@@ -69,10 +69,94 @@ pub fn configure_billing_routes() -> Router<Arc<BillingApiState>> {
 }
 
 async fn handle_dashboard_metrics(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
 ) -> Html<String> {
-    let html = r#"<div class="metric-card spending"><div class="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="metric-content"><span class="metric-value">$2,847.50</span><span class="metric-label">Current Period</span></div><span class="metric-trend positive">-12% vs last period</span></div><div class="metric-card forecast"><div class="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></div><div class="metric-content"><span class="metric-value">$3,200.00</span><span class="metric-label">Projected</span></div><span class="metric-trend">End of period</span></div><div class="metric-card budget"><div class="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg></div><div class="metric-content"><span class="metric-value">71%</span><span class="metric-label">Budget Used</span></div><span class="metric-trend">$1,152.50 remaining</span></div><div class="metric-card savings"><div class="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"></path><path d="M2 9v1c0 1.1.9 2 2 2h1"></path></svg></div><div class="metric-content"><span class="metric-value">$425.00</span><span class="metric-label">Savings</span></div><span class="metric-trend positive">This month</span></div>"#;
-    Html(html.to_string())
+    let Ok(mut conn) = state.pool.get() else {
+        return Html("Error connecting to DB".to_string());
+    };
+
+    let (branch_id, _) = crate::get_bot_context(&state.pool, &state.get_default_bot);
+
+    // 1. Current Period Spending (Sum of invoices total for branch_id)
+    let total_spent = billing_invoices::table
+        .filter(billing_invoices::org_id.eq(branch_id))
+        .select(diesel::dsl::sum(billing_invoices::total))
+        .first::<Option<BigDecimal>>(&mut conn)
+        .unwrap_or(None)
+        .unwrap_or_else(num_traits::Zero::zero);
+
+    let total_spent_f = bd_to_f64(&total_spent);
+
+    // 2. Projected (Total spent + sum of monthly recurring subscriptions amount)
+    let total_recurring = billing_recurring::table
+        .filter(billing_recurring::org_id.eq(branch_id))
+        .select(diesel::dsl::sum(billing_recurring::amount))
+        .first::<Option<BigDecimal>>(&mut conn)
+        .unwrap_or(None)
+        .unwrap_or_else(num_traits::Zero::zero);
+
+    let total_recurring_f = bd_to_f64(&total_recurring);
+    let projected_f = total_spent_f + total_recurring_f;
+
+    // 3. Budget (Default Limit: $4000.00)
+    let budget_limit = 4000.0;
+    let budget_used_pct = if budget_limit <= 0.0 { 0.0 } else { (total_spent_f / budget_limit) * 100.0 };
+    let budget_remaining = (budget_limit - total_spent_f).max(0.0);
+
+    // 4. Savings (Sum of discount_amount for branch_id)
+    let total_savings = billing_invoices::table
+        .filter(billing_invoices::org_id.eq(branch_id))
+        .select(diesel::dsl::sum(billing_invoices::discount_amount))
+        .first::<Option<BigDecimal>>(&mut conn)
+        .unwrap_or(None)
+        .unwrap_or_else(num_traits::Zero::zero);
+
+    let total_savings_f = bd_to_f64(&total_savings);
+
+    let html = format!(
+        r#"<div class="metric-card spending">
+            <div class="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <div class="metric-content">
+                <span class="metric-value">${:.2}</span>
+                <span class="metric-label">Current Period</span>
+            </div>
+            <span class="metric-trend positive">-12% vs last period</span>
+        </div>
+        <div class="metric-card forecast">
+            <div class="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </div>
+            <div class="metric-content">
+                <span class="metric-value">${:.2}</span>
+                <span class="metric-label">Projected</span>
+            </div>
+            <span class="metric-trend">End of period</span>
+        </div>
+        <div class="metric-card budget">
+            <div class="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            </div>
+            <div class="metric-content">
+                <span class="metric-value">{:.1}%</span>
+                <span class="metric-label">Budget Used</span>
+            </div>
+            <span class="metric-trend">${:.2} remaining</span>
+        </div>
+        <div class="metric-card savings">
+            <div class="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"></path><path d="M2 9v1c0 1.1.9 2 2 2h1"></path></svg>
+            </div>
+            <div class="metric-content">
+                <span class="metric-value">${:.2}</span>
+                <span class="metric-label">Savings</span>
+            </div>
+            <span class="metric-trend positive">This month</span>
+        </div>"#,
+        total_spent_f, projected_f, budget_used_pct, budget_remaining, total_savings_f
+    );
+    Html(html)
 }
 
 async fn handle_spending_chart(
@@ -90,10 +174,41 @@ async fn handle_cost_breakdown(
 }
 
 async fn handle_dashboard_quotas(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
 ) -> Html<String> {
-    let html = r#"<div class="quota-item"><div class="quota-header"><span class="quota-name">API Requests</span><span class="quota-usage">847K / 1M</span></div><div class="quota-bar"><div class="quota-fill" style="width: 84.7%"></div></div></div><div class="quota-item"><div class="quota-header"><span class="quota-name">Storage</span><span class="quota-usage">45 GB / 100 GB</span></div><div class="quota-bar"><div class="quota-fill" style="width: 45%"></div></div></div><div class="quota-item"><div class="quota-header"><span class="quota-name">Team Members</span><span class="quota-usage">24 / 50</span></div><div class="quota-bar"><div class="quota-fill" style="width: 48%"></div></div></div><div class="quota-item"><div class="quota-header"><span class="quota-name">Bots</span><span class="quota-usage">5 / 10</span></div><div class="quota-bar"><div class="quota-fill" style="width: 50%"></div></div></div>"#;
-    Html(html.to_string())
+    let Ok(mut conn) = state.pool.get() else {
+        return Html("Error connecting to DB".to_string());
+    };
+
+    let (branch_id, _) = crate::get_bot_context(&state.pool, &state.get_default_bot);
+
+    // Dynamic counts
+    let bot_count = diesel::sql_query("SELECT COUNT(*) FROM bots WHERE branch_id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .get_result::<(i64,)>(&mut conn)
+        .map(|r| r.0)
+        .unwrap_or(0);
+
+    let contact_count = diesel::sql_query("SELECT COUNT(*) FROM crm_contacts WHERE org_id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .get_result::<(i64,)>(&mut conn)
+        .map(|r| r.0)
+        .unwrap_or(0);
+
+    let bot_limit = 10;
+    let bot_pct = (bot_count as f64 / bot_limit as f64 * 100.0).min(100.0);
+
+    let team_limit = 50;
+    let team_pct = (contact_count as f64 / team_limit as f64 * 100.0).min(100.0);
+
+    let html = format!(
+        r#"<div class="quota-item"><div class="quota-header"><span class="quota-name">API Requests</span><span class="quota-usage">847K / 1M</span></div><div class="quota-bar"><div class="quota-fill" style="width: 84.7%"></div></div></div>
+        <div class="quota-item"><div class="quota-header"><span class="quota-name">Storage</span><span class="quota-usage">45 GB / 100 GB</span></div><div class="quota-bar"><div class="quota-fill" style="width: 45%"></div></div></div>
+        <div class="quota-item"><div class="quota-header"><span class="quota-name">Team Members</span><span class="quota-usage">{} / {}</span></div><div class="quota-bar"><div class="quota-fill" style="width: {:.1}%"></div></div></div>
+        <div class="quota-item"><div class="quota-header"><span class="quota-name">Bots</span><span class="quota-usage">{} / {}</span></div><div class="quota-bar"><div class="quota-fill" style="width: {:.1}%"></div></div></div>"#,
+        contact_count, team_limit, team_pct, bot_count, bot_limit, bot_pct
+    );
+    Html(html)
 }
 
 async fn handle_invoices_export(

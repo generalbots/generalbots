@@ -15,6 +15,13 @@ fn get_port() -> u16 {
         .unwrap_or(3000)
 }
 
+fn get_cloud_port() -> u16 {
+    std::env::var("BOTUI_CLOUD_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(4000)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_logging();
@@ -29,9 +36,20 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     info!("UI server listening on http://{addr}");
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    let cloud_app = ui_server::configure_cloud_router();
+    let cloud_port = get_cloud_port();
+    let cloud_addr = SocketAddr::from(([0, 0, 0, 0], cloud_port));
+
+    let cloud_listener = tokio::net::TcpListener::bind(cloud_addr).await?;
+    info!("Cloud server listening on http://{cloud_addr}");
+
+    let suite_server = axum::serve(listener, app).with_graceful_shutdown(shutdown_signal());
+    let cloud_server = axum::serve(cloud_listener, cloud_app).with_graceful_shutdown(shutdown_signal());
+
+    tokio::try_join!(
+        async { suite_server.await.map_err(|e| anyhow::anyhow!(e)) },
+        async { cloud_server.await.map_err(|e| anyhow::anyhow!(e)) }
+    )?;
 
     info!("BotUI shutdown complete");
     Ok(())
