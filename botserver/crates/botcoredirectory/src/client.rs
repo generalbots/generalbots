@@ -224,13 +224,15 @@ impl ZitadelClient {
         initial_password: Option<&str>,
     ) -> Result<String> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/users/human", self.config.api_url);
+        // Note: This Zitadel build (Jan 2024) does not expose /v2/users/human via HTTP.
+        // The management API /management/v1/users/human uses firstName/lastName fields.
+        let url = format!("{}/management/v1/users/human", self.config.api_url);
 
         let mut body = serde_json::json!({
             "userName": username.unwrap_or(email),
             "profile": {
-                "givenName": first_name,
-                "familyName": last_name,
+                "firstName": first_name,
+                "lastName": last_name,
                 "displayName": format!("{} {}", first_name, last_name)
             },
             "email": {
@@ -250,10 +252,7 @@ impl ZitadelClient {
 
         if let Some(password) = initial_password {
             if let Some(obj) = body.as_object_mut() {
-                obj.insert("password".to_string(), serde_json::json!({
-                    "password": password,
-                    "changeRequired": true
-                }));
+                obj.insert("password".to_string(), serde_json::Value::String(password.to_string()));
             }
         }
 
@@ -836,7 +835,9 @@ impl ZitadelClient {
 
     pub async fn create_organization(&self, name: &str) -> Result<String> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/organizations", self.config.api_url);
+        // Note: Use management API (/management/v1/orgs) because this Zitadel build
+        // does not expose /v2/organizations via HTTP.
+        let url = format!("{}/management/v1/orgs", self.config.api_url);
 
         let body = serde_json::json!({ "name": name });
 

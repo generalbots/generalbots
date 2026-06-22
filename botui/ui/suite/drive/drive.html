@@ -56,8 +56,37 @@
             </button>
         </div>
 
+        <!-- Division Selector (for .gborg buckets) -->
+        <div class="drive-divisions" id="drive-divisions" style="display:none;">
+            <div class="division-label" data-i18n="drive-divisions">Divisions</div>
+            <div class="drive-nav-item division-item active" data-division="all">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span data-i18n="drive-all">All Files (Admin)</span>
+            </div>
+            <div class="drive-nav-item division-item" data-division="shared">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                </svg>
+                <span data-i18n="drive-shared-div">Shared Drive</span>
+            </div>
+            <div class="drive-nav-item division-item" data-division="personal">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span data-i18n="drive-personal">My Drive</span>
+            </div>
+            <div class="division-divider"></div>
+        </div>
+
         <!-- Navigation -->
-        <nav class="drive-nav">
+        <nav class="drive-nav" id="drive-nav">
             <div class="drive-nav-item active" data-view="my-drive">
                 <svg
                     width="18"
@@ -72,22 +101,6 @@
                     ></path>
                 </svg>
                 <span data-i18n="drive-my-drive">My Drive</span>
-            </div>
-            <div class="drive-nav-item" data-view="shared">
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                <span data-i18n="drive-shared">Shared with me</span>
             </div>
             <div class="drive-nav-item" data-view="recent">
                 <svg

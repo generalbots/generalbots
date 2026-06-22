@@ -32,7 +32,7 @@ crawler = ["cache"]
 
 # ===== APPS (Each includes what it needs from core) =====
 # Communication
-chat = ["automation", "cache"]
+chat = ["automation", "cache", "botcore/chat"]
 people = ["automation", "drive", "cache", "dep:botpeople"]
 mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail"]
 meet = ["automation", "drive", "cache"]
@@ -75,7 +75,7 @@ monitoring = ["automation", "drive", "cache", "dep:sysinfo", "dep:botmonitoring"
 
 # Development
 designer = ["automation", "drive", "cache", "dep:botdesigner"]
-editor = ["automation", "drive", "cache", "dep:boteditor"]
+editor = ["automation", "drive", "cache", "dep:boteditor", "botcore/editor"]
 database = ["automation", "drive", "cache", "dep:botdatabase"]
 git = ["automation", "drive", "cache", "dep:botgit"]
 

@@ -99,5 +99,6 @@ function doLogout() {
   localStorage.removeItem('management_token');
   localStorage.removeItem('management_email');
   localStorage.removeItem('management_name');
+  sessionStorage.setItem('gb-signed-out', 'true');
   window.location.href = '/cloud';
 }

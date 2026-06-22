@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, routing::{get, post, put, delete}, Json, Router};
+use axum::{extract::State, http::{HeaderMap, StatusCode}, routing::{get, post, put, delete}, Json, Router};
 use diesel::deserialize::QueryableByName;
 use diesel::prelude::*;
 use diesel::{ExpressionMethods, RunQueryDsl};
@@ -574,6 +574,35 @@ fn base64_url_encode(input: &[u8]) -> String {
     out
 }
 
+fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
+    // Convert URL-safe base64 to standard base64
+    let raw = input.replace('-', "+").replace('_', "/");
+    let raw = match raw.len() % 4 {
+        2 => raw + "==",
+        3 => raw + "=",
+        0 => raw,
+        _ => return Err("invalid base64 input length"),
+    };
+    // Decode base64 manually (no external dep needed)
+    let chars: Vec<char> = raw.chars().collect();
+    let mut out = Vec::with_capacity(chars.len() / 4 * 3);
+    let alphabet: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '=' { break; }
+        let vals: Vec<u8> = chars[i..(i+4).min(chars.len())].iter().map(|&c| {
+            alphabet.iter().position(|&a| a as char == c).unwrap_or(0) as u8
+        }).collect();
+        let n = ((vals[0] as u32) << 18) | ((vals.get(1).copied().unwrap_or(0) as u32) << 12)
+            | ((vals.get(2).copied().unwrap_or(0) as u32) << 6) | (vals.get(3).copied().unwrap_or(0) as u32);
+        out.push((n >> 16) as u8);
+        if vals.len() > 2 { out.push((n >> 8) as u8); }
+        if vals.len() > 3 { out.push(n as u8); }
+        i += 4;
+    }
+    Ok(out)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Organizations
 // ─────────────────────────────────────────────────────────────────────────────
@@ -581,13 +610,44 @@ fn base64_url_encode(input: &[u8]) -> String {
 /// `GET /api/cloud/organizations`
 async fn list_organizations(
     State(service): State<Arc<SaasService>>,
+    headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
-    let orgs: Vec<OrgRow> = diesel::sql_query("SELECT org_id AS id, name FROM organizations")
-        .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+    let user_org_id: Option<Uuid> = if let Some(auth_val) = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+    {
+        let parts: Vec<&str> = auth_val.split('.').collect();
+        if parts.len() == 3 {
+            if let Ok(decoded) = base64_url_decode(parts[1]) {
+                if let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&decoded) {
+                    if let Some(user_email) = payload.get("email").and_then(|v| v.as_str()) {
+                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, org_id};
+                        let contact_org: Option<Uuid> = crm_contacts
+                            .filter(email.eq(user_email))
+                            .select(org_id)
+                            .first(&mut conn)
+                            .optional()
+                            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+                        contact_org
+                    } else { None }
+                } else { None }
+            } else { None }
+        } else { None }
+    } else { None };
+
+    let orgs: Vec<OrgRow> = if let Some(uid) = user_org_id {
+        diesel::sql_query("SELECT org_id AS id, name FROM organizations WHERE org_id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(uid)
+            .load(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
+    } else {
+        diesel::sql_query("SELECT org_id AS id, name FROM organizations")
+            .load(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
+    };
 
     let result: Vec<serde_json::Value> = orgs.into_iter().map(|r| {
         serde_json::json!({

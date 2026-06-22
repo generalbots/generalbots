@@ -162,6 +162,7 @@ pub struct FileListItem {
 pub struct BucketListItem {
     pub name: String,
     pub is_gbai: bool,
+    pub is_gborg: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

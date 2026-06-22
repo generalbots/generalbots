@@ -113,15 +113,33 @@ pub(crate) async fn bootstrap_directory_admin(zitadel_config: &crate::directory:
         }
     };
 
-    match bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
-        Ok(Some(_)) => {
-            info!("Bootstrap completed - admin credentials displayed in console");
-        }
-        Ok(None) => {
-            info!("Admin user exists, bootstrap skipped");
-        }
-        Err(e) => {
-            info!("Bootstrap check skipped until Zitadel is ready: {}", e);
+    let max_retries = 12;
+    let mut attempt = 0;
+    loop {
+        match bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
+            Ok(Some(result)) => {
+                info!("Bootstrap completed - admin credentials displayed in console");
+                break;
+            }
+            Ok(None) => {
+                info!("Admin user exists, bootstrap skipped");
+                break;
+            }
+            Err(e) => {
+                attempt += 1;
+                if attempt >= max_retries {
+                    info!(
+                        "Bootstrap check skipped after {} retries: {}",
+                        max_retries, e
+                    );
+                    break;
+                }
+                info!(
+                    "Bootstrap check failed (attempt {}/{}), waiting for Zitadel: {}",
+                    attempt, max_retries, e
+                );
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
         }
     }
 

@@ -188,15 +188,24 @@ async function openBilling(orgId) {
 
 function showNewOrgModal() { const m = document.getElementById('new-org-modal'); if (m) m.style.display = 'flex'; }
 function hideNewOrgModal() { const m = document.getElementById('new-org-modal'); if (m) m.style.display = 'none'; }
-function doLogout() { localStorage.removeItem('management_token'); localStorage.removeItem('management_email'); window.location.href = '/cloud'; }
+function doLogout() {
+  localStorage.removeItem('management_token');
+  localStorage.removeItem('management_email');
+  sessionStorage.setItem('gb-signed-out', 'true');
+  window.location.href = '/cloud';
+}
 function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 function getToken() { return localStorage.getItem('management_token'); }
 function requireAuth() {
   let t = getToken();
   if (!t) {
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      if (sessionStorage.getItem('gb-signed-out') === 'true') {
+        window.location.href = '/cloud/login';
+        return null;
+      }
       localStorage.setItem('management_token', 'dev-token');
-      localStorage.setItem('management_email', 'admin@generalbots.com');
+      localStorage.setItem('management_email', 'admin@localhost');
       devAutoLogin();
       t = 'dev-token';
     } else {
@@ -212,13 +221,13 @@ async function devAutoLogin() {
     const res = await fetch('/api/cloud/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@generalbots.com', password: 'dev' })
+      body: JSON.stringify({ email: 'admin@localhost', password: 'dev' })
     });
     if (!res.ok) return;
     const data = await res.json();
     if (data.token) {
       localStorage.setItem('management_token', data.token);
-      localStorage.setItem('management_email', data.email || 'admin@generalbots.com');
+      localStorage.setItem('management_email', data.email || 'admin@localhost');
     }
   } catch (_) { /* silent */ }
 }

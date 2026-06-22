@@ -443,6 +443,7 @@ pub async fn list_buckets(
         .into_iter()
         .map(|name| BucketListItem {
             is_gbai: name.ends_with(".gbai"),
+            is_gborg: name.ends_with(".gborg"),
             name,
         })
         .collect();

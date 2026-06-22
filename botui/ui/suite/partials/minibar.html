@@ -221,6 +221,7 @@
 
                         btn.onclick = function (e) {
                             e.preventDefault();
+                            sessionStorage.setItem('gb-signed-out', 'true');
                             fetch("/api/auth/logout", {
                                 method: "POST",
                             }).finally(function () {

@@ -76,6 +76,20 @@ See botserver/src/main_module/drive_monitors.rs to see how bots are loaded from 
 - Only Rust code changes in `botui/src/` require rebuild with `cargo build -p botui`
 - This is "gate desligada" (gate off) mode - static assets served directly from filesystem
 
+### ⚠️ Critical: Absolute Paths for HTMX Apps
+**TODO:** Confirm path: When subdirectory apps (e.g. `/suite/social/social.html`) are loaded via launcher into `/suite/desktop.html`, their HTML is injected into the desktop via HTMX. Relative paths (e.g. `href="social.css"`) resolve against `/suite/desktop.html`, NOT against the app's actual directory. This causes 404s like `/suite/social.css` instead of correct `/suite/social/social.css`.
+
+**Fix:** ALL resource references in subdirectory app HTMLs MUST use absolute paths starting with `/suite/`:
+```html
+<!-- ✅ CORRECT — works in both direct nav and HTMX injection -->
+<link rel="stylesheet" href="/suite/social/social.css" />
+<script src="/suite/social/social.js"></script>
+
+<!-- ❌ WRONG — 404 when injected via desktop launcher -->
+<link rel="stylesheet" href="social.css" />
+<script src="social.js"></script>
+```
+
 ---
 
 ## 🏗️ System Architecture Overview
@@ -1267,49 +1281,89 @@ print(f'Aba criada: {base}{url}')
 
 Ou navegue manualmente no Chrome já aberto para `http://localhost:3000/{bot}`.
 
-### 3. CAPTURAR CONSOLE VIA CDP (websocat)
+### 3. CAPTURAR CONSOLE + ERROS DE REDE VIA CDP (Python websocket-client)
 
-Quando não for possível usar o DevTools interativo (ex: agente headless), use `websocat` para enviar comandos CDP via pipe:
+**⚠️ CRITICAL: `Console.messageAdded` NÃO captura erros 404 de recursos carregados (CSS, JS, imagens).**
+Para detectar 404s, é OBRIGATÓRIO habilitar `Network.enable` e escutar `Network.loadingFailed`.
+
+Use Python com `websocket-client` para conexão persistente e captura de eventos assíncronos:
 
 ```bash
-# Download websocat (uma vez)
-curl -sL "https://github.com/vi/websocat/releases/latest/download/websocat.x86_64-unknown-linux-musl" -o /tmp/websocat && chmod +x /tmp/websocat
-
-# Descobrir WebSocket URL da aba desejada
-WS_URL=$(python3 -c "
-import requests
-tabs = requests.get('http://localhost:9222/json').json()
-for t in tabs:
-    if 'desktop' in t.get('url',''):
-        print(t['webSocketDebuggerUrl'])
-        break
-")
-
-# Capturar console logs + erros de rede 404
-(echo '{"id":1,"method":"Console.enable","params":{}}'
- echo '{"id":2,"method":"Runtime.evaluate","params":{"expression":"JSON.stringify({resources404:performance.getEntriesByType(\"resource\").filter(r=>r.responseStatus===404).map(r=>r.name)})"}}'
- sleep 3) | timeout 6 /tmp/websocat --no-line "$WS_URL" 2>&1 | python3 -c "
-import sys, json
-for line in sys.stdin:
-    line = line.strip()
-    if not line: continue
-    try:
-        msg = json.loads(line)
-        if msg.get('method') == 'Console.messageAdded':
-            m = msg['params']['message']
-            print(f\"[CONSOLE {m.get('level','')}] {m.get('text','')}\")
-        elif 'result' in msg and 'result' in msg.get('result',{}):
-            val = msg['result']['result'].get('value','')
-            if val: print(f\"RESULT: {val}\")
-    except: pass
-"
+pip install websocket-client 2>/dev/null || pip3 install websocket-client
 ```
 
-**Vantagens:**
-- Não requer npm/pip — binário estático único
-- Funciona headless (sem display)
-- Captura tanto console logs quanto resultados de `Runtime.evaluate`
-- Útil para CI/CD e depuração automatizada
+```python
+#!/usr/bin/env python3
+"""CDP test: capture both Console + Network errors from a tab."""
+import websocket, json, requests, time, sys
+
+CDP = 'http://localhost:9222'
+BASE = 'http://localhost:3000'
+
+# Find desktop tab WS URL
+tabs = requests.get(f'{CDP}/json').json()
+ws_url = None
+for t in tabs:
+    if 'desktop' in t.get('url', ''):
+        ws_url = t['webSocketDebuggerUrl']
+        break
+if not ws_url:
+    # Create new tab
+    r = requests.put(f'{CDP}/json/new?{BASE}/suite/desktop.html')
+    ws_url = r.json()['webSocketDebuggerUrl']
+
+errors = []
+
+def on_message(ws, msg):
+    try:
+        data = json.loads(msg)
+        # Console errors
+        if data.get('method') == 'Console.messageAdded':
+            m = data['params']['message']
+            level = m.get('level', '')
+            text = m.get('text', '')
+            print(f'[CONSOLE {level}] {text[:200]}')
+            if level in ('error', 'warning'):
+                errors.append(('console', level, text))
+        # Network failures (404, etc)
+        if data.get('method') == 'Network.loadingFailed':
+            p = data['params']
+            url = p.get('documentURL', p.get('url', 'unknown'))
+            err = p.get('errorText', 'unknown')
+            blocked = p.get('blockedReason', '')
+            print(f'[NETWORK FAILED] {p.get("url","?")} -> {err} {blocked}')
+            errors.append(('network', err, p.get('url', '?')))
+            # Also check blockedReason for CSP violations
+        if data.get('method') == 'Network.requestWillBeSent':
+            p = data['params']
+            # Track which document initiated the request
+            pass
+    except Exception as e:
+        print(f'Parse error: {e}')
+
+ws = websocket.WebSocketApp(ws_url, on_message=on_message)
+ws.send(json.dumps({"id":1,"method":"Console.enable","params":{}}))
+ws.send(json.dumps({"id":2,"method":"Network.enable","params":{}}))
+ws.send(json.dumps({"id":3,"method":"Runtime.evaluate",
+    "params":{"expression":"window.WindowManager&&WindowManager.launchFromMenu('social','Social','/suite/social/social.html')"}}))
+
+# Keep connection alive to receive events
+import threading
+t = threading.Thread(target=ws.run_forever, kwargs={'ping_interval': 30, 'ping_timeout': 10})
+t.daemon = True
+t.start()
+time.sleep(5)
+
+print(f'\n=== Total errors found: {len(errors)} ===')
+for kind, level, text in errors:
+    print(f'  [{kind}] {level}: {text[:200]}')
+```
+
+**Por que `Network.loadingFailed` é obrigatório:**
+- Quando uma página HTML é injetada via HTMX (`fetch()` + `innerHTML`), os recursos (CSS, JS) que ela referencia via caminhos relativos disparam requisições HTTP pela página *hospedeira* (`desktop.html`).
+- O console JavaScript NÃO reporta esses 404s como erros — apenas o `Network.loadingFailed` do CDP os captura.
+- Exemplo: `social/social.html` com `<link href="social.css">` → injetado em `desktop.html` → navegador tenta baixar `/suite/social.css` (404) — sem erro no console.
+
 
 ### 4. DEPURAR
 

@@ -5,7 +5,7 @@ function requireAuth() {
   if (!t) {
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
       localStorage.setItem('management_token', 'dev-token');
-      localStorage.setItem('management_email', 'admin@generalbots.com');
+      localStorage.setItem('management_email', 'admin@localhost');
       devAutoLogin();
       t = 'dev-token';
     } else {
@@ -21,13 +21,13 @@ async function devAutoLogin() {
     const res = await fetch('/api/cloud/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@generalbots.com', password: 'dev' })
+      body: JSON.stringify({ email: 'admin@localhost', password: 'dev' })
     });
     if (!res.ok) return;
     const data = await res.json();
     if (data.token) {
       localStorage.setItem('management_token', data.token);
-      localStorage.setItem('management_email', data.email || 'admin@generalbots.com');
+      localStorage.setItem('management_email', data.email || 'admin@localhost');
     }
   } catch (_) { /* silent */ }
 }

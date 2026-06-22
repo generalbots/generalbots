@@ -73,6 +73,7 @@
     try {
       Object.values(KEYS).forEach(function (k) { localStorage.removeItem(k); });
     } catch (_) {}
+    sessionStorage.setItem('gb-signed-out', 'true');
     window.location.href = loginUrl(returnTo);
   }
 

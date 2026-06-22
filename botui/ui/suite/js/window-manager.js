@@ -443,6 +443,12 @@ if (typeof window.WindowManager === "undefined") {
     _buildStartMenuHTML() {
       const recent = this.getRecentApps();
       const categories = ["ai", "business", "office", "dev", "system"];
+
+      // Filter apps by product config if available
+      const enabledApps = window.productConfig && window.productConfig.apps
+        ? new Set(window.productConfig.apps.map(function (a) { return a.toLowerCase(); }))
+        : null;
+
       let html = `<div class="start-menu-search-wrap"><div class="start-menu-search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="startMenuSearchInput" placeholder="Type to find an app..."/>
@@ -452,17 +458,24 @@ if (typeof window.WindowManager === "undefined") {
 
       if (recent.length > 0) {
         html += `<div class="start-menu-recent"><div class="start-menu-section-title">Recent</div><div class="start-menu-grid">`;
-        recent.forEach((app) => { html += this._appTileHTML(app); });
+        recent.forEach(function (app) {
+          if (!enabledApps || enabledApps.has(app.id)) {
+            html += this._appTileHTML(app);
+          }
+        }.bind(this));
         html += `</div></div>`;
       }
 
-      categories.forEach((cat) => {
-        const apps = APPS_REGISTRY.filter((a) => a.category === cat);
+      categories.forEach(function (cat) {
+        var apps = APPS_REGISTRY.filter(function (a) { return a.category === cat; });
+        if (enabledApps) {
+          apps = apps.filter(function (a) { return enabledApps.has(a.id); });
+        }
         if (!apps.length) return;
         html += `<div class="start-menu-category" data-category="${cat}"><div class="start-menu-section-title">${CATEGORY_LABELS[cat] || cat}</div><div class="start-menu-grid">`;
-        apps.forEach((app) => { html += this._appTileHTML(app); });
+        apps.forEach(function (app) { html += this._appTileHTML(app); }.bind(this));
         html += `</div></div>`;
-      });
+      }.bind(this));
 
       html += `<div id="startMenuEmpty" class="start-menu-filter-empty" style="display:none">No apps found</div>`;
       html += `</div>`;

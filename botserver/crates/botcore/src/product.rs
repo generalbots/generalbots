@@ -52,6 +52,11 @@ pub struct ProductConfig {
     /// Menu launcher enabled (optional)
     /// Controls whether the apps menu launcher is displayed in the suite
     pub menu_launcher_enabled: Option<bool>,
+
+    /// Sidebar visibility (optional)
+    /// Controls whether the left sidebar is shown in the suite.
+    /// When false, the sidebar is hidden and the main content takes full width.
+    pub sidebar: Option<bool>,
 }
 
 impl Default for ProductConfig {
@@ -91,6 +96,7 @@ impl Default for ProductConfig {
             copyright: None,
             search_enabled: Some(false),
             menu_launcher_enabled: Some(false),
+            sidebar: None,
         }
     }
 }
@@ -200,6 +206,12 @@ impl ProductConfig {
                             || value == "1"
                             || value.eq_ignore_ascii_case("yes");
                         config.menu_launcher_enabled = Some(enabled);
+                    }
+                    "sidebar" => {
+                        let enabled = value.eq_ignore_ascii_case("true")
+                            || value == "1"
+                            || value.eq_ignore_ascii_case("yes");
+                        config.sidebar = Some(enabled);
                     }
                     _ => {
                         warn!("Unknown product configuration key: {}", key);
@@ -355,6 +367,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "copyright": c.get_copyright(),
             "search_enabled": c.search_enabled.unwrap_or(false),
             "menu_launcher_enabled": c.menu_launcher_enabled.unwrap_or(false),
+            "sidebar": c.sidebar,
         }),
         None => serde_json::json!({
             "name": "General Bots",
@@ -364,6 +377,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "theme": "sentient",
             "search_enabled": false,
             "menu_launcher_enabled": false,
+            "sidebar": null,
         }),
     }
 }
