@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 env:
   CARGO_BUILD_JOBS: 6
   CARGO_NET_RETRY: 10

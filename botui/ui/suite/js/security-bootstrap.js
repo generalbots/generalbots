@@ -426,6 +426,7 @@
           var timer = setTimeout(function () {
             if (window.__BOT_IS_PUBLIC__ === true) return;
             self.clearTokens();
+            sessionStorage.setItem('gb-signed-out', 'true');
             var path = window.location.pathname + window.location.hash;
             window.location.href =
               "/auth/login.html?expired=1&redirect=" +
@@ -440,6 +441,7 @@
               return;
             }
             self.clearTokens();
+            sessionStorage.setItem('gb-signed-out', 'true');
             var path = window.location.pathname + window.location.hash;
             window.location.href =
               "/auth/login.html?expired=1&redirect=" +
@@ -452,6 +454,7 @@
           "[GBSecurity] Auth expired, clearing tokens and redirecting",
         );
         self.clearTokens();
+        sessionStorage.setItem('gb-signed-out', 'true');
 
         var currentPath = window.location.pathname + window.location.hash;
         window.location.href =

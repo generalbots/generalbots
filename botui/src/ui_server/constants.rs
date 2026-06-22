@@ -18,7 +18,7 @@ pub const SUITE_DIRS: &[&str] = &[
     "settings",
     "auth",
     "about",
-    // Core Apps
+    // Core Apps (feature-gated to match botui Cargo.toml features)
     #[cfg(feature = "drive")]
     "drive",
     #[cfg(feature = "chat")]
@@ -94,6 +94,12 @@ pub const SUITE_DIRS: &[&str] = &[
     #[cfg(feature = "goals")]
     "goals",
     "vibe",
+    // Additional Apps (static HTML - always included)
+    "banking", "biometry", "brazil", "browser", "campaigns",
+    "compliance", "database", "desktop", "email", "handoff", "hr",
+    "integrations", "erp", "itsm", "kyc", "lists", "m365", "minutes",
+    "office365", "plan", "plugins", "pos", "retail", "sales", "tax",
+    "templates", "templates-app", "terminal", "timeclock", "vision",
 ];
 
 pub const ROOT_FILES: &[&str] = &[

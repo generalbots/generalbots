@@ -1033,3 +1033,34 @@
     margin: 0;
     backdrop-filter: blur(4px);
 }
+
+/* Division Selector Styles */
+.drive-divisions {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border, #2a2a3a);
+}
+
+.division-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #6b7280);
+    padding: 8px 12px 4px;
+    font-weight: 600;
+}
+
+.division-item {
+    padding: 6px 28px !important;
+    font-size: 13px !important;
+}
+
+.division-item.active {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+.division-divider {
+    height: 1px;
+    background: var(--border, #2a2a3a);
+    margin: 8px 0;
+}

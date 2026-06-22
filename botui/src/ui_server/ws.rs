@@ -65,7 +65,7 @@ async fn handle_ws_proxy(
 ) {
     let bot_name = params.bot_name.unwrap_or_else(|| "default".to_string());
     let backend_url = format!(
-        "{}/ws/{}?session_id={}&user_id={}",
+        "{}/ws?bot_name={}&session_id={}&user_id={}",
         state
             .client
             .base_url()

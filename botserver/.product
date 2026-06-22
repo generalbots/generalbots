@@ -12,7 +12,12 @@ name=General Bots
 # Available apps: chat, mail, calendar, drive, tasks, docs, paper, sheet, slides,
 #                 meet, research, sources, analytics, admin, monitoring, settings
 # Only listed apps will be visible in the UI and have their APIs enabled.
-apps=chat,mail,calendar,drive,tasks,docs,paper,sheet,slides,meet,research,sources,analytics,admin,monitoring,settings,crm,campaigns,attendance,people,billing,products,editor,tickets,vibe,video,learn,social,dashboards,designer,project,goals,workspace,canvas,player
+apps=chat,drive,editor
+
+# Sidebar visibility
+# Controls whether the left sidebar is shown in the suite
+# Set to false to hide the sidebar by default
+sidebar=false
 
 # Search mechanism enabled
 # Controls whether the omnibox/search toolbar is displayed in the suite

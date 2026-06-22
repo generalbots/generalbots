@@ -18,7 +18,7 @@
         <script src="/suite/js/vendor/marked.min.js"></script>
         <script src="/suite/js/vendor/three.min.js"></script>
         <script src="/suite/js/desktop3d.js"></script>
-        <script src="/suite/js/window-manager.js?v=3"></script>
+        <script src="/suite/js/window-manager.js?v=4"></script>
         <script src="/suite/js/theme-manager.js"></script>
 
         <style>
@@ -496,6 +496,20 @@
                     window.ThemeManager.init();
                 }
 
+                // Load product config for app filtering and sidebar control
+                try {
+                    const resp = await fetch("/api/product");
+                    if (resp.ok) {
+                        window.productConfig = await resp.json();
+                        if (window.productConfig.sidebar === false) {
+                            const sidebar = document.getElementById("chatSidebar");
+                            if (sidebar) sidebar.style.display = "none";
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Failed to load product config:", e);
+                }
+
                 // Get bot name from URL path
                 const pathParts = window.location.pathname.split('/');
                 const botName = pathParts[1] || 'default';
@@ -536,11 +550,12 @@
                 if (token && loginBtn) {
                     loginBtn.textContent = "Sign Out";
                     loginBtn.onclick = function () {
+                        sessionStorage.setItem('gb-signed-out', 'true');
                         fetch("/api/auth/logout", { method: "POST" }).finally(
                             function () {
                                 localStorage.removeItem("gb-access-token");
                                 sessionStorage.removeItem("gb-access-token");
-                                window.location.reload();
+                                window.location.href = '/auth/login.html';
                             },
                         );
                     };

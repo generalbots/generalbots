@@ -1369,6 +1369,29 @@
             document.querySelectorAll(".form-input").forEach((input) => {
                 input.addEventListener("input", hideError);
             });
+
+            // Dev auto-login — busca credenciais do bootstrap e submete
+            (async function devAutoLogin() {
+                if (sessionStorage.getItem('gb-signed-out') === 'true') {
+                    // Limpa flag para que proximo login manual funcione normalmente
+                    sessionStorage.removeItem('gb-signed-out');
+                    return;
+                }
+                if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+                try {
+                    const res = await fetch('/api/auth/dev-credentials');
+                    if (!res.ok) return;
+                    const creds = await res.json();
+                    if (creds.email && creds.password) {
+                        document.getElementById('email').value = creds.email;
+                        document.getElementById('password').value = creds.password;
+                        // Aguarda GBSecurity + HTMX carregarem, depois submete
+                        setTimeout(() => {
+                            htmx.trigger('#login-form', 'submit');
+                        }, 500);
+                    }
+                } catch (_) { /* dev-credentials indisponivel — login manual */ }
+            })();
         </script>
     </body>
 </html>

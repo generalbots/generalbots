@@ -93,6 +93,14 @@ function applyProductConfig(config) {
     }
   }
 
+  // Hide sidebar if disabled in product config
+  if (config.sidebar === false) {
+    const sidebar = document.getElementById("chatSidebar");
+    if (sidebar) {
+      sidebar.style.display = "none";
+    }
+  }
+
   // Apply custom logo
   if (config.logo) {
     const logoEl = document.querySelector(".header-logo img, .logo img");
@@ -152,19 +160,22 @@ function hideNonCompiledUI(compiledSet) {
 function filterAppsByConfig(enabledApps) {
   const enabledSet = new Set(enabledApps.map((a) => a.toLowerCase()));
 
-  // Hide nav items for disabled apps
-  document.querySelectorAll("[data-app]").forEach((el) => {
-    const appName = el.getAttribute("data-app").toLowerCase();
+  // Hide nav items for disabled apps (data-app or data-section attribute)
+  document.querySelectorAll("[data-app], [data-section]").forEach((el) => {
+    const appName = (
+      el.getAttribute("data-app") || el.getAttribute("data-section")
+    ).toLowerCase();
     if (!enabledSet.has(appName)) {
       el.style.display = "none";
     }
   });
 
-  // Hide app items in dropdown
+  // Hide app items in dropdown by href matching
   document.querySelectorAll(".app-item").forEach((el) => {
     const href = el.getAttribute("href") || el.getAttribute("hx-get") || "";
+    // Match both /app and #app patterns (hash and path-based links)
     const appMatch = href.match(
-      /\/(chat|mail|calendar|drive|tasks|docs|paper|sheet|slides|meet|research|sources|analytics|admin|monitoring|settings)/i,
+      /[\/#](chat|mail|calendar|drive|tasks|docs|paper|sheet|slides|meet|research|sources|analytics|admin|monitoring|settings)/i,
     );
     if (appMatch) {
       const appName = appMatch[1].toLowerCase();

@@ -45,7 +45,7 @@
 
       <div id="login-error" style="display:none;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.3);border-radius:8px;padding:.75rem 1rem;font-size:.85rem;color:var(--accent3);margin-bottom:1rem"></div>
 
-      <form id="login-form" onsubmit="handleLogin(event)">
+      <form id="login-form" onsubmit="onCloudLoginSubmit(event)">
         <div class="form-group">
           <label class="form-label">Email address</label>
           <input id="login-email" type="email" class="form-control" placeholder="you@company.com" required autocomplete="email">
@@ -65,12 +65,30 @@
 </div>
 <script src="/cloud/js/cloud-auth.js"></script>
 <script>
-// Dev auto-login — preenche e submete automaticamente
-setTimeout(() => {
-  document.getElementById('login-email').value = 'admin@generalbots.com';
-  document.getElementById('login-password').value = 'dev';
-  document.getElementById('login-form').dispatchEvent(new Event('submit'));
-}, 300);
+// Dev auto-login — cria contato CRM via signup, depois loga
+(async function devAutoLogin() {
+  if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+  if (sessionStorage.getItem('gb-signed-out') === 'true') return;
+  const savedEmail = localStorage.getItem('management_email');
+  const token = localStorage.getItem('management_token');
+  if (token) {
+    try {
+      const res = await fetch('/api/cloud/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: savedEmail || 'admin@localhost', password: 'dev' }),
+      });
+      if (res.ok) window.location.href = '/cloud/dashboard';
+    } catch (_) {}
+  } else {
+    document.getElementById('login-email').value = savedEmail || '';
+  }
+})();
+function onCloudLoginSubmit(e) {
+  // Limpa flag signed-out para que proximo auto-login funcione
+  sessionStorage.removeItem('gb-signed-out');
+  handleLogin(e);
+}
 </script>
 </body>
 </html>

@@ -172,6 +172,9 @@
                     console.warn("⚠ ThemeManager not found");
                 }
 
+                // Load product config and filter apps
+                loadProductConfig();
+
                 // Initialize apps menu
                 initAppsMenu();
 
@@ -185,6 +188,31 @@
                     }
                 }, 500);
             });
+
+                // Load product configuration and filter apps
+                function loadProductConfig() {
+                    fetch("/api/product")
+                        .then(function (r) { return r.json(); })
+                        .then(function (config) {
+                            if (config && config.apps && Array.isArray(config.apps)) {
+                                var enabledSet = {};
+                                config.apps.forEach(function (a) { enabledSet[a.toLowerCase()] = true; });
+                                document.querySelectorAll(".app-item").forEach(function (el) {
+                                    var section = el.getAttribute("data-section");
+                                    if (section && !enabledSet[section.toLowerCase()]) {
+                                        el.style.display = "none";
+                                    }
+                                });
+                                // Hide apps button if no apps visible
+                                var hasVisible = Array.from(document.querySelectorAll(".app-item")).some(function (el) { return el.style.display !== "none"; });
+                                if (!hasVisible) {
+                                    var btn = document.getElementById("appsButton");
+                                    if (btn) btn.style.display = "none";
+                                }
+                            }
+                        })
+                        .catch(function (e) { console.warn("Failed to load product config:", e); });
+                }
 
                 // Apps menu functionality
                 function initAppsMenu() {
