@@ -9,6 +9,8 @@ use axum::{
     response::Json,
 };
 use base64::Engine;
+use diesel::prelude::*;
+use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz};
 use log::{info, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -409,6 +411,46 @@ pub async fn recent_files(
     let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid), None)?;
     let prefix = resolve_scope_prefix(&scope, uid);
 
+    if let Ok(mut conn) = state.conn.get() {
+        #[derive(QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            file_path: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            file_type: String,
+            #[diesel(sql_type = Nullable<BigInt>)]
+            file_size: Option<i64>,
+            #[diesel(sql_type = Nullable<Timestamptz>)]
+            last_modified: Option<chrono::DateTime<chrono::Utc>>,
+        }
+        let rows = diesel::sql_query(
+            "SELECT file_path, file_type, file_size, last_modified FROM drive_files WHERE bot_id = ANY(SELECT id FROM bots WHERE bucket_name = $1) AND indexed = true ORDER BY last_modified DESC NULLS LAST LIMIT 50"
+        )
+        .bind::<Text, _>(&bucket)
+        .load::<Row>(&mut conn);
+
+        if let Ok(values) = rows {
+            let items: Vec<FileListItem> = values.into_iter().map(|r| {
+                let file_path = &r.file_path;
+                let relative = if file_path.starts_with(&prefix) {
+                    file_path[prefix.len()..].to_string()
+                } else {
+                    file_path.to_string()
+                };
+                FileListItem {
+                    is_dir: false,
+                    name: relative.rsplit('/').next().unwrap_or(relative.as_str()).to_string(),
+                    path: relative,
+                    size: r.file_size.unwrap_or(0) as u64,
+                    modified: r.last_modified.map(|d| d.to_rfc3339()),
+                    is_kb: r.file_type == "kb",
+                    is_public: false,
+                }
+            }).collect();
+            return Ok(Json(items));
+        }
+    }
+
     let keys = drive
         .list_objects(&bucket, Some(&prefix))
         .await
@@ -421,12 +463,11 @@ pub async fn recent_files(
         }
     }
 
-    let mut items = build_file_list_items(&prefix, &keys, &meta_map);
-    items.retain(|item| !item.is_dir);
-    items.sort_by(|a, b| b.name.cmp(&a.name));
-    items.truncate(50);
-
-    Ok(Json(items))
+    let mut fallback_items = build_file_list_items(&prefix, &keys, &meta_map);
+    fallback_items.retain(|item| !item.is_dir);
+    fallback_items.sort_by(|a, b| b.name.cmp(&a.name));
+    fallback_items.truncate(50);
+    Ok(Json(fallback_items))
 }
 
 pub async fn list_buckets(
@@ -471,18 +512,22 @@ pub async fn quota(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<QuotaResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let bucket = &state.bucket_name;
 
     let mut total_size: u64 = 0;
-    let objects = drive
-        .list_objects_with_metadata(bucket, None)
-        .await
-        .unwrap_or_default();
-    for obj in &objects {
-        total_size += obj.size;
+    let mut total_buckets: u64 = 0;
+
+    if let Ok(bucket_names) = drive.list_all_buckets().await {
+        for bname in &bucket_names {
+            if let Ok(objects) = drive.list_objects_with_metadata(bname, None).await {
+                for obj in &objects {
+                    total_size = total_size.saturating_add(obj.size);
+                }
+                total_buckets = total_buckets.saturating_add(1);
+            }
+        }
     }
 
-    let total_bytes: u64 = 10 * 1024 * 1024 * 1024;
+    let total_bytes: u64 = (total_buckets + 1).saturating_mul(10 * 1024 * 1024 * 1024);
     let used = total_size;
     let available = total_bytes.saturating_sub(used);
     let percentage = if total_bytes > 0 {
@@ -500,21 +545,320 @@ pub async fn quota(
 }
 
 pub async fn list_favorites(
-    State(_state): State<Arc<AppState>>,
-) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<TrashQueryParams>,
+) -> Result<Json<Vec<StarItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let uid = params.user_id.as_deref().unwrap_or("default");
+    if let Ok(mut conn) = state.conn.get() {
+        #[derive(QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = Text)]
+            id: String,
+            #[diesel(sql_type = Text)]
+            bucket: String,
+            #[diesel(sql_type = Text)]
+            path: String,
+            #[diesel(sql_type = Text)]
+            created_at: String,
+        }
+        let rows = diesel::sql_query(
+            "SELECT id::text, bucket, path, created_at::text FROM drive_stars WHERE user_id = $1 ORDER BY created_at DESC"
+        )
+        .bind::<Text, _>(uid)
+        .load::<Row>(&mut conn)
+        .unwrap_or_default();
+
+        let items: Vec<StarItem> = rows.into_iter().map(|r| StarItem {
+            id: r.id,
+            bucket: r.bucket,
+            path: r.path,
+            created_at: r.created_at,
+        }).collect();
+        return Ok(Json(items));
+    }
     Ok(Json(vec![]))
 }
 
+pub async fn toggle_star(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<StarToggleBody>,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let uid = req.user_id.as_deref().unwrap_or("default");
+    let bucket = req.bucket.as_deref().unwrap_or("default");
+    let path = &req.path;
+
+    if let Ok(mut conn) = state.conn.get() {
+        if req.starred {
+            let _ = diesel::sql_query(
+                "INSERT INTO drive_stars (user_id, bucket, path) VALUES ($1, $2, $3) ON CONFLICT (user_id, bucket, path) DO NOTHING"
+            )
+            .bind::<Text, _>(uid)
+            .bind::<Text, _>(bucket)
+            .bind::<Text, _>(path)
+            .execute(&mut conn);
+        } else {
+            let _ = diesel::sql_query(
+                "DELETE FROM drive_stars WHERE user_id = $1 AND bucket = $2 AND path = $3"
+            )
+            .bind::<Text, _>(uid)
+            .bind::<Text, _>(bucket)
+            .bind::<Text, _>(path)
+            .execute(&mut conn);
+        }
+    }
+
+    Ok(Json(SuccessResponse { success: true }))
+}
+
 pub async fn list_shared(
-    State(_state): State<Arc<AppState>>,
-) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<TrashQueryParams>,
+) -> Result<Json<Vec<ShareItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let uid = params.user_id.as_deref().unwrap_or("default");
+    if let Ok(mut conn) = state.conn.get() {
+        #[derive(QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = Text)]
+            id: String,
+            #[diesel(sql_type = Text)]
+            owner_id: String,
+            #[diesel(sql_type = Text)]
+            recipient_id: String,
+            #[diesel(sql_type = Text)]
+            bucket: String,
+            #[diesel(sql_type = Text)]
+            path: String,
+            #[diesel(sql_type = Text)]
+            permissions: String,
+            #[diesel(sql_type = Text)]
+            created_at: String,
+        }
+        let rows = diesel::sql_query(
+            "SELECT id::text, owner_id, recipient_id, bucket, path, permissions, created_at::text FROM drive_shares WHERE recipient_id = $1 ORDER BY created_at DESC"
+        )
+        .bind::<Text, _>(uid)
+        .load::<Row>(&mut conn)
+        .unwrap_or_default();
+
+        let items: Vec<ShareItem> = rows.into_iter().map(|r| ShareItem {
+            id: r.id,
+            owner_id: r.owner_id,
+            recipient_id: r.recipient_id,
+            bucket: r.bucket,
+            path: r.path,
+            permissions: r.permissions,
+            created_at: r.created_at,
+        }).collect();
+        return Ok(Json(items));
+    }
     Ok(Json(vec![]))
 }
 
 pub async fn share_folder(
-    State(_state): State<Arc<AppState>>,
-    Json(_req): Json<ShareRequest>,
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateShareBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let owner_id = req.user_id.as_deref().unwrap_or("default");
+    let bucket = req.bucket.as_deref().unwrap_or("default");
+    let path = &req.path;
+    let recipient_id = &req.recipient_id;
+    let permissions = req.permissions.as_deref().unwrap_or("read");
+
+    if let Ok(mut conn) = state.conn.get() {
+        let _ = diesel::sql_query(
+            "INSERT INTO drive_shares (owner_id, recipient_id, bucket, path, permissions) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (owner_id, recipient_id, bucket, path) DO UPDATE SET permissions = $5"
+        )
+        .bind::<Text, _>(owner_id)
+        .bind::<Text, _>(recipient_id)
+        .bind::<Text, _>(bucket)
+        .bind::<Text, _>(path)
+        .bind::<Text, _>(permissions)
+        .execute(&mut conn);
+    }
+
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+pub async fn list_trash(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<TrashQueryParams>,
+) -> Result<Json<Vec<TrashItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let uid = params.user_id.as_deref().unwrap_or("default");
+    if let Ok(mut conn) = state.conn.get() {
+        #[derive(QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = Text)]
+            id: String,
+            #[diesel(sql_type = Text)]
+            user_id: String,
+            #[diesel(sql_type = Text)]
+            bucket: String,
+            #[diesel(sql_type = Text)]
+            path: String,
+            #[diesel(sql_type = Text)]
+            original_path: String,
+            #[diesel(sql_type = Bool)]
+            is_dir: bool,
+            #[diesel(sql_type = BigInt)]
+            size: i64,
+            #[diesel(sql_type = Text)]
+            deleted_at: String,
+            #[diesel(sql_type = Text)]
+            expires_at: String,
+        }
+        let rows = diesel::sql_query(
+            "SELECT id::text, user_id, bucket, path, original_path, is_dir, size::bigint, deleted_at::text, expires_at::text FROM drive_trash WHERE user_id = $1 ORDER BY deleted_at DESC"
+        )
+        .bind::<Text, _>(uid)
+        .load::<Row>(&mut conn)
+        .unwrap_or_default();
+
+        let items: Vec<TrashItem> = rows.into_iter().map(|r| TrashItem {
+            id: r.id,
+            user_id: r.user_id,
+            bucket: r.bucket,
+            path: r.path,
+            original_path: r.original_path,
+            is_dir: r.is_dir,
+            size: r.size as u64,
+            deleted_at: r.deleted_at,
+            expires_at: r.expires_at,
+        }).collect();
+        return Ok(Json(items));
+    }
+    Ok(Json(vec![]))
+}
+
+pub async fn trash_file(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<DeleteFileBody>,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let drive = get_drive(&state)?;
+    let scope = req.scope.unwrap_or_default();
+    let uid = req.user_id.as_deref().unwrap_or("default");
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
+    let prefix = resolve_scope_prefix(&scope, uid);
+    let key = format!("{prefix}{}", normalize_path(&req.path));
+
+    let data = match drive.get_object(&bucket, &key).await {
+        Ok(d) => d,
+        Err(e) => return Err(err(StatusCode::NOT_FOUND, &format!("File not found: {e}"))),
+    };
+
+    let trash_key = format!(".trash/{}/{}", uid, normalize_path(&req.path));
+    let data_len = data.len() as i64;
+    drive
+        .put_object(&bucket, &trash_key, data, None)
+        .await
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Trash move failed: {e}")))?;
+
+    let _ = drive.delete_object(&bucket, &key).await;
+
+    if let Ok(mut conn) = state.conn.get() {
+        let _ = diesel::sql_query(
+            "INSERT INTO drive_trash (user_id, bucket, path, original_path, size) VALUES ($1, $2, $3, $4, $5)"
+        )
+        .bind::<Text, _>(uid)
+        .bind::<Text, _>(&bucket)
+        .bind::<Text, _>(&trash_key)
+        .bind::<Text, _>(&key)
+        .bind::<BigInt, _>(data_len)
+        .execute(&mut conn);
+    }
+
+    info!("File moved to trash: {key} -> {trash_key}");
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+pub async fn restore_trash(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<RestoreTrashBody>,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let drive = get_drive(&state)?;
+    let uid = req.user_id.as_deref().unwrap_or("default");
+
+    if let Ok(mut conn) = state.conn.get() {
+        #[derive(QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = Text)]
+            bucket: String,
+            #[diesel(sql_type = Text)]
+            path: String,
+            #[diesel(sql_type = Text)]
+            original_path: String,
+        }
+        let rows = diesel::sql_query(
+            "SELECT bucket, path, original_path FROM drive_trash WHERE id::text = $1 AND user_id = $2"
+        )
+        .bind::<Text, _>(&req.id)
+        .bind::<Text, _>(uid)
+        .load::<Row>(&mut conn)
+        .unwrap_or_default();
+
+        if let Some(row) = rows.into_iter().next() {
+            if let Ok(data) = drive.get_object(&row.bucket, &row.path).await {
+                let _ = drive.put_object(&row.bucket, &row.original_path, data, None).await;
+                let _ = drive.delete_object(&row.bucket, &row.path).await;
+            }
+            let _ = diesel::sql_query("DELETE FROM drive_trash WHERE id::text = $1 AND user_id = $2")
+                .bind::<Text, _>(&req.id)
+                .bind::<Text, _>(uid)
+                .execute(&mut conn);
+        }
+    }
+
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+pub async fn empty_trash(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<EmptyTrashBody>,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let drive = get_drive(&state)?;
+    let uid = req.user_id.as_deref().unwrap_or("default");
+
+    if let Ok(mut conn) = state.conn.get() {
+        #[derive(QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = Text)]
+            bucket: String,
+            #[diesel(sql_type = Text)]
+            path: String,
+        }
+        let rows = diesel::sql_query(
+            "SELECT bucket, path FROM drive_trash WHERE user_id = $1"
+        )
+        .bind::<Text, _>(uid)
+        .load::<Row>(&mut conn)
+        .unwrap_or_default();
+
+        for row in &rows {
+            let _ = drive.delete_object(&row.bucket, &row.path).await;
+        }
+
+        let _ = diesel::sql_query("DELETE FROM drive_trash WHERE user_id = $1")
+            .bind::<Text, _>(uid)
+            .execute(&mut conn);
+    }
+
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+pub async fn upload_file_binary(
+    State(state): State<Arc<AppState>>,
+    body: String,
+) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let drive = get_drive(&state)?;
+
+    let data = body.into_bytes();
+    let bucket = state.bucket_name.clone();
+    let key = format!("uploads/{}", uuid::Uuid::new_v4());
+
+    drive
+        .put_object(&bucket, &key, data, None)
+        .await
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Upload failed: {e}")))?;
+
     Ok(Json(SuccessResponse { success: true }))
 }
 
