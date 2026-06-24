@@ -113,11 +113,11 @@ pub(crate) async fn bootstrap_directory_admin(zitadel_config: &crate::directory:
         }
     };
 
-    let max_retries = 12;
+    let max_retries = 24;
     let mut attempt = 0;
     loop {
         match bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
-            Ok(Some(result)) => {
+            Ok(Some(_)) => {
                 info!("Bootstrap completed - admin credentials displayed in console");
                 break;
             }
@@ -143,11 +143,19 @@ pub(crate) async fn bootstrap_directory_admin(zitadel_config: &crate::directory:
         }
     }
 
-    if let Err(e) = bootstrap::ensure_default_organization(&bootstrap_client).await {
-        warn!("Failed to ensure default organization: {}", e);
+    let management_client = match ZitadelClient::new(zitadel_config.clone()) {
+        Ok(client) => client,
+        Err(e) => {
+            warn!("Failed to create management client with OAuth2: {}", e);
+            return;
+        }
+    };
+
+    if let Err(e) = bootstrap::ensure_default_organization(&management_client).await {
+        info!("Failed to ensure default organization (non-critical): {}", e);
     }
 
-    if let Err(e) = bootstrap::ensure_admin_user(&bootstrap_client).await {
-        warn!("Failed to ensure admin user: {}", e);
+    if let Err(e) = bootstrap::ensure_admin_user(&management_client).await {
+        info!("Failed to ensure admin user (non-critical): {}", e);
     }
 }

@@ -140,13 +140,14 @@
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
-  await requireAuth();
+  const token = requireAuth();
+  if (!token) return;
 
   // Load BYOK providers
   async function loadByok() {
     let providers = [];
     try {
-      const res = await fetch('/api/cloud/llm-providers');
+      const res = await fetch('/api/cloud/llm-providers', { headers: { 'Authorization': 'Bearer ' + token } });
       const ct = res.headers.get('content-type') || '';
       if (res.ok && ct.includes('json')) {
         const data = await res.json();
@@ -271,13 +272,18 @@
 
   // Plan info
   try {
-    const planRes = await fetch('/api/cloud/plans');
-    if (planRes.ok) {
-      const planData = await planRes.json();
-      const plan = planData.plans && planData.plans.shared;
+    const [plansRes, orgsRes] = await Promise.all([
+      fetch('/api/cloud/plans', { headers: { 'Authorization': 'Bearer ' + token } }),
+      fetch('/api/cloud/organizations', { headers: { 'Authorization': 'Bearer ' + token } }),
+    ]);
+    const currentPlan = orgsRes.ok ? ((await orgsRes.json()).organizations || [])[0]?.plan || 'free' : 'free';
+    if (plansRes.ok) {
+      const plansData = await plansRes.json();
+      const plan = plansData.plans && plansData.plans[currentPlan];
       if (plan) {
-        document.getElementById('plan-name').textContent = plan.name || 'Shared';
-        document.getElementById('plan-price').textContent = '$3.99 / month';
+        document.getElementById('plan-name').textContent = plan.name || currentPlan;
+        const price = plan.pricing === 'free' ? 'Free' : plan.pricing === 'custom' ? 'Custom' : '$' + (parseFloat(plan.pricing) || 0).toFixed(2) + ' / month';
+        document.getElementById('plan-price').textContent = price;
       }
     }
   } catch(e) {}

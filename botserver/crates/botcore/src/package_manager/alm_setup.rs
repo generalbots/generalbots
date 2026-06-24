@@ -103,7 +103,7 @@ INSTALL_LOCK = true
 
             match secrets_manager.put_secret(botcoresecrets::SecretPaths::ALM, secrets).await {
                 Ok(_) => info!("ALM credentials and runner token stored in Vault"),
-                Err(e) => warn!("Failed to store ALM credentials in Vault: {}", e),
+                Err(e) => info!("Failed to store ALM credentials in Vault: {}", e),
             }
         }
     }

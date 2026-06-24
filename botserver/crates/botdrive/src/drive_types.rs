@@ -266,3 +266,86 @@ pub struct QuotaResponse {
     pub available_bytes: u64,
     pub percentage_used: f64,
 }
+
+#[derive(Debug, Serialize)]
+pub struct TrashItem {
+    pub id: String,
+    pub user_id: String,
+    pub bucket: String,
+    pub path: String,
+    pub original_path: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub deleted_at: String,
+    pub expires_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TrashQueryParams {
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RestoreTrashBody {
+    pub id: String,
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EmptyTrashBody {
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct StarToggleBody {
+    pub bucket: Option<String>,
+    pub path: String,
+    pub starred: bool,
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct StarItem {
+    pub id: String,
+    pub bucket: String,
+    pub path: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateShareBody {
+    pub bucket: Option<String>,
+    pub path: String,
+    pub recipient_id: String,
+    pub permissions: Option<String>,
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ShareItem {
+    pub id: String,
+    pub owner_id: String,
+    pub recipient_id: String,
+    pub bucket: String,
+    pub path: String,
+    pub permissions: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UploadChunkBody {
+    pub bucket: Option<String>,
+    pub path: String,
+    pub content: String,
+    pub offset: Option<u64>,
+    pub total_size: Option<u64>,
+    pub complete: Option<bool>,
+    pub upload_id: Option<String>,
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}

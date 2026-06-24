@@ -54,7 +54,7 @@ pub fn clear_switchers_keyword(
     engine
         .register_custom_syntax(["CLEAR", "SWITCHERS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
-                let redis_key = format!("switchers:{}:{}", user_session.bot_id, user_session.id);
+                let redis_key = botlib::key_utils::build_key("", &["switchers", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
                 let mut conn = match get_redis_connection(cache_client) {
                     Some(conn) => conn,
                     None => {
@@ -87,7 +87,7 @@ pub fn clear_switchers_keyword(
     engine
         .register_fn("CLEAR_SWITCHERS", move || {
             if let Some(cache_client) = &cache2 {
-                let redis_key = format!("switchers:{}:{}", user_session2.bot_id, user_session2.id);
+                let redis_key = botlib::key_utils::build_key("", &["switchers", &user_session2.bot_id.to_string(), &user_session2.id.to_string()]);
                 if let Some(mut conn) = get_redis_connection(cache_client) {
                     let _: Result<i64, redis::RedisError> =
                         redis::cmd("DEL").arg(&redis_key).query(&mut conn);
@@ -146,7 +146,7 @@ fn add_switcher(
     );
 
     if let Some(cache_client) = cache {
-        let redis_key = format!("switchers:{}:{}", user_session.bot_id, user_session.id);
+        let redis_key = botlib::key_utils::build_key("", &["switchers", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
 
         let switcher_data = json!({
             "id": switcher_id,
@@ -198,7 +198,7 @@ pub fn get_switchers(
     let mut switchers = Vec::new();
 
     if let Some(cache_client) = cache {
-        let redis_key = format!("switchers:{}:{}", bot_id, session_id);
+        let redis_key = botlib::key_utils::build_key("", &["switchers", bot_id, session_id]);
 
         let mut conn = match get_redis_connection(cache_client) {
             Some(conn) => conn,

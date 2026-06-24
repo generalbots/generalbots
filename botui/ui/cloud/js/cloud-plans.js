@@ -103,6 +103,11 @@ function selectPlan(planId) {
     window.location.href = 'mailto:sales@pragmatismo.com.br?subject=' + encodeURIComponent('Enterprise plan inquiry');
     return;
   }
+  const isFree = plan.price.type === 'free';
+  if (isFree) {
+    window.location.href = '/cloud/signup?plan=free';
+    return;
+  }
   const payload = encodeURIComponent(JSON.stringify({
     plan: planId,
     period: currentPeriod,

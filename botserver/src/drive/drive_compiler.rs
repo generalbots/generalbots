@@ -121,7 +121,12 @@ impl DriveCompiler {
             query = query.filter(bot_id.eq_any(allowed_ids));
         }
 
-        let files: Vec<(Uuid, String, String, Option<String>)> = query.load(&mut conn)?;
+        let mut files: Vec<(Uuid, String, String, Option<String>)> = query.load(&mut conn)?;
+        files.sort_by(|a, b| {
+            let a_is_tables = a.1.contains("tables.bas");
+            let b_is_tables = b.1.contains("tables.bas");
+            b_is_tables.cmp(&a_is_tables)
+        });
 
         for (query_bot_id, query_file_path, _file_type, current_etag_opt) in files {
             let current_etag = current_etag_opt.unwrap_or_default();
@@ -195,7 +200,7 @@ impl DriveCompiler {
         if !work_bas_path.exists() {
             // File doesn't exist in work dir - need to download from S3
             // This should be done by DriveMonitor, but we can try to fetch it here
-            warn!("File {} not found in work dir, attempting to download from S3", work_bas_path.display());
+            info!("File {} not found in work dir, attempting to download from S3", work_bas_path.display());
             
             // Download in separate task to avoid Send issues
             let download_result = download_from_s3(fp).await;
@@ -209,7 +214,7 @@ impl DriveCompiler {
                     info!("Downloaded {} to {}", fp, work_bas_path.display());
                 }
                 Err(e) => {
-                    warn!("Failed to download {} from S3: {}", fp, e);
+                    info!("Failed to download {} from S3: {}", fp, e);
                     return Err(format!("File not found in S3: {}", fp).into());
                 }
             }
@@ -217,7 +222,7 @@ impl DriveCompiler {
 
         // Verify file exists now
         if !work_bas_path.exists() {
-            warn!("File {} still not found after download attempt", work_bas_path.display());
+            info!("File {} still not found after download attempt", work_bas_path.display());
             return Ok(());
         }
 

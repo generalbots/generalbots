@@ -6,6 +6,7 @@ diesel::table! {
         first_name -> Nullable<Varchar>,
         last_name -> Nullable<Varchar>,
         email -> Varchar,
+        pass_hash -> Nullable<Varchar>,
         status -> Varchar,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,

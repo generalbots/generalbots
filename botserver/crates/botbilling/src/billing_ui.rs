@@ -15,6 +15,12 @@ use uuid::Uuid;
 use crate::api::BillingApiState;
 use crate::schema::{billing_invoices, billing_payments, billing_quotes, billing_recurring};
 
+#[derive(diesel::QueryableByName)]
+struct CountRow {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    count: i64,
+}
+
 fn bd_to_f64(bd: &BigDecimal) -> f64 {
     bd.to_f64().unwrap_or(0.0)
 }
@@ -83,7 +89,7 @@ async fn handle_dashboard_metrics(
         .select(diesel::dsl::sum(billing_invoices::total))
         .first::<Option<BigDecimal>>(&mut conn)
         .unwrap_or(None)
-        .unwrap_or_else(num_traits::Zero::zero);
+        .unwrap_or_else(|| BigDecimal::from(0));
 
     let total_spent_f = bd_to_f64(&total_spent);
 
@@ -93,7 +99,7 @@ async fn handle_dashboard_metrics(
         .select(diesel::dsl::sum(billing_recurring::amount))
         .first::<Option<BigDecimal>>(&mut conn)
         .unwrap_or(None)
-        .unwrap_or_else(num_traits::Zero::zero);
+        .unwrap_or_else(|| BigDecimal::from(0));
 
     let total_recurring_f = bd_to_f64(&total_recurring);
     let projected_f = total_spent_f + total_recurring_f;
@@ -109,7 +115,7 @@ async fn handle_dashboard_metrics(
         .select(diesel::dsl::sum(billing_invoices::discount_amount))
         .first::<Option<BigDecimal>>(&mut conn)
         .unwrap_or(None)
-        .unwrap_or_else(num_traits::Zero::zero);
+        .unwrap_or_else(|| BigDecimal::from(0));
 
     let total_savings_f = bd_to_f64(&total_savings);
 
@@ -183,17 +189,21 @@ async fn handle_dashboard_quotas(
     let (branch_id, _) = crate::get_bot_context(&state.pool, &state.get_default_bot);
 
     // Dynamic counts
-    let bot_count = diesel::sql_query("SELECT COUNT(*) FROM bots WHERE branch_id = $1")
-        .bind::<diesel::sql_types::Uuid, _>(branch_id)
-        .get_result::<(i64,)>(&mut conn)
-        .map(|r| r.0)
-        .unwrap_or(0);
+    let bot_count = diesel::sql_query(
+        "SELECT COUNT(*)::bigint AS count FROM bots WHERE branch_id = $1"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .get_result::<CountRow>(&mut conn)
+    .map(|r| r.count)
+    .unwrap_or(0);
 
-    let contact_count = diesel::sql_query("SELECT COUNT(*) FROM crm_contacts WHERE org_id = $1")
-        .bind::<diesel::sql_types::Uuid, _>(branch_id)
-        .get_result::<(i64,)>(&mut conn)
-        .map(|r| r.0)
-        .unwrap_or(0);
+    let contact_count = diesel::sql_query(
+        "SELECT COUNT(*)::bigint AS count FROM crm_contacts WHERE org_id = $1"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .get_result::<CountRow>(&mut conn)
+    .map(|r| r.count)
+    .unwrap_or(0);
 
     let bot_limit = 10;
     let bot_pct = (bot_count as f64 / bot_limit as f64 * 100.0).min(100.0);

@@ -28,6 +28,9 @@ pub struct QuotaLimits {
     pub users: LimitValue,
     pub kb_documents: LimitValue,
     pub apps: LimitValue,
+    pub emails_per_day: LimitValue,
+    pub builds_per_day: LimitValue,
+    pub uploads_per_hour: LimitValue,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -39,6 +42,9 @@ pub struct QuotaUsage {
     pub users: u64,
     pub kb_documents: u64,
     pub apps: u64,
+    pub emails_today: u64,
+    pub builds_today: u64,
+    pub uploads_this_hour: u64,
     pub last_reset: Option<chrono::DateTime<chrono::Utc>>,
 }
 
@@ -216,6 +222,9 @@ impl QuotaManager {
             UsageMetric::Users,
             UsageMetric::KbDocuments,
             UsageMetric::Apps,
+            UsageMetric::EmailsPerDay,
+            UsageMetric::BuildsPerDay,
+            UsageMetric::UploadsPerHour,
         ];
 
         let items: Vec<UsageSummaryItem> = metrics
@@ -288,6 +297,9 @@ impl QuotaManager {
             UsageMetric::Users => (quotas.usage.users, quotas.limits.users),
             UsageMetric::KbDocuments => (quotas.usage.kb_documents, quotas.limits.kb_documents),
             UsageMetric::Apps => (quotas.usage.apps, quotas.limits.apps),
+            UsageMetric::EmailsPerDay => (quotas.usage.emails_today, quotas.limits.emails_per_day),
+            UsageMetric::BuildsPerDay => (quotas.usage.builds_today, quotas.limits.builds_per_day),
+            UsageMetric::UploadsPerHour => (quotas.usage.uploads_this_hour, quotas.limits.uploads_per_hour),
         }
     }
 
@@ -300,6 +312,9 @@ impl QuotaManager {
             UsageMetric::Users => usage.users += amount,
             UsageMetric::KbDocuments => usage.kb_documents += amount,
             UsageMetric::Apps => usage.apps += amount,
+            UsageMetric::EmailsPerDay => usage.emails_today += amount,
+            UsageMetric::BuildsPerDay => usage.builds_today += amount,
+            UsageMetric::UploadsPerHour => usage.uploads_this_hour += amount,
         }
     }
 
@@ -312,6 +327,9 @@ impl QuotaManager {
             UsageMetric::Users => usage.users = usage.users.saturating_sub(amount),
             UsageMetric::KbDocuments => usage.kb_documents = usage.kb_documents.saturating_sub(amount),
             UsageMetric::Apps => usage.apps = usage.apps.saturating_sub(amount),
+            UsageMetric::EmailsPerDay => usage.emails_today = usage.emails_today.saturating_sub(amount),
+            UsageMetric::BuildsPerDay => usage.builds_today = usage.builds_today.saturating_sub(amount),
+            UsageMetric::UploadsPerHour => usage.uploads_this_hour = usage.uploads_this_hour.saturating_sub(amount),
         }
     }
 
@@ -324,6 +342,9 @@ impl QuotaManager {
             UsageMetric::Users => usage.users = value,
             UsageMetric::KbDocuments => usage.kb_documents = value,
             UsageMetric::Apps => usage.apps = value,
+            UsageMetric::EmailsPerDay => usage.emails_today = value,
+            UsageMetric::BuildsPerDay => usage.builds_today = value,
+            UsageMetric::UploadsPerHour => usage.uploads_this_hour = value,
         }
     }
 
@@ -349,6 +370,9 @@ impl QuotaManager {
             UsageMetric::Users => "users",
             UsageMetric::KbDocuments => "KB documents",
             UsageMetric::Apps => "apps",
+            UsageMetric::EmailsPerDay => "emails per day",
+            UsageMetric::BuildsPerDay => "builds per day",
+            UsageMetric::UploadsPerHour => "uploads per hour",
         };
 
         if current >= 100.0 {
@@ -467,6 +491,9 @@ mod tests {
                 users: LimitValue::Limited(10),
                 kb_documents: LimitValue::Limited(50),
                 apps: LimitValue::Limited(10),
+                emails_per_day: LimitValue::Limited(50),
+                builds_per_day: LimitValue::Limited(25),
+                uploads_per_hour: LimitValue::Limited(25),
             },
             usage: QuotaUsage::default(),
             period_start: now,
@@ -487,6 +514,9 @@ mod tests {
                 users: LimitValue::Unlimited,
                 kb_documents: LimitValue::Unlimited,
                 apps: LimitValue::Unlimited,
+                emails_per_day: LimitValue::Unlimited,
+                builds_per_day: LimitValue::Unlimited,
+                uploads_per_hour: LimitValue::Unlimited,
             },
             usage: QuotaUsage::default(),
             period_start: now,

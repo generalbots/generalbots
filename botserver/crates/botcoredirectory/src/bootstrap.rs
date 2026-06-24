@@ -167,7 +167,7 @@ pub async fn ensure_admin_user(client: &ZitadelClient) -> Result<String> {
     info!("Created admin user with ID: {}", user_id);
 
     if let Err(e) = client.set_user_password(&user_id, &initial_password, false).await {
-        warn!("Failed to set initial password via API: {}. User may need to use password reset flow.", e);
+        info!("Failed to set initial password via API (non-critical): {}. User may use password reset flow.", e);
     }
 
     Ok(user_id)
@@ -220,7 +220,7 @@ async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<BootstrapResul
     info!("Created admin user with ID: {}", user_id);
 
     if let Err(e) = client.set_user_password(&user_id, &initial_password, false).await {
-        warn!("Failed to set initial password via API: {}. User may need to use password reset flow.", e);
+        info!("Failed to set initial password via API (non-critical): {}. User may need to use password reset flow.", e);
     } else {
         info!("Initial password set for admin user");
     }
@@ -241,7 +241,7 @@ async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<BootstrapResul
             Some(id)
         }
         Err(e) => {
-            warn!("Failed to create default organization: {}", e);
+            info!("Failed to create default organization (non-critical): {}. Will retry on next restart.", e);
             None
         }
     };
@@ -256,10 +256,7 @@ async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<BootstrapResul
             save_admin_pat_token(&pat_token);
         }
         Err(e) => {
-            // PAT creation failure is not critical - user can still login
-            // This happens when Zitadel doesn't have OAuth client configured yet
-            warn!("Failed to create admin PAT token (non-critical): {}", e);
-            info!("Admin user can still login with username/password. PAT can be created later via UI.");
+            info!("Admin PAT token creation skipped (non-critical): {}. User can login with username/password.", e);
         }
     }
 

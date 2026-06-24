@@ -168,28 +168,70 @@ pub(super) fn make_billing_router(app_state: &Arc<AppState>) -> Router<()> {
 
 pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     use botcloud::{SaasService, SaasConfig, stripe::StripeClient, cloud_ui, api};
-    let stripe = StripeClient::new(
-        std::env::var("STRIPE_SECRET_KEY")
-            .unwrap_or_else(|_| "sk_test_placeholder".to_string()),
-        None,
-    );
-    let saas_config = SaasConfig {
-        base_url: std::env::var("SAAS_BASE_URL")
-            .unwrap_or_else(|_| "http://localhost:5859".to_string()),
-        jwt_secret: std::env::var("SAAS_JWT_SECRET")
-            .unwrap_or_else(|_| "change-me-in-production".to_string()),
+    let stripe_secret = match std::env::var("STRIPE_SECRET_KEY") {
+        Ok(key) => key,
+        Err(_) => {
+            tracing::warn!("STRIPE_SECRET_KEY not set — Stripe operations will fail at runtime");
+            String::new()
+        }
     };
+    let stripe = StripeClient::new(stripe_secret, None);
+
+    // Configure mc alias from AppState drive config (loaded from Vault)
+    let mc_path = std::env::var("MC_PATH").unwrap_or_else(|_| "/tmp/mc".to_string());
+    let mc_alias = std::env::var("MC_ALIAS").unwrap_or_else(|_| "local".to_string());
+    if let Some(ref cfg) = app_state.config {
+        let endpoint = &cfg.drive.endpoint;
+        let access_key = &cfg.drive.access_key;
+        let secret_key = &cfg.drive.secret_key;
+        if !access_key.is_empty() && !secret_key.is_empty() {
+            std::process::Command::new(&mc_path)
+                .args(["alias", "set", &mc_alias, endpoint, access_key, secret_key, "--api", "s3v4"])
+                .output()
+                .ok();
+        } else {
+            tracing::warn!("Drive credentials from Vault are empty, mc alias not configured");
+        }
+    }
+
+    let base_url = match std::env::var("SAAS_BASE_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            tracing::warn!("SAAS_BASE_URL not set — redirect URLs may be broken");
+            String::new()
+        }
+    };
+    let jwt_secret = match std::env::var("SAAS_JWT_SECRET") {
+        Ok(secret) => secret,
+        Err(_) => {
+            let generated = uuid::Uuid::new_v4().to_string();
+            tracing::warn!(
+                "SAAS_JWT_SECRET not set — using auto-generated fallback \
+                 (all sessions invalidated on next restart)"
+            );
+            generated
+        }
+    };
+    let saas_config = SaasConfig {
+        base_url,
+        jwt_secret,
+        mc_path,
+        mc_alias,
+        directory_api_url: std::env::var("ZITADEL_API_URL").ok(),
+        directory_service_token: std::env::var("ZITADEL_SERVICE_TOKEN").ok(),
+    };
+    let saas_config_for_api = saas_config.clone();
     let saas_service = Arc::new(SaasService::new(
         Arc::new(botbilling::api::BillingApiState {
             pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: Some((|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
+            get_default_bot: Some(botbilling::query_first_bot as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
         }),
         stripe,
         saas_config,
     ));
     Router::new()
         .merge(cloud_ui::configure_cloud_ui_routes().with_state(saas_service.clone()))
-        .merge(api::configure_cloud_api_routes().with_state(saas_service.clone()))
+        .merge(api::configure_cloud_api_routes(saas_config_for_api).with_state(saas_service.clone()))
         .merge(botcloud::webhook::configure_webhook_routes().with_state(saas_service))
 }
 
