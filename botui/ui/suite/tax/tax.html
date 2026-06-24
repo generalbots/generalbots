@@ -1,0 +1,240 @@
+<link rel="stylesheet" href="/suite/tax/tax.css">
+  <header class="header">
+    <h1>Gestão Fiscal</h1>
+    <div class="header-actions">
+      <span id="currentDate"></span>
+    </div>
+  </header>
+
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+      <span class="label">NFe Emitidas Hoje</span>
+      <span class="value accent" id="statNfeHoje">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Valor Total (R$)</span>
+      <span class="value success" id="statValorTotal">0,00</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">NFSe Pendentes</span>
+      <span class="value warning" id="statNfsePendentes">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Erros</span>
+      <span class="value danger" id="statErros">0</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="nfe">NFe</button>
+    <button class="tab" data-tab="nfse">NFSe</button>
+    <button class="tab" data-tab="cte">CT-e</button>
+    <button class="tab" data-tab="sped">SPED</button>
+  </div>
+
+  <div class="content">
+    <div class="tab-panel active" id="panel-nfe">
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Notas Fiscais Eletrônicas</h3>
+          <button class="btn btn-primary" id="btnEmitirNfe">Emitir NFe</button>
+        </div>
+        <div id="nfeTableContainer">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-nfse">
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Notas Fiscais de Serviço</h3>
+          <button class="btn btn-primary" id="btnEmitirNfse">Emitir NFSe</button>
+        </div>
+        <div id="nfseTableContainer">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-cte">
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Conhecimentos de Transporte</h3>
+          <button class="btn btn-primary" id="btnEmitirCte">Emitir CT-e</button>
+        </div>
+        <div id="cteTableContainer">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-sped">
+      <div class="sped-grid" id="spedContainer">
+        <div class="sped-card">
+          <h4>SPED Contribuições</h4>
+          <span class="status" id="spedContribStatus">Aguardando geração</span>
+          <div class="actions">
+            <button class="btn btn-primary btn-sm" id="btnGerarSpedContrib">Gerar</button>
+            <button class="btn btn-secondary btn-sm" id="btnDownloadSpedContrib" disabled>Baixar</button>
+          </div>
+        </div>
+        <div class="sped-card">
+          <h4>SPED Fiscal</h4>
+          <span class="status" id="spedFiscalStatus">Aguardando geração</span>
+          <div class="actions">
+            <button class="btn btn-primary btn-sm" id="btnGerarSpedFiscal">Gerar</button>
+            <button class="btn btn-secondary btn-sm" id="btnDownloadSpedFiscal" disabled>Baixar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="nfeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Emitir NFe</h3>
+        <button class="modal-close" data-close="nfeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Destinatário</label>
+          <input type="text" id="nfeDestinatario" placeholder="Razão social ou CNPJ">
+        </div>
+        <div class="form-group">
+          <label>CFOP</label>
+          <input type="text" id="nfeCfop" placeholder="Ex: 5102">
+        </div>
+        <div class="form-group">
+          <label>Produtos</label>
+          <div id="nfeProdutos">
+            <div class="form-row" style="margin-bottom:8px;">
+              <input type="text" placeholder="Descrição" class="produto-desc">
+              <input type="number" placeholder="Valor (R$)" class="produto-valor">
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnAddProduto">+ Adicionar Produto</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>ICMS (%)</label>
+            <input type="number" id="nfeIcms" placeholder="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>IPI (%)</label>
+            <input type="number" id="nfeIpi" placeholder="0" step="0.01">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>PIS (%)</label>
+            <input type="number" id="nfePis" placeholder="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>COFINS (%)</label>
+            <input type="number" id="nfeCofins" placeholder="0" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="nfeModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSalvarNfe">Emitir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="nfseModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Emitir NFSe</h3>
+        <button class="modal-close" data-close="nfseModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Tomador do Serviço</label>
+          <input type="text" id="nfseTomador" placeholder="Razão social ou CNPJ">
+        </div>
+        <div class="form-group">
+          <label>Descrição do Serviço</label>
+          <textarea id="nfseDescricao" rows="3" placeholder="Descrição do serviço prestado"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Valor do Serviço (R$)</label>
+            <input type="number" id="nfseValor" placeholder="0,00" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Código de Serviço</label>
+            <input type="text" id="nfseCodigoServico" placeholder="Ex: 17.02">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>ISS (%)</label>
+          <input type="number" id="nfseIss" placeholder="0" step="0.01">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="nfseModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSalvarNfse">Emitir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="cteModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Emitir CT-e</h3>
+        <button class="modal-close" data-close="cteModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Remetente</label>
+          <input type="text" id="cteRemetente" placeholder="Razão social ou CNPJ">
+        </div>
+        <div class="form-group">
+          <label>Destinatário</label>
+          <input type="text" id="cteDestinatario" placeholder="Razão social ou CNPJ">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cidade Origem</label>
+            <input type="text" id="cteOrigem" placeholder="Cidade - UF">
+          </div>
+          <div class="form-group">
+            <label>Cidade Destino</label>
+            <input type="text" id="cteDestino" placeholder="Cidade - UF">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Peso (kg)</label>
+            <input type="number" id="ctePeso" placeholder="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Valor do Frete (R$)</label>
+            <input type="number" id="cteValorFrete" placeholder="0,00" step="0.01">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Modalidade</label>
+          <select id="cteModalidade">
+            <option value="1">Rodoviário</option>
+            <option value="2">Aéreo</option>
+            <option value="3">Aquaviário</option>
+            <option value="4">Ferroviário</option>
+            <option value="5">Dutoviário</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="cteModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSalvarCte">Emitir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/suite/tax/tax.js"></script>
+

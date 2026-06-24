@@ -1,0 +1,52 @@
+{
+  "name": "broadcast",
+  "version": "1.0.0",
+  "description": "Internal communications and broadcast messaging",
+  "author": "General Bots",
+  "category": "productivity",
+  "tags": ["broadcast", "communications", "announcements", "campaigns", "newsletter"],
+  "entry_dialog": "default.gbdialog",
+  "features": {
+    "multi_channel": true,
+    "campaign_management": true,
+    "templates": true,
+    "scheduling": true,
+    "analytics": true,
+    "ai_content": true
+  },
+  "settings": {
+    "default_channels": ["email", "chat"],
+    "require_approval": false,
+    "track_opens": true,
+    "track_clicks": true,
+    "max_recipients": 10000
+  },
+  "channels": {
+    "email": {
+      "enabled": true,
+      "track_opens": true
+    },
+    "chat": {
+      "enabled": true,
+      "channel_name": "announcements"
+    },
+    "social": {
+      "enabled": false,
+      "platforms": ["linkedin"]
+    },
+    "sms": {
+      "enabled": false
+    }
+  },
+  "permissions": {
+    "create_campaign": ["communications", "hr", "admin"],
+    "send_campaign": ["communications", "admin"],
+    "view_analytics": ["communications", "hr", "admin", "manager"],
+    "manage_templates": ["communications", "admin"]
+  },
+  "integrations": {
+    "mail": true,
+    "social": true,
+    "analytics": true
+  }
+}

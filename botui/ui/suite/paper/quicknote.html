@@ -1,0 +1,253 @@
+<!-- Paper - Single Page Actionable Notes -->
+<div class="paper-app" id="paper-app">
+    <!-- Header -->
+    <header class="paper-header">
+        <div class="header-left">
+            <h1 class="paper-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span>Paper</span>
+            </h1>
+        </div>
+        <div class="header-center">
+            <span class="paper-date" id="paper-date"></span>
+        </div>
+        <div class="header-right">
+            <div class="sync-status" id="sync-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Synced</span>
+            </div>
+            <button class="btn-icon" onclick="showHistory()" title="History">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+            </button>
+            <button class="btn-icon" onclick="showSettings()" title="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="paper-main">
+        <div class="paper-container">
+            <!-- The single note area -->
+            <div class="paper-note" id="paper-note">
+                <div
+                    class="note-content"
+                    id="note-content"
+                    contenteditable="true"
+                    spellcheck="true"
+                    data-placeholder="Start writing... Type anything - meeting notes, ideas, tasks, reminders. Press the ✨ button to transform your notes into actions."
+                    oninput="handleNoteInput()"
+                    onpaste="handlePaste(event)"
+                ></div>
+            </div>
+
+            <!-- Quick format bar (appears on text selection) -->
+            <div class="format-popup hidden" id="format-popup">
+                <button class="format-btn" onclick="formatText('bold')" title="Bold">
+                    <strong>B</strong>
+                </button>
+                <button class="format-btn" onclick="formatText('italic')" title="Italic">
+                    <em>I</em>
+                </button>
+                <button class="format-btn" onclick="formatText('underline')" title="Underline">
+                    <u>U</u>
+                </button>
+                <span class="format-divider"></span>
+                <button class="format-btn" onclick="formatText('insertUnorderedList')" title="Bullet List">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <circle cx="3" cy="6" r="1" fill="currentColor"/>
+                        <circle cx="3" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="3" cy="18" r="1" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="format-btn" onclick="formatText('insertOrderedList')" title="Numbered List">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="10" y1="6" x2="21" y2="6"/>
+                        <line x1="10" y1="12" x2="21" y2="12"/>
+                        <line x1="10" y1="18" x2="21" y2="18"/>
+                        <text x="3" y="8" font-size="8" fill="currentColor">1</text>
+                        <text x="3" y="14" font-size="8" fill="currentColor">2</text>
+                        <text x="3" y="20" font-size="8" fill="currentColor">3</text>
+                    </svg>
+                </button>
+                <button class="format-btn" onclick="insertCheckbox()" title="Checkbox">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Action Button - The Magic Button -->
+    <div class="action-button-container">
+        <button class="action-button" id="action-button" onclick="processNotes()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                <path d="M5 19l1 3 3-1-1-3-3 1z"/>
+                <path d="M19 5l-1-3-3 1 1 3 3-1z"/>
+            </svg>
+            <span>Transform to Actions</span>
+        </button>
+        <div class="action-hint">AI will create tasks, events, emails & files from your notes</div>
+    </div>
+
+    <!-- Footer with stats -->
+    <footer class="paper-footer">
+        <div class="footer-left">
+            <span class="word-count"><span id="word-count">0</span> words</span>
+            <span class="char-count"><span id="char-count">0</span> characters</span>
+        </div>
+        <div class="footer-center">
+            <span class="last-saved" id="last-saved">Not saved yet</span>
+        </div>
+        <div class="footer-right">
+            <button class="btn-text" onclick="clearNote()">Clear</button>
+            <button class="btn-text" onclick="exportNote()">Export</button>
+        </div>
+    </footer>
+
+    <!-- Processing Modal -->
+    <div class="modal hidden" id="processing-modal">
+        <div class="modal-content modal-processing">
+            <div class="processing-animation">
+                <div class="processing-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                    </svg>
+                </div>
+                <div class="processing-spinner"></div>
+            </div>
+            <h3>Analyzing your notes...</h3>
+            <p id="processing-status">Identifying actionable items</p>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div class="modal hidden" id="results-modal">
+        <div class="modal-content modal-results">
+            <div class="modal-header">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                    </svg>
+                    Actions Found
+                </h3>
+                <button class="btn-close" onclick="hideModal('results-modal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="results-summary" id="results-summary">
+                    <!-- Summary stats -->
+                </div>
+                <div class="results-list" id="results-list">
+                    <!-- Action items will be rendered here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideModal('results-modal')">Review Later</button>
+                <button class="btn-primary" onclick="executeAllActions()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Execute All Actions
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal hidden" id="history-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Note History</h3>
+                <button class="btn-close" onclick="hideModal('history-modal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="history-list" id="history-list">
+                    <!-- History items -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal hidden" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="btn-close" onclick="hideModal('settings-modal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label>Auto-save</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="setting-autosave" checked onchange="updateSetting('autosave', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>Default calendar for events</label>
+                    <select id="setting-calendar" onchange="updateSetting('calendar', this.value)">
+                        <option value="default">Default Calendar</option>
+                        <option value="work">Work</option>
+                        <option value="personal">Personal</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Default task list</label>
+                    <select id="setting-tasklist" onchange="updateSetting('tasklist', this.value)">
+                        <option value="default">Default List</option>
+                        <option value="inbox">Inbox</option>
+                        <option value="today">Today</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="/suite/paper/quicknote.css" />
+
+<div id="quicknote-modals-container">
+    <div hx-get="./partials/01_modal_processing.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="./partials/02_modal_results.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="./partials/03_modal_history.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="./partials/04_modal_settings.html" hx-trigger="load" hx-swap="outerHTML"></div>
+</div>
+
+<link rel="stylesheet" href="/suite/paper/quicknote.css" />
+
+<div id="quicknote-modals-container">
+    <div hx-get="./partials/01_modal_processing.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="./partials/02_modal_results.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="./partials/03_modal_history.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="./partials/04_modal_settings.html" hx-trigger="load" hx-swap="outerHTML"></div>
+</div>

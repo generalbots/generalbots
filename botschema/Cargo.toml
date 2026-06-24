@@ -1,0 +1,37 @@
+[package]
+name = "botschema"
+version = "6.3.0"
+edition = "2021"
+description = "Diesel database schema definitions - single source of truth for all table macros"
+license = "AGPL-3.0"
+
+[features]
+default = []
+tasks = []
+mail = []
+people = []
+tickets = []
+billing = []
+attendant = []
+calendar = []
+goals = []
+canvas = []
+workspaces = []
+social = []
+analytics = []
+compliance = []
+meet = []
+research = []
+learn = []
+project = []
+dashboards = []
+
+[dependencies]
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+chrono = { workspace = true, features = ["serde", "clock"] }
+uuid = { workspace = true, features = ["serde", "v4"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

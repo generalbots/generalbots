@@ -1,0 +1,102 @@
+<!-- Sidebar - Notes List -->
+    <aside class="paper-sidebar" id="paper-sidebar">
+        <div class="sidebar-header">
+            <h2 data-i18n="paper-title">Paper</h2>
+            <button
+                class="btn-icon"
+                title="New Note"
+                hx-post="/api/ui/paper/new"
+                hx-target="#paper-list"
+                hx-swap="afterbegin"
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Search Notes -->
+        <div class="sidebar-search">
+            <input
+                type="text"
+                data-i18n-placeholder="paper-search-notes"
+                placeholder="Search notes..."
+                name="q"
+                hx-get="/api/ui/paper/search"
+                hx-trigger="keyup changed delay:300ms"
+                hx-target="#paper-list"
+            />
+            <svg
+                class="search-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </div>
+
+        <!-- Notes List -->
+        <div
+            class="paper-list"
+            id="paper-list"
+            hx-get="/api/ui/paper/list"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <!-- Notes loaded here -->
+        </div>
+
+        <!-- AI Templates -->
+        <div class="sidebar-section">
+            <h3 data-i18n="paper-quick-start">Quick Start</h3>
+            <div class="template-grid">
+                <button
+                    class="template-btn"
+                    hx-post="/api/ui/paper/template/blank"
+                    hx-target="#editor-content"
+                >
+                    <span class="template-icon">📄</span>
+                    <span data-i18n="paper-template-blank">Blank</span>
+                </button>
+                <button
+                    class="template-btn"
+                    hx-post="/api/ui/paper/template/meeting"
+                    hx-target="#editor-content"
+                >
+                    <span class="template-icon">📋</span>
+                    <span data-i18n="paper-template-meeting">Meeting</span>
+                </button>
+                <button
+                    class="template-btn"
+                    hx-post="/api/ui/paper/template/todo"
+                    hx-target="#editor-content"
+                >
+                    <span class="template-icon">✓</span>
+                    <span data-i18n="paper-template-todo">To-Do</span>
+                </button>
+                <button
+                    class="template-btn"
+                    hx-post="/api/ui/paper/template/research"
+                    hx-target="#editor-content"
+                >
+                    <span class="template-icon">🔬</span>
+                    <span data-i18n="paper-template-research">Research</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Editor Area -->

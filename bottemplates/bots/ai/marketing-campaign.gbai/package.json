@@ -1,0 +1,23 @@
+{
+  "name": "Marketing Campaign Workflow",
+  "description": "Multi-agent marketing campaign orchestration with audience analysis, content creation, and multi-channel distribution (email, social, ads)",
+  "version": "1.0.0",
+  "author": "General Bots",
+  "category": "marketing",
+  "keywords": ["marketing", "campaign", "multi-agent", "orchestration", "automation"],
+  "features": [
+    "Multi-step workflow orchestration",
+    "Audience segmentation and analysis",
+    "AI-powered content generation",
+    "Multi-channel distribution (email, social, WhatsApp)",
+    "Parallel execution",
+    "Event-driven optimization",
+    "Cross-bot memory sharing",
+    "Performance analytics"
+  ],
+  "requirements": {
+    "tools": ["social-media-post", "email-sender", "analytics-tracker", "llm-generator"],
+    "knowledge_bases": ["brand-guidelines"],
+    "bots": ["audience-segmenter", "content-creator", "email-scheduler", "social-scheduler", "ad-manager", "performance-analyzer", "optimizer"]
+  }
+}

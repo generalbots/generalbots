@@ -1,0 +1,232 @@
+<div class="app-guide local-files">
+    <header class="guide-header">
+        <h1>📁 Local Files</h1>
+        <p>
+            Access and manage files on your device using native file system
+            access.
+        </p>
+    </header>
+
+    <section class="file-browser">
+        <div class="path-bar">
+            <button
+                hx-get="/app/api/files/parent"
+                hx-target="#file-list"
+                hx-include="#currentPath"
+                title="Go up one level"
+            >
+                ⬆️
+            </button>
+            <input
+                type="text"
+                id="currentPath"
+                name="path"
+                placeholder="Enter path..."
+                hx-get="/app/api/files/list"
+                hx-target="#file-list"
+                hx-trigger="keyup[key=='Enter']"
+                hx-indicator="#loading"
+            />
+            <button
+                hx-get="/app/api/files/list"
+                hx-target="#file-list"
+                hx-include="#currentPath"
+                hx-indicator="#loading"
+            >
+                Browse
+            </button>
+            <button
+                hx-get="/app/api/files/home"
+                hx-target="#currentPath"
+                hx-swap="outerHTML"
+                hx-on::after-request="htmx.trigger('#currentPath', 'keyup', {key: 'Enter'})"
+            >
+                🏠 Home
+            </button>
+        </div>
+
+        <div id="loading" class="htmx-indicator loading">Loading...</div>
+
+        <div class="file-list" id="file-list">
+            <div class="empty-state">
+                <span class="icon">📂</span>
+                <p>Click "Home" or enter a path to browse files</p>
+            </div>
+        </div>
+
+        <div class="file-actions">
+            <button
+                hx-get="/app/api/files/new-folder-dialog"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+            >
+                📁 New Folder
+            </button>
+            <button
+                hx-get="/app/api/files/list"
+                hx-target="#file-list"
+                hx-include="#currentPath"
+                hx-indicator="#loading"
+            >
+                🔄 Refresh
+            </button>
+        </div>
+    </section>
+
+    <div id="modal-container"></div>
+
+    <style>
+        .local-files {
+            padding: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .guide-header {
+            margin-bottom: 2rem;
+        }
+
+        .guide-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--fg, #333);
+        }
+
+        .guide-header p {
+            color: var(--fg-muted, #666);
+        }
+
+        .path-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-secondary, #f5f5f5);
+            border-radius: 8px;
+        }
+
+        .path-bar input {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border, #ddd);
+            border-radius: 4px;
+            font-family: monospace;
+            background: var(--bg, #fff);
+            color: var(--fg, #333);
+        }
+
+        .path-bar button {
+            padding: 0.5rem 1rem;
+            background: var(--primary, #0066cc);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .path-bar button:hover {
+            background: var(--primary-hover, #0055aa);
+        }
+
+        .file-list {
+            border: 1px solid var(--border, #ddd);
+            border-radius: 8px;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: var(--bg, #fff);
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-light, #eee);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-item:hover {
+            background: var(--bg-hover, #f8f8f8);
+        }
+
+        .file-item.folder {
+            font-weight: 500;
+        }
+
+        .file-item .icon {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .file-item .name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-item .size {
+            color: var(--fg-muted, #888);
+            font-size: 0.85rem;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .file-actions button {
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary, #f0f0f0);
+            color: var(--fg, #333);
+            border: 1px solid var(--border, #ddd);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .file-actions button:hover {
+            background: var(--bg-hover, #e8e8e8);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--fg-muted, #888);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            color: var(--fg-muted, #888);
+        }
+
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            display: flex;
+        }
+    </style>
+</div>

@@ -1,0 +1,146 @@
+<svg viewBox="0 0 900 450" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <style>
+    /* Ensure transparent background */
+    svg {
+      background: transparent !important;
+    }
+
+    /* CSS Custom Properties for theme switching */
+    :root {
+      /* Light theme defaults */
+      --main-text-color: #1a1a1a;
+      --secondary-text-color: #666;
+      --border-color: #666;
+    }
+
+    /* Dark theme override */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --main-text-color: #ffffff;
+        --secondary-text-color: #b0b0b0;
+        --border-color: #b0b0b0;
+      }
+    }
+
+    .main-text { fill: var(--main-text-color); }
+    .secondary-text { fill: var(--secondary-text-color); }
+    .border-stroke { stroke: var(--border-color); }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" class="main-text">System Technical Specifications</text>
+
+  <!-- Main container -->
+  <rect x="50" y="50" width="800" height="380" fill="none" class="border-stroke" stroke-width="2" rx="5"/>
+
+  <!-- Embedding Section -->
+  <g transform="translate(70, 80)">
+    <rect x="0" y="0" width="350" height="150" fill="none" class="border-stroke" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+    <text x="175" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" class="main-text">Embedding Configuration</text>
+
+    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" class="main-text">Model: bge-small-en-v1.5-f32.gguf</text>
+    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Dimensions: 384</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Format: GGUF (quantized)</text>
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Server: localhost:8082</text>
+    <text x="10" y="125" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Memory: ~200MB loaded</text>
+  </g>
+
+  <!-- LLM Section -->
+  <g transform="translate(450, 80)">
+    <rect x="0" y="0" width="350" height="150" fill="none" class="border-stroke" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+    <text x="175" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" class="main-text">LLM Configuration</text>
+
+    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" class="main-text">Model: DeepSeek-R1-Distill-Qwen-1.5B</text>
+    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Context Size: 4096 tokens</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Max Predict: 1024 tokens</text>
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Parallel Requests: 6</text>
+    <text x="10" y="125" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Quantization: Q3_K_M</text>
+  </g>
+
+  <!-- Performance Section -->
+  <g transform="translate(70, 250)">
+    <rect x="0" y="0" width="730" height="150" fill="none" class="border-stroke" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+    <text x="365" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" class="main-text">Performance Characteristics</text>
+
+    <!-- Left column -->
+    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" class="main-text">Vector Index: HNSW Algorithm</text>
+    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• M=16, ef_construction=200</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Distance: Cosine Similarity</text>
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Build: ~1000 docs/minute</text>
+
+    <!-- Middle column -->
+    <text x="250" y="45" font-family="Arial, sans-serif" font-size="11" class="main-text">Chunking Strategy</text>
+    <text x="250" y="65" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Chunk Size: 512 tokens</text>
+    <text x="250" y="85" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Overlap: 50 tokens</text>
+    <text x="250" y="105" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Prompt Compact: Level 4</text>
+
+    <!-- Right column -->
+    <text x="490" y="45" font-family="Arial, sans-serif" font-size="11" class="main-text">Runtime Metrics</text>
+    <text x="490" y="65" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Query Latency: &lt;50ms p99</text>
+    <text x="490" y="85" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Memory: ~1GB/million chunks</text>
+    <text x="490" y="105" font-family="Arial, sans-serif" font-size="11" class="secondary-text">• Cache TTL: 3600 seconds</text>
+  </g>
+
+  <!-- JavaScript to handle theme switching from parent document -->
+  <script type="text/javascript">
+    <![CDATA[
+    // Function to update CSS variables based on parent theme
+    function updateTheme() {
+      try {
+        // Check if we're in an iframe/object context
+        const parentDoc = window.parent?.document || window.top?.document;
+        if (!parentDoc) return;
+
+        const rootElement = document.documentElement;
+        const htmlElement = parentDoc.documentElement;
+        const bodyElement = parentDoc.body;
+
+        // Check for various theme indicators
+        const isRust = htmlElement.classList.contains('rust') || bodyElement.classList.contains('rust');
+        const isLight = htmlElement.classList.contains('light') || bodyElement.classList.contains('light');
+        const isDark = htmlElement.classList.contains('dark') ||
+                      htmlElement.classList.contains('ayu') ||
+                      htmlElement.classList.contains('navy') ||
+                      htmlElement.classList.contains('coal') ||
+                      bodyElement.classList.contains('theme--dark');
+
+        // Apply theme-specific CSS variables
+        if (isRust || isLight) {
+          // Force black text for Rust/Light themes
+          rootElement.style.setProperty('--main-text-color', '#1a1a1a');
+          rootElement.style.setProperty('--secondary-text-color', '#666');
+          rootElement.style.setProperty('--border-color', '#666');
+        } else if (isDark) {
+          // White text for dark themes
+          rootElement.style.setProperty('--main-text-color', '#ffffff');
+          rootElement.style.setProperty('--secondary-text-color', '#b0b0b0');
+          rootElement.style.setProperty('--border-color', '#b0b0b0');
+        }
+      } catch (e) {
+        // Silent fail if we can't access parent document (cross-origin)
+      }
+    }
+
+    // Update theme on load
+    updateTheme();
+
+    // Listen for theme changes if possible
+    try {
+      if (window.parent && window.parent !== window) {
+        // Try to observe parent document changes
+        const observer = new MutationObserver(updateTheme);
+        observer.observe(window.parent.document.documentElement, {
+          attributes: true,
+          attributeFilter: ['class']
+        });
+        observer.observe(window.parent.document.body, {
+          attributes: true,
+          attributeFilter: ['class']
+        });
+      }
+    } catch (e) {
+      // Silent fail if cross-origin
+    }
+    ]]>
+  </script>
+</svg>

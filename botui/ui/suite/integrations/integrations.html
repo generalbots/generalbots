@@ -1,0 +1,83 @@
+<link rel="stylesheet" href="/suite/integrations/integrations.css">
+<div class="int-app">
+<header class="app-header">
+<h1>Integration Platform</h1>
+<button class="btn-refresh" id="refreshBtn">&#8635;</button>
+</header>
+<nav class="tab-bar">
+<button class="tab active" data-tab="available">Available</button>
+<button class="tab" data-tab="connected">Connected</button>
+<button class="tab" data-tab="etl">ETL Jobs</button>
+</nav>
+<main class="tab-content">
+<section class="tab-panel active" id="panel-available">
+<div class="search-bar">
+<input type="text" class="search-input" id="connectorSearch" placeholder="Search connectors...">
+</div>
+<div class="connector-grid" id="connectorGrid"></div>
+</section>
+<section class="tab-panel" id="panel-connected">
+<div class="table-section">
+<h2>Active Connectors</h2>
+<table class="data-table" id="connectedTable">
+<thead><tr><th>Connector</th><th>Type</th><th>Status</th><th>Last Sync</th><th>Records</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-etl">
+<div class="section-header">
+<h2>ETL Jobs</h2>
+<button class="btn-primary" id="createJobBtn">Create Job</button>
+</div>
+<div class="table-section">
+<table class="data-table" id="etlTable">
+<thead><tr><th>Job Name</th><th>Source</th><th>Destination</th><th>Schedule</th><th>Last Run</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="modal-overlay" id="etlModal">
+<div class="modal">
+<div class="modal-header">
+<h3>Create ETL Job</h3>
+<button class="modal-close" id="closeEtlModal">&times;</button>
+</div>
+<form id="etlForm">
+<div class="form-group">
+<label>Job Name</label>
+<input type="text" id="jobName" required>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Source</label>
+<select id="jobSource" required></select>
+</div>
+<div class="form-group">
+<label>Destination</label>
+<select id="jobDest" required></select>
+</div>
+</div>
+<div class="form-group">
+<label>Schedule</label>
+<select id="jobSchedule" required>
+<option value="manual">Manual</option>
+<option value="hourly">Hourly</option>
+<option value="daily">Daily</option>
+<option value="weekly">Weekly</option>
+</select>
+</div>
+<div class="form-group">
+<label>Transform Rule (optional)</label>
+<textarea id="jobTransform" rows="3" placeholder="JSON transform configuration"></textarea>
+</div>
+<div class="form-actions">
+<button type="button" class="btn-secondary" id="cancelEtlBtn">Cancel</button>
+<button type="submit" class="btn-primary">Create</button>
+</div>
+</form>
+</div>
+</div>
+</section>
+</main>
+</div>
+<script src="/suite/integrations/integrations.js"></script>

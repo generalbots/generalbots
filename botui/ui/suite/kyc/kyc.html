@@ -1,0 +1,98 @@
+<link rel="stylesheet" href="/suite/kyc/kyc.css">
+<script src="/suite/kyc/kyc.js"></script>
+
+<div class="kyc-container">
+    <header class="kyc-header">
+        <h1>KYC Dashboard</h1>
+        <div class="kyc-header-actions">
+            <button class="kyc-btn" onclick="window._kyc.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="kyc-stats">
+        <div class="kyc-stat-card"><span class="kyc-stat-label">Pending</span><span class="kyc-stat-value yellow" id="stat-pending">0</span></div>
+        <div class="kyc-stat-card"><span class="kyc-stat-label">Verified</span><span class="kyc-stat-value green" id="stat-verified">0</span></div>
+        <div class="kyc-stat-card"><span class="kyc-stat-label">Failed</span><span class="kyc-stat-value red" id="stat-failed">0</span></div>
+        <div class="kyc-stat-card"><span class="kyc-stat-label">Total</span><span class="kyc-stat-value blue" id="stat-total">0</span></div>
+    </div>
+
+    <nav class="kyc-tabs">
+        <button class="kyc-tab active" data-tab="verifications" onclick="window._kyc.switchTab('verifications',this)">Verifications</button>
+        <button class="kyc-tab" data-tab="signatures" onclick="window._kyc.switchTab('signatures',this)">Signatures</button>
+        <button class="kyc-tab" data-tab="certificates" onclick="window._kyc.switchTab('certificates',this)">Certificates</button>
+    </nav>
+
+    <div class="kyc-content">
+        <div class="kyc-panel active" id="panel-verifications">
+            <div class="kyc-grid" id="verifications-grid">
+                <div class="kyc-empty"><div class="kyc-empty-icon">🔍</div><h3>Loading...</h3><p>Fetching verification data</p></div>
+            </div>
+        </div>
+
+        <div class="kyc-panel" id="panel-signatures">
+            <div class="kyc-table-wrapper">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                    <h3 style="font-size:14px;font-weight:600;margin:0">Documents Awaiting Signature</h3>
+                    <button class="kyc-btn" onclick="window._kyc.loadSignatures()">Refresh</button>
+                </div>
+                <div class="kyc-table-scroll" style="overflow-x:auto">
+                    <table class="kyc-table">
+                        <thead><tr><th>Document</th><th>Type</th><th>Requested</th><th>Signer</th><th>Action</th></tr></thead>
+                        <tbody id="signatures-tbody"><tr><td colspan="5" class="kyc-empty">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="signature-pad-area" style="margin-top:16px;display:none">
+                <div class="kyc-table-wrapper">
+                    <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                        <h3 style="font-size:14px;font-weight:600;margin:0">Signature Pad</h3>
+                        <div style="display:flex;gap:8px">
+                            <button class="kyc-btn" onclick="window._kyc.clearSignature()">Clear</button>
+                            <button class="kyc-btn kyc-btn-primary" onclick="window._kyc.submitSignature()">Submit Signature</button>
+                        </div>
+                    </div>
+                    <div style="padding:16px;display:flex;justify-content:center">
+                        <canvas id="signature-canvas" width="500" height="200" style="background:#0f172a;border-radius:8px"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="kyc-panel" id="panel-certificates">
+            <div class="kyc-grid" id="certificates-grid">
+                <div class="kyc-empty"><div class="kyc-empty-icon">📜</div><h3>Loading...</h3><p>Fetching certificate data</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="kyc-modal-overlay" id="renew-modal">
+    <div class="kyc-modal">
+        <div class="kyc-modal-header">
+            <h3>Renew Certificate</h3>
+            <button class="kyc-modal-close" onclick="window._kyc.hideModal('renew-modal')">&times;</button>
+        </div>
+        <div class="kyc-modal-body">
+            <div class="kyc-form-group">
+                <label>Certificate ID</label>
+                <input type="text" id="renew-cert-id" readonly>
+            </div>
+            <div class="kyc-form-group">
+                <label>Validity Period (days)</label>
+                <select id="renew-validity">
+                    <option value="30">30 days</option>
+                    <option value="90" selected>90 days</option>
+                    <option value="180">180 days</option>
+                    <option value="365">365 days</option>
+                </select>
+            </div>
+            <div class="kyc-form-actions">
+                <button class="kyc-btn" onclick="window._kyc.hideModal('renew-modal')">Cancel</button>
+                <button class="kyc-btn kyc-btn-primary" onclick="window._kyc.renewCertificate()">Renew</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Organizations — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .org-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .org-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.25rem; cursor: pointer; transition: all .2s; position: relative;
+    }
+    .org-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-accent); }
+    .org-card-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; margin-bottom: .75rem; }
+    .org-card-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .org-card-plan { font-size: .72rem; color: var(--muted); margin-top: .25rem; letter-spacing: .04em; text-transform: uppercase; }
+    .org-card-stats { display: flex; gap: 1rem; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+    .org-card-stat { text-align: center; }
+    .org-card-stat-num { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .org-card-stat-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .org-card:hover .org-card-link { opacity: 1; }
+    .org-card-link { position: absolute; inset: 0; border-radius: var(--radius); text-indent: -9999px; }
+
+    .org-detail-header { display: flex; align-items: center; gap: 1.25rem; margin-bottom: 2rem; padding: 1.5rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+    .org-detail-icon { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; flex-shrink: 0; }
+    .org-detail-name { font-size: 1.3rem; font-weight: 800; color: var(--text); }
+    .org-detail-plan { font-size: .8rem; color: var(--muted); }
+    .org-detail-actions { margin-left: auto; display: flex; gap: .5rem; }
+    .org-detail-meta { font-size: .8rem; color: var(--muted); margin-top: 1rem; }
+
+    .ws-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .ws-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.25rem; transition: all .2s; position: relative;
+    }
+    .ws-card:hover { border-color: var(--border-hover); }
+    .ws-card-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+    .ws-card-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--bg3), var(--surface)); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .ws-card-name { font-size: .95rem; font-weight: 700; color: var(--text); flex: 1; }
+    .ws-card-desc { font-size: .8rem; color: var(--muted); margin-bottom: .75rem; line-height: 1.5; }
+    .ws-card-footer { display: flex; align-items: center; gap: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+    .ws-card-resource { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; color: var(--muted); background: var(--bg3); padding: .15rem .5rem; border-radius: 99px; }
+
+    .res-list { display: flex; flex-direction: column; gap: .5rem; }
+    .res-row {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+      padding: .75rem 1rem; display: flex; align-items: center; gap: .75rem;
+    }
+    .res-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: .8rem; flex-shrink: 0; }
+    .res-icon.compute { background: var(--accent-dim); color: var(--accent); }
+    .res-icon.storage { background: rgba(0,212,170,.15); color: var(--accent2); }
+    .res-icon.phone { background: rgba(255,180,0,.15); color: #ffb400; }
+    .res-icon.comms { background: rgba(255,107,107,.15); color: var(--accent3); }
+    .res-info { flex: 1; }
+    .res-name { font-size: .85rem; font-weight: 600; color: var(--text); }
+    .res-meta { font-size: .72rem; color: var(--muted); }
+    .res-status { font-size: .68rem; font-weight: 600; padding: .15rem .5rem; border-radius: 99px; }
+    .res-status.active { background: rgba(0,212,170,.12); color: var(--accent2); }
+    .res-status.provisioning { background: rgba(255,180,0,.12); color: #ffb400; }
+
+    .create-form { max-width: 480px; }
+    .back-link { display: inline-flex; align-items: center; gap: .4rem; color: var(--muted); text-decoration: none; font-size: .85rem; margin-bottom: 1.5rem; }
+    .back-link:hover { color: var(--text); }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+  <main class="mgmt-main" id="app-root">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">My Organizations</span>
+      <div class="mgmt-topbar-actions">
+        <button class="btn btn-primary btn-sm" onclick="showCreateOrg()">+ New Organization</button>
+      </div>
+    </div>
+    <div style="padding:2rem" id="page-content">
+      <div class="org-grid" id="org-list"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Create Org Modal -->
+<div class="mgmt-modal" id="create-org-modal">
+  <div class="mgmt-backdrop" onclick="hideCreateOrg()"></div>
+  <div class="mgmt-modal-box">
+    <div class="mgmt-modal-title">New Organization</div>
+    <div class="create-form">
+      <div class="form-group">
+        <label class="form-label">Organization Name</label>
+        <input id="org-name-input" class="form-control" type="text" placeholder="e.g. My Company" autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Plan</label>
+        <select id="org-plan-select" class="form-control">
+          <option value="free">Free</option>
+          <option value="personal" selected>Personal — $9/mo</option>
+          <option value="business">Business — $49/mo</option>
+        </select>
+      </div>
+      <div class="mgmt-modal-actions">
+        <button class="btn btn-ghost" onclick="hideCreateOrg()">Cancel</button>
+        <button class="btn btn-primary" onclick="createOrg()">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Org Modal -->
+<div class="mgmt-modal" id="edit-org-modal">
+  <div class="mgmt-backdrop" onclick="hideEditOrg()"></div>
+  <div class="mgmt-modal-box">
+    <div class="mgmt-modal-title">Edit Organization</div>
+    <div class="create-form">
+      <div class="form-group">
+        <label class="form-label">Organization Name</label>
+        <input id="edit-org-name-input" class="form-control" type="text" autofocus>
+      </div>
+      <div class="mgmt-modal-actions">
+        <button class="btn btn-ghost" onclick="hideEditOrg()">Cancel</button>
+        <button class="btn btn-primary" onclick="updateOrg()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Org Detail View (hidden by default, shown when clicking org) -->
+<div style="display:none" id="org-detail-view">
+  <div class="mgmt-topbar">
+    <a href="#" class="back-link" onclick="showOrgList()">← My Organizations</a>
+    <div class="mgmt-topbar-actions">
+      <button class="btn btn-primary btn-sm" onclick="showCreateWorkspace()">+ New Workspace</button>
+    </div>
+  </div>
+  <div style="padding:2rem">
+    <div class="org-detail-header" id="org-detail-header"></div>
+    <div class="mgmt-section-header">
+      <div>
+        <div class="mgmt-section-title">Workspaces</div>
+        <div class="mgmt-section-sub">each workspace has its own assigned resources</div>
+      </div>
+    </div>
+    <div class="ws-grid" id="ws-list"></div>
+  </div>
+</div>
+
+<!-- Create Workspace Modal -->
+<div class="mgmt-modal" id="create-ws-modal">
+  <div class="mgmt-backdrop" onclick="hideCreateWorkspace()"></div>
+  <div class="mgmt-modal-box">
+    <div class="mgmt-modal-title">New Workspace</div>
+    <div class="create-form">
+      <div class="form-group">
+        <label class="form-label">Workspace Name</label>
+        <input id="ws-name-input" class="form-control" type="text" placeholder="e.g. Production" autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description (optional)</label>
+        <textarea id="ws-desc-input" class="form-control" rows="2" placeholder="What is this workspace for?"></textarea>
+      </div>
+      <div class="mgmt-modal-actions">
+        <button class="btn btn-ghost" onclick="hideCreateWorkspace()">Cancel</button>
+        <button class="btn btn-primary" onclick="createWorkspace()">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Workspace Detail Modal -->
+<div class="mgmt-modal" id="ws-detail-modal">
+  <div class="mgmt-backdrop" onclick="hideWsDetail()"></div>
+  <div class="mgmt-modal-box" style="max-width:640px">
+    <div class="mgmt-modal-title" id="ws-detail-title">Workspace</div>
+    <div id="ws-detail-body">
+      <div class="mgmt-section-title" style="font-size:.9rem;margin-bottom:.75rem">Assigned Resources</div>
+      <div class="res-list" id="ws-resources"></div>
+      <div style="margin-top:1rem">
+        <button class="btn btn-secondary btn-sm" onclick="showAssignResource()">+ Assign Resource</button>
+      </div>
+    </div>
+    <div class="mgmt-modal-actions">
+      <button class="btn btn-danger btn-sm" id="delete-ws-btn" onclick="deleteWorkspace()">Delete Workspace</button>
+      <button class="btn btn-ghost" onclick="hideWsDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Resource Modal -->
+<div class="mgmt-modal" id="assign-res-modal">
+  <div class="mgmt-backdrop" onclick="hideAssignResource()"></div>
+  <div class="mgmt-modal-box">
+    <div class="mgmt-modal-title">Assign Resource</div>
+    <div class="create-form">
+      <div class="form-group">
+        <label class="form-label">Resource Type</label>
+        <select id="assign-res-type" class="form-control" onchange="updateResourceItems()">
+          <option value="compute">VPS / GPU</option>
+          <option value="storage">Storage</option>
+          <option value="phone">Phone Numbers</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Plan</label>
+        <select id="assign-res-item" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Name (optional)</label>
+        <input id="assign-res-name" class="form-control" type="text" placeholder="e.g. Web Server">
+      </div>
+      <div class="mgmt-modal-actions">
+        <button class="btn btn-ghost" onclick="hideAssignResource()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAssignResource()">Assign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/cloud/js/cloud-orgs.js"></script>
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

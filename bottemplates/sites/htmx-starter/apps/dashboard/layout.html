@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title} - Dashboard</title>
+    <script src="/_assets/htmx.min.js"></script>
+    <script src="/_assets/chart.min.js"></script>
+    <style>
+        :root {
+            --color-primary: #0ea5e9;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-purple: #8b5cf6;
+            --color-bg: #f1f5f9;
+            --color-surface: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-lg: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg: #0f172a;
+                --color-surface: #1e293b;
+                --color-text: #f1f5f9;
+                --color-text-secondary: #94a3b8;
+                --color-border: #334155;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.5;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .dashboard-subtitle {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .date-range {
+            padding: 10px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
+        .btn-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-refresh:hover {
+            background: var(--color-bg);
+        }
+
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .kpi-label {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+        }
+
+        .kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .kpi-icon.revenue { background: rgba(14, 165, 233, 0.1); }
+        .kpi-icon.customers { background: rgba(16, 185, 129, 0.1); }
+        .kpi-icon.orders { background: rgba(139, 92, 246, 0.1); }
+        .kpi-icon.growth { background: rgba(245, 158, 11, 0.1); }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .kpi-change {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .kpi-change.positive {
+            color: var(--color-success);
+        }
+
+        .kpi-change.negative {
+            color: var(--color-danger);
+        }
+
+        .kpi-period {
+            color: var(--color-text-secondary);
+            margin-left: 4px;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chart-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--color-text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .chart-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Data Table */
+        .table-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .table-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .data-table th {
+            background: var(--color-bg);
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background: var(--color-bg);
+        }
+
+        /* Status badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+
+        /* Loading */
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            display: inline-block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Last updated */
+        .last-updated {
+            text-align: center;
+            padding: 16px;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div>
+                <h1 class="dashboard-title">${title}</h1>
+                <p class="dashboard-subtitle">${subtitle}</p>
+            </div>
+            <div class="header-actions">
+                <select class="date-range"
+                        hx-get="/api/dashboard/kpis"
+                        hx-target="#kpi-grid"
+                        hx-include="this">
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d" selected>Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                    <option value="1y">Last year</option>
+                </select>
+                <button class="btn-refresh"
+                        hx-get="/api/dashboard/refresh"
+                        hx-target="#dashboard-content"
+                        hx-indicator="#refresh-spinner">
+                    🔄 Refresh
+                    <span id="refresh-spinner" class="htmx-indicator spinner"></span>
+                </button>
+            </div>
+        </header>
+
+        <div id="dashboard-content">
+            <!-- KPI Cards -->
+            <div class="kpi-grid" id="kpi-grid"
+                 hx-get="/api/dashboard/kpis"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+
+                <!-- Revenue KPI -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Total Revenue</span>
+                        <div class="kpi-icon revenue">💰</div>
+                    </div>
+                    <div class="kpi-value">$${revenue}</div>
+                    <div class="kpi-change positive">
+                        ↑ ${revenue_change}%
+                        <span class="kpi-period">vs last period</span>
+                    </div>
+                </div>
+
+                <!-- Customers KPI -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Total Customers</span>
+                        <div class="kpi-icon customers">👥</div>
+                    </div>
+                    <div class="kpi-value">${customers}</div>
+                    <div class="kpi-change positive">
+                        ↑ ${customers_change}%
+                        <span class="kpi-period">vs last period</span>
+                    </div>
+                </div>
+
+                <!-- Orders KPI -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Total Orders</span>
+                        <div class="kpi-icon orders">📦</div>
+                    </div>
+                    <div class="kpi-value">${orders}</div>
+                    <div class="kpi-change negative">
+                        ↓ ${orders_change}%
+                        <span class="kpi-period">vs last period</span>
+                    </div>
+                </div>
+
+                <!-- Growth KPI -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Growth Rate</span>
+                        <div class="kpi-icon growth">📈</div>
+                    </div>
+                    <div class="kpi-value">${growth}%</div>
+                    <div class="kpi-change positive">
+                        ↑ ${growth_change}%
+                        <span class="kpi-period">vs last period</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-grid">
+                <!-- Main Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Revenue Overview</h3>
+                        <div class="chart-actions">
+                            <button class="chart-btn active" data-period="daily">Daily</button>
+                            <button class="chart-btn" data-period="weekly">Weekly</button>
+                            <button class="chart-btn" data-period="monthly">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenue-chart"
+                                hx-get="/api/dashboard/chart/revenue"
+                                hx-trigger="load"
+                                hx-swap="none"
+                                hx-on::after-request="renderRevenueChart(event)">
+                        </canvas>
+                    </div>
+                </div>
+
+                <!-- Pie Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Sales by Category</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="category-chart"
+                                hx-get="/api/dashboard/chart/categories"
+                                hx-trigger="load"
+                                hx-swap="none"
+                                hx-on::after-request="renderCategoryChart(event)">
+                        </canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Table -->
+            <div class="table-card">
+                <div class="table-header">
+                    <h3 class="table-title">Recent Activity</h3>
+                    <button class="chart-btn"
+                            hx-get="/api/dashboard/activity"
+                            hx-target="#activity-list">
+                        View All →
+                    </button>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Action</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activity-list"
+                           hx-get="/api/dashboard/activity"
+                           hx-trigger="load, every 60s"
+                           hx-swap="innerHTML">
+                        <!-- Activity rows loaded via HTMX -->
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="last-updated">
+                Last updated: <span id="last-update">${last_updated}</span>
+                <span class="htmx-indicator"> • Refreshing...</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js configuration
+        const chartColors = {
+            primary: '#0ea5e9',
+            success: '#10b981',
+            warning: '#f59e0b',
+            danger: '#ef4444',
+            purple: '#8b5cf6',
+            gray: '#64748b'
+        };
+
+        let revenueChart = null;
+        let categoryChart = null;
+
+        function renderRevenueChart(event) {
+            const data = JSON.parse(event.detail.xhr.responseText);
+            const ctx = document.getElementById('revenue-chart').getContext('2d');
+
+            if (revenueChart) revenueChart.destroy();
+
+            revenueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: data.values,
+                        borderColor: chartColors.primary,
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCategoryChart(event) {
+            const data = JSON.parse(event.detail.xhr.responseText);
+            const ctx = document.getElementById('category-chart').getContext('2d');
+
+            if (categoryChart) categoryChart.destroy();
+
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: [
+                            chartColors.primary,
+                            chartColors.success,
+                            chartColors.warning,
+                            chartColors.purple,
+                            chartColors.gray
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Chart period toggle
+        document.querySelectorAll('.chart-btn[data-period]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.chart-btn[data-period]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                htmx.ajax('GET', `/api/dashboard/chart/revenue?period=${this.dataset.period}`, {
+                    target: '#revenue-chart',
+                    swap: 'none'
+                });
+            });
+        });
+
+        // Update last updated timestamp
+        function updateTimestamp() {
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+        }
+
+        document.body.addEventListener('htmx:afterRequest', updateTimestamp);
+    </script>
+</body>
+</html>

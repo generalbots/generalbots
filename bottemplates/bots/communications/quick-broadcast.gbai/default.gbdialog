@@ -1,0 +1,257 @@
+PARAM action AS STRING LIKE "campaign" DESCRIPTION "Action: campaign, send, schedule, templates, analytics"
+PARAM channel AS STRING LIKE "all" DESCRIPTION "Channel: all, email, chat, social, sms" OPTIONAL
+PARAM audience AS STRING DESCRIPTION "Target audience" OPTIONAL
+
+DESCRIPTION "Internal communications and broadcast messaging"
+
+SELECT CASE UCASE(action)
+
+CASE "CAMPAIGN"
+    campaign_id = GUID()
+    campaign_name = ASK "Campaign name:"
+    campaign_goal = ASK "Campaign goal (awareness, engagement, action):"
+
+    TALK "📢 Creating broadcast campaign: " + campaign_name
+
+    message_subject = ASK "Message subject/title:"
+    message_body = ASK "Message content (supports markdown):"
+
+    use_ai = ASK "Use AI to improve message? (yes/no)"
+    IF UCASE(use_ai) = "YES" THEN
+        tone = ASK "Desired tone? (professional, friendly, urgent, inspirational)"
+        improved = IMPROVE TEXT message_body WITH TONE tone
+        TALK "AI-improved version:"
+        TALK improved
+        use_improved = ASK "Use improved version? (yes/no)"
+        IF UCASE(use_improved) = "YES" THEN
+            message_body = improved
+        END IF
+    END IF
+
+    channels_input = ASK "Select channels (comma-separated: email, chat, social, sms, or 'all'):"
+    IF UCASE(channels_input) = "ALL" THEN
+        selected_channels = ["email", "chat", "social", "sms"]
+    ELSE
+        selected_channels = SPLIT(channels_input, ",")
+    END IF
+
+    audience_type = ASK "Audience? (all, department, role, group, custom)"
+    IF audience_type = "custom" THEN
+        audience_filter = ASK "Enter audience filter (emails or group name):"
+    ELSE
+        audience_filter = audience_type
+    END IF
+
+    WITH campaign
+        id = campaign_id
+        name = campaign_name
+        goal = campaign_goal
+        subject = message_subject
+        body = message_body
+        channels = selected_channels
+        audience = audience_filter
+        status = "draft"
+        created_at = NOW()
+    END WITH
+
+    SAVE campaign TO "broadcast_campaigns"
+
+    preview = ASK "Preview campaign? (yes/no)"
+    IF UCASE(preview) = "YES" THEN
+        TALK "📧 Subject: " + campaign.subject
+        TALK "📝 Body: " + campaign.body
+        TALK "📡 Channels: " + JOIN(campaign.channels, ", ")
+        TALK "👥 Audience: " + campaign.audience
+    END IF
+
+    TALK "Campaign saved. Use action=send or action=schedule to distribute."
+
+CASE "SEND"
+    campaigns = FIND "broadcast_campaigns" WHERE status = "draft" OR status = "scheduled"
+
+    IF LEN(campaigns) = 0 THEN
+        TALK "No campaigns ready to send. Create one first with action=campaign"
+    ELSE
+        campaign_list = ""
+        FOR i = 0 TO LEN(campaigns) - 1
+            campaign_list = campaign_list + (i + 1) + ". " + campaigns[i].name + " (" + campaigns[i].status + ")\n"
+        END FOR
+
+        selection = ASK "Select campaign to send:\n" + campaign_list
+        selected = campaigns[INT(selection) - 1]
+
+        confirm = ASK "Send '" + selected.name + "' now to " + selected.audience + "? (yes/no)"
+        IF UCASE(confirm) = "YES" THEN
+            recipients = GET_RECIPIENTS(selected.audience)
+            sent_count = 0
+
+            FOR ch = 0 TO LEN(selected.channels) - 1
+                channel_name = selected.channels[ch]
+
+                IF channel_name = "email" THEN
+                    SEND MAIL TO recipients SUBJECT selected.subject BODY selected.body
+                    sent_count = sent_count + LEN(recipients)
+                END IF
+
+                IF channel_name = "chat" THEN
+                    POST TO "internal_announcements" CONTENT selected.body
+                    sent_count = sent_count + 1
+                END IF
+
+                IF channel_name = "social" THEN
+                    POST TO "linkedin" CONTENT selected.body
+                    sent_count = sent_count + 1
+                END IF
+            END FOR
+
+            selected.status = "sent"
+            selected.sent_at = NOW()
+            selected.recipients_count = sent_count
+            SAVE selected TO "broadcast_campaigns"
+
+            TALK "✅ Campaign sent successfully!"
+            TALK "Recipients reached: " + sent_count
+        ELSE
+            TALK "Send cancelled."
+        END IF
+    END IF
+
+CASE "SCHEDULE"
+    campaigns = FIND "broadcast_campaigns" WHERE status = "draft"
+
+    IF LEN(campaigns) = 0 THEN
+        TALK "No draft campaigns to schedule."
+    ELSE
+        campaign_list = ""
+        FOR i = 0 TO LEN(campaigns) - 1
+            campaign_list = campaign_list + (i + 1) + ". " + campaigns[i].name + "\n"
+        END FOR
+
+        selection = ASK "Select campaign to schedule:\n" + campaign_list
+        selected = campaigns[INT(selection) - 1]
+
+        schedule_date = ASK "Schedule date (YYYY-MM-DD):"
+        schedule_time = ASK "Schedule time (HH:MM):"
+        schedule_tz = ASK "Timezone (e.g., America/New_York):"
+
+        selected.status = "scheduled"
+        selected.scheduled_for = schedule_date + "T" + schedule_time
+        selected.timezone = schedule_tz
+        SAVE selected TO "broadcast_campaigns"
+
+        TALK "📅 Campaign scheduled for " + schedule_date + " at " + schedule_time + " " + schedule_tz
+
+CASE "TEMPLATES"
+    template_action = ASK "Templates action? (list, create, use)"
+
+    IF template_action = "list" THEN
+        templates = FIND "broadcast_templates"
+        IF LEN(templates) = 0 THEN
+            TALK "No templates found. Create one with templates action=create"
+        ELSE
+            TALK "📋 Available templates:"
+            FOR t = 0 TO LEN(templates) - 1
+                TALK (t + 1) + ". " + templates[t].name + " - " + templates[t].category
+            END FOR
+        END IF
+    END IF
+
+    IF template_action = "create" THEN
+        template_name = ASK "Template name:"
+        template_category = ASK "Category (announcement, newsletter, alert, event):"
+        template_subject = ASK "Subject template:"
+        template_body = ASK "Body template (use {{variable}} for placeholders):"
+
+        WITH template
+            id = GUID()
+            name = template_name
+            category = template_category
+            subject = template_subject
+            body = template_body
+            created_at = NOW()
+        END WITH
+
+        SAVE template TO "broadcast_templates"
+        TALK "Template saved!"
+    END IF
+
+    IF template_action = "use" THEN
+        templates = FIND "broadcast_templates"
+        IF LEN(templates) = 0 THEN
+            TALK "No templates available."
+        ELSE
+            template_list = ""
+            FOR t = 0 TO LEN(templates) - 1
+                template_list = template_list + (t + 1) + ". " + templates[t].name + "\n"
+            END FOR
+
+            selection = ASK "Select template:\n" + template_list
+            selected_template = templates[INT(selection) - 1]
+
+            TALK "Using template: " + selected_template.name
+            TALK "Subject: " + selected_template.subject
+            TALK "Body: " + selected_template.body
+            TALK "Run action=campaign to create a campaign using this template."
+        END IF
+    END IF
+
+CASE "ANALYTICS"
+    period = ASK "Analytics period? (week, month, quarter, all)"
+
+    campaigns = FIND "broadcast_campaigns" WHERE status = "sent"
+
+    IF LEN(campaigns) = 0 THEN
+        TALK "No sent campaigns to analyze."
+    ELSE
+        total_sent = 0
+        total_opened = 0
+        total_clicked = 0
+
+        TALK "📊 Broadcast Analytics"
+        TALK "═══════════════════════════════════"
+
+        FOR c = 0 TO LEN(campaigns) - 1
+            campaign = campaigns[c]
+            opens = campaign.opens_count
+            clicks = campaign.clicks_count
+            sent = campaign.recipients_count
+
+            IF opens = NULL THEN opens = 0
+            IF clicks = NULL THEN clicks = 0
+            IF sent = NULL THEN sent = 0
+
+            total_sent = total_sent + sent
+            total_opened = total_opened + opens
+            total_clicked = total_clicked + clicks
+
+            open_rate = 0
+            IF sent > 0 THEN
+                open_rate = (opens / sent) * 100
+            END IF
+
+            TALK "\n📢 " + campaign.name
+            TALK "   Sent: " + sent + " | Opens: " + opens + " (" + FORMAT(open_rate, "0") + "%)"
+        END FOR
+
+        TALK "\n═══════════════════════════════════"
+        TALK "TOTALS"
+        TALK "Campaigns: " + LEN(campaigns)
+        TALK "Messages sent: " + total_sent
+
+        overall_open_rate = 0
+        IF total_sent > 0 THEN
+            overall_open_rate = (total_opened / total_sent) * 100
+        END IF
+        TALK "Overall open rate: " + FORMAT(overall_open_rate, "0") + "%"
+    END IF
+
+CASE ELSE
+    TALK "📢 Broadcast Communication System"
+    TALK "Available actions:"
+    TALK "• campaign - Create a new broadcast campaign"
+    TALK "• send - Send a campaign immediately"
+    TALK "• schedule - Schedule a campaign for later"
+    TALK "• templates - Manage message templates"
+    TALK "• analytics - View campaign performance"
+
+END SELECT

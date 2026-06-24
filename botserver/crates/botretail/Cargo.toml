@@ -1,0 +1,18 @@
+[package]
+name = "botretail"
+version = "6.5.0"
+edition = "2021"
+description = "Retail management (Bling-style): products, stock, variations, price lists, POS, NFCe via botbrazil."
+
+[dependencies]
+chrono = { workspace = true, features = ["serde"] }
+rust_decimal = { workspace = true, features = ["serde-with-str"] }
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+
+[dev-dependencies]
+rust_decimal_macros = { workspace = true }
+
+[lints]
+workspace = true

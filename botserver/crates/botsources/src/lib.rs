@@ -1,0 +1,21 @@
+pub mod connector_types;
+pub mod connectors;
+pub mod handlers;
+pub mod m365_auth;
+pub mod models;
+pub mod outlook;
+pub mod outlook_handlers;
+pub mod reconciliation;
+pub mod reconciliation_engine;
+pub mod reconciliation_service;
+pub mod renderers;
+pub mod routes;
+pub mod routes_m365;
+pub mod schema;
+pub mod sharepoint;
+pub mod state;
+pub mod types;
+pub mod ui;
+
+pub use routes::configure_sources_api_routes;
+pub use state::{AppState, ConfigManagerOps, DbPool, GetDefaultBotFn, GetKeywordsFn, GetWorkPathFn, McpCsvLoaderFn, McpCsvLoaderOps, McpCsvRowData, McpLoadResult, McpServerInfo, McpToolInfo};

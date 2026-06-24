@@ -1,0 +1,169 @@
+<link rel="stylesheet" href="/suite/css/database.css">
+
+<div class="db-root">
+    <div class="db-layout">
+        <!-- Schema Browser (Left Panel) -->
+        <aside class="db-sidebar" id="db-sidebar">
+            <div class="db-sidebar-header">
+                <h3>Schema Browser</h3>
+                <button class="db-btn-icon" onclick="DBApp.refreshSchema()" title="Refresh">&#8635;</button>
+            </div>
+            <div class="db-sidebar-search">
+                <input type="text" id="db-table-search" placeholder="Search tables..." oninput="DBApp.filterTables(this.value)">
+            </div>
+            <div class="db-table-list" id="db-table-list">
+                <div class="db-loading">Loading schema...</div>
+            </div>
+            <div class="db-sidebar-footer">
+                <button class="db-btn db-btn-primary" onclick="DBApp.showNewTableModal()">+ New Table</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="db-main">
+            <!-- Toolbar -->
+            <div class="db-toolbar" id="db-toolbar">
+                <div class="db-toolbar-left">
+                    <span class="db-table-name" id="db-current-table">Select a table</span>
+                    <span class="db-row-count" id="db-row-count"></span>
+                </div>
+                <div class="db-toolbar-right">
+                    <button class="db-btn" onclick="DBApp.showQueryBuilder()" title="SQL Query">SQL</button>
+                    <button class="db-btn" onclick="DBApp.exportTableCSV()" title="Export CSV">Export</button>
+                    <button class="db-btn" onclick="DBApp.importCSV()" title="Import CSV">Import</button>
+                    <button class="db-btn" onclick="DBApp.addNewRow()" title="Add Row">+ Row</button>
+                    <select id="db-page-size" onchange="DBApp.setPageSize(this.value)" class="db-select">
+                        <option value="25">25 rows</option>
+                        <option value="50" selected>50 rows</option>
+                        <option value="100">100 rows</option>
+                        <option value="200">200 rows</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Column Filters -->
+            <div class="db-filters" id="db-filters" style="display:none"></div>
+
+            <!-- Data Grid -->
+            <div class="db-grid-container" id="db-grid-container">
+                <div class="db-empty-state">
+                    <div class="db-empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                        </svg>
+                    </div>
+                    <p>Select a table from the sidebar to view its data</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="db-pagination" id="db-pagination" style="display:none">
+                <button class="db-btn" id="db-prev-page" onclick="DBApp.prevPage()" disabled>&#8592; Previous</button>
+                <span class="db-page-info" id="db-page-info">Page 1 of 1</span>
+                <button class="db-btn" id="db-next-page" onclick="DBApp.nextPage()" disabled>Next &#8594;</button>
+            </div>
+
+            <!-- SQL Console (hidden by default) -->
+            <div class="db-sql-console" id="db-sql-console" style="display:none">
+                <div class="db-sql-header">
+                    <h3>SQL Console</h3>
+                    <button class="db-btn-icon" onclick="DBApp.hideQueryBuilder()">&times;</button>
+                </div>
+                <textarea id="db-sql-input" class="db-sql-textarea" placeholder="SELECT * FROM table_name WHERE condition..." rows="4"></textarea>
+                <div class="db-sql-actions">
+                    <button class="db-btn db-btn-primary" onclick="DBApp.executeQuery()">Execute (Ctrl+Enter)</button>
+                    <button class="db-btn" onclick="DBApp.explainQuery()">EXPLAIN</button>
+                </div>
+                <div class="db-sql-result" id="db-sql-result"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Table Modal -->
+<div id="db-new-table-modal" class="db-modal" style="display:none">
+    <div class="db-modal-overlay" onclick="DBApp.hideNewTableModal()"></div>
+    <div class="db-modal-content" style="max-width:700px">
+        <div class="db-modal-header">
+            <h2>Create New Table</h2>
+            <button class="db-btn-icon" onclick="DBApp.hideNewTableModal()">&times;</button>
+        </div>
+        <div style="padding:16px">
+            <div class="db-form-group">
+                <label>Table Name</label>
+                <input type="text" id="new-table-name" placeholder="my_table" class="db-input" pattern="[a-z_][a-z0-9_]*">
+            </div>
+            <div class="db-form-group">
+                <label>Columns</label>
+                <div id="new-table-columns">
+                    <div class="db-column-row">
+                        <input type="text" placeholder="id" class="db-input" value="id" disabled>
+                        <select class="db-select"><option>UUID</option></select>
+                        <label class="db-checkbox"><input type="checkbox" checked disabled> PK</label>
+                        <label class="db-checkbox"><input type="checkbox" checked disabled> NOT NULL</label>
+                    </div>
+                    <div class="db-column-row">
+                        <input type="text" placeholder="column_name" class="db-input">
+                        <select class="db-select">
+                            <option>VARCHAR(255)</option><option>TEXT</option><option>INTEGER</option>
+                            <option>BIGINT</option><option>DECIMAL</option><option>BOOLEAN</option>
+                            <option>DATE</option><option>TIMESTAMPTZ</option><option>JSONB</option>
+                        </select>
+                        <label class="db-checkbox"><input type="checkbox"> PK</label>
+                        <label class="db-checkbox"><input type="checkbox" checked> NOT NULL</label>
+                        <button class="db-btn-icon" onclick="this.closest('.db-column-row').remove()">&#10005;</button>
+                    </div>
+                </div>
+                <button class="db-btn" onclick="DBApp.addColumnRow()" style="margin-top:8px">+ Add Column</button>
+            </div>
+            <div class="db-form-actions">
+                <button class="db-btn" onclick="DBApp.hideNewTableModal()">Cancel</button>
+                <button class="db-btn db-btn-primary" onclick="DBApp.createTable()">Create Table</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cell Edit Modal -->
+<div id="db-cell-edit-modal" class="db-modal" style="display:none">
+    <div class="db-modal-overlay" onclick="DBApp.hideCellEdit()"></div>
+    <div class="db-modal-content" style="max-width:400px">
+        <div class="db-modal-header">
+            <h2>Edit Cell</h2>
+            <button class="db-btn-icon" onclick="DBApp.hideCellEdit()">&times;</button>
+        </div>
+        <div style="padding:16px">
+            <div class="db-form-group">
+                <label id="db-cell-edit-label">Value</label>
+                <textarea id="db-cell-edit-value" class="db-input" rows="4"></textarea>
+            </div>
+            <div class="db-form-actions">
+                <button class="db-btn" onclick="DBApp.hideCellEdit()">Cancel</button>
+                <button class="db-btn db-btn-primary" onclick="DBApp.saveCellEdit()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import CSV Modal -->
+<div id="db-import-modal" class="db-modal" style="display:none">
+    <div class="db-modal-overlay" onclick="DBApp.hideImportModal()"></div>
+    <div class="db-modal-content" style="max-width:500px">
+        <div class="db-modal-header">
+            <h2>Import CSV</h2>
+            <button class="db-btn-icon" onclick="DBApp.hideImportModal()">&times;</button>
+        </div>
+        <div style="padding:16px">
+            <div class="db-form-group">
+                <label>Select CSV file</label>
+                <input type="file" id="db-import-file" accept=".csv" class="db-input">
+            </div>
+            <div class="db-form-actions">
+                <button class="db-btn" onclick="DBApp.hideImportModal()">Cancel</button>
+                <button class="db-btn db-btn-primary" onclick="DBApp.processImport()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/suite/database/database.js"></script>

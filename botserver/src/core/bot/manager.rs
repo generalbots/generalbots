@@ -1,0 +1,285 @@
+use botcore::shared::utils::DbPool;
+use chrono::{DateTime, Utc};
+use log::{debug, info};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BotConfig {
+    pub id: Uuid,
+    pub name: String,
+    pub display_name: String,
+    pub org_id: Uuid,
+    pub org_slug: String,
+    pub template: Option<String>,
+    pub status: BotStatus,
+    pub bucket: String,
+    pub custom_ui: Option<String>,
+    pub settings: BotSettings,
+    pub access: BotAccess,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: Uuid,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum BotStatus {
+    Active,
+    Inactive,
+    Maintenance,
+    Creating,
+    Error,
+}
+
+impl std::fmt::Display for BotStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BotStatus::Active => write!(f, "Active"),
+            BotStatus::Inactive => write!(f, "Inactive"),
+            BotStatus::Maintenance => write!(f, "Maintenance"),
+            BotStatus::Creating => write!(f, "Creating"),
+            BotStatus::Error => write!(f, "Error"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BotSettings {
+    pub llm_model: Option<String>,
+    pub knowledge_bases: Vec<String>,
+    pub channels: Vec<String>,
+    pub webhooks: Vec<String>,
+    pub schedules: Vec<String>,
+    pub variables: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BotAccess {
+    pub admins: Vec<Uuid>,
+    pub editors: Vec<Uuid>,
+    pub viewers: Vec<Uuid>,
+    pub is_public: bool,
+    pub allowed_domains: Vec<String>,
+    pub api_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BotTemplate {
+    pub name: String,
+    pub display_name: String,
+    pub description: String,
+    pub category: String,
+    pub files: Vec<TemplateFile>,
+    pub dialogs: Vec<DialogFile>,
+    pub preview_image: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateFile {
+    pub path: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DialogFile {
+    pub name: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateBotRequest {
+    pub name: String,
+    pub display_name: Option<String>,
+    pub org_id: Uuid,
+    pub template: Option<String>,
+    pub created_by: Uuid,
+    pub settings: Option<BotSettings>,
+    pub custom_ui: Option<String>,
+}
+
+pub struct BotManager {
+    pub(crate) templates_dir: PathBuf,
+    pub(crate) bots_cache: Arc<RwLock<HashMap<Uuid, BotConfig>>>,
+    pub(crate) templates: Arc<RwLock<HashMap<String, BotTemplate>>>,
+}
+
+impl BotManager {
+    pub fn new(
+        _minio_endpoint: &str,
+        _minio_access_key: &str,
+        _minio_secret_key: &str,
+        _database_url: &str,
+        templates_dir: PathBuf,
+    ) -> Self {
+        Self {
+            templates_dir,
+            bots_cache: Arc::new(RwLock::new(HashMap::new())),
+            templates: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
+    pub async fn init(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Initializing Bot Manager...");
+        self.load_templates().await?;
+        info!("Bot Manager initialized");
+        Ok(())
+    }
+
+    async fn load_templates(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut templates = self.templates.write().await;
+
+        let builtin_templates = vec![
+            BotTemplate {
+                name: "default".to_string(),
+                display_name: "Default Bot".to_string(),
+                description: "Basic bot with weather, email, and calculation tools".to_string(),
+                category: "General".to_string(),
+                files: vec![
+                    TemplateFile {
+                        path: "default.gbdialog/start.bas".to_string(),
+                        content: r#"REM Default start script
+SET user_name = "Guest"
+TALK "Hello, " + user_name + "! How can I help you today?"
+HEAR user_input
+response = LLM "Respond helpfully to: " + user_input
+TALK response
+"#
+                        .to_string(),
+                    },
+                    TemplateFile {
+                        path: "default.gbot/config.json".to_string(),
+                        content: r#"{
+  "name": "{{botname}}",
+  "description": "Default bot created from template",
+  "version": "1.0.0"
+}"#
+                        .to_string(),
+                    },
+                ],
+                dialogs: Vec::new(),
+                preview_image: None,
+            },
+            BotTemplate {
+                name: "crm".to_string(),
+                display_name: "CRM Bot".to_string(),
+                description: "Customer relationship management with lead scoring".to_string(),
+                category: "Business".to_string(),
+                files: vec![TemplateFile {
+                    path: "crm.gbdialog/lead.bas".to_string(),
+                    content: r#"REM Lead capture script
+TALK "Welcome! Let me help you get started."
+TALK "What's your name?"
+HEAR name
+TALK "What company are you from?"
+HEAR company
+score = AI SCORE LEAD email, company, "interested in our product"
+INSERT "leads", name, email, company, score, NOW()
+IF score > 80 THEN
+    CREATE TASK "Hot lead: " + name, "sales", "today"
+    TALK "Great! Our sales team will reach out shortly."
+ELSE
+    TALK "Thanks for your interest! We'll send you some resources."
+END IF
+"#
+                    .to_string(),
+                }],
+                dialogs: Vec::new(),
+                preview_image: None,
+            },
+        ];
+
+        for template in builtin_templates {
+            templates.insert(template.name.clone(), template);
+        }
+
+        if self.templates_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&self.templates_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
+                            if !templates.contains_key(name) {
+                                debug!("Found template directory: {}", name);
+                                if let Some(template) = self.load_template_from_directory(&path, name) {
+                                    templates.insert(name.to_string(), template);
+                                    info!("Loaded template from filesystem: {}", name);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        info!("Loaded {} templates", templates.len());
+        Ok(())
+    }
+
+    pub async fn create_bot(
+        &self,
+        request: CreateBotRequest,
+        conn: &DbPool,
+    ) -> Result<BotConfig, Box<dyn std::error::Error + Send + Sync>> {
+        info!("Creating bot: {} for org: {}", request.name, request.org_id);
+
+        let bot_name = self.sanitize_bot_name(&request.name);
+        if bot_name.is_empty() {
+            return Err("Invalid bot name".into());
+        }
+
+        let org_slug = self.get_org_slug_from_db(conn, request.org_id);
+        let bucket_name = format!("{}_{}", org_slug, bot_name);
+
+        self.create_minio_bucket(&bucket_name).await?;
+
+        let bot_id = Uuid::new_v4();
+        let now = Utc::now();
+
+        let bot_config = BotConfig {
+            id: bot_id,
+            name: bot_name.clone(),
+            display_name: request.display_name.unwrap_or_else(|| bot_name.clone()),
+            org_id: request.org_id,
+            org_slug: org_slug.to_string(),
+            template: request.template.clone(),
+            status: BotStatus::Active,
+            bucket: bucket_name.clone(),
+            custom_ui: request.custom_ui,
+            settings: request.settings.unwrap_or_default(),
+            access: BotAccess {
+                admins: vec![request.created_by],
+                ..Default::default()
+            },
+            created_at: now,
+            updated_at: now,
+            created_by: request.created_by,
+        };
+
+        if let Some(template_name) = &request.template {
+            self.apply_template(&bucket_name, template_name, &bot_name).await?;
+        } else {
+            self.create_default_structure(&bucket_name, &bot_name).await?;
+        }
+
+        {
+            let mut cache = self.bots_cache.write().await;
+            cache.insert(bot_id, bot_config.clone());
+        }
+
+        info!("Bot created successfully: {} ({})", bot_name, bot_id);
+        Ok(bot_config)
+    }
+
+    fn sanitize_bot_name(&self, name: &str) -> String {
+        name.to_lowercase()
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
+            .collect::<String>()
+            .trim_matches(|c| c == '-' || c == '_')
+            .to_string()
+    }
+}

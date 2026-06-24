@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GB Project - Architecture Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #3498db, #9b59b6, #e74c3c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            color: #888;
+            margin-top: 10px;
+        }
+        .treemap-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .treemap {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(8, 80px);
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+        .component {
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .component:hover {
+            transform: scale(1.02);
+            z-index: 10;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .component::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .component h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .component .stats {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        .component .percent {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            opacity: 0.3;
+        }
+        
+        /* Component positions and sizes */
+        .botserver {
+            grid-column: 1 / 7;
+            grid-row: 1 / 6;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        .botbook {
+            grid-column: 7 / 13;
+            grid-row: 1 / 4;
+            background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%);
+        }
+        .botui {
+            grid-column: 7 / 10;
+            grid-row: 4 / 6;
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+        .botapp {
+            grid-column: 10 / 13;
+            grid-row: 4 / 6;
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        .botlib {
+            grid-column: 1 / 4;
+            grid-row: 6 / 9;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        .botdevice {
+            grid-column: 4 / 7;
+            grid-row: 6 / 8;
+            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        }
+        .botcoder {
+            grid-column: 4 / 7;
+            grid-row: 8 / 9;
+            background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+        }
+        .bottest {
+            grid-column: 7 / 9;
+            grid-row: 6 / 8;
+            background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+        }
+        .botmodels {
+            grid-column: 9 / 11;
+            grid-row: 6 / 8;
+            background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);
+        }
+        .bottemplates {
+            grid-column: 11 / 13;
+            grid-row: 6 / 8;
+            background: linear-gradient(135deg, #795548 0%, #5d4037 100%);
+        }
+        .botplugin {
+            grid-column: 7 / 13;
+            grid-row: 8 / 9;
+            background: linear-gradient(135deg, #607d8b 0%, #455a64 100%);
+        }
+
+        /* Sub-components inside botserver */
+        .sub-components {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-top: 10px;
+            flex-grow: 1;
+        }
+        .sub-component {
+            background: rgba(255,255,255,0.15);
+            border-radius: 6px;
+            padding: 6px;
+            font-size: 0.65rem;
+            text-align: center;
+        }
+
+        /* Legend */
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .legend-text {
+            font-size: 0.85rem;
+        }
+        .legend-text small {
+            display: block;
+            color: #888;
+            font-size: 0.7rem;
+        }
+
+        /* Report section */
+        .report {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .report-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        .report-card h4 {
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+        .report-card ul {
+            list-style: none;
+        }
+        .report-card li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .report-card li:last-child {
+            border-bottom: none;
+        }
+        .status {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+        }
+        .status.complete { background: #27ae60; }
+        .status.progress { background: #f39c12; }
+        .status.planned { background: #3498db; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #666;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 GB Project Architecture</h1>
+        <p>Component Space Allocation Visualization - Treemap Report</p>
+    </div>
+
+    <div class="treemap-container">
+        <div class="treemap">
+            <!-- BOTSERVER - Main backend server -->
+            <div class="component botserver">
+                <h3>📦 botserver</h3>
+                <div class="sub-components">
+                    <div class="sub-component">basic/keywords</div>
+                    <div class="sub-component">core/bot</div>
+                    <div class="sub-component">llm/models</div>
+                    <div class="sub-component">vector-db</div>
+                    <div class="sub-component">security</div>
+                    <div class="sub-component">compliance</div>
+                    <div class="sub-component">attendance</div>
+                    <div class="sub-component">drive</div>
+                    <div class="sub-component">email</div>
+                    <div class="sub-component">whatsapp</div>
+                    <div class="sub-component">calendar</div>
+                    <div class="sub-component">console</div>
+                </div>
+                <div class="stats">~100+ modules | Rust | Core Platform</div>
+                <span class="percent">45%</span>
+            </div>
+
+            <!-- BOTBOOK - Documentation -->
+            <div class="component botbook">
+                <h3>📚 botbook</h3>
+                <div class="stats">20 chapters | 150+ docs | mdBook</div>
+                <span class="percent">20%</span>
+            </div>
+
+            <!-- BOTUI - Web Interface -->
+            <div class="component botui">
+                <h3>🎨 botui</h3>
+                <div class="stats">HTMX | Tailwind | Admin UI</div>
+                <span class="percent">8%</span>
+            </div>
+
+            <!-- BOTAPP - Desktop Application -->
+            <div class="component botapp">
+                <h3>🖥️ botapp</h3>
+                <div class="stats">Tauri | Cross-platform</div>
+                <span class="percent">7%</span>
+            </div>
+
+            <!-- BOTLIB - Shared Library -->
+            <div class="component botlib">
+                <h3>📖 botlib</h3>
+                <div class="stats">Core types | HTTP | Models</div>
+                <span class="percent">5%</span>
+            </div>
+
+            <!-- BOTDEVICE - Embedded/IoT -->
+            <div class="component botdevice">
+                <h3>📱 botdevice</h3>
+                <div class="stats">Embedded | Tauri | ROM</div>
+                <span class="percent">4%</span>
+            </div>
+
+            <!-- BOTCODER - AI Coding -->
+            <div class="component botcoder">
+                <h3>🧠 botcoder</h3>
+                <div class="stats">AI Assistant</div>
+                <span class="percent">2%</span>
+            </div>
+
+            <!-- BOTTEST - Testing -->
+            <div class="component bottest">
+                <h3>🧪 bottest</h3>
+                <div class="stats">Tests | Benches</div>
+                <span class="percent">3%</span>
+            </div>
+
+            <!-- BOTMODELS - ML Models -->
+            <div class="component botmodels">
+                <h3>🤖 botmodels</h3>
+                <div class="stats">Python | ML</div>
+                <span class="percent">3%</span>
+            </div>
+
+            <!-- BOTTEMPLATES - Templates -->
+            <div class="component bottemplates">
+                <h3>📋 bottemplates</h3>
+                <div class="stats">Bots | Dialogs</div>
+                <span class="percent">2%</span>
+            </div>
+
+            <!-- BOTPLUGIN - Browser Extension -->
+            <div class="component botplugin">
+                <h3>🔌 botplugin</h3>
+                <div class="stats">Browser Extension | JS | Chrome/Firefox</div>
+                <span class="percent">1%</span>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #3498db, #2980b9);"></div>
+                <div class="legend-text">Backend Core<small>Server, API, Business Logic</small></div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #27ae60, #1e8449);"></div>
+                <div class="legend-text">Documentation<small>Guides, API Docs, Tutorials</small></div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);"></div>
+                <div class="legend-text">User Interface<small>Web UI, Admin Panel</small></div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #e74c3c, #c0392b);"></div>
+                <div class="legend-text">Shared Libraries<small>Common Types, Utils</small></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Report Section -->
+    <div class="treemap-container report">
+        <div class="report-card">
+            <h4>🎯 Core Features Status</h4>
+            <ul>
+                <li>LLM Integration <span class="status complete">Complete</span></li>
+                <li>Vector Database <span class="status complete">Complete</span></li>
+                <li>BASIC Interpreter <span class="status complete">Complete</span></li>
+                <li>WhatsApp Channel <span class="status complete">Complete</span></li>
+                <li>Email Integration <span class="status complete">Complete</span></li>
+                <li>MCP Client <span class="status progress">In Progress</span></li>
+                <li>A2A Protocol <span class="status progress">In Progress</span></li>
+                <li>Multi-Agent System <span class="status planned">Planned</span></li>
+            </ul>
+        </div>
+
+        <div class="report-card">
+            <h4>📊 Component Breakdown</h4>
+            <ul>
+                <li>botserver <span>~100 modules</span></li>
+                <li>botbook <span>150+ pages</span></li>
+                <li>botui <span>Web components</span></li>
+                <li>botapp <span>Desktop app</span></li>
+                <li>botlib <span>7 core files</span></li>
+                <li>botdevice <span>IoT/Embedded</span></li>
+                <li>bottest <span>Test suite</span></li>
+                <li>bottemplates <span>Bot templates</span></li>
+            </ul>
+        </div>
+
+        <div class="report-card">
+            <h4>🔧 Technology Stack</h4>
+            <ul>
+                <li>Language <span>Rust</span></li>
+                <li>Web Framework <span>Actix-Web</span></li>
+                <li>UI Framework <span>HTMX + Tailwind</span></li>
+                <li>Desktop <span>Tauri</span></li>
+                <li>Database <span>PostgreSQL</span></li>
+                <li>Vector DB <span>Custom + Hybrid</span></li>
+                <li>ML/AI <span>Python + Rust</span></li>
+                <li>Docs <span>mdBook</span></li>
+            </ul>
+        </div>
+
+        <div class="report-card">
+            <h4>📁 Keywords (70+)</h4>
+            <ul>
+                <li>Data Operations <span>GET, SET, SAVE</span></li>
+                <li>HTTP <span>POST, PUT, DELETE</span></li>
+                <li>Messaging <span>TALK, HEAR, SMS</span></li>
+                <li>Files <span>READ, WRITE, UPLOAD</span></li>
+                <li>KB <span>USE KB, FIND</span></li>
+                <li>AI <span>USE MODEL, LLM</span></li>
+                <li>Control <span>FOR, SWITCH, ON</span></li>
+                <li>Integration <span>WEBHOOK, MAIL</span></li>
+            </ul>
+        </div>
+
+        <div class="report-card">
+            <h4>🏗️ Architecture Zones</h4>
+            <ul>
+                <li>Core Engine <span>botserver + botlib</span></li>
+                <li>User Facing <span>botui + botapp</span></li>
+                <li>Intelligence <span>botmodels + botcoder</span></li>
+                <li>IoT/Edge <span>botdevice</span></li>
+                <li>Quality <span>bottest</span></li>
+                <li>Content <span>bottemplates + botbook</span></li>
+                <li>Extension <span>botplugin</span></li>
+            </ul>
+        </div>
+
+        <div class="report-card">
+            <h4>📈 Project Metrics</h4>
+            <ul>
+                <li>Total Lines <span>~868K</span></li>
+                <li>Primary Language <span>Rust</span></li>
+                <li>Secondary <span>Python, JS, TS</span></li>
+                <li>Doc Coverage <span>~40%</span></li>
+                <li>Test Coverage <span>~8.7%</span></li>
+                <li>Active Modules <span>11</span></li>
+                <li>BASIC Keywords <span>70+</span></li>
+                <li>REST Endpoints <span>100+</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>🤖 General Bots Project Report | Generated December 2025</p>
+        <p style="margin-top: 10px; font-size: 0.75rem;">
+            Rust-based AI Platform | Multi-Channel Bots | LLM Integration | BASIC Scripting
+        </p>
+    </div>
+</body>
+</html>

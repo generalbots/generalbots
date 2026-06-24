@@ -1,0 +1,416 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" width="1200" height="1400">
+  <defs>
+    <!-- Gradients for feature nodes -->
+    <linearGradient id="featureGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="externalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F43F5E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FB7185;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="internalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1E1B4B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#312E81;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <style>
+    .title-text { fill: #1E1B4B; font-family: 'Inter', 'Segoe UI', sans-serif; font-weight: 700; }
+    .main-text { fill: #334155; font-family: 'Inter', 'Segoe UI', sans-serif; }
+    .feature-text { fill: #FFFFFF; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-weight: 600; }
+    .dep-text { fill: #FFFFFF; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 11px; }
+    .legend-text { fill: #475569; font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 12px; }
+    .note-text { fill: #F59E0B; font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 11px; font-style: italic; }
+    .connector { stroke: #94A3B8; stroke-width: 2; fill: none; }
+    .connector-arrow { fill: #94A3B8; }
+    .bg-light { fill: #F8FAFC; }
+    .header-bg { fill: url(#headerGrad); }
+    .section-bg { fill: #FFFFFF; stroke: #E2E8F0; stroke-width: 1; }
+    
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .legend-text { fill: #94A3B8; }
+      .note-text { fill: #FBBF24; }
+      .connector { stroke: #64748B; }
+      .connector-arrow { fill: #64748B; }
+      .bg-light { fill: #0F172A; }
+      .section-bg { fill: #1E293B; stroke: #334155; }
+    }
+  </style>
+  
+  <!-- Background -->
+  <rect width="1200" height="1400" class="bg-light"/>
+  
+  <!-- Header -->
+  <rect x="40" y="30" width="1120" height="70" rx="12" class="header-bg" filter="url(#shadow)"/>
+  <text x="600" y="75" text-anchor="middle" class="feature-text" style="font-size: 28px;">FEATURE DEPENDENCY TREE</text>
+  
+  <!-- Legend -->
+  <g transform="translate(60, 120)">
+    <rect x="0" y="0" width="1080" height="50" rx="8" class="section-bg"/>
+    <circle cx="30" cy="25" r="10" fill="url(#featureGrad)"/>
+    <text x="50" y="30" class="legend-text">Feature Flag</text>
+    <circle cx="200" cy="25" r="10" fill="url(#externalGrad)"/>
+    <text x="220" y="30" class="legend-text">🔴 External Crate</text>
+    <circle cx="400" cy="25" r="10" fill="url(#internalGrad)"/>
+    <text x="420" y="30" class="legend-text">🟢 Internal Feature</text>
+    <text x="620" y="30" class="legend-text">━━► Depends On</text>
+  </g>
+  
+  <!-- TASKS Feature -->
+  <g transform="translate(60, 200)">
+    <rect x="0" y="0" width="520" height="100" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="20" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="44" text-anchor="middle" class="feature-text" style="font-size: 14px;">tasks</text>
+    
+    <path d="M 120 38 L 180 38" class="connector"/>
+    <polygon points="180,34 190,38 180,42" class="connector-arrow"/>
+    
+    <rect x="195" y="15" width="130" height="30" rx="5" fill="url(#internalGrad)"/>
+    <text x="260" y="35" text-anchor="middle" class="dep-text">automation</text>
+    <text x="260" y="52" class="legend-text" style="font-size: 10px;">(rhai + cron)</text>
+    
+    <path d="M 120 38 L 150 38 L 150 70 L 180 70" class="connector"/>
+    <polygon points="180,66 190,70 180,74" class="connector-arrow"/>
+    
+    <rect x="195" y="55" width="130" height="30" rx="5" fill="url(#externalGrad)"/>
+    <text x="260" y="75" text-anchor="middle" class="dep-text">cron</text>
+  </g>
+  
+  <!-- SHEET Feature -->
+  <g transform="translate(620, 200)">
+    <rect x="0" y="0" width="520" height="140" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="20" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="44" text-anchor="middle" class="feature-text" style="font-size: 14px;">sheet</text>
+    
+    <path d="M 120 38 L 180 38" class="connector"/>
+    <polygon points="180,34 190,38 180,42" class="connector-arrow"/>
+    
+    <rect x="195" y="20" width="130" height="30" rx="5" fill="url(#externalGrad)"/>
+    <text x="260" y="40" text-anchor="middle" class="dep-text">calamine</text>
+    
+    <path d="M 120 38 L 150 38 L 150 70 L 180 70" class="connector"/>
+    <polygon points="180,66 190,70 180,74" class="connector-arrow"/>
+    
+    <rect x="195" y="55" width="130" height="30" rx="5" fill="url(#externalGrad)"/>
+    <text x="260" y="75" text-anchor="middle" class="dep-text">spreadsheet-ods</text>
+    
+    <text x="20" y="110" class="note-text">⚠️ sheet does NOT require drive (local files work)</text>
+    <text x="20" y="125" class="note-text">   BUT: cloud storage requires drive feature!</text>
+  </g>
+  
+  <!-- DRIVE Feature -->
+  <g transform="translate(60, 330)">
+    <rect x="0" y="0" width="520" height="130" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="25" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="49" text-anchor="middle" class="feature-text" style="font-size: 14px;">drive</text>
+    
+    <path d="M 120 43 L 180 43" class="connector"/>
+    <polygon points="180,39 190,43 180,47" class="connector-arrow"/>
+    <rect x="195" y="15" width="140" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="265" y="33" text-anchor="middle" class="dep-text">aws-config</text>
+    
+    <path d="M 120 43 L 150 43 L 150 65 L 180 65" class="connector"/>
+    <polygon points="180,61 190,65 180,69" class="connector-arrow"/>
+    <rect x="195" y="47" width="140" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="265" y="65" text-anchor="middle" class="dep-text">aws-sdk-s3</text>
+    
+    <path d="M 120 43 L 150 43 L 150 87 L 180 87" class="connector"/>
+    <polygon points="180,83 190,87 180,91" class="connector-arrow"/>
+    <rect x="195" y="79" width="140" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="265" y="97" text-anchor="middle" class="dep-text">aws-smithy-async</text>
+    
+    <path d="M 340 43 L 365 43" class="connector"/>
+    <polygon points="365,39 375,43 365,47" class="connector-arrow"/>
+    <rect x="380" y="15" width="120" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="440" y="33" text-anchor="middle" class="dep-text">pdf-extract</text>
+  </g>
+  
+  <!-- DOCS Feature -->
+  <g transform="translate(620, 360)">
+    <rect x="0" y="0" width="520" height="90" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="25" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="49" text-anchor="middle" class="feature-text" style="font-size: 14px;">docs</text>
+    
+    <path d="M 120 43 L 180 43" class="connector"/>
+    <polygon points="180,39 190,43 180,47" class="connector-arrow"/>
+    <rect x="195" y="15" width="120" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="255" y="33" text-anchor="middle" class="dep-text">docx-rs</text>
+    
+    <path d="M 120 43 L 150 43 L 150 65 L 180 65" class="connector"/>
+    <polygon points="180,61 190,65 180,69" class="connector-arrow"/>
+    <rect x="195" y="50" width="120" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="255" y="68" text-anchor="middle" class="dep-text">ooxmlsdk</text>
+  </g>
+  
+  <!-- PAPER Feature -->
+  <g transform="translate(60, 490)">
+    <rect x="0" y="0" width="520" height="90" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="25" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="49" text-anchor="middle" class="feature-text" style="font-size: 14px;">paper</text>
+    
+    <path d="M 120 43 L 180 43" class="connector"/>
+    <polygon points="180,39 190,43 180,47" class="connector-arrow"/>
+    <rect x="195" y="15" width="120" height="26" rx="5" fill="url(#internalGrad)"/>
+    <text x="255" y="33" text-anchor="middle" class="dep-text">docs</text>
+    <text x="195" y="52" class="legend-text" style="font-size: 9px;">inherits docx-rs, ooxmlsdk</text>
+    
+    <path d="M 320 28 L 360 28" class="connector"/>
+    <polygon points="360,24 370,28 360,32" class="connector-arrow"/>
+    <rect x="375" y="15" width="120" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="435" y="33" text-anchor="middle" class="dep-text">pdf-extract</text>
+  </g>
+  
+  <!-- SLIDES Feature -->
+  <g transform="translate(620, 470)">
+    <rect x="0" y="0" width="280" height="70" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="17" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="41" text-anchor="middle" class="feature-text" style="font-size: 14px;">slides</text>
+    
+    <path d="M 120 35 L 160 35" class="connector"/>
+    <polygon points="160,31 170,35 160,39" class="connector-arrow"/>
+    <rect x="175" y="17" width="90" height="36" rx="5" fill="url(#externalGrad)"/>
+    <text x="220" y="40" text-anchor="middle" class="dep-text">ooxmlsdk</text>
+  </g>
+  
+  <!-- MAIL Feature -->
+  <g transform="translate(60, 610)">
+    <rect x="0" y="0" width="520" height="110" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="35" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="59" text-anchor="middle" class="feature-text" style="font-size: 14px;">mail</text>
+    
+    <path d="M 120 53 L 180 53" class="connector"/>
+    <polygon points="180,49 190,53 180,57" class="connector-arrow"/>
+    <rect x="195" y="10" width="100" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="245" y="28" text-anchor="middle" class="dep-text">lettre</text>
+    
+    <rect x="310" y="10" width="100" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="360" y="28" text-anchor="middle" class="dep-text">mailparse</text>
+    
+    <rect x="195" y="45" width="100" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="245" y="63" text-anchor="middle" class="dep-text">imap</text>
+    
+    <rect x="310" y="45" width="100" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="360" y="63" text-anchor="middle" class="dep-text">native-tls</text>
+    
+    <path d="M 150 53 L 150 23 L 180 23" class="connector"/>
+    <path d="M 300 23 L 310 23" class="connector"/>
+    <path d="M 150 53 L 150 58 L 180 58" class="connector"/>
+    <path d="M 300 58 L 310 58" class="connector"/>
+  </g>
+  
+  <!-- MEET Feature -->
+  <g transform="translate(620, 560)">
+    <rect x="0" y="0" width="280" height="70" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="17" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="41" text-anchor="middle" class="feature-text" style="font-size: 14px;">meet</text>
+    
+    <path d="M 120 35 L 160 35" class="connector"/>
+    <polygon points="160,31 170,35 160,39" class="connector-arrow"/>
+    <rect x="175" y="17" width="90" height="36" rx="5" fill="url(#externalGrad)"/>
+    <text x="220" y="40" text-anchor="middle" class="dep-text">livekit</text>
+  </g>
+  
+  <!-- RESEARCH Feature -->
+  <g transform="translate(620, 650)">
+    <rect x="0" y="0" width="520" height="90" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="25" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="49" text-anchor="middle" class="feature-text" style="font-size: 13px;">research</text>
+    
+    <path d="M 120 43 L 180 43" class="connector"/>
+    <polygon points="180,39 190,43 180,47" class="connector-arrow"/>
+    <rect x="195" y="15" width="80" height="26" rx="5" fill="url(#internalGrad)"/>
+    <text x="235" y="33" text-anchor="middle" class="dep-text">llm</text>
+    
+    <path d="M 120 43 L 150 43 L 150 65 L 180 65" class="connector"/>
+    <polygon points="180,61 190,65 180,69" class="connector-arrow"/>
+    <rect x="195" y="50" width="100" height="26" rx="5" fill="url(#internalGrad)"/>
+    <text x="245" y="68" text-anchor="middle" class="dep-text">vectordb</text>
+    
+    <path d="M 300 63 L 340 63" class="connector"/>
+    <polygon points="340,59 350,63 340,67" class="connector-arrow"/>
+    <rect x="355" y="50" width="130" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="420" y="68" text-anchor="middle" class="dep-text">qdrant-client</text>
+  </g>
+  
+  <!-- Row 5: monitoring, cache, compliance -->
+  <g transform="translate(60, 750)">
+    <rect x="0" y="0" width="350" height="70" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="17" width="110" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="75" y="41" text-anchor="middle" class="feature-text" style="font-size: 12px;">monitoring</text>
+    
+    <path d="M 135 35 L 175 35" class="connector"/>
+    <polygon points="175,31 185,35 175,39" class="connector-arrow"/>
+    <rect x="190" y="17" width="140" height="36" rx="5" fill="url(#externalGrad)"/>
+    <text x="260" y="40" text-anchor="middle" class="dep-text">sysinfo</text>
+  </g>
+  
+  <g transform="translate(430, 750)">
+    <rect x="0" y="0" width="280" height="70" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="17" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="41" text-anchor="middle" class="feature-text" style="font-size: 14px;">cache</text>
+    
+    <path d="M 120 35 L 160 35" class="connector"/>
+    <polygon points="160,31 170,35 160,39" class="connector-arrow"/>
+    <rect x="175" y="17" width="90" height="36" rx="5" fill="url(#externalGrad)"/>
+    <text x="220" y="40" text-anchor="middle" class="dep-text">redis</text>
+  </g>
+  
+  <g transform="translate(730, 750)">
+    <rect x="0" y="0" width="280" height="70" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="17" width="110" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="75" y="41" text-anchor="middle" class="feature-text" style="font-size: 12px;">compliance</text>
+    
+    <path d="M 135 35 L 165 35" class="connector"/>
+    <polygon points="165,31 175,35 165,39" class="connector-arrow"/>
+    <rect x="180" y="17" width="80" height="36" rx="5" fill="url(#externalGrad)"/>
+    <text x="220" y="40" text-anchor="middle" class="dep-text">csv</text>
+  </g>
+  
+  <!-- CONSOLE Feature -->
+  <g transform="translate(60, 850)">
+    <rect x="0" y="0" width="520" height="100" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="30" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="54" text-anchor="middle" class="feature-text" style="font-size: 14px;">console</text>
+    
+    <path d="M 120 48 L 180 48" class="connector"/>
+    <polygon points="180,44 190,48 180,52" class="connector-arrow"/>
+    <rect x="195" y="15" width="110" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="250" y="33" text-anchor="middle" class="dep-text">crossterm</text>
+    
+    <rect x="320" y="15" width="90" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="365" y="33" text-anchor="middle" class="dep-text">ratatui</text>
+    
+    <path d="M 120 48 L 150 48 L 150 65 L 180 65" class="connector"/>
+    <polygon points="180,61 190,65 180,69" class="connector-arrow"/>
+    <rect x="195" y="52" width="110" height="26" rx="5" fill="url(#internalGrad)"/>
+    <text x="250" y="70" text-anchor="middle" class="dep-text">monitoring</text>
+  </g>
+  
+  <!-- AUTOMATION Feature -->
+  <g transform="translate(620, 850)">
+    <rect x="0" y="0" width="520" height="100" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="30" width="110" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="75" y="54" text-anchor="middle" class="feature-text" style="font-size: 12px;">automation</text>
+    
+    <path d="M 135 48 L 185 48" class="connector"/>
+    <polygon points="185,44 195,48 185,52" class="connector-arrow"/>
+    <rect x="200" y="15" width="90" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="245" y="33" text-anchor="middle" class="dep-text">rhai</text>
+    
+    <path d="M 135 48 L 160 48 L 160 65 L 185 65" class="connector"/>
+    <polygon points="185,61 195,65 185,69" class="connector-arrow"/>
+    <rect x="200" y="52" width="90" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="245" y="70" text-anchor="middle" class="dep-text">cron</text>
+  </g>
+  
+  <!-- ROW: project, jemalloc, progress-bars -->
+  <g transform="translate(60, 980)">
+    <rect x="0" y="0" width="280" height="70" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="17" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="41" text-anchor="middle" class="feature-text" style="font-size: 14px;">project</text>
+    
+    <path d="M 120 35 L 160 35" class="connector"/>
+    <polygon points="160,31 170,35 160,39" class="connector-arrow"/>
+    <rect x="175" y="17" width="90" height="36" rx="5" fill="url(#externalGrad)"/>
+    <text x="220" y="40" text-anchor="middle" class="dep-text">quick-xml</text>
+  </g>
+  
+  <g transform="translate(370, 980)">
+    <rect x="0" y="0" width="360" height="70" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="17" width="100" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="70" y="41" text-anchor="middle" class="feature-text" style="font-size: 13px;">jemalloc</text>
+    
+    <path d="M 120 35 L 150 35" class="connector"/>
+    <polygon points="150,31 160,35 150,39" class="connector-arrow"/>
+    <rect x="165" y="5" width="160" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="245" y="23" text-anchor="middle" class="dep-text">tikv-jemallocator</text>
+    
+    <rect x="165" y="38" width="160" height="26" rx="5" fill="url(#externalGrad)"/>
+    <text x="245" y="56" text-anchor="middle" class="dep-text">tikv-jemalloc-ctl</text>
+  </g>
+  
+  <g transform="translate(760, 980)">
+    <rect x="0" y="0" width="380" height="70" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <rect x="20" y="17" width="130" height="36" rx="6" fill="url(#featureGrad)"/>
+    <text x="85" y="41" text-anchor="middle" class="feature-text" style="font-size: 11px;">progress-bars</text>
+    
+    <path d="M 155 35 L 195 35" class="connector"/>
+    <polygon points="195,31 205,35 195,39" class="connector-arrow"/>
+    <rect x="210" y="17" width="140" height="36" rx="5" fill="url(#externalGrad)"/>
+    <text x="280" y="40" text-anchor="middle" class="dep-text">indicatif</text>
+  </g>
+  
+  <!-- Bundle Section Header -->
+  <rect x="40" y="1080" width="1120" height="50" rx="12" class="header-bg" filter="url(#shadow)"/>
+  <text x="600" y="1112" text-anchor="middle" class="feature-text" style="font-size: 20px;">📦 PRE-DEFINED BUNDLES</text>
+  
+  <!-- Bundles -->
+  <g transform="translate(60, 1150)">
+    <rect x="0" y="0" width="250" height="110" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <text x="125" y="30" text-anchor="middle" class="title-text" style="font-size: 16px;">minimal</text>
+    <rect x="80" y="45" width="90" height="30" rx="5" fill="url(#featureGrad)"/>
+    <text x="125" y="65" text-anchor="middle" class="dep-text">chat</text>
+    <text x="125" y="95" text-anchor="middle" class="legend-text">Smallest possible</text>
+  </g>
+  
+  <g transform="translate(330, 1150)">
+    <rect x="0" y="0" width="250" height="110" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <text x="125" y="30" text-anchor="middle" class="title-text" style="font-size: 16px;">lightweight</text>
+    <rect x="15" y="45" width="60" height="24" rx="4" fill="url(#featureGrad)"/>
+    <text x="45" y="62" text-anchor="middle" class="dep-text" style="font-size: 10px;">chat</text>
+    <rect x="80" y="45" width="60" height="24" rx="4" fill="url(#featureGrad)"/>
+    <text x="110" y="62" text-anchor="middle" class="dep-text" style="font-size: 10px;">drive</text>
+    <rect x="145" y="45" width="60" height="24" rx="4" fill="url(#featureGrad)"/>
+    <text x="175" y="62" text-anchor="middle" class="dep-text" style="font-size: 10px;">tasks</text>
+    <rect x="80" y="75" width="70" height="24" rx="4" fill="url(#featureGrad)"/>
+    <text x="115" y="92" text-anchor="middle" class="dep-text" style="font-size: 10px;">people</text>
+  </g>
+  
+  <g transform="translate(600, 1150)">
+    <rect x="0" y="0" width="270" height="130" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <text x="135" y="25" text-anchor="middle" class="title-text" style="font-size: 16px;">default</text>
+    <rect x="15" y="40" width="65" height="22" rx="4" fill="url(#featureGrad)"/>
+    <text x="47" y="55" text-anchor="middle" class="dep-text" style="font-size: 9px;">chat</text>
+    <rect x="85" y="40" width="65" height="22" rx="4" fill="url(#featureGrad)"/>
+    <text x="117" y="55" text-anchor="middle" class="dep-text" style="font-size: 9px;">drive</text>
+    <rect x="155" y="40" width="65" height="22" rx="4" fill="url(#featureGrad)"/>
+    <text x="187" y="55" text-anchor="middle" class="dep-text" style="font-size: 9px;">tasks</text>
+    <rect x="15" y="68" width="90" height="22" rx="4" fill="url(#featureGrad)"/>
+    <text x="60" y="83" text-anchor="middle" class="dep-text" style="font-size: 9px;">automation</text>
+    <rect x="110" y="68" width="65" height="22" rx="4" fill="url(#featureGrad)"/>
+    <text x="142" y="83" text-anchor="middle" class="dep-text" style="font-size: 9px;">cache</text>
+    <rect x="180" y="68" width="75" height="22" rx="4" fill="url(#featureGrad)"/>
+    <text x="217" y="83" text-anchor="middle" class="dep-text" style="font-size: 9px;">directory</text>
+    <text x="135" y="115" text-anchor="middle" class="legend-text" style="font-size: 11px;">Balanced default</text>
+  </g>
+  
+  <g transform="translate(890, 1150)">
+    <rect x="0" y="0" width="250" height="130" rx="12" class="section-bg" filter="url(#shadow)"/>
+    <text x="125" y="25" text-anchor="middle" class="title-text" style="font-size: 16px;">full</text>
+    <text x="125" y="50" text-anchor="middle" class="legend-text" style="font-size: 10px;">chat, people, mail,</text>
+    <text x="125" y="65" text-anchor="middle" class="legend-text" style="font-size: 10px;">tasks, calendar,</text>
+    <text x="125" y="80" text-anchor="middle" class="legend-text" style="font-size: 10px;">drive, docs,</text>
+    <text x="125" y="95" text-anchor="middle" class="legend-text" style="font-size: 10px;">llm, cache, compliance</text>
+    <text x="125" y="118" text-anchor="middle" class="legend-text" style="font-size: 11px; font-weight: bold;">Everything useful</text>
+  </g>
+  
+  <!-- Footer -->
+  <text x="600" y="1320" text-anchor="middle" class="main-text" style="font-size: 12px;">General Bots Feature Dependency Tree v6.2.0</text>
+  <text x="600" y="1340" text-anchor="middle" class="legend-text">Build with: cargo build --features "chat,drive" --no-default-features</text>
+  
+  <!-- Version badge -->
+  <rect x="1050" y="1310" width="90" height="30" rx="15" fill="url(#featureGrad)"/>
+  <text x="1095" y="1330" text-anchor="middle" class="feature-text" style="font-size: 12px;">v6.2.0</text>
+</svg>

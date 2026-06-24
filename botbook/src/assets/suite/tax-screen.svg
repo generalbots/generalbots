@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #1a1a2e; }
+        .panel-bg { fill: #16213e; }
+        .card-bg { fill: #0f3460; }
+        .main-text { fill: #e0e0e0; }
+        .secondary-text { fill: #b0b0b0; }
+        .muted-text { fill: #808080; }
+        .white-text { fill: #ffffff; }
+        .accent-text { fill: #3b82f6; }
+        .border { stroke: #2a2a4a; stroke-width: 1; fill: none; }
+        .card-border { stroke: #2a2a4a; stroke-width: 1; fill: #0f3460; }
+        .icon-btn { fill: #2a2a4a; }
+        .tab-active { fill: #3b82f6; }
+        .tab-inactive { fill: #2a2a4a; }
+        .stat-card { fill: #0f3460; }
+        .search-bg { fill: #0f3460; }
+        .status-success { fill: #22c55e; }
+        .status-pending { fill: #f59e0b; }
+        .status-error { fill: #ef4444; }
+      }
+      @media (prefers-color-scheme: light) {
+        .bg { fill: #f5f5f5; }
+        .panel-bg { fill: #ffffff; }
+        .card-bg { fill: #f8fafc; }
+        .main-text { fill: #1e293b; }
+        .secondary-text { fill: #475569; }
+        .muted-text { fill: #94a3b8; }
+        .white-text { fill: #ffffff; }
+        .accent-text { fill: #2563eb; }
+        .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+        .card-border { stroke: #e2e8f0; stroke-width: 1; fill: #f8fafc; }
+        .icon-btn { fill: #e2e8f0; }
+        .tab-active { fill: #2563eb; }
+        .tab-inactive { fill: #e2e8f0; }
+        .stat-card { fill: #f8fafc; }
+        .search-bg { fill: #f1f5f9; }
+        .status-success { fill: #16a34a; }
+        .status-pending { fill: #d97706; }
+        .status-error { fill: #dc2626; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="900" height="600" rx="0"/>
+
+  <!-- Title -->
+  <text x="450" y="40" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="main-text">Gestao Fiscal</text>
+
+  <!-- Main Panel -->
+  <rect class="panel-bg" x="20" y="60" width="860" height="520" rx="8" stroke-width="1"/>
+  <rect class="border" x="20" y="60" width="860" height="520" rx="8"/>
+
+  <!-- Stats Row -->
+  <rect class="stat-card" x="40" y="80" width="195" height="70" rx="6"/>
+  <rect class="border" x="40" y="80" width="195" height="70" rx="6"/>
+  <text x="60" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">NFe Emitidas</text>
+  <text x="60" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" class="accent-text">47</text>
+
+  <rect class="stat-card" x="250" y="80" width="195" height="70" rx="6"/>
+  <rect class="border" x="250" y="80" width="195" height="70" rx="6"/>
+  <text x="270" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Valor Total</text>
+  <text x="270" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" class="accent-text">R$ 124K</text>
+
+  <rect class="stat-card" x="460" y="80" width="195" height="70" rx="6"/>
+  <rect class="border" x="460" y="80" width="195" height="70" rx="6"/>
+  <text x="480" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">NFSe Pendentes</text>
+  <text x="480" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" class="status-pending">8</text>
+
+  <rect class="stat-card" x="670" y="80" width="195" height="70" rx="6"/>
+  <rect class="border" x="670" y="80" width="195" height="70" rx="6"/>
+  <text x="690" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Erros</text>
+  <text x="690" y="132" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" class="status-error">2</text>
+
+  <!-- Tab Bar -->
+  <rect class="tab-active" x="40" y="165" width="80" height="30" rx="6"/>
+  <text x="80" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" class="white-text">NFe</text>
+  <rect class="tab-inactive" x="130" y="165" width="80" height="30" rx="6"/>
+  <text x="170" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">NFSe</text>
+  <rect class="tab-inactive" x="220" y="165" width="80" height="30" rx="6"/>
+  <text x="260" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">CT-e</text>
+  <rect class="tab-inactive" x="310" y="165" width="80" height="30" rx="6"/>
+  <text x="350" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">SPED</text>
+
+  <!-- Search -->
+  <rect class="search-bg" x="550" y="165" width="220" height="30" rx="6"/>
+  <text x="570" y="185" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="muted-text">Search invoices...</text>
+
+  <!-- Table Header -->
+  <rect x="40" y="210" width="820" height="35" rx="6" fill="none" stroke-width="1"/>
+  <rect x="40" y="210" width="820" height="35" rx="6" opacity="0.08"/>
+  <text x="60" y="232" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="main-text">Number</text>
+  <text x="200" y="232" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="main-text">Client</text>
+  <text x="420" y="232" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="main-text">Value</text>
+  <text x="570" y="232" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="main-text">Status</text>
+  <text x="740" y="232" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="main-text">Date</text>
+
+  <!-- Table Row 1 -->
+  <rect x="40" y="250" width="820" height="40" rx="4" class="card-border"/>
+  <rect x="41" y="251" width="818" height="38" rx="3" class="card-bg"/>
+  <text x="60" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">NFe 001247</text>
+  <text x="200" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">Acme Corp</text>
+  <text x="420" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">R$ 4.520,00</text>
+  <rect class="status-success" x="570" y="262" width="60" height="18" rx="9"/>
+  <text x="600" y="275" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="white-text">Enviada</text>
+  <text x="740" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="muted-text">2026-06-01</text>
+
+  <!-- Table Row 2 -->
+  <rect x="40" y="295" width="820" height="40" rx="4" class="card-border"/>
+  <rect x="41" y="296" width="818" height="38" rx="3" class="card-bg"/>
+  <text x="60" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">NFe 001248</text>
+  <text x="200" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">Beta Inc</text>
+  <text x="420" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">R$ 12.800,00</text>
+  <rect class="status-success" x="570" y="307" width="60" height="18" rx="9"/>
+  <text x="600" y="320" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="white-text">Enviada</text>
+  <text x="740" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="muted-text">2026-06-02</text>
+
+  <!-- Table Row 3 -->
+  <rect x="40" y="340" width="820" height="40" rx="4" class="card-border"/>
+  <rect x="41" y="341" width="818" height="38" rx="3" class="card-bg"/>
+  <text x="60" y="365" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">NFe 001249</text>
+  <text x="200" y="365" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">Gamma Ltd</text>
+  <text x="420" y="365" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">R$ 3.150,00</text>
+  <rect class="status-pending" x="570" y="352" width="60" height="18" rx="9"/>
+  <text x="600" y="365" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="white-text">Pendente</text>
+  <text x="740" y="365" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="muted-text">2026-06-03</text>
+
+  <!-- Table Row 4 -->
+  <rect x="40" y="385" width="820" height="40" rx="4" class="card-border"/>
+  <rect x="41" y="386" width="818" height="38" rx="3" class="card-bg"/>
+  <text x="60" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">NFe 001250</text>
+  <text x="200" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">Delta SA</text>
+  <text x="420" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">R$ 8.900,00</text>
+  <rect class="status-success" x="570" y="397" width="60" height="18" rx="9"/>
+  <text x="600" y="410" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="white-text">Enviada</text>
+  <text x="740" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="muted-text">2026-06-04</text>
+
+  <!-- Table Row 5 -->
+  <rect x="40" y="430" width="820" height="40" rx="4" class="card-border"/>
+  <rect x="41" y="431" width="818" height="38" rx="3" class="card-bg"/>
+  <text x="60" y="455" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">NFe 001251</text>
+  <text x="200" y="455" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">Epsilon Corp</text>
+  <text x="420" y="455" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="main-text">R$ 6.340,00</text>
+  <rect class="status-error" x="570" y="442" width="60" height="18" rx="9"/>
+  <text x="600" y="455" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="white-text">Erro</text>
+  <text x="740" y="455" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="muted-text">2026-06-04</text>
+
+  <!-- Pagination -->
+  <text x="450" y="500" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Showing 5 of 47 invoices</text>
+  <rect class="tab-inactive" x="370" y="510" width="60" height="24" rx="4"/>
+  <text x="400" y="527" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Prev</text>
+  <rect class="tab-active" x="440" y="510" width="60" height="24" rx="4"/>
+  <text x="470" y="527" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="white-text">Next</text>
+</svg>

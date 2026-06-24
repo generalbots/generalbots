@@ -1,0 +1,117 @@
+/* Y2K Glow Theme for General Bots */
+:root {
+  --color-primary: #ff00ff;
+  --color-secondary: #00ffff;
+  --color-accent: #ffff00;
+
+  --color-bg: #0a0a1a;
+  --color-bg-secondary: #1a0a2e;
+  --color-bg-tertiary: #2d1b4e;
+
+  --color-text: #00ff00;
+  --color-text-secondary: #ff00ff;
+  --color-text-muted: #00ffff;
+
+  --color-border: #ff00ff;
+  --color-border-light: #00ffff;
+
+  --color-success: #00ff00;
+  --color-warning: #ffff00;
+  --color-error: #ff0066;
+  --color-info: #00ffff;
+
+  --shadow-glow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff;
+  --shadow-sm: 0 0 5px rgba(255, 0, 255, 0.5);
+  --shadow: 0 0 10px rgba(255, 0, 255, 0.7);
+  --shadow-md: 0 0 15px rgba(255, 0, 255, 0.8);
+  --shadow-lg: 0 0 25px rgba(255, 0, 255, 0.9);
+
+  --radius-sm: 0.25rem;
+  --radius: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  text-shadow: 0 0 5px var(--color-text);
+}
+
+a {
+  color: var(--color-secondary);
+  text-shadow: 0 0 5px var(--color-secondary);
+}
+
+a:hover {
+  color: var(--color-primary);
+  text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+}
+
+.btn-primary {
+  background: linear-gradient(45deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-bg);
+  border: 2px solid var(--color-primary);
+  box-shadow: var(--shadow-glow);
+  text-shadow: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(45deg, var(--color-secondary), var(--color-accent));
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 15px var(--color-secondary), 0 0 30px var(--color-secondary);
+}
+
+.card {
+  background: linear-gradient(135deg, var(--color-bg-secondary), var(--color-bg-tertiary));
+  border: 2px solid var(--color-primary);
+  box-shadow: var(--shadow);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px var(--color-primary), 0 0 10px var(--color-primary);
+  }
+  to {
+    box-shadow: 0 0 10px var(--color-secondary), 0 0 20px var(--color-secondary);
+  }
+}
+
+input, textarea, select {
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
+  box-shadow: 0 0 5px var(--color-border);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 10px var(--color-accent), 0 0 20px var(--color-accent), 0 0 30px var(--color-accent);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--color-text-muted);
+  text-shadow: 0 0 3px var(--color-text-muted);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--color-primary), var(--color-secondary));
+  border-radius: 6px;
+  box-shadow: 0 0 10px var(--color-primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(var(--color-secondary), var(--color-accent));
+}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoices — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Invoices</span>
+    </div>
+
+    <div style="padding:2rem">
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);max-width:500px;margin-bottom:1.5rem">
+        <div class="stat-card"><div class="stat-label">Total Due</div><div class="stat-value" id="inv-due">—</div></div>
+        <div class="stat-card"><div class="stat-label">Paid This Month</div><div class="stat-value" id="inv-paid">—</div></div>
+        <div class="stat-card"><div class="stat-label">Open</div><div class="stat-value" id="inv-open">—</div></div>
+      </div>
+
+      <div class="cat-pills" style="margin-bottom:1rem">
+        <button class="cat-pill active" onclick="filterInv(this,'all')">All</button>
+        <button class="cat-pill" onclick="filterInv(this,'paid')">Paid</button>
+        <button class="cat-pill" onclick="filterInv(this,'open')">Open</button>
+        <button class="cat-pill" onclick="filterInv(this,'overdue')">Overdue</button>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:auto">
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="invoices-body">
+            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted)">
+              <div class="loading-dots"><span></span><span></span><span></span></div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

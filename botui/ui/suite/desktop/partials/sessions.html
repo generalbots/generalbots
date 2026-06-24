@@ -1,0 +1,33 @@
+<!-- VDI Session Management partial for Desktop app -->
+<div class="vdi-sessions" id="vdi-sessions-panel">
+  <h3>Session Management</h3>
+  <p class="hint">Active remote desktop sessions across all VMs</p>
+  <div class="kpi-grid">
+    <div class="kpi"><span class="kpi-label">Active sessions</span><span class="kpi-value" data-counter="active">0</span></div>
+    <div class="kpi"><span class="kpi-label">Idle</span><span class="kpi-value" data-counter="idle">0</span></div>
+    <div class="kpi"><span class="kpi-label">Disconnected</span><span class="kpi-value" data-counter="disconnected">0</span></div>
+    <div class="kpi"><span class="kpi-label">Total CPU</span><span class="kpi-value" data-counter="cpu">0%</span></div>
+  </div>
+  <table class="data-table" id="vdi-sessions-table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>VM</th>
+        <th>State</th>
+        <th>Duration</th>
+        <th>CPU</th>
+        <th>Memory</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="7" class="empty">No active sessions.</td></tr>
+    </tbody>
+  </table>
+  <script>
+    document.querySelectorAll('#vdi-sessions-panel [data-counter]').forEach((el) => {
+      const k = el.dataset.counter;
+      el.textContent = k === 'cpu' ? '0%' : '0';
+    });
+  </script>
+</div>

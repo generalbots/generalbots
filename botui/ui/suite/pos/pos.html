@@ -1,0 +1,52 @@
+<link rel="stylesheet" href="/suite/pos/pos.css">
+<div class="pos-container">
+    <div class="pos-products">
+        <div class="pos-header">
+            <h1>Point of Sale</h1>
+            <div class="pos-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="posSearch" placeholder="Search products...">
+            </div>
+        </div>
+        <div class="pos-categories" id="pos-categories"></div>
+        <div class="pos-grid" id="pos-grid">
+            <div class="loading-row"><div class="spinner"></div> Loading products...</div>
+        </div>
+    </div>
+    <div class="pos-cart">
+        <div class="pos-cart-header">
+            <h2>Cart</h2>
+            <span class="pos-cart-count" id="cart-count">0 items</span>
+        </div>
+        <div class="pos-cart-items" id="cart-items">
+            <div class="pos-cart-empty">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                <p>Cart is empty</p>
+            </div>
+        </div>
+        <div class="pos-cart-footer">
+            <div class="pos-cart-totals" id="cart-totals">
+                <div class="pos-cart-total-row"><span>Subtotal</span><span id="cart-subtotal">$0.00</span></div>
+                <div class="pos-cart-total-row"><span>Tax (10%)</span><span id="cart-tax">$0.00</span></div>
+                <div class="pos-cart-total-row grand"><span>Total</span><span id="cart-total">$0.00</span></div>
+            </div>
+            <div class="pos-payment-methods">
+                <button class="pos-pay-btn active" data-method="cash" onclick="PosApp.setPayment('cash',this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/></svg>
+                    Cash
+                </button>
+                <button class="pos-pay-btn" data-method="card" onclick="PosApp.setPayment('card',this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    Card
+                </button>
+                <button class="pos-pay-btn" data-method="pix" onclick="PosApp.setPayment('pix',this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    Pix
+                </button>
+            </div>
+            <button class="pos-confirm-btn" id="pos-confirm" onclick="PosApp.confirmOrder()" disabled>Confirm Order</button>
+            <button class="pos-clear-btn" onclick="PosApp.clearCart()">Clear Cart</button>
+        </div>
+    </div>
+</div>
+<script src="/suite/pos/pos.js"></script>

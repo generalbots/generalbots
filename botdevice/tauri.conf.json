@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BotDevice",
+  "version": "1.0.0",
+  "identifier": "br.com.pragmatismo.botdevice",
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "frontendDist": "../botui/ui/suite"
+  },
+  "app": {
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "title": "BotDevice",
+        "fullscreen": true,
+        "resizable": false
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png"
+    ]
+  },
+  "plugins": {
+    "notification": {
+      "enabled": true
+    },
+    "http": {
+      "enabled": true,
+      "scope": ["https://**", "http://**"]
+    },
+    "geolocation": {
+      "enabled": true
+    }
+  }
+}

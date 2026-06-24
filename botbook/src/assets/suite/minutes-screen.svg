@@ -1,0 +1,146 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .nav-active { fill: #eff6ff; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .stat-blue { fill: #3b82f6; }
+    .stat-green { fill: #22c55e; }
+    .stat-purple { fill: #8b5cf6; }
+    .stat-orange { fill: #f97316; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .nav-active { fill: #1e3a5f; }
+      .card { fill: #1e293b; stroke: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Meeting Minutes</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Top Bar -->
+  <g transform="translate(50, 55)">
+    <text x="0" y="15" font-size="18" font-weight="600" class="main-text">Meetings</text>
+    <text x="730" y="15" font-size="12" class="muted-text">This week</text>
+    <rect x="540" y="-5" width="100" height="30" rx="6" fill="url(#accentGrad)"/>
+    <text x="590" y="15" text-anchor="middle" font-size="12" font-weight="500" class="white-text">+ New</text>
+  </g>
+
+  <line x1="30" y1="85" x2="870" y2="85" class="border"/>
+
+  <!-- Stats Row -->
+  <g transform="translate(50, 95)">
+    <!-- Upcoming -->
+    <rect x="0" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="16" y="12" width="40" height="40" rx="8" fill="#dbeafe"/>
+    <text x="36" y="38" text-anchor="middle" font-size="14">📅</text>
+    <text x="68" y="30" font-size="11" class="muted-text">Upcoming</text>
+    <text x="68" y="52" font-size="22" font-weight="700" class="stat-blue">3</text>
+
+    <!-- Transcripts -->
+    <rect x="200" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="216" y="12" width="40" height="40" rx="8" fill="#dcfce7"/>
+    <text x="236" y="38" text-anchor="middle" font-size="14">📝</text>
+    <text x="268" y="30" font-size="11" class="muted-text">Transcripts</text>
+    <text x="268" y="52" font-size="22" font-weight="700" class="stat-green">45</text>
+
+    <!-- Minutes -->
+    <rect x="400" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="416" y="12" width="40" height="40" rx="8" fill="#f3e8ff"/>
+    <text x="436" y="38" text-anchor="middle" font-size="14">📋</text>
+    <text x="468" y="30" font-size="11" class="muted-text">Minutes</text>
+    <text x="468" y="52" font-size="22" font-weight="700" class="stat-purple">38</text>
+
+    <!-- Pending Sign -->
+    <rect x="600" y="0" width="180" height="70" rx="8" class="card"/>
+    <rect x="616" y="12" width="40" height="40" rx="8" fill="#ffedd5"/>
+    <text x="636" y="38" text-anchor="middle" font-size="14">✍</text>
+    <text x="668" y="30" font-size="11" class="muted-text">Pending Sign</text>
+    <text x="668" y="52" font-size="22" font-weight="700" class="stat-orange">5</text>
+  </g>
+
+  <line x1="30" y1="180" x2="870" y2="180" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(50, 190)">
+    <rect x="0" y="0" width="90" height="32" rx="6" class="nav-active"/>
+    <text x="45" y="21" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">Upcoming</text>
+    <text x="155" y="21" text-anchor="middle" font-size="12" class="secondary-text">Transcripts</text>
+    <text x="285" y="21" text-anchor="middle" font-size="12" class="secondary-text">Minutes</text>
+    <text x="400" y="21" text-anchor="middle" font-size="12" class="secondary-text">Signatures</text>
+  </g>
+
+  <line x1="30" y1="235" x2="870" y2="235" class="border"/>
+
+  <!-- Meeting Cards -->
+  <g transform="translate(50, 250)">
+    <!-- Meeting 1 -->
+    <rect x="0" y="0" width="790" height="80" rx="8" class="card"/>
+    <rect x="16" y="16" width="48" height="48" rx="8" fill="#dbeafe"/>
+    <text x="40" y="46" text-anchor="middle" font-size="14">📅</text>
+    <text x="80" y="25" font-size="14" font-weight="600" class="main-text">Sprint Planning - Week 23</text>
+    <text x="80" y="45" font-size="12" class="secondary-text">Monday, Jun 2, 2026 • 10:00 AM - 11:30 AM</text>
+    <text x="80" y="62" font-size="11" class="muted-text">Participants: Ana, Carlos, Maria, Paulo</text>
+    <rect x="660" y="28" width="80" height="24" rx="10" fill="#dcfce7"/>
+    <text x="700" y="44" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Upcoming</text>
+
+    <!-- Meeting 2 -->
+    <rect x="0" y="95" width="790" height="80" rx="8" class="card"/>
+    <rect x="16" y="111" width="48" height="48" rx="8" fill="#f3e8ff"/>
+    <text x="40" y="141" text-anchor="middle" font-size="14">📋</text>
+    <text x="80" y="120" font-size="14" font-weight="600" class="main-text">Product Review - Q2 Roadmap</text>
+    <text x="80" y="140" font-size="12" class="secondary-text">Tuesday, Jun 3, 2026 • 2:00 PM - 3:00 PM</text>
+    <text x="80" y="157" font-size="11" class="muted-text">Participants: Lisa, Ricardo, Sofia</text>
+    <rect x="660" y="123" width="80" height="24" rx="10" fill="#ffedd5"/>
+    <text x="700" y="139" text-anchor="middle" font-size="10" font-weight="500" fill="#ea580c">Pending Sign</text>
+
+    <!-- Meeting 3 -->
+    <rect x="0" y="190" width="790" height="80" rx="8" class="card"/>
+    <rect x="16" y="206" width="48" height="48" rx="8" fill="#dcfce7"/>
+    <text x="40" y="236" text-anchor="middle" font-size="14">✅</text>
+    <text x="80" y="215" font-size="14" font-weight="600" class="main-text">Architecture Review</text>
+    <text x="80" y="235" font-size="12" class="secondary-text">Thursday, Jun 5, 2026 • 9:00 AM - 10:00 AM</text>
+    <text x="80" y="252" font-size="11" class="muted-text">Participants: Carlos, Paulo, Marcos</text>
+    <rect x="660" y="218" width="80" height="24" rx="10" fill="#dbeafe"/>
+    <text x="700" y="234" text-anchor="middle" font-size="10" font-weight="500" fill="#2563eb">Transcript</text>
+
+    <!-- Meeting 4 -->
+    <rect x="0" y="285" width="790" height="80" rx="8" class="card"/>
+    <rect x="16" y="301" width="48" height="48" rx="8" fill="#ffedd5"/>
+    <text x="40" y="331" text-anchor="middle" font-size="14">⏰</text>
+    <text x="80" y="310" font-size="14" font-weight="600" class="main-text">Client Standup - Acme Corp</text>
+    <text x="80" y="330" font-size="12" class="secondary-text">Friday, Jun 6, 2026 • 11:00 AM - 11:30 AM</text>
+    <text x="80" y="347" font-size="11" class="muted-text">Participants: Ana, Maria</text>
+    <rect x="660" y="313" width="80" height="24" rx="10" fill="#dcfce7"/>
+    <text x="700" y="329" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Upcoming</text>
+  </g>
+
+  <!-- Bottom Status -->
+  <line x1="30" y1="500" x2="870" y2="500" class="border"/>
+  <text x="50" y="520" font-size="11" class="muted-text">Showing 4 of 12 meetings</text>
+  <text x="830" y="520" text-anchor="end" font-size="11" class="accent-text">View Calendar →</text>
+</svg>

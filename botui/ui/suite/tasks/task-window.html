@@ -1,0 +1,189 @@
+<!-- Task Window — Unified Tasks Dashboard (Phase 2) -->
+<link rel="stylesheet" href="/suite/tasks/task-window.css" />
+
+<div class="tw-container" id="taskWindow">
+    <!-- Tab Header -->
+    <div class="tw-tabs-header" id="twTabsHeader">
+        <button class="tw-tab active" data-tab="dashboard" id="tabDashboard">
+            <span class="tw-tab-prefix">//</span> DASHBOARD
+        </button>
+    </div>
+
+    <!-- Tab Content: Dashboard -->
+    <div class="tw-tab-content active" id="tabContentDashboard">
+        <!-- Pipeline Tabs -->
+        <div class="tw-pipeline-tabs">
+            <button class="tw-pipeline-tab" data-stage="plan">// PLAN</button>
+            <button class="tw-pipeline-tab active" data-stage="build">// BUILD</button>
+            <button class="tw-pipeline-tab" data-stage="review">// REVIEW</button>
+            <button class="tw-pipeline-tab" data-stage="deploy">// DEPLOY</button>
+            <button class="tw-pipeline-tab" data-stage="monitor">// MONITOR</button>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="tw-filters">
+            <button class="tw-filter-chip active" data-filter="all">
+                <span class="tw-filter-icon">■</span> All
+            </button>
+            <button class="tw-filter-chip" data-filter="active">
+                <span class="tw-filter-icon">⚡</span> Active
+            </button>
+            <button class="tw-filter-chip" data-filter="completed">
+                <span class="tw-filter-icon">✅</span> Complete
+            </button>
+            <button class="tw-filter-chip" data-filter="paused">
+                <span class="tw-filter-icon">⏸</span> Paused
+            </button>
+        </div>
+
+        <!-- Intent Bar -->
+        <div class="tw-intent-bar">
+            <input type="text" class="tw-intent-input" id="intentInput"
+                placeholder="What would you like to do? e.g. 'create a CRM'" />
+            <button class="tw-intent-run" id="intentRunBtn" type="button">RUN</button>
+        </div>
+
+        <!-- Tasks List + Detail split -->
+        <div class="tw-split-view">
+            <div class="tw-task-list" id="taskList" hx-get="/api/ui/tasks?filter=all" hx-trigger="load"
+                hx-swap="innerHTML">
+                <div class="tw-task-list-empty">Loading tasks...</div>
+            </div>
+            <div class="tw-task-detail" id="taskDetail">
+                <div class="tw-task-detail-empty">
+                    <p>Select a task</p>
+                    <p class="tw-hint">Click on a task from the list to view details.</p>
+                    <p class="tw-hint">Bot Database: All apps share the same database tables.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Agent Profile (dynamically created) -->
+    <div class="tw-tab-content" id="tabContentAgent" style="display:none;">
+        <div class="tw-agent-profile" id="agentProfileContent">
+            <!-- Loaded via HTMX when an agent tab is clicked -->
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        "use strict";
+
+        function initTaskWindow() {
+            setupTabs();
+            setupPipelineTabs();
+            setupFilters();
+            setupIntentBar();
+        }
+
+        function setupTabs() {
+            var tabsHeader = document.getElementById("twTabsHeader");
+            if (!tabsHeader) return;
+
+            tabsHeader.addEventListener("click", function (e) {
+                var tab = e.target.closest(".tw-tab");
+                if (!tab) return;
+
+                var allTabs = tabsHeader.querySelectorAll(".tw-tab");
+                allTabs.forEach(function (t) { t.classList.remove("active"); });
+                tab.classList.add("active");
+
+                var tabId = tab.getAttribute("data-tab");
+                var allContent = document.querySelectorAll(".tw-tab-content");
+                allContent.forEach(function (c) {
+                    c.style.display = "none";
+                    c.classList.remove("active");
+                });
+
+                if (tabId === "dashboard") {
+                    var dash = document.getElementById("tabContentDashboard");
+                    if (dash) { dash.style.display = ""; dash.classList.add("active"); }
+                } else {
+                    var agent = document.getElementById("tabContentAgent");
+                    if (agent) { agent.style.display = ""; agent.classList.add("active"); }
+                }
+            });
+        }
+
+        function setupPipelineTabs() {
+            var container = document.querySelector(".tw-pipeline-tabs");
+            if (!container) return;
+
+            container.addEventListener("click", function (e) {
+                var tab = e.target.closest(".tw-pipeline-tab");
+                if (!tab) return;
+
+                container.querySelectorAll(".tw-pipeline-tab").forEach(function (t) {
+                    t.classList.remove("active");
+                });
+                tab.classList.add("active");
+            });
+        }
+
+        function setupFilters() {
+            var container = document.querySelector(".tw-filters");
+            if (!container) return;
+
+            container.addEventListener("click", function (e) {
+                var chip = e.target.closest(".tw-filter-chip");
+                if (!chip) return;
+
+                container.querySelectorAll(".tw-filter-chip").forEach(function (c) {
+                    c.classList.remove("active");
+                });
+                chip.classList.add("active");
+            });
+        }
+
+        function setupIntentBar() {
+            var input = document.getElementById("intentInput");
+            var runBtn = document.getElementById("intentRunBtn");
+            if (!input || !runBtn) return;
+
+            function submitIntent() {
+                var text = input.value.trim();
+                if (!text) return;
+
+                runBtn.disabled = true;
+                runBtn.textContent = "...";
+
+                fetch("/api/autotask/classify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ intent: text })
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        input.value = "";
+                        runBtn.disabled = false;
+                        runBtn.textContent = "RUN";
+
+                        if (window.htmx) {
+                            htmx.trigger("#taskList", "load");
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error("Intent submission failed:", err);
+                        runBtn.disabled = false;
+                        runBtn.textContent = "RUN";
+                    });
+            }
+
+            runBtn.addEventListener("click", submitIntent);
+            input.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    submitIntent();
+                }
+            });
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initTaskWindow);
+        } else {
+            initTaskWindow();
+        }
+    })();
+</script>

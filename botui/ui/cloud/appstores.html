@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Store Publishing — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .appstores-container {
+      padding: 2rem;
+      max-width: 1100px;
+    }
+    .appstores-hero {
+      margin-bottom: 2.5rem;
+    }
+    .appstores-hero h1 {
+      font-size: 1.75rem;
+      margin: 0 0 0.5rem;
+    }
+    .appstores-hero p {
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .appstores-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .appstore-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .appstore-card.featured {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .appstore-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .appstore-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .appstore-sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .appstore-price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .appstore-price-row:last-of-type {
+      border-bottom: none;
+    }
+    .appstore-price-label {
+      color: var(--muted);
+    }
+    .appstore-price-value {
+      font-weight: 600;
+    }
+    .appstore-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 2px solid var(--border);
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .appstore-cta {
+      margin-top: auto;
+      padding-top: 1.25rem;
+    }
+    .appstore-cta .btn {
+      width: 100%;
+      padding: 0.7rem;
+    }
+    .appstore-how {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+    }
+    .appstore-how h2 {
+      margin: 0 0 1rem;
+      font-size: 1.15rem;
+    }
+    .appstore-step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .appstore-step-num {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .appstore-step-text {
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .appstore-faq {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+    }
+    .appstore-faq h2 {
+      margin: 0 0 1rem;
+      font-size: 1.15rem;
+    }
+    .appstore-faq-item {
+      margin-bottom: 0.75rem;
+    }
+    .appstore-faq-q {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+    }
+    .appstore-faq-a {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    @media (max-width: 768px) {
+      .appstores-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .badge-save {
+      display: inline-block;
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent2);
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">App Store Publishing</span>
+    </div>
+
+    <div class="appstores-container">
+      <div class="appstores-hero">
+        <h1>Publish Your App to the World</h1>
+        <p>Full consulting service for publishing apps on Google Play Store and Apple App Store. We handle the entire process — from developer account creation to submission for approval — so you can focus on what matters: your app.</p>
+      </div>
+
+      <div class="appstores-grid">
+        <!-- Google Play -->
+        <div class="appstore-card">
+          <div class="appstore-icon">▶️</div>
+          <div class="appstore-name">Google Play Store</div>
+          <div class="appstore-sub">Publishing Consultancy</div>
+          <div class="appstore-price-row">
+            <span class="appstore-price-label">Publishing Consultancy</span>
+            <span class="appstore-price-value">$100</span>
+          </div>
+          <div class="appstore-price-row">
+            <span class="appstore-price-label">Google Play Fee (one-time)</span>
+            <span class="appstore-price-value">$25</span>
+          </div>
+          <div class="appstore-total">
+            <span>Total</span>
+            <span>$125</span>
+          </div>
+          <div class="appstore-cta">
+            <button class="btn btn-primary" onclick="purchaseAppStore('google')">Purchase Google Play Package</button>
+          </div>
+        </div>
+
+        <!-- Apple App Store -->
+        <div class="appstore-card featured">
+          <div class="appstore-icon">A</div>
+          <div class="appstore-name">Apple App Store</div>
+          <div class="appstore-sub">Publishing Consultancy</div>
+          <div class="appstore-price-row">
+            <span class="appstore-price-label">Publishing Consultancy</span>
+            <span class="appstore-price-value">$100</span>
+          </div>
+          <div class="appstore-price-row">
+            <span class="appstore-price-label">Apple Developer Fee (annual)</span>
+            <span class="appstore-price-value">$99</span>
+          </div>
+          <div class="appstore-total">
+            <span>Total</span>
+            <span>$199</span>
+          </div>
+          <div class="appstore-cta">
+            <button class="btn btn-primary" onclick="purchaseAppStore('apple')">Purchase Apple App Store Package</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Combo -->
+      <div style="text-align:center;margin-bottom:2rem">
+        <div style="background:var(--card);border:1px solid var(--accent);border-radius:var(--radius);padding:1.5rem;display:inline-block">
+          <div style="font-size:1.2rem;font-weight:700;margin-bottom:0.25rem">Both Stores Bundle</div>
+          <div style="color:var(--muted);font-size:0.9rem;margin-bottom:0.75rem">Google Play + Apple App Store — everything included</div>
+          <div style="display:flex;justify-content:center;align-items:center;gap:1rem;margin-bottom:1rem">
+            <span style="text-decoration:line-through;color:var(--muted)">$324</span>
+            <span style="font-size:1.5rem;font-weight:700;color:var(--accent2)">$280</span>
+            <span class="badge-save">Save $44</span>
+          </div>
+          <button class="btn btn-primary" onclick="purchaseAppStore('bundle')">Purchase Bundle →</button>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="appstore-how">
+        <h2>How It Works</h2>
+        <div class="appstore-step">
+          <div class="appstore-step-num">1</div>
+          <div class="appstore-step-text"><strong>Purchase</strong> the package for your desired store(s). We'll create an invoice and send you the onboarding questionnaire.</div>
+        </div>
+        <div class="appstore-step">
+          <div class="appstore-step-num">2</div>
+          <div class="appstore-step-text"><strong>Prepare credentials.</strong> We guide you through creating the necessary accounts (Google Service Account / Apple Developer) and collecting the API keys.</div>
+        </div>
+        <div class="appstore-step">
+          <div class="appstore-step-num">3</div>
+          <div class="appstore-step-text"><strong>We handle the submission.</strong> Our team prepares your store listing, uploads the build, and submits for review. We handle rejections and resubmissions.</div>
+        </div>
+        <div class="appstore-step">
+          <div class="appstore-step-num">4</div>
+          <div class="appstore-step-text"><strong>You're live!</strong> Once approved, your app is published. You retain full ownership of the developer account and all published assets.</div>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="appstore-faq">
+        <h2>Frequently Asked Questions</h2>
+        <div class="appstore-faq-item">
+          <div class="appstore-faq-q">What do I need to provide?</div>
+          <div class="appstore-faq-a">Your app binary (.aab for Android, .ipa for iOS), app icon, screenshots, description, and any necessary API credentials. We guide you through each step.</div>
+        </div>
+        <div class="appstore-faq-item">
+          <div class="appstore-faq-q">How long does the process take?</div>
+          <div class="appstore-faq-a">Google Play review typically takes 1–3 days. Apple App Store review takes 1–7 days. Account creation takes 24–48 hours for Apple, instant for Google.</div>
+        </div>
+        <div class="appstore-faq-item">
+          <div class="appstore-faq-q">What if my app gets rejected?</div>
+          <div class="appstore-faq-a">We handle resubmissions at no additional cost. Our team ensures your app meets all store guidelines before the first submission.</div>
+        </div>
+        <div class="appstore-faq-item">
+          <div class="appstore-faq-q">Do I keep ownership of the developer account?</div>
+          <div class="appstore-faq-a">Yes! The developer account is created in your name with your credentials. We only assist in the setup and submission process.</div>
+        </div>
+        <div class="appstore-faq-item">
+          <div class="appstore-faq-q">Can I publish without a developer account yet?</div>
+          <div class="appstore-faq-a">Absolutely. We include the account setup consultation in the package. For Google Play ($25 one-time) and Apple ($99/year), the store fees are separate.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

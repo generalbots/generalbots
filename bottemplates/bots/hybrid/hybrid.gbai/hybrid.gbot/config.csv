@@ -1,0 +1,6 @@
+llm-url,http://localhost:8081/v1/chat/completions
+llm-server,http://localhost:8081/v1
+llm-model,openai/gpt-oss-120b
+llm-provider,openai
+system-prompt,Você é um assistente virtual útil e amigável.
+history-limit,6

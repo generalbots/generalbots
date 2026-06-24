@@ -1,0 +1,261 @@
+<link rel="stylesheet" href="/suite/css/vendor/xterm.css">
+<link rel="stylesheet" href="/suite/css/terminal.css">
+
+<div class="term-root">
+    <div class="term-toolbar">
+        <div class="term-tabs" id="term-tabs">
+            <div class="term-tab active" data-tab="0">
+                <span class="term-tab-label">Terminal 1</span>
+                <span class="term-tab-close" onclick="GBTerminal.closeTab(0)">&times;</span>
+            </div>
+            <button class="term-tab-add" id="btn-add-tab" title="New tab">+</button>
+        </div>
+        <div class="term-actions">
+            <button class="term-action-btn" onclick="GBTerminal.clearCurrent()" title="Clear">Clear</button>
+            <button class="term-action-btn" onclick="GBTerminal.find()" title="Find (Ctrl+Shift+F)">Find</button>
+        </div>
+    </div>
+    <div class="term-body" id="term-body">
+        <div class="term-pane active" data-pane="0"></div>
+    </div>
+    <div class="term-statusbar">
+        <span id="term-status-text">Connecting...</span>
+        <span class="term-status-sep">|</span>
+        <span id="term-dimensions">80x24</span>
+        <span class="term-status-sep">|</span>
+        <span id="term-ws-status">WS: --</span>
+    </div>
+</div>
+
+<script src="/suite/js/vendor/xterm/xterm.js"></script>
+<script src="/suite/js/vendor/xterm/addon-fit.js"></script>
+<script src="/suite/js/vendor/xterm/addon-web-links.js"></script>
+<script>
+(function() {
+    'use strict';
+
+    const MAX_TABS = 10;
+    const SCROLLBACK = 10000;
+    let tabs = [];
+    let activeTab = 0;
+
+    const termBody = document.getElementById('term-body');
+    const termTabs = document.getElementById('term-tabs');
+    const statusText = document.getElementById('term-status-text');
+    const dimensions = document.getElementById('term-dimensions');
+    const wsStatus = document.getElementById('term-ws-status');
+
+    function getWsUrl() {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return proto + '//' + location.host + '/api/terminal/ws';
+    }
+
+    function createTerminal(index) {
+        const pane = document.createElement('div');
+        pane.className = 'term-pane' + (index === activeTab ? ' active' : '');
+        pane.dataset.pane = index;
+        termBody.appendChild(pane);
+
+        const terminal = new Terminal({
+            theme: {
+                background: '#0f172a',
+                foreground: '#f8fafc',
+                cursor: '#3b82f6',
+                cursorAccent: '#0f172a',
+                selectionBackground: 'rgba(59,130,246,0.3)',
+                black: '#1e293b',
+                red: '#ef4444',
+                green: '#22c55e',
+                yellow: '#eab308',
+                blue: '#3b82f6',
+                magenta: '#a855f7',
+                cyan: '#06b6d4',
+                white: '#f8fafc',
+                brightBlack: '#64748b',
+                brightRed: '#f87171',
+                brightGreen: '#4ade80',
+                brightYellow: '#facc15',
+                brightBlue: '#60a5fa',
+                brightMagenta: '#c084fc',
+                brightCyan: '#22d3ee',
+                brightWhite: '#ffffff'
+            },
+            fontFamily: '"Fira Code", "Cascadia Code", "JetBrains Mono", monospace',
+            fontSize: 14,
+            lineHeight: 1.2,
+            cursorBlink: true,
+            cursorStyle: 'bar',
+            scrollback: SCROLLBACK,
+            allowProposedApi: true
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+        terminal.loadAddon(fitAddon);
+        terminal.loadAddon(webLinksAddon);
+        terminal.open(pane);
+
+        let ws = null;
+        let reconnectTimer = null;
+
+        function connect() {
+            ws = new WebSocket(getWsUrl());
+            ws.onopen = function() {
+                wsStatus.textContent = 'WS: Connected';
+                statusText.textContent = 'Connected';
+                fitAddon.fit();
+                ws.send(JSON.stringify({
+                    type: 'resize',
+                    cols: terminal.cols,
+                    rows: terminal.rows
+                }));
+            };
+            ws.onmessage = function(event) {
+                try {
+                    var data = JSON.parse(event.data);
+                    if (data.type === 'output') {
+                        terminal.write(data.data);
+                    } else if (data.type === 'connected') {
+                        terminal.write('\r\n');
+                    }
+                } catch (e) {
+                    terminal.write(event.data);
+                }
+            };
+            ws.onclose = function() {
+                wsStatus.textContent = 'WS: Disconnected';
+                statusText.textContent = 'Disconnected';
+                terminal.write('\r\n\x1b[33m[Connection closed. Reconnecting in 3s...]\x1b[0m\r\n');
+                reconnectTimer = setTimeout(connect, 3000);
+            };
+            ws.onerror = function() {
+                wsStatus.textContent = 'WS: Error';
+            };
+        }
+
+        terminal.onData(function(data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'input', data: data }));
+            }
+        });
+
+        terminal.onResize(function(size) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'resize',
+                    cols: size.cols,
+                    rows: size.rows
+                }));
+            }
+            dimensions.textContent = size.cols + 'x' + size.rows;
+        });
+
+        var observer = new ResizeObserver(function() {
+            if (tabs[index] && tabs[index].visible) {
+                fitAddon.fit();
+            }
+        });
+        observer.observe(pane);
+
+        connect();
+
+        return {
+            terminal: terminal,
+            fitAddon: fitAddon,
+            ws: ws,
+            pane: pane,
+            reconnectTimer: reconnectTimer,
+            visible: index === activeTab,
+            cleanup: function() {
+                if (reconnectTimer) clearTimeout(reconnectTimer);
+                if (ws) ws.close();
+                observer.disconnect();
+                terminal.dispose();
+                pane.remove();
+            }
+        };
+    }
+
+    function switchTab(index) {
+        if (index < 0 || index >= tabs.length) return;
+        var oldTab = tabs[activeTab];
+        if (oldTab) {
+            oldTab.visible = false;
+            oldTab.pane.classList.remove('active');
+        }
+        activeTab = index;
+        var newTab = tabs[index];
+        if (newTab) {
+            newTab.visible = true;
+            newTab.pane.classList.add('active');
+            newTab.fitAddon.fit();
+        }
+        updateTabs();
+    }
+
+    function updateTabs() {
+        var html = '';
+        for (var i = 0; i < tabs.length; i++) {
+            var cls = i === activeTab ? ' active' : '';
+            html += '<div class="term-tab' + cls + '" data-tab="' + i + '" onclick="GBTerminal.switchTab(' + i + ')">'
+                + '<span class="term-tab-label">Terminal ' + (i + 1) + '</span>'
+                + '<span class="term-tab-close" onclick="event.stopPropagation();GBTerminal.closeTab(' + i + ')">&times;</span>'
+                + '</div>';
+        }
+        if (tabs.length < MAX_TABS) {
+            html += '<button class="term-tab-add" onclick="GBTerminal.addTab()">+</button>';
+        }
+        termTabs.innerHTML = html;
+    }
+
+    window.GBTerminal = {
+        addTab: function() {
+            if (tabs.length >= MAX_TABS) return;
+            var idx = tabs.length;
+            var tab = createTerminal(idx);
+            tabs.push(tab);
+            switchTab(idx);
+            updateTabs();
+        },
+        closeTab: function(index) {
+            if (tabs.length <= 1) return;
+            tabs[index].cleanup();
+            tabs.splice(index, 1);
+            if (activeTab >= tabs.length) activeTab = tabs.length - 1;
+            for (var i = 0; i < tabs.length; i++) {
+                tabs[i].pane.dataset.pane = i;
+            }
+            switchTab(activeTab);
+            updateTabs();
+        },
+        switchTab: switchTab,
+        clearCurrent: function() {
+            if (tabs[activeTab]) tabs[activeTab].terminal.clear();
+        },
+        find: function() {
+            if (tabs[activeTab]) {
+                tabs[activeTab].terminal.focus();
+            }
+        }
+    };
+
+    var firstTab = createTerminal(0);
+    tabs.push(firstTab);
+    updateTabs();
+
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+            e.preventDefault();
+            window.GBTerminal.find();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+            e.preventDefault();
+            window.GBTerminal.addTab();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+            e.preventDefault();
+            window.GBTerminal.closeTab(activeTab);
+        }
+    });
+})();
+</script>

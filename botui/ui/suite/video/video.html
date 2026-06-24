@@ -1,0 +1,91 @@
+<link rel="stylesheet" href="/suite/video/video.css">
+  <header class="header">
+    <h1>Monitoramento por IA</h1>
+    <div class="header-actions">
+      <button class="btn btn-primary" id="btnAddCamera">+ Adicionar Câmera</button>
+    </div>
+  </header>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="label">Detecções Hoje</span>
+      <span class="value accent" id="statDetections">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Uptime</span>
+      <span class="value success" id="statUptime">0%</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Armazenamento Usado</span>
+      <span class="value warning" id="statStorage">0 GB</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Câmeras Ativas</span>
+      <span class="value accent" id="statCamerasActive">0</span>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="cameras-section">
+      <div class="section-header">
+        <h2>Câmeras</h2>
+        <button class="btn btn-sm" id="btnRefreshCameras">Atualizar</button>
+      </div>
+      <div class="cameras-grid" id="camerasGrid">
+        <div class="loading">Carregando câmeras...</div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Alertas Recentes</h3>
+          <button class="btn btn-sm" id="btnRefreshAlerts">Atualizar</button>
+        </div>
+        <div class="alerts-list" id="alertsList">
+          <div class="loading">Carregando alertas...</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Análíticas</h3>
+        </div>
+        <div class="analytics-list" id="analyticsList">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addCameraModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Adicionar Câmera</h3>
+        <button class="modal-close" data-close="addCameraModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" id="cameraName" placeholder="Ex: Entrada Principal">
+        </div>
+        <div class="form-group">
+          <label>URL RTSP</label>
+          <input type="text" id="cameraRtsp" placeholder="rtsp://user:pass@ip:port/stream">
+        </div>
+        <div class="form-group">
+          <label>Localização</label>
+          <input type="text" id="cameraLocation" placeholder="Ex: Edifício A - Térreo">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-close="addCameraModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveCamera">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/suite/video/video.js"></script>
+

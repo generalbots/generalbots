@@ -1,0 +1,91 @@
+:root {
+  /* GrungeEra Theme */
+  --background: 30 10% 10%;
+  --foreground: 30 30% 80%;
+  --card: 30 10% 15%;
+  --card-foreground: 30 30% 80%;
+  --popover: 30 10% 10%;
+  --popover-foreground: 30 30% 80%;
+  --primary: 10 70% 50%;
+  --primary-foreground: 30 30% 80%;
+  --secondary: 30 10% 20%;
+  --secondary-foreground: 30 30% 80%;
+  --muted: 30 10% 25%;
+  --muted-foreground: 30 30% 60%;
+  --accent: 200 70% 50%;
+  --accent-foreground: 30 30% 80%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 30 10% 20%;
+  --input: 30 10% 20%;
+  --ring: 10 70% 50%;
+  --radius: 0.5rem;
+  --chart-1: 10 70% 50%;
+  --chart-2: 200 70% 50%;
+  --chart-3: 90 70% 50%;
+  --chart-4: 300 70% 50%;
+  --chart-5: 30 70% 50%;
+
+    /* ============================================ */
+    /* SENTIENT BRIDGE VARIABLES                   */
+    /* For Sheet, Docs, Slides theme support       */
+    /* ============================================ */
+
+    /* Backgrounds */
+    --sentient-bg-primary: hsl(var(--background));
+    --sentient-bg-secondary: hsl(var(--card));
+    --sentient-bg-tertiary: hsl(var(--muted));
+    --sentient-bg-hover: hsla(var(--primary) / 0.08);
+    --sentient-bg-active: hsla(var(--primary) / 0.15);
+
+    /* Text */
+    --sentient-text-primary: hsl(var(--foreground));
+    --sentient-text-secondary: hsl(var(--muted-foreground));
+    --sentient-text-tertiary: hsla(var(--muted-foreground) / 0.7);
+    --sentient-text-muted: hsla(var(--muted-foreground) / 0.5);
+
+    /* Accent Colors */
+    --sentient-accent: hsl(var(--primary));
+    --sentient-accent-hover: hsl(var(--primary) / 0.85);
+    --sentient-accent-light: hsla(var(--primary) / 0.1);
+    --sentient-accent-dark: hsl(var(--primary) / 0.7);
+
+    /* Borders */
+    --sentient-border: hsl(var(--border));
+    --sentient-border-light: hsla(var(--border) / 0.5);
+    --sentient-border-accent: hsla(var(--primary) / 0.3);
+
+    /* Surfaces */
+    --sentient-surface: hsl(var(--card));
+    --sentient-surface-hover: hsla(var(--primary) / 0.08);
+    --sentient-surface-active: hsla(var(--primary) / 0.15);
+    --sentient-surface-elevated: hsl(var(--popover));
+
+    /* Inputs */
+    --sentient-input-bg: hsl(var(--input));
+    --sentient-input-border: hsl(var(--border));
+    --sentient-input-focus: hsl(var(--ring));
+
+    /* Status Colors */
+    --sentient-success: hsl(142 76% 36%);
+    --sentient-success-bg: hsla(142 76% 36% / 0.15);
+    --sentient-warning: hsl(38 92% 50%);
+    --sentient-warning-bg: hsla(38 92% 50% / 0.15);
+    --sentient-error: hsl(var(--destructive));
+    --sentient-error-bg: hsla(var(--destructive) / 0.15);
+
+    /* Typography */
+    --sentient-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+    /* Shadows */
+    --sentient-shadow-sm: 0 1px 2px 0 hsla(var(--foreground) / 0.05);
+    --sentient-shadow-md: 0 4px 6px -1px hsla(var(--foreground) / 0.1), 0 2px 4px -1px hsla(var(--foreground) / 0.06);
+    --sentient-shadow-lg: 0 10px 15px -3px hsla(var(--foreground) / 0.1), 0 4px 6px -2px hsla(var(--foreground) / 0.05);
+
+    /* Border Radius */
+    --sentient-radius: var(--radius);
+    --sentient-radius-sm: calc(var(--radius) * 0.5);
+    --sentient-radius-md: var(--radius);
+    --sentient-radius-lg: calc(var(--radius) * 1.5);
+    --sentient-radius-xl: calc(var(--radius) * 2);
+}

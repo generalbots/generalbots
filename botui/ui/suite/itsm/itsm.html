@@ -1,0 +1,254 @@
+<link rel="stylesheet" href="/suite/itsm/itsm.css">
+<div class="itsm-app">
+<header class="app-header">
+<h1>IT Service Desk</h1>
+<div class="header-meta">
+<span class="header-meta-item">Operator: <strong id="itsmOperator">--</strong></span>
+<span class="header-meta-item">Role: <strong id="itsmRole">Agent</strong></span>
+<span class="header-meta-item">Updated: <strong id="itsmUpdated">--</strong></span>
+</div>
+<button class="btn-refresh" id="refreshBtn">&#8635;</button>
+</header>
+<nav class="tab-bar">
+<button class="tab active" data-tab="incidents">Incidents</button>
+<button class="tab" data-tab="requests">Service Requests</button>
+<button class="tab" data-tab="problems">Problems</button>
+<button class="tab" data-tab="changes">Changes</button>
+<button class="tab" data-tab="sla">SLA</button>
+<button class="tab" data-tab="cmdb">CMDB</button>
+<button class="tab" data-tab="kb">Knowledge Base</button>
+<button class="tab" data-tab="reports">Reports</button>
+</nav>
+<section class="itsm-stats">
+<article class="itsm-stat-card"><span class="itsm-stat-label">Open incidents</span><span class="itsm-stat-value" id="itsm-stat-open">--</span></article>
+<article class="itsm-stat-card"><span class="itsm-stat-label">In progress</span><span class="itsm-stat-value orange" id="itsm-stat-progress">--</span></article>
+<article class="itsm-stat-card"><span class="itsm-stat-label">SLA at risk</span><span class="itsm-stat-value red" id="itsm-stat-sla">--</span></article>
+<article class="itsm-stat-card"><span class="itsm-stat-label">KB articles</span><span class="itsm-stat-value blue" id="itsm-stat-kb">--</span></article>
+<article class="itsm-stat-card"><span class="itsm-stat-label">Avg resolution (h)</span><span class="itsm-stat-value purple" id="itsm-stat-mttr">--</span></article>
+</section>
+<main class="tab-content">
+<section class="tab-panel active" id="panel-incidents">
+<div class="section-header">
+<h2>Incidents</h2>
+<div class="header-actions">
+<button class="btn-primary" id="newIncidentBtn">+ New incident</button>
+<select class="filter-select" id="priorityFilter">
+<option value="">All Priority</option>
+<option value="critical">Critical</option>
+<option value="high">High</option>
+<option value="medium">Medium</option>
+<option value="low">Low</option>
+</select>
+<select class="filter-select" id="statusFilter">
+<option value="">All Status</option>
+<option value="open">Open</option>
+<option value="in_progress">In Progress</option>
+<option value="resolved">Resolved</option>
+<option value="closed">Closed</option>
+</select>
+<input type="search" class="search-input" id="incidentSearch" placeholder="Search incidents...">
+</div>
+</div>
+<table class="data-table" id="incidentTable">
+<thead><tr><th>ID</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Reporter</th><th>Created</th><th>SLA</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+<div class="itsm-pagination" id="incidentPagination"></div>
+</section>
+<section class="tab-panel" id="panel-requests">
+<div class="section-header">
+<h2>Service Catalog</h2>
+<div class="header-actions">
+<input type="search" class="search-input" id="catalogSearch" placeholder="Search catalog...">
+<select class="filter-select" id="catalogCategory">
+<option value="">All categories</option>
+<option value="access">Access & permissions</option>
+<option value="hardware">Hardware request</option>
+<option value="software">Software request</option>
+<option value="onboarding">Onboarding</option>
+<option value="offboarding">Offboarding</option>
+</select>
+</div>
+</div>
+<div class="catalog-grid" id="catalogGrid"></div>
+<div class="modal-overlay" id="requestModal">
+<div class="modal">
+<div class="modal-header">
+<h3>Submit Request</h3>
+<button class="modal-close" id="closeRequestModal">&times;</button>
+</div>
+<form id="requestForm">
+<input type="hidden" id="requestTypeId">
+<div class="form-group">
+<label id="requestTypeLabel">Type</label>
+</div>
+<div class="form-group">
+<label>Justification</label>
+<textarea id="requestJustification" rows="3" placeholder="Business justification..."></textarea>
+</div>
+<div class="form-group">
+<label>Description</label>
+<textarea id="requestDesc" rows="4" required placeholder="Describe your request..."></textarea>
+</div>
+<div class="form-group">
+<label>Priority</label>
+<select id="requestPriority" required>
+<option value="low">Low</option>
+<option value="medium" selected>Medium</option>
+<option value="high">High</option>
+</select>
+</div>
+<div class="form-group">
+<label>Needed by</label>
+<input type="date" id="requestNeededBy">
+</div>
+<div class="form-group">
+<label><input type="checkbox" id="requestNotify"> Notify me by email on status changes</label>
+</div>
+<div class="form-actions">
+<button type="button" class="btn-secondary" id="cancelRequestBtn">Cancel</button>
+<button type="submit" class="btn-primary">Submit Request</button>
+</div>
+</form>
+</div>
+</div>
+</section>
+<section class="tab-panel" id="panel-problems">
+<div class="section-header">
+<h2>Problem records</h2>
+<div class="header-actions">
+<button class="btn-primary" id="newProblemBtn">+ New problem</button>
+</div>
+</div>
+<table class="data-table" id="problemTable">
+<thead><tr><th>ID</th><th>Title</th><th>Root cause</th><th>Status</th><th>Linked incidents</th><th>Owner</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</section>
+<section class="tab-panel" id="panel-changes">
+<div class="section-header">
+<h2>Change requests</h2>
+<div class="header-actions">
+<button class="btn-primary" id="newChangeBtn">+ New change</button>
+<select class="filter-select" id="changeRiskFilter">
+<option value="">All risks</option>
+<option value="low">Low</option>
+<option value="medium">Medium</option>
+<option value="high">High</option>
+</select>
+</div>
+</div>
+<table class="data-table" id="changeTable">
+<thead><tr><th>ID</th><th>Title</th><th>Risk</th><th>Window</th><th>Approver</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</section>
+<section class="tab-panel" id="panel-sla">
+<div class="section-header">
+<h2>SLA performance</h2>
+</div>
+<section class="sla-cards" id="slaCards"></section>
+<div class="sla-chart" id="slaChart"></div>
+<table class="data-table" id="slaTable">
+<thead><tr><th>SLA target</th><th>Threshold</th><th>Compliance</th><th>Breaches (30d)</th><th>Trend</th></tr></thead>
+<tbody></tbody>
+</table>
+</section>
+<section class="tab-panel" id="panel-cmdb">
+<div class="section-header">
+<h2>Configuration Items</h2>
+<button class="btn-primary" id="addCiBtn">Add CI</button>
+</div>
+<div class="cmdb-filters">
+<select class="filter-select" id="cmdbClassFilter">
+<option value="">All classes</option>
+<option value="server">Server</option>
+<option value="application">Application</option>
+<option value="database">Database</option>
+<option value="network">Network device</option>
+<option value="workstation">Workstation</option>
+</select>
+<input type="search" class="search-input" id="cmdbSearch" placeholder="Search CI by name or tag...">
+</div>
+<div class="tree-view" id="cmdbTree"></div>
+</section>
+<section class="tab-panel" id="panel-kb">
+<div class="kb-toolbar">
+<input type="text" class="search-input" id="kbSearch" placeholder="Search articles...">
+<select class="filter-select" id="kbCategoryFilter">
+<option value="">All Categories</option>
+<option value="networking">Networking</option>
+<option value="security">Security</option>
+<option value="software">Software</option>
+<option value="hardware">Hardware</option>
+<option value="procedures">Procedures</option>
+</select>
+<button class="btn-primary" id="newArticleBtn">+ New article</button>
+</div>
+<div class="article-list" id="articleList"></div>
+</section>
+<section class="tab-panel" id="panel-reports">
+<div class="section-header">
+<h2>Reports</h2>
+</div>
+<section class="report-grid" id="reportGrid">
+<article class="report-card" data-report="incidents-by-month"><h3>Incidents by month</h3><div class="report-body" id="report-incidents-month">Loading...</div></article>
+<article class="report-card" data-report="mttr"><h3>Mean time to resolve</h3><div class="report-body" id="report-mttr">Loading...</div></article>
+<article class="report-card" data-report="sla-compliance"><h3>SLA compliance</h3><div class="report-body" id="report-sla">Loading...</div></article>
+<article class="report-card" data-report="top-categories"><h3>Top categories</h3><div class="report-body" id="report-categories">Loading...</div></article>
+</section>
+</section>
+</main>
+</div>
+<div class="modal-overlay" id="incidentModal">
+<div class="modal">
+<div class="modal-header">
+<h3 id="incidentModalTitle">New incident</h3>
+<button class="modal-close" id="closeIncidentModal">&times;</button>
+</div>
+<form id="incidentForm">
+<input type="hidden" id="incidentId">
+<div class="form-group">
+<label>Title</label>
+<input type="text" id="incidentTitle" required>
+</div>
+<div class="form-group">
+<label>Description</label>
+<textarea id="incidentDescription" rows="4" required></textarea>
+</div>
+<div class="form-group">
+<label>Priority</label>
+<select id="incidentPriority">
+<option value="low">Low</option>
+<option value="medium" selected>Medium</option>
+<option value="high">High</option>
+<option value="critical">Critical</option>
+</select>
+</div>
+<div class="form-group">
+<label>Category</label>
+<select id="incidentCategory">
+<option value="hardware">Hardware</option>
+<option value="software">Software</option>
+<option value="network">Network</option>
+<option value="access">Access</option>
+<option value="other">Other</option>
+</select>
+</div>
+<div class="form-group">
+<label>Affected CI</label>
+<select id="incidentCi"><option value="">--</option></select>
+</div>
+<div class="form-group">
+<label>Assignee</label>
+<select id="incidentAssignee"><option value="">-- Unassigned --</option></select>
+</div>
+<div class="form-actions">
+<button type="button" class="btn-secondary" id="cancelIncidentBtn">Cancel</button>
+<button type="submit" class="btn-primary">Save</button>
+</div>
+</form>
+</div>
+</div>
+<script src="/suite/itsm/itsm.js"></script>
+

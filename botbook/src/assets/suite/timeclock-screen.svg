@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #1a1a2e; }
+        .panel-bg { fill: #16213e; }
+        .card-bg { fill: #0f3460; }
+        .main-text { fill: #e0e0e0; }
+        .secondary-text { fill: #b0b0b0; }
+        .muted-text { fill: #808080; }
+        .white-text { fill: #ffffff; }
+        .accent-text { fill: #22c55e; }
+        .border { stroke: #2a2a4a; stroke-width: 1; fill: none; }
+        .card-border { stroke: #2a2a4a; stroke-width: 1; fill: #0f3460; }
+        .tab-active { fill: #22c55e; }
+        .tab-inactive { fill: #2a2a4a; }
+        .stat-card { fill: #0f3460; }
+        .clock-display { fill: #0f3460; }
+        .clock-text { fill: #22c55e; }
+        .btn-clockin { fill: #22c55e; }
+        .btn-clockout { fill: #ef4444; }
+        .status-active { fill: #22c55e; }
+      }
+      @media (prefers-color-scheme: light) {
+        .bg { fill: #f5f5f5; }
+        .panel-bg { fill: #ffffff; }
+        .card-bg { fill: #f8fafc; }
+        .main-text { fill: #1e293b; }
+        .secondary-text { fill: #475569; }
+        .muted-text { fill: #94a3b8; }
+        .white-text { fill: #ffffff; }
+        .accent-text { fill: #16a34a; }
+        .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+        .card-border { stroke: #e2e8f0; stroke-width: 1; fill: #f8fafc; }
+        .tab-active { fill: #16a34a; }
+        .tab-inactive { fill: #e2e8f0; }
+        .stat-card { fill: #f8fafc; }
+        .clock-display { fill: #f1f5f9; }
+        .clock-text { fill: #16a34a; }
+        .btn-clockin { fill: #22c55e; }
+        .btn-clockout { fill: #ef4444; }
+        .status-active { fill: #16a34a; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="900" height="600" rx="0"/>
+
+  <!-- Title -->
+  <text x="450" y="40" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="main-text">Electronic Time Clock</text>
+
+  <!-- Main Panel -->
+  <rect class="panel-bg" x="20" y="60" width="860" height="520" rx="8" stroke-width="1"/>
+  <rect class="border" x="20" y="60" width="860" height="520" rx="8"/>
+
+  <!-- Stats Row -->
+  <rect class="stat-card" x="40" y="80" width="195" height="60" rx="6"/>
+  <rect class="border" x="40" y="80" width="195" height="60" rx="6"/>
+  <text x="60" y="103" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Today</text>
+  <text x="60" y="127" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="accent-text">8h</text>
+
+  <rect class="stat-card" x="250" y="80" width="195" height="60" rx="6"/>
+  <rect class="border" x="250" y="80" width="195" height="60" rx="6"/>
+  <text x="270" y="103" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Week</text>
+  <text x="270" y="127" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="accent-text">40h</text>
+
+  <rect class="stat-card" x="460" y="80" width="195" height="60" rx="6"/>
+  <rect class="border" x="460" y="80" width="195" height="60" rx="6"/>
+  <text x="480" y="103" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Overtime</text>
+  <text x="480" y="127" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="status-active">2h</text>
+
+  <rect class="stat-card" x="670" y="80" width="195" height="60" rx="6"/>
+  <rect class="border" x="670" y="80" width="195" height="60" rx="6"/>
+  <text x="690" y="103" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Status</text>
+  <text x="690" y="127" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="accent-text">Active</text>
+
+  <!-- Tab Bar -->
+  <rect class="tab-active" x="40" y="155" width="110" height="28" rx="6"/>
+  <text x="95" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" class="white-text">Clock In/Out</text>
+  <rect class="tab-inactive" x="160" y="155" width="90" height="28" rx="6"/>
+  <text x="205" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Records</text>
+  <rect class="tab-inactive" x="260" y="155" width="90" height="28" rx="6"/>
+  <text x="305" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Overtime</text>
+  <rect class="tab-inactive" x="360" y="155" width="90" height="28" rx="6"/>
+  <text x="405" y="174" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Reports</text>
+
+  <!-- Digital Clock Display -->
+  <rect class="clock-display" x="250" y="200" width="400" height="140" rx="12"/>
+  <rect class="border" x="250" y="200" width="400" height="140" rx="12"/>
+  <text x="450" y="275" text-anchor="middle" font-family="'Courier New', monospace" font-size="64" font-weight="700" class="clock-text">14:32:05</text>
+  <text x="450" y="305" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" class="muted-text">Wednesday, June 4, 2026</text>
+
+  <!-- Clock In Button -->
+  <rect class="btn-clockin" x="250" y="360" width="190" height="50" rx="8"/>
+  <text x="345" y="392" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" class="white-text">Clock In</text>
+
+  <!-- Clock Out Button -->
+  <rect class="btn-clockout" x="460" y="360" width="190" height="50" rx="8"/>
+  <text x="555" y="392" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" class="white-text">Clock Out</text>
+
+  <!-- Recent Activity -->
+  <text x="40" y="435" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" class="main-text">Recent Activity</text>
+
+  <rect class="card-border" x="40" y="445" width="820" height="35" rx="4"/>
+  <rect class="card-bg" x="41" y="446" width="818" height="33" rx="3"/>
+  <circle class="accent-text" cx="60" cy="462" r="4"/>
+  <text x="75" y="467" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="main-text">08:00:12</text>
+  <text x="160" y="467" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Clocked In</text>
+  <text x="780" y="467" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Today</text>
+
+  <rect class="card-border" x="40" y="485" width="820" height="35" rx="4"/>
+  <rect class="card-bg" x="41" y="486" width="818" height="33" rx="3"/>
+  <circle class="btn-clockout" cx="60" cy="502" r="4"/>
+  <text x="75" y="507" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="main-text">12:05:33</text>
+  <text x="160" y="507" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Clocked Out (Lunch)</text>
+  <text x="780" y="507" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Today</text>
+
+  <rect class="card-border" x="40" y="525" width="820" height="35" rx="4"/>
+  <rect class="card-bg" x="41" y="526" width="818" height="33" rx="3"/>
+  <circle class="accent-text" cx="60" cy="542" r="4"/>
+  <text x="75" y="547" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="main-text">13:00:08</text>
+  <text x="160" y="547" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="secondary-text">Clocked In</text>
+  <text x="780" y="547" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Today</text>
+</svg>

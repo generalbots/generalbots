@@ -1,0 +1,19 @@
+[package]
+name = "botbrazil"
+version = "6.5.0"
+edition = "2021"
+description = "Brazilian tax compliance crate (NFe, NFSe, CTe, MDFe, SPED, EFD, ICMS modules)"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+log = "0.4"
+thiserror = "1"
+
+[features]
+default = []

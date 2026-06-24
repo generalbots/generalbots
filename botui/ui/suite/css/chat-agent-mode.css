@@ -1,0 +1,658 @@
+/* Chat Agent Mode — Z.ai toggle + OpenClaw multi-panel layout */
+
+/* ============================================
+AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
+============================================ */
+
+.chat-mode-toggle {
+  display: none !important;
+}
+
+.agent-sidebar {
+  display: none !important;
+}
+
+.chat-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg, #1a1a24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: 16px;
+}
+
+.chat-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border, #2a2a2a);
+  border-top-color: var(--accent, #84d669);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.chat-loading-text {
+  color: var(--text-muted, #888);
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+}
+
+.chat-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .chat-layout {
+    padding: 0;
+  }
+
+  #messages {
+    padding: 12px;
+    padding-bottom: 100px;
+  }
+
+  footer {
+    padding: 8px;
+  }
+
+  .input-container {
+    gap: 4px;
+  }
+
+  #messageInput {
+    font-size: 16px;
+    padding: 12px 14px;
+    border-radius: 16px;
+  }
+
+  #sendBtn {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+
+  .suggestion-chip {
+    padding: 8px 12px;
+    font-size: 12px;
+    margin: 2px;
+  }
+
+  .scroll-to-bottom {
+    bottom: 90px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ============================================
+   QUICK ACTION CHIPS (Z.ai style)
+   ============================================ */
+
+.quick-actions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    justify-content: center;
+    animation: quickActionsIn 0.4s ease;
+}
+
+@keyframes quickActionsIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.quick-action-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 24px;
+    background: var(--surface, #1a1a24);
+    color: var(--text, var(--bg));
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.quick-action-chip:hover {
+    border-color: var(--accent);
+    background: rgba(132, 214, 105, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(132, 214, 105, 0.15);
+}
+
+.quick-action-chip:active {
+    transform: translateY(0);
+}
+
+.quick-action-icon {
+    font-size: 14px;
+}
+
+/* ============================================
+   AGENT MODE — MULTI-PANEL LAYOUT
+   ============================================ */
+
+.chat-layout.agent-mode {
+    max-width: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 48px 1fr 1fr;
+    grid-template-rows: 1fr auto auto;
+    gap: 0;
+}
+
+/* Agent Mode Left Sidebar */
+.agent-sidebar {
+    display: none;
+    grid-row: 1 / -1;
+    grid-column: 1;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    z-index: 50;
+}
+
+.agent-mode .agent-sidebar {
+    display: flex;
+}
+
+.agent-sidebar-item {
+    width: 48px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    color: var(--text-muted);
+}
+
+.agent-sidebar-item:hover {
+    background: var(--bg);
+    color: var(--text);
+}
+
+.agent-sidebar-item.active {
+    background: var(--bg);
+    border-left: 3px solid var(--accent);
+    color: var(--text);
+}
+
+.agent-sidebar-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 9px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fira Code', monospace;
+}
+
+/* Chat Panel (in agent mode) */
+.agent-mode #messages {
+    padding: 16px;
+}
+
+.agent-mode footer {
+    grid-column: 2 / -1;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border);
+}
+
+/* ============================================
+   THOUGHT PROCESS BLOCK
+   ============================================ */
+
+.thought-process {
+    margin: 12px 0;
+    border: 1px solid var(--border, var(--border));
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface, #f8f9fa);
+}
+
+.thought-process-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text, var(--text));
+    background: var(--surface, var(--border));
+    transition: background 0.15s;
+    border: none;
+    width: 100%;
+    text-align: left;
+}
+
+.thought-process-header:hover {
+    background: var(--hover, #e8e9ea);
+}
+
+.thought-process-toggle {
+    transition: transform 0.2s;
+    font-size: 10px;
+}
+
+.thought-process.expanded .thought-process-toggle {
+    transform: rotate(90deg);
+}
+
+.thought-process-body {
+    display: none;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary, var(--text-muted));
+    border-top: 1px solid var(--border, var(--border));
+}
+
+.thought-process.expanded .thought-process-body {
+    display: block;
+}
+
+/* ============================================
+   BROWSER PANEL
+   ============================================ */
+
+.agent-browser-panel {
+    display: none;
+    grid-column: 3;
+    grid-row: 1;
+    border-left: 1px solid var(--border);
+    flex-direction: column;
+    background: var(--bg);
+}
+
+.agent-mode .agent-browser-panel {
+    display: flex;
+}
+
+.browser-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.browser-url-bar {
+    flex: 1;
+    padding: 4px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.browser-panel-content {
+    flex: 1;
+    background: var(--bg);
+}
+
+.browser-panel-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.browser-panel-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+}
+
+/* ============================================
+   TERMINAL PANEL
+   ============================================ */
+
+.agent-terminal-panel {
+    display: none;
+    grid-column: 2;
+    grid-row: 2;
+    border-top: 1px solid var(--border);
+    flex-direction: column;
+    max-height: 200px;
+    min-height: 120px;
+}
+
+.agent-mode .agent-terminal-panel {
+    display: flex;
+}
+
+.terminal-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #1e1e1e;
+    border-bottom: 1px solid #333;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.terminal-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    background: #1e1e1e;
+    padding: 8px 12px;
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #d4d4d4;
+}
+
+.terminal-line {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.terminal-line.stderr {
+    color: #f87171;
+}
+
+.terminal-line.stdout {
+    color: #d4d4d4;
+}
+
+/* ============================================
+   AGENT INFO CARD
+   ============================================ */
+
+.agent-info-card {
+    display: none;
+    grid-column: 3;
+    grid-row: 2;
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    padding: 12px 16px;
+    background: var(--surface);
+    flex-direction: column;
+    gap: 8px;
+}
+
+.agent-mode .agent-info-card {
+    display: flex;
+}
+
+.agent-info-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.agent-info-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.agent-level-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.badge-evolved {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+.badge-bred {
+    background: #f59e0b;
+    color: var(--bg);
+}
+
+.badge-wild {
+    background: #ef4444;
+    color: var(--bg);
+}
+
+.agent-info-model {
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.agent-info-toggles {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.agent-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.agent-toggle-switch {
+    width: 28px;
+    height: 16px;
+    border-radius: 8px;
+    background: #ccc;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+    padding: 0;
+}
+
+.agent-toggle-switch.on {
+    background: var(--accent);
+}
+
+.agent-toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--bg);
+    transition: transform 0.2s;
+}
+
+.agent-toggle-switch.on::after {
+    transform: translateX(12px);
+}
+
+/* ============================================
+   STEP COUNTER BAR
+   ============================================ */
+
+.agent-step-bar {
+    display: none;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+}
+
+.agent-mode .agent-step-bar {
+    display: flex;
+}
+
+.step-counter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.step-nav-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 14px;
+    padding: 0;
+}
+
+.step-nav-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.step-action-btns {
+    display: flex;
+    gap: 6px;
+}
+
+.step-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: var(--bg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 16px;
+    padding: 0;
+}
+
+.step-action-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(132, 214, 105, 0.3);
+}
+
+/* ============================================
+   TODO LIST (OpenClaw style)
+   ============================================ */
+
+.agent-todo-list {
+    margin: 12px 0;
+    border: 1px solid var(--border, var(--border));
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.agent-todo-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--surface, var(--border));
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text, var(--text));
+}
+
+.agent-todo-count {
+    background: var(--accent);
+    color: var(--bg);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+}
+
+.agent-todo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border, var(--border));
+    font-size: 13px;
+    color: var(--text, var(--text));
+    transition: opacity 0.2s;
+}
+
+.agent-todo-item.done {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.agent-todo-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.agent-todo-item.done .agent-todo-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    font-size: 10px;
+}

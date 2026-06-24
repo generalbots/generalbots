@@ -1,0 +1,483 @@
+<link rel="stylesheet" href="/suite/tasks/autotask.css" />
+
+<div class="autotask-container" data-theme="sentient">
+    <!-- Top Navigation Bar -->
+    <div class="autotask-topbar">
+        <div class="topbar-left">
+            <div class="nav-tabs">
+                <button class="nav-tab active">Dashboard</button>
+                <button class="nav-tab">Analytics</button>
+            </div>
+        </div>
+        <div class="topbar-center">
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input
+                    type="text"
+                    class="search-input"
+                    placeholder="Search Intents"
+                    id="intent-search"
+                />
+            </div>
+        </div>
+        <div class="topbar-right">
+            <button class="btn-new-intent" onclick="showNewIntentModal()">
+                <span>New Intent</span>
+            </button>
+            <button class="btn-settings">Settings</button>
+            <div class="user-profile">
+                <div class="user-avatar">👤</div>
+                <span class="user-name">Profile 1</span>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div class="notification-bell">
+                <span class="bell-icon">🔔</span>
+                <span class="notification-count" id="notification-count"
+                    >3</span
+                >
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Filter Pills -->
+    <div class="status-filters">
+        <button
+            class="status-filter"
+            data-filter="complete"
+            onclick="filterByStatus('complete', this)"
+        >
+            <span class="filter-icon">✓</span>
+            <span class="filter-label">Complete</span>
+            <span class="filter-count" id="count-complete">8</span>
+        </button>
+        <button
+            class="status-filter active"
+            data-filter="active"
+            onclick="filterByStatus('active', this)"
+        >
+            <span class="filter-icon">⚡</span>
+            <span class="filter-label">Active Intents</span>
+            <span class="filter-count" id="count-active">12</span>
+        </button>
+        <button
+            class="status-filter"
+            data-filter="awaiting"
+            onclick="filterByStatus('awaiting', this)"
+        >
+            <span class="filter-icon">⏳</span>
+            <span class="filter-label">Awaiting Decision</span>
+            <span class="filter-count" id="count-awaiting">5</span>
+        </button>
+        <button
+            class="status-filter"
+            data-filter="paused"
+            onclick="filterByStatus('paused', this)"
+        >
+            <span class="filter-icon">⏸</span>
+            <span class="filter-label">Paused</span>
+            <span class="filter-count" id="count-paused">2</span>
+        </button>
+        <button
+            class="status-filter"
+            data-filter="blocked"
+            onclick="filterByStatus('blocked', this)"
+        >
+            <span class="filter-icon">⚠</span>
+            <span class="filter-label">Blocked/Issues</span>
+            <span class="filter-count" id="count-blocked">1</span>
+        </button>
+        <div class="time-saved">
+            <span class="time-label">Active Time Saved:</span>
+            <span class="time-value" id="time-saved">23.5 hrs this week</span>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Left Panel: Intent List -->
+        <div class="intent-list-panel">
+            <div
+                class="intent-list"
+                id="intent-list"
+                hx-get="/api/ui/autotask/list"
+                hx-trigger="load, every 10s"
+                hx-swap="innerHTML"
+            >
+                <!-- Intent cards will be loaded here -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <span>Loading intents...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Intent Detail -->
+        <div class="intent-detail-panel" id="intent-detail-panel">
+            <div class="detail-placeholder">
+                <span class="placeholder-icon">📋</span>
+                <p>Select an intent to view details</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Intent Modal -->
+    <div class="modal-overlay" id="new-intent-modal" style="display: none">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>New Intent</h2>
+                <button class="modal-close" onclick="closeNewIntentModal()">
+                    ×
+                </button>
+            </div>
+            <div class="modal-body">
+                <form
+                    id="new-intent-form"
+                    hx-post="/api/autotask/create"
+                    hx-ext="json-enc"
+                    hx-target="#intent-list"
+                    hx-swap="afterbegin"
+                >
+                    <div class="form-group">
+                        <label for="intent-input"
+                            >What would you like to accomplish?</label
+                        >
+                        <textarea
+                            id="intent-input"
+                            name="intent"
+                            class="intent-textarea"
+                            placeholder="Describe your task in natural language...
+
+Examples:
+• Make a financial CRM for Deloitte
+• Create a website that collects leads
+• Build an automated email campaign
+• Analyze sales data and generate reports"
+                            rows="6"
+                            required
+                        ></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Execution Mode</label>
+                            <select name="execution_mode" class="form-select">
+                                <option value="semi-automatic">
+                                    Semi-Automatic
+                                </option>
+                                <option value="supervised">Supervised</option>
+                                <option value="fully-automatic">
+                                    Fully Automatic
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Priority</label>
+                            <select name="priority" class="form-select">
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button
+                            type="button"
+                            class="btn-secondary"
+                            onclick="closeNewIntentModal()"
+                        >
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <span>Create Intent</span>
+                            <span class="spinner" id="create-spinner"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decision Modal -->
+    <div class="modal-overlay" id="decision-modal" style="display: none">
+        <div class="modal-container modal-lg">
+            <div class="modal-header">
+                <h2>Decision Required</h2>
+                <button class="modal-close" onclick="closeDecisionModal()">
+                    ×
+                </button>
+            </div>
+            <div class="modal-body" id="decision-content">
+                <!-- Decision content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Intent Card Template -->
+<template id="intent-card-template">
+    <div
+        class="intent-card"
+        data-intent-id="${id}"
+        data-status="${status}"
+        onclick="selectIntent('${id}')"
+    >
+        <div class="intent-card-header">
+            <h3 class="intent-title">${title}</h3>
+            <div class="intent-status-indicator ${status_class}"></div>
+        </div>
+
+        <div class="intent-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+            </div>
+            <div class="progress-info">
+                <span class="progress-steps"
+                    >${current_step}/${total_steps} Steps</span
+                >
+                <span class="progress-percent">${progress}%</span>
+            </div>
+        </div>
+
+        <div class="intent-status-section">
+            <div class="status-label">STATUS</div>
+            <div class="status-row">
+                <span class="status-icon">${status_icon}</span>
+                <span class="status-text">${status_display}</span>
+            </div>
+        </div>
+
+        <div class="intent-current-task">
+            <div class="current-task-label">${current_task_name}</div>
+            <div class="current-task-desc">${current_task_description}</div>
+        </div>
+
+        <div class="intent-integrity">
+            <div class="integrity-label">INTEGRITY</div>
+            <div class="integrity-items">
+                <span class="integrity-item">
+                    <span class="item-icon">🕐</span>
+                    Started ${started_ago}
+                </span>
+                <span class="integrity-item">
+                    <span class="item-icon">📅</span>
+                    Due ${due_date}
+                </span>
+                <span class="integrity-badge health-${health_level}">
+                    Intent Health
+                    <span class="health-value">${health_percent}%</span>
+                </span>
+            </div>
+        </div>
+
+        <button
+            class="btn-detail-view"
+            onclick="event.stopPropagation(); viewDetailedIntent('${id}')"
+        >
+            ${action_button_text}
+        </button>
+    </div>
+</template>
+
+<!-- Intent Detail Template -->
+<template id="intent-detail-template">
+    <div class="detail-view">
+        <!-- Header -->
+        <div class="detail-header">
+            <button class="btn-back" onclick="closeDetailPanel()">
+                <span>◀</span>
+            </button>
+            <h2 class="detail-title">${title}</h2>
+            <div class="detail-status">
+                <span class="status-icon">${status_icon}</span>
+                <span class="status-label">${status_display}</span>
+            </div>
+            <button class="btn-pause" onclick="togglePause('${id}')">
+                <span class="pause-icon">⏸</span>
+            </button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="detail-progress">
+            <div class="progress-bar large">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+            </div>
+            <div class="progress-stats">
+                <span class="progress-steps"
+                    >${current_step}/${total_steps} Steps</span
+                >
+                <span class="progress-percent">${progress}%</span>
+            </div>
+        </div>
+
+        <!-- Decision Required Panel -->
+        <div
+            class="decision-panel"
+            id="decision-panel-${id}"
+            style="display: ${show_decision}"
+        >
+            <div class="decision-header">
+                <span class="decision-badge">DECISION REQUIRED</span>
+                <span class="decision-title">${decision_title}</span>
+            </div>
+            <div class="decision-body">
+                <div class="decision-actions">
+                    <button
+                        class="btn-decision-primary"
+                        onclick="openDecisionModal('${id}')"
+                    >
+                        Make Decision
+                    </button>
+                    <button
+                        class="btn-decision-secondary"
+                        onclick="viewDecisionContext('${id}')"
+                    >
+                        View Context Details
+                    </button>
+                </div>
+                <div class="decision-context">
+                    <div class="context-label">Context:</div>
+                    <p class="context-text">${decision_context}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Section -->
+        <div class="detail-section">
+            <div class="section-header">
+                <span class="section-title">STATUS</span>
+                <span class="section-runtime">Runtime: ${runtime}</span>
+            </div>
+            <div class="status-current-task">
+                <span class="task-name">${current_task_name}</span>
+                <span class="task-estimate">Estimated: ${estimated_time}</span>
+            </div>
+            <div class="status-steps-preview">
+                <div class="step-item active">
+                    <span class="step-dot"></span>
+                    <span class="step-name">${next_step_name}</span>
+                </div>
+                <div class="step-item pending">
+                    <span class="step-dot"></span>
+                    <span class="step-name"
+                        >Decision Point Coming (Step ${decision_step})</span
+                    >
+                    <span class="step-note">${decision_note}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Log Section -->
+        <div class="detail-section">
+            <div class="section-header">
+                <span class="section-title">PROGRESS LOG</span>
+            </div>
+            <div class="progress-log" id="progress-log-${id}">
+                <!-- Log entries will be populated here -->
+            </div>
+        </div>
+
+        <!-- Terminal Activity Section -->
+        <div class="detail-section terminal-section">
+            <div class="section-header">
+                <span class="section-title"
+                    >TERMINAL (LIVE AGENT ACTIVITY)</span
+                >
+                <span class="terminal-stats">
+                    Processed: <strong>${processed_count}</strong> data points /
+                    Processing speed: <strong>${processing_speed}</strong> /
+                    Estimated completion:
+                    <strong>${estimated_completion}</strong>
+                </span>
+            </div>
+            <div class="terminal-output" id="terminal-${id}">
+                <div class="terminal-line">
+                    Synthesizing competitive insights...
+                </div>
+                <div class="terminal-line">
+                    Cross-referencing pricing data...
+                </div>
+                <!-- More terminal lines will stream here -->
+            </div>
+            <div class="terminal-cursor"></div>
+        </div>
+    </div>
+</template>
+
+<!-- Progress Log Entry Template -->
+<template id="progress-log-entry-template">
+    <div class="log-entry ${expanded_class}">
+        <div class="log-entry-header" onclick="toggleLogEntry(this)">
+            <span class="log-icon ${status_class}">●</span>
+            <span class="log-title">${title}</span>
+            <span class="log-expand">▶</span>
+            <span class="log-step-badge">${step_label}</span>
+        </div>
+        <div class="log-entry-body">
+            <div class="log-sub-entries">
+                <!-- Sub entries -->
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Progress Log Sub-Entry Template -->
+<template id="progress-log-subentry-template">
+    <div class="log-sub-entry">
+        <span class="sub-icon ${status_class}">●</span>
+        <span class="sub-text">${text}</span>
+        <span class="sub-duration">Duration: ${duration}</span>
+        <span class="sub-check">${check_icon}</span>
+    </div>
+</template>
+
+<!-- Floating Progress Panel (for active task) -->
+<div
+    class="floating-progress-panel"
+    id="floating-progress"
+    style="display: none"
+>
+    <div class="floating-header">
+        <div class="floating-title">
+            <span class="floating-icon">⚡</span>
+            <span class="floating-name" id="floating-task-name"
+                >Processing...</span
+            >
+        </div>
+        <div class="floating-controls">
+            <button class="btn-minimize" onclick="minimizeFloatingPanel()">
+                −
+            </button>
+            <button class="btn-close-floating" onclick="closeFloatingPanel()">
+                ×
+            </button>
+        </div>
+    </div>
+    <div class="floating-body">
+        <div class="floating-status">
+            <span class="status-text" id="floating-status-text"
+                >Initializing...</span
+            >
+            <span class="status-steps" id="floating-status-steps">0/0</span>
+        </div>
+        <div class="floating-progress-bar">
+            <div
+                class="progress-fill"
+                id="floating-progress-fill"
+                style="width: 0%"
+            ></div>
+        </div>
+        <div class="floating-percentage" id="floating-percentage">0%</div>
+        <div class="floating-log" id="floating-log">
+            <!-- Real-time log entries -->
+        </div>
+        <div class="floating-terminal" id="floating-terminal">
+            <!-- LLM output streaming -->
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<link rel="stylesheet" href="/suite/tasks/progress-panel.css" />
+<script src="/suite/tasks/progress-panel.js"></script>
+<script src="/suite/tasks/autotask.js"></script>

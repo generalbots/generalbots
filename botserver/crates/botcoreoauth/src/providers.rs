@@ -1,0 +1,321 @@
+use crate::{OAuthConfig, OAuthProvider, OAuthTokenResponse, OAuthUserInfo};
+use anyhow::{anyhow, Result};
+use reqwest::Client;
+use std::collections::HashMap;
+
+#[derive(Debug, Clone)]
+pub struct ProviderEndpoints {
+    pub auth_url: &'static str,
+    pub token_url: &'static str,
+    pub userinfo_url: &'static str,
+    pub scopes: &'static [&'static str],
+    pub use_basic_auth: bool,
+}
+
+impl OAuthProvider {
+    pub fn endpoints(self) -> ProviderEndpoints {
+        match self {
+            Self::Google => ProviderEndpoints {
+                auth_url: "https://accounts.google.com/o/oauth2/v2/auth",
+                token_url: "https://oauth2.googleapis.com/token",
+                userinfo_url: "https://www.googleapis.com/oauth2/v2/userinfo",
+                scopes: &["openid", "email", "profile"],
+                use_basic_auth: false,
+            },
+            Self::Discord => ProviderEndpoints {
+                auth_url: "https://discord.com/api/oauth2/authorize",
+                token_url: "https://discord.com/api/oauth2/token",
+                userinfo_url: "https://discord.com/api/users/@me",
+                scopes: &["identify", "email"],
+                use_basic_auth: true,
+            },
+            Self::Reddit => ProviderEndpoints {
+                auth_url: "https://www.reddit.com/api/v1/authorize",
+                token_url: "https://www.reddit.com/api/v1/access_token",
+                userinfo_url: "https://oauth.reddit.com/api/v1/me",
+                scopes: &["identity"],
+                use_basic_auth: true,
+            },
+            Self::Twitter => ProviderEndpoints {
+                auth_url: "https://twitter.com/i/oauth2/authorize",
+                token_url: "https://api.twitter.com/2/oauth2/token",
+                userinfo_url: "https://api.twitter.com/2/users/me",
+                scopes: &["users.read", "tweet.read"],
+                use_basic_auth: true,
+            },
+            Self::Microsoft => ProviderEndpoints {
+                auth_url: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+                token_url: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+                userinfo_url: "https://graph.microsoft.com/v1.0/me",
+                scopes: &["openid", "email", "profile", "User.Read"],
+                use_basic_auth: false,
+            },
+            Self::Facebook => ProviderEndpoints {
+                auth_url: "https://www.facebook.com/v18.0/dialog/oauth",
+                token_url: "https://graph.facebook.com/v18.0/oauth/access_token",
+                userinfo_url: "https://graph.facebook.com/v18.0/me",
+                scopes: &["email", "public_profile"],
+                use_basic_auth: false,
+            },
+        }
+    }
+
+    pub fn build_auth_url(&self, config: &OAuthConfig, state: &str) -> String {
+        let endpoints = self.endpoints();
+        let scopes = endpoints.scopes.join(" ");
+
+        let mut params = vec![
+            ("client_id", config.client_id.as_str()),
+            ("redirect_uri", config.redirect_uri.as_str()),
+            ("response_type", "code"),
+            ("state", state),
+            ("scope", &scopes),
+        ];
+
+        match self {
+            Self::Google => {
+                params.push(("access_type", "offline"));
+                params.push(("prompt", "consent"));
+            }
+            Self::Discord | Self::Facebook => {}
+            Self::Reddit => {
+                params.push(("duration", "temporary"));
+            }
+            Self::Twitter => {
+                params.push(("code_challenge", "challenge"));
+                params.push(("code_challenge_method", "plain"));
+            }
+            Self::Microsoft => {
+                params.push(("response_mode", "query"));
+            }
+        }
+
+        let query = params
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, urlencoding::encode(v)))
+            .collect::<Vec<_>>()
+            .join("&");
+
+        format!("{}?{}", endpoints.auth_url, query)
+    }
+
+    pub async fn exchange_code(
+        &self,
+        config: &OAuthConfig,
+        code: &str,
+        client: &Client,
+    ) -> Result<OAuthTokenResponse> {
+        let endpoints = self.endpoints();
+
+        let mut params = HashMap::new();
+        params.insert("grant_type", "authorization_code");
+        params.insert("code", code);
+        params.insert("redirect_uri", config.redirect_uri.as_str());
+        params.insert("client_id", config.client_id.as_str());
+
+        if matches!(self, Self::Twitter) {
+            params.insert("code_verifier", "challenge");
+        }
+
+        let mut request = client.post(endpoints.token_url);
+
+        if endpoints.use_basic_auth {
+            request = request.basic_auth(&config.client_id, Some(&config.client_secret));
+        } else {
+            params.insert("client_secret", config.client_secret.as_str());
+        }
+
+        if matches!(self, Self::Reddit) {
+            request = request.header("User-Agent", "BotServer/1.0");
+        }
+
+        let response = request
+            .form(&params)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to exchange code: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Token exchange failed: {}", error_text));
+        }
+
+        let token: OAuthTokenResponse = response
+            .json()
+            .await
+            .map_err(|e| anyhow!("Failed to parse token response: {}", e))?;
+
+        Ok(token)
+    }
+
+    pub async fn fetch_user_info(
+        &self,
+        access_token: &str,
+        client: &Client,
+    ) -> Result<OAuthUserInfo> {
+        let endpoints = self.endpoints();
+
+        let mut request = client.get(endpoints.userinfo_url);
+
+        match self {
+            Self::Reddit => {
+                request = request
+                    .header("User-Agent", "BotServer/1.0")
+                    .bearer_auth(access_token);
+            }
+            Self::Twitter => {
+                request = request
+                    .query(&[("user.fields", "id,name,username,profile_image_url")])
+                    .bearer_auth(access_token);
+            }
+            Self::Facebook => {
+                request = request.query(&[
+                    ("fields", "id,name,email,picture.type(large)"),
+                    ("access_token", access_token),
+                ]);
+            }
+            _ => {
+                request = request.bearer_auth(access_token);
+            }
+        }
+
+        let response = request
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to fetch user info: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to fetch user info: {}", error_text));
+        }
+
+        let raw: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| anyhow!("Failed to parse user info: {}", e))?;
+
+        let user_info = self.parse_user_info(&raw)?;
+
+        Ok(user_info)
+    }
+
+    fn parse_user_info(self, raw: &serde_json::Value) -> Result<OAuthUserInfo> {
+        match self {
+            Self::Google => Ok(OAuthUserInfo {
+                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider: self,
+                email: raw["email"].as_str().map(String::from),
+                name: raw["name"].as_str().map(String::from),
+                avatar_url: raw["picture"].as_str().map(String::from),
+                raw: Some(raw.clone()),
+            }),
+            Self::Discord => Ok(OAuthUserInfo {
+                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider: self,
+                email: raw["email"].as_str().map(String::from),
+                name: raw["username"].as_str().map(String::from),
+                avatar_url: raw["avatar"].as_str().map(|avatar| {
+                    let user_id = raw["id"].as_str().unwrap_or_default();
+                    format!("https://cdn.discordapp.com/avatars/{}/{}.png", user_id, avatar)
+                }),
+                raw: Some(raw.clone()),
+            }),
+            Self::Reddit => Ok(OAuthUserInfo {
+                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider: self,
+                email: None,
+                name: raw["name"].as_str().map(String::from),
+                avatar_url: raw["icon_img"]
+                    .as_str()
+                    .map(|s| s.split('?').next().unwrap_or(s).to_string()),
+                raw: Some(raw.clone()),
+            }),
+            Self::Twitter => {
+                let data = raw.get("data").unwrap_or(raw);
+                Ok(OAuthUserInfo {
+                    provider_id: data["id"].as_str().unwrap_or_default().to_string(),
+                    provider: self,
+                    email: None,
+                    name: data["name"].as_str().map(String::from),
+                    avatar_url: data["profile_image_url"].as_str().map(String::from),
+                    raw: Some(raw.clone()),
+                })
+            }
+            Self::Microsoft => Ok(OAuthUserInfo {
+                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider: self,
+                email: raw["mail"]
+                    .as_str()
+                    .or_else(|| raw["userPrincipalName"].as_str())
+                    .map(String::from),
+                name: raw["displayName"].as_str().map(String::from),
+                avatar_url: None,
+                raw: Some(raw.clone()),
+            }),
+            Self::Facebook => Ok(OAuthUserInfo {
+                provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
+                provider: self,
+                email: raw["email"].as_str().map(String::from),
+                name: raw["name"].as_str().map(String::from),
+                avatar_url: raw["picture"]["data"]["url"].as_str().map(String::from),
+                raw: Some(raw.clone()),
+            }),
+        }
+    }
+}
+
+pub fn load_oauth_config(
+    provider: OAuthProvider,
+    bot_config: &HashMap<String, String>,
+    base_url: &str,
+) -> Option<OAuthConfig> {
+    let prefix = provider.config_prefix();
+
+    let enabled = bot_config
+        .get(&format!("{}-enabled", prefix))
+        .map(|v| v.to_lowercase() == "true")
+        .unwrap_or(false);
+
+    if !enabled {
+        return None;
+    }
+
+    let client_id = bot_config.get(&format!("{}-client-id", prefix))?.clone();
+    let client_secret = bot_config
+        .get(&format!("{}-client-secret", prefix))?
+        .clone();
+
+    let redirect_uri = bot_config
+        .get(&format!("{}-redirect-uri", prefix))
+        .cloned()
+        .unwrap_or_else(|| {
+            format!(
+                "{}/auth/oauth/{}/callback",
+                base_url,
+                provider.to_string().to_lowercase()
+            )
+        });
+
+    if client_id.is_empty() || client_secret.is_empty() {
+        return None;
+    }
+
+    Some(OAuthConfig {
+        provider,
+        client_id,
+        client_secret,
+        redirect_uri,
+        enabled,
+    })
+}
+
+pub fn get_enabled_providers(
+    bot_config: &HashMap<String, String>,
+    base_url: &str,
+) -> Vec<OAuthConfig> {
+    OAuthProvider::all()
+        .into_iter()
+        .filter_map(|provider| load_oauth_config(provider, bot_config, base_url))
+        .filter(|config| config.is_valid())
+        .collect()
+}

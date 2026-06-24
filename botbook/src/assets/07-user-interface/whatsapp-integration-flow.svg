@@ -1,0 +1,152 @@
+<svg width="900" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="whatsappGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#25D366;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#128C7E;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"/>
+    </marker>
+
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#25D366"/>
+    </marker>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="500" fill="#FAFBFC"/>
+  <rect width="900" height="500" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="600" class="title-text">How WhatsApp Integration Works</text>
+  <text x="450" y="55" text-anchor="middle" font-size="12" class="secondary-text">Message flow between WhatsApp and General Bots</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="75" width="840" height="400" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+
+  <!-- Step 1: User sends message -->
+  <g transform="translate(80, 105)">
+    <rect x="0" y="0" width="200" height="80" rx="10" fill="#FFFFFF" stroke="#25D366" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="30" rx="10" fill="url(#whatsappGrad)"/>
+    <rect x="0" y="24" width="200" height="6" fill="url(#whatsappGrad)"/>
+    <text x="100" y="20" text-anchor="middle" font-size="11" font-weight="600" class="white-text">📱 User</text>
+    <text x="100" y="52" text-anchor="middle" font-size="10" class="main-text">Sends message on</text>
+    <text x="100" y="68" text-anchor="middle" font-size="10" font-weight="500" class="main-text">WhatsApp</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <path d="M285 145 L340 145" stroke="#25D366" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+  <text x="312" y="138" text-anchor="middle" font-size="8" class="secondary-text">1</text>
+
+  <!-- Step 2: WhatsApp Cloud API receives -->
+  <g transform="translate(350, 105)">
+    <rect x="0" y="0" width="200" height="80" rx="10" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="30" rx="10" fill="url(#cyanGrad)"/>
+    <rect x="0" y="24" width="200" height="6" fill="url(#cyanGrad)"/>
+    <text x="100" y="20" text-anchor="middle" font-size="11" font-weight="600" class="white-text">WhatsApp Cloud API</text>
+    <text x="100" y="52" text-anchor="middle" font-size="10" class="main-text">Meta's servers</text>
+    <text x="100" y="68" text-anchor="middle" font-size="10" class="secondary-text">receive message</text>
+  </g>
+
+  <!-- Arrow 2 (webhook) -->
+  <path d="M450 190 L450 230" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+  <text x="470" y="215" font-size="9" class="mono-text">Webhook</text>
+  <text x="435" y="215" text-anchor="middle" font-size="8" class="secondary-text">2</text>
+
+  <!-- Step 3: General Bots Server -->
+  <g transform="translate(300, 240)">
+    <rect x="0" y="0" width="300" height="90" rx="10" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="300" height="32" rx="10" fill="url(#primaryGrad)"/>
+    <rect x="0" y="26" width="300" height="6" fill="url(#primaryGrad)"/>
+    <text x="150" y="22" text-anchor="middle" font-size="12" font-weight="600" class="white-text">General Bots Server</text>
+    <text x="150" y="55" text-anchor="middle" font-size="10" class="main-text">Your bot processes the message</text>
+    <text x="150" y="72" text-anchor="middle" font-size="9" class="secondary-text">LLM • Knowledge Base • BASIC Scripts</text>
+    <text x="150" y="85" text-anchor="middle" font-size="9" class="mono-text">botserver:8080</text>
+  </g>
+
+  <!-- Arrow 3 (API call) -->
+  <path d="M450 335 L450 375" stroke="#8B5CF6" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+  <text x="470" y="360" font-size="9" class="mono-text">API Call</text>
+  <text x="435" y="360" text-anchor="middle" font-size="8" class="secondary-text">3</text>
+
+  <!-- Step 4: WhatsApp Cloud API sends reply -->
+  <g transform="translate(350, 385)">
+    <rect x="0" y="0" width="200" height="70" rx="10" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="200" height="28" rx="10" fill="url(#cyanGrad)"/>
+    <rect x="0" y="22" width="200" height="6" fill="url(#cyanGrad)"/>
+    <text x="100" y="19" text-anchor="middle" font-size="11" font-weight="600" class="white-text">WhatsApp Cloud API</text>
+    <text x="100" y="48" text-anchor="middle" font-size="10" class="main-text">Sends reply to user</text>
+  </g>
+
+  <!-- Arrow 4 (back to user) -->
+  <path d="M345 420 L285 420 L285 185 L180 185" stroke="#25D366" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+  <text x="265" y="300" text-anchor="middle" font-size="8" class="secondary-text">4</text>
+
+  <!-- Info Box: Required Configuration -->
+  <g transform="translate(620, 105)">
+    <rect x="0" y="0" width="220" height="180" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="110" y="22" text-anchor="middle" font-size="11" font-weight="600" class="main-text">Required Configuration</text>
+
+    <text x="15" y="48" font-size="9" font-weight="600" class="secondary-text">Meta Developer Portal:</text>
+    <text x="15" y="63" font-size="9" class="mono-text">• Phone Number ID</text>
+    <text x="15" y="78" font-size="9" class="mono-text">• Access Token</text>
+    <text x="15" y="93" font-size="9" class="mono-text">• Webhook URL</text>
+
+    <text x="15" y="118" font-size="9" font-weight="600" class="secondary-text">Bot Settings:</text>
+    <text x="15" y="133" font-size="9" class="mono-text">• whatsapp_phone_id</text>
+    <text x="15" y="148" font-size="9" class="mono-text">• whatsapp_token</text>
+    <text x="15" y="163" font-size="9" class="mono-text">• webhook_verify_token</text>
+  </g>
+
+  <!-- Info Box: Message Types -->
+  <g transform="translate(620, 300)">
+    <rect x="0" y="0" width="220" height="145" rx="8" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1"/>
+    <text x="110" y="22" text-anchor="middle" font-size="11" font-weight="600" class="main-text">Supported Messages</text>
+
+    <text x="15" y="45" font-size="9" class="secondary-text">✅ Text messages</text>
+    <text x="15" y="62" font-size="9" class="secondary-text">✅ Images &amp; documents</text>
+    <text x="15" y="79" font-size="9" class="secondary-text">✅ Location sharing</text>
+    <text x="15" y="96" font-size="9" class="secondary-text">✅ Interactive buttons</text>
+    <text x="15" y="113" font-size="9" class="secondary-text">✅ Template messages</text>
+    <text x="15" y="130" font-size="9" class="secondary-text">✅ Voice messages</text>
+  </g>
+</svg>

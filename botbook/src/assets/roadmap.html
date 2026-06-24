@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>General Bots Roadmap 2018-2026</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
+  color: #fff;
+  min-height: 100vh;
+  padding: 40px 20px;
+  line-height: 1.5;
+}
+
+.header { text-align: center; margin-bottom: 50px; }
+h1 {
+  font-size: 2.5rem;
+  background: linear-gradient(90deg, #00d4ff, #7b2cbf, #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 10px;
+}
+.subtitle { color: #888; font-size: 1.1rem; margin-bottom: 20px; }
+.badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #7b2cbf, #00d4ff);
+  padding: 8px 24px;
+  border-radius: 25px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.stats { display: flex; justify-content: center; gap: 30px; margin-top: 30px; flex-wrap: wrap; }
+.stat { text-align: center; }
+.stat-num {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.stat-label { color: #888; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+
+.suite {
+  max-width: 1000px;
+  margin: 0 auto 60px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 30px;
+}
+.suite-title { font-size: 1.3rem; color: #00d4ff; margin-bottom: 25px; text-align: center; }
+.apps { display: grid; grid-template-columns: repeat(9, 1fr); gap: 15px; }
+@media (max-width: 900px) { .apps { grid-template-columns: repeat(5, 1fr); } }
+@media (max-width: 500px) { .apps { grid-template-columns: repeat(3, 1fr); } }
+.app {
+  background: rgba(0,212,255,0.08);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 16px;
+  padding: 20px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.app:hover {
+  transform: translateY(-5px);
+  background: rgba(0,212,255,0.15);
+  box-shadow: 0 10px 30px rgba(0,212,255,0.2);
+}
+.app-icon { font-size: 2.2rem; margin-bottom: 8px; }
+.app-name { font-size: 0.9rem; font-weight: 600; }
+.app-desc { font-size: 0.7rem; color: #888; margin-top: 4px; }
+
+.timeline-arrow {
+  max-width: 1200px;
+  margin: 0 auto 20px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+.arrow-line {
+  flex: 1;
+  height: 4px;
+  background: linear-gradient(90deg, #64748b, #e74c3c, #27ae60, #f39c12, #3498db, #9b59b6, #1abc9c, #e91e63);
+  border-radius: 2px;
+}
+.arrow-head {
+  width: 0;
+  height: 0;
+  border-left: 20px solid #e91e63;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+}
+.timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto 50px;
+  padding: 0 20px;
+}
+.timeline-label { text-align: center; cursor: pointer; transition: transform 0.2s; }
+.timeline-label:hover { transform: scale(1.1); }
+.label-dot { width: 16px; height: 16px; border-radius: 50%; margin: 0 auto 8px; }
+.label-year { font-size: 1rem; font-weight: 700; }
+.label-desc { font-size: 0.75rem; color: #888; }
+.label-count { font-size: 0.7rem; margin-top: 4px; }
+.timeline-label.active .label-dot {
+  box-shadow: 0 0 20px currentColor;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 10px currentColor; }
+  50% { box-shadow: 0 0 25px currentColor; }
+}
+
+.periods { max-width: 1200px; margin: 0 auto; }
+.period-section {
+  margin-bottom: 30px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.period-header {
+  padding: 20px 25px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.period-header:hover { background: rgba(255,255,255,0.03); }
+.period-dot { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; }
+.period-info { flex: 1; }
+.period-title { font-size: 1.2rem; font-weight: 600; }
+.period-subtitle { font-size: 0.85rem; color: #888; }
+.period-badge { padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+.period-badge.complete { background: rgba(39, 174, 96, 0.2); color: #27ae60; }
+.period-badge.planned { background: rgba(52, 152, 219, 0.2); color: #3498db; }
+.period-badge.flagship {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.3), rgba(155, 89, 182, 0.3));
+  color: #fff;
+  animation: glow 2s infinite;
+}
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(52, 152, 219, 0.5); }
+  50% { box-shadow: 0 0 15px rgba(52, 152, 219, 0.8); }
+}
+
+.period-features {
+  padding: 0 25px 25px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.feature {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.feature:hover { background: rgba(255,255,255,0.06); transform: translateX(5px); }
+.feature-icon { font-size: 1.3rem; }
+.feature-text { flex: 1; }
+.feature-name { font-size: 0.9rem; font-weight: 500; }
+.feature-status { font-size: 0.7rem; color: #888; }
+.feature.flagship {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(155, 89, 182, 0.15));
+  border-color: rgba(52, 152, 219, 0.3);
+}
+.feature.flagship .feature-name { color: #3498db; font-weight: 700; }
+
+.legend {
+  max-width: 1200px;
+  margin: 40px auto 0;
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  flex-wrap: wrap;
+  padding: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #888; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.modal.show { display: flex; }
+.modal-box {
+  background: linear-gradient(135deg, #12122a, #1a1a3a);
+  border-radius: 20px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+}
+.modal-header { padding: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.modal-header h2 { font-size: 1.5rem; display: flex; align-items: center; gap: 12px; }
+.modal-header p { color: #888; font-size: 0.9rem; margin-top: 8px; }
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #666;
+  transition: color 0.2s;
+}
+.close-btn:hover { color: #fff; }
+.modal-body { padding: 25px; }
+.modal-body h4 { color: #00d4ff; margin: 15px 0 10px; font-size: 0.95rem; }
+.modal-body ul { list-style: none; }
+.modal-body li {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border-left: 3px solid #00d4ff;
+  font-size: 0.9rem;
+}
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.tag {
+  padding: 5px 14px;
+  background: rgba(123,44,191,0.2);
+  border: 1px solid rgba(123,44,191,0.3);
+  border-radius: 15px;
+  font-size: 0.75rem;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🤖 General Bots Roadmap</h1>
+  <p class="subtitle">Enterprise LLM Orchestrator & AI Automation Platform</p>
+  <div class="badge">🚀 V6.0 Rust Edition • 2018-2026</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">77</div><div class="stat-label">Total Features</div></div>
+    <div class="stat"><div class="stat-num">49</div><div class="stat-label">Complete ✅</div></div>
+    <div class="stat"><div class="stat-num">28</div><div class="stat-label">Planned 📋</div></div>
+    <div class="stat"><div class="stat-num">9</div><div class="stat-label">Apps in Suite</div></div>
+  </div>
+</div>
+
+<div class="suite">
+  <div class="suite-title">📱 General Bots Suite — 9 Apps</div>
+  <div class="apps">
+    <div class="app" onclick="showApp('chat')"><div class="app-icon">💬</div><div class="app-name">Chat</div><div class="app-desc">AI Assistant</div></div>
+    <div class="app" onclick="showApp('tasks')"><div class="app-icon">⚡</div><div class="app-name">Tasks</div><div class="app-desc">AUTOTASK</div></div>
+    <div class="app" onclick="showApp('drive')"><div class="app-icon">📁</div><div class="app-name">Drive</div><div class="app-desc">File Storage</div></div>
+    <div class="app" onclick="showApp('mail')"><div class="app-icon">✉️</div><div class="app-name">Mail</div><div class="app-desc">Email</div></div>
+    <div class="app" onclick="showApp('calendar')"><div class="app-icon">📅</div><div class="app-name">Calendar</div><div class="app-desc">Scheduling</div></div>
+    <div class="app" onclick="showApp('meet')"><div class="app-icon">🎥</div><div class="app-name">Meet</div><div class="app-desc">Video Calls</div></div>
+    <div class="app" onclick="showApp('paper')"><div class="app-icon">📝</div><div class="app-name">Paper</div><div class="app-desc">Documents</div></div>
+    <div class="app" onclick="showApp('research')"><div class="app-icon">🔍</div><div class="app-name">Research</div><div class="app-desc">AI Search</div></div>
+    <div class="app" onclick="showApp('analytics')"><div class="app-icon">📊</div><div class="app-name">Analytics</div><div class="app-desc">Reports</div></div>
+  </div>
+</div>
+
+<div class="timeline-arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+<div class="timeline-labels">
+  <div class="timeline-label" style="color:#64748b"><div class="label-dot" style="background:#64748b"></div><div class="label-year">2018-24</div><div class="label-desc">Pre-LLM</div><div class="label-count">12 ✅</div></div>
+  <div class="timeline-label" style="color:#e74c3c"><div class="label-dot" style="background:#e74c3c"></div><div class="label-year">2024</div><div class="label-desc">v6 Foundation</div><div class="label-count">8 ✅</div></div>
+  <div class="timeline-label" style="color:#27ae60"><div class="label-dot" style="background:#27ae60"></div><div class="label-year">2025 H1</div><div class="label-desc">Rust</div><div class="label-count">10 ✅</div></div>
+  <div class="timeline-label active" style="color:#f39c12"><div class="label-dot" style="background:#f39c12"></div><div class="label-year">2025 H2</div><div class="label-desc">AUTOTASK</div><div class="label-count">19 ✅</div></div>
+  <div class="timeline-label active" style="color:#3498db"><div class="label-dot" style="background:#3498db"></div><div class="label-year">2026 Q1</div><div class="label-desc">GO ⭐</div><div class="label-count">12 📋</div></div>
+  <div class="timeline-label" style="color:#9b59b6"><div class="label-dot" style="background:#9b59b6"></div><div class="label-year">2026 Q2</div><div class="label-desc">Collab</div><div class="label-count">10 📋</div></div>
+  <div class="timeline-label" style="color:#1abc9c"><div class="label-dot" style="background:#1abc9c"></div><div class="label-year">2026 Q3</div><div class="label-desc">Workflow</div><div class="label-count">2 📋</div></div>
+  <div class="timeline-label" style="color:#e91e63"><div class="label-dot" style="background:#e91e63"></div><div class="label-year">2026 Q4</div><div class="label-desc">Enterprise</div><div class="label-count">4 📋</div></div>
+</div>
+
+<div class="periods">
+  <!-- 2018-2024 -->
+  <div class="period-section">
+    <div class="period-header">
+      <div class="period-dot" style="background:#64748b"></div>
+      <div class="period-info"><div class="period-title">📦 2018-2024 — Pre-LLM Foundation</div><div class="period-subtitle">Node.js platform • Package system • BASIC keywords • Bot Service</div></div>
+      <div class="period-badge complete">12 Complete</div>
+    </div>
+    <div class="period-features">
+      <div class="feature"><span class="feature-icon">📦</span><div class="feature-text"><div class="feature-name">Package System</div><div class="feature-status">.gbai .gbkb .gbdialog .gbot</div></div></div>
+      <div class="feature"><span class="feature-icon">🗣️</span><div class="feature-text"><div class="feature-name">TALK / HEAR</div><div class="feature-status">Core dialog keywords</div></div></div>
+      <div class="feature"><span class="feature-icon">🧠</span><div class="feature-text"><div class="feature-name">NLP / BERT</div><div class="feature-status">Intent recognition</div></div></div>
+      <div class="feature"><span class="feature-icon">🤖</span><div class="feature-text"><div class="feature-name">GPT-3.5 Integration</div><div class="feature-status">First LLM support</div></div></div>
+      <div class="feature"><span class="feature-icon">📱</span><div class="feature-text"><div class="feature-name">QR CODE</div><div class="feature-status">WhatsApp auth</div></div></div>
+      <div class="feature"><span class="feature-icon">⏰</span><div class="feature-text"><div class="feature-name">SET SCHEDULE</div><div class="feature-status">Cron automation</div></div></div>
+    </div>
+  </div>
+
+  <!-- 2024 -->
+  <div class="period-section">
+    <div class="period-header">
+      <div class="period-dot" style="background:#e74c3c"></div>
+      <div class="period-info"><div class="period-title">🦀 2024 — v6 Rust Foundation</div><div class="period-subtitle">Migration v5→v6 • New architecture • Minimal Flow MVP</div></div>
+      <div class="period-badge complete">8 Complete</div>
+    </div>
+    <div class="period-features">
+      <div class="feature"><span class="feature-icon">🦀</span><div class="feature-text"><div class="feature-name">Rust Core</div><div class="feature-status">10x faster, 70% less memory</div></div></div>
+      <div class="feature"><span class="feature-icon">🔄</span><div class="feature-text"><div class="feature-name">Migration v5→v6</div><div class="feature-status">Node.js to Rust</div></div></div>
+      <div class="feature"><span class="feature-icon">🏗️</span><div class="feature-text"><div class="feature-name">New Architecture</div><div class="feature-status">Single crate design</div></div></div>
+      <div class="feature"><span class="feature-icon">🗄️</span><div class="feature-text"><div class="feature-name">PostgreSQL + Diesel</div><div class="feature-status">Database layer</div></div></div>
+      <div class="feature"><span class="feature-icon">🔐</span><div class="feature-text"><div class="feature-name">Vault Secrets</div><div class="feature-status">Secure credentials</div></div></div>
+      <div class="feature"><span class="feature-icon">🖥️</span><div class="feature-text"><div class="feature-name">Minimal Flow MVP</div><div class="feature-status">HTMX UI</div></div></div>
+    </div>
+  </div>
+
+  <!-- 2025 H1 -->
+  <div class="period-section">
+    <div class="period-header">
+      <div class="period-dot" style="background:#27ae60"></div>
+      <div class="period-info"><div class="period-title">🚀 2025 H1 — Rust Migration</div><div class="period-subtitle">BASIC Engine • Channels • Drive • Email • REST API</div></div>
+      <div class="period-badge complete">10 Complete</div>
+    </div>
+    <div class="period-features">
+      <div class="feature"><span class="feature-icon">⚡</span><div class="feature-text"><div class="feature-name">BASIC Engine</div><div class="feature-status">70+ keywords</div></div></div>
+      <div class="feature"><span class="feature-icon">⚙️</span><div class="feature-text"><div class="feature-name">System Automation</div><div class="feature-status">Cron jobs</div></div></div>
+      <div class="feature"><span class="feature-icon">🌐</span><div class="feature-text"><div class="feature-name">Web Chat</div><div class="feature-status">HTMX widget</div></div></div>
+      <div class="feature"><span class="feature-icon">🤖</span><div class="feature-text"><div class="feature-name">LLM Integration</div><div class="feature-status">Multi-provider</div></div></div>
+      <div class="feature"><span class="feature-icon">📁</span><div class="feature-text"><div class="feature-name">Drive (S3)</div><div class="feature-status">File storage</div></div></div>
+      <div class="feature"><span class="feature-icon">✉️</span><div class="feature-text"><div class="feature-name">Email System</div><div class="feature-status">IMAP/SMTP</div></div></div>
+      <div class="feature"><span class="feature-icon">🔌</span><div class="feature-text"><div class="feature-name">REST API</div><div class="feature-status">Full endpoints</div></div></div>
+      <div class="feature"><span class="feature-icon">💬</span><div class="feature-text"><div class="feature-name">WhatsApp</div><div class="feature-status">Cloud API</div></div></div>
+      <div class="feature"><span class="feature-icon">✈️</span><div class="feature-text"><div class="feature-name">Telegram</div><div class="feature-status">Bot API</div></div></div>
+      <div class="feature"><span class="feature-icon">📄</span><div class="feature-text"><div class="feature-name">PDF Generation</div><div class="feature-status">Document export</div></div></div>
+    </div>
+  </div>
+
+  <!-- 2025 H2 -->
+  <div class="period-section">
+    <div class="period-header">
+      <div class="period-dot" style="background:#f39c12"></div>
+      <div class="period-info"><div class="period-title">⚡ 2025 H2 — Features & AUTOTASK</div><div class="period-subtitle">Autonomous Tasks • KB • Vector DB • Tools • Generators • Multimodal</div></div>
+      <div class="period-badge complete">19 Complete</div>
+    </div>
+    <div class="period-features">
+      <div class="feature"><span class="feature-icon">⚡</span><div class="feature-text"><div class="feature-name">Tasks AI Autonomous</div><div class="feature-status">Intent → Plan → Execute</div></div></div>
+      <div class="feature"><span class="feature-icon">📚</span><div class="feature-text"><div class="feature-name">Knowledge Base</div><div class="feature-status">Vector embeddings</div></div></div>
+      <div class="feature"><span class="feature-icon">🗄️</span><div class="feature-text"><div class="feature-name">Vector DB (Qdrant)</div><div class="feature-status">Semantic search</div></div></div>
+      <div class="feature"><span class="feature-icon">🔧</span><div class="feature-text"><div class="feature-name">Tools / MCP</div><div class="feature-status">Function calling</div></div></div>
+      <div class="feature"><span class="feature-icon">🖥️</span><div class="feature-text"><div class="feature-name">UI Minimal</div><div class="feature-status">Suite interface</div></div></div>
+      <div class="feature"><span class="feature-icon">📱</span><div class="feature-text"><div class="feature-name">APP Generator</div><div class="feature-status">App scaffolding</div></div></div>
+      <div class="feature"><span class="feature-icon">🤖</span><div class="feature-text"><div class="feature-name">BOT Generator</div><div class="feature-status">Bot scaffolding</div></div></div>
+      <div class="feature"><span class="feature-icon">🌐</span><div class="feature-text"><div class="feature-name">SITE Generator</div><div class="feature-status">Website creation</div></div></div>
+      <div class="feature"><span class="feature-icon">🎯</span><div class="feature-text"><div class="feature-name">LANDPAGE Generator</div><div class="feature-status">Marketing pages</div></div></div>
+      <div class="feature"><span class="feature-icon">📊</span><div class="feature-text"><div class="feature-name">Analytics Dashboard</div><div class="feature-status">Real-time metrics</div></div></div>
+      <div class="feature"><span class="feature-icon">🎙️</span><div class="feature-text"><div class="feature-name">Speech to Text</div><div class="feature-status">Voice input</div></div></div>
+      <div class="feature"><span class="feature-icon">🔊</span><div class="feature-text"><div class="feature-name">Voice Synthesis</div><div class="feature-status">TTS output</div></div></div>
+      <div class="feature"><span class="feature-icon">🎨</span><div class="feature-text"><div class="feature-name">Image Generation</div><div class="feature-status">AI art</div></div></div>
+      <div class="feature"><span class="feature-icon">👁️</span><div class="feature-text"><div class="feature-name">Vision Analysis</div><div class="feature-status">Image understanding</div></div></div>
+      <div class="feature"><span class="feature-icon">🎮</span><div class="feature-text"><div class="feature-name">NVIDIA GPU / LXC</div><div class="feature-status">Containers ready</div></div></div>
+      <div class="feature"><span class="feature-icon">📝</span><div class="feature-text"><div class="feature-name">Paper App</div><div class="feature-status">AI writing assistant</div></div></div>
+      <div class="feature"><span class="feature-icon">🔍</span><div class="feature-text"><div class="feature-name">Research App</div><div class="feature-status">Semantic search</div></div></div>
+      <div class="feature"><span class="feature-icon">📅</span><div class="feature-text"><div class="feature-name">Calendar (iCal)</div><div class="feature-status">Event management</div></div></div>
+      <div class="feature"><span class="feature-icon">🎥</span><div class="feature-text"><div class="feature-name">Meet (WebRTC)</div><div class="feature-status">Voice/video calls</div></div></div>
+    </div>
+  </div>
+
+  <!-- 2026 Q1 - FLAGSHIP -->
+  <div class="period-section" style="border-color:rgba(52,152,219,0.4);box-shadow:0 0 30px rgba(52,152,219,0.1)">
+    <div class="period-header">
+      <div class="period-dot" style="background:#3498db;box-shadow:0 0 15px #3498db"></div>
+      <div class="period-info"><div class="period-title">🚀 2026 Q1 — Tasks AI GO ⭐ FLAGSHIP</div><div class="period-subtitle">Production autonomous • Full integrations • Transfer to Human</div></div>
+      <div class="period-badge flagship">⭐ 12 Planned</div>
+    </div>
+    <div class="period-features">
+      <div class="feature flagship"><span class="feature-icon">🚀</span><div class="feature-text"><div class="feature-name">Tasks AI GO ⭐</div><div class="feature-status">Production autonomous</div></div></div>
+      <div class="feature"><span class="feature-icon">📧</span><div class="feature-text"><div class="feature-name">Gmail Integration</div><div class="feature-status">Full email automation</div></div></div>
+      <div class="feature"><span class="feature-icon">📬</span><div class="feature-text"><div class="feature-name">Outlook/Hotmail</div><div class="feature-status">Microsoft email</div></div></div>
+      <div class="feature"><span class="feature-icon">📁</span><div class="feature-text"><div class="feature-name">Google Drive</div><div class="feature-status">File sync + Sheets/Docs</div></div></div>
+      <div class="feature"><span class="feature-icon">☁️</span><div class="feature-text"><div class="feature-name">OneDrive</div><div class="feature-status">Microsoft storage + Excel</div></div></div>
+      <div class="feature"><span class="feature-icon">📅</span><div class="feature-text"><div class="feature-name">Google Calendar</div><div class="feature-status">Event scheduling</div></div></div>
+      <div class="feature"><span class="feature-icon">📆</span><div class="feature-text"><div class="feature-name">Outlook Calendar</div><div class="feature-status">Microsoft scheduling</div></div></div>
+      <div class="feature"><span class="feature-icon">👤</span><div class="feature-text"><div class="feature-name">Transfer to Human</div><div class="feature-status">Bot → Agent handoff</div></div></div>
+      <div class="feature"><span class="feature-icon">🧠</span><div class="feature-text"><div class="feature-name">LLM-Assisted Attendant</div><div class="feature-status">AI copilot for agents</div></div></div>
+    </div>
+  </div>
+
+  <!-- 2026 Q2 -->
+  <div class="period-section">
+    <div class="period-header">
+      <div class="period-dot" style="background:#9b59b6"></div>
+      <div class="period-info"><div class="period-title">🤝 2026 Q2 — Collaboration</div><div class="period-subtitle">Multi-Agent • Meet • Teams • Slack • Docker</div></div>
+      <div class="period-badge planned">10 Planned</div>
+    </div>
+    <div class="period-features">
+      <div class="feature"><span class="feature-icon">🤖</span><div class="feature-text"><div class="feature-name">Multi-Agent System</div><div class="feature-status">Coordinated AI agents</div></div></div>
+      <div class="feature"><span class="feature-icon">🏪</span><div class="feature-text"><div class="feature-name">Bot Marketplace</div><div class="feature-status">Share & sell bots</div></div></div>
+      <div class="feature"><span class="feature-icon">🛡️</span><div class="feature-text"><div class="feature-name">Compliance Suite</div><div class="feature-status">GDPR, SOC2, HIPAA</div></div></div>
+      <div class="feature"><span class="feature-icon">👥</span><div class="feature-text"><div class="feature-name">MS Teams</div><div class="feature-status">Team collaboration</div></div></div>
+      <div class="feature"><span class="feature-icon">📊</span><div class="feature-text"><div class="feature-name">Analytics Reports</div><div class="feature-status">Advanced insights</div></div></div>
+      <div class="feature"><span class="feature-icon">🎥</span><div class="feature-text"><div class="feature-name">Google Meet</div><div class="feature-status">Video calls</div></div></div>
+      <div class="feature"><span class="feature-icon">📹</span><div class="feature-text"><div class="feature-name">Zoom</div><div class="feature-status">Video meetings</div></div></div>
+      <div class="feature"><span class="feature-icon">💼</span><div class="feature-text"><div class="feature-name">Slack</div><div class="feature-status">Team messaging</div></div></div>
+      <div class="feature"><span class="feature-icon">🎮</span><div class="feature-text"><div class="feature-name">Discord</div><div class="feature-status">Community channel</div></div></div>
+      <div class="feature"><span class="feature-icon">🐳</span><div class="feature-text"><div class="feature-name">Docker Deployment</div><div class="feature-status">Container packaging</div></div></div>
+    </div>
+  </div>
+
+  <!-- 2026 Q3 -->
+  <div class="period-section">
+    <div class="period-header">
+      <div class="period-dot" style="background:#1abc9c"></div>
+      <div class="period-info"><div class="period-title">🧠 2026 Q3 — Workflow & CRM</div><div class="period-subtitle">Workflow Designer • CRM Integration</div></div>
+      <div class="period-badge planned">2 Planned</div>
+    </div>
+    <div class="period-features">
+      <div class="feature"><span class="feature-icon">⚙️</span><div class="feature-text"><div class="feature-name">Workflow Designer</div><div class="feature-status">Visual automation</div></div></div>
+      <div class="feature"><span class="feature-icon">👤</span><div class="feature-text"><div class="feature-name">CRM Integration</div><div class="feature-status">Customer management</div></div></div>
+    </div>
+  </div>
+
+  <!-- 2026 Q4 -->
+  <div class="period-section">
+    <div class="period-header">
+      <div class="period-dot" style="background:#e91e63"></div>
+      <div class="period-info"><div class="period-title">🏆 2026 Q4 — Enterprise</div><div class="period-subtitle">Mobile Apps • SSO • White Label</div></div>
+      <div class="period-badge planned">4 Planned</div>
+    </div>
+    <div class="period-features">
+      <div class="feature"><span class="feature-icon">📱</span><div class="feature-text"><div class="feature-name">Mobile Apps</div><div class="feature-status">iOS & Android</div></div></div>
+      <div class="feature"><span class="feature-icon">🔐</span><div class="feature-text"><div class="feature-name">Enterprise SSO</div><div class="feature-status">SAML, OIDC</div></div></div>
+      <div class="feature"><span class="feature-icon">🏷️</span><div class="feature-text"><div class="feature-name">White Label</div><div class="feature-status">Full branding</div></div></div>
+      <div class="feature"><span class="feature-icon">📈</span><div class="feature-text"><div class="feature-name">Advanced Monitoring</div><div class="feature-status">Enterprise observability</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Complete</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3498db"></div>Planned</div>
+  <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#3498db,#9b59b6)"></div>Flagship</div>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target.id==='modal')closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-title"></h2>
+      <p id="modal-subtitle"></p>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const data = {
+  chat: { t: '💬 Chat', s: 'AI-powered conversations', d: [{h:'Features',i:['Real-time messaging','Context awareness','Multi-turn dialogs','File sharing','History search']}], tg:['Chat','AI','Suite'] },
+  tasks: { t: '⚡ Tasks (AUTOTASK)', s: 'Autonomous AI task execution', d: [{h:'AUTOTASK Flow',i:['1. Human provides intent','2. AI creates execution plan','3. AI generates code/content','4. AI deploys result']},{h:'Generators',i:['BOT - conversational bots','APP - applications','SITE - websites','LANDPAGE - marketing']}], tg:['AUTOTASK','Autonomous','AI'] },
+  drive: { t: '📁 Drive', s: 'File storage with Sheets/Docs', d: [{h:'Features',i:['Google Drive sync','OneDrive sync','Spreadsheet automation','Document editing','File versioning']}], tg:['Drive','Storage','Suite'] },
+  mail: { t: '✉️ Mail', s: 'Email management', d: [{h:'Features',i:['Gmail integration','Outlook/Hotmail','Smart compose','Templates','AI categorization']}], tg:['Mail','Email','Suite'] },
+  calendar: { t: '📅 Calendar', s: 'Scheduling & events', d: [{h:'Features',i:['Google Calendar sync','Outlook Calendar','Meeting scheduling','Reminders','Recurring events']}], tg:['Calendar','Suite'] },
+  meet: { t: '🎥 Meet', s: 'Video conferencing', d: [{h:'Features',i:['Google Meet','Zoom integration','Screen sharing','Recording','Meeting notes']}], tg:['Meet','Video','Suite'] },
+  paper: { t: '📝 Paper', s: 'AI-powered documents', d: [{h:'Features',i:['Rich text editor','AI writing assistance','Templates','Collaboration','Export options']}], tg:['Paper','Documents','Suite'] },
+  research: { t: '🔍 Research', s: 'AI search & analysis', d: [{h:'Features',i:['Multi-source search','AI summaries','Citations','Knowledge extraction']}], tg:['Research','AI','Suite'] },
+  analytics: { t: '📊 Analytics', s: 'Reports & insights', d: [{h:'Features',i:['Real-time dashboards','Usage metrics','Performance KPIs','Custom reports']}], tg:['Analytics','Suite'] }
+};
+
+function showApp(id) { if(data[id]) showModal(data[id]); }
+
+function showModal(item) {
+  document.getElementById('modal-title').innerHTML = item.t;
+  document.getElementById('modal-subtitle').textContent = item.s;
+  let html = '';
+  item.d.forEach(section => {
+    html += '<h4>' + section.h + '</h4><ul>';
+    section.i.forEach(i => html += '<li>' + i + '</li>');
+    html += '</ul>';
+  });
+  html += '<div class="tags">';
+  item.tg.forEach(t => html += '<span class="tag">' + t + '</span>');
+  html += '</div>';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>

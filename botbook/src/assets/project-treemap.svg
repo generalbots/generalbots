@@ -1,0 +1,215 @@
+<svg viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3498db"/><stop offset="100%" stop-color="#2980b9"/></linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#27ae60"/><stop offset="100%" stop-color="#1e8449"/></linearGradient>
+    <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9b59b6"/><stop offset="100%" stop-color="#8e44ad"/></linearGradient>
+    <linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00bcd4"/><stop offset="100%" stop-color="#0097a7"/></linearGradient>
+    <linearGradient id="g5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f39c12"/><stop offset="100%" stop-color="#e67e22"/></linearGradient>
+    <linearGradient id="g6" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e74c3c"/><stop offset="100%" stop-color="#c0392b"/></linearGradient>
+    <linearGradient id="g7" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1abc9c"/><stop offset="100%" stop-color="#16a085"/></linearGradient>
+    <linearGradient id="g8" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff5722"/><stop offset="100%" stop-color="#e64a19"/></linearGradient>
+    <linearGradient id="g9" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e91e63"/><stop offset="100%" stop-color="#c2185b"/></linearGradient>
+    <filter id="s"><feDropShadow dx="2" dy="2" stdDeviation="2" flood-opacity="0.2"/></filter>
+  </defs>
+  <rect width="1200" height="700" fill="#1a1a2e"/>
+  <text x="600" y="35" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="#fff">GB Project - Treemap Architecture</text>
+  <text x="600" y="55" text-anchor="middle" font-family="Arial" font-size="11" fill="#888">Component Space Allocation (~520K LOC)</text>
+  
+  <!-- botserver 45% -->
+  <g filter="url(#s)">
+    <rect x="15" y="70" width="540" height="380" rx="8" fill="url(#g1)"/>
+    <text x="30" y="95" font-family="Arial" font-size="16" font-weight="bold" fill="#fff">botserver</text>
+    <text x="30" y="112" font-family="Arial" font-size="10" fill="rgba(255,255,255,0.7)">204,827 lines | 45% | Core Platform</text>
+    <rect x="30" y="125" width="150" height="90" rx="5" fill="rgba(0,0,0,0.25)"/>
+    <text x="40" y="148" font-family="Arial" font-size="11" font-weight="bold" fill="#fff">basic</text>
+    <text x="40" y="163" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.6)">46,189 lines</text>
+    <text x="40" y="178" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">BASIC interpreter</text>
+    <text x="40" y="190" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">Keywords, Dialogs</text>
+    <rect x="190" y="125" width="100" height="90" rx="5" fill="rgba(0,0,0,0.25)"/>
+    <text x="200" y="148" font-family="Arial" font-size="11" font-weight="bold" fill="#fff">core</text>
+    <text x="200" y="163" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.6)">21,662 lines</text>
+    <text x="200" y="178" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">App bootstrap</text>
+    <rect x="300" y="125" width="70" height="42" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="308" y="145" font-family="Arial" font-size="9" font-weight="bold" fill="#fff">attendance</text>
+    <text x="308" y="158" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">4,640</text>
+    <rect x="380" y="125" width="60" height="42" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="388" y="145" font-family="Arial" font-size="9" font-weight="bold" fill="#fff">email</text>
+    <text x="388" y="158" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">4,573</text>
+    <rect x="450" y="125" width="60" height="42" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="458" y="145" font-family="Arial" font-size="9" font-weight="bold" fill="#fff">security</text>
+    <text x="458" y="158" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">3,910</text>
+    <rect x="300" y="175" width="70" height="40" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="305" y="195" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">compliance</text>
+    <text x="310" y="207" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">3,726</text>
+    <rect x="380" y="175" width="55" height="40" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="390" y="195" font-family="Arial" font-size="9" font-weight="bold" fill="#fff">llm</text>
+    <text x="390" y="207" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">3,102</text>
+    <rect x="445" y="175" width="65" height="40" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="455" y="195" font-family="Arial" font-size="9" font-weight="bold" fill="#fff">drive</text>
+    <text x="455" y="207" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">3,043</text>
+    <rect x="30" y="225" width="50" height="32" rx="3" fill="rgba(0,0,0,0.15)"/>
+    <text x="35" y="243" font-family="Arial" font-size="7" font-weight="bold" fill="#fff">console</text>
+    <text x="35" y="253" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">3,033</text>
+    <rect x="88" y="225" width="45" height="32" rx="3" fill="rgba(0,0,0,0.15)"/>
+    <text x="93" y="243" font-family="Arial" font-size="7" font-weight="bold" fill="#fff">tasks</text>
+    <text x="93" y="253" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">2,145</text>
+    <rect x="141" y="225" width="50" height="32" rx="3" fill="rgba(0,0,0,0.15)"/>
+    <text x="145" y="243" font-family="Arial" font-size="6" font-weight="bold" fill="#fff">vector-db</text>
+    <text x="148" y="253" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">1,950</text>
+    <rect x="199" y="225" width="50" height="32" rx="3" fill="rgba(0,0,0,0.15)"/>
+    <text x="204" y="243" font-family="Arial" font-size="7" font-weight="bold" fill="#fff">directory</text>
+    <text x="207" y="253" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">1,692</text>
+    <rect x="257" y="225" width="45" height="32" rx="3" fill="rgba(0,0,0,0.15)"/>
+    <text x="262" y="243" font-family="Arial" font-size="7" font-weight="bold" fill="#fff">paper</text>
+    <text x="265" y="253" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">1,648</text>
+    <rect x="310" y="225" width="42" height="32" rx="3" fill="rgba(0,0,0,0.15)"/>
+    <text x="315" y="243" font-family="Arial" font-size="7" font-weight="bold" fill="#fff">meet</text>
+    <text x="318" y="253" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">1,513</text>
+    <rect x="360" y="225" width="55" height="32" rx="3" fill="rgba(0,0,0,0.15)"/>
+    <text x="365" y="243" font-family="Arial" font-size="6" font-weight="bold" fill="#fff">whatsapp</text>
+    <text x="368" y="253" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">1,121</text>
+    <rect x="423" y="225" width="87" height="32" rx="3" fill="rgba(0,0,0,0.12)"/>
+    <text x="430" y="243" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.6)">+12 more services</text>
+    <text x="500" y="430" font-family="Arial" font-size="42" font-weight="bold" fill="rgba(255,255,255,0.1)">45%</text>
+  </g>
+  
+  <!-- botbook 20% -->
+  <g filter="url(#s)">
+    <rect x="565" y="70" width="280" height="180" rx="8" fill="url(#g2)"/>
+    <text x="580" y="95" font-family="Arial" font-size="14" font-weight="bold" fill="#fff">botbook</text>
+    <text x="580" y="110" font-family="Arial" font-size="9" fill="rgba(255,255,255,0.7)">105,697 lines | Documentation</text>
+    <rect x="580" y="120" width="75" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="588" y="138" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">Dialogs</text>
+    <text x="588" y="148" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">90+ keywords</text>
+    <rect x="663" y="120" width="75" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="671" y="138" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">REST API</text>
+    <text x="671" y="148" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">25+ endpoints</text>
+    <rect x="746" y="120" width="75" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="754" y="138" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">Templates</text>
+    <text x="754" y="148" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">20+ bots</text>
+    <text x="795" y="235" font-family="Arial" font-size="30" font-weight="bold" fill="rgba(255,255,255,0.1)">20%</text>
+  </g>
+  
+  <!-- botui 14% -->
+  <g filter="url(#s)">
+    <rect x="855" y="70" width="330" height="180" rx="8" fill="url(#g3)"/>
+    <text x="870" y="95" font-family="Arial" font-size="14" font-weight="bold" fill="#fff">botui</text>
+    <text x="870" y="110" font-family="Arial" font-size="9" fill="rgba(255,255,255,0.7)">74,715 lines | Web Interface</text>
+    <rect x="870" y="120" width="110" height="40" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="880" y="140" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">HTMX Components</text>
+    <text x="880" y="152" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">Askama templates</text>
+    <rect x="990" y="120" width="110" height="40" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="1000" y="140" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">Suite Apps</text>
+    <text x="1000" y="152" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">Chat, Drive, Mail</text>
+    <text x="1130" y="235" font-family="Arial" font-size="30" font-weight="bold" fill="rgba(255,255,255,0.1)">14%</text>
+  </g>
+  
+  <!-- bottest 14% -->
+  <g filter="url(#s)">
+    <rect x="565" y="260" width="180" height="190" rx="8" fill="url(#g4)"/>
+    <text x="580" y="285" font-family="Arial" font-size="14" font-weight="bold" fill="#fff">bottest</text>
+    <text x="580" y="300" font-family="Arial" font-size="9" fill="rgba(255,255,255,0.7)">74,894 lines | Testing</text>
+    <rect x="580" y="310" width="70" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="588" y="328" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">Mocks</text>
+    <text x="588" y="339" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">WA, LLM</text>
+    <rect x="658" y="310" width="70" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="666" y="328" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">Services</text>
+    <text x="666" y="339" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">DB, Redis</text>
+    <text x="700" y="435" font-family="Arial" font-size="26" font-weight="bold" fill="rgba(255,255,255,0.1)">14%</text>
+  </g>
+  
+  <!-- botapp 10% -->
+  <g filter="url(#s)">
+    <rect x="755" y="260" width="170" height="190" rx="8" fill="url(#g5)"/>
+    <text x="770" y="285" font-family="Arial" font-size="14" font-weight="bold" fill="#fff">botapp</text>
+    <text x="770" y="300" font-family="Arial" font-size="9" fill="rgba(255,255,255,0.7)">53,353 lines | Desktop</text>
+    <rect x="770" y="310" width="65" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="778" y="328" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">Tauri</text>
+    <text x="778" y="339" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">Desktop</text>
+    <rect x="843" y="310" width="65" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
+    <text x="851" y="328" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">JS Ext</text>
+    <text x="851" y="339" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">Plugins</text>
+    <text x="875" y="435" font-family="Arial" font-size="26" font-weight="bold" fill="rgba(255,255,255,0.1)">10%</text>
+  </g>
+  
+  <!-- botlib -->
+  <g filter="url(#s)">
+    <rect x="935" y="260" width="250" height="90" rx="8" fill="url(#g6)"/>
+    <text x="950" y="285" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">botlib</text>
+    <text x="950" y="300" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.7)">2,733 lines | Shared Library</text>
+    <text x="950" y="315" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">Core types, HTTP, Models</text>
+    <text x="1145" y="335" font-family="Arial" font-size="20" font-weight="bold" fill="rgba(255,255,255,0.1)">1%</text>
+  </g>
+  
+  <!-- botdevice -->
+  <g filter="url(#s)">
+    <rect x="15" y="460" width="180" height="105" rx="8" fill="url(#g7)"/>
+    <text x="30" y="485" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">botdevice</text>
+    <text x="30" y="500" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.7)">Embedded / IoT</text>
+    <text x="30" y="515" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">Tauri + ROM</text>
+    <text x="155" y="550" font-family="Arial" font-size="16" font-weight="bold" fill="rgba(255,255,255,0.1)">2%</text>
+  </g>
+  
+  <!-- botmodels -->
+  <g filter="url(#s)">
+    <rect x="205" y="460" width="180" height="105" rx="8" fill="url(#g8)"/>
+    <text x="220" y="485" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">botmodels</text>
+    <text x="220" y="500" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.7)">2,195 lines | Python ML</text>
+    <text x="220" y="515" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">ML Models, Training</text>
+    <text x="345" y="550" font-family="Arial" font-size="16" font-weight="bold" fill="rgba(255,255,255,0.1)">1%</text>
+  </g>
+  
+  <!-- botcoder -->
+  <g filter="url(#s)">
+    <rect x="395" y="460" width="160" height="105" rx="8" fill="url(#g9)"/>
+    <text x="410" y="485" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">botcoder</text>
+    <text x="410" y="500" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.7)">607 lines | AI Coding</text>
+    <text x="410" y="515" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">AI Assistant</text>
+  </g>
+  
+  <!-- bottemplates -->
+  <g filter="url(#s)">
+    <rect x="565" y="460" width="185" height="105" rx="8" fill="#795548"/>
+    <text x="580" y="485" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">bottemplates</text>
+    <text x="580" y="500" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.7)">Bot Templates</text>
+    <text x="580" y="515" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">Dialogs, Prompts, Themes</text>
+  </g>
+  
+  <!-- botplugin -->
+  <g filter="url(#s)">
+    <rect x="760" y="460" width="175" height="105" rx="8" fill="#607d8b"/>
+    <text x="775" y="485" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">botplugin</text>
+    <text x="775" y="500" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.7)">Browser Extension</text>
+    <text x="775" y="515" font-family="Arial" font-size="7" fill="rgba(255,255,255,0.5)">Chrome/Firefox JS</text>
+  </g>
+  
+  <!-- Stack info -->
+  <g filter="url(#s)">
+    <rect x="945" y="360" width="240" height="205" rx="8" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+    <text x="960" y="385" font-family="Arial" font-size="11" font-weight="bold" fill="#fff">Technology Stack</text>
+    <text x="960" y="405" font-family="Arial" font-size="8" fill="#888">Language: Rust</text>
+    <text x="960" y="420" font-family="Arial" font-size="8" fill="#888">Web: Actix-Web</text>
+    <text x="960" y="435" font-family="Arial" font-size="8" fill="#888">UI: HTMX + Tailwind</text>
+    <text x="960" y="450" font-family="Arial" font-size="8" fill="#888">Desktop: Tauri</text>
+    <text x="960" y="465" font-family="Arial" font-size="8" fill="#888">DB: PostgreSQL</text>
+    <text x="960" y="480" font-family="Arial" font-size="8" fill="#888">Vector: Custom Hybrid</text>
+    <text x="960" y="495" font-family="Arial" font-size="8" fill="#888">ML: Python + Rust</text>
+    <text x="960" y="510" font-family="Arial" font-size="8" fill="#888">Docs: mdBook</text>
+    <text x="960" y="535" font-family="Arial" font-size="7" fill="#666">Total: ~520,000 lines</text>
+    <text x="960" y="550" font-family="Arial" font-size="7" fill="#666">11 main components</text>
+  </g>
+  
+  <!-- Legend -->
+  <rect x="15" y="580" width="920" height="105" rx="8" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="30" y="605" font-family="Arial" font-size="11" font-weight="bold" fill="#fff">Legend</text>
+  <rect x="30" y="620" width="14" height="14" rx="3" fill="url(#g1)"/><text x="50" y="631" font-family="Arial" font-size="8" fill="#aaa">Backend Core</text>
+  <rect x="130" y="620" width="14" height="14" rx="3" fill="url(#g2)"/><text x="150" y="631" font-family="Arial" font-size="8" fill="#aaa">Documentation</text>
+  <rect x="240" y="620" width="14" height="14" rx="3" fill="url(#g3)"/><text x="260" y="631" font-family="Arial" font-size="8" fill="#aaa">Web Interface</text>
+  <rect x="340" y="620" width="14" height="14" rx="3" fill="url(#g4)"/><text x="360" y="631" font-family="Arial" font-size="8" fill="#aaa">Testing</text>
+  <rect x="410" y="620" width="14" height="14" rx="3" fill="url(#g5)"/><text x="430" y="631" font-family="Arial" font-size="8" fill="#aaa">Desktop App</text>
+  <rect x="510" y="620" width="14" height="14" rx="3" fill="url(#g6)"/><text x="530" y="631" font-family="Arial" font-size="8" fill="#aaa">Shared Lib</text>
+  <rect x="600" y="620" width="14" height="14" rx="3" fill="url(#g7)"/><text x="620" y="631" font-family="Arial" font-size="8" fill="#aaa">Embedded</text>
+  <rect x="690" y="620" width="14" height="14" rx="3" fill="url(#g8)"/><text x="710" y="631" font-family="Arial" font-size="8" fill="#aaa">ML Models</text>
+  <rect x="780" y="620" width="14" height="14" rx="3" fill="url(#g9)"/><text x="800" y="631" font-family="Arial" font-size="8" fill="#aaa">AI Coder</text>
+  <text x="30" y="665" font-family="Arial" font-size="9" fill="#666">Sizes proportional to lines of code. Inner boxes show sub-modules within each component.</text>
+</svg>

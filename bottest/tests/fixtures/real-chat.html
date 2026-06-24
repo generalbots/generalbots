@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotServer Chat Test</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; }
+        #chat-app {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #16213e;
+            border-radius: 12px;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 { text-align: center; margin-bottom: 20px; color: #0f4c75; }
+        #status { 
+            text-align: center; 
+            padding: 8px; 
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        #status.connected { background: #0f5132; color: #75b798; }
+        #status.disconnected { background: #58151c; color: #ea868f; }
+        #status.connecting { background: #664d03; color: #ffda6a; }
+        #messageList {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            min-height: 300px;
+        }
+        .message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 16px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .message.user {
+            background: #3282b8;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .message.bot {
+            background: #1a1a2e;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        .message .meta {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        #inputArea {
+            display: flex;
+            gap: 10px;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 24px;
+            background: #0f3460;
+            color: #eee;
+            font-size: 16px;
+        }
+        #messageInput:focus { outline: 2px solid #3282b8; }
+        #sendBtn {
+            padding: 12px 24px;
+            background: #3282b8;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        #sendBtn:hover { background: #0f4c75; }
+        #sendBtn:disabled { background: #555; cursor: not-allowed; }
+        #typing { 
+            font-size: 12px; 
+            color: #888; 
+            padding: 5px 10px;
+            display: none;
+        }
+        #typing.visible { display: block; }
+    </style>
+</head>
+<body>
+    <div id="chat-app">
+        <h2>🤖 BotServer Chat Test</h2>
+        <div id="status" class="connecting">Connecting to WebSocket...</div>
+        <div id="messageList">
+            <div class="message bot">
+                <div class="bot-message">Welcome! Type a message to test the chat.</div>
+                <div class="meta">System</div>
+            </div>
+        </div>
+        <div id="typing">Bot is typing...</div>
+        <div id="inputArea">
+            <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
+            <button id="sendBtn" disabled>Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - connect to running botserver
+        const WS_URL = window.location.protocol === 'file:' 
+            ? 'wss://localhost:8080/ws'  // Default for file:// protocol
+            : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
+        
+        let ws = null;
+        let sessionId = null;
+        const statusEl = document.getElementById('status');
+        const messageList = document.getElementById('messageList');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingEl = document.getElementById('typing');
+
+        // Connect to WebSocket
+        function connect() {
+            console.log('Connecting to:', WS_URL);
+            statusEl.className = 'connecting';
+            statusEl.textContent = 'Connecting to ' + WS_URL + '...';
+            
+            try {
+                ws = new WebSocket(WS_URL);
+            } catch (e) {
+                statusEl.className = 'disconnected';
+                statusEl.textContent = 'WebSocket Error: ' + e.message;
+                return;
+            }
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                statusEl.className = 'connected';
+                statusEl.textContent = 'Connected to BotServer';
+                sendBtn.disabled = false;
+                
+                // Send initial session request
+                sessionId = 'test-' + Date.now();
+                ws.send(JSON.stringify({
+                    type: 'session_start',
+                    session_id: sessionId,
+                    bot_name: 'default'
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                console.log('Received:', event.data);
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleMessage(msg);
+                } catch (e) {
+                    // Plain text response
+                    addMessage(event.data, 'bot');
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                statusEl.className = 'disconnected';
+                statusEl.textContent = 'Connection Error - Check if botserver is running';
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket closed');
+                statusEl.className = 'disconnected';
+                statusEl.textContent = 'Disconnected';
+                sendBtn.disabled = true;
+                // Reconnect after 3 seconds
+                setTimeout(connect, 3000);
+            };
+        }
+
+        function handleMessage(msg) {
+            typingEl.classList.remove('visible');
+            
+            if (msg.type === 'bot_response' || msg.type === 'response') {
+                addMessage(msg.content || msg.text || msg.message, 'bot');
+            } else if (msg.type === 'typing') {
+                typingEl.classList.add('visible');
+            } else if (msg.type === 'error') {
+                addMessage('Error: ' + (msg.message || msg.error), 'bot');
+            } else if (msg.content || msg.text) {
+                addMessage(msg.content || msg.text, 'bot');
+            }
+        }
+
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = 'message ' + type;
+            div.innerHTML = `
+                <div class="${type === 'bot' ? 'bot-message' : 'user-message'}">${escapeHtml(text)}</div>
+                <div class="meta">${type === 'bot' ? 'Bot' : 'You'} • ${new Date().toLocaleTimeString()}</div>
+            `;
+            messageList.appendChild(div);
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            addMessage(text, 'user');
+            
+            ws.send(JSON.stringify({
+                type: 'user_message',
+                session_id: sessionId,
+                content: text,
+                text: text,
+                message: text
+            }));
+            
+            messageInput.value = '';
+            typingEl.classList.add('visible');
+        }
+
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Start connection
+        connect();
+    </script>
+</body>
+</html>

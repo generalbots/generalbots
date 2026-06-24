@@ -1,0 +1,19 @@
+[package]
+name = "bottasks"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+cron = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
+log = { workspace = true }
+redis = { workspace = true, features = ["tokio-comp"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+uuid = { workspace = true, features = ["v4", "serde"] }

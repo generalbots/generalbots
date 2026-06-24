@@ -1,0 +1,229 @@
+<!-- Slash Command Menu -->
+        <div class="slash-menu hidden" id="slash-menu">
+            <div class="slash-menu-header" data-i18n="paper-commands">
+                Commands
+            </div>
+            <div class="slash-menu-items">
+                <button class="slash-item" data-cmd="h1">
+                    <span class="slash-icon">H1</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-heading1"
+                            >Heading 1</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-heading1-desc"
+                            >Large section heading</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="h2">
+                    <span class="slash-icon">H2</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-heading2"
+                            >Heading 2</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-heading2-desc"
+                            >Medium section heading</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="h3">
+                    <span class="slash-icon">H3</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-heading3"
+                            >Heading 3</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-heading3-desc"
+                            >Small section heading</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="bullet">
+                    <span class="slash-icon">•</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-bullet-list"
+                            >Bullet List</span
+                        >
+                        <span
+                            class="slash-desc"
+                            data-i18n="paper-bullet-list-desc"
+                            >Create a bullet list</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="number">
+                    <span class="slash-icon">1.</span>
+                    <div class="slash-text">
+                        <span
+                            class="slash-label"
+                            data-i18n="paper-numbered-list"
+                            >Numbered List</span
+                        >
+                        <span
+                            class="slash-desc"
+                            data-i18n="paper-numbered-list-desc"
+                            >Create a numbered list</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="todo">
+                    <span class="slash-icon">☑</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-todo-list"
+                            >To-Do</span
+                        >
+                        <span
+                            class="slash-desc"
+                            data-i18n="paper-todo-list-desc"
+                            >Track tasks with checkboxes</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="quote">
+                    <span class="slash-icon">"</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-quote"
+                            >Quote</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-quote-desc"
+                            >Capture a quote</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="code">
+                    <span class="slash-icon">&lt;/&gt;</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-code-block"
+                            >Code Block</span
+                        >
+                        <span
+                            class="slash-desc"
+                            data-i18n="paper-code-block-desc"
+                            >Display code with syntax</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="divider">
+                    <span class="slash-icon">—</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-divider"
+                            >Divider</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-divider-desc"
+                            >Visual section break</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="callout">
+                    <span class="slash-icon">💡</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-callout"
+                            >Callout</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-callout-desc"
+                            >Highlight important info</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="table">
+                    <span class="slash-icon">▦</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-table"
+                            >Table</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-table-desc"
+                            >Add a table</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="image">
+                    <span class="slash-icon">🖼</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-image"
+                            >Image</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-image-desc"
+                            >Upload or embed image</span
+                        >
+                    </div>
+                </button>
+                <div class="slash-menu-divider"></div>
+                <div
+                    class="slash-menu-header"
+                    data-i18n="paper-ai-quick-actions"
+                >
+                    AI Actions
+                </div>
+                <button class="slash-item ai-item" data-cmd="ai-write">
+                    <span class="slash-icon">✨</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-ai-write"
+                            >AI Write</span
+                        >
+                        <span class="slash-desc" data-i18n="paper-ai-write-desc"
+                            >Generate content from prompt</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-summarize">
+                    <span class="slash-icon">📝</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-ai-summarize"
+                            >Summarize</span
+                        >
+                        <span
+                            class="slash-desc"
+                            data-i18n="paper-ai-summarize-desc"
+                            >Condense selected text</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-expand">
+                    <span class="slash-icon">📖</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-ai-expand"
+                            >Expand</span
+                        >
+                        <span
+                            class="slash-desc"
+                            data-i18n="paper-ai-expand-desc"
+                            >Add more detail</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-improve">
+                    <span class="slash-icon">✏️</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-ai-improve"
+                            >Improve Writing</span
+                        >
+                        <span
+                            class="slash-desc"
+                            data-i18n="paper-ai-improve-desc"
+                            >Fix grammar & clarity</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-translate">
+                    <span class="slash-icon">🌐</span>
+                    <div class="slash-text">
+                        <span class="slash-label" data-i18n="paper-ai-translate"
+                            >Translate</span
+                        >
+                        <span
+                            class="slash-desc"
+                            data-i18n="paper-ai-translate-desc"
+                            >Convert to another language</span
+                        >
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-extract">
+                    <span class="slash-icon">📋</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Extract Actions</span>
+                        <span class="slash-desc">Pull tasks from text</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Assistant Panel -->

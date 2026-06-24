@@ -1,0 +1,153 @@
+.lists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    padding: 24px;
+}
+
+.list-card {
+    background: var(--surface, #1a1a1a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.list-card:hover {
+    border-color: var(--accent, #d4f505);
+    transform: translateY(-2px);
+}
+
+.list-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.list-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text, #f8fafc);
+    margin: 0;
+}
+
+.list-type {
+    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.list-type.static {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+
+.list-type.dynamic {
+    background: rgba(167, 139, 250, 0.15);
+    color: #a78bfa;
+}
+
+.list-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #333);
+}
+
+.list-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.list-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent, #d4f505);
+}
+
+.list-stat-label {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+}
+
+.list-card-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 12px;
+}
+
+.list-card-actions button {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid var(--border, #333);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary, #888);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.list-card-actions button:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text, #f8fafc);
+    border-color: var(--accent, #d4f505);
+}
+
+.list-card-actions button.danger:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.lists-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    background: var(--surface, #1a1a1a);
+}
+
+.lists-search input {
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text, #f8fafc);
+    font-size: 13px;
+    width: 160px;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+    border: 1px solid #ef4444;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.member-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.member-row:last-child { border-bottom: none; }
+
+.member-name { font-weight: 500; }
+.member-email { font-size: 12px; color: var(--text-secondary, #888); }

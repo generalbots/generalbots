@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brazilian Tax Compliance · GB</title>
+  <link rel="stylesheet" href="/suite/base-layout.css" />
+  <link rel="stylesheet" href="/suite/brazil/brazil.css" />
+  <script src="/suite/js/vendor/htmx.min.js"></script>
+  <script src="/suite/js/vendor/htmx-json-enc.js"></script>
+</head>
+<body>
+  <header class="gb-suite-header">
+    <h1>Compliance Fiscal Brasileiro</h1>
+    <p>Emissão, validação e consulta de NFe, NFSe, CTe, MDFe, EFD e SPED — toda a lógica é servida pelo Rust via fragmentos HTMX em <code>botserver/ui_fragments</code>.</p>
+  </header>
+
+  <nav class="gb-tabs" id="tax-tabs">
+    <button class="gb-tab active" data-tab-trigger="dashboard" hx-get="/suite/brazil/fragments/dashboard" hx-target="#gb-brazil-content" hx-swap="innerHTML">Visão Geral</button>
+    <button class="gb-tab" data-tab-trigger="nfe" hx-get="/suite/brazil/fragments/nfe" hx-target="#gb-brazil-content" hx-swap="innerHTML">NFe</button>
+    <button class="gb-tab" data-tab-trigger="nfse" hx-get="/suite/brazil/fragments/nfse" hx-target="#gb-brazil-content" hx-swap="innerHTML">NFSe</button>
+    <button class="gb-tab" data-tab-trigger="cte" hx-get="/suite/brazil/fragments/cte" hx-target="#gb-brazil-content" hx-swap="innerHTML">CTe / MDFe</button>
+    <button class="gb-tab" data-tab-trigger="sped" hx-get="/suite/brazil/fragments/sped" hx-target="#gb-brazil-content" hx-swap="innerHTML">EFD / SPED</button>
+    <button class="gb-tab" data-tab-trigger="history" hx-get="/suite/brazil/fragments/history" hx-target="#gb-brazil-content" hx-swap="innerHTML">Histórico</button>
+    <button class="gb-tab" data-tab-trigger="validators" hx-get="/suite/brazil/fragments/nfe" hx-target="#gb-brazil-content" hx-swap="innerHTML">Validadores</button>
+    <button class="gb-tab" data-tab-trigger="settings" hx-get="/suite/brazil/fragments/dashboard" hx-target="#gb-brazil-content" hx-swap="innerHTML">Configurações</button>
+  </nav>
+
+  <div class="gb-status-bar">
+    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-SP: Operacional</span>
+    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-RJ: Operacional</span>
+    <span class="gb-status-item"><span class="gb-status-dot degraded"></span>SEFAZ-MG: Lentidão</span>
+    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-DF: Operacional</span>
+    <span class="gb-status-item"><span class="gb-status-dot online"></span>Certificado A1: Válido até 2027-01-15</span>
+  </div>
+
+  <main id="gb-brazil-content" hx-get="/suite/brazil/fragments/dashboard" hx-trigger="load delay:0" hx-swap="innerHTML">
+    <p class="gb-loading">Carregando visão geral…</p>
+  </main>
+
+  <aside class="gb-validators" hidden>
+    <h3>Validador rápido</h3>
+    <form hx-post="/api/brazil/forms/validate" hx-swap="outerHTML" hx-target="#gb-validate-result">
+      <label>Tipo
+        <select name="kind">
+          <option value="cnpj">CNPJ</option>
+          <option value="cpf">CPF</option>
+          <option value="cep">CEP</option>
+          <option value="nfe-key">Chave NFe</option>
+        </select>
+      </label>
+      <label>Valor <input name="value" required></label>
+      <button type="submit" class="gb-btn gb-btn-primary">Validar</button>
+    </form>
+    <div id="gb-validate-result"></div>
+  </aside>
+
+  <script src="/suite/brazil/brazil.js"></script>
+</body>
+</html>

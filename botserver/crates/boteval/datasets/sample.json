@@ -1,0 +1,43 @@
+{
+  "name": "boteval-sample",
+  "description": "Sample regression suite for the General Bots chat flow",
+  "format": "jsonl",
+  "entries": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "prompt": "Olá, tudo bem?",
+      "system_prompt": "Você é o assistente do General Bots. Responda em português brasileiro.",
+      "tags": ["greeting", "lang:pt-BR"],
+      "contract": {
+        "must_contain": ["olá"],
+        "must_not_contain": ["error", "fail"],
+        "language": "pt-BR",
+        "min_tokens": 2,
+        "max_tokens": 200
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "prompt": "Liste três capitais do Brasil em JSON.",
+      "system_prompt": "Você é um assistente útil.",
+      "tags": ["json", "factual"],
+      "contract": {
+        "json_schema": { "type": "object" },
+        "must_contain": ["Brasília", "São Paulo"],
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "prompt": "Explain what General Bots is in one sentence.",
+      "system_prompt": null,
+      "tags": ["summary", "lang:en"],
+      "contract": {
+        "must_contain": ["General Bots"],
+        "language": "en",
+        "min_tokens": 6,
+        "max_tokens": 80
+      }
+    }
+  ]
+}

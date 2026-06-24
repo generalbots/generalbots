@@ -1,0 +1,216 @@
+<link rel="stylesheet" href="/suite/banking/banking.css">
+<div class="banking-container">
+    <header class="banking-header">
+        <div class="banking-header-left">
+            <h1>Banking Reconciliation</h1>
+            <nav class="banking-tabs">
+                <button class="banking-tab active" data-view="transactions">Transactions</button>
+                <button class="banking-tab" data-view="accounts">Accounts</button>
+                <button class="banking-tab" data-view="platforms">Platforms</button>
+                <button class="banking-tab" data-view="reconcile">Reconciliation</button>
+                <button class="banking-tab" data-view="pix">PIX & Transfers</button>
+                <button class="banking-tab" data-view="statements">Statements</button>
+                <button class="banking-tab" data-view="reports">Reports</button>
+                <button class="banking-tab" data-view="settings">Settings</button>
+            </nav>
+        </div>
+        <div class="banking-header-right">
+            <div class="banking-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="bankingSearch" placeholder="Search transactions...">
+            </div>
+            <select id="bankingDateRange" class="banking-filter-select">
+                <option value="7d">Last 7 days</option>
+                <option value="30d" selected>Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+                <option value="mtd">Month to date</option>
+                <option value="ytd">Year to date</option>
+                <option value="custom">Custom range</option>
+            </select>
+            <button class="btn-primary" onclick="BankingApp.refresh()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <section class="banking-stats">
+        <article class="banking-stat-card">
+            <span class="banking-stat-label">Total in</span>
+            <span class="banking-stat-value green" id="stat-total-in">R$ --</span>
+        </article>
+        <article class="banking-stat-card">
+            <span class="banking-stat-label">Total out</span>
+            <span class="banking-stat-value red" id="stat-total-out">R$ --</span>
+        </article>
+        <article class="banking-stat-card">
+            <span class="banking-stat-label">Net</span>
+            <span class="banking-stat-value blue" id="stat-net">R$ --</span>
+        </article>
+        <article class="banking-stat-card">
+            <span class="banking-stat-label">Pending reconcile</span>
+            <span class="banking-stat-value orange" id="stat-pending">--</span>
+        </article>
+        <article class="banking-stat-card">
+            <span class="banking-stat-label">Match rate</span>
+            <span class="banking-stat-value purple" id="stat-match-rate">--%</span>
+        </article>
+    </section>
+
+    <div id="transactions-view" class="banking-view active">
+        <div class="banking-summary" id="tx-summary"></div>
+        <div class="banking-table-wrap">
+            <table class="banking-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="txSelectAll"></th>
+                        <th>Date</th><th>Description</th><th>Amount</th><th>Platform</th><th>Status</th><th>Reconciled</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tx-body">
+                    <tr><td colspan="8" class="loading-row"><div class="spinner"></div> Loading transactions...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="banking-pagination" id="tx-pagination"></div>
+    </div>
+
+    <div id="accounts-view" class="banking-view">
+        <div class="accounts-toolbar">
+            <button class="btn-primary" onclick="BankingApp.showAddAccount()">+ Add account</button>
+            <button class="btn-secondary" onclick="BankingApp.syncAllAccounts()">Sync all</button>
+        </div>
+        <div class="banking-table-wrap" style="padding:24px">
+            <table class="banking-table">
+                <thead><tr><th>Bank</th><th>Agency</th><th>Account</th><th>Type</th><th>Balance</th><th>Last sync</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="accounts-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="platforms-view" class="banking-view">
+        <div class="platforms-grid" id="platforms-grid">
+            <div class="loading-row"><div class="spinner"></div> Loading platforms...</div>
+        </div>
+    </div>
+
+    <div id="reconcile-view" class="banking-view">
+        <div class="reconcile-actions" style="padding:16px 24px;border-bottom:1px solid var(--border,#2a2a2a);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn-accent" onclick="BankingApp.autoMatch()">Auto-Match</button>
+            <button class="btn-secondary" onclick="BankingApp.manualMatch()">Manual Match</button>
+            <span style="flex:1"></span>
+            <span style="font-size:13px;color:var(--text-secondary,#94a3b8)">Last run: <strong id="reconcile-last-run">--</strong></span>
+        </div>
+        <div class="reconcile-container">
+            <div class="reconcile-panel">
+                <div class="reconcile-panel-header"><h3>Bank Statements</h3><span class="badge unmatched" id="bank-unmatched-count">0 unmatched</span></div>
+                <div class="reconcile-list" id="bank-list"><div class="loading-row"><div class="spinner"></div></div></div>
+            </div>
+            <div class="reconcile-panel">
+                <div class="reconcile-panel-header"><h3>Platform Orders</h3><span class="badge pending" id="plat-unmatched-count">0 unmatched</span></div>
+                <div class="reconcile-list" id="plat-list"><div class="loading-row"><div class="spinner"></div></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pix-view" class="banking-view">
+        <div class="pix-toolbar" style="padding:16px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn-primary" onclick="BankingApp.showPixTransfer()">+ New PIX</button>
+            <button class="btn-secondary" onclick="BankingApp.showPixReceive()">Receive via QR</button>
+            <button class="btn-secondary" onclick="BankingApp.exportPixHistory()">Export history</button>
+        </div>
+        <div class="banking-table-wrap" style="padding:24px">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:600">PIX transactions</h3>
+            <table class="banking-table">
+                <thead><tr><th>Date</th><th>Direction</th><th>Counterparty</th><th>Key type</th><th>Amount</th><th>Status</th><th>End-to-end ID</th></tr></thead>
+                <tbody id="pix-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="statements-view" class="banking-view">
+        <div class="banking-table-wrap" style="padding:24px">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:600">Account statements</h3>
+            <table class="banking-table">
+                <thead><tr><th>Period</th><th>Account</th><th>Opening</th><th>Closing</th><th>Generated</th><th>Format</th><th>Actions</th></tr></thead>
+                <tbody id="statements-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="reports-view" class="banking-view">
+        <div class="reports-toolbar" style="padding:16px 24px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-primary" onclick="BankingApp.generateReport('cashflow')">Cash flow</button>
+            <button class="btn-secondary" onclick="BankingApp.generateReport('pnl')">P&amp;L summary</button>
+            <button class="btn-secondary" onclick="BankingApp.generateReport('tax')">Tax obligations</button>
+        </div>
+        <div class="reports-grid" id="reports-grid">
+            <div class="loading-row"><div class="spinner"></div> Loading reports...</div>
+        </div>
+    </div>
+
+    <div id="settings-view" class="banking-view">
+        <div class="banking-table-wrap" style="padding:24px;max-width:720px">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:600">Reconciliation rules</h3>
+            <form id="bankingSettingsForm" onsubmit="BankingApp.saveSettings(event)">
+                <label class="banking-form-row">Auto-match tolerance (cents)
+                    <input type="number" id="setting-tolerance" min="0" max="100" value="1">
+                </label>
+                <label class="banking-form-row">Date window (days)
+                    <input type="number" id="setting-window" min="0" max="30" value="3">
+                </label>
+                <label class="banking-form-row">Auto-approve under (R$)
+                    <input type="number" id="setting-auto-approve" min="0" value="500">
+                </label>
+                <label class="banking-form-row">Notify on unmatched
+                    <input type="checkbox" id="setting-notify" checked>
+                </label>
+                <label class="banking-form-row">Webhook for sync events
+                    <input type="url" id="setting-webhook" placeholder="https://...">
+                </label>
+                <div style="display:flex;gap:8px;margin-top:16px">
+                    <button class="btn-primary" type="submit">Save settings</button>
+                    <button class="btn-secondary" type="button" onclick="BankingApp.resetSettings()">Reset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="bankingTransferModal" class="banking-modal" style="display:none">
+    <div class="banking-modal-dialog">
+        <header class="banking-modal-header">
+            <h2 id="bankingTransferTitle">New PIX transfer</h2>
+            <button onclick="BankingApp.closeTransferModal()">&times;</button>
+        </header>
+        <div class="banking-modal-body">
+            <label>Recipient key type
+                <select id="transferKeyType">
+                    <option value="cpf">CPF</option>
+                    <option value="cnpj">CNPJ</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                    <option value="random">Random key</option>
+                </select>
+            </label>
+            <label>Recipient key
+                <input type="text" id="transferKey" placeholder="000.000.000-00 or email">
+            </label>
+            <label>Amount (R$)
+                <input type="number" id="transferAmount" step="0.01" min="0.01">
+            </label>
+            <label>Description
+                <input type="text" id="transferDescription" placeholder="Optional">
+            </label>
+            <label>Schedule
+                <input type="datetime-local" id="transferSchedule">
+            </label>
+        </div>
+        <footer class="banking-modal-footer">
+            <button class="btn-secondary" onclick="BankingApp.closeTransferModal()">Cancel</button>
+            <button class="btn-primary" onclick="BankingApp.confirmTransfer()">Send PIX</button>
+        </footer>
+    </div>
+</div>
+
+<script src="/suite/banking/banking.js"></script>

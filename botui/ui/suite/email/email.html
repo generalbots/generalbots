@@ -1,0 +1,249 @@
+<link rel="stylesheet" href="/suite/email/email.css" />
+
+<div class="mail-layout">
+  <div class="panel mail-sidebar">
+    <div class="compose-section">
+      <button class="compose-btn" onclick="openAiCompose()" title="New email with AI">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        <span data-i18n="email-compose">New Email</span>
+      </button>
+    </div>
+
+    <div class="folders-section">
+      <div class="nav-item active" data-folder="inbox"
+           hx-get="/api/ui/email/list?folder=inbox" hx-target="#email-list" hx-swap="innerHTML">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+          <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+        </svg>
+        <span data-i18n="email-inbox">Inbox</span>
+        <span class="folder-badge unread" id="inbox-count">0</span>
+      </div>
+      <div class="nav-item" data-folder="sent"
+           hx-get="/api/ui/email/list?folder=sent" hx-target="#email-list" hx-swap="innerHTML">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13" />
+          <polygon points="22 2 15 22 11 13 2 9 22 2" />
+        </svg>
+        <span data-i18n="email-sent">Sent</span>
+      </div>
+      <div class="nav-item" data-folder="drafts"
+           hx-get="/api/ui/email/list?folder=drafts" hx-target="#email-list" hx-swap="innerHTML">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+        <span data-i18n="email-drafts">Drafts</span>
+      </div>
+    </div>
+
+    <div class="ai-actions-section">
+      <p class="section-title" data-i18n="email-ai-tools">AI Tools</p>
+      <button class="quick-action-btn" onclick="showAutoResponder()" title="Auto-responder">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <span data-i18n="email-auto-responder">Auto-responder</span>
+      </button>
+      <button class="quick-action-btn" onclick="showConflictResolver()" title="Meeting conflict resolver">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        <span data-i18n="email-conflict-resolver">Conflict Resolver</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="panel mail-list" id="email-list">
+    <div class="list-header">
+      <h3 data-i18n="email-inbox-title">Email Inbox</h3>
+      <div class="search-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input type="text" placeholder="Search emails..." id="email-search" class="search-input"
+               hx-get="/api/ui/email/search-all" hx-target="#email-list" name="q" />
+      </div>
+    </div>
+    <div class="empty-state" id="default-list">
+      <p data-i18n="email-select">Select an email or compose a new one</p>
+    </div>
+  </div>
+
+  <div class="panel mail-content ai-compose-panel">
+    <div id="email-content" class="empty-state">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <polyline points="22,6 12,13 2,6" />
+      </svg>
+      <h3 data-i18n="email-select-msg">Select an email to read</h3>
+    </div>
+  </div>
+</div>
+
+<div id="ai-compose-modal" class="modal" style="display:none;">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h2 data-i18n="email-compose-ai">AI-Powered Compose</h2>
+      <button class="icon-btn" onclick="closeAiCompose()">&times;</button>
+    </div>
+    <div class="compose-ai-row">
+      <div class="compose-fields">
+        <div class="field-row">
+          <label data-i18n="email-to">To:</label>
+          <input type="text" id="ai-to" placeholder="Recipients" />
+        </div>
+        <div class="field-row">
+          <label>Cc:</label>
+          <input type="text" id="ai-cc" placeholder="Carbon copy" />
+        </div>
+        <div class="field-row">
+          <label data-i18n="email-subject">Subject:</label>
+          <input type="text" id="ai-subject" placeholder="Subject" />
+        </div>
+        <div class="field-row ai-tone-row">
+          <label data-i18n="email-tone">Tone:</label>
+          <select id="ai-tone" class="tone-select">
+            <option value="professional" data-i18n="email-tone-professional">Professional</option>
+            <option value="friendly" data-i18n="email-tone-friendly">Friendly</option>
+            <option value="formal" data-i18n="email-tone-formal">Formal</option>
+            <option value="concise" data-i18n="email-tone-concise">Concise</option>
+            <option value="empathetic" data-i18n="email-tone-empathetic">Empathetic</option>
+          </select>
+        </div>
+        <div class="field-row ai-prompt-row">
+          <label data-i18n="email-ai-prompt">AI Prompt:</label>
+          <textarea id="ai-prompt" rows="3" placeholder="Describe what you want to say..." 
+                    class="ai-prompt-input"></textarea>
+          <button class="btn-primary" onclick="generateWithAI()" data-i18n="email-generate">
+            Generate
+          </button>
+        </div>
+      </div>
+      <div class="compose-ai-body">
+        <div class="compose-toolbar">
+          <button class="toolbar-btn" onclick="refineWithAI('make it more professional')" title="Professional tone">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span data-i18n="email-refine-professional">Professional</span>
+          </button>
+          <button class="toolbar-btn" onclick="refineWithAI('make it shorter and concise')" title="Shorten">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+            <span data-i18n="email-refine-concise">Concise</span>
+          </button>
+          <button class="toolbar-btn" onclick="refineWithAI('make it more friendly and warm')" title="Friendly">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            <span data-i18n="email-refine-friendly">Friendly</span>
+          </button>
+          <button class="toolbar-btn" onclick="refineWithAI('check grammar and fix any errors')" title="Grammar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span data-i18n="email-refine-grammar">Grammar</span>
+          </button>
+          <button class="toolbar-btn" onclick="showCustomRefine()" title="Custom refine">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span data-i18n="email-refine-custom">Custom</span>
+          </button>
+        </div>
+        <div id="ai-body" class="compose-body ai-body-editor" contenteditable="true" data-placeholder="Generated email will appear here..."></div>
+        <div id="ai-refine-progress" class="ai-progress" style="display:none;">
+          <div class="spinner"></div>
+          <span data-i18n="email-ai-refining">AI is refining your draft...</span>
+        </div>
+      </div>
+    </div>
+    <div class="compose-ai-footer">
+      <div class="smart-reply-chips" id="ai-smart-replies"></div>
+      <div class="compose-actions">
+        <button class="btn-secondary" onclick="saveAiDraft()" data-i18n="email-save-draft">Save Draft</button>
+        <button class="btn-primary" onclick="sendAiEmail()" data-i18n="email-send">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="custom-refine-modal" class="modal" style="display:none;">
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h2 data-i18n="email-custom-refine">Custom Refinement</h2>
+      <button class="icon-btn" onclick="closeCustomRefine()">&times;</button>
+    </div>
+    <div class="form-group">
+      <label data-i18n="email-refine-instruction">Instruction:</label>
+      <textarea id="custom-refine-instruction" rows="3" placeholder="e.g. Make this email sound more urgent and include a call to action" class="ai-prompt-input"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeCustomRefine()" data-i18n="email-cancel">Cancel</button>
+      <button class="btn-primary" onclick="applyCustomRefine()" data-i18n="email-apply">Apply</button>
+    </div>
+  </div>
+</div>
+
+<div id="conflict-resolver-modal" class="modal" style="display:none;">
+  <div class="modal-content modal-medium">
+    <div class="modal-header">
+      <h2 data-i18n="email-meeting-resolver">Meeting Conflict Resolver</h2>
+      <button class="icon-btn" onclick="closeConflictResolver()">&times;</button>
+    </div>
+    <div class="form-group">
+      <label data-i18n="email-proposed-meeting">Proposed Meeting:</label>
+      <input type="text" id="cr-subject" placeholder="Meeting title" class="form-input" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label data-i18n="email-start-time">Start:</label>
+        <input type="datetime-local" id="cr-start" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="email-end-time">End:</label>
+        <input type="datetime-local" id="cr-end" class="form-input" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label data-i18n="email-attendees">Attendees:</label>
+      <input type="text" id="cr-attendees" placeholder="email1, email2, ..." class="form-input" />
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeConflictResolver()" data-i18n="email-cancel">Cancel</button>
+      <button class="btn-primary" onclick="resolveMeeting()" data-i18n="email-resolve">Resolve</button>
+    </div>
+    <div id="cr-result" style="display:none; margin-top: 1rem;"></div>
+  </div>
+</div>
+
+<div id="auto-responder-modal" class="modal" style="display:none;">
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h2 data-i18n="email-auto-responder-title">Auto-responder</h2>
+      <button class="icon-btn" onclick="closeAutoResponder()">&times;</button>
+    </div>
+    <form id="auto-responder-form">
+      <div class="form-group">
+        <label data-i18n="email-auto-status">Status:</label>
+        <select id="ar-status" class="form-input">
+          <option value="disabled" data-i18n="email-auto-disabled">Disabled</option>
+          <option value="enabled" data-i18n="email-auto-enabled">Enabled</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label data-i18n="email-auto-subject">Subject:</label>
+        <input type="text" id="ar-subject" value="Auto-reply: Out of office" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="email-auto-message">Message:</label>
+        <textarea id="ar-message" rows="4" placeholder="I'm currently out of the office..." class="ai-prompt-input"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" onclick="closeAutoResponder()" data-i18n="email-cancel">Cancel</button>
+        <button type="button" class="btn-primary" onclick="saveAutoResponder()" data-i18n="email-save">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/suite/email/email.js"></script>
+<script src="/suite/email/email.js"></script>

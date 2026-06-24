@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plans — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Plans &amp; Pricing</span>
+      <div class="mgmt-topbar-actions">
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--muted);cursor:pointer">
+          Monthly
+          <input type="checkbox" id="period-toggle" onchange="togglePeriod()" style="accent-color:var(--accent)">
+          Yearly <span style="color:var(--accent2);font-size:.75rem;font-weight:700">−20%</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="mgmt-split">
+      <!-- LEFT PITCH -->
+      <div class="mgmt-split-left">
+        <div>
+          <span class="split-pitch-tag">Flexible pricing</span>
+          <h2 class="split-pitch-title" style="margin-top:1rem">
+            Scale at your own <span>pace</span>
+          </h2>
+          <p class="split-pitch-body" style="margin-top:1rem">
+            Start free, upgrade when you need. Every plan includes a full-featured workspace, unlimited bots, and access to the App Store.
+          </p>
+        </div>
+        <ul class="split-pitch-bullets">
+          <li>No setup fees, cancel anytime</li>
+          <li>All plans include workspace + drive + email</li>
+          <li>Upgrade or downgrade instantly</li>
+          <li>20% discount billed annually</li>
+          <li>Enterprise plans with custom SLA available</li>
+        </ul>
+        <div class="split-trust">
+          <div class="split-trust-item"><span class="split-trust-num">Free</span><span class="split-trust-label">to start</span></div>
+          <div class="split-trust-item"><span class="split-trust-num">–20%</span><span class="split-trust-label">annually</span></div>
+          <div class="split-trust-item"><span class="split-trust-num">∞</span><span class="split-trust-label">bots</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT PLANS -->
+      <div class="mgmt-split-right">
+        <div class="plans-grid" id="plans-grid">
+          <div class="mgmt-empty"><div class="loading-dots"><span></span><span></span><span></span></div></div>
+        </div>
+
+        <div style="margin-top:2.5rem">
+          <div class="mgmt-section-title" style="margin-bottom:1rem">Feature Comparison</div>
+          <div style="overflow-x:auto">
+            <table class="invoice-table" id="features-table" style="min-width:500px">
+              <thead id="features-header"></thead>
+              <tbody id="features-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

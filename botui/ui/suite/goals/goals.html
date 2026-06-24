@@ -1,0 +1,818 @@
+<!-- =============================================================================
+     GOALS APP - OKR (Objectives & Key Results) Management
+     Respects Theme Manager - No hardcoded theme
+     ============================================================================= -->
+
+<div class="goals-app">
+    <!-- Sidebar -->
+    <aside class="goals-sidebar">
+        <div class="sidebar-header">
+            <h2 data-i18n="goals-title">Goals (OKR)</h2>
+            <button
+                class="btn-icon"
+                id="new-objective-btn"
+                title="New Objective"
+                hx-get="/api/goals/objectives/new"
+                hx-target="#goals-modal"
+                hx-swap="innerHTML"
+            >
+                <span>+</span>
+            </button>
+        </div>
+
+        <div class="period-selector">
+            <select
+                id="period-select"
+                hx-get="/api/goals/objectives"
+                hx-trigger="change"
+                hx-target="#objectives-list"
+                hx-swap="innerHTML"
+                hx-include="this"
+            >
+                <option value="q1-2025">Q1 2025</option>
+                <option value="q2-2025" selected>Q2 2025</option>
+                <option value="q3-2025">Q3 2025</option>
+                <option value="q4-2025">Q4 2025</option>
+                <option value="annual-2025">Annual 2025</option>
+            </select>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <h3 data-i18n="goals-objectives">Objectives</h3>
+                <div
+                    id="objectives-list"
+                    hx-get="/api/goals/objectives"
+                    hx-trigger="load, objectiveCreated from:body, objectiveDeleted from:body"
+                    hx-swap="innerHTML"
+                >
+                    <div class="loading-placeholder">Loading objectives...</div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button
+                class="sidebar-btn"
+                hx-get="/api/goals/alignment"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+            >
+                <span class="btn-icon">🔗</span>
+                <span data-i18n="goals-alignment">Alignment</span>
+            </button>
+            <button
+                class="sidebar-btn"
+                hx-get="/api/goals/ai/suggest"
+                hx-target="#goals-modal"
+                hx-swap="innerHTML"
+            >
+                <span class="btn-icon">✨</span>
+                <span>AI Suggestions</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="goals-main">
+        <!-- Dashboard Header -->
+        <header class="goals-header">
+            <div class="header-left">
+                <h1 data-i18n="goals-dashboard">OKR Dashboard</h1>
+                <span class="period-badge" id="current-period">Q2 2025</span>
+            </div>
+            <div class="header-actions">
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="dashboard" onclick="switchGoalsView('dashboard')">
+                        <span>📊</span> Dashboard
+                    </button>
+                    <button class="view-btn" data-view="tree" onclick="switchGoalsView('tree')">
+                        <span>🌳</span> Tree View
+                    </button>
+                    <button class="view-btn" data-view="list" onclick="switchGoalsView('list')">
+                        <span>📋</span> List
+                    </button>
+                </div>
+                <button
+                    class="btn-primary"
+                    hx-get="/api/goals/objectives/new"
+                    hx-target="#goals-modal"
+                    hx-swap="innerHTML"
+                >
+                    <span>+</span> New Objective
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div
+                class="stat-card"
+                hx-get="/api/goals/dashboard"
+                hx-trigger="load, objectiveUpdated from:body"
+                hx-swap="innerHTML"
+                hx-select=".stat-objectives"
+            >
+                <div class="stat-icon">🎯</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="total-objectives">--</div>
+                    <div class="stat-label">Objectives</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔑</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="total-krs">--</div>
+                    <div class="stat-label">Key Results</div>
+                </div>
+            </div>
+            <div class="stat-card progress-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="avg-progress">--</div>
+                    <div class="stat-label">Avg Progress</div>
+                </div>
+                <div class="progress-ring" id="progress-ring">
+                    <svg viewBox="0 0 36 36">
+                        <path class="progress-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path class="progress-bar" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-content">
+                    <div class="stat-value at-risk" id="at-risk-count">--</div>
+                    <div class="stat-label">At Risk</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Containers -->
+        <div id="main-content" class="goals-views">
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view-container active">
+                <div class="objectives-grid"
+                    hx-get="/api/goals/objectives"
+                    hx-trigger="load, objectiveCreated from:body, objectiveUpdated from:body"
+                    hx-swap="innerHTML"
+                >
+                    <div class="loading-placeholder">Loading objectives...</div>
+                </div>
+            </div>
+
+            <!-- Tree View -->
+            <div id="tree-view" class="view-container">
+                <div
+                    class="alignment-tree"
+                    hx-get="/api/goals/alignment"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="loading-placeholder">Loading alignment tree...</div>
+                </div>
+            </div>
+
+            <!-- List View -->
+            <div id="list-view" class="view-container">
+                <div class="objectives-table">
+                    <div class="table-header">
+                        <div class="col-objective">Objective</div>
+                        <div class="col-owner">Owner</div>
+                        <div class="col-progress">Progress</div>
+                        <div class="col-status">Status</div>
+                        <div class="col-krs">Key Results</div>
+                        <div class="col-actions">Actions</div>
+                    </div>
+                    <div
+                        class="table-body"
+                        hx-get="/api/goals/objectives?view=list"
+                        hx-trigger="load"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="loading-placeholder">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="goals-empty" class="empty-state">
+            <div class="empty-state-icon">🎯</div>
+            <h2>No Objectives Yet</h2>
+            <p>Create your first objective to start tracking your OKRs</p>
+            <button
+                class="btn-primary"
+                hx-get="/api/goals/objectives/new"
+                hx-target="#goals-modal"
+                hx-swap="innerHTML"
+            >
+                <span>+</span> Create Objective
+            </button>
+        </div>
+    </main>
+
+    <!-- Details Panel -->
+    <aside class="details-panel collapsed" id="details-panel">
+        <button class="panel-toggle" onclick="toggleGoalsPanel()">
+            <span>📋</span>
+        </button>
+        <div class="panel-content">
+            <div id="objective-details">
+                <p class="empty-message">Select an objective to view details</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Modal Container -->
+    <div id="goals-modal" class="modal-container"></div>
+</div>
+
+<style>
+.goals-app {
+    display: flex;
+    height: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.goals-sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.period-selector {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.period-selector select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+}
+
+.nav-section h3 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 0.5rem 1rem;
+    margin: 0;
+}
+
+.sidebar-footer {
+    padding: 0.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.sidebar-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: left;
+}
+
+.sidebar-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.goals-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.goals-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-left h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.period-badge {
+    padding: 0.25rem 0.75rem;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.view-toggle {
+    display: flex;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid var(--border-color);
+}
+
+.view-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+}
+
+.view-btn:hover {
+    color: var(--text-primary);
+}
+
+.view-btn.active {
+    background: var(--accent-color);
+    color: white;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stat-value.at-risk {
+    color: var(--color-warning, #f59e0b);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.progress-card {
+    position: relative;
+}
+
+.progress-ring {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+}
+
+.progress-ring svg {
+    transform: rotate(-90deg);
+}
+
+.progress-bg {
+    fill: none;
+    stroke: var(--border-color);
+    stroke-width: 3;
+}
+
+.progress-bar {
+    fill: none;
+    stroke: var(--accent-color);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.5s;
+}
+
+/* Views */
+.goals-views {
+    flex: 1;
+    overflow: auto;
+    padding: 1.5rem;
+}
+
+.view-container {
+    display: none;
+}
+
+.view-container.active {
+    display: block;
+}
+
+.objectives-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1rem;
+}
+
+/* Objective Card */
+.objective-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.objective-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.objective-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+}
+
+.objective-owner {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.objective-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-on-track {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.status-at-risk {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.status-behind {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.objective-progress {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.progress-bar-container {
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--accent-color);
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.key-results-list {
+    padding: 0.5rem 0;
+}
+
+.key-result-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.key-result-item:last-child {
+    border-bottom: none;
+}
+
+.kr-progress {
+    width: 40px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.kr-title {
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.kr-check-in {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.kr-check-in:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* Table View */
+.objectives-table {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 120px 100px 80px 80px;
+    padding: 0.75rem 1rem;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.table-body {
+    font-size: 0.875rem;
+}
+
+/* Details Panel */
+.details-panel {
+    width: 360px;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    transition: width 0.2s;
+}
+
+.details-panel.collapsed {
+    width: 48px;
+}
+
+.details-panel.collapsed .panel-content {
+    display: none;
+}
+
+.panel-toggle {
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.25rem;
+}
+
+.panel-content {
+    padding: 1rem;
+    overflow-y: auto;
+    height: calc(100% - 48px);
+}
+
+/* Empty State */
+.empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.goals-app:not(.has-objectives) .goals-views {
+    display: none;
+}
+
+.goals-app:not(.has-objectives) .empty-state {
+    display: flex;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+/* Buttons */
+.btn-icon {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.loading-placeholder {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    padding: 2rem;
+    text-align: center;
+}
+
+.modal-container:empty {
+    display: none;
+}
+
+@media (max-width: 1200px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .goals-sidebar {
+        position: absolute;
+        left: -280px;
+        height: 100%;
+        z-index: 50;
+        transition: left 0.2s;
+    }
+
+    .goals-sidebar.open {
+        left: 0;
+    }
+
+    .details-panel {
+        display: none;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .objectives-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .view-toggle {
+        display: none;
+    }
+}
+</style>
+
+<script>
+let currentGoalsView = 'dashboard';
+
+function switchGoalsView(view) {
+    currentGoalsView = view;
+
+    document.querySelectorAll('.goals-app .view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === view);
+    });
+
+    document.querySelectorAll('.goals-app .view-container').forEach(container => {
+        container.classList.toggle('active', container.id === `${view}-view`);
+    });
+}
+
+function toggleGoalsPanel() {
+    const panel = document.getElementById('details-panel');
+    panel.classList.toggle('collapsed');
+}
+
+function selectObjective(objectiveId) {
+    htmx.ajax('GET', `/api/goals/objectives/${objectiveId}`, {
+        target: '#objective-details',
+        swap: 'innerHTML'
+    });
+
+    const panel = document.getElementById('details-panel');
+    panel.classList.remove('collapsed');
+}
+
+function updateProgressRing(percentage) {
+    const ring = document.querySelector('.progress-bar');
+    if (ring) {
+        ring.setAttribute('stroke-dasharray', `${percentage}, 100`);
+    }
+}
+
+function checkIn(krId) {
+    htmx.ajax('GET', `/api/goals/key-results/${krId}/check-in`, {
+        target: '#goals-modal',
+        swap: 'innerHTML'
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'objectives-list' ||
+            event.detail.target.classList.contains('objectives-grid')) {
+            const hasObjectives = event.detail.target.children.length > 0;
+            document.querySelector('.goals-app').classList.toggle('has-objectives', hasObjectives);
+        }
+    });
+});
+</script>

@@ -1,0 +1,132 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#4B5563"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#1F2937">Package Structure</text>
+
+  <!-- Root Package -->
+  <rect x="300" y="60" width="200" height="50" fill="none" stroke="#4299E1" stroke-width="2" rx="8"/>
+  <text x="400" y="85" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#2563EB">my-bot.gbai/</text>
+  <text x="400" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1E40AF">(Package Root)</text>
+
+  <!-- Connection Lines from Root -->
+  <g stroke="#888" stroke-width="1" fill="none">
+    <line x1="400" y1="110" x2="400" y2="140"/>
+    <!-- Horizontal spread -->
+    <line x1="400" y1="140" x2="150" y2="140"/>
+    <line x1="400" y1="140" x2="650" y2="140"/>
+    <!-- Vertical lines to components -->
+    <line x1="150" y1="140" x2="150" y2="180"/>
+    <line x1="280" y1="140" x2="280" y2="180"/>
+    <line x1="400" y1="140" x2="400" y2="180"/>
+    <line x1="520" y1="140" x2="520" y2="180"/>
+    <line x1="650" y1="140" x2="650" y2="180"/>
+  </g>
+
+  <!-- Component Folders -->
+  <g id="folders">
+    <!-- .gbdialog -->
+    <rect x="70" y="180" width="160" height="80" fill="none" stroke="#F6AD55" stroke-width="2" rx="6"/>
+    <text x="150" y="205" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#EA580C">.gbdialog</text>
+    <text x="150" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#FED7AA">Dialog Scripts</text>
+    <text x="150" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">Conversation Logic</text>
+
+    <!-- .gbkb -->
+    <rect x="200" y="180" width="160" height="80" fill="none" stroke="#4FD1C5" stroke-width="2" rx="6"/>
+    <text x="280" y="205" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#0891B2">.gbkb</text>
+    <text x="280" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#0E7490">Knowledge Base</text>
+    <text x="280" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">Documents</text>
+
+    <!-- .gbot -->
+    <rect x="320" y="180" width="160" height="80" fill="none" stroke="#B794F4" stroke-width="2" rx="6"/>
+    <text x="400" y="205" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#9333EA">.gbot</text>
+    <text x="400" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C3AED">Configuration</text>
+    <text x="400" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">Bot Settings</text>
+
+    <!-- .gbtheme -->
+    <rect x="440" y="180" width="160" height="80" fill="none" stroke="#FC8181" stroke-width="2" rx="6"/>
+    <text x="520" y="205" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#EF4444">.gbtheme</text>
+    <text x="520" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#DC2626">(optional)</text>
+    <text x="520" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">UI Theme</text>
+
+    <!-- .gbdrive -->
+    <rect x="570" y="180" width="160" height="80" fill="none" stroke="#68D391" stroke-width="2" rx="6"/>
+    <text x="650" y="205" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#059669">.gbdrive</text>
+    <text x="650" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#10B981">(optional)</text>
+    <text x="650" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">File Storage</text>
+  </g>
+
+  <!-- Connection lines to file types -->
+  <g stroke="#888" stroke-width="1" fill="none" opacity="0.6">
+    <line x1="150" y1="260" x2="150" y2="300"/>
+    <line x1="280" y1="260" x2="280" y2="300"/>
+    <line x1="400" y1="260" x2="400" y2="300"/>
+    <line x1="520" y1="260" x2="520" y2="300"/>
+    <line x1="650" y1="260" x2="650" y2="300"/>
+  </g>
+
+  <!-- File Types -->
+  <g id="file-types">
+    <!-- Scripts -->
+    <rect x="80" y="300" width="140" height="60" fill="none" stroke="#F6AD55" stroke-width="1" rx="4" stroke-dasharray="3,3" opacity="0.7"/>
+    <text x="150" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#EA580C">Scripts</text>
+    <text x="150" y="345" text-anchor="middle" font-family="monospace" font-size="16" fill="#374151">.bas files</text>
+
+    <!-- Documents -->
+    <rect x="210" y="300" width="140" height="60" fill="none" stroke="#4FD1C5" stroke-width="1" rx="4" stroke-dasharray="3,3" opacity="0.7"/>
+    <text x="280" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#0891B2">Docs</text>
+    <text x="280" y="345" text-anchor="middle" font-family="monospace" font-size="16" fill="#374151">PDF/TXT</text>
+
+    <!-- Config -->
+    <rect x="330" y="300" width="140" height="60" fill="none" stroke="#B794F4" stroke-width="1" rx="4" stroke-dasharray="3,3" opacity="0.7"/>
+    <text x="400" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#9333EA">Config</text>
+    <text x="400" y="345" text-anchor="middle" font-family="monospace" font-size="16" fill="#374151">.csv</text>
+
+    <!-- Styles -->
+    <rect x="450" y="300" width="140" height="60" fill="none" stroke="#FC8181" stroke-width="1" rx="4" stroke-dasharray="3,3" opacity="0.7"/>
+    <text x="520" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#EF4444">Styles</text>
+    <text x="520" y="345" text-anchor="middle" font-family="monospace" font-size="16" fill="#374151">CSS/HTML</text>
+
+    <!-- Storage -->
+    <rect x="580" y="300" width="140" height="60" fill="none" stroke="#68D391" stroke-width="1" rx="4" stroke-dasharray="3,3" opacity="0.7"/>
+    <text x="650" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#059669">Storage</text>
+    <text x="650" y="345" text-anchor="middle" font-family="monospace" font-size="16" fill="#374151">S3 Link</text>
+  </g>
+
+  <!-- Example Structure -->
+  <g id="example" transform="translate(100, 400)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">Example Directory Structure:</text>
+
+    <g font-family="monospace" font-size="18" fill="#374151">
+      <text x="0" y="30">botname.gbai/</text>
+      <text x="20" y="50">├── botname.gbdialog/</text>
+      <text x="40" y="70">│   ├── start.bas</text>
+      <text x="40" y="90">│   ├── auth.bas</text>
+      <text x="40" y="110">│   └── tools/</text>
+      <text x="20" y="130">├── botname.gbkb/</text>
+      <text x="40" y="150">│   ├── collection1/</text>
+      <text x="40" y="170">│   └── collection2/</text>
+      <text x="20" y="190">├── botname.gbot/</text>
+      <text x="40" y="210">│   └── config.csv</text>
+      <text x="20" y="230">└── botname.gbtheme/</text>
+      <text x="40" y="250">    └── default.css</text>
+    </g>
+  </g>
+
+  <!-- Notes -->
+  <g id="notes" transform="translate(450, 430)">
+    <rect x="0" y="0" width="300" height="120" fill="none" stroke="#4A5568" stroke-width="1" rx="5" stroke-dasharray="2,2" opacity="0.5"/>
+    <text x="150" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1F2937">Key Points</text>
+
+    <g font-family="Arial, sans-serif" font-size="16" fill="#374151">
+      <text x="10" y="45">• Folder name = Bot name</text>
+      <text x="10" y="65">• Only .gbdialog is required</text>
+      <text x="10" y="85">• start.bas is the entry point</text>
+      <text x="10" y="105">• Deploy by copying folder</text>
+    </g>
+  </g>
+</svg>

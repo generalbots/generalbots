@@ -1,0 +1,216 @@
+<!-- =============================================================================
+     PROJECT APP - Project Management with Gantt Chart
+     Respects Theme Manager - No hardcoded theme
+     ============================================================================= -->
+
+<div class="project-app">
+    <!-- Sidebar -->
+    <aside class="project-sidebar">
+        <div class="sidebar-header">
+            <h2 data-i18n="project-title">Projects</h2>
+            <button
+                class="btn-icon"
+                id="new-project-btn"
+                title="New Project"
+                hx-get="/api/ui/project/new"
+                hx-target="#project-modal"
+                hx-swap="innerHTML"
+            >
+                <span>+</span>
+            </button>
+        </div>
+
+        <div class="sidebar-search">
+            <input
+                type="search"
+                id="project-search"
+                placeholder="Search projects..."
+                oninput="loadProjectList(this.value)"
+            />
+        </div>
+
+        <nav class="sidebar-nav">
+            <div id="project-list">
+                <div class="loading-placeholder">Loading projects...</div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="project-main">
+        <!-- Project Header -->
+        <header class="project-header">
+            <div class="project-info">
+                <h1 id="project-name">Select a Project</h1>
+                <div class="project-meta">
+                    <span class="meta-item" id="project-status">
+                        <span class="status-dot"></span>
+                        <span>No project selected</span>
+                    </span>
+                    <span class="meta-item" id="project-progress">
+                        <span class="progress-label">Progress:</span>
+                        <span class="progress-value">--</span>
+                    </span>
+                </div>
+            </div>
+            <div class="project-actions">
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="gantt" onclick="switchView('gantt')">
+                        <span>&#x1F4CA;</span> Gantt
+                    </button>
+                    <button class="view-btn" data-view="timeline" onclick="switchView('timeline')">
+                        <span>&#x1F4C5;</span> Timeline
+                    </button>
+                    <button class="view-btn" data-view="list" onclick="switchView('list')">
+                        <span>&#x1F4CB;</span> List
+                    </button>
+                    <button class="view-btn" data-view="board" onclick="switchView('board')">
+                        <span>&#x1F4CC;</span> Board
+                    </button>
+                </div>
+                <button
+                    class="btn-primary"
+                    id="add-task-btn"
+                    onclick="showNewTaskForm()"
+                    disabled
+                >
+                    <span>+</span> Add Task
+                </button>
+            </div>
+        </header>
+
+        <!-- View Containers -->
+        <div class="project-views">
+            <!-- Gantt Chart View -->
+            <div id="gantt-view" class="view-container active">
+                <div class="gantt-toolbar">
+                    <div class="gantt-zoom">
+                        <button class="zoom-btn" onclick="zoomGantt('day')">Day</button>
+                        <button class="zoom-btn active" onclick="zoomGantt('week')">Week</button>
+                        <button class="zoom-btn" onclick="zoomGantt('month')">Month</button>
+                        <button class="zoom-btn" onclick="zoomGantt('quarter')">Quarter</button>
+                    </div>
+                    <div class="gantt-filters">
+                        <label>
+                            <input type="checkbox" id="show-critical" checked onchange="toggleCriticalPath()">
+                            <span data-i18n="project-critical-path">Show Critical Path</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="show-milestones" checked onchange="toggleMilestones()">
+                            <span data-i18n="project-milestones">Show Milestones</span>
+                        </label>
+                    </div>
+                    <button class="btn-secondary" onclick="fitGanttToScreen()">
+                        Fit to Screen
+                    </button>
+                </div>
+
+                <div class="gantt-container">
+                    <div class="gantt-table">
+                        <div class="gantt-table-header">
+                            <div class="col-name">Task Name</div>
+                            <div class="col-start">Start</div>
+                            <div class="col-end">End</div>
+                            <div class="col-duration">Duration</div>
+                            <div class="col-progress">Progress</div>
+                            <div class="col-assignee">Assignee</div>
+                        </div>
+                        <div
+                            id="gantt-table-body"
+                            class="gantt-table-body"
+                        >
+                            <div class="empty-state-inline">
+                                Select a project to view tasks
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gantt-chart">
+                        <div class="gantt-timeline-header" id="gantt-timeline-header">
+                            <!-- Timeline headers generated by JS -->
+                        </div>
+                        <div
+                            id="gantt-chart-body"
+                            class="gantt-chart-body"
+                        >
+                            <div class="empty-state-inline">
+                                <p>No tasks to display</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline View -->
+            <div id="timeline-view" class="view-container">
+                <div
+                    id="timeline-container"
+                    class="timeline-container"
+                >
+                    <div class="empty-state-inline">Select a project to view timeline</div>
+                </div>
+            </div>
+
+            <!-- List View -->
+            <div id="list-view" class="view-container">
+                <div
+                    id="list-container"
+                    class="list-container"
+                >
+                    <div class="empty-state-inline">Select a project to view tasks</div>
+                </div>
+            </div>
+
+            <!-- Board View -->
+            <div id="board-view" class="view-container">
+                <div class="board-columns">
+                    <div class="board-column" data-status="not-started">
+                        <h3>Not Started</h3>
+                        <div id="board-tasks-not-started" class="column-tasks"></div>
+                    </div>
+                    <div class="board-column" data-status="in-progress">
+                        <h3>In Progress</h3>
+                        <div id="board-tasks-in-progress" class="column-tasks"></div>
+                    </div>
+                    <div class="board-column" data-status="completed">
+                        <h3>Completed</h3>
+                        <div id="board-tasks-completed" class="column-tasks"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="project-empty" class="empty-state">
+            <div class="empty-state-icon">&#x1F4CB;</div>
+            <h2>No Project Selected</h2>
+            <p>Select a project from the sidebar or create a new one</p>
+            <button
+                class="btn-primary"
+                hx-get="/api/ui/project/new"
+                hx-target="#project-modal"
+                hx-swap="innerHTML"
+            >
+                <span>+</span> Create Project
+            </button>
+        </div>
+    </main>
+
+    <!-- Details Panel -->
+    <aside class="details-panel collapsed" id="details-panel">
+        <button class="panel-toggle" onclick="toggleDetailsPanel()">
+            <span>&#x2139;&#xFE0F;</span>
+        </button>
+        <div class="panel-content">
+            <div id="task-details">
+                <p class="empty-message">Select a task to view details</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Modal Container -->
+    <div id="project-modal" class="modal-container"></div>
+</div>
+
+<link rel="stylesheet" href="/suite/project/project.css" />
+<script src="/suite/project/project.js"></script>

@@ -1,0 +1,265 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .today-circle { fill: #3b82f6; }
+    .event-blue { fill: #3b82f6; }
+    .event-green { fill: #22c55e; }
+    .event-purple { fill: #8b5cf6; }
+    .event-orange { fill: #f97316; }
+    .grid-line { stroke: #e2e8f0; stroke-width: 1; }
+    .hour-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .grid-line { stroke: #334155; }
+      .hour-text { fill: #64748b; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Calendar - Schedule Manager</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Sidebar -->
+  <rect x="30" y="40" width="180" height="530" class="sidebar-bg"/>
+  <line x1="210" y1="40" x2="210" y2="570" class="border"/>
+
+  <!-- New Event Button -->
+  <g transform="translate(45, 55)">
+    <rect x="0" y="0" width="150" height="40" rx="8" fill="url(#accentGrad)"/>
+    <text x="75" y="26" text-anchor="middle" font-size="14" font-weight="500" class="white-text">+ New Event</text>
+  </g>
+
+  <!-- Mini Calendar -->
+  <g transform="translate(45, 115)">
+    <g transform="translate(0, 0)">
+      <text x="0" y="0" font-size="11">◀</text>
+      <text x="75" y="0" text-anchor="middle" font-size="13" font-weight="500" class="main-text">March 2024</text>
+      <text x="150" y="0" font-size="11">▶</text>
+    </g>
+
+    <!-- Weekday Headers -->
+    <g transform="translate(0, 20)">
+      <text x="10" y="0" text-anchor="middle" font-size="10" class="muted-text">S</text>
+      <text x="32" y="0" text-anchor="middle" font-size="10" class="muted-text">M</text>
+      <text x="54" y="0" text-anchor="middle" font-size="10" class="muted-text">T</text>
+      <text x="76" y="0" text-anchor="middle" font-size="10" class="muted-text">W</text>
+      <text x="98" y="0" text-anchor="middle" font-size="10" class="muted-text">T</text>
+      <text x="120" y="0" text-anchor="middle" font-size="10" class="muted-text">F</text>
+      <text x="142" y="0" text-anchor="middle" font-size="10" class="muted-text">S</text>
+    </g>
+
+    <!-- Week 1 -->
+    <g transform="translate(0, 38)">
+      <text x="10" y="0" text-anchor="middle" font-size="11" class="muted-text">25</text>
+      <text x="32" y="0" text-anchor="middle" font-size="11" class="muted-text">26</text>
+      <text x="54" y="0" text-anchor="middle" font-size="11" class="muted-text">27</text>
+      <text x="76" y="0" text-anchor="middle" font-size="11" class="muted-text">28</text>
+      <text x="98" y="0" text-anchor="middle" font-size="11" class="muted-text">29</text>
+      <text x="120" y="0" text-anchor="middle" font-size="11" class="main-text">1</text>
+      <text x="142" y="0" text-anchor="middle" font-size="11" class="main-text">2</text>
+    </g>
+
+    <!-- Week 2 -->
+    <g transform="translate(0, 56)">
+      <text x="10" y="0" text-anchor="middle" font-size="11" class="main-text">3</text>
+      <text x="32" y="0" text-anchor="middle" font-size="11" class="main-text">4</text>
+      <text x="54" y="0" text-anchor="middle" font-size="11" class="main-text">5</text>
+      <text x="76" y="0" text-anchor="middle" font-size="11" class="main-text">6</text>
+      <text x="98" y="0" text-anchor="middle" font-size="11" class="main-text">7</text>
+      <text x="120" y="0" text-anchor="middle" font-size="11" class="main-text">8</text>
+      <text x="142" y="0" text-anchor="middle" font-size="11" class="main-text">9</text>
+    </g>
+
+    <!-- Week 3 -->
+    <g transform="translate(0, 74)">
+      <text x="10" y="0" text-anchor="middle" font-size="11" class="main-text">10</text>
+      <text x="32" y="0" text-anchor="middle" font-size="11" class="main-text">11</text>
+      <text x="54" y="0" text-anchor="middle" font-size="11" class="main-text">12</text>
+      <text x="76" y="0" text-anchor="middle" font-size="11" class="main-text">13</text>
+      <text x="98" y="0" text-anchor="middle" font-size="11" class="main-text">14</text>
+      <circle cx="120" cy="-4" r="12" class="today-circle"/>
+      <text x="120" y="0" text-anchor="middle" font-size="11" class="white-text">15</text>
+      <text x="142" y="0" text-anchor="middle" font-size="11" class="main-text">16</text>
+    </g>
+
+    <!-- Week 4 -->
+    <g transform="translate(0, 92)">
+      <text x="10" y="0" text-anchor="middle" font-size="11" class="main-text">17</text>
+      <text x="32" y="0" text-anchor="middle" font-size="11" class="main-text">18</text>
+      <text x="54" y="0" text-anchor="middle" font-size="11" class="main-text">19</text>
+      <text x="76" y="0" text-anchor="middle" font-size="11" class="main-text">20</text>
+      <text x="98" y="0" text-anchor="middle" font-size="11" class="main-text">21</text>
+      <text x="120" y="0" text-anchor="middle" font-size="11" class="main-text">22</text>
+      <text x="142" y="0" text-anchor="middle" font-size="11" class="main-text">23</text>
+    </g>
+
+    <!-- Week 5 -->
+    <g transform="translate(0, 110)">
+      <text x="10" y="0" text-anchor="middle" font-size="11" class="main-text">24</text>
+      <text x="32" y="0" text-anchor="middle" font-size="11" class="main-text">25</text>
+      <text x="54" y="0" text-anchor="middle" font-size="11" class="main-text">26</text>
+      <text x="76" y="0" text-anchor="middle" font-size="11" class="main-text">27</text>
+      <text x="98" y="0" text-anchor="middle" font-size="11" class="main-text">28</text>
+      <text x="120" y="0" text-anchor="middle" font-size="11" class="main-text">29</text>
+      <text x="142" y="0" text-anchor="middle" font-size="11" class="main-text">30</text>
+    </g>
+  </g>
+
+  <!-- Calendars List -->
+  <g transform="translate(45, 270)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">MY CALENDARS</text>
+
+    <g transform="translate(0, 20)">
+      <rect x="0" y="0" width="14" height="14" rx="3" fill="#3b82f6"/>
+      <text x="22" y="12" font-size="13" class="main-text">Personal</text>
+    </g>
+
+    <g transform="translate(0, 45)">
+      <rect x="0" y="0" width="14" height="14" rx="3" fill="#22c55e"/>
+      <text x="22" y="12" font-size="13" class="main-text">Work</text>
+    </g>
+
+    <g transform="translate(0, 70)">
+      <rect x="0" y="0" width="14" height="14" rx="3" fill="#8b5cf6"/>
+      <text x="22" y="12" font-size="13" class="main-text">Family</text>
+    </g>
+  </g>
+
+  <!-- Main Calendar Area -->
+  <!-- Header -->
+  <g transform="translate(230, 55)">
+    <rect x="0" y="0" width="70" height="32" rx="6" class="icon-btn"/>
+    <text x="35" y="21" text-anchor="middle" font-size="12" class="secondary-text">Today</text>
+
+    <text x="90" y="21" font-size="16" class="secondary-text">◀</text>
+    <text x="115" y="21" font-size="16" class="secondary-text">▶</text>
+
+    <text x="150" y="22" font-size="16" font-weight="600" class="main-text">March 15, 2024</text>
+
+    <!-- View Selector -->
+    <g transform="translate(380, 0)">
+      <rect x="0" y="0" width="180" height="32" rx="6" class="icon-btn"/>
+      <text x="30" y="21" text-anchor="middle" font-size="12" class="muted-text">Day</text>
+      <rect x="55" y="4" width="50" height="24" rx="4" fill="#3b82f6"/>
+      <text x="80" y="21" text-anchor="middle" font-size="12" class="white-text">Week</text>
+      <text x="130" y="21" text-anchor="middle" font-size="12" class="muted-text">Month</text>
+    </g>
+  </g>
+
+  <!-- Week Header -->
+  <g transform="translate(230, 100)">
+    <rect x="40" y="0" width="610" height="35" class="sidebar-bg"/>
+    <line x1="230" y1="35" x2="850" y2="35" class="grid-line"/>
+
+    <text x="80" y="15" text-anchor="middle" font-size="11" class="secondary-text">SUN</text>
+    <text x="80" y="30" text-anchor="middle" font-size="14" class="secondary-text">10</text>
+
+    <text x="165" y="15" text-anchor="middle" font-size="11" class="secondary-text">MON</text>
+    <text x="165" y="30" text-anchor="middle" font-size="14" class="secondary-text">11</text>
+
+    <text x="250" y="15" text-anchor="middle" font-size="11" class="secondary-text">TUE</text>
+    <text x="250" y="30" text-anchor="middle" font-size="14" class="secondary-text">12</text>
+
+    <text x="335" y="15" text-anchor="middle" font-size="11" class="secondary-text">WED</text>
+    <text x="335" y="30" text-anchor="middle" font-size="14" class="secondary-text">13</text>
+
+    <text x="420" y="15" text-anchor="middle" font-size="11" class="secondary-text">THU</text>
+    <text x="420" y="30" text-anchor="middle" font-size="14" class="secondary-text">14</text>
+
+    <text x="505" y="15" text-anchor="middle" font-size="11" class="accent-text">FRI</text>
+    <circle cx="505" cy="26" r="12" class="today-circle"/>
+    <text x="505" y="31" text-anchor="middle" font-size="14" class="white-text">15</text>
+
+    <text x="590" y="15" text-anchor="middle" font-size="11" class="secondary-text">SAT</text>
+    <text x="590" y="30" text-anchor="middle" font-size="14" class="secondary-text">16</text>
+  </g>
+
+  <!-- Time Grid -->
+  <g transform="translate(230, 140)">
+    <!-- Time labels -->
+    <text x="20" y="12" text-anchor="middle" font-size="10" class="hour-text">8 AM</text>
+    <text x="20" y="52" text-anchor="middle" font-size="10" class="hour-text">9 AM</text>
+    <text x="20" y="92" text-anchor="middle" font-size="10" class="hour-text">10 AM</text>
+    <text x="20" y="132" text-anchor="middle" font-size="10" class="hour-text">11 AM</text>
+    <text x="20" y="172" text-anchor="middle" font-size="10" class="hour-text">12 PM</text>
+    <text x="20" y="212" text-anchor="middle" font-size="10" class="hour-text">1 PM</text>
+    <text x="20" y="252" text-anchor="middle" font-size="10" class="hour-text">2 PM</text>
+    <text x="20" y="292" text-anchor="middle" font-size="10" class="hour-text">3 PM</text>
+    <text x="20" y="332" text-anchor="middle" font-size="10" class="hour-text">4 PM</text>
+    <text x="20" y="372" text-anchor="middle" font-size="10" class="hour-text">5 PM</text>
+
+    <!-- Grid lines -->
+    <line x1="40" y1="5" x2="620" y2="5" class="grid-line"/>
+    <line x1="40" y1="45" x2="620" y2="45" class="grid-line"/>
+    <line x1="40" y1="85" x2="620" y2="85" class="grid-line"/>
+    <line x1="40" y1="125" x2="620" y2="125" class="grid-line"/>
+    <line x1="40" y1="165" x2="620" y2="165" class="grid-line"/>
+    <line x1="40" y1="205" x2="620" y2="205" class="grid-line"/>
+    <line x1="40" y1="245" x2="620" y2="245" class="grid-line"/>
+    <line x1="40" y1="285" x2="620" y2="285" class="grid-line"/>
+    <line x1="40" y1="325" x2="620" y2="325" class="grid-line"/>
+    <line x1="40" y1="365" x2="620" y2="365" class="grid-line"/>
+
+    <!-- Column dividers -->
+    <line x1="125" y1="0" x2="125" y2="385" class="grid-line"/>
+    <line x1="210" y1="0" x2="210" y2="385" class="grid-line"/>
+    <line x1="295" y1="0" x2="295" y2="385" class="grid-line"/>
+    <line x1="380" y1="0" x2="380" y2="385" class="grid-line"/>
+    <line x1="465" y1="0" x2="465" y2="385" class="grid-line"/>
+    <line x1="550" y1="0" x2="550" y2="385" class="grid-line"/>
+
+    <!-- Events -->
+    <!-- Monday 9-10 AM -->
+    <rect x="127" y="45" width="80" height="40" rx="4" class="event-green"/>
+    <text x="135" y="62" font-size="10" font-weight="500" class="white-text">Team Standup</text>
+    <text x="135" y="75" font-size="9" class="white-text">9:00 - 10:00</text>
+
+    <!-- Wednesday 11 AM - 12 PM -->
+    <rect x="297" y="125" width="80" height="40" rx="4" class="event-blue"/>
+    <text x="305" y="142" font-size="10" font-weight="500" class="white-text">Client Call</text>
+    <text x="305" y="155" font-size="9" class="white-text">11:00 - 12:00</text>
+
+    <!-- Friday (Today) 2-3 PM -->
+    <rect x="467" y="245" width="80" height="40" rx="4" class="event-purple"/>
+    <text x="475" y="262" font-size="10" font-weight="500" class="white-text">Project Review</text>
+    <text x="475" y="275" font-size="9" class="white-text">2:00 - 3:00</text>
+
+    <!-- Friday 4-5 PM -->
+    <rect x="467" y="325" width="80" height="40" rx="4" class="event-orange"/>
+    <text x="475" y="342" font-size="10" font-weight="500" class="white-text">1:1 Meeting</text>
+    <text x="475" y="355" font-size="9" class="white-text">4:00 - 5:00</text>
+
+    <!-- Current time indicator (Friday ~2:30 PM) -->
+    <line x1="465" y1="265" x2="550" y2="265" stroke="#ef4444" stroke-width="2"/>
+    <circle cx="465" cy="265" r="4" fill="#ef4444"/>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(230, 555)">
+    <text x="0" y="0" font-size="10" class="muted-text">Click to create | Drag to reschedule | Double-click to edit</text>
+  </g>
+</svg>

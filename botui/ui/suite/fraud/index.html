@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anti-Fraud Engine</title>
+<style>
+:root { --bg: #0f1117; --card: #1a1d27; --border: #2d3148; --text: #e8eaed; --text2: #9aa0b4; --accent: #6366f1; --danger: #ef4444; --success: #22c55e; --warning: #f59e0b; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+.stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.stat-label { font-size: 13px; color: var(--text2); }
+.tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--card); padding: 4px; border-radius: 8px; }
+.tab { flex:1; padding: 12px; background: transparent; border: none; color: var(--text2); cursor: pointer; border-radius: 6px; }
+.tab.active { background: var(--accent); color: #fff; }
+.panel { display: none; }
+.panel.active { display: block; }
+table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; }
+th { text-align: left; padding: 12px; font-size: 12px; color: var(--text2); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+td { padding: 12px; font-size: 14px; border-bottom: 1px solid var(--border); }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge-critical { background: rgba(239,68,68,0.15); color: var(--danger); }
+.badge-high { background: rgba(245,158,11,0.15); color: var(--warning); }
+.badge-medium { background: rgba(99,102,241,0.15); color: var(--accent); }
+.badge-low { background: rgba(34,197,94,0.15); color: var(--success); }
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>Anti-Fraud Engine</h1></header>
+<div class="stats" id="stats"></div>
+<nav class="tabs">
+<button class="tab active" data-tab="events">Events</button>
+<button class="tab" data-tab="rules">Rules</button>
+<button class="tab" data-tab="blocklist">Blocklist</button>
+</nav>
+<div class="panel active" id="panel-events"><table><thead><tr><th>Type</th><th>Entity</th><th>Score</th><th>Level</th><th>Action</th><th>Date</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
+<div class="panel" id="panel-rules"><table><thead><tr><th>Name</th><th>Type</th><th>Severity</th><th>Action</th><th>Active</th></tr></thead><tbody id="rulesBody"></tbody></table></div>
+<div class="panel" id="panel-blocklist"><table><thead><tr><th>Type</th><th>Value</th><th>Reason</th><th>Expires</th></tr></thead><tbody id="blocklistBody"></tbody></table></div>
+</div>
+<script>
+const API = '/api/fraud';
+async function load() {
+  const tabs = {events:[],rules:[],blocklist:[]};
+  try {
+    const [ev, ru, bl, st] = await Promise.all([
+      fetch(API+'/events').then(r=>r.json()),
+      fetch(API+'/rules').then(r=>r.json()),
+      fetch(API+'/blocklist').then(r=>r.json()),
+      fetch(API+'/stats').then(r=>r.json())
+    ]);
+    tabs.events = ev; tabs.rules = ru; tabs.blocklist = bl;
+    document.querySelector('#stats').innerHTML = Object.entries(st).map(([k,v])=>`<div class="stat-card"><div class="stat-value">${v}</div><div class="stat-label">${k.replace(/_/g,' ')}</div></div>`).join('');
+    document.querySelector('#eventsBody').innerHTML = ev.map(e=>`<tr><td>${e.event_type}</td><td>${e.entity_type}</td><td>${e.risk_score}</td><td><span class="badge badge-${e.risk_level}">${e.risk_level}</span></td><td>${e.action_taken}</td><td>${new Date(e.created_at).toLocaleString()}</td></tr>`).join('');
+    document.querySelector('#rulesBody').innerHTML = ru.map(r=>`<tr><td>${r.name}</td><td>${r.rule_type}</td><td><span class="badge badge-${r.severity}">${r.severity}</span></td><td>${r.action}</td><td>${r.is_active?'✅':'❌'}</td></tr>`).join('');
+    document.querySelector('#blocklistBody').innerHTML = bl.map(b=>`<tr><td>${b.block_type}</td><td>${b.block_value}</td><td>${b.reason||''}</td><td>${b.expires_at?new Date(b.expires_at).toLocaleString():'Never'}</td></tr>`).join('');
+  } catch(e) { console.error(e); }
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById('panel-'+t.dataset.tab).classList.add('active');}));
+load();
+</script>
+</body>
+</html>

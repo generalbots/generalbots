@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>General Bots Desktop</title>
+
+        <!-- Link to the existing compiled CSS -->
+        <link rel="stylesheet" href="/suite/css/app.css" />
+        <link rel="stylesheet" href="/suite/css/base.css" />
+        <link rel="stylesheet" href="/suite/css/theme-sentient.css" />
+        <link rel="stylesheet" href="/suite/css/desktop.css?v=2" />
+        <link rel="stylesheet" href="/suite/css/config-colors.css" />
+
+        <!-- Local JS requirements per AGENTS.md / UI.md -->
+        <script src="/suite/js/vendor/htmx.min.js"></script>
+        <script src="/suite/js/security-bootstrap.js"></script>
+        <script src="/suite/js/vendor/marked.min.js"></script>
+        <script src="/suite/js/vendor/three.min.js"></script>
+        <script src="/suite/js/desktop3d.js"></script>
+        <script src="/suite/js/window-manager.js?v=4"></script>
+        <script src="/suite/js/theme-manager.js"></script>
+
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Fira Code", "Fira Sans", Arial, sans-serif;
+                background: var(--bg, #ffffff);
+                color: var(--text, #333333);
+                overflow: hidden;
+                height: 100vh;
+                width: 100vw;
+                margin: 0;
+                padding: 0;
+                display: flex;
+            }
+
+            /* Core Layout replicating BUILD V3 screenshot styling */
+            .build-container {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                position: absolute;
+                inset: 0;
+                z-index: 1000;
+                background: var(--bg, #ffffff);
+            }
+
+            /* Left Sidebar */
+            .sidebar {
+                width: 51px;
+                height: 100%;
+                background: var(--bg-secondary, #f8f8f8);
+                border-right: 1px solid #d1d5db;
+                display: flex;
+                flex-direction: column;
+                z-index: 100;
+            }
+
+            .sidebar-item {
+                width: 51px;
+                height: 50px;
+                border-bottom: 1px solid var(--border-color, #f0f1f2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+
+            .sidebar-item:hover {
+                background: var(--bg, #ffffff);
+            }
+
+            .sidebar-item.active {
+                background: var(--bg, #ffffff);
+                border-left: 3px solid var(--primary, #84d669);
+            }
+
+            .sidebar-icon {
+                width: 30px;
+                height: 30px;
+                stroke: var(--text-secondary, #3b3b3b);
+                opacity: 0.6;
+                transition:
+                    stroke 0.15s ease,
+                    opacity 0.15s ease;
+            }
+
+            .sidebar-item:hover .sidebar-icon {
+                opacity: 1;
+                stroke: var(--text, #3b3b3b);
+            }
+
+            /* Main Content wrapper */
+            .main-wrapper {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            /* Top Navigation Tabs - Removed (already in Vibe) */
+
+            /* Workspace (Where windows float) */
+            .workspace {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                background: var(--bg, #ffffff);
+                position: relative;
+            }
+
+            /* The Panel Grid (Desktop Icons) */
+            .panel-section {
+                flex: 1;
+                padding: 26px 33px;
+                overflow-y: auto;
+                z-index: 10;
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+            }
+
+            /* Interactive Desktop Icons triggering HTMX */
+            .desktop-icons-container {
+                display: flex;
+                flex-wrap: wrap;
+                flex-direction: row;
+                gap: 20px;
+                align-items: flex-start;
+                justify-content: flex-end;
+                width: auto;
+                pointer-events: auto;
+                position: absolute;
+                right: 33px;
+                top: 26px;
+            }
+
+            .desktop-icon {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 80px;
+                cursor: pointer;
+                position: relative;
+                gap: 8px;
+            }
+
+            .app-icon {
+                width: 64px;
+                height: 64px;
+                border-radius: 16px;
+                background: var(--surface-hover, #ffffff);
+                border: 1px solid var(--border, #e5e7eb);
+                box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.05);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.15s ease;
+            }
+
+            .desktop-icon:hover .app-icon {
+                transform: scale(1.05);
+                border-color: var(--accent, #84d669);
+                box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .app-icon svg {
+                width: 32px;
+                height: 32px;
+                stroke: var(--text, #374151);
+                transition: stroke 0.15s ease;
+            }
+
+            .desktop-icon:hover .app-icon svg {
+                stroke: var(--accent, #84d669);
+            }
+
+            .desktop-icon-label {
+                font-family: "Fira Code", monospace;
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-secondary, #374151);
+                background: transparent;
+                backdrop-filter: blur(4px);
+                padding: 2px 8px;
+                border-radius: 4px;
+                text-align: center;
+            }
+
+            .bg-grid {
+                display: none;
+            }
+
+            .bg-svg {
+                display: none !important;
+            }
+
+            /* Bottom Taskbar */
+            .toolbar {
+                height: 50px;
+                background: var(--surface);
+                border-top: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                padding: 0 8px;
+                z-index: 100;
+                position: relative;
+            }
+
+            #taskbar-apps {
+                display: flex;
+                flex: 1;
+                height: 100%;
+                align-items: center;
+                gap: 0px;
+            }
+
+            .toolbar-time {
+                font-family: "Fira Code", monospace;
+                font-size: 14px;
+                color: var(--text-secondary, #3b3b3b);
+                text-align: right;
+                line-height: 1.4;
+                padding: 0 10px;
+                margin-left: auto;
+            }
+
+            /* Taskbar Items generated by WindowManager */
+            .taskbar-item {
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                border-bottom: 2px solid transparent;
+            }
+
+
+
+
+    
+            /* Fullscreen Mode Styles */
+            body.fullscreen .chat-sidebar {
+                display: none !important;
+            }
+
+            body.fullscreen .toolbar-v15 {
+                display: none !important;
+            }
+
+            body.fullscreen .workspace-v15 {
+                height: 100vh !important;
+            }
+
+            body.fullscreen .main-wrapper {
+                height: 100vh !important;
+            }
+
+            body.fullscreen .window-titlebar {
+                display: none !important;
+            }
+
+            body.fullscreen .window-element-glass {
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+
+            body.fullscreen .window-element {
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+        
+            /* Hide window title bar in fullscreen */
+            body.fullscreen .window-element-glass > div:first-child {
+                display: none !important;
+            }
+            body.fullscreen .window-element > div:first-child {
+                display: none !important;
+            }
+
+            /* Setup Wizard Styles */
+            .setup-wizard-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(4px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+            }
+            .setup-wizard-modal {
+                width: 520px;
+                max-width: 90vw;
+                background: var(--surface, #1a1a24);
+                border: 1px solid var(--border, #2a2a2a);
+                border-radius: 16px;
+                padding: 32px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            }
+            .setup-wizard-header { text-align: center; margin-bottom: 24px; }
+            .setup-wizard-header h2 { font-size: 24px; font-weight: 700; margin: 0 0 8px; color: var(--text, #e5e5e5); }
+            .setup-wizard-header p { margin: 0; color: var(--text-secondary, #888); font-size: 14px; }
+            .setup-progress { margin-bottom: 32px; }
+            .setup-progress-bar { height: 4px; background: var(--border, #2a2a2a); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+            .setup-progress-fill { height: 100%; background: var(--primary, #84d669); border-radius: 2px; transition: width 0.3s ease; }
+            .setup-progress-steps { display: flex; justify-content: space-between; }
+            .setup-step { font-size: 12px; color: var(--text-secondary, #888); transition: color 0.3s ease; }
+            .setup-step.active { color: var(--primary, #84d669); font-weight: 600; }
+            .setup-step-content { display: none; }
+            .setup-step-content.active { display: block; }
+            .setup-step-content h3 { font-size: 18px; font-weight: 600; margin: 0 0 8px; color: var(--text, #e5e5e5); }
+            .setup-step-content p { margin: 0 0 20px; color: var(--text-secondary, #888); font-size: 14px; }
+            .setup-options { display: flex; flex-direction: column; gap: 12px; }
+            .setup-option { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--surface-hover, rgba(255, 255, 255, 0.03)); border: 2px solid var(--border, #2a2a2a); border-radius: 12px; cursor: pointer; transition: all 0.2s ease; }
+            .setup-option:hover { border-color: var(--primary, #84d669); background: rgba(132, 214, 105, 0.05); }
+            .setup-option.selected { border-color: var(--primary, #84d669); background: rgba(132, 214, 105, 0.1); }
+            .setup-option-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: rgba(132, 214, 105, 0.1); border-radius: 12px; color: var(--primary, #84d669); flex-shrink: 0; }
+            .setup-option-info { flex: 1; }
+            .setup-option-title { display: block; font-size: 15px; font-weight: 600; color: var(--text, #e5e5e5); margin-bottom: 4px; }
+            .setup-option-desc { font-size: 13px; color: var(--text-secondary, #888); }
+            .setup-form { display: flex; flex-direction: column; gap: 16px; }
+            .setup-form-group { display: flex; flex-direction: column; gap: 6px; }
+            .setup-form-group label { font-size: 13px; font-weight: 600; color: var(--text, #e5e5e5); }
+            .setup-input { padding: 12px 16px; background: var(--surface-hover, rgba(255, 255, 255, 0.05)); border: 1px solid var(--border, #2a2a2a); border-radius: 8px; color: var(--text, #e5e5e5); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s ease; }
+            .setup-input:focus { border-color: var(--primary, #84d669); }
+            .setup-input::placeholder { color: var(--text-secondary, #555); }
+            textarea.setup-input { resize: vertical; min-height: 80px; }
+            .setup-wizard-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border, #2a2a2a); }
+            .setup-btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
+            .setup-btn-primary { background: var(--primary, #84d669); color: #000; }
+            .setup-btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+            .setup-btn-secondary { background: var(--surface-hover, rgba(255, 255, 255, 0.1)); color: var(--text, #e5e5e5); border: 1px solid var(--border, #2a2a2a); }
+            .setup-btn-secondary:hover { background: var(--surface-active, rgba(255, 255, 255, 0.15)); }
+            .setup-btn-text { background: none; color: var(--text-secondary, #888); margin-right: auto; }
+            .setup-btn-text:hover { color: var(--text, #e5e5e5); }
+
+            .setup-drop-zone {
+              border: 2px dashed var(--border, #2a2a2a);
+              border-radius: 12px;
+              padding: 32px;
+              text-align: center;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              background: var(--surface-hover, rgba(255,255,255,0.02));
+            }
+            .setup-drop-zone:hover,
+            .setup-drop-zone.dragover {
+              border-color: var(--primary, #84d669);
+              background: rgba(132, 214, 105, 0.05);
+            }
+            .setup-drop-zone.dragover .setup-drop-icon svg {
+              stroke: var(--primary, #84d669);
+            }
+            .setup-drop-icon { margin-bottom: 12px; }
+            .setup-drop-icon svg { stroke: var(--text-secondary, #888); transition: stroke 0.2s; }
+            .setup-drop-text { font-size: 14px; color: var(--text, #e5e5e5); margin: 0 0 4px; }
+            .setup-drop-hint { font-size: 12px; color: var(--text-secondary, #888); margin: 0 0 16px; }
+            .setup-file-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+            .setup-file-item {
+              display: flex; align-items: center; gap: 8px;
+              padding: 8px 12px; background: var(--surface-hover, rgba(255,255,255,0.03));
+              border: 1px solid var(--border, #2a2a2a); border-radius: 6px;
+              font-size: 13px; color: var(--text, #e5e5e5);
+            }
+            .setup-file-item .file-name { flex: 1; }
+            .setup-file-item .file-size { font-size: 11px; color: var(--text-secondary, #888); }
+            .setup-file-item .file-status { font-size: 11px; font-weight: 600; }
+            .setup-file-item .file-status.uploaded { color: #22c55e; }
+            .setup-file-item .file-status.uploading { color: #f59e0b; }
+            .setup-file-item .file-status.error { color: #ef4444; }
+        </style>
+
+    </head>
+
+    <body>
+        <!-- Minibar removed - login moved to taskbar -->
+
+        <div class="build-container">
+            <!-- Chat Sidebar (v15) -->
+            <aside class="chat-sidebar" id="chatSidebar">
+                <div class="chat-sidebar-toggle" onclick="toggleChatSidebar()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <div class="chat-sidebar-content">
+                    <div class="chat-sidebar-header">
+                        <div class="chat-sidebar-title"><span class="glow-dot"></span> Chat</div>
+                    </div>
+                    <button class="chat-sidebar-new-chat" onclick="window.WindowManager.open('chat','Chat','');fetch('/suite/partials/chat.html').then(r=>r.text()).then(html=>{var b=document.getElementById('window-body-chat');if(b)window.WindowManager._injectBodyContent('chat',html);});">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        New Conversation
+                    </button>
+                    <div class="chat-sidebar-conversations" id="chatConversations">
+                        <div class="chat-sidebar-conv-item">
+                            <div class="chat-sidebar-conv-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/></svg></div>
+                            <div class="chat-sidebar-conv-info"><div class="chat-sidebar-conv-name">General Bot</div><div class="chat-sidebar-conv-preview">Hello! How can I help?</div></div>
+                            <div class="chat-sidebar-conv-time">now</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-sidebar-collapsed-icons">
+                    <div class="chat-sidebar-collapsed-icon" title="Home" onclick="if(window.openHomeWindow) window.openHomeWindow();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </div>
+                    <div class="chat-sidebar-collapsed-icon" title="Chat" onclick="window.WindowManager.open('chat','Chat','');fetch('/suite/partials/chat.html').then(r=>r.text()).then(html=>{var b=document.getElementById('window-body-chat');if(b)window.WindowManager._injectBodyContent('chat',html);});">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div class="chat-sidebar-collapsed-icon" title="Terminal" onclick="window.WindowManager.open('terminal','Terminal','');fetch('/suite/terminal/terminal.html').then(r=>r.text()).then(html=>{var b=document.getElementById('window-body-terminal');if(b)window.WindowManager._injectBodyContent('terminal',html);});">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                    </div>
+                    <div class="chat-sidebar-collapsed-icon" title="Settings" onclick="fetch('/suite/admin/organization-settings.html').then(r=>r.text()).then(html=>{window.WindowManager.open('settings','Settings',html);});">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Wrapper -->
+            <div class="main-wrapper">
+                <!-- Top Navigation Tabs - Removed (already in Vibe) -->
+
+                <!-- Workspace container where WindowManager operates -->
+                <div class="workspace-v15" id="desktop-content">
+                </div>
+
+                <!-- Bottom Taskbar (v15) -->
+                <footer class="toolbar-v15" id="taskbar">
+                    <div id="startBtn" onclick="window.WindowManager.toggleStartMenu()" title="Start">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
+                    </div>
+                    <div class="taskbar-center" id="taskbar-center">
+                    </div>
+                    <div class="taskbar-right">
+                        <div id="themeSelectorContainer" style="margin-right:2px;"></div>
+                        <button class="taskbar-widget" title="Login"
+                            onclick="window.location.href='/suite/auth/login.html'">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </button>
+                        <div class="taskbar-clock">
+                            <div id="clock-time">00:00</div>
+                            <div id="clock-date">01/01/2026</div>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+
+        <!-- HTMX Intercepts and WindowManager Init as described in UI.md Phase 3 -->
+        <script>
+            // Check for fullscreen mode
+            (function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('fullscreen') === 'true') {
+                    document.body.classList.add('fullscreen');
+                    console.log('Fullscreen mode activated');
+                }
+            })();
+
+
+            document.addEventListener("DOMContentLoaded", async () => {
+                // Initialize WindowManager
+                if (typeof window.WindowManager !== "undefined") {
+                    window.wm = window.WindowManager;
+                } else {
+                    console.error(
+                        "WindowManager class not loaded from window-manager.js",
+                    );
+                }
+
+                // Initialize ThemeManager
+                if (typeof window.ThemeManager !== "undefined") {
+                    window.ThemeManager.init();
+                }
+
+                // Load product config for app filtering and sidebar control
+                try {
+                    const resp = await fetch("/api/product");
+                    if (resp.ok) {
+                        window.productConfig = await resp.json();
+                        if (window.productConfig.sidebar === false) {
+                            const sidebar = document.getElementById("chatSidebar");
+                            if (sidebar) sidebar.style.display = "none";
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Failed to load product config:", e);
+                }
+
+                // Get bot name from URL path
+                const pathParts = window.location.pathname.split('/');
+                const botName = pathParts[1] || 'default';
+                
+                // Auto-open Chat window maximized for all bots
+                if (window.wm) {
+                    try {
+                        const response = await fetch(
+                            "/suite/partials/chat.html",
+                        );
+                        if (response.ok) {
+                            const htmlContent = await response.text();
+                            window.wm.open("chat", "Chat", htmlContent);
+                        }
+                    } catch (err) {
+                        console.error("Failed to auto-open chat:", err);
+                    }
+                }
+            });
+
+            // Listen to HTMX afterRequest event
+            document.body.addEventListener("htmx:afterRequest", function (evt) {
+                // Ensure Theme dropdown is re-injected if wiped
+                if (window.ThemeManager) {
+                    const container = document.getElementById(
+                        "themeSelectorContainer",
+                    );
+                    if (container && !container.hasChildNodes()) {
+                        window.ThemeManager.init();
+                    }
+                }
+            });
+
+            // Update login button based on auth state
+            function updateLoginButton() {
+                var token = window.getGBAccessToken && window.getGBAccessToken();
+                var loginBtn = document.getElementById("loginBtn");
+                if (token && loginBtn) {
+                    loginBtn.textContent = "Sign Out";
+                    loginBtn.onclick = function () {
+                        sessionStorage.setItem('gb-signed-out', 'true');
+                        fetch("/api/auth/logout", { method: "POST" }).finally(
+                            function () {
+                                localStorage.removeItem("gb-access-token");
+                                sessionStorage.removeItem("gb-access-token");
+                                window.location.href = '/auth/login.html';
+                            },
+                        );
+                    };
+                }
+            }
+
+            function getActiveUsername() {
+                try {
+                    var token = window.getGBAccessToken && window.getGBAccessToken();
+                    if (token) {
+                        var parts = token.split('.');
+                        if (parts.length === 3) {
+                            var payload = JSON.parse(atob(parts[1]));
+                            if (payload.username) return payload.username;
+                            if (payload.name) return payload.name;
+                            if (payload.sub) return payload.sub;
+                        }
+                    }
+                } catch(e) {
+                    console.warn("Failed to parse access token for username:", e);
+                }
+                return "Username";
+            }
+
+            function openHomeWindow() {
+                if (!window.wm) return;
+                var name = getActiveUsername();
+                window.wm.open('home', 'Home',
+                    '<div style="padding:32px;text-align:center;">' +
+                    '<h2 style="font-size:22px;color:var(--text);margin-bottom:8px;">Welcome, ' + name + '</h2>' +
+                    '<p style="font-size:15px;color:var(--text-secondary);">General Bots OS v15</p>' +
+                    '<p style="font-size:13px;color:var(--text-secondary);margin-top:16px;">Press <kbd style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">Ctrl+K</kbd> to open Start Menu</p>' +
+                    '</div>'
+                );
+            }
+
+            window.openHomeWindow = openHomeWindow;
+
+            if (typeof window.Desktop3D !== "undefined" && window.wm) {
+                var workspace = document.getElementById("desktop-content");
+                if (workspace) window.Desktop3D.init(workspace);
+            }
+
+            // Check login state on load
+            setTimeout(updateLoginButton, 500);
+
+            // Simple Clock implementation matching the screenshot bottom right corner
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById("clock-time").textContent =
+                    now.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    });
+                document.getElementById("clock-date").textContent =
+                    now.toLocaleDateString();
+            }, 1000);
+        </script>
+
+        <!-- Setup Wizard Overlay (hidden by default) -->
+        <div id="setupWizardOverlay" class="setup-wizard-overlay" style="display: none;">
+          <div class="setup-wizard-modal">
+            <div class="setup-wizard-header">
+              <h2>Welcome to General Bots</h2>
+              <p>Let's get you set up in a few quick steps</p>
+            </div>
+
+            <div class="setup-progress">
+              <div class="setup-progress-bar">
+                <div class="setup-progress-fill" id="setupProgressFill" style="width: 25%"></div>
+              </div>
+              <div class="setup-progress-steps">
+                <span class="setup-step active" data-step="1">LLM Provider</span>
+                <span class="setup-step" data-step="2">User Profile</span>
+                <span class="setup-step" data-step="3">Bot Config</span>
+                <span class="setup-step" data-step="4">Training</span>
+              </div>
+            </div>
+
+            <div class="setup-step-content active" id="setupStep1">
+              <h3>Choose your LLM Provider</h3>
+              <p>Select the AI model provider for your bot</p>
+              <div class="setup-options">
+                <div class="setup-option" data-value="openai" onclick="window.selectSetupOption(this, 'llm_provider')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">OpenAI</span>
+                    <span class="setup-option-desc">GPT-4, GPT-3.5 models</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="nvidia" onclick="window.selectSetupOption(this, 'llm_provider')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">NVIDIA</span>
+                    <span class="setup-option-desc">NVIDIA NIM inference</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="anthropic" onclick="window.selectSetupOption(this, 'llm_provider')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Anthropic</span>
+                    <span class="setup-option-desc">Claude 3, Claude 3.5 models</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="local" onclick="window.selectSetupOption(this, 'llm_provider')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Local</span>
+                    <span class="setup-option-desc">llama.cpp, Ollama, etc.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="setup-step-content" id="setupStep2">
+              <h3>What describes you best?</h3>
+              <p>Select your profile type for personalized defaults</p>
+              <div class="setup-options">
+                <div class="setup-option" data-value="developer" onclick="window.selectSetupOption(this, 'user_profile')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Developer</span>
+                    <span class="setup-option-desc">Build and deploy bots, write BASIC scripts</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="business" onclick="window.selectSetupOption(this, 'user_profile')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Business</span>
+                    <span class="setup-option-desc">Automate workflows, manage CRM</span>
+                  </div>
+                </div>
+                <div class="setup-option" data-value="support" onclick="window.selectSetupOption(this, 'user_profile')">
+                  <div class="setup-option-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <div class="setup-option-info">
+                    <span class="setup-option-title">Support</span>
+                    <span class="setup-option-desc">Customer service, ticket management</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="setup-step-content" id="setupStep3">
+              <h3>Configure your Bot</h3>
+              <p>Give your bot a name and describe its purpose</p>
+              <div class="setup-form">
+                <div class="setup-form-group">
+                  <label for="wizardBotName">Bot Name</label>
+                  <input type="text" id="setupBotName" placeholder="My Assistant" class="setup-input" />
+                </div>
+                <div class="setup-form-group">
+                  <label for="setupBotPurpose">Bot Purpose</label>
+                  <textarea id="setupBotPurpose" rows="3" placeholder="Describe what your bot should do..." class="setup-input"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="setup-step-content" id="setupStep4">
+              <h3>Treinar seu Bot</h3>
+              <p>Arraste arquivos .pdf, .xls, .doc para o treinamento inicial. Você terá acesso ao Drive e poderá mudar depois.</p>
+              <div class="setup-form">
+                <div class="setup-form-group">
+                  <div id="setupDropZone" class="setup-drop-zone" ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="window.handleSetupFileDrop(event)">
+                    <div class="setup-drop-icon">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                    </div>
+                    <p class="setup-drop-text">Solte arquivos aqui ou clique para selecionar</p>
+                    <p class="setup-drop-hint">.pdf, .xls, .doc — até 10MB cada</p>
+                    <input type="file" id="setupFileInput" multiple accept=".pdf,.xls,.xlsx,.doc,.docx" style="display:none" onchange="window.handleSetupFileSelect(event)" />
+                    <button type="button" class="setup-btn setup-btn-secondary" onclick="document.getElementById('setupFileInput').click()">Selecionar Arquivos</button>
+                  </div>
+                  <div id="setupFileList" class="setup-file-list"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="setup-wizard-footer">
+              <button class="setup-btn setup-btn-secondary" id="setupBackBtn" onclick="window.setupWizardBack()" style="display: none;">Back</button>
+              <button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="window.setupWizardNext()">Next</button>
+              <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="window.setupWizardFinish()" style="display: none;">Finish</button>
+              <button class="setup-btn setup-btn-text" onclick="window.setupWizardSkip()">Skip Setup</button>
+            </div>
+          </div>
+        </div>
+
+        <script src="/suite/js/setup-wizard.js"></script>
+        <script src="/suite/js/versions.js"></script>
+        <script src="/suite/js/preview.js"></script>
+        <script src="/suite/js/campaigns.js"></script>
+        <script>
+            // Carregar o modal New Project dinamicamente (Issue #524)
+            fetch('/suite/partials/new-project.html')
+                .then(response => response.text())
+                .then(html => {
+                    const div = document.createElement('div');
+                    div.innerHTML = html;
+                    document.body.appendChild(div);
+                    
+                    // Executar scripts embutidos no modal carregado
+                    const scripts = div.querySelectorAll('script');
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        newScript.textContent = script.textContent;
+                        document.body.appendChild(newScript);
+                    });
+                })
+                .catch(err => console.error('Failed to load new-project wizard:', err));
+        </script>
+    </body>
+</html>

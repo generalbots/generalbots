@@ -1,0 +1,172 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #22c55e; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .cart-item { fill: #f8fafc; }
+    .product-img { fill: #f1f5f9; }
+    .btn-cash { fill: #22c55e; }
+    .btn-card { fill: #3b82f6; }
+    .btn-pix { fill: #8b5cf6; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #4ade80; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card { fill: #1e293b; stroke: #334155; }
+      .cart-item { fill: #334155; }
+      .product-img { fill: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Point of Sale</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Top Bar -->
+  <g transform="translate(50, 55)">
+    <text x="0" y="15" font-size="18" font-weight="600" class="main-text">POS Terminal</text>
+    <text x="660" y="15" font-size="12" class="muted-text">Cashier #1</text>
+    <text x="750" y="15" font-size="12" class="muted-text">Jun 4, 2026</text>
+  </g>
+
+  <line x1="30" y1="80" x2="870" y2="80" class="border"/>
+
+  <!-- Left: Product Grid -->
+  <g transform="translate(50, 95)">
+    <!-- Product Grid Header -->
+    <text x="0" y="0" font-size="14" font-weight="600" class="main-text">Products</text>
+    <rect x="580" y="-14" width="160" height="28" rx="8" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="594" y="6" font-size="12" class="muted-text">🔍 Search products...</text>
+
+    <!-- Row 1 -->
+    <g transform="translate(0, 18)">
+      <!-- Product 1 -->
+      <rect x="0" y="0" width="175" height="110" rx="8" class="card"/>
+      <rect x="16" y="12" width="143" height="55" rx="6" class="product-img"/>
+      <text x="87" y="44" text-anchor="middle" font-size="20">☕</text>
+      <text x="16" y="82" font-size="13" font-weight="600" class="main-text">Espresso</text>
+      <text x="16" y="98" font-size="12" font-weight="600" class="accent-text">R$ 12,90</text>
+
+      <!-- Product 2 -->
+      <rect x="190" y="0" width="175" height="110" rx="8" class="card"/>
+      <rect x="206" y="12" width="143" height="55" rx="6" class="product-img"/>
+      <text x="277" y="44" text-anchor="middle" font-size="20">🥐</text>
+      <text x="206" y="82" font-size="13" font-weight="600" class="main-text">Croissant</text>
+      <text x="206" y="98" font-size="12" font-weight="600" class="accent-text">R$ 8,50</text>
+
+      <!-- Product 3 -->
+      <rect x="380" y="0" width="175" height="110" rx="8" class="card"/>
+      <rect x="396" y="12" width="143" height="55" rx="6" class="product-img"/>
+      <text x="467" y="44" text-anchor="middle" font-size="20">🥪</text>
+      <text x="396" y="82" font-size="13" font-weight="600" class="main-text">Sandwich</text>
+      <text x="396" y="98" font-size="12" font-weight="600" class="accent-text">R$ 18,90</text>
+    </g>
+
+    <!-- Row 2 -->
+    <g transform="translate(0, 148)">
+      <!-- Product 4 -->
+      <rect x="0" y="0" width="175" height="110" rx="8" class="card"/>
+      <rect x="16" y="12" width="143" height="55" rx="6" class="product-img"/>
+      <text x="87" y="44" text-anchor="middle" font-size="20">🍰</text>
+      <text x="16" y="82" font-size="13" font-weight="600" class="main-text">Cheesecake</text>
+      <text x="16" y="98" font-size="12" font-weight="600" class="accent-text">R$ 22,00</text>
+
+      <!-- Product 5 -->
+      <rect x="190" y="0" width="175" height="110" rx="8" class="card"/>
+      <rect x="206" y="12" width="143" height="55" rx="6" class="product-img"/>
+      <text x="277" y="44" text-anchor="middle" font-size="20">🥤</text>
+      <text x="206" y="82" font-size="13" font-weight="600" class="main-text">Smoothie</text>
+      <text x="206" y="98" font-size="12" font-weight="600" class="accent-text">R$ 15,00</text>
+
+      <!-- Product 6 -->
+      <rect x="380" y="0" width="175" height="110" rx="8" class="card"/>
+      <rect x="396" y="12" width="143" height="55" rx="6" class="product-img"/>
+      <text x="467" y="44" text-anchor="middle" font-size="20">🍪</text>
+      <text x="396" y="82" font-size="13" font-weight="600" class="main-text">Cookies</text>
+      <text x="396" y="98" font-size="12" font-weight="600" class="accent-text">R$ 6,90</text>
+    </g>
+  </g>
+
+  <!-- Divider -->
+  <line x1="600" y1="95" x2="600" y2="555" class="border"/>
+
+  <!-- Right: Cart Sidebar -->
+  <g transform="translate(620, 100)">
+    <text x="0" y="0" font-size="14" font-weight="600" class="main-text">Order Cart</text>
+    <text x="220" y="0" font-size="12" class="muted-text" text-anchor="end">2 items</text>
+
+    <line x1="0" y1="14" x2="230" y2="14" class="border"/>
+
+    <!-- Cart Items -->
+    <!-- Item 1 -->
+    <g transform="translate(0, 28)">
+      <rect x="0" y="0" width="230" height="50" rx="6" class="cart-item"/>
+      <text x="12" y="20" font-size="13" font-weight="500" class="main-text">Espresso</text>
+      <text x="12" y="36" font-size="11" class="muted-text">Qty: 2</text>
+      <text x="180" y="20" font-size="13" font-weight="600" class="accent-text">R$ 25,80</text>
+      <text x="210" y="36" font-size="11" class="muted-text">✕</text>
+    </g>
+
+    <!-- Item 2 -->
+    <g transform="translate(0, 86)">
+      <rect x="0" y="0" width="230" height="50" rx="6" class="cart-item"/>
+      <text x="12" y="20" font-size="13" font-weight="500" class="main-text">Croissant</text>
+      <text x="12" y="36" font-size="11" class="muted-text">Qty: 1</text>
+      <text x="180" y="20" font-size="13" font-weight="600" class="accent-text">R$ 8,50</text>
+      <text x="210" y="36" font-size="11" class="muted-text">✕</text>
+    </g>
+
+    <line x1="0" y1="156" x2="230" y2="156" class="border"/>
+
+    <!-- Totals -->
+    <g transform="translate(0, 170)">
+      <text x="0" y="14" font-size="12" class="secondary-text">Subtotal</text>
+      <text x="230" y="14" font-size="12" class="main-text" text-anchor="end">R$ 34,30</text>
+
+      <text x="0" y="38" font-size="12" class="secondary-text">Tax (10%)</text>
+      <text x="230" y="38" font-size="12" class="main-text" text-anchor="end">R$ 3,43</text>
+
+      <line x1="0" y1="50" x2="230" y2="50" class="border"/>
+
+      <text x="0" y="72" font-size="14" font-weight="700" class="main-text">Total</text>
+      <text x="230" y="72" font-size="18" font-weight="700" class="accent-text" text-anchor="end">R$ 37,73</text>
+    </g>
+
+    <!-- Payment Buttons -->
+    <g transform="translate(0, 260)">
+      <rect x="0" y="0" width="70" height="36" rx="6" class="btn-cash"/>
+      <text x="35" y="23" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Cash</text>
+
+      <rect x="80" y="0" width="70" height="36" rx="6" class="btn-card"/>
+      <text x="115" y="23" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Card</text>
+
+      <rect x="160" y="0" width="70" height="36" rx="6" class="btn-pix"/>
+      <text x="195" y="23" text-anchor="middle" font-size="11" font-weight="500" class="white-text">Pix</text>
+    </g>
+
+    <!-- Confirm Order Button -->
+    <rect x="0" y="314" width="230" height="44" rx="8" fill="url(#accentGrad)"/>
+    <text x="115" y="341" text-anchor="middle" font-size="14" font-weight="600" class="white-text">Confirm Order</text>
+  </g>
+</svg>

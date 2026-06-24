@@ -1,0 +1,15 @@
+[package]
+name = "botproviders"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+reqwest = { workspace = true, default-features = false, features = ["json", "rustls-tls"] }
+tokio = { workspace = true, features = ["full"] }
+uuid = { workspace = true, features = ["v4"] }
+chrono = { workspace = true, features = ["clock"] }
+log = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }

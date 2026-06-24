@@ -1,0 +1,105 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#4B5563"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="350" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#1F2937">Tool Execution Flow</text>
+
+  <!-- User Input -->
+  <rect x="200" y="60" width="300" height="50" fill="none" stroke="#63B3ED" stroke-width="2" rx="8"/>
+  <text x="350" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#1E40AF">User: "I want to enroll in</text>
+  <text x="350" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#1E40AF">Computer Science"</text>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="110" x2="350" y2="140" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- LLM Analyzes -->
+  <rect x="225" y="140" width="250" height="80" fill="none" stroke="#B794F4" stroke-width="2" rx="8"/>
+  <text x="350" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#9333EA">LLM Analyzes</text>
+  <text x="350" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#7C3AED">"enrollment need"</text>
+  <text x="350" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">Intent detection</text>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="220" x2="350" y2="250" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Scan Available Tools -->
+  <rect x="175" y="250" width="350" height="100" fill="none" stroke="#F6AD55" stroke-width="2" rx="8"/>
+  <text x="350" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#EA580C">Scan Available Tools</text>
+
+  <g font-family="monospace" font-size="18">
+    <text x="220" y="305" fill="#059669">• enrollment.bas ✓</text>
+    <text x="220" y="325" fill="#374151">• other-tools.bas</text>
+  </g>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="350" x2="350" y2="380" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Collect Parameters -->
+  <rect x="175" y="380" width="350" height="120" fill="none" stroke="#4FD1C5" stroke-width="2" rx="8"/>
+  <text x="350" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#0891B2">Collect Parameters</text>
+
+  <g font-family="Arial, sans-serif" font-size="18" fill="#0E7490">
+    <text x="220" y="435">• name: (ask user)</text>
+    <text x="220" y="455">• email: (ask user)</text>
+    <text x="220" y="475">• course: "Comp Sci"</text>
+  </g>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="500" x2="350" y2="530" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Execute enrollment.bas -->
+  <rect x="175" y="530" width="350" height="100" fill="none" stroke="#48BB78" stroke-width="2" rx="8"/>
+  <text x="350" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#059669">Execute enrollment.bas</text>
+
+  <g font-family="Arial, sans-serif" font-size="18" fill="#10B981">
+    <text x="220" y="585">• Save to CSV</text>
+    <text x="220" y="605">• Return confirmation</text>
+  </g>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="630" x2="350" y2="660" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Bot Response -->
+  <rect x="175" y="660" width="350" height="60" fill="none" stroke="#68D391" stroke-width="2" rx="8"/>
+  <text x="350" y="685" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#10B981">"Welcome to Computer Science!"</text>
+  <text x="350" y="705" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">Confirmation sent to user</text>
+
+  <!-- Side annotations -->
+  <g font-family="Arial, sans-serif" font-size="16" fill="#374151">
+    <!-- Time indicators -->
+    <text x="50" y="180" text-anchor="end">~100ms</text>
+    <text x="50" y="300" text-anchor="end">~50ms</text>
+    <text x="50" y="440" text-anchor="end">Interactive</text>
+    <text x="50" y="580" text-anchor="end">~200ms</text>
+    <text x="50" y="690" text-anchor="end">Instant</text>
+
+    <!-- Process descriptions -->
+    <text x="550" y="180">Natural language</text>
+    <text x="550" y="200">understanding</text>
+
+    <text x="550" y="300">Tool discovery</text>
+    <text x="550" y="320">and matching</text>
+
+    <text x="550" y="440">Smart parameter</text>
+    <text x="550" y="460">extraction</text>
+
+    <text x="550" y="580">BASIC script</text>
+    <text x="550" y="600">execution</text>
+  </g>
+
+  <!-- Tool example box -->
+  <g id="tool-example" transform="translate(50, 740)">
+    <rect x="0" y="0" width="600" height="120" fill="none" stroke="#4A5568" stroke-width="1" rx="5" stroke-dasharray="2,2" opacity="0.5"/>
+    <text x="300" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1F2937">enrollment.bas</text>
+
+    <g font-family="monospace" font-size="16" fill="#374151">
+      <text x="20" y="45">' Student enrollment tool</text>
+      <text x="20" y="65">PARAM name, email, course</text>
+      <text x="20" y="85">SAVE "enrollments.csv", name, email, course, NOW()</text>
+      <text x="20" y="105">TALK "Welcome to " + course + ", " + name + "!"</text>
+    </g>
+  </g>
+</svg>

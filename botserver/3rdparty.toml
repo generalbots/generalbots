@@ -1,0 +1,277 @@
+# Third-Party Dependencies Configuration
+# ======================================
+# This file lists all external downloads required by botserver.
+#
+# Caching Behavior:
+# - On first run, files are downloaded from the URLs below
+# - Downloaded files are cached in ./botserver-installers/
+# - On subsequent runs, cached files are used instead of downloading
+# - To force re-download, delete the cached file
+#
+# Offline Installation:
+# - Pre-download all files to ./botserver-installers/
+# - The installer will use cached files automatically
+# - You can safely delete ./botserver-stack/ without losing downloads
+
+[cache_settings]
+# Directory where downloaded files are cached (relative to botserver root)
+cache_dir = "botserver-installers"
+
+# Components
+# ==========
+# Each component has:
+# - url: Download URL
+# - filename: Local filename in cache
+# - sha256: Optional checksum for verification (empty = skip verification)
+[components.drive]
+name = "MinIO Object Storage"
+url = "https://dl.min.io/server/minio/release/linux-amd64/minio"
+url_win = "https://dl.min.io/server/minio/release/windows-amd64/minio.exe"
+filename = "minio"
+filename_win = "minio.exe"
+sha256 = ""
+
+[components.mc]
+name = "MinIO Client (mc)"
+url = "https://dl.min.io/client/mc/release/linux-amd64/mc"
+url_win = "https://dl.min.io/client/mc/release/windows-amd64/mc.exe"
+filename = "mc"
+filename_win = "mc.exe"
+sha256 = ""
+
+[components.tables]
+name = "PostgreSQL Database"
+url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
+url_win = "https://get.enterprisedb.com/postgresql/postgresql-17.2-1-windows-x64-binaries.zip"
+filename = "postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
+filename_win = "postgresql-17.2-1-windows-x64-binaries.zip"
+sha256 = ""
+
+[components.cache]
+name = "Valkey Cache (Redis-compatible)"
+url = "https://download.valkey.io/releases/valkey-8.1.5-jammy-x86_64.tar.gz"
+filename = "valkey-8.1.5-jammy-x86_64.tar.gz"
+url_win = "https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip"
+filename_win = "Redis-x64-3.0.504.zip"
+note = "Windows: Uses Microsoft Redis port. For production, use Memurai or Docker."
+sha256 = ""
+
+[components.cache_win]
+name = "Valkey Cache (Windows - via Memurai)"
+url = "https://github.com/nicktajzsg/memurai/releases/latest/download/memurai-msi-latest.exe"
+filename = "memurai-installer.exe"
+note = "Windows compatible Redis alternative. Also works with: docker run -p 6379:6379 redis"
+sha256 = ""
+
+[components.caddy]
+name = "Caddy Web Server"
+url = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_amd64.tar.gz"
+url_win = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_windows_amd64.zip"
+filename = "caddy_2.9.1_linux_amd64.tar.gz"
+filename_win = "caddy_2.9.1_windows_amd64.zip"
+sha256 = "91b066ecc53c20693a2d39703c12bc7a69c804b0768fee064d47df702f616e52"
+
+[components.email]
+name = "Stalwart Mail Server"
+url = "https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-mail-x86_64-linux.tar.gz"
+filename = "stalwart-mail-x86_64-linux.tar.gz"
+url_win = "https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-mail-x86_64-windows.zip"
+filename_win = "stalwart-mail-x86_64-windows.zip"
+sha256 = ""
+
+[components.proxy]
+name = "Caddy Web Server"
+url = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_amd64.tar.gz"
+url_win = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_windows_amd64.zip"
+filename = "caddy_2.9.1_linux_amd64.tar.gz"
+filename_win = "caddy_2.9.1_windows_amd64.zip"
+sha256 = ""
+
+[components.directory]
+name = "Zitadel Identity Provider"
+url = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-linux-amd64.tar.gz"
+filename = "zitadel-linux-amd64.tar.gz"
+url_win = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-windows-amd64.zip"
+filename_win = "zitadel-windows-amd64.zip"
+sha256 = ""
+
+[components.alm]
+name = "Forgejo Git Server"
+url = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-linux-amd64"
+filename = "forgejo-10.0.1-linux-amd64"
+url_win = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-windows-amd64.exe"
+filename_win = "forgejo-10.0.1-windows-amd64.exe"
+sha256 = ""
+
+[components.alm_ci]
+name = "Forgejo Actions Runner"
+url = "https://code.forgejo.org/forgejo/runner/releases/download/v6.0.0/forgejo-runner-6.0.0-linux-amd64"
+filename = "forgejo-runner-6.0.0-linux-amd64"
+url_win = "https://code.forgejo.org/forgejo/runner/releases/download/v6.0.0/forgejo-runner-6.0.0-windows-amd64.exe"
+filename_win = "forgejo-runner-6.0.0-windows-amd64.exe"
+sha256 = ""
+
+[components.dns]
+name = "CoreDNS Server"
+url = "https://github.com/coredns/coredns/releases/download/v1.11.3/coredns_1.11.3_linux_amd64.tgz"
+filename = "coredns_1.11.3_linux_amd64.tgz"
+url_win = "https://github.com/coredns/coredns/releases/download/v1.11.3/coredns_1.11.3_windows_amd64.tgz"
+filename_win = "coredns_1.11.3_windows_amd64.tgz"
+sha256 = ""
+
+[components.webmail]
+name = "Roundcube Webmail"
+url = "https://github.com/roundcube/roundcubemail/releases/download/1.6.9/roundcubemail-1.6.9-complete.tar.gz"
+filename = "roundcubemail-1.6.9-complete.tar.gz"
+note = "Windows: Use Docker or Windows Subsystem for Linux (WSL) for webmail."
+sha256 = ""
+
+[components.meet]
+name = "LiveKit Media Server"
+url = "https://github.com/livekit/livekit/releases/download/v2.8.5/livekit_2.8.5_linux_amd64.tar.gz"
+filename = "livekit_2.8.5_linux_amd64.tar.gz"
+url_win = "https://github.com/livekit/livekit/releases/download/v2.8.5/livekit_2.8.5_windows_amd64.tar.gz"
+filename_win = "livekit_2.8.5_windows_amd64.tar.gz"
+sha256 = ""
+
+[components.libpq_win]
+name = "PostgreSQL Client Libraries (libpq for Diesel)"
+url = "https://get.enterprisedb.com/postgresql/postgresql-17.4-1-windows-x64-binaries.zip"
+url_win = "https://get.enterprisedb.com/postgresql/postgresql-17.4-1-windows-x64-binaries.zip"
+filename = "postgresql-17.4-1-windows-x64-binaries.zip"
+filename_win = "postgresql-17.4-1-windows-x64-binaries.zip"
+sha256 = ""
+
+[components.table_editor]
+name = "NocoDB"
+url = "http://get.nocodb.com/linux-x64"
+filename = "nocodb-linux-x64"
+url_win = "https://github.com/nocodb/nocodb/releases/latest/download/nocodb-win-x64.exe"
+filename_win = "nocodb-win-x64.exe"
+sha256 = ""
+
+[components.vector_db]
+name = "Qdrant Vector Database"
+url = "https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-unknown-linux-gnu.tar.gz"
+filename = "qdrant-x86_64-unknown-linux-gnu.tar.gz"
+url_win = "https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-pc-windows-msvc.zip"
+filename_win = "qdrant-x86_64-pc-windows-msvc.zip"
+sha256 = ""
+
+[components.timeseries_db]
+name = "InfluxDB Time Series Database"
+url = "https://download.influxdata.com/influxdb/releases/influxdb2-2.7.10-linux-amd64.tar.gz"
+filename = "influxdb2-2.7.10-linux-amd64.tar.gz"
+url_win = "https://download.influxdata.com/influxdb/releases/influxdb2-2.7.10-windows-amd64.zip"
+filename_win = "influxdb2-2.7.10-windows-amd64.zip"
+sha256 = ""
+
+[components.vault]
+name = "HashiCorp Vault"
+url = "https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip"
+url_win = "https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_windows_amd64.zip"
+filename = "vault_1.18.2_linux_amd64.zip"
+filename_win = "vault_1.18.2_windows_amd64.zip"
+sha256 = ""
+
+[components.observability]
+name = "Vector Log Aggregator"
+url = "https://packages.timber.io/vector/0.45.0/vector-0.45.0-x86_64-unknown-linux-gnu.tar.gz"
+filename = "vector-0.45.0-x86_64-unknown-linux-gnu.tar.gz"
+url_win = "https://packages.timber.io/vector/0.45.0/vector-0.45.0-x86_64-pc-windows-msvc.zip"
+filename_win = "vector-0.45.0-x86_64-pc-windows-msvc.zip"
+sha256 = ""
+
+# LLM Models
+# ==========
+# Large model files for AI/ML functionality
+
+[models.deepseek_small]
+name = "DeepSeek R1 Distill Qwen 1.5B (Q3_K_M)"
+url = "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf"
+filename = "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf"
+sha256 = ""
+
+[models.bge_embedding]
+name = "BGE Small EN v1.5 Embedding Model"
+url = "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf"
+filename = "bge-small-en-v1.5-f32.gguf"
+sha256 = ""
+
+# Platform-specific llama.cpp variants
+# =====================================
+# These are alternative builds for different platforms/GPU support
+
+[components.llm_linux_vulkan]
+name = "Llama.cpp Server (Linux Vulkan)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-vulkan-x64.zip"
+filename = "llama-b7345-bin-ubuntu-vulkan-x64.zip"
+sha256 = "03f0b3acbead2ddc23267073a8f8e0207937c849d3704c46c61cf167c1001442"
+
+[components.llm_linux_s390x]
+name = "Llama.cpp Server (Linux s390x)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-s390x.zip"
+filename = "llama-b7345-bin-ubuntu-s390x.zip"
+sha256 = "688ddad6996b1166eaaa76d5025e304c684116efe655e6e881d877505ecffccb"
+
+[components.llm_macos_arm64]
+name = "Llama.cpp Server (macOS ARM64)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-macos-arm64.zip"
+filename = "llama-b7345-bin-macos-arm64.zip"
+sha256 = "72ae9b4a4605aa1223d7aabaa5326c66c268b12d13a449fcc06f61099cd02a52"
+
+[components.llm_macos_x64]
+name = "Llama.cpp Server (macOS x64)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-macos-x64.zip"
+filename = "llama-b7345-bin-macos-x64.zip"
+sha256 = "bec6b805cf7533f66b38f29305429f521dcb2be6b25dbce73a18df448ec55cc5"
+
+[components.llm_win_cpu_x64]
+name = "Llama.cpp Server (Windows x64 CPU)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cpu-x64.zip"
+filename = "llama-b7345-bin-win-cpu-x64.zip"
+sha256 = "ea449082c8e808a289d9a1e8331f90a0379ead4dd288a1b9a2d2c0a7151836cd"
+
+[components.llm_win_cpu_arm64]
+name = "Llama.cpp Server (Windows ARM64 CPU)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cpu-arm64.zip"
+filename = "llama-b7345-bin-win-cpu-arm64.zip"
+sha256 = "91e3ff43c123c7c30decfe5a44c291827c1e47359abaa2fbad1eb5392b3a0d85"
+
+[components.llm_win_cuda12]
+name = "Llama.cpp Server (Windows CUDA 12.4)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cuda-12.4-x64.zip"
+filename = "llama-b7345-bin-win-cuda-12.4-x64.zip"
+sha256 = "7a82aba2662fa7d4477a7a40894de002854bae1ab8b0039888577c9a2ca24cae"
+
+[components.llm_win_cuda13]
+name = "Llama.cpp Server (Windows CUDA 13.1)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cuda-13.1-x64.zip"
+filename = "llama-b7345-bin-win-cuda-13.1-x64.zip"
+sha256 = "06ea715cefb07e9862394e6d1ffa066f4c33add536b1f1aa058723f86ae05572"
+
+[components.llm_win_vulkan]
+name = "Llama.cpp Server (Windows Vulkan)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-vulkan-x64.zip"
+filename = "llama-b7345-bin-win-vulkan-x64.zip"
+sha256 = "3e948bee438f46c8ea0a3faf0416549391ee945ffa624b25bc1f73d60d668679"
+
+# CUDA runtime libraries (required for CUDA builds on Windows)
+[components.cudart_win_cuda12]
+name = "CUDA Runtime (Windows CUDA 12.4)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/cudart-llama-bin-win-cuda-12.4-x64.zip"
+filename = "cudart-llama-bin-win-cuda-12.4-x64.zip"
+sha256 = "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6"
+
+[components.cudart_win_cuda13]
+name = "CUDA Runtime (Windows CUDA 13.1)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/cudart-llama-bin-win-cuda-13.1-x64.zip"
+filename = "cudart-llama-bin-win-cuda-13.1-x64.zip"
+sha256 = "f96935e7e385e3b2d0189239077c10fe8fd7e95690fea4afec455b1b6c7e3f18"
+
+# Optional larger models (uncomment to include)
+# [models.gpt_oss_20b]
+# name = "GPT-OSS 20B F16 (requires 16GB+ VRAM or MoE)"
+# url = "https://huggingface.co/unsloth/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-F16.gguf"
+# filename = "gpt-oss-20b-F16.gguf"
+# sha256 = ""

@@ -1,0 +1,488 @@
+
+[workspace]
+resolver = "2"
+default-members = ["botserver", "botui", "botlib", "botschema"]
+members = [
+  "botlib",
+  "botserver",
+  "bottest",
+  "botui",
+  "botschema",
+  "botapp",
+  "botserver/crates/botanalytics",
+  "botserver/crates/botcloud",
+  "botserver/crates/botapi",
+  "botserver/crates/botuifragments",
+  "botserver/crates/botattendance",
+  "botserver/crates/botattendant",
+  "botserver/crates/botautotask",
+  "botserver/crates/botbanking",
+  "botserver/crates/botbrazil",
+  "botserver/crates/botbiometry",
+  "botserver/crates/botclock",
+  "botserver/crates/boteval",
+  "botserver/crates/botfraud",
+  "botserver/crates/botgl",
+  "botserver/crates/botinventory",
+  "botserver/crates/botbasic_ai",
+  "botserver/crates/botbasic_comms",
+  "botserver/crates/botbasic_compiler",
+  "botserver/crates/botbasic_core",
+  "botserver/crates/botbasic_data",
+  "botserver/crates/botbasic_system",
+  "botserver/crates/botbasic_types",
+  "botserver/crates/botbilling",
+  "botserver/crates/botbrowser",
+  "botserver/crates/botcalendar",
+  "botserver/crates/botcanvas",
+  "botserver/crates/botchannels",
+  "botserver/crates/botchannels-core",
+  "botserver/crates/botcompliance",
+  "botserver/crates/botcontacts",
+  "botserver/crates/botcore",
+  "botserver/crates/botcorebot",
+  "botserver/crates/botcoredirectory",
+  "botserver/crates/botcoreoauth",
+  "botserver/crates/boteditor",
+  "botserver/crates/botdatabase",
+  "botserver/crates/botgit",
+  "botserver/crates/botcorepkg",
+  "botserver/crates/botcoresecrets",
+  "botserver/crates/botcoresession",
+  "botserver/crates/botdashboards",
+  "botserver/crates/botdeployment",
+  "botserver/crates/botdesigner",
+  "botserver/crates/botdocs",
+  "botserver/crates/botdrive",
+  "botserver/crates/botemail",
+  "botserver/crates/botinstagram",
+  "botserver/crates/botkb",
+  "botserver/crates/botlearn",
+  "botserver/crates/botlegal",
+  "botserver/crates/botllm",
+  "botserver/crates/botmaintenance",
+  "botserver/crates/botmarketing",
+  "botserver/crates/botmeet",
+  "botserver/crates/botmodelsbridge",
+  "botserver/crates/botmonitoring",
+  "botserver/crates/botm365",
+  "botserver/crates/botmsteams",
+  "botserver/crates/botmultimodal",
+  "botserver/crates/botnvidia",
+  "botserver/crates/botpaper",
+  "botserver/crates/botpeople",
+  "botserver/crates/botplan",
+  "botserver/crates/botplayer",
+  "botserver/crates/botproducts",
+  "botserver/crates/botproject",
+  "botserver/crates/botproviders",
+  "botserver/crates/botqdrant",
+  "botserver/crates/botresearch",
+  "botserver/crates/botretail",
+  "botserver/crates/botsearch",
+  "botserver/crates/botsecurity",
+  "botserver/crates/botsecurity-auth",
+  "botserver/crates/botsecurity-core",
+  "botserver/crates/botsecurity-crypto",
+  "botserver/crates/botsecurity-protection",
+  "botserver/crates/botsettings",
+  "botserver/crates/botsheet",
+ "botserver/crates/botsheet-core",
+  "botserver/crates/botslides",
+  "botserver/crates/botsocial",
+  "botserver/crates/botsources",
+  "botserver/crates/bottasks",
+  "botserver/crates/bottelegram",
+  "botserver/crates/bottickets",
+  "botserver/crates/bottimeseries",
+  "botserver/crates/botvibe",
+"botserver/crates/botvideo",
+  "botserver/crates/botweba",
+  "botserver/crates/botwhatsapp",
+  "botserver/crates/botworkspaces",
+  "botserver/crates/botdesktop",
+  "botserver/crates/botvision",
+  "botserver/crates/boterp",
+  "botserver/crates/botintegrations",
+  "botserver/crates/bothr",
+  "botserver/crates/botsales",
+  "botserver/crates/botminutes",
+  "botserver/crates/bottemplates",
+  "botserver/crates/botitsm",
+  "botserver/crates/botpos",
+  "botserver/crates/bothandoff",
+  "botserver/crates/botkyc",
+  "botserver/crates/bottimeclock",
+  "botserver/crates/bottax",
+]
+
+[workspace.package]
+version = "6.3.1"
+edition = "2021"
+license = "MIT"
+authors = ["Pragmatismo <a404010@pragmatismo.com.br>"]
+description = "General Bots BotServer monorepo."
+publish = false
+
+[workspace.lints.rust]
+
+[workspace.lints.clippy]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORKSPACE DEPENDENCIES - Single source of truth for all member crates
+# Member crates reference these with: dependency = { workspace = true }
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[workspace.dependencies]
+# ─── INTERNAL CRATES ───
+botautotask = { path = "botserver/crates/botautotask" }
+botlib = { path = "botlib" }
+http = "1.0"
+botanalytics = { path = "botserver/crates/botanalytics" }
+botbrazil = { path = "botserver/crates/botbrazil" }
+boteval = { path = "botserver/crates/boteval" }
+botfraud = { path = "botserver/crates/botfraud" }
+botgl = { path = "botserver/crates/botgl" }
+botinventory = { path = "botserver/crates/botinventory" }
+botattendance = { path = "botserver/crates/botattendance" }
+botattendant = { path = "botserver/crates/botattendant" }
+botbilling = { path = "botserver/crates/botbilling" }
+botbrowser = { path = "botserver/crates/botbrowser" }
+botcalendar = { path = "botserver/crates/botcalendar" }
+botcanvas = { path = "botserver/crates/botcanvas" }
+botchannels = { path = "botserver/crates/botchannels" }
+botchannels-core = { path = "botserver/crates/botchannels-core" }
+botcompliance = { path = "botserver/crates/botcompliance" }
+botcontacts = { path = "botserver/crates/botcontacts" }
+botdashboards = { path = "botserver/crates/botdashboards" }
+botdeployment = { path = "botserver/crates/botdeployment" }
+botdesigner = { path = "botserver/crates/botdesigner" }
+botdocs = { path = "botserver/crates/botdocs" }
+botemail = { path = "botserver/crates/botemail" }
+botkb = { path = "botserver/crates/botkb" }
+botlearn = { path = "botserver/crates/botlearn" }
+botlegal = { path = "botserver/crates/botlegal" }
+botllm = { path = "botserver/crates/botllm" }
+botmaintenance = { path = "botserver/crates/botmaintenance" }
+botmarketing = { path = "botserver/crates/botmarketing" }
+botbiometry = { path = "botserver/crates/botbiometry" }
+botbanking = { path = "botserver/crates/botbanking" }
+botclock = { path = "botserver/crates/botclock" }
+botm365 = { path = "botserver/crates/botm365" }
+botmonitoring = { path = "botserver/crates/botmonitoring" }
+botmsteams = { path = "botserver/crates/botmsteams" }
+botmultimodal = { path = "botserver/crates/botmultimodal" }
+botnvidia = { path = "botserver/crates/botnvidia" }
+botpaper = { path = "botserver/crates/botpaper" }
+botpeople = { path = "botserver/crates/botpeople" }
+botplan = { path = "botserver/crates/botplan" }
+botplayer = { path = "botserver/crates/botplayer" }
+botproducts = { path = "botserver/crates/botproducts" }
+botproject = { path = "botserver/crates/botproject" }
+botproviders = { path = "botserver/crates/botproviders" }
+botqdrant = { path = "botserver/crates/botqdrant" }
+botresearch = { path = "botserver/crates/botresearch" }
+botretail = { path = "botserver/crates/botretail" }
+botsearch = { path = "botserver/crates/botsearch" }
+botsecurity = { path = "botserver/crates/botsecurity" }
+botsecurity-auth = { path = "botserver/crates/botsecurity-auth" }
+botsecurity-core = { path = "botserver/crates/botsecurity-core" }
+botsecurity-crypto = { path = "botserver/crates/botsecurity-crypto" }
+botsecurity-protection = { path = "botserver/crates/botsecurity-protection" }
+botsheet = { path = "botserver/crates/botsheet" }
+botsheet-core = { path = "botserver/crates/botsheet-core" }
+botslides = { path = "botserver/crates/botslides" }
+botsocial = { path = "botserver/crates/botsocial" }
+botsources = { path = "botserver/crates/botsources" }
+bottasks = { path = "botserver/crates/bottasks" }
+bottelegram = { path = "botserver/crates/bottelegram" }
+bottickets = { path = "botserver/crates/bottickets" }
+bottimeseries = { path = "botserver/crates/bottimeseries" }
+botvideo = { path = "botserver/crates/botvideo" }
+botvibe = { path = "botserver/crates/botvibe" }
+botweba = { path = "botserver/crates/botweba" }
+botwhatsapp = { path = "botserver/crates/botwhatsapp" }
+botworkspaces = { path = "botserver/crates/botworkspaces" }
+botdesktop = { path = "botserver/crates/botdesktop" }
+botinstagram = { path = "botserver/crates/botinstagram" }
+botcoresession = { path = "botserver/crates/botcoresession" }
+botcoreoauth = { path = "botserver/crates/botcoreoauth" }
+botcoresecrets = { path = "botserver/crates/botcoresecrets" }
+botcoredirectory = { path = "botserver/crates/botcoredirectory" }
+botbasic_types = { path = "botserver/crates/botbasic_types" }
+botbasic_core = { path = "botserver/crates/botbasic_core" }
+botbasic_data = { path = "botserver/crates/botbasic_data" }
+botbasic_comms = { path = "botserver/crates/botbasic_comms" }
+botbasic_ai = { path = "botserver/crates/botbasic_ai" }
+botbasic_system = { path = "botserver/crates/botbasic_system" }
+botbasic_compiler = { path = "botserver/crates/botbasic_compiler" }
+botschema = { path = "botschema" }
+botmodelsbridge = { path = "botserver/crates/botmodelsbridge" }
+botapi = { path = "botserver/crates/botapi" }
+botuifragments = { path = "botserver/crates/botuifragments" }
+bottax = { path = "botserver/crates/bottax" }
+botvision = { path = "botserver/crates/botvision" }
+boterp = { path = "botserver/crates/boterp" }
+botintegrations = { path = "botserver/crates/botintegrations" }
+bothr = { path = "botserver/crates/bothr" }
+botsales = { path = "botserver/crates/botsales" }
+botminutes = { path = "botserver/crates/botminutes" }
+bottemplates = { path = "botserver/crates/bottemplates" }
+botitsm = { path = "botserver/crates/botitsm" }
+botpos = { path = "botserver/crates/botpos" }
+bothandoff = { path = "botserver/crates/bothandoff" }
+botkyc = { path = "botserver/crates/botkyc" }
+bottimeclock = { path = "botserver/crates/bottimeclock" }
+botcore = { path = "botserver/crates/botcore" }
+botdrive = { path = "botserver/crates/botdrive" }
+botmeet = { path = "botserver/crates/botmeet" }
+botsettings = { path = "botserver/crates/botsettings" }
+botcorebot = { path = "botserver/crates/botcorebot" }
+botcorepkg = { path = "botserver/crates/botcorepkg" }
+boteditor = { path = "botserver/crates/boteditor" }
+botdatabase = { path = "botserver/crates/botdatabase" }
+botgit = { path = "botserver/crates/botgit" }
+
+# ─── CORE / ERROR HANDLING ───
+anyhow = "1.0"
+thiserror = "2.0"
+log = "0.4"
+rust_decimal = { version = "1.36", default-features = false }
+rust_decimal_macros = "1.36"
+env_logger = "0.11"
+color-eyre = "0.6.5"
+
+# ─── ASYNC RUNTIME ───
+tokio = { version = "1.41", default-features = false }
+tokio-stream = "0.1"
+tokio-util = { version = "0.7", default-features = false }
+tokio-rustls = "0.26"
+tokio-test = "0.4"
+tokio-tungstenite = { version = "0.24", default-features = false }
+async-trait = "0.1"
+async-lock = "2.8.0"
+async-stream = "0.3"
+futures = "0.3"
+futures-util = { version = "0.3", default-features = false }
+scopeguard = "1.2.0"
+
+# ─── SERIALIZATION ───
+serde = { version = "1.0", default-features = false }
+serde_json = "1.0"
+toml = "0.8"
+ciborium = "0.2"
+
+# ─── DATE / TIME ───
+chrono = { version = "0.4", default-features = false }
+time = { version = "0.3", default-features = false }
+cron = "0.15.0"
+
+# ─── UUID ───
+uuid = { version = "1.11", default-features = false }
+
+# ─── WEB FRAMEWORK ───
+axum = { version = "0.7.5", features = ["ws", "multipart", "macros"] }
+axum-server = { version = "0.8", features = ["tls-rustls"] }
+tower = "0.4"
+tower-http = { version = "0.6", default-features = false }
+tower-cookies = "0.10"
+hyper = { version = "1.4", default-features = false }
+hyper-rustls = { version = "0.28", default-features = false }
+hyper-util = { version = "0.1.19", default-features = false }
+http-body-util = "0.1.3"
+
+# ─── HTTP CLIENT ───
+reqwest = { version = "0.12", default-features = false }
+
+# ─── DATABASE ───
+diesel = { version = "2.2" }
+diesel_migrations = "2.2"
+r2d2 = "0.8"
+
+# ─── CACHING ───
+redis = { version = "0.27", default-features = false }
+
+# ─── SECURITY / CRYPTO ───
+jsonwebtoken = { version = "10.3", features = ["rust_crypto", "use_pem"] }
+base64 = "0.22"
+aes-gcm = "0.10"
+argon2 = "0.5"
+hmac = "0.12.1"
+sha2 = "0.10.9"
+sha1 = "0.10.6"
+hex = "0.4"
+rand = "0.9.2"
+ring = "0.17"
+
+# ─── TLS / CERTIFICATES ───
+rustls = { version = "0.23", default-features = false }
+rcgen = { version = "0.14", default-features = false }
+x509-parser = "0.15"
+rustls-native-certs = "0.8"
+webpki-roots = "0.26"
+native-tls = "0.2"
+
+# ─── REGEX / TEXT ───
+regex = "1.11"
+smartstring = "1.0.1"
+urlencoding = "2.1"
+url = "2.5"
+
+# ─── FILESYSTEM ───
+dirs = "5.0"
+tempfile = "3"
+walkdir = "2.5.0"
+notify = "8.0"
+
+# ─── COMPRESSION / ARCHIVES ───
+flate2 = "1.0"
+zip = "2.2"
+tar = "0.4"
+
+# ─── DOCUMENT PROCESSING ───
+docx-rs = "0.4"
+ooxmlsdk = { version = "0.3", default-features = false }
+calamine = "0.26"
+spreadsheet-ods = "1.0"
+pdf-extract = "0.10.0"
+quick-xml = { version = "0.37", features = ["serialize"] }
+rust_xlsxwriter = "0.77"
+umya-spreadsheet = "2.1"
+
+# ─── IMAGE / MEDIA ───
+png = "0.18"
+qrcode = { version = "0.14", default-features = false }
+
+# ─── EMAIL ───
+imap = "3.0.0-alpha.15"
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "builder"] }
+mailparse = "0.15"
+
+# ─── CONFIGURATION ───
+dotenvy = "0.15"
+figment = { version = "0.10", default-features = false }
+once_cell = "1.18.0"
+
+# ─── TRACING / LOGGING ───
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false }
+
+# ─── NUMERIC ───
+num-format = "0.4"
+bigdecimal = { version = "0.4", features = ["serde"] }
+
+# ─── UTILITIES ───
+bytes = "1.8"
+
+# ─── OBJECT STORAGE (S3 compatible) ───
+rust-s3 = "0.37.1"
+
+# ─── SCRIPTING ───
+rhai = { version = "1.23", features = ["sync"] }
+
+# ─── VECTOR DB ───
+qdrant-client = "1.17"
+
+# ─── VIDEO / MEETINGS ───
+livekit = "0.7"
+
+# ─── SYSTEM MONITORING ───
+sysinfo = "0.37.2"
+
+# ─── CONSOLE / TUI ───
+crossterm = "0.29.0"
+ratatui = "0.30"
+indicatif = "0.18.0"
+
+# ─── MEMORY ALLOCATOR ───
+mimalloc = "0.1"
+
+# ─── SECRETS / VAULT ───
+vaultrs = "0.7"
+
+# ─── CALENDAR / RSS ───
+icalendar = "0.17"
+rss = "2.0"
+
+# ─── WEB SCRAPING ───
+scraper = "0.25"
+
+# ─── RATE LIMITING ───
+governor = "0.10"
+
+# ─── CSV ───
+csv = "1.3"
+
+# ─── GRPC ───
+tonic = { version = "0.14.2", default-features = false }
+
+# ─── STATIC FILES ───
+rust-embed = { version = "8.5", features = ["interpolate-folder-path"] }
+mime_guess = "2.0"
+
+
+# ─── TESTING ───
+mockito = "1.7.0"
+wiremock = "0.6"
+cookie = "0.18"
+chromiumoxide = { version = "0.7", features = ["tokio-runtime"], default-features = false }
+pretty_assertions = "1.4"
+insta = { version = "1.40", features = ["json", "yaml"] }
+
+# ─── PROCESS CONTROL ───
+nix = { version = "0.29", features = ["signal", "process"] }
+which = "7"
+
+# ─── ANDROID ───
+android_logger = "0.14"
+
+# ─── VALIDATOR ───
+validator = { version = "0.20", features = ["derive"] }
+
+# ─── MISC ───
+webbrowser = "0.8"
+hostname = "0.4"
+local-ip-address = "0.6.5"
+image = "0.25"
+libc = "0.2"
+
+trayicon = "0.2"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROFILES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[profile.release]
+lto = true
+opt-level = "z"
+strip = true
+panic = "abort"
+codegen-units = 1
+
+[profile.fast]
+inherits = "release"
+lto = false
+opt-level = 3
+strip = true
+codegen-units = 16
+
+[profile.ci]
+inherits = "release"
+lto = false
+codegen-units = 8
+debug = false
+
+[profile.low-memory]
+inherits = "release"
+lto = "thin"
+codegen-units = 16
+debug = false
+incremental = false
+opt-level = "s"
+
+[profile.dev]
+debug = false
+incremental = false
+codegen-units = 128
+opt-level = 0
+

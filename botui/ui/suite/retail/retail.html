@@ -1,0 +1,115 @@
+<link rel="stylesheet" href="/suite/retail/retail.css">
+<script src="/suite/retail/retail.js"></script>
+
+<div class="retail-container">
+    <header class="retail-header">
+        <h1>Retail Management</h1>
+        <div class="retail-header-actions">
+            <select class="retail-branch-select" id="retail-branch-filter" onchange="window._retail.filterBranch(this.value)">
+                <option value="all">All Branches</option>
+                <option value="1">Branch 1 — Downtown</option>
+                <option value="2">Branch 2 — Mall</option>
+                <option value="3">Branch 3 — Outlet</option>
+            </select>
+            <button class="retail-btn" onclick="window._retail.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="retail-stats">
+        <div class="retail-stat-card"><span class="retail-stat-label">Today's Revenue</span><span class="retail-stat-value green" id="stat-revenue">$0.00</span></div>
+        <div class="retail-stat-card"><span class="retail-stat-label">Orders</span><span class="retail-stat-value blue" id="stat-orders">0</span></div>
+        <div class="retail-stat-card"><span class="retail-stat-label">Low Stock SKUs</span><span class="retail-stat-value yellow" id="stat-low-stock">0</span></div>
+        <div class="retail-stat-card"><span class="retail-stat-label">Active Promotions</span><span class="retail-stat-value purple" id="stat-promos">0</span></div>
+    </div>
+
+    <nav class="retail-tabs">
+        <button class="retail-tab active" data-tab="dashboard" onclick="window._retail.switchTab('dashboard',this)">Dashboard</button>
+        <button class="retail-tab" data-tab="branches" onclick="window._retail.switchTab('branches',this)">Branches</button>
+        <button class="retail-tab" data-tab="stock" onclick="window._retail.switchTab('stock',this)">Stock</button>
+        <button class="retail-tab" data-tab="pricing" onclick="window._retail.switchTab('pricing',this)">Pricing</button>
+        <button class="retail-tab" data-tab="promotions" onclick="window._retail.switchTab('promotions',this)">Promotions</button>
+        <button class="retail-tab" data-tab="suppliers" onclick="window._retail.switchTab('suppliers',this)">Suppliers</button>
+    </nav>
+
+    <div class="retail-content">
+        <div class="retail-panel active" id="panel-dashboard">
+            <div class="retail-grid" id="dashboard-grid">
+                <div class="retail-card">
+                    <h3>Top Products</h3>
+                    <div id="top-products-list"><div class="retail-empty">Loading...</div></div>
+                </div>
+                <div class="retail-card">
+                    <h3>Branch Performance</h3>
+                    <div id="branch-performance"><div class="retail-empty">Loading...</div></div>
+                </div>
+                <div class="retail-card">
+                    <h3>Stock Alerts</h3>
+                    <div id="stock-alerts"><div class="retail-empty">Loading...</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="retail-panel" id="panel-branches">
+            <div class="retail-table-wrapper">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                    <h3 style="font-size:14px;font-weight:600;margin:0">Store Branches</h3>
+                    <button class="retail-btn retail-btn-primary" onclick="window._retail.showCreateBranch()">+ New Branch</button>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="retail-table">
+                        <thead><tr><th>Code</th><th>Name</th><th>Address</th><th>Manager</th><th>Stock Value</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="branches-tbody"><tr><td colspan="7" class="retail-empty">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="retail-panel" id="panel-stock">
+            <div class="retail-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="stock-search" placeholder="Search SKU or product..." oninput="window._retail.searchStock(this.value)">
+            </div>
+            <div class="retail-table-wrapper">
+                <table class="retail-table">
+                    <thead><tr><th>SKU</th><th>Product</th><th>Branch</th><th>On Hand</th><th>Reserved</th><th>Available</th><th>Min</th><th>Status</th></tr></thead>
+                    <tbody id="stock-tbody"><tr><td colspan="8" class="retail-empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="retail-panel" id="panel-pricing">
+            <div class="retail-grid" id="pricing-grid">
+                <div class="retail-empty"><div class="retail-empty-icon">💲</div><h3>Loading pricing rules...</h3></div>
+            </div>
+        </div>
+
+        <div class="retail-panel" id="panel-promotions">
+            <div class="retail-table-wrapper">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                    <h3 style="font-size:14px;font-weight:600;margin:0">Active Promotions</h3>
+                    <button class="retail-btn retail-btn-primary" onclick="window._retail.showCreatePromo()">+ New Promotion</button>
+                </div>
+                <table class="retail-table">
+                    <thead><tr><th>Name</th><th>Type</th><th>Discount</th><th>Valid From</th><th>Valid To</th><th>Status</th></tr></thead>
+                    <tbody id="promos-tbody"><tr><td colspan="6" class="retail-empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="retail-panel" id="panel-suppliers">
+            <div class="retail-table-wrapper">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                    <h3 style="font-size:14px;font-weight:600;margin:0">Suppliers</h3>
+                    <button class="retail-btn retail-btn-primary" onclick="window._retail.showCreateSupplier()">+ New Supplier</button>
+                </div>
+                <table class="retail-table">
+                    <thead><tr><th>CNPJ</th><th>Name</th><th>Contact</th><th>Email</th><th>Lead Time</th><th>Rating</th></tr></thead>
+                    <tbody id="suppliers-tbody"><tr><td colspan="6" class="retail-empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

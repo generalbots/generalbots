@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offers — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .offers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+    .offer-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem; transition: all .2s; position: relative; display: flex; flex-direction: column;
+    }
+    .offer-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-accent); }
+    .offer-card.highlight { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 100%); }
+    .offer-card.highlight::before { content: 'Recommended'; position: absolute; top: -.5rem; right: 1rem; background: var(--accent); color: #fff; font-size: .65rem; font-weight: 700; padding: .15rem .65rem; border-radius: 99px; text-transform: uppercase; letter-spacing: .05em; }
+    .offer-name { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: .35rem; }
+    .offer-desc { font-size: .82rem; color: var(--muted); line-height: 1.55; margin-bottom: 1rem; flex: 1; }
+    .offer-price-row { display: flex; align-items: baseline; gap: .75rem; margin-bottom: .75rem; }
+    .offer-price { font-size: 1.8rem; font-weight: 800; color: var(--text); }
+    .offer-price small { font-size: .8rem; font-weight: 400; color: var(--muted); }
+    .offer-original { font-size: .85rem; color: var(--muted); text-decoration: line-through; }
+    .offer-savings { font-size: .72rem; background: var(--accent-dim); color: var(--accent2); padding: .15rem .5rem; border-radius: 99px; font-weight: 600; }
+    .offer-addons { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: 1.25rem; }
+    .offer-addon-tag { font-size: .7rem; background: var(--bg3); color: var(--muted); padding: .2rem .55rem; border-radius: 99px; border: 1px solid var(--border); }
+    .offer-btn { width: 100%; text-align: center; padding: .65rem; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+    .offer-btn.primary { background: var(--accent); color: #fff; }
+    .offer-btn.primary:hover { filter: brightness(1.15); }
+    .offer-btn.outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .offer-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+    .offers-section-title { font-size: .85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 2rem 0 1rem; }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Special Offers</span>
+      <div class="mgmt-topbar-actions">
+        <a href="/cloud/store" class="btn btn-outline btn-sm">Build Your Own</a>
+      </div>
+    </div>
+
+    <div style="padding:2rem">
+
+      <div class="offers-section-title" style="margin-top:0">Featured Offers</div>
+      <div class="offers-grid" id="offers-grid-highlight"></div>
+
+      <div class="offers-section-title">Shared Combos</div>
+      <div class="offers-grid" id="offers-grid-shared"></div>
+
+      <div class="offers-section-title">Private Cloud</div>
+      <div class="offers-grid" id="offers-grid-private"></div>
+    </div>
+  </main>
+</div>
+
+<script src="/cloud/js/cloud.js"></script>
+<script>
+(async function() {
+  const token = requireAuth();
+  if (!token) return;
+
+  let offers = [];
+  try {
+    const res = await fetch('/api/cloud/offers', { headers: { 'Authorization': 'Bearer ' + token } });
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('json')) {
+      const data = await res.json();
+      offers = data.offers || [];
+    }
+  } catch (_) {}
+
+  if (offers.length === 0) {
+    offers = [
+      { id: 'starter-kit', name: 'Starter Kit', description: 'Everything to launch your first bot: VPS Small + 50 GB storage + local number.', monthly_price: 19.97, original_price: 25.97, savings_percent: 23, base: 'shared', highlight: true, addons: ['vps_small', 'storage_50', 'number_local'] },
+      { id: 'business-bundle', name: 'Business Bundle', description: 'VPS Medium + 250 GB storage + 3 global numbers + .com domain.', monthly_price: 49.97, original_price: 74.95, savings_percent: 33, base: 'shared', highlight: true, addons: ['vps_medium', 'storage_250', 'number_global', 'domain_com'] },
+      { id: 'gpu-starter', name: 'GPU Starter', description: 'GPU Basic + 50 GB high-speed storage. Perfect for ML experiments.', monthly_price: 39.98, original_price: 49.98, savings_percent: 20, base: 'shared', highlight: false, addons: ['gpu_basic', 'storage_50'] },
+      { id: 'devops-pack', name: 'DevOps Pack', description: 'VPS XL + 1 TB storage + 1000 call minutes.', monthly_price: 129.98, original_price: 159.97, savings_percent: 19, base: 'shared', highlight: false, addons: ['vps_xl', 'storage_1tb', 'calls_1000'] },
+      { id: 'enterprise-suite', name: 'Enterprise Suite', description: 'GPU Pro + 10 TB storage + global business pack. For demanding deployments.', monthly_price: 299.97, original_price: 399.96, savings_percent: 25, base: 'shared', highlight: false, addons: ['gpu_pro', 'storage_10tb', 'phone_business'] },
+    ];
+  }
+
+  window.allOffers = offers;
+
+  window.buyOffer = function(offerId) {
+    const o = window.allOffers.find(item => item.id === offerId);
+    if (!o) return;
+    
+    let vpsVal = null;
+    let storageVal = 0;
+    let gpuVal = 'none';
+    let phoneVal = '0';
+    let domainVal = '';
+    let aiList = [];
+
+    (o.addons || []).forEach(a => {
+      if (a.startsWith('vps_')) {
+        vpsVal = a.replace('_', '-');
+      } else if (a.startsWith('storage_')) {
+        const gbStr = a.replace('storage_', '');
+        if (gbStr === '50') storageVal = 50;
+        else if (gbStr === '250') storageVal = 250;
+        else if (gbStr === '1tb') storageVal = 1000;
+        else if (gbStr === '10tb') storageVal = 10000;
+      } else if (a.startsWith('gpu_')) {
+        gpuVal = a.replace('_', '-');
+      } else if (a.startsWith('phone_') || a.startsWith('number_')) {
+        const pType = a.replace('phone_', '').replace('number_', '');
+        if (pType === 'local') phoneVal = '1';
+        else if (pType === 'global') phoneVal = '3';
+        else if (pType === 'business') phoneVal = '10';
+      } else if (a.startsWith('domain_')) {
+        domainVal = '.' + a.replace('domain_', '');
+      }
+    });
+
+    const payloadObj = {
+      plan: o.id,
+      period: 'monthly',
+      storage: storageVal,
+      vps: vpsVal,
+      gpu: gpuVal,
+      phone: phoneVal,
+      domain: domainVal,
+      total: o.monthly_price,
+      currency: 'usd',
+      ai: aiList
+    };
+
+    const payload = encodeURIComponent(JSON.stringify(payloadObj));
+    window.location.href = '/cloud/checkout?payload=' + payload;
+  };
+
+  function renderCard(o) {
+    const isHighlight = o.highlight;
+    const addonsHtml = (o.addons || []).map(a => `<span class="offer-addon-tag">${a.replace(/_/g, ' ')}</span>`).join('');
+    const priceHtml = o.savings_percent > 0
+      ? '<div class="offer-price-row"><span class="offer-price">$' + o.monthly_price.toFixed(2) + ' <small>/mo</small></span><span class="offer-original">$' + o.original_price.toFixed(2) + '</span><span class="offer-savings">' + o.savings_percent + '% OFF</span></div>'
+      : '<div class="offer-price-row"><span class="offer-price">$' + o.monthly_price.toFixed(2) + ' <small>/mo</small></span></div>';
+    const addonHtml = addonsHtml ? '<div class="offer-addons">' + addonsHtml + '</div>' : '';
+    return '<div class="offer-card' + (isHighlight ? ' highlight' : '') + '">' +
+      '<div class="offer-name">' + o.name + '</div>' +
+      '<div class="offer-desc">' + o.description + '</div>' +
+      priceHtml +
+      addonHtml +
+      '<button class="offer-btn ' + (isHighlight ? 'primary' : 'outline') + '" onclick="buyOffer(\'' + o.id + '\')">Subscribe</button>' +
+      '</div>';
+  }
+
+  const highlighted = offers.filter(o => o.highlight);
+  const shared = offers.filter(o => o.base === 'shared' && !o.highlight);
+  const privateCloud = offers.filter(o => o.base === 'shared' && o.addons.some(a => a.startsWith('vps')));
+
+  document.getElementById('offers-grid-highlight').innerHTML = highlighted.length ? highlighted.map(renderCard).join('') : '<p style="color:var(--muted)">No featured offers.</p>';
+  document.getElementById('offers-grid-shared').innerHTML = shared.length ? shared.map(renderCard).join('') : '<p style="color:var(--muted)">No shared combos.</p>';
+  document.getElementById('offers-grid-private').innerHTML = privateCloud.length ? privateCloud.map(renderCard).join('') : '<p style="color:var(--muted)">No private cloud offers.</p>';
+})();
+</script>
+</body>
+</html>

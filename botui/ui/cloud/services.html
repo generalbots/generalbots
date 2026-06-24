@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Services — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">My Services</span>
+      <div class="mgmt-topbar-actions">
+        <a href="/cloud/store" class="btn btn-primary btn-sm">+ Add Service</a>
+      </div>
+    </div>
+
+    <div style="padding:2rem">
+      <!-- Filter tabs -->
+      <div class="cat-pills" id="filter-pills">
+        <button class="cat-pill active" onclick="filterServices(this,'all')">All</button>
+        <button class="cat-pill" onclick="filterServices(this,'compute')">VPS / GPU</button>
+        <button class="cat-pill" onclick="filterServices(this,'storage')">Storage</button>
+        <button class="cat-pill" onclick="filterServices(this,'number')">Numbers</button>
+        <button class="cat-pill" onclick="filterServices(this,'domain')">Domains</button>
+      </div>
+
+      <div class="services-list" id="services-list">
+        <div class="mgmt-empty"><div class="loading-dots"><span></span><span></span><span></span></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

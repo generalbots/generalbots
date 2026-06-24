@@ -1,0 +1,228 @@
+<!-- AI Assistant Panel -->
+        <div class="ai-panel hidden" id="ai-panel">
+            <div class="ai-panel-header">
+                <h3 data-i18n="paper-ai-assistant">AI Assistant</h3>
+                <button class="btn-icon" id="close-ai-panel">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="ai-panel-content">
+                <!-- Quick Actions -->
+                <div class="ai-quick-actions">
+                    <button
+                        class="ai-action-btn"
+                        hx-post="/api/ui/paper/ai/summarize"
+                        hx-include="[name='selected-text']"
+                        hx-target="#ai-response-content"
+                        hx-swap="innerHTML"
+                    >
+                        <span>📝</span>
+                        <span data-i18n="paper-ai-summarize">Summarize</span>
+                    </button>
+                    <button
+                        class="ai-action-btn"
+                        hx-post="/api/ui/paper/ai/expand"
+                        hx-include="[name='selected-text']"
+                        hx-target="#ai-response-content"
+                        hx-swap="innerHTML"
+                    >
+                        <span>📖</span>
+                        <span data-i18n="paper-ai-expand">Expand</span>
+                    </button>
+                    <button
+                        class="ai-action-btn"
+                        hx-post="/api/ui/paper/ai/improve"
+                        hx-include="[name='selected-text']"
+                        hx-target="#ai-response-content"
+                        hx-swap="innerHTML"
+                    >
+                        <span>✏️</span>
+                        <span data-i18n="paper-ai-improve">Improve</span>
+                    </button>
+                    <button
+                        class="ai-action-btn"
+                        hx-post="/api/ui/paper/ai/simplify"
+                        hx-include="[name='selected-text']"
+                        hx-target="#ai-response-content"
+                        hx-swap="innerHTML"
+                    >
+                        <span>🎯</span>
+                        <span data-i18n="paper-ai-make-shorter">Simplify</span>
+                    </button>
+                </div>
+
+                <!-- Tone Selector -->
+                <div class="ai-tone-section">
+                    <label data-i18n="paper-ai-tone">Change Tone</label>
+                    <div class="tone-buttons">
+                        <button
+                            class="tone-btn"
+                            data-tone="professional"
+                            data-i18n="paper-ai-tone-professional"
+                        >
+                            Professional
+                        </button>
+                        <button
+                            class="tone-btn"
+                            data-tone="casual"
+                            data-i18n="paper-ai-tone-casual"
+                        >
+                            Casual
+                        </button>
+                        <button
+                            class="tone-btn"
+                            data-tone="friendly"
+                            data-i18n="paper-ai-tone-friendly"
+                        >
+                            Friendly
+                        </button>
+                        <button
+                            class="tone-btn"
+                            data-tone="formal"
+                            data-i18n="paper-ai-tone-formal"
+                        >
+                            Formal
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Translation -->
+                <div class="ai-translate-section">
+                    <label data-i18n="paper-ai-translate-to"
+                        >Translate to</label
+                    >
+                    <select id="translate-lang" class="ai-select">
+                        <option value="en">English</option>
+                        <option value="pt">Português</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                        <option value="de">Deutsch</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                    <button
+                        class="ai-action-btn"
+                        hx-post="/api/ui/paper/ai/translate"
+                        hx-include="#translate-lang, [name='selected-text']"
+                        hx-target="#ai-response-content"
+                        hx-swap="innerHTML"
+                    >
+                        <span data-i18n="paper-ai-translate">Translate</span>
+                    </button>
+                </div>
+
+                <!-- Custom Prompt -->
+                <div class="ai-custom-section">
+                    <label data-i18n="paper-ai-custom-prompt"
+                        >Custom AI Command</label
+                    >
+                    <textarea
+                        id="ai-custom-prompt"
+                        data-i18n-placeholder="paper-ai-custom-placeholder"
+                        placeholder="Tell AI what to do with selected text..."
+                    ></textarea>
+                    <button
+                        class="btn-primary"
+                        hx-post="/api/ui/paper/ai/custom"
+                        hx-include="#ai-custom-prompt, [name='selected-text']"
+                        hx-target="#ai-response-content"
+                        hx-swap="innerHTML"
+                    >
+                        <span data-i18n="paper-ai-generate">Run Command</span>
+                    </button>
+                </div>
+
+                <!-- Hidden field for selected text -->
+                <input
+                    type="hidden"
+                    name="selected-text"
+                    id="selected-text-input"
+                />
+            </div>
+
+            <!-- AI Response -->
+            <div class="ai-response hidden" id="ai-response">
+                <div class="ai-response-header">
+                    <span data-i18n="paper-ai-response">AI Response</span>
+                    <div class="ai-response-actions">
+                        <button
+                            class="btn-icon"
+                            id="copy-ai-response"
+                            title="Copy"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <rect
+                                    x="9"
+                                    y="9"
+                                    width="13"
+                                    height="13"
+                                    rx="2"
+                                    ry="2"
+                                ></rect>
+                                <path
+                                    d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"
+                                ></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="btn-icon"
+                            id="insert-ai-response"
+                            title="Insert"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <polyline points="19 12 12 19 5 12"></polyline>
+                            </svg>
+                        </button>
+                        <button
+                            class="btn-icon"
+                            id="replace-ai-response"
+                            title="Replace Selection"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M17 1l4 4-4 4"></path>
+                                <path d="M3 11V9a4 4 0 014-4h14"></path>
+                                <path d="M7 23l-4-4 4-4"></path>
+                                <path d="M21 13v2a4 4 0 01-4 4H3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="ai-response-content" id="ai-response-content">
+                    <!-- AI response loads here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->

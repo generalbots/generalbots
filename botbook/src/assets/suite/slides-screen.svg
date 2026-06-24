@@ -1,0 +1,161 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #f59e0b; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .row-hover { fill: #f1f5f9; }
+    .row-selected { fill: #fffbeb; }
+    .nav-active { fill: #fffbeb; }
+    .toolbar-active { fill: #fffbeb; }
+    .input-bg { fill: #f8fafc; }
+    .slide-bg { fill: #fefce8; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #fbbf24; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .row-hover { fill: #1e293b; }
+      .row-selected { fill: #451a03; }
+      .nav-active { fill: #451a03; }
+      .toolbar-active { fill: #451a03; }
+      .input-bg { fill: #1e293b; }
+      .slide-bg { fill: #1e293b; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Untitled Presentation</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Slide Thumbnails Panel -->
+  <rect x="30" y="40" width="130" height="530" class="panel-bg"/>
+  <line x1="160" y1="40" x2="160" y2="570" class="border"/>
+
+  <!-- Thumbnails Header -->
+  <g transform="translate(45, 55)">
+    <text x="0" y="12" font-size="13" font-weight="600" class="main-text">Slides</text>
+  </g>
+
+  <line x1="30" y1="75" x2="160" y2="75" class="border"/>
+
+  <!-- Slide 1 Thumbnail (active) -->
+  <g transform="translate(40, 85)">
+    <rect x="0" y="0" width="100" height="65" rx="4" class="slide-bg"/>
+    <rect x="0" y="0" width="100" height="65" rx="4" class="border"/>
+    <rect x="0" y="0" width="3" height="65" rx="1" fill="#f59e0b"/>
+    <text x="12" y="18" font-size="8" font-weight="600" class="main-text">Quarterly</text>
+    <text x="12" y="28" font-size="8" font-weight="600" class="main-text">Review</text>
+    <text x="12" y="48" font-size="7" class="muted-text">3 bullets</text>
+    <text x="85" y="12" font-size="9" font-weight="600" class="accent-text">1</text>
+  </g>
+
+  <!-- Slide 2 Thumbnail -->
+  <g transform="translate(40, 165)">
+    <rect x="0" y="0" width="100" height="65" rx="4" class="bg"/>
+    <rect x="0" y="0" width="100" height="65" rx="4" class="border"/>
+    <text x="12" y="18" font-size="8" font-weight="600" class="main-text">Revenue</text>
+    <text x="12" y="28" font-size="8" font-weight="600" class="main-text">Overview</text>
+    <text x="85" y="12" font-size="9" class="muted-text">2</text>
+  </g>
+
+  <!-- Slide 3 Thumbnail -->
+  <g transform="translate(40, 245)">
+    <rect x="0" y="0" width="100" height="65" rx="4" class="bg"/>
+    <rect x="0" y="0" width="100" height="65" rx="4" class="border"/>
+    <text x="12" y="18" font-size="8" font-weight="600" class="main-text">Next Steps</text>
+    <text x="85" y="12" font-size="9" class="muted-text">3</text>
+  </g>
+
+  <!-- Add Slide Button -->
+  <g transform="translate(60, 330)">
+    <rect x="0" y="0" width="60" height="28" rx="6" class="icon-btn"/>
+    <text x="30" y="19" text-anchor="middle" font-size="12" class="secondary-text">+ Add</text>
+  </g>
+
+  <!-- Toolbar -->
+  <rect x="160" y="40" width="710" height="44" class="panel-bg"/>
+  <line x1="160" y1="84" x2="870" y2="84" class="border"/>
+
+  <g transform="translate(175, 55)">
+    <rect x="0" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="14" y="20" text-anchor="middle" font-size="14" font-weight="700" class="main-text">T</text>
+
+    <rect x="36" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="50" y="20" text-anchor="middle" font-size="12">⬜</text>
+
+    <rect x="72" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="86" y="20" text-anchor="middle" font-size="12">🖼</text>
+
+    <line x1="115" y1="2" x2="115" y2="26" class="border"/>
+
+    <rect x="125" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="139" y="20" text-anchor="middle" font-size="12">🔗</text>
+
+    <rect x="161" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="175" y="20" text-anchor="middle" font-size="12">📊</text>
+
+    <line x1="205" y1="2" x2="205" y2="26" class="border"/>
+
+    <rect x="215" y="0" width="28" height="28" rx="4" class="toolbar-active"/>
+    <text x="229" y="20" text-anchor="middle" font-size="12" class="accent-text">🎨</text>
+
+    <rect x="251" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="265" y="20" text-anchor="middle" font-size="12">🎬</text>
+
+    <rect x="287" y="0" width="28" height="28" rx="4" class="icon-btn"/>
+    <text x="301" y="20" text-anchor="middle" font-size="12">▶</text>
+  </g>
+
+  <!-- Main Slide Area -->
+  <rect x="180" y="100" width="620" height="420" class="bg"/>
+  <rect x="180" y="100" width="620" height="420" class="border"/>
+
+  <!-- Slide Content -->
+  <rect x="195" y="115" width="590" height="390" rx="4" class="slide-bg"/>
+  <rect x="195" y="115" width="590" height="390" rx="4" class="border"/>
+
+  <!-- Slide Title -->
+  <g transform="translate(240, 170)">
+    <text x="0" y="0" font-size="32" font-weight="700" class="main-text">Quarterly Review</text>
+  </g>
+
+  <line x1="240" y1="195" x2="740" y2="195" class="border"/>
+
+  <!-- Slide Bullet Points -->
+  <g transform="translate(260, 225)">
+    <text x="0" y="0" font-size="18" class="main-text">Revenue growth: +15% YoY</text>
+
+    <text x="0" y="50" font-size="18" class="main-text">New clients onboarded: 42</text>
+
+    <text x="0" y="100" font-size="18" class="main-text">Customer satisfaction: 92%</text>
+
+    <text x="0" y="150" font-size="18" class="main-text">Team expansion: 12 new hires</text>
+  </g>
+
+  <!-- Slide number -->
+  <text x="770" y="505" text-anchor="end" font-size="11" class="muted-text">1 / 3</text>
+
+  <!-- Footer -->
+  <g transform="translate(35, 560)">
+    <text x="0" y="0" font-size="10" class="muted-text">Auto-saved | 3 slides | Last edit: 5 minutes ago</text>
+  </g>
+</svg>

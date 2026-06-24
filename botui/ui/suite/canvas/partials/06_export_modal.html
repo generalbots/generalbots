@@ -1,0 +1,38 @@
+<!-- Export Modal -->
+    <div id="export-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 data-i18n="canvas-export">Export Canvas</h2>
+            <div class="export-options">
+                <div class="export-format">
+                    <label>Format</label>
+                    <select id="export-format">
+                        <option value="png">PNG Image</option>
+                        <option value="svg">SVG Vector</option>
+                        <option value="pdf">PDF Document</option>
+                        <option value="json">JSON Data</option>
+                    </select>
+                </div>
+                <div class="export-scale">
+                    <label>Scale</label>
+                    <select id="export-scale">
+                        <option value="1">1x</option>
+                        <option value="2" selected>2x</option>
+                        <option value="3">3x</option>
+                    </select>
+                </div>
+                <div class="export-bg">
+                    <label>
+                        <input type="checkbox" id="export-bg" checked />
+                        Include Background
+                    </label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeExportModal()">
+                    Cancel
+                </button>
+                <button class="btn-primary" onclick="doExport()">Export</button>
+            </div>
+        </div>
+    </div>
+</div>
