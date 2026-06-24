@@ -113,7 +113,7 @@ pub(crate) async fn bootstrap_directory_admin(zitadel_config: &crate::directory:
         }
     };
 
-    let max_retries = 12;
+    let max_retries = 24;
     let mut attempt = 0;
     loop {
         match bootstrap::check_and_bootstrap_admin(&bootstrap_client).await {
