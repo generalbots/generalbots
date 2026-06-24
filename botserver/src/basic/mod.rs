@@ -27,6 +27,8 @@ impl ScriptService {
     #[must_use]
     pub fn new(state: Arc<AppState>, user: LocalUserSession) -> Self {
         let mut engine = Engine::new();
+        let _ = engine.set_max_operations(50_000);
+        let _ = engine.set_max_call_levels(10);
         let scope = Scope::new();
         engine.set_allow_anonymous_fn(true);
         engine.set_allow_looping(true);
@@ -97,6 +99,29 @@ impl ScriptService {
         if let Err(e) = std::fs::write("/tmp/run_preprocessed.txt", &preprocessed) {
             log::warn!("Failed to write /tmp/run_preprocessed.txt: {}", e);
         }
+
+        #[cfg(feature = "security")]
+        {
+            use botsecurity::{InspectionContext, ScriptAuditLogger, ScriptGuard};
+            let ctx = InspectionContext::default();
+            let result = ScriptGuard::inspect(&preprocessed, &ctx);
+            if !result.allowed {
+                ScriptAuditLogger::log_blocked(&result);
+                log::error!(
+                    "[SECURITY] Script blocked — {} dangerous patterns detected",
+                    result.blocked_patterns.len()
+                );
+                return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    format!(
+                        "Script blocked by security guard: {} dangerous patterns detected",
+                        result.blocked_patterns.len()
+                    )
+                    .into(),
+                    rhai::Position::NONE,
+                )));
+            }
+        }
+
         let ast = match self.engine.compile(&preprocessed) {
             Ok(ast) => ast,
             Err(e) => {

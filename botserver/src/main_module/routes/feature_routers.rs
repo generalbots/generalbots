@@ -168,11 +168,14 @@ pub(super) fn make_billing_router(app_state: &Arc<AppState>) -> Router<()> {
 
 pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     use botcloud::{SaasService, SaasConfig, stripe::StripeClient, cloud_ui, api};
-    let stripe = StripeClient::new(
-        std::env::var("STRIPE_SECRET_KEY")
-            .unwrap_or_else(|_| "sk_test_placeholder".to_string()),
-        None,
-    );
+    let stripe_secret = match std::env::var("STRIPE_SECRET_KEY") {
+        Ok(key) => key,
+        Err(_) => {
+            tracing::warn!("STRIPE_SECRET_KEY not set — Stripe operations will fail at runtime");
+            String::new()
+        }
+    };
+    let stripe = StripeClient::new(stripe_secret, None);
 
     // Configure mc alias from AppState drive config (loaded from Vault)
     let mc_path = std::env::var("MC_PATH").unwrap_or_else(|_| "/tmp/mc".to_string());
@@ -191,11 +194,27 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
         }
     }
 
+    let base_url = match std::env::var("SAAS_BASE_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            tracing::warn!("SAAS_BASE_URL not set — redirect URLs may be broken");
+            String::new()
+        }
+    };
+    let jwt_secret = match std::env::var("SAAS_JWT_SECRET") {
+        Ok(secret) => secret,
+        Err(_) => {
+            let generated = uuid::Uuid::new_v4().to_string();
+            tracing::warn!(
+                "SAAS_JWT_SECRET not set — using auto-generated fallback \
+                 (all sessions invalidated on next restart)"
+            );
+            generated
+        }
+    };
     let saas_config = SaasConfig {
-        base_url: std::env::var("SAAS_BASE_URL")
-            .unwrap_or_else(|_| "http://localhost:5859".to_string()),
-        jwt_secret: std::env::var("SAAS_JWT_SECRET")
-            .unwrap_or_else(|_| "change-me-in-production".to_string()),
+        base_url,
+        jwt_secret,
         mc_path,
         mc_alias,
         directory_api_url: std::env::var("ZITADEL_API_URL").ok(),

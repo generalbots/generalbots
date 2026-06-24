@@ -163,3 +163,8 @@ pub use botsecurity_crypto::tls::{create_https_server, ServiceTlsConfig, TlsConf
 pub use botsecurity_protection::protection::{
     configure_protection_routes, ProtectionManager, ProtectionTool, ToolStatus,
 };
+pub use botsecurity_protection::protection::script_guard::{
+    BlockedPattern, InspectionContext, LlmCallRecord, RiskLevel, ScriptGuard,
+    ScriptInspectionResult,
+};
+pub use botsecurity_protection::protection::script_guard::AuditLogger as ScriptAuditLogger;
