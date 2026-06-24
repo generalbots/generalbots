@@ -7,6 +7,7 @@ edition = "2021"
 botbasic_types = { workspace = true }
 botschema = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
+botsecurity-crypto = { workspace = true }
 # botsecurity removed to break circular dep — use botlib::security:: instead
 botcoresecrets = { path = "../botcoresecrets" }
 base64 = { workspace = true }

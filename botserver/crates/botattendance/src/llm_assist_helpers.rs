@@ -6,6 +6,7 @@ use crate::AttendanceConfig;
 use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
+use botsecurity_crypto::encryption::{decrypt_field, derive_key_from_password};
 
 pub async fn execute_llm_with_context(
     config: &Arc<AttendanceConfig>,
@@ -60,17 +61,30 @@ pub async fn load_conversation_history(
             .load(&mut db_conn)
             .unwrap_or_default();
 
+        let salt = b"generalbots_msg_salt_default_123";
+        let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
+            .unwrap_or_else(|_| vec![0u8; 32]);
+
         messages
             .into_iter()
-            .map(|(content, role, timestamp)| ConversationMessage {
-                role: match role {
-                    0 => "customer".to_string(),
-                    1 => "bot".to_string(),
-                    2 => "attendant".to_string(),
-                    _ => "system".to_string(),
-                },
-                content,
-                timestamp: Some(timestamp.and_utc().to_rfc3339()),
+            .map(|(content, role, timestamp)| {
+                let decrypted_content = match decrypt_field(&content, &key_bytes) {
+                    Ok(decrypted) => decrypted,
+                    Err(e) => {
+                        log::error!("Failed to decrypt message in llm_assist: {}", e);
+                        content
+                    }
+                };
+                ConversationMessage {
+                    role: match role {
+                        0 => "customer".to_string(),
+                        1 => "bot".to_string(),
+                        2 => "attendant".to_string(),
+                        _ => "system".to_string(),
+                    },
+                    content: decrypted_content,
+                    timestamp: Some(timestamp.and_utc().to_rfc3339()),
+                }
             })
             .collect()
     })

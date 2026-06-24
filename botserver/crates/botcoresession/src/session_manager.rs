@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::Arc;
 use uuid::Uuid;
+use botsecurity_crypto::encryption::{encrypt_field, decrypt_field, derive_key_from_password};
 
 pub struct SessionManager {
     pool: Pool<ConnectionManager<PgConnection>>,
@@ -210,13 +211,20 @@ impl SessionManager {
             .count()
             .get_result::<i64>(&mut conn)
             .unwrap_or(0) as i32;
+
+        let salt = b"generalbots_msg_salt_default_123";
+        let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
+            .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?;
+        let encrypted_content = encrypt_field(content, &key_bytes)
+            .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?;
+
         diesel::insert_into(message_history::table)
             .values((
                 message_history::id.eq(Uuid::new_v4()),
                 message_history::session_id.eq(sess_id),
                 message_history::user_id.eq(uid),
                 message_history::role.eq(ro),
-                message_history::content_encrypted.eq(content),
+                message_history::content_encrypted.eq(encrypted_content),
                 message_history::message_type.eq(msg_type),
                 message_history::message_index.eq(next_index),
                 message_history::created_at.eq(chrono::Utc::now()),
@@ -313,6 +321,11 @@ impl SessionManager {
         let total_messages_needed = (limit_val * 2) as usize;
         let start_idx = messages.len().saturating_sub(total_messages_needed);
         let recent_messages: Vec<_> = messages.into_iter().skip(start_idx).collect();
+
+        let salt = b"generalbots_msg_salt_default_123";
+        let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
+            .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?;
+
         let mut history: Vec<(String, String)> = Vec::new();
         for (other_role, content, _idx) in recent_messages {
             let role_str = match other_role {
@@ -322,7 +335,16 @@ impl SessionManager {
                 9 => "episodic".to_string(),
                 _ => "unknown".to_string(),
             };
-            history.push((role_str, content));
+
+            let decrypted_content = match decrypt_field(&content, &key_bytes) {
+                Ok(decrypted) => decrypted,
+                Err(e) => {
+                    log::error!("Failed to decrypt conversation history message: {e}");
+                    content
+                }
+            };
+
+            history.push((role_str, decrypted_content));
         }
         Ok(history)
     }
