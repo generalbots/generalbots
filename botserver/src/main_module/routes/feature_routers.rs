@@ -201,17 +201,18 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
         directory_api_url: std::env::var("ZITADEL_API_URL").ok(),
         directory_service_token: std::env::var("ZITADEL_SERVICE_TOKEN").ok(),
     };
+    let saas_config_for_api = saas_config.clone();
     let saas_service = Arc::new(SaasService::new(
         Arc::new(botbilling::api::BillingApiState {
             pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: Some((|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
+            get_default_bot: Some(botbilling::query_first_bot as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
         }),
         stripe,
         saas_config,
     ));
     Router::new()
         .merge(cloud_ui::configure_cloud_ui_routes().with_state(saas_service.clone()))
-        .merge(api::configure_cloud_api_routes().with_state(saas_service.clone()))
+        .merge(api::configure_cloud_api_routes(saas_config_for_api).with_state(saas_service.clone()))
         .merge(botcloud::webhook::configure_webhook_routes().with_state(saas_service))
 }
 

@@ -1,4 +1,6 @@
-use axum::{extract::State, http::{HeaderMap, StatusCode}, routing::{get, post, put, delete}, Json, Router};
+use axum::{extract::State, http::{HeaderMap, StatusCode}, middleware, routing::{get, post, put, delete}, Json, Router};
+use axum::response::{IntoResponse, Response};
+use axum::body::Body;
 use diesel::deserialize::QueryableByName;
 use diesel::prelude::*;
 use diesel::{ExpressionMethods, RunQueryDsl};
@@ -15,11 +17,64 @@ struct OrgRow {
     name: String,
 }
 
-use crate::{integration, notifier, CalculatorPayload, SaasService};
+use crate::{integration, notifier, CalculatorPayload, SaasConfig, SaasService};
 use botproviders::{ComputeProvider, MachineSpec};
 use botproviders::runpod::RunPodProvider;
 use botproviders::vultr::VultrProvider;
 use botproviders::vast::VastAiProvider;
+
+/// JWT authentication middleware for cloud API routes.
+/// Validates Bearer token on all routes except `/api/cloud/auth/*`.
+async fn cloud_jwt_middleware(
+    axum::Extension(jwt_secret): axum::Extension<String>,
+    request: axum::http::Request<Body>,
+    next: middleware::Next,
+) -> Response {
+    let path = request.uri().path().to_string();
+
+    // Skip auth for public endpoints
+    if path.starts_with("/api/cloud/auth/") {
+        return next.run(request).await;
+    }
+
+    let auth_header = request
+        .headers()
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
+
+    match auth_header {
+        Some(token) => {
+            let parts: Vec<&str> = token.split('.').collect();
+            if parts.len() != 3 {
+                let err = serde_json::json!({"error": "Invalid token format"});
+                return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+            }
+            let (header_b64, _payload_b64, sig_b64) = (parts[0], parts[1], parts[2]);
+            let message = format!("{}.{}", header_b64, parts[1]);
+            let expected_sig = jwt_sign_inner(&message, jwt_secret.as_bytes());
+            if sig_b64 != expected_sig {
+                let err = serde_json::json!({"error": "Invalid token signature"});
+                return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+            }
+            next.run(request).await
+        }
+        None => {
+            let err = serde_json::json!({"error": "Missing Authorization header"});
+            (StatusCode::UNAUTHORIZED, Json(err)).into_response()
+        }
+    }
+}
+
+/// HMAC-SHA256 sign a message and return the base64url-encoded signature.
+fn jwt_sign_inner(message: &str, secret: &[u8]) -> String {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret).expect("valid HMAC key");
+    mac.update(message.as_bytes());
+    base64_url_encode(&mac.finalize().into_bytes())
+}
 
 #[derive(diesel::QueryableByName, Debug)]
 struct ProviderKeyRow {
@@ -80,7 +135,8 @@ pub struct ProfileUpdateBody {
     pub organization: Option<String>,
 }
 
-pub fn configure_cloud_api_routes() -> Router<Arc<SaasService>> {
+pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>> {
+    let jwt_secret = config.jwt_secret.clone();
     Router::new()
         // Auth
         .route("/api/cloud/auth/login", post(handle_login))
@@ -125,6 +181,9 @@ pub fn configure_cloud_api_routes() -> Router<Arc<SaasService>> {
         .route("/api/cloud/offers", get(list_offers))
         // LLM Providers catalog
         .route("/api/cloud/llm-providers", get(list_llm_providers))
+        // JWT auth middleware — protects all routes except /api/cloud/auth/*
+        .layer(axum::Extension(jwt_secret))
+        .layer(middleware::from_fn(cloud_jwt_middleware))
 }
 
 /// `POST /api/cloud/auth/signup`

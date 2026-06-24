@@ -486,6 +486,33 @@ pub fn default_product_config() -> ProductConfig {
 
 pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (Uuid, String);
 
+/// Queries the database for the first active bot, falling back to Uuid::nil() if none exists.
+/// Returns (bot_id, bot_name).
+pub fn query_first_bot(conn: &mut diesel::PgConnection) -> (Uuid, String) {
+    use diesel::prelude::*;
+    use diesel::sql_types::{Uuid as SqlUuid, Nullable, Text};
+
+    #[derive(diesel::QueryableByName, Debug)]
+    struct BotRow {
+        #[diesel(sql_type = SqlUuid)]
+        id: Uuid,
+        #[diesel(sql_type = Nullable<Text>)]
+        name: Option<String>,
+    }
+
+    let result = diesel::sql_query(
+        "SELECT id, name FROM bots WHERE is_active = true ORDER BY created_at LIMIT 1"
+    )
+    .load::<BotRow>(conn);
+    match result {
+        Ok(rows) if !rows.is_empty() => {
+            let name = rows[0].name.clone().unwrap_or_else(|| "default".to_string());
+            (rows[0].id, name)
+        }
+        _ => (Uuid::nil(), "default".to_string()),
+    }
+}
+
 pub fn get_bot_context(pool: &DbPool, get_default_bot: &Option<GetDefaultBotFn>) -> (Uuid, Uuid) {
     use diesel::prelude::*;
     use crate::schema::bots;
