@@ -18,6 +18,7 @@ use log::{warn, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
+use botsecurity_crypto::encryption::{decrypt_field, derive_key_from_password};
 
 pub use queue_csv::{
     find_attendant_by_identifier, find_attendants_by_channel, find_attendants_by_department,
@@ -364,7 +365,19 @@ pub async fn get_insights(
                 .limit(10)
                 .load(&mut db_conn)
                 .map_err(|e| format!("Failed to load messages: {}", e))?;
-            let user_messages: Vec<String> = messages.iter().filter(|(_, r)| *r == 0).map(|(c, _)| c.clone()).collect();
+
+            let salt = b"generalbots_msg_salt_default_123";
+            let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
+                .map_err(|e| format!("Key derivation error: {}", e))?;
+
+            let user_messages: Vec<String> = messages.iter()
+                .filter(|(_, r)| *r == 0)
+                .map(|(c, _)| {
+                    decrypt_field(c, &key_bytes)
+                        .unwrap_or_else(|_| c.clone())
+                })
+                .collect();
+
             let sentiment = if user_messages.iter().any(|m| {
                 m.to_lowercase().contains("urgent") || m.to_lowercase().contains("problem") || m.to_lowercase().contains("issue")
             }) {
