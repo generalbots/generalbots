@@ -1,0 +1,197 @@
+use crate::rules;
+use crate::scoring;
+use crate::types::*;
+use diesel::prelude::*;
+use uuid::Uuid;
+
+pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<PgConnection>>;
+
+#[derive(Clone)]
+pub struct FraudEngine {
+    pub pool: DbPool,
+}
+
+impl FraudEngine {
+    pub fn new(pool: DbPool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn assess(&self, request: &FraudAssessmentRequest) -> FraudAssessmentResult {
+        let mut conn = match self.pool.get() {
+            Ok(c) => c,
+            Err(_) => {
+                return FraudAssessmentResult {
+                    risk_score: 0,
+                    risk_level: "unknown".into(),
+                    action_taken: "allow".into(),
+                    triggered_rules: vec![],
+                    ml_score: None,
+                };
+            }
+        };
+
+        let mut triggered = Vec::new();
+        let mut total_score = 0i32;
+
+        // 1. Load active rules
+        let rules = rules::load_active_rules(&mut conn);
+
+        // 2. Evaluate rules
+        for rule in &rules {
+            if rules::evaluate_rule(rule, request) {
+                let score = scoring::rule_score(&rule.severity);
+                total_score += score;
+                triggered.push(rule.name.clone());
+            }
+        }
+
+        // 3. Check blocklist
+        let blocked = self.check_blocklist(&mut conn, request).unwrap_or(false);
+        if blocked {
+            total_score = 100;
+            triggered.push("blocklist_match".into());
+        }
+
+        // 4. Check velocity
+        let velo = self.check_velocity(&mut conn, request).unwrap_or(false);
+        if velo {
+            total_score += 30;
+            triggered.push("velocity_threshold".into());
+        }
+
+        // 5. Clamp score and determine level
+        let risk_score = total_score.clamp(0, 100);
+        let (risk_level, action_taken) = scoring::classify(risk_score, blocked);
+
+        // 6. Log event
+        let _ = self.log_event(
+            &mut conn,
+            request,
+            risk_score,
+            &risk_level,
+            &triggered,
+            &action_taken,
+        );
+
+        FraudAssessmentResult {
+            risk_score,
+            risk_level,
+            action_taken,
+            triggered_rules: triggered,
+            ml_score: None,
+        }
+    }
+
+    fn check_blocklist(
+        &self,
+        conn: &mut PgConnection,
+        request: &FraudAssessmentRequest,
+    ) -> Result<bool, diesel::result::Error> {
+        let details = &request.details;
+        let checks = ["ip", "email", "phone", "cpf", "cnpj", "card_bin"];
+
+        for check in &checks {
+            if let Some(val) = details.get(check).and_then(|v| v.as_str()) {
+                let exists = diesel::sql_query(
+                    "SELECT COUNT(*) as cnt FROM fraud_blocklist \
+                     WHERE block_type = $1 AND block_value = $2 \
+                     AND (expires_at IS NULL OR expires_at > NOW())",
+                )
+                .bind::<diesel::sql_types::Text, _>(check)
+                .bind::<diesel::sql_types::Text, _>(val)
+                .get_result::<BlocklistCount>(conn)
+                .map(|r| r.cnt > 0)
+                .unwrap_or(false);
+
+                if exists {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    fn check_velocity(
+        &self,
+        conn: &mut PgConnection,
+        request: &FraudAssessmentRequest,
+    ) -> Result<bool, diesel::result::Error> {
+        let ip = request.details.get("ip").and_then(|v| v.as_str());
+        let email = request.details.get("email").and_then(|v| v.as_str());
+
+        let checks = [("ip", ip), ("email", email)];
+
+        for (id_type, id_val) in &checks {
+            if let Some(val) = id_val {
+                let result = diesel::sql_query(
+                    "SELECT COUNT(*) as cnt FROM fraud_velocity \
+                     WHERE identifier_type = $1 AND identifier = $2 \
+                     AND event_type = $3 \
+                     AND window_start > NOW() - INTERVAL '1 hour'",
+                )
+                .bind::<diesel::sql_types::Text, _>(id_type)
+                .bind::<diesel::sql_types::Text, _>(val)
+                .bind::<diesel::sql_types::Text, _>(&request.event_type)
+                .get_result::<BlocklistCount>(conn)
+                .map(|r| r.cnt > 10)
+                .unwrap_or(false);
+
+                if result {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    fn log_event(
+        &self,
+        conn: &mut PgConnection,
+        request: &FraudAssessmentRequest,
+        risk_score: i32,
+        risk_level: &str,
+        triggered: &[String],
+        action_taken: &str,
+    ) -> Result<(), diesel::result::Error> {
+        let id = Uuid::new_v4();
+        let rules_json: serde_json::Value =
+            serde_json::to_value(triggered).unwrap_or_default();
+
+        diesel::sql_query(
+            "INSERT INTO fraud_events (id, bot_id, event_type, entity_type, entity_id, \
+             risk_score, risk_level, triggered_rules, action_taken, details) \
+             VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, $6, $7, $8, $9)",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(&id)
+        .bind::<diesel::sql_types::Text, _>(&request.event_type)
+        .bind::<diesel::sql_types::Text, _>(&request.entity_type)
+        .bind::<diesel::sql_types::Uuid, _>(&request.entity_id)
+        .bind::<diesel::sql_types::Integer, _>(&risk_score)
+        .bind::<diesel::sql_types::Text, _>(risk_level)
+        .bind::<diesel::sql_types::Jsonb, _>(&rules_json)
+        .bind::<diesel::sql_types::Text, _>(action_taken)
+        .bind::<diesel::sql_types::Jsonb, _>(&request.details)
+        .execute(conn)?;
+
+        // Update velocity counter
+        if let Some(ip) = request.details.get("ip").and_then(|v| v.as_str()) {
+            diesel::sql_query(
+                "INSERT INTO fraud_velocity (id, bot_id, identifier, identifier_type, event_type) \
+                 VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, 'ip', $3)",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(&Uuid::new_v4())
+            .bind::<diesel::sql_types::Text, _>(ip)
+            .bind::<diesel::sql_types::Text, _>(&request.event_type)
+            .execute(conn)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct BlocklistCount {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    cnt: i64,
+}

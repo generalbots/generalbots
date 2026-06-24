@@ -1,0 +1,103 @@
+<div class="progress-panel" id="task-progress-panel">
+    <div class="status-section">
+        <div class="status-header">
+            <span class="status-label">STATUS</span>
+        </div>
+        <div class="status-content">
+            <div class="status-title-row">
+                <span class="status-title" id="status-title">Implement User Authentication System</span>
+                <div class="status-time">
+                    <span class="runtime-label">Runtime:</span>
+                    <span class="runtime-value" id="status-runtime">42 min</span>
+                    <span class="status-indicator active"></span>
+                </div>
+            </div>
+            <div class="status-current-action">
+                <span class="action-dot active"></span>
+                <span class="action-text" id="current-action">Choose Token Expiration Strategy</span>
+                <div class="estimated-time">
+                    <span class="estimated-label">Estimated:</span>
+                    <span class="estimated-value" id="estimated-time">15 min</span>
+                    <span class="settings-icon">⚙</span>
+                </div>
+            </div>
+            <div class="status-decision-point">
+                <span class="decision-dot pending"></span>
+                <span class="decision-text">Decision Point Coming (Step <span id="decision-step">26</span>/<span id="decision-total">60</span>)</span>
+                <span class="decision-badge" id="decision-note">Will need approval for security configuration</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="progress-log-section">
+        <div class="progress-log-header">
+            <span class="progress-log-label">PROGRESS LOG</span>
+        </div>
+        <div class="progress-log-content" id="progress-log-content">
+        </div>
+    </div>
+
+    <div class="terminal-section">
+        <div class="terminal-header">
+            <span class="terminal-label">TERMINAL (LIVE AGENT ACTIVITY)</span>
+            <div class="terminal-stats">
+                <span class="stat-item">Processed: <strong id="terminal-processed">127</strong> data points</span>
+                <span class="stat-separator">/</span>
+                <span class="stat-item">Processing speed: <strong id="terminal-speed">~8 sources/min</strong></span>
+                <span class="stat-separator"></span>
+                <span class="stat-item">Estimated completion: <strong id="terminal-eta">6 minutes</strong></span>
+            </div>
+        </div>
+        <div class="terminal-content" id="terminal-content">
+            <div class="terminal-line">Synthesizing competitive insights...</div>
+            <div class="terminal-line">Cross-referencing pricing data...</div>
+        </div>
+    </div>
+</div>
+
+<template id="progress-log-section-template">
+    <div class="log-section" data-section-id="${section_id}">
+        <div class="log-section-header" onclick="toggleLogSection(this)">
+            <span class="section-indicator ${status_class}"></span>
+            <span class="section-name">${section_name}</span>
+            <span class="section-details-link" onclick="event.stopPropagation(); viewSectionDetails('${section_id}')">View Details ▸</span>
+            <span class="section-step-badge">${step_current}/${step_total}</span>
+            <span class="section-status-badge ${status_class}">${status_text}</span>
+        </div>
+        <div class="log-section-body">
+            <div class="log-children" id="log-children-${section_id}">
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="progress-log-child-template">
+    <div class="log-child" data-child-id="${child_id}">
+        <div class="log-child-header" onclick="toggleLogChild(this)">
+            <span class="child-indent"></span>
+            <span class="child-name">${child_name}</span>
+            <span class="child-details-link" onclick="event.stopPropagation(); viewChildDetails('${child_id}')">View Details ▸</span>
+            <span class="child-step-badge">${step_current}/${step_total}</span>
+            <span class="child-status-badge ${status_class}">${status_text}</span>
+        </div>
+        <div class="log-child-body">
+            <div class="log-items" id="log-items-${child_id}">
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="progress-log-item-template">
+    <div class="log-item" data-item-id="${item_id}">
+        <span class="item-dot ${status_class}"></span>
+        <span class="item-name">${item_name}</span>
+        <div class="item-info">
+            <span class="item-duration">Duration: ${duration}</span>
+            <span class="item-check ${status_class}">${check_icon}</span>
+        </div>
+    </div>
+</template>
+
+<template id="terminal-line-template">
+    <div class="terminal-line ${line_type}">${content}</div>
+</template>

@@ -1,0 +1,145 @@
+<!-- Properties Panel -->
+    <aside class="properties-panel collapsed" id="properties-panel">
+        <button class="panel-toggle" onclick="togglePropertiesPanel()">
+            <span>⚙️</span>
+        </button>
+        <div class="panel-content">
+            <h3>Properties</h3>
+
+            <div id="element-properties" class="properties-group hidden">
+                <div class="property-row">
+                    <label>Position</label>
+                    <div class="input-group">
+                        <input
+                            type="number"
+                            id="prop-x"
+                            placeholder="X"
+                            onchange="updateElementProperty('x', this.value)"
+                        />
+                        <input
+                            type="number"
+                            id="prop-y"
+                            placeholder="Y"
+                            onchange="updateElementProperty('y', this.value)"
+                        />
+                    </div>
+                </div>
+                <div class="property-row">
+                    <label>Size</label>
+                    <div class="input-group">
+                        <input
+                            type="number"
+                            id="prop-width"
+                            placeholder="W"
+                            onchange="updateElementProperty('width', this.value)"
+                        />
+                        <input
+                            type="number"
+                            id="prop-height"
+                            placeholder="H"
+                            onchange="updateElementProperty('height', this.value)"
+                        />
+                    </div>
+                </div>
+                <div class="property-row">
+                    <label>Rotation</label>
+                    <input
+                        type="number"
+                        id="prop-rotation"
+                        placeholder="0°"
+                        onchange="updateElementProperty('rotation', this.value)"
+                    />
+                </div>
+                <div class="property-row">
+                    <label>Opacity</label>
+                    <input
+                        type="range"
+                        id="prop-opacity"
+                        min="0"
+                        max="100"
+                        value="100"
+                        onchange="updateElementProperty('opacity', this.value)"
+                    />
+                </div>
+                <div class="property-row">
+                    <label>Stroke</label>
+                    <input
+                        type="color"
+                        id="prop-stroke"
+                        onchange="updateElementProperty('strokeColor', this.value)"
+                    />
+                </div>
+                <div class="property-row">
+                    <label>Fill</label>
+                    <input
+                        type="color"
+                        id="prop-fill"
+                        onchange="updateElementProperty('fillColor', this.value)"
+                    />
+                </div>
+            </div>
+
+            <div id="canvas-properties" class="properties-group">
+                <h4>Canvas</h4>
+                <div class="property-row">
+                    <label>Background</label>
+                    <input
+                        type="color"
+                        id="canvas-bg"
+                        value="#ffffff"
+                        onchange="setCanvasBackground(this.value)"
+                    />
+                </div>
+                <div class="property-row">
+                    <label>Grid</label>
+                    <select id="grid-type" onchange="setGridType(this.value)">
+                        <option value="none">None</option>
+                        <option value="dots" selected>Dots</option>
+                        <option value="lines">Lines</option>
+                        <option value="squares">Squares</option>
+                    </select>
+                </div>
+                <div class="property-row">
+                    <label>Snap to Grid</label>
+                    <input
+                        type="checkbox"
+                        id="snap-grid"
+                        onchange="toggleSnapToGrid(this.checked)"
+                    />
+                </div>
+            </div>
+
+            <div class="properties-group">
+                <h4>Layers</h4>
+                <div id="layers-list" class="layers-list">
+                    <div class="layer-item active">
+                        <span class="layer-visibility">👁️</span>
+                        <span class="layer-name">Layer 1</span>
+                        <span class="layer-lock">🔓</span>
+                    </div>
+                </div>
+                <button class="btn-sm" onclick="addLayer()">+ Add Layer</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Collaborators Panel -->
+    <div class="collaborators-panel" id="collaborators-panel">
+        <div class="collaborators-list" id="collaborators-list">
+            <!-- Collaborator avatars will be added here -->
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <button onclick="duplicateSelected()">Duplicate</button>
+        <button onclick="copySelected()">Copy</button>
+        <button onclick="pasteClipboard()">Paste</button>
+        <div class="menu-divider"></div>
+        <button onclick="bringToFront()">Bring to Front</button>
+        <button onclick="sendToBack()">Send to Back</button>
+        <div class="menu-divider"></div>
+        <button onclick="deleteSelected()">Delete</button>
+    </div>
+
+    

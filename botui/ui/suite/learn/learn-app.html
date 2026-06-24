@@ -1,0 +1,129 @@
+<link rel="stylesheet" href="/suite/learn/learn-app.css">
+<script src="/suite/learn/learn-app.js"></script>
+
+<div class="learn-app-container">
+    <header class="learn-app-header">
+        <h1>Learning Platform</h1>
+        <div class="learn-app-header-actions">
+            <button class="learn-app-btn" onclick="window._learnApp.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="learn-app-stats">
+        <div class="learn-app-stat-card"><span class="learn-app-stat-label">Hours Learned</span><span class="learn-app-stat-value blue" id="la-stat-hours">0</span></div>
+        <div class="learn-app-stat-card"><span class="learn-app-stat-label">Courses Done</span><span class="learn-app-stat-value green" id="la-stat-completed">0</span></div>
+        <div class="learn-app-stat-card"><span class="learn-app-stat-label">Streak</span><span class="learn-app-stat-value orange" id="la-stat-streak">0 days</span></div>
+        <div class="learn-app-stat-card"><span class="learn-app-stat-label">Badges</span><span class="learn-app-stat-value purple" id="la-stat-badges">0</span></div>
+    </div>
+
+    <nav class="learn-app-tabs">
+        <button class="learn-app-tab active" data-tab="courses" onclick="window._learnApp.switchTab('courses',this)">Courses</button>
+        <button class="learn-app-tab" data-tab="certifications" onclick="window._learnApp.switchTab('certifications',this)">Certifications</button>
+        <button class="learn-app-tab" data-tab="creator" onclick="window._learnApp.switchTab('creator',this)">Creator</button>
+        <button class="learn-app-tab" data-tab="progress" onclick="window._learnApp.switchTab('progress',this)">Progress</button>
+    </nav>
+
+    <div class="learn-app-content">
+        <div class="learn-app-panel active" id="la-panel-courses">
+            <div class="learn-app-grid" id="la-courses-grid">
+                <div class="learn-app-empty"><div class="learn-app-empty-icon">📚</div><h3>Loading...</h3><p>Fetching courses</p></div>
+            </div>
+        </div>
+
+        <div class="learn-app-panel" id="la-panel-certifications">
+            <div class="learn-app-grid" id="la-certs-grid">
+                <div class="learn-app-empty"><div class="learn-app-empty-icon">🏆</div><h3>Loading...</h3><p>Fetching certifications</p></div>
+            </div>
+        </div>
+
+        <div class="learn-app-panel" id="la-panel-creator">
+            <div class="learn-app-creator">
+                <h3>Content Creation</h3>
+                <div class="learn-app-creator-grid" id="la-creator-templates">
+                    <div class="learn-app-template-card" onclick="window._learnApp.createContent('lesson')">
+                        <div class="learn-app-template-icon">📝</div>
+                        <div class="learn-app-template-name">Lesson</div>
+                    </div>
+                    <div class="learn-app-template-card" onclick="window._learnApp.createContent('quiz')">
+                        <div class="learn-app-template-icon">❓</div>
+                        <div class="learn-app-template-name">Quiz</div>
+                    </div>
+                    <div class="learn-app-template-card" onclick="window._learnApp.createContent('video')">
+                        <div class="learn-app-template-icon">🎬</div>
+                        <div class="learn-app-template-name">Video</div>
+                    </div>
+                    <div class="learn-app-template-card" onclick="window._learnApp.createContent('document')">
+                        <div class="learn-app-template-icon">📄</div>
+                        <div class="learn-app-template-name">Document</div>
+                    </div>
+                    <div class="learn-app-template-card" onclick="window._learnApp.createContent('interactive')">
+                        <div class="learn-app-template-icon">🎮</div>
+                        <div class="learn-app-template-name">Interactive</div>
+                    </div>
+                    <div class="learn-app-template-card" onclick="window._learnApp.aiAssist()">
+                        <div class="learn-app-template-icon">🤖</div>
+                        <div class="learn-app-template-name">AI Assist</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:16px">
+                <div class="learn-app-creator">
+                    <h3>Content Editor</h3>
+                    <div class="learn-app-form-group">
+                        <label>Title</label>
+                        <input type="text" id="la-content-title" placeholder="Course or lesson title">
+                    </div>
+                    <div class="learn-app-form-group">
+                        <label>Description</label>
+                        <textarea id="la-content-desc" rows="4" placeholder="Describe the content..."></textarea>
+                    </div>
+                    <div class="learn-app-form-group">
+                        <label>Type</label>
+                        <select id="la-content-type">
+                            <option value="lesson">Lesson</option>
+                            <option value="quiz">Quiz</option>
+                            <option value="video">Video</option>
+                            <option value="document">Document</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end">
+                        <button class="learn-app-btn" onclick="window._learnApp.saveDraft()">Save Draft</button>
+                        <button class="learn-app-btn learn-app-btn-primary" onclick="window._learnApp.publishContent()">Publish</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="learn-app-panel" id="la-panel-progress">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+                <div class="learn-app-creator">
+                    <h3>Learning Stats</h3>
+                    <div style="display:flex;flex-direction:column;gap:12px" id="la-stats-list"></div>
+                </div>
+                <div class="learn-app-creator">
+                    <h3>Achievement Badges</h3>
+                    <div class="learn-app-badge-grid" id="la-badges-grid">
+                        <div class="learn-app-empty"><p>No badges earned yet</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="la-preview-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
+    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:600px;max-height:80vh;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+            <h3 style="font-size:15px;font-weight:600;margin:0" id="la-preview-title">Course Preview</h3>
+            <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._learnApp.hideModal('la-preview-modal')">&times;</button>
+        </div>
+        <div style="padding:16px;overflow-y:auto;max-height:60vh" id="la-preview-body"></div>
+        <div style="padding:14px 16px;border-top:1px solid var(--border-color,#334155);display:flex;justify-content:flex-end;gap:8px">
+            <button class="learn-app-btn" onclick="window._learnApp.hideModal('la-preview-modal')">Close</button>
+            <button class="learn-app-btn learn-app-btn-primary" onclick="window._learnApp.enrollCourse()">Enroll</button>
+        </div>
+    </div>
+</div>

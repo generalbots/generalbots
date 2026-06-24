@@ -1,0 +1,61 @@
+.o365-container{display:flex;flex-direction:column;height:100%;background:var(--bg,#0f172a);color:var(--text,#f8fafc);overflow:hidden}
+.o365-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-color,#334155);background:var(--bg-secondary,#1e293b);flex-shrink:0}
+.o365-header h1{font-size:20px;font-weight:600;margin:0}
+.o365-header-actions{display:flex;gap:8px;align-items:center}
+.o365-status{padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600;text-transform:uppercase;background:rgba(148,163,184,.15);color:#94a3b8}
+.o365-status.connected{background:rgba(34,197,94,.15);color:#22c55e}
+.o365-btn{padding:8px 14px;display:inline-flex;align-items:center;gap:6px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:6px;color:var(--text-primary,#f8fafc);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease}
+.o365-btn:hover{border-color:var(--accent,#0078d4);color:var(--accent,#0078d4)}
+.o365-btn-primary{background:var(--accent,#0078d4);color:#fff;border-color:var(--accent,#0078d4)}
+.o365-btn-primary:hover{filter:brightness(1.1);color:#fff}
+.o365-btn-danger{background:transparent;border-color:#ef4444;color:#ef4444}
+.o365-btn-danger:hover{background:#ef4444;color:#fff}
+.o365-select{padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px;cursor:pointer}
+.o365-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-color,#334155);flex-shrink:0}
+.o365-stat-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.o365-stat-label{font-size:11px;color:var(--text-secondary,#94a3b8);text-transform:uppercase;letter-spacing:.5px}
+.o365-stat-value{font-size:20px;font-weight:700}
+.o365-stat-value.blue{color:#3b82f6}.o365-stat-value.green{color:#22c55e}.o365-stat-value.purple{color:#a855f7}.o365-stat-value.orange{color:#fb923c}
+.o365-tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--border-color,#334155);flex-shrink:0;overflow-x:auto}
+.o365-tab{padding:10px 16px;background:transparent;border:none;color:var(--text-secondary,#94a3b8);font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s ease;white-space:nowrap}
+.o365-tab:hover{color:var(--text-primary,#f8fafc)}
+.o365-tab.active{color:var(--accent,#0078d4);border-bottom-color:var(--accent,#0078d4)}
+.o365-content{flex:1;overflow-y:auto;padding:20px}
+.o365-panel{display:none}
+.o365-panel.active{display:block}
+.o365-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.o365-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;overflow:hidden}
+.o365-card-header{padding:12px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;gap:8px}
+.o365-card-icon{font-size:18px}
+.o365-card-title{font-size:14px;font-weight:600;flex:1}
+.o365-card-body{padding:12px 16px}
+.o365-card-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px}
+.o365-card-row .label{color:var(--text-secondary,#94a3b8);text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+.o365-card-actions{padding:12px 16px;border-top:1px solid var(--border-color,#334155);display:flex;gap:8px;justify-content:flex-end}
+.o365-badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;text-transform:uppercase}
+.o365-badge.connected,.o365-badge.active{background:rgba(34,197,94,.15);color:#22c55e}
+.o365-badge.disconnected,.o365-badge.inactive{background:rgba(148,163,184,.15);color:#94a3b8}
+.o365-badge.folder{background:rgba(59,130,246,.15);color:#3b82f6}
+.o365-badge.file{background:rgba(168,85,247,.15);color:#a855f7}
+.o365-breadcrumb{display:flex;align-items:center;gap:4px;padding:8px 0;margin-bottom:12px;flex-wrap:wrap}
+.o365-breadcrumb-item{padding:4px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-secondary,#94a3b8);font-size:12px;cursor:pointer;transition:all .15s ease}
+.o365-breadcrumb-item:hover{border-color:var(--accent,#0078d4);color:var(--accent,#0078d4)}
+.o365-breadcrumb-current{padding:4px 10px;font-size:12px;font-weight:600;color:var(--accent,#0078d4)}
+.o365-breadcrumb-sep{color:var(--text-secondary,#94a3b8);margin:0 2px}
+.o365-table-wrapper{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;overflow:hidden}
+.o365-table{width:100%;border-collapse:collapse;font-size:13px}
+.o365-table thead{background:var(--bg-tertiary,#334155)}
+.o365-table th{padding:10px 12px;text-align:left;font-weight:600;color:var(--text-secondary,#94a3b8);text-transform:uppercase;letter-spacing:.5px;font-size:11px}
+.o365-table td{padding:10px 12px;border-top:1px solid var(--border-color,#334155);color:var(--text-primary,#f8fafc)}
+.o365-table tbody tr:hover{background:var(--bg-tertiary,#334155)}
+.o365-settings-card{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;padding:16px;margin-bottom:16px}
+.o365-settings-card h3{font-size:14px;font-weight:600;margin:0 0 12px 0}
+.o365-settings-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border-color,#334155)}
+.o365-settings-row:last-child{border-bottom:none}
+.o365-settings-label{font-size:13px;font-weight:600;color:var(--text-primary,#f8fafc)}
+.o365-settings-desc{font-size:12px;color:var(--text-secondary,#94a3b8);margin-top:2px}
+.o365-empty{text-align:center;padding:30px 20px;color:var(--text-secondary,#94a3b8);font-size:13px}
+.o365-empty-icon{font-size:36px;margin-bottom:8px;opacity:.4}
+.o365-empty h3{font-size:14px;margin:0 0 4px 0;font-weight:600;color:var(--text-primary,#f8fafc)}
+.o365-empty p{margin:0;font-size:12px}
+@media(max-width:768px){.o365-stats{grid-template-columns:repeat(2,1fr)}.o365-grid{grid-template-columns:1fr}}

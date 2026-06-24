@@ -1,0 +1,40 @@
+# Build artifacts
+/target
+/dist
+
+# Tauri generated
+/src-tauri/target
+
+# Dependencies
+/node_modules
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Lock files (keep Cargo.lock for apps)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Debug
+debug/
+*.pdb
+
+# Test coverage
+coverage/

@@ -1,0 +1,165 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#84d669"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .panel-bg { fill: #f1f5f9; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #84d669; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .node-border { stroke: #84d669; stroke-width: 2; fill: #ffffff; }
+    .node-border-dim { stroke: #e2e8f0; stroke-width: 1; fill: #ffffff; }
+    .icon-btn { fill: #f1f5f9; }
+    .code-bg { fill: #0f172a; }
+    .code-text { fill: #e2e8f0; font-family: monospace; }
+    .tag-green { fill: #dcfce7; }
+    .tag-blue { fill: #dbeafe; }
+    .tag-yellow { fill: #fef9c3; }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Vibe — AI Development Environment</text>
+
+  <!-- Outer frame -->
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Left sidebar (tools) -->
+  <rect x="30" y="40" width="44" height="530" class="sidebar-bg"/>
+  <line x1="74" y1="40" x2="74" y2="570" class="border"/>
+
+  <!-- Sidebar icons -->
+  <text x="47" y="80" text-anchor="middle" font-size="16">💬</text>
+  <text x="47" y="120" text-anchor="middle" font-size="16">📁</text>
+  <text x="47" y="160" text-anchor="middle" font-size="16">🗄️</text>
+  <text x="47" y="200" text-anchor="middle" font-size="16">⌨️</text>
+  <text x="47" y="240" text-anchor="middle" font-size="16">🔀</text>
+  <!-- Active indicator -->
+  <rect x="30" y="60" width="3" height="30" rx="1" fill="#84d669"/>
+
+  <!-- Chat panel -->
+  <rect x="74" y="40" width="220" height="530" class="sidebar-bg"/>
+  <line x1="294" y1="40" x2="294" y2="570" class="border"/>
+
+  <text x="84" y="65" font-size="12" font-weight="600" class="main-text">Mantis Chat</text>
+  <text x="84" y="80" font-size="10" class="muted-text">Cmd+K for commands</text>
+
+  <!-- Chat messages -->
+  <g transform="translate(84, 95)">
+    <!-- User msg -->
+    <rect x="40" y="0" width="160" height="36" rx="6" fill="#84d669"/>
+    <text x="120" y="14" text-anchor="middle" font-size="10" class="white-text">Build a contact form</text>
+    <text x="120" y="28" text-anchor="middle" font-size="10" class="white-text">with email validation</text>
+
+    <!-- Bot msg -->
+    <rect x="0" y="46" width="170" height="46" rx="6" class="icon-btn"/>
+    <text x="8" y="60" font-size="10" class="main-text">🤖 Analyzing request…</text>
+    <text x="8" y="74" font-size="10" class="secondary-text">Creating 3 task nodes</text>
+    <text x="8" y="86" font-size="10" class="accent-text">✓ Plan ready</text>
+
+    <!-- Bot msg 2 -->
+    <rect x="0" y="102" width="170" height="36" rx="6" class="icon-btn"/>
+    <text x="8" y="116" font-size="10" class="main-text">📋 Task progress:</text>
+    <text x="8" y="130" font-size="10" class="accent-text">2/3 steps complete</text>
+  </g>
+
+  <!-- Chat input -->
+  <rect x="80" y="510" width="200" height="32" rx="6" class="icon-btn"/>
+  <rect x="80" y="510" width="200" height="32" rx="6" class="border"/>
+  <text x="92" y="530" font-size="11" class="muted-text">Describe what to build…</text>
+
+  <!-- Main area: canvas top + editor bottom -->
+  <!-- Canvas area -->
+  <rect x="294" y="40" width="576" height="200" class="bg"/>
+  <line x1="294" y1="240" x2="870" y2="240" class="border"/>
+  <text x="304" y="60" font-size="11" font-weight="600" class="muted-text">CANVAS — TASK NODES</text>
+
+  <!-- Task node 1 (active) -->
+  <rect x="304" y="70" width="160" height="155" rx="8" class="node-border"/>
+  <text x="314" y="88" font-size="9" class="muted-text">3 files · 5m · ~12k tokens</text>
+  <text x="314" y="104" font-size="12" font-weight="700" class="main-text">HTML Form</text>
+  <text x="314" y="118" font-size="10" class="secondary-text">Contact form with</text>
+  <text x="314" y="130" font-size="10" class="secondary-text">email validation</text>
+  <rect x="314" y="138" width="50" height="16" rx="8" fill="#84d669"/>
+  <text x="339" y="149" text-anchor="middle" font-size="9" class="white-text">Done</text>
+  <!-- Details/Delete buttons -->
+  <rect x="314" y="162" width="60" height="20" rx="4" class="icon-btn"/>
+  <rect x="314" y="162" width="60" height="20" rx="4" class="border"/>
+  <text x="344" y="175" text-anchor="middle" font-size="9" class="secondary-text">Details</text>
+  <rect x="382" y="162" width="24" height="20" rx="4" fill="#fee2e2"/>
+  <text x="394" y="175" text-anchor="middle" font-size="9" fill="#ef4444">✕</text>
+  <!-- connector -->
+  <line x1="464" y1="148" x2="484" y2="148" stroke="#84d669" stroke-width="2"/>
+  <circle cx="464" cy="148" r="4" fill="#84d669"/>
+
+  <!-- Task node 2 -->
+  <rect x="484" y="70" width="160" height="155" rx="8" class="node-border-dim"/>
+  <text x="494" y="88" font-size="9" class="muted-text">2 files · 3m · ~8k tokens</text>
+  <text x="494" y="104" font-size="12" font-weight="700" class="main-text">Validation JS</text>
+  <text x="494" y="118" font-size="10" class="secondary-text">Client-side email</text>
+  <text x="494" y="130" font-size="10" class="secondary-text">format checking</text>
+  <rect x="494" y="138" width="70" height="16" rx="8" fill="#fef9c3"/>
+  <text x="529" y="149" text-anchor="middle" font-size="9" fill="#854d0e">In Progress</text>
+  <rect x="494" y="162" width="60" height="20" rx="4" class="icon-btn"/>
+  <rect x="494" y="162" width="60" height="20" rx="4" class="border"/>
+  <text x="524" y="175" text-anchor="middle" font-size="9" class="secondary-text">Details</text>
+  <rect x="562" y="162" width="24" height="20" rx="4" fill="#fee2e2"/>
+  <text x="574" y="175" text-anchor="middle" font-size="9" fill="#ef4444">✕</text>
+  <!-- connector -->
+  <line x1="644" y1="148" x2="664" y2="148" stroke="#e2e8f0" stroke-width="2"/>
+
+  <!-- Task node 3 -->
+  <rect x="664" y="70" width="160" height="155" rx="8" class="node-border-dim"/>
+  <text x="674" y="88" font-size="9" class="muted-text">1 file · 2m · ~5k tokens</text>
+  <text x="674" y="104" font-size="12" font-weight="700" class="main-text">API Handler</text>
+  <text x="674" y="118" font-size="10" class="secondary-text">POST endpoint to</text>
+  <text x="674" y="130" font-size="10" class="secondary-text">process submissions</text>
+  <rect x="674" y="138" width="55" height="16" rx="8" fill="#f1f5f9"/>
+  <text x="701" y="149" text-anchor="middle" font-size="9" class="muted-text">Planning</text>
+  <rect x="674" y="162" width="60" height="20" rx="4" class="icon-btn"/>
+  <rect x="674" y="162" width="60" height="20" rx="4" class="border"/>
+  <text x="704" y="175" text-anchor="middle" font-size="9" class="secondary-text">Details</text>
+  <rect x="742" y="162" width="24" height="20" rx="4" fill="#fee2e2"/>
+  <text x="754" y="175" text-anchor="middle" font-size="9" fill="#ef4444">✕</text>
+
+  <!-- Editor panel (bottom) -->
+  <rect x="294" y="240" width="576" height="330" class="code-bg"/>
+  <!-- Editor tabs -->
+  <rect x="294" y="240" width="576" height="28" fill="#1e293b"/>
+  <rect x="294" y="240" width="110" height="28" fill="#0f172a"/>
+  <text x="304" y="258" font-size="11" fill="#84d669">contact.html</text>
+  <text x="420" y="258" font-size="11" fill="#64748b">validate.js</text>
+  <text x="510" y="258" font-size="11" fill="#64748b">handler.rs</text>
+
+  <!-- Code content -->
+  <g transform="translate(304, 285)">
+    <text x="0" y="0" font-size="10" class="code-text">&lt;<tspan fill="#60a5fa">form</tspan> <tspan fill="#84d669">id</tspan>=<tspan fill="#fbbf24">"contact-form"</tspan>&gt;</text>
+    <text x="12" y="16" font-size="10" class="code-text">&lt;<tspan fill="#60a5fa">input</tspan> <tspan fill="#84d669">type</tspan>=<tspan fill="#fbbf24">"email"</tspan> <tspan fill="#84d669">name</tspan>=<tspan fill="#fbbf24">"email"</tspan> <tspan fill="#84d669">required</tspan>&gt;</text>
+    <text x="12" y="32" font-size="10" class="code-text">&lt;<tspan fill="#60a5fa">textarea</tspan> <tspan fill="#84d669">name</tspan>=<tspan fill="#fbbf24">"message"</tspan>&gt;&lt;/<tspan fill="#60a5fa">textarea</tspan>&gt;</text>
+    <text x="12" y="48" font-size="10" class="code-text">&lt;<tspan fill="#60a5fa">button</tspan> <tspan fill="#84d669">type</tspan>=<tspan fill="#fbbf24">"submit"</tspan>&gt;Send&lt;/<tspan fill="#60a5fa">button</tspan>&gt;</text>
+    <text x="0" y="64" font-size="10" class="code-text">&lt;/<tspan fill="#60a5fa">form</tspan>&gt;</text>
+    <!-- cursor -->
+    <rect x="0" y="72" width="2" height="14" fill="#84d669" opacity="0.8"/>
+  </g>
+
+  <!-- Bottom bar -->
+  <rect x="294" y="540" width="576" height="30" fill="#1e293b"/>
+  <text x="304" y="558" font-size="10" fill="#64748b">Ctrl+S Save  |  Cmd+K Palette  |  Git: main ✓  |  Terminal: 1 active</text>
+
+  <!-- Command palette overlay (shown as example) -->
+  <rect x="430" y="120" width="280" height="110" rx="8" fill="#1e293b" opacity="0.97"/>
+  <rect x="430" y="120" width="280" height="110" rx="8" stroke="#84d669" stroke-width="1" fill="none"/>
+  <rect x="440" y="130" width="260" height="28" rx="4" fill="#0f172a"/>
+  <text x="452" y="148" font-size="11" fill="#64748b">⌘K  Type a command…</text>
+  <text x="452" y="175" font-size="11" fill="#e2e8f0">📁  New file</text>
+  <text x="452" y="193" font-size="11" fill="#64748b">⌨️  Open terminal</text>
+  <text x="452" y="211" font-size="11" fill="#64748b">🔀  Git status</text>
+</svg>

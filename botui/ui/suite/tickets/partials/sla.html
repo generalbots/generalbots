@@ -1,0 +1,88 @@
+<!-- SLA Management partial for Tickets app -->
+<div class="tickets-sla" id="tickets-sla-panel">
+  <h3>SLA Management</h3>
+  <p class="hint">Service Level Agreements by priority · breach forecast next 24h</p>
+  <div class="sla-grid">
+    <div class="sla-card" data-priority="critical">
+      <div class="sla-priority">Critical</div>
+      <div class="sla-target">Target: 1h response / 4h resolve</div>
+      <div class="sla-bar"><div class="sla-fill" id="sla-fill-critical" style="width:0%" data-target="0.82"></div></div>
+      <div class="sla-stats">
+        <span class="ok"><span id="sla-met-critical">0</span> met</span>
+        <span class="warn"><span id="sla-atrisk-critical">0</span> at risk</span>
+        <span class="bad"><span id="sla-breached-critical">0</span> breached</span>
+      </div>
+    </div>
+    <div class="sla-card" data-priority="high">
+      <div class="sla-priority">High</div>
+      <div class="sla-target">Target: 4h response / 24h resolve</div>
+      <div class="sla-bar"><div class="sla-fill" id="sla-fill-high" style="width:0%" data-target="0.91"></div></div>
+      <div class="sla-stats">
+        <span class="ok"><span id="sla-met-high">0</span> met</span>
+        <span class="warn"><span id="sla-atrisk-high">0</span> at risk</span>
+        <span class="bad"><span id="sla-breached-high">0</span> breached</span>
+      </div>
+    </div>
+    <div class="sla-card" data-priority="normal">
+      <div class="sla-priority">Normal</div>
+      <div class="sla-target">Target: 8h response / 72h resolve</div>
+      <div class="sla-bar"><div class="sla-fill" id="sla-fill-normal" style="width:0%" data-target="0.95"></div></div>
+      <div class="sla-stats">
+        <span class="ok"><span id="sla-met-normal">0</span> met</span>
+        <span class="warn"><span id="sla-atrisk-normal">0</span> at risk</span>
+        <span class="bad"><span id="sla-breached-normal">0</span> breached</span>
+      </div>
+    </div>
+  </div>
+  <table class="data-table" id="sla-breach-forecast">
+    <thead>
+      <tr>
+        <th>Ticket</th>
+        <th>Priority</th>
+        <th>Time to SLA</th>
+        <th>Owner</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="sla-breach-tbody">
+      <tr><td colspan="5" class="empty">No tickets at risk in the next 24h.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+(function() {
+    fetch('/api/tickets/sla').then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }).then(function(policies) {
+        if (!policies || !policies.length) return;
+        policies.forEach(function(p) {
+            var priority = (p.priority || 'normal').toLowerCase();
+            var fillEl = document.getElementById('sla-fill-' + priority);
+            var metEl = document.getElementById('sla-met-' + priority);
+            var atriskEl = document.getElementById('sla-atrisk-' + priority);
+            var breachedEl = document.getElementById('sla-breached-' + priority);
+            if (fillEl && p.compliance_rate != null) {
+                fillEl.style.width = (p.compliance_rate * 100) + '%';
+            }
+            if (metEl && p.met_count != null) metEl.textContent = p.met_count;
+            if (atriskEl && p.at_risk_count != null) atriskEl.textContent = p.at_risk_count;
+            if (breachedEl && p.breached_count != null) breachedEl.textContent = p.breached_count;
+        });
+    }).catch(function() {});
+
+    fetch('/api/tickets?status=open&limit=5').then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }).then(function(tickets) {
+        var tbody = document.getElementById('sla-breach-tbody');
+        if (!tbody) return;
+        var items = Array.isArray(tickets) ? tickets : (tickets.items || []);
+        if (!items.length) return;
+        tbody.innerHTML = items.map(function(t) {
+            return '<tr><td>' + (t.id || '') + '</td><td>' + (t.priority || '') + '</td><td>--</td><td>' + (t.assignee || 'Unassigned') + '</td><td><span class=\"status-badge ' + (t.status || '') + '\">' + (t.status || '') + '</span></td></tr>';
+        }).join('');
+    }).catch(function() {});
+})();
+</script>

@@ -1,0 +1,219 @@
+<!-- New Project Modal (Issue #524) -->
+<div class="modal" id="newProjectModal" style="display: none">
+    <div class="modal-backdrop" onclick="newProject.close()"></div>
+    <div class="modal-content" style="max-width: 640px">
+        <div class="modal-header">
+            <h2 data-i18n="deploy.new_project">New Project</h2>
+            <button class="close-btn" onclick="newProject.close()">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="deploy.project_type">Project Type</label>
+                <div class="project-type-selector" id="projectTypeSelector">
+                    <div class="type-card" data-type="bot" onclick="newProject.selectType('bot')">
+                        <span class="type-icon">🤖</span>
+                        <span class="type-name" data-i18n="deploy.type_bot">Bot</span>
+                        <span class="type-desc" data-i18n="deploy.type_bot_desc">Chat scripts via .gbdialog</span>
+                    </div>
+                    <div class="type-card" data-type="app-htmx" onclick="newProject.selectType('app-htmx')">
+                        <span class="type-icon">📱</span>
+                        <span class="type-name" data-i18n="deploy.type_app">App</span>
+                        <span class="type-desc" data-i18n="deploy.type_app_desc">Full-stack app in Incus container</span>
+                    </div>
+                    <div class="type-card" data-type="site" onclick="newProject.selectType('site')">
+                        <span class="type-icon">🌐</span>
+                        <span class="type-name" data-i18n="deploy.type_site">Site</span>
+                        <span class="type-desc" data-i18n="deploy.type_site_desc">Static site via Caddy</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="newProjectName" data-i18n="deploy.project_name">Project Name</label>
+                <input type="text" id="newProjectName" placeholder="my-project" required />
+            </div>
+
+            <div class="form-group" id="frameworkGroup" style="display:none">
+                <label for="newProjectFramework" data-i18n="deploy.framework">Framework</label>
+                <select id="newProjectFramework">
+                    <option value="htmx">HTMX</option>
+                    <option value="react">React</option>
+                    <option value="vue">Vue</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="newProjectOrg" data-i18n="deploy.organization">Organization</label>
+                <input type="text" id="newProjectOrg" placeholder="generalbots" />
+            </div>
+
+            <div class="form-group">
+                <label for="newProjectDomain" data-i18n="deploy.custom_domain">Custom Domain (optional)</label>
+                <input type="text" id="newProjectDomain" placeholder="app.example.com" />
+            </div>
+
+            <div class="form-group">
+                <label for="newProjectEnv" data-i18n="deploy.environment">Environment</label>
+                <select id="newProjectEnv">
+                    <option value="development">Development</option>
+                    <option value="staging">Staging</option>
+                    <option value="production">Production</option>
+                </select>
+            </div>
+
+            <div id="publishStatus" class="publish-status" style="display:none"></div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="newProject.close()" data-i18n="common.cancel">Cancel</button>
+            <button class="btn-primary" onclick="newProject.create()" data-i18n="deploy.create_project">Create Project</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.project-type-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.type-card {
+    border: 2px solid var(--border, #e0e0e0);
+    border-radius: 12px;
+    padding: 20px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.type-card:hover {
+    border-color: var(--accent, #84d669);
+    transform: translateY(-2px);
+}
+.type-card.selected {
+    border-color: var(--accent, #84d669);
+    background: rgba(132, 214, 105, 0.08);
+}
+.type-icon {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 8px;
+}
+.type-name {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text, #333);
+}
+.type-desc {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted, #888);
+    margin-top: 4px;
+}
+.publish-status {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 12px;
+    font-size: 14px;
+}
+.publish-status.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.publish-status.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+.publish-status.loading {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+.modal-content {
+    background: var(--surface, #fff);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+</style>
+
+<script>
+if (!window.newProject) {
+    window.newProject = {
+        selectedType: null,
+        init: function() {
+            // Nothing to init
+        },
+        open: function() {
+            document.getElementById('newProjectModal').style.display = 'flex';
+            this.selectedType = null;
+            document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('frameworkGroup').style.display = 'none';
+            document.getElementById('publishStatus').style.display = 'none';
+        },
+        close: function() {
+            document.getElementById('newProjectModal').style.display = 'none';
+        },
+        selectType: function(type) {
+            this.selectedType = type;
+            document.querySelectorAll('.type-card').forEach(c => {
+                c.classList.toggle('selected', c.dataset.type === type);
+            });
+            document.getElementById('frameworkGroup').style.display =
+                type.startsWith('app-') ? 'block' : 'none';
+        },
+        create: async function() {
+            if (!this.selectedType) {
+                alert('Please select a project type');
+                return;
+            }
+            const name = document.getElementById('newProjectName').value.trim();
+            if (!name) {
+                alert('Please enter a project name');
+                return;
+            }
+
+            const status = document.getElementById('publishStatus');
+            status.style.display = 'block';
+            status.className = 'publish-status loading';
+            status.textContent = 'Creating project...';
+
+            const payload = {
+                app_name: name,
+                project_type: this.selectedType,
+                organization: document.getElementById('newProjectOrg').value || null,
+                framework: this.selectedType.startsWith('app-')
+                    ? (document.getElementById('newProjectFramework').value || 'htmx')
+                    : null,
+                environment: document.getElementById('newProjectEnv').value,
+                custom_domain: document.getElementById('newProjectDomain').value || null,
+                ci_cd_enabled: true
+            };
+
+            try {
+                const resp = await fetch('/api/deployment/deploy', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const result = await resp.json();
+
+                if (result.success || result.status) {
+                    status.className = 'publish-status success';
+                    status.textContent = 'Project created! URL: ' + (result.url || 'pending');
+                    setTimeout(() => this.close(), 2000);
+                } else {
+                    status.className = 'publish-status error';
+                    status.textContent = 'Error: ' + (result.error || 'Unknown');
+                }
+            } catch (e) {
+                status.className = 'publish-status error';
+                status.textContent = 'Error: ' + e.message;
+            }
+        }
+    };
+}
+</script>

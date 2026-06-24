@@ -1,0 +1,9 @@
+/opt/gbo/logs/*.log {
+  daily
+  rotate 7
+  compress
+  delaycompress
+  missingok
+  notifempty
+  maxsize 100M
+}

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title} - General Bots</title>
+    <script src="/_assets/htmx.min.js"></script>
+    <link rel="stylesheet" href="/_assets/styles.css">
+    <style>
+        :root {
+            --color-primary: #0ea5e9;
+            --color-primary-hover: #0284c7;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-bg: #f8fafc;
+            --color-surface: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --radius: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-lg: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg: #0f172a;
+                --color-surface: #1e293b;
+                --color-text: #f1f5f9;
+                --color-text-secondary: #94a3b8;
+                --color-border: #334155;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .page-subtitle {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--color-surface);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-bg);
+        }
+
+        .btn-danger {
+            background: var(--color-danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        /* Search & Filters */
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .filter-select {
+            padding: 10px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        /* Card */
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .data-table th {
+            background: var(--color-bg);
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table tr:hover {
+            background: var(--color-bg);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            position: relative;
+            background: var(--color-surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 20px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Loading indicator */
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            display: inline-block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--color-text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1100;
+        }
+
+        .toast {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            margin-top: 8px;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast-success {
+            border-left: 4px solid var(--color-success);
+        }
+
+        .toast-error {
+            border-left: 4px solid var(--color-danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Page Header -->
+        <header class="page-header">
+            <div></div>
+                <h1 class="page-title">${title}</h1>
+                <p class="page-subtitle">${subtitle}</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('add-modal')">
+                ➕ Add New
+            </button>
+        </header>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <input type="search"
+                   class="search-input"
+                   name="q"
+                   placeholder="Search..."
+                   hx-get="/api/data/${table}"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#data-list"
+                   hx-include="[name='status-filter']">
+
+            <select name="status-filter"
+                    class="filter-select"
+                    hx-get="/api/data/${table}"
+                    hx-trigger="change"
+                    hx-target="#data-list"
+                    hx-include="[name='q']">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+
+            <button class="btn btn-secondary"
+                    hx-get="/api/data/${table}"
+                    hx-target="#data-list">
+                🔄 Refresh
+                <span class="htmx-indicator spinner"></span>
+            </button>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th></th></th>
+                    </tr>
+                </thead>
+                <tbody id="data-list"
+                       hx-get="/api/data/${table}"
+                       hx-trigger="load"
+                       hx-swap="innerHTML">
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <span class="spinner"></span> Loading...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="add-modal" class="modal">
+        <div class="modal-backdrop" onclick="closeModal('add-modal')"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Item</h3>
+                <button class="modal-close" onclick="closeModal('add-modal')">×</button>
+            </div>
+            <form hx-post="/api/data/${table}"
+                  hx-target="#data-list"
+                  hx-swap="afterbegin"
+                  hx-on::after-request="closeModal('add-modal'); showToast('Item created successfully')">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-input">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('add-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        Save
+                        <span class="htmx-indicator spinner"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // Modal functions
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // HTMX event handlers
+        document.body.addEventListener('htmx:responseError', function(e) {
+            showToast('An error occurred: ' + (e.detail.xhr.statusText || 'Unknown error'), 'error');
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function(e) {
+            // Re-initialize any dynamic elements after swap
+        });
+
+        // Edit item
+        function editItem(id) {
+            htmx.ajax('GET', `/api/data/${table}/${id}`, {
+                target: '#edit-form',
+                swap: 'innerHTML'
+            }).then(() => openModal('edit-modal'));
+        }
+
+        // Delete item
+        function deleteItem(id) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                htmx.ajax('DELETE', `/api/data/${table}/${id}`, {
+                    target: '#data-list',
+                    swap: 'innerHTML'
+                }).then(() => showToast('Item deleted'));
+            }
+        }
+    </script>
+</body>
+</html>

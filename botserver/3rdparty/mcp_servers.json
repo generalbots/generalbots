@@ -1,0 +1,466 @@
+{
+  "mcp_servers": [
+    {
+      "id": "azure-cosmos-db",
+      "name": "Azure Cosmos DB",
+      "description": "Enables Agents to interact with and retrieve data from Azure Cosmos DB accounts.",
+      "icon": "azure-cosmos-db",
+      "type": "Local",
+      "category": "Database",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "azure-database-postgresql",
+      "name": "Azure Database for PostgreSQL",
+      "description": "Enables Agents to interact with and retrieve data from Azure Database for PostgreSQL resources using natural language prompts.",
+      "icon": "azure-database-postgresql",
+      "type": "Local",
+      "category": "Database",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "azure-databricks-genie",
+      "name": "Azure Databricks Genie",
+      "description": "Azure Databricks Genie MCP server lets AI agents connect to Genie spaces so users can ask natural language questions and get specialized answers from their data easily.",
+      "icon": "azure-databricks-genie",
+      "type": "Remote",
+      "category": "Analytics",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "azure-managed-redis",
+      "name": "Azure Managed Redis",
+      "description": "Azure Managed Redis MCP Server provides a natural language interface for agentic apps to interact with Azure Managed Redis—a high-speed, in-memory datastore that is ideal for low-latency use cases like agent memory, vector data store and semantic caching.",
+      "icon": "azure-managed-redis",
+      "type": "Local",
+      "category": "Database",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "azure-sql",
+      "name": "Azure SQL MCP Server",
+      "description": "A secure, self-hosted MCP for interacting with SQL data (Azure SQL, SQL MI, SQL DW, SQL Server).",
+      "icon": "azure-sql",
+      "type": "Local",
+      "category": "Database",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "elasticsearch",
+      "name": "Elasticsearch",
+      "description": "Search, retrieve, and analyze Elasticsearch data in developer and agentic workflows.",
+      "icon": "elasticsearch",
+      "type": "Remote",
+      "category": "Search",
+      "provider": "Elastic"
+    },
+    {
+      "id": "mongodb",
+      "name": "MongoDB MCP Server",
+      "description": "MongoDB MCP Server allows any MCP-aware LLM to connect to MongoDB Atlas for admin tasks and to MongoDB databases for data operations, all through natural language.",
+      "icon": "mongodb",
+      "type": "Local",
+      "category": "Database",
+      "provider": "MongoDB"
+    },
+    {
+      "id": "pinecone-assistant",
+      "name": "Pinecone Assistant MCP Server",
+      "description": "Pinecone Assistant MCP server helps prototype and deploy assistants that retrieve context-aware answers grounded in proprietary data.",
+      "icon": "pinecone",
+      "type": "Remote",
+      "category": "Vector Database",
+      "provider": "Pinecone"
+    },
+    {
+      "id": "vercel",
+      "name": "Vercel",
+      "description": "With Vercel MCP, you can explore projects, inspect failed deployments, fetch logs, and more right from your AI client.",
+      "icon": "vercel",
+      "type": "Remote",
+      "category": "Deployment",
+      "provider": "Vercel"
+    },
+    {
+      "id": "amplitude",
+      "name": "Amplitude MCP Server",
+      "description": "Search, access, and get insights on your Amplitude product analytics data.",
+      "icon": "amplitude",
+      "type": "Remote",
+      "category": "Analytics",
+      "provider": "Amplitude"
+    },
+    {
+      "id": "atlan",
+      "name": "Atlan",
+      "description": "The Atlan MCP server provides a set of tools that enable AI agents to work directly with Atlan metadata. These tools supply real-time context to AI environments, making it easier to search, explore, and update metadata without leaving your workflow.",
+      "icon": "atlan",
+      "type": "Remote",
+      "category": "Data Catalog",
+      "provider": "Atlan"
+    },
+    {
+      "id": "atlassian",
+      "name": "Atlassian",
+      "description": "Connect to Jira and Confluence for issue tracking and documentation.",
+      "icon": "atlassian",
+      "type": "Remote",
+      "category": "Productivity",
+      "provider": "Atlassian"
+    },
+    {
+      "id": "azure-language-foundry",
+      "name": "Azure Language in Foundry Tools",
+      "description": "The MCP server enables AI agents to access Azure Language in Foundry Tools for accurate, explainable and compliant NLP capabilities.",
+      "icon": "azure-language",
+      "type": "Remote",
+      "category": "AI/ML",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "azure-speech",
+      "name": "Azure Speech MCP Server",
+      "description": "A hosted MCP server that exposes Azure Speech capabilities (speech-to-text, text-to-speech and streaming speech I/O) to agents and LLM workflows.",
+      "icon": "azure-speech",
+      "type": "Remote",
+      "category": "AI/ML",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "box",
+      "name": "Box MCP Server",
+      "description": "Access and manage your Box content with AI-powered tools for file operations, collaboration, and metadata extraction.",
+      "icon": "box",
+      "type": "Remote",
+      "category": "Storage",
+      "provider": "Box"
+    },
+    {
+      "id": "cast-imaging",
+      "name": "CAST Imaging MCP Server",
+      "description": "Deterministic mapping of application architecture and code objects to support discovery, impact analysis, and technical debt remediation.",
+      "icon": "cast-imaging",
+      "type": "Remote",
+      "category": "DevOps",
+      "provider": "CAST"
+    },
+    {
+      "id": "celonis",
+      "name": "Celonis PI Graph MCP Server",
+      "description": "Agent toolkit that provides process intelligence context, action triggering, and write-back capabilities into Celonis.",
+      "icon": "celonis",
+      "type": "Remote",
+      "category": "Process Mining",
+      "provider": "Celonis"
+    },
+    {
+      "id": "exa",
+      "name": "Exa Web Search",
+      "description": "Exa MCP is a powerful web search and web crawling MCP. It lets you do real-time web searches, extract content from any URL, and even run deep research for detailed reports.",
+      "icon": "exa",
+      "type": "Remote",
+      "category": "Search",
+      "provider": "Exa"
+    },
+    {
+      "id": "factory-rca",
+      "name": "Factory RCA MCP",
+      "description": "Toolset for manufacturing root-cause analysis, anomaly detection, and telemetry-driven recommendations.",
+      "icon": "factory",
+      "type": "Remote",
+      "category": "Manufacturing",
+      "provider": "Factory"
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "description": "Access GitHub repositories, issues, and pull requests through secure API integration. If you need the GitHub MCP server to access your private repo, make sure you have installed the GitHub app.",
+      "icon": "github",
+      "type": "Remote",
+      "category": "Development",
+      "provider": "GitHub"
+    },
+    {
+      "id": "huggingface",
+      "name": "Hugging Face MCP Server",
+      "description": "Search through millions of Hugging Face models, datasets, applications and research papers, and use the Spaces applications you've selected.",
+      "icon": "huggingface",
+      "type": "Remote",
+      "category": "AI/ML",
+      "provider": "Hugging Face"
+    },
+    {
+      "id": "infobip-rcs",
+      "name": "Infobip RCS MCP server",
+      "description": "Infobip RCS MCP server enables seamless integration with our communication platform that allows you to reach your customers globally through RCS.",
+      "icon": "infobip",
+      "type": "Remote",
+      "category": "Communication",
+      "provider": "Infobip"
+    },
+    {
+      "id": "infobip-sms",
+      "name": "Infobip SMS MCP server",
+      "description": "The Infobip SMS MCP server enables agentic and developer workflows to send and manage SMS messages through Infobip's platform.",
+      "icon": "infobip",
+      "type": "Remote",
+      "category": "Communication",
+      "provider": "Infobip"
+    },
+    {
+      "id": "infobip-whatsapp",
+      "name": "Infobip WhatsApp MCP server",
+      "description": "Infobip WhatsApp MCP server enables seamless integration with our communication platform that allows you to reach your customers globally through WhatsApp.",
+      "icon": "infobip",
+      "type": "Remote",
+      "category": "Communication",
+      "provider": "Infobip"
+    },
+    {
+      "id": "intercom",
+      "name": "Intercom MCP Server",
+      "description": "Secure, read-only access to Intercom conversations and contacts for MCP-compatible AI tools.",
+      "icon": "intercom",
+      "type": "Remote",
+      "category": "Customer Support",
+      "provider": "Intercom"
+    },
+    {
+      "id": "marketnode",
+      "name": "Marketnode MCP Server",
+      "description": "AI-powered document data extraction, workflow automation, transaction management and tokenization for financial institutions and enterprises.",
+      "icon": "marketnode",
+      "type": "Remote",
+      "category": "Finance",
+      "provider": "Marketnode"
+    },
+    {
+      "id": "foundry",
+      "name": "Foundry MCP Server (preview)",
+      "description": "Foundry MCP Server (preview) offers instant access to model exploration, deployment of models and agents, and performance evaluation. This fully cloud-native MCP server is integrated with Visual Studio Code and Foundry agents, and secured by Microsoft Entra ID, RBAC, and tenant-level conditional access with Azure Policy for enterprise control.",
+      "icon": "foundry",
+      "type": "Remote",
+      "category": "AI/ML",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "microsoft-enterprise",
+      "name": "Microsoft MCP Server for Enterprise",
+      "description": "Official Microsoft MCP Server to query Microsoft Entra data using natural language.",
+      "icon": "microsoft",
+      "type": "Remote",
+      "category": "Enterprise",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "mihcm",
+      "name": "MiHCM MCP Server",
+      "description": "Provides secure access to employee and leave management data from the MiHCM HR platform through standardized MCP server.",
+      "icon": "mihcm",
+      "type": "Remote",
+      "category": "HR",
+      "provider": "MiHCM"
+    },
+    {
+      "id": "morningstar",
+      "name": "Morningstar MCP Server",
+      "description": "Access Morningstar data, research, and capabilities through specialized MCP tools for global securities.",
+      "icon": "morningstar",
+      "type": "Remote",
+      "category": "Finance",
+      "provider": "Morningstar"
+    },
+    {
+      "id": "microsoft-sentinel",
+      "name": "Microsoft Sentinel Data Exploration",
+      "description": "The data exploration tool collection in the Microsoft Sentinel MCP server lets you search for relevant tables and retrieve data from Microsoft Sentinel's data lake using natural language.",
+      "icon": "microsoft-sentinel",
+      "type": "Remote",
+      "category": "Security",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "microsoft-learn",
+      "name": "Microsoft Learn",
+      "description": "AI assistant with real-time access to official Microsoft documentation.",
+      "icon": "microsoft-learn",
+      "type": "Remote",
+      "category": "Documentation",
+      "provider": "Microsoft"
+    },
+    {
+      "id": "neon",
+      "name": "Neon",
+      "description": "Manage and query Neon Postgres databases with natural language.",
+      "icon": "neon",
+      "type": "Remote",
+      "category": "Database",
+      "provider": "Neon"
+    },
+    {
+      "id": "netlify",
+      "name": "Netlify",
+      "description": "Deploy, secure, and manage websites with Netlify.",
+      "icon": "netlify",
+      "type": "Remote",
+      "category": "Deployment",
+      "provider": "Netlify"
+    },
+    {
+      "id": "pipedream",
+      "name": "Pipedream",
+      "description": "Securely connect to 10,000+ tools from 3,000+ APIs with Pipedream MCP.",
+      "icon": "pipedream",
+      "type": "Remote",
+      "category": "Integration",
+      "provider": "Pipedream"
+    },
+    {
+      "id": "postman",
+      "name": "Postman",
+      "description": "Postman's remote MCP server connects AI agents, assistants, and chatbots directly to your APIs on Postman.",
+      "icon": "postman",
+      "type": "Remote",
+      "category": "API",
+      "provider": "Postman"
+    },
+    {
+      "id": "sophos-intelix",
+      "name": "Sophos Intelix MCP Server",
+      "description": "Sophos Intelix delivers threat intelligence into analyst workflows, enabling agents to access file, URL, and IP reputation and threat analysis.",
+      "icon": "sophos",
+      "type": "Remote",
+      "category": "Security",
+      "provider": "Sophos"
+    },
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "description": "Payment processing and financial infrastructure tools.",
+      "icon": "stripe",
+      "type": "Remote",
+      "category": "Payments",
+      "provider": "Stripe"
+    },
+    {
+      "id": "supabase",
+      "name": "Supabase",
+      "description": "Connect your Supabase projects to AI agents: design tables and migrations; create database branches; build custom APIs with Edge Functions; retrieve logs and more.",
+      "icon": "supabase",
+      "type": "Remote",
+      "category": "Database",
+      "provider": "Supabase"
+    },
+    {
+      "id": "tavily",
+      "name": "Tavily MCP",
+      "description": "Real-time web search, extraction, crawling and mapping tools for agentic workflows with source citations.",
+      "icon": "tavily",
+      "type": "Remote",
+      "category": "Search",
+      "provider": "Tavily"
+    },
+    {
+      "id": "tomtom",
+      "name": "TomTom Maps",
+      "description": "Give your application real-time geospatial context from TomTom — including maps, routing, search, geocoding and traffic.",
+      "icon": "tomtom",
+      "type": "Remote",
+      "category": "Maps",
+      "provider": "TomTom"
+    },
+    {
+      "id": "wix",
+      "name": "Wix MCP",
+      "description": "Unified access to Wix's development ecosystem for documentation, implementation, and site management.",
+      "icon": "wix",
+      "type": "Remote",
+      "category": "Web Development",
+      "provider": "Wix"
+    },
+    {
+      "id": "10to8",
+      "name": "10to8 Appointment Scheduling",
+      "description": "10to8 is a powerful appointment management, communications & online booking system.",
+      "icon": "10to8",
+      "type": "Custom",
+      "category": "Scheduling",
+      "provider": "10to8"
+    },
+    {
+      "id": "1docstop",
+      "name": "1DocStop",
+      "description": "The best document management system for your web & mobile apps. Store, Manage, and Access all your documents whenever and wherever you are.",
+      "icon": "1docstop",
+      "type": "Custom",
+      "category": "Document Management",
+      "provider": "1DocStop"
+    },
+    {
+      "id": "1me-corporate",
+      "name": "1Me Corporate",
+      "description": "1Me is the easiest and fastest way to share your contact information. With 1Me, you can have an unlimited number of contact cards.",
+      "icon": "1me",
+      "type": "Custom",
+      "category": "Contact Management",
+      "provider": "1Me"
+    },
+    {
+      "id": "1pt",
+      "name": "1pt (Independent Publisher)",
+      "description": "1pt is a URL shortening service and hosts over 15,000+ redirects with 200,000+ visits.",
+      "icon": "1pt",
+      "type": "Custom",
+      "category": "URL Shortener",
+      "provider": "1pt"
+    }
+  ],
+  "categories": [
+    "Database",
+    "Analytics",
+    "Search",
+    "Vector Database",
+    "Deployment",
+    "Data Catalog",
+    "Productivity",
+    "AI/ML",
+    "Storage",
+    "DevOps",
+    "Process Mining",
+    "Development",
+    "Communication",
+    "Customer Support",
+    "Finance",
+    "Enterprise",
+    "HR",
+    "Security",
+    "Documentation",
+    "Integration",
+    "API",
+    "Payments",
+    "Maps",
+    "Web Development",
+    "Scheduling",
+    "Document Management",
+    "Contact Management",
+    "URL Shortener",
+    "Manufacturing"
+  ],
+  "types": [
+    {
+      "id": "Local",
+      "name": "MCP: Local",
+      "description": "Runs locally on your machine"
+    },
+    {
+      "id": "Remote",
+      "name": "MCP: Remote",
+      "description": "Hosted remote MCP server"
+    },
+    {
+      "id": "Custom",
+      "name": "Custom",
+      "description": "Custom integration"
+    }
+  ]
+}

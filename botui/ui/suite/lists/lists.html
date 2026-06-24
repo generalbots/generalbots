@@ -1,0 +1,160 @@
+<!-- Marketing Lists - Complete CRUD with Search, Import/Export -->
+<link rel="stylesheet" href="/suite/crm/crm.css">
+<link rel="stylesheet" href="/suite/lists/lists.css">
+<script src="/suite/js/vendor/htmx.min.js"></script>
+<script src="/suite/js/vendor/htmx-json-enc.js"></script>
+<script src="/suite/js/security-bootstrap.js"></script>
+<script src="/suite/lists/lists.js"></script>
+
+<div class="crm-container">
+    <header class="crm-header">
+        <div class="crm-header-left">
+            <h1 data-i18n="lists-title">Marketing Lists</h1>
+            <nav class="crm-tabs">
+                <button class="crm-tab active" data-view="all" onclick="filterLists('all', this)">All Lists</button>
+                <button class="crm-tab" data-view="static" onclick="filterLists('static', this)">Static</button>
+                <button class="crm-tab" data-view="dynamic" onclick="filterLists('dynamic', this)">Dynamic</button>
+            </nav>
+        </div>
+        <div class="crm-header-right">
+            <div class="lists-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text" id="lists-search-input" placeholder="Search lists..." oninput="searchLists(this.value)">
+            </div>
+            <button class="btn-secondary" onclick="importLists()" title="Import CSV">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Import
+            </button>
+            <button class="btn-secondary" onclick="exportLists()" title="Export CSV">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Export
+            </button>
+            <button class="btn-primary" onclick="showListModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span>New List</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="lists-grid" id="listsList"
+         hx-get="/api/crm/lists"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-secondary);">
+            Loading lists...
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit List Modal -->
+<div id="list-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="hideListModal()"></div>
+    <div class="crm-modal-content">
+        <div class="crm-modal-header">
+            <h2 id="list-modal-title">Create List</h2>
+            <button class="crm-modal-close" onclick="hideListModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <form id="list-form" hx-post="/api/crm/lists" hx-swap="none">
+            <input type="hidden" name="id" id="list-form-id" value="">
+            <div class="crm-form-group">
+                <label>List Name</label>
+                <input type="text" name="name" id="list-form-name" required placeholder="e.g., Active Customers">
+            </div>
+            <div class="crm-form-group">
+                <label>List Type</label>
+                <select name="list_type" id="list-form-type" required>
+                    <option value="static">Static</option>
+                    <option value="dynamic">Dynamic</option>
+                </select>
+            </div>
+            <div class="crm-form-group" id="query-group" style="display:none">
+                <label>Query (for dynamic lists)</label>
+                <textarea name="query_text" id="list-form-query" rows="3" placeholder="e.g., status = 'active' AND country = 'US'"></textarea>
+            </div>
+            <div class="crm-form-actions">
+                <button type="button" class="btn-secondary" onclick="hideListModal()">Cancel</button>
+                <button type="submit" class="btn-primary" id="list-form-submit">Create List</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Members Modal -->
+<div id="members-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="hideMembersModal()"></div>
+    <div class="crm-modal-content" style="max-width: 700px;">
+        <div class="crm-modal-header">
+            <h2 id="members-modal-title">List Members</h2>
+            <button class="crm-modal-close" onclick="hideMembersModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div id="members-content" style="padding: 16px;">
+            <div style="text-align: center; color: var(--text-secondary);">Loading members...</div>
+        </div>
+        <div style="padding: 0 16px 16px; display: flex; gap: 8px;">
+            <input type="text" id="add-member-search" placeholder="Search contacts to add..." style="flex:1; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
+            <button class="btn-primary" onclick="addMemberToList()">Add</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="hideDeleteModal()"></div>
+    <div class="crm-modal-content" style="max-width: 400px;">
+        <div class="crm-modal-header">
+            <h2>Confirm Delete</h2>
+        </div>
+        <div style="padding: 16px;">
+            <p>Are you sure you want to delete <strong id="delete-list-name"></strong>? This action cannot be undone.</p>
+        </div>
+        <div class="crm-form-actions" style="padding: 0 16px 16px;">
+            <button class="btn-secondary" onclick="hideDeleteModal()">Cancel</button>
+            <button class="btn-danger" id="btn-confirm-delete">Delete List</button>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div id="import-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="hideImportModal()"></div>
+    <div class="crm-modal-content" style="max-width: 500px;">
+        <div class="crm-modal-header">
+            <h2>Import Contacts to List</h2>
+            <button class="crm-modal-close" onclick="hideImportModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div style="padding: 16px;">
+            <div class="crm-form-group">
+                <label>Select List</label>
+                <select id="import-target-list" class="crm-select"></select>
+            </div>
+            <div class="crm-form-group">
+                <label>Upload CSV</label>
+                <input type="file" id="import-csv-file" accept=".csv" style="width:100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
+            </div>
+            <div class="crm-form-actions">
+                <button class="btn-secondary" onclick="hideImportModal()">Cancel</button>
+                <button class="btn-primary" onclick="processImport()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>

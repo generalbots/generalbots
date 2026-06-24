@@ -1,0 +1,107 @@
+<link rel="stylesheet" href="/suite/biometry/biometry.css">
+<script src="/suite/biometry/biometry.js"></script>
+
+<div class="bio-container">
+    <header class="bio-header">
+        <h1>Biometry & Digital Identity</h1>
+        <div class="bio-header-actions">
+            <button class="bio-btn" onclick="window._bio.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="bio-stats">
+        <div class="bio-stat-card"><span class="bio-stat-label">Pending KYC</span><span class="bio-stat-value yellow" id="stat-pending">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label">Verified</span><span class="bio-stat-value green" id="stat-verified">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label">Liveness Checks</span><span class="bio-stat-value blue" id="stat-liveness">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label">Signatures</span><span class="bio-stat-value purple" id="stat-signatures">0</span></div>
+    </div>
+
+    <nav class="bio-tabs">
+        <button class="bio-tab active" data-tab="kyc" onclick="window._bio.switchTab('kyc',this)">KYC</button>
+        <button class="bio-tab" data-tab="liveness" onclick="window._bio.switchTab('liveness',this)">Liveness</button>
+        <button class="bio-tab" data-tab="signatures" onclick="window._bio.switchTab('signatures',this)">Signatures</button>
+        <button class="bio-tab" data-tab="certificates" onclick="window._bio.switchTab('certificates',this)">Certificates</button>
+        <button class="bio-tab" data-tab="audit" onclick="window._bio.switchTab('audit',this)">Audit Log</button>
+    </nav>
+
+    <div class="bio-content">
+        <div class="bio-panel active" id="panel-kyc">
+            <div class="bio-grid" id="kyc-grid">
+                <div class="bio-empty"><div class="bio-empty-icon">🔍</div><h3>Loading KYC...</h3><p>Fetching identity verifications</p></div>
+            </div>
+        </div>
+
+        <div class="bio-panel" id="panel-liveness">
+            <div class="bio-liveness-layout">
+                <div class="bio-liveness-card">
+                    <h3>Active Liveness Session</h3>
+                    <div class="bio-liveness-status" id="liveness-status">Idle</div>
+                    <div class="bio-liveness-frame" id="liveness-frame">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                    <div class="bio-liveness-actions">
+                        <button class="bio-btn bio-btn-primary" onclick="window._bio.startLiveness()">Start Session</button>
+                        <button class="bio-btn" onclick="window._bio.captureFrame()">Capture Frame</button>
+                        <button class="bio-btn bio-btn-danger" onclick="window._bio.endLiveness()">End</button>
+                    </div>
+                    <div class="bio-liveness-score">
+                        <span>Confidence</span>
+                        <div class="bio-score-bar"><div class="bio-score-fill" id="liveness-score-fill" style="width:0%"></div></div>
+                        <span id="liveness-score-text">0%</span>
+                    </div>
+                </div>
+                <div class="bio-liveness-card">
+                    <h3>Recent Sessions</h3>
+                    <div id="liveness-sessions"><div class="bio-empty">No sessions</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bio-panel" id="panel-signatures">
+            <div class="bio-table-wrapper">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                    <h3 style="font-size:14px;font-weight:600;margin:0">Documents Awaiting Signature</h3>
+                    <button class="bio-btn" onclick="window._bio.loadSignatures()">Refresh</button>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="bio-table">
+                        <thead><tr><th>Document</th><th>Type</th><th>Signer</th><th>Requested</th><th>Action</th></tr></thead>
+                        <tbody id="signatures-tbody"><tr><td colspan="5" class="bio-empty">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="signature-pad-area" style="margin-top:16px;display:none">
+                <div class="bio-table-wrapper">
+                    <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+                        <h3 style="font-size:14px;font-weight:600;margin:0">Signature Pad</h3>
+                        <div style="display:flex;gap:8px">
+                            <button class="bio-btn" onclick="window._bio.clearSignature()">Clear</button>
+                            <button class="bio-btn bio-btn-primary" onclick="window._bio.submitSignature()">Submit Signature</button>
+                        </div>
+                    </div>
+                    <div style="padding:16px;display:flex;justify-content:center">
+                        <canvas id="signature-canvas" width="500" height="200" style="background:#0f172a;border-radius:8px"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bio-panel" id="panel-certificates">
+            <div class="bio-grid" id="certificates-grid">
+                <div class="bio-empty"><div class="bio-empty-icon">📜</div><h3>Loading certificates...</h3></div>
+            </div>
+        </div>
+
+        <div class="bio-panel" id="panel-audit">
+            <div class="bio-table-wrapper">
+                <table class="bio-table">
+                    <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Result</th><th>IP</th><th>Details</th></tr></thead>
+                    <tbody id="audit-tbody"><tr><td colspan="6" class="bio-empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

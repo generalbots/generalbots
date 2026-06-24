@@ -1,0 +1,110 @@
+<svg width="900" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <marker id="arrowGray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#94A3B8"/>
+    </marker>
+
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="900" height="200" fill="#FAFBFC"/>
+  <rect width="900" height="200" fill="url(#dots)"/>
+
+  <!-- Main Container -->
+  <rect x="20" y="20" width="860" height="160" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="url(#cardShadow)"/>
+
+  <!-- Step 1 -->
+  <g transform="translate(60, 50)">
+    <rect x="0" y="0" width="150" height="100" rx="10" fill="#FFFFFF" stroke="#06B6D4" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="150" height="32" rx="10" fill="url(#cyanGrad)"/>
+    <rect x="0" y="26" width="150" height="6" fill="url(#cyanGrad)"/>
+    <text x="75" y="22" text-anchor="middle" font-size="12" font-weight="600" class="white-text">Step 1</text>
+    <text x="75" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Prepare</text>
+    <text x="75" y="75" text-anchor="middle" font-size="9" class="secondary-text">Gather requirements</text>
+    <text x="75" y="90" text-anchor="middle" font-size="9" class="secondary-text">and resources</text>
+  </g>
+
+  <!-- Arrow 1→2 -->
+  <path d="M215 100 L260 100" stroke="#94A3B8" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- Step 2 -->
+  <g transform="translate(270, 50)">
+    <rect x="0" y="0" width="150" height="100" rx="10" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="150" height="32" rx="10" fill="url(#primaryGrad)"/>
+    <rect x="0" y="26" width="150" height="6" fill="url(#primaryGrad)"/>
+    <text x="75" y="22" text-anchor="middle" font-size="12" font-weight="600" class="white-text">Step 2</text>
+    <text x="75" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Configure</text>
+    <text x="75" y="75" text-anchor="middle" font-size="9" class="secondary-text">Set up settings</text>
+    <text x="75" y="90" text-anchor="middle" font-size="9" class="secondary-text">and connections</text>
+  </g>
+
+  <!-- Arrow 2→3 -->
+  <path d="M425 100 L470 100" stroke="#94A3B8" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- Step 3 -->
+  <g transform="translate(480, 50)">
+    <rect x="0" y="0" width="150" height="100" rx="10" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="150" height="32" rx="10" fill="url(#orangeGrad)"/>
+    <rect x="0" y="26" width="150" height="6" fill="url(#orangeGrad)"/>
+    <text x="75" y="22" text-anchor="middle" font-size="12" font-weight="600" class="white-text">Step 3</text>
+    <text x="75" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Deploy</text>
+    <text x="75" y="75" text-anchor="middle" font-size="9" class="secondary-text">Execute the</text>
+    <text x="75" y="90" text-anchor="middle" font-size="9" class="secondary-text">implementation</text>
+  </g>
+
+  <!-- Arrow 3→4 -->
+  <path d="M635 100 L680 100" stroke="#94A3B8" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- Step 4 -->
+  <g transform="translate(690, 50)">
+    <rect x="0" y="0" width="150" height="100" rx="10" fill="#FFFFFF" stroke="#10B981" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="0" width="150" height="32" rx="10" fill="url(#greenGrad)"/>
+    <rect x="0" y="26" width="150" height="6" fill="url(#greenGrad)"/>
+    <text x="75" y="22" text-anchor="middle" font-size="12" font-weight="600" class="white-text">Step 4</text>
+    <text x="75" y="55" text-anchor="middle" font-size="11" font-weight="500" class="main-text">Test</text>
+    <text x="75" y="75" text-anchor="middle" font-size="9" class="secondary-text">Verify everything</text>
+    <text x="75" y="90" text-anchor="middle" font-size="9" class="secondary-text">works correctly</text>
+  </g>
+</svg>

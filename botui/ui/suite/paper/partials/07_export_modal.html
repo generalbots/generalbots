@@ -1,0 +1,73 @@
+<!-- Export Modal -->
+    <div class="modal hidden" id="export-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="paper-export">Export Document</h3>
+                <button class="btn-icon close-modal">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <button
+                        class="export-option"
+                        hx-get="/api/ui/paper/export/pdf"
+                        hx-swap="none"
+                    >
+                        <span class="export-icon">📄</span>
+                        <span class="export-label" data-i18n="paper-export-pdf"
+                            >PDF</span
+                        >
+                    </button>
+                    <button
+                        class="export-option"
+                        hx-get="/api/ui/paper/export/docx"
+                        hx-swap="none"
+                    >
+                        <span class="export-icon">📝</span>
+                        <span class="export-label" data-i18n="paper-export-docx"
+                            >Word (.docx)</span
+                        >
+                    </button>
+                    <button
+                        class="export-option"
+                        hx-get="/api/ui/paper/export/md"
+                        hx-swap="none"
+                    >
+                        <span class="export-icon">📑</span>
+                        <span
+                            class="export-label"
+                            data-i18n="paper-export-markdown"
+                            >Markdown</span
+                        >
+                    </button>
+                    <button
+                        class="export-option"
+                        hx-get="/api/ui/paper/export/html"
+                        hx-swap="none"
+                    >
+                        <span class="export-icon">🌐</span>
+                        <span class="export-label">HTML</span>
+                    </button>
+                    <button
+                        class="export-option"
+                        hx-get="/api/ui/paper/export/txt"
+                        hx-swap="none"
+                    >
+                        <span class="export-icon">📋</span>
+                        <span class="export-label">Plain Text</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>

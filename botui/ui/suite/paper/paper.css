@@ -1,0 +1,5 @@
+/* Paper App CSS — split into modules */
+@import url("./paper-base.css");
+@import url("./paper-editor.css");
+@import url("./paper-ai.css");
+@import url("./paper-modal.css");

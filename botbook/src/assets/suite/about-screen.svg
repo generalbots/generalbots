@@ -1,0 +1,180 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .green-text { fill: #22c55e; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card-bg { fill: #f8fafc; }
+    .feature-on { fill: #dcfce7; }
+    .feature-off { fill: #f1f5f9; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .green-text { fill: #4ade80; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card-bg { fill: #1e293b; }
+      .feature-on { fill: #14532d; }
+      .feature-off { fill: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">About</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Centered Content -->
+  <g transform="translate(450, 90)">
+    <!-- Logo -->
+    <rect x="-30" y="0" width="60" height="60" rx="14" fill="url(#accentGrad)"/>
+    <text x="0" y="40" text-anchor="middle" font-size="28" class="white-text">G</text>
+
+    <!-- Title -->
+    <text x="0" y="90" text-anchor="middle" font-size="24" font-weight="700" class="main-text">General Bots</text>
+
+    <!-- Version Badge -->
+    <rect x="-35" y="100" width="70" height="24" rx="12" fill="url(#accentGrad)"/>
+    <text x="0" y="117" text-anchor="middle" font-size="12" font-weight="600" class="white-text">v6.4.0</text>
+
+    <!-- Description -->
+    <text x="0" y="150" text-anchor="middle" font-size="13" class="secondary-text">AI-powered business automation platform</text>
+    <text x="0" y="170" text-anchor="middle" font-size="13" class="secondary-text">Build, deploy, and manage intelligent bots</text>
+  </g>
+
+  <!-- Feature Badges Grid -->
+  <g transform="translate(120, 260)">
+    <text x="330" y="0" text-anchor="middle" font-size="14" font-weight="600" class="main-text">Enabled Features</text>
+
+    <!-- Row 1 -->
+    <g transform="translate(0, 20)">
+      <g transform="translate(0, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Chat</text>
+      </g>
+      <g transform="translate(170, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Email</text>
+      </g>
+      <g transform="translate(340, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Knowledge Base</text>
+      </g>
+      <g transform="translate(510, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Webhooks</text>
+      </g>
+    </g>
+
+    <!-- Row 2 -->
+    <g transform="translate(0, 65)">
+      <g transform="translate(0, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Voice</text>
+      </g>
+      <g transform="translate(170, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Analytics</text>
+      </g>
+      <g transform="translate(340, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Scheduling</text>
+      </g>
+      <g transform="translate(510, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">File Storage</text>
+      </g>
+    </g>
+
+    <!-- Row 3 -->
+    <g transform="translate(0, 110)">
+      <g transform="translate(0, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Security</text>
+      </g>
+      <g transform="translate(170, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Multi-Bot</text>
+      </g>
+      <g transform="translate(340, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-off"/>
+        <text x="12" y="23" font-size="12" class="muted-text">—</text>
+        <text x="28" y="23" font-size="12" class="muted-text">WhatsApp</text>
+      </g>
+      <g transform="translate(510, 0)">
+        <rect x="0" y="0" width="155" height="36" rx="8" class="feature-on"/>
+        <text x="12" y="23" font-size="12" class="green-text">✓</text>
+        <text x="28" y="23" font-size="12" class="main-text">Video</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- System Info -->
+  <g transform="translate(250, 440)">
+    <rect x="0" y="0" width="400" height="100" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="400" height="100" rx="10" class="border"/>
+
+    <g transform="translate(30, 20)">
+      <text x="0" y="0" font-size="12" class="muted-text">Runtime</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">Rust 1.78.0</text>
+    </g>
+    <g transform="translate(160, 20)">
+      <text x="0" y="0" font-size="12" class="muted-text">Database</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">PostgreSQL 16</text>
+    </g>
+    <g transform="translate(300, 20)">
+      <text x="0" y="0" font-size="12" class="muted-text">Cache</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">Valkey 7.2</text>
+    </g>
+
+    <g transform="translate(30, 58)">
+      <text x="0" y="0" font-size="12" class="muted-text">LLM Engine</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">Multi-provider</text>
+    </g>
+    <g transform="translate(160, 58)">
+      <text x="0" y="0" font-size="12" class="muted-text">Storage</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">MinIO / S3</text>
+    </g>
+    <g transform="translate(300, 58)">
+      <text x="0" y="0" font-size="12" class="muted-text">License</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">MIT</text>
+    </g>
+  </g>
+
+  <!-- Copyright -->
+  <g transform="translate(450, 555)">
+    <text x="0" y="0" text-anchor="middle" font-size="11" class="muted-text">© 2026 General Bots. All rights reserved.</text>
+  </g>
+</svg>

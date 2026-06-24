@@ -1,0 +1,6 @@
+name,value
+bot-name,store-server
+bot-description,Store Server API - Product search, classification, barcode scanning and enrichment
+botmodels-enabled,true
+llm-provider,openai
+llm-model,gpt-4o

@@ -1,0 +1,549 @@
+.home-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 40px;
+    min-height: 100%;
+}
+
+/* Welcome Section */
+.welcome-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 48px;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.welcome-content {
+    flex: 1;
+    min-width: 280px;
+}
+
+.welcome-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+    background: linear-gradient(
+        135deg,
+        var(--text-primary),
+        var(--accent-color)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.welcome-subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.quick-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    min-width: 320px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-search:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-color-alpha, rgba(99, 102, 241, 0.1));
+}
+
+.quick-search svg {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.quick-search input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+    outline: none;
+}
+
+.quick-search input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.quick-search kbd {
+    padding: 4px 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-family: inherit;
+    color: var(--text-secondary);
+}
+
+/* Section Headers */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.view-all {
+    font-size: 0.875rem;
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+.view-all:hover {
+    opacity: 0.8;
+}
+
+/* Recent Section */
+.recent-section {
+    margin-bottom: 48px;
+}
+
+.recent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.recent-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.recent-card:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.recent-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.recent-icon.doc {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+}
+
+.recent-icon.sheet {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+}
+
+.recent-icon.slides {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.recent-icon.paper {
+    background: linear-gradient(135deg, #ec4899, #db2777);
+    color: white;
+}
+
+.recent-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.recent-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recent-meta {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+/* Apps Section */
+.apps-section {
+    margin-bottom: 48px;
+}
+
+.apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.app-card {
+    display: flex;
+    gap: 16px;
+    padding: 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.25s ease;
+}
+
+.app-card:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.app-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: white;
+}
+
+.app-icon.chat {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+.app-icon.people {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+.app-icon.mail {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+.app-icon.meet {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+.app-icon.calendar {
+    background: linear-gradient(135deg, #a855f7, #9333ea);
+}
+.app-icon.tasks {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+.app-icon.project {
+    background: linear-gradient(135deg, #14b8a6, #0d9488);
+}
+.app-icon.goals {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+}
+.app-icon.paper {
+    background: linear-gradient(135deg, #ec4899, #db2777);
+}
+.app-icon.docs {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.app-icon.sheet {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+.app-icon.slides {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.app-icon.drive {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.app-icon.video {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+.app-icon.player {
+    background: linear-gradient(135deg, #a855f7, #9333ea);
+}
+.app-icon.social {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+.app-icon.learn {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+.app-icon.research {
+    background: linear-gradient(135deg, #14b8a6, #0d9488);
+}
+.app-icon.analytics {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+.app-icon.dashboards {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+.app-icon.sources {
+    background: linear-gradient(135deg, #a855f7, #9333ea);
+}
+.app-icon.canvas {
+    background: linear-gradient(135deg, #ec4899, #db2777);
+}
+.app-icon.workspace {
+    background: linear-gradient(135deg, #64748b, #475569);
+}
+.app-icon.designer {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+}
+.app-icon.editor {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+.app-icon.attendant {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+.app-icon.security {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+.app-icon.monitoring {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+.app-icon.settings {
+    background: linear-gradient(135deg, #71717a, #52525b);
+}
+
+.app-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.app-content h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.app-content p {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .home-container {
+        padding: 20px 16px;
+    }
+
+    .welcome-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .welcome-title {
+        font-size: 1.75rem;
+    }
+
+    .quick-search {
+        min-width: 100%;
+    }
+
+    .apps-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .recent-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .app-card {
+        padding: 20px;
+    }
+
+    .app-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-content h3 {
+        font-size: 1rem;
+    }
+
+    .app-content p {
+        font-size: 0.8125rem;
+        -webkit-line-clamp: 3;
+    }
+}
+
+/* ============================================ */
+/* MARKDOWN MESSAGE STYLING                    */
+/* ============================================ */
+
+/* Lists in message content */
+.message-content ul,
+.message-content ol {
+    margin: 12px 0;
+    padding-left: 24px;
+}
+
+/* List items with proper spacing from border */
+.message-content li {
+    margin: 8px 0;
+    line-height: 1.7;
+}
+
+/* Nested lists */
+.message-content ul ul,
+.message-content ol ol,
+.message-content ul ol,
+.message-content ol ul {
+    margin: 8px 0;
+}
+
+/* Bullet points */
+.message-content ul li {
+    list-style-type: disc;
+    padding-left: 8px;
+}
+
+.message-content ul li::marker {
+    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+}
+
+/* Nested bullets */
+.message-content ul ul li {
+    list-style-type: circle;
+}
+
+.message-content ul ul ul li {
+    list-style-type: square;
+}
+
+/* Numbered lists */
+.message-content ol li {
+    list-style-type: decimal;
+}
+
+/* Nested numbered lists */
+.message-content ol ol li {
+    list-style-type: lower-alpha;
+}
+
+.message-content ol ol ol li {
+    list-style-type: lower-roman;
+}
+
+/* Lists in user messages */
+.message.user .message-content ul li::marker,
+.message.user .message-content ol li::marker {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Lists in bot messages */
+.message.bot .message-content ul li::marker,
+.message.bot .message-content ol li::marker {
+    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+}
+
+/* Paragraphs in messages */
+.message-content p {
+    margin: 8px 0;
+    line-height: 1.7;
+}
+
+/* First and last paragraph spacing */
+.message-content p:first-child {
+    margin-top: 0;
+}
+
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Headings in messages */
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+    margin: 16px 0 8px 0;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.message-content h1 { font-size: 1.5em; }
+.message-content h2 { font-size: 1.3em; }
+.message-content h3 { font-size: 1.15em; }
+.message-content h4 { font-size: 1.05em; }
+
+/* Code blocks */
+.message-content pre {
+    margin: 12px 0;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Inline code */
+.message-content code {
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.message.user .message-content code {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Blockquotes */
+.message-content blockquote {
+    margin: 12px 0;
+    padding-left: 16px;
+    border-left: 3px solid var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    font-style: italic;
+}
+
+/* Horizontal rules */
+.message-content hr {
+    margin: 16px 0;
+    border: none;
+    border-top: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+/* Links in messages */
+.message-content a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(128, 128, 128, 0.5);
+    transition: text-decoration-color 0.2s;
+}
+
+.message-content a:hover {
+    text-decoration-color: currentColor;
+}

@@ -1,0 +1,23 @@
+pub fn get_noise_filters() -> &'static str {
+    "vaultrs=off,rustify=off,rustify_derive=off,\
+aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
+aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
+mio=off,tokio=off,tokio_util=off,tower=off,tower_http=off,\
+tokio_tungstenite=off,tungstenite=off,\
+reqwest=off,hyper=off,hyper_util=off,h2=off,\
+rustls=off,rustls_pemfile=off,tokio_rustls=off,\
+         tracing=off,tracing_core=off,tracing_subscriber=off,\
+         diesel=off,diesel_migrations=off,r2d2=warn,\
+         serde=off,serde_json=off,\
+         axum=off,axum_core=off,\
+         tonic=off,prost=off,\
+         lettre=off,imap=off,mailparse=off,\
+         crossterm=off,ratatui=off,\
+         tauri=off,tauri_runtime=off,tauri_utils=off,\
+         notify=off,ignore=off,walkdir=off,\
+         want=off,try_lock=off,futures=off,\
+         base64=off,bytes=off,encoding_rs=off,\
+         url=off,percent_encoding=off,\
+         ring=off,webpki=off,\
+         hickory_resolver=off,hickory_proto=off"
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Headless Browser - General Bots</title>
+    <link rel="stylesheet" href="/suite/css/common.css">
+    <link rel="stylesheet" href="/suite/desktop/desktop.css">
+    <link rel="stylesheet" href="/suite/desktop/browser.css">
+    <script src="/suite/js/vendor/htmx.min.js"></script>
+</head>
+<body>
+    <div class="browser-container">
+        <header class="browser-header">
+            <div class="browser-header-left">
+                <h1>Headless Browser</h1>
+            </div>
+            <div class="browser-header-right">
+                <span class="session-id" id="session-label">No session</span>
+                <button class="btn btn-primary" id="btn-new-session">+ New Session</button>
+                <button class="btn btn-danger" id="btn-close-session" style="display:none">Close</button>
+            </div>
+        </header>
+
+        <div class="browser-toolbar" id="toolbar" style="display:none">
+            <div class="toolbar-row">
+                <input type="text" id="nav-url" class="input-field url-bar" placeholder="https://example.com">
+                <button class="btn btn-primary" id="btn-navigate">Go</button>
+            </div>
+            <div class="toolbar-row">
+                <button class="btn btn-sm" id="btn-screenshot">Screenshot</button>
+                <button class="btn btn-sm" id="btn-extract">Extract Text</button>
+                <button class="btn btn-sm" id="btn-back">Back</button>
+                <button class="btn btn-sm" id="btn-forward">Forward</button>
+                <label class="agent-toggle">
+                    <input type="checkbox" id="chk-agent-mode">
+                    <span class="toggle-label">Agent Mode</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="browser-body">
+            <div class="viewport-container" id="viewport-container">
+                <div class="viewport-status" id="viewport-status">
+                    <p>Create a browser session to begin.</p>
+                </div>
+                <canvas id="browser-canvas" style="display:none"></canvas>
+                <div class="viewport-overlay" id="viewport-overlay" style="display:none"></div>
+            </div>
+            <aside class="browser-sidebar" id="sidebar" style="display:none">
+                <div class="sidebar-section">
+                    <h3>Page State</h3>
+                    <div id="page-state">
+                        <div class="state-row"><strong>URL:</strong> <span id="state-url">-</span></div>
+                        <div class="state-row"><strong>Title:</strong> <span id="state-title">-</span></div>
+                        <div class="state-row"><strong>Links:</strong> <span id="state-links">0</span></div>
+                        <div class="state-row"><strong>FPS:</strong> <span id="state-fps">0</span></div>
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Agent Log</h3>
+                    <div id="agent-log" class="agent-log">
+                        <div class="log-empty">Agent mode disabled</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="/suite/desktop/browser.js"></script>
+</body>
+</html>

@@ -1,0 +1,446 @@
+/*****************************************************************************\
+|  █████  █████ ██    █ █████ █████   ████  ██      ████   █████ █████  ███ ® |
+| ██      █     ███   █ █     ██  ██ ██  ██ ██      ██  █ ██   ██  █   █      |
+| ██  ███ ████  █ ██  █ ████  █████  ██████ ██      ████   █   █   █    ██    |
+| ██   ██ █     █  ██ █ █     ██  ██ ██  ██ ██      ██  █ ██   ██  █      █   |
+|  █████  █████ █   ███ █████ ██  ██ ██  ██ █████   ████   █████   █   ███    |
+|                                                                             |
+| General Bots Copyright (c) pragmatismo.com.br. All rights reserved.         |
+| Licensed under the AGPL-3.0.                                                |
+|                                                                             |
+| According to our dual licensing model, this program can be used either      |
+| under the terms of the GNU Affero General Public License, version 3,        |
+| or under a proprietary license.                                             |
+|                                                                             |
+| The texts of the GNU Affero General Public License with an additional       |
+| permission and of our proprietary license can be found at and               |
+| in the LICENSE file you have received along with this program.              |
+|                                                                             |
+| This program is distributed in the hope that it will be useful,             |
+| but WITHOUT ANY WARRANTY, without even the implied warranty of              |
+| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                |
+| GNU Affero General Public License for more details.                         |
+|                                                                             |
+| "General Bots" is a registered trademark of pragmatismo.com.br.             |
+| The licensing of the program under the AGPLv3 does not imply a              |
+| trademark license. Therefore any rights, title and interest in              |
+| our trademarks remain entirely with us.                                     |
+|                                                                             |
+\*****************************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
+
+// BasicValue/BasicRuntime stubs - card module needs refactoring to use Rhai engine
+#[derive(Debug, Clone)]
+pub enum BasicValue {
+    String(String),
+    Object(serde_json::Value),
+    Array(Vec<BasicValue>),
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub enum CardStyle {
+    #[default]
+    Modern,
+    Minimal,
+    Vibrant,
+    Dark,
+    Light,
+    Gradient,
+    Polaroid,
+    Magazine,
+    Story,
+    Carousel,
+}
+
+impl From<&str> for CardStyle {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "minimal" => CardStyle::Minimal,
+            "vibrant" => CardStyle::Vibrant,
+            "dark" => CardStyle::Dark,
+            "light" => CardStyle::Light,
+            "gradient" => CardStyle::Gradient,
+            "polaroid" => CardStyle::Polaroid,
+            "magazine" => CardStyle::Magazine,
+            "story" => CardStyle::Story,
+            "carousel" => CardStyle::Carousel,
+            _ => CardStyle::Modern,
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Copy)]
+pub struct CardDimensions {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl CardDimensions {
+    pub const INSTAGRAM_SQUARE: Self = Self {
+        width: 1080,
+        height: 1080,
+    };
+    pub const INSTAGRAM_PORTRAIT: Self = Self {
+        width: 1080,
+        height: 1350,
+    };
+    pub const INSTAGRAM_STORY: Self = Self {
+        width: 1080,
+        height: 1920,
+    };
+    pub const INSTAGRAM_LANDSCAPE: Self = Self {
+        width: 1080,
+        height: 566,
+    };
+
+    pub fn for_style(style: &CardStyle) -> Self {
+        match style {
+            CardStyle::Story => Self::INSTAGRAM_STORY,
+            CardStyle::Carousel => Self::INSTAGRAM_SQUARE,
+            _ => Self::INSTAGRAM_SQUARE,
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub enum TextPosition {
+    Top,
+    #[default]
+    Center,
+    Bottom,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CardResult {
+    pub image_path: String,
+    pub image_url: Option<String>,
+    pub text_content: String,
+    pub hashtags: Vec<String>,
+    pub caption: String,
+    pub style: String,
+    pub dimensions: (u32, u32),
+}
+
+
+#[derive(Debug, Clone)]
+pub struct CardConfig {
+    pub style: CardStyle,
+    pub dimensions: CardDimensions,
+    pub text_position: TextPosition,
+    pub include_hashtags: bool,
+    pub include_caption: bool,
+    pub brand_watermark: Option<String>,
+}
+
+impl Default for CardConfig {
+    fn default() -> Self {
+        Self {
+            style: CardStyle::Modern,
+            dimensions: CardDimensions::INSTAGRAM_SQUARE,
+            text_position: TextPosition::Center,
+            include_hashtags: true,
+            include_caption: true,
+            brand_watermark: None,
+        }
+    }
+}
+
+
+
+pub struct CardKeyword {
+    llm_provider: Arc<dyn LLMProvider>,
+    output_dir: String,
+}
+
+impl CardKeyword {
+    pub fn new(llm_provider: Arc<dyn LLMProvider>, output_dir: String) -> Self {
+        Self {
+            llm_provider,
+            output_dir,
+        }
+    }
+
+
+    pub async fn execute(
+        &self,
+        image_prompt: &str,
+        text_prompt: &str,
+        style: Option<&str>,
+        count: Option<usize>,
+    ) -> Result<Vec<CardResult>> {
+        let card_style = style.map(CardStyle::from).unwrap_or_default();
+        let card_count = count.unwrap_or(1).min(10);
+
+        let config = CardConfig {
+            style: card_style.clone(),
+            dimensions: CardDimensions::for_style(&card_style),
+            ..Default::default()
+        };
+
+
+        fs::create_dir_all(&self.output_dir)?;
+
+        let mut results = Vec::with_capacity(card_count);
+
+        for i in 0..card_count {
+            let result = self
+                .generate_single_card(image_prompt, text_prompt, &config, i)
+                .await?;
+            results.push(result);
+        }
+
+        Ok(results)
+    }
+
+
+    async fn generate_single_card(
+        &self,
+        image_prompt: &str,
+        text_prompt: &str,
+        config: &CardConfig,
+        index: usize,
+    ) -> Result<CardResult> {
+
+        let text_content = self.generate_text_content(text_prompt, config).await?;
+
+
+        let enhanced_image_prompt = self.create_card_prompt(image_prompt, &text_content, config);
+
+
+        let image_bytes = self
+            .llm_provider
+            .generate_simple(&enhanced_image_prompt)
+            .await
+            .map(|s| s.into_bytes())
+            .map_err(|e| anyhow!("Image generation failed: {e}"))?;
+
+
+        let filename = format!(
+            "card_{}_{}.png",
+            chrono::Utc::now().format("%Y%m%d_%H%M%S"),
+            index
+        );
+        let image_path = format!("{}/{}", self.output_dir, filename);
+
+
+        if let Some(parent) = Path::new(&image_path).parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        fs::write(&image_path, &image_bytes)?;
+
+
+        let (hashtags, caption) = self.generate_social_content(&text_content, config).await?;
+
+        Ok(CardResult {
+            image_path: image_path.clone(),
+            image_url: None,
+            text_content,
+            hashtags,
+            caption,
+            style: format!("{:?}", config.style),
+            dimensions: (config.dimensions.width, config.dimensions.height),
+        })
+    }
+
+
+    async fn generate_text_content(
+        &self,
+        text_prompt: &str,
+        config: &CardConfig,
+    ) -> Result<String> {
+        let style_instruction = match config.style {
+            CardStyle::Minimal => "Keep it very short, 1-2 impactful words or a brief phrase.",
+            CardStyle::Vibrant => "Make it energetic and exciting with action words.",
+            CardStyle::Dark => "Create a mysterious, sophisticated tone.",
+            CardStyle::Light => "Keep it uplifting and positive.",
+            CardStyle::Magazine => "Write like a magazine headline, catchy and professional.",
+            CardStyle::Story => "Create engaging story-style text that draws people in.",
+            _ => "Create compelling, shareable text perfect for social media.",
+        };
+
+        let prompt = format!(
+            r#"Create text for an Instagram post image overlay.
+
+Topic/Theme: {}
+
+Style Guidelines:
+- {}
+- Maximum 50 characters for main text
+- Should be visually impactful when overlaid on an image
+- Use proper capitalization for visual appeal
+- No hashtags in the main text (those come separately)
+
+Respond with ONLY the text content, nothing else."#,
+            text_prompt, style_instruction
+        );
+
+        let response = self.llm_provider.generate_simple(&prompt).await.map_err(|e| anyhow!("{e}"))?;
+
+
+        let text = response.trim().to_string();
+
+
+        if text.len() > 100 {
+            Ok(text.chars().take(100).collect::<String>() + "...")
+        } else {
+            Ok(text)
+        }
+    }
+
+
+    fn create_card_prompt(
+        &self,
+        image_prompt: &str,
+        text_content: &str,
+        config: &CardConfig,
+    ) -> String {
+        let style_modifiers = match config.style {
+            CardStyle::Minimal => {
+                "minimalist, clean, simple composition, lots of negative space, muted colors"
+            }
+            CardStyle::Vibrant => "vibrant colors, high saturation, dynamic, energetic, bold",
+            CardStyle::Dark => "dark moody atmosphere, dramatic lighting, deep shadows, cinematic",
+            CardStyle::Light => "bright, airy, soft lighting, pastel colors, ethereal",
+            CardStyle::Gradient => "smooth color gradients, abstract, flowing colors",
+            CardStyle::Polaroid => "vintage polaroid style, slightly faded, warm tones, nostalgic",
+            CardStyle::Magazine => "high fashion, editorial style, professional photography, sharp",
+            CardStyle::Story => "vertical composition, immersive, storytelling, atmospheric",
+            CardStyle::Carousel => "consistent style, series-ready, cohesive aesthetic",
+            CardStyle::Modern => "modern, trendy, instagram aesthetic, high quality",
+        };
+
+        let text_position = match config.text_position {
+            TextPosition::Top => "at the top",
+            TextPosition::Center => "in the center",
+            TextPosition::Bottom => "at the bottom",
+            TextPosition::TopLeft => "in the top left corner",
+            TextPosition::TopRight => "in the top right corner",
+            TextPosition::BottomLeft => "in the bottom left corner",
+            TextPosition::BottomRight => "in the bottom right corner",
+        };
+
+        let text_color = match config.style {
+            CardStyle::Dark => "white",
+            CardStyle::Light => "dark gray or black",
+            _ => "white with a subtle shadow",
+        };
+
+        format!(
+            r#"Create an Instagram-ready image with the following specifications:
+
+Background/Scene: {}
+Style: {}, perfect for Instagram, professional quality, 4K, highly detailed
+
+Text Overlay Requirements:
+- Display the text "{}" {} of the image
+- Use bold, modern typography
+- Text color should be {} for readability
+- Add a subtle text shadow or background blur behind text for contrast
+- Leave appropriate padding around text
+
+The image should be {} x {} pixels, optimized for social media.
+Make the text an integral part of the design, not just overlaid."#,
+            image_prompt,
+            style_modifiers,
+            text_content,
+            text_position,
+            text_color,
+            config.dimensions.width,
+            config.dimensions.height
+        )
+    }
+
+
+    async fn generate_social_content(
+        &self,
+        text_content: &str,
+        config: &CardConfig,
+    ) -> Result<(Vec<String>, String)> {
+        if !config.include_hashtags && !config.include_caption {
+            return Ok((vec![], String::new()));
+        }
+
+        let prompt = format!(
+            r#"Based on this Instagram post text: "{}"
+
+Generate:
+1. A short, engaging caption (1-2 sentences max)
+2. 5-10 relevant hashtags (without the # symbol)
+
+Format your response exactly like this:
+CAPTION: [your caption here]
+HASHTAGS: tag1, tag2, tag3, tag4, tag5"#,
+            text_content
+        );
+
+        let response = self.llm_provider.generate_simple(&prompt).await.map_err(|e| anyhow!("{e}"))?;
+
+
+        let mut caption = String::new();
+        let mut hashtags = Vec::new();
+
+        for line in response.lines() {
+            let line_trimmed = line.trim();
+            if line_trimmed.starts_with("CAPTION:") {
+                caption = line_trimmed
+                    .trim_start_matches("CAPTION:")
+                    .trim()
+                    .to_string();
+            } else if line_trimmed.starts_with("HASHTAGS:") {
+                let tags = line_trimmed.trim_start_matches("HASHTAGS:").trim();
+                hashtags = tags
+                    .split(',')
+                    .map(|t| {
+                        let tag = t.trim().trim_start_matches('#');
+                        format!("#{}", tag)
+                    })
+                    .filter(|t| t.len() > 1)
+                    .collect();
+            }
+        }
+
+        Ok((hashtags, caption))
+    }
+}
+
+
+// Card keyword registration is pending migration to Rhai engine.
+// The old BasicRuntime API (get_config, register_keyword) no longer exists.
+// TODO: Rewrite to use rhai::Engine::register_custom_syntax pattern.
+pub fn register_card_keyword(_engine: &mut rhai::Engine, _llm_provider: Arc<dyn LLMProvider>) {
+    log::warn!("CARD keyword not yet migrated to Rhai engine");
+}
+
+
+
+use botlib::traits::LLMProvider;
+use std::fs;
+use std::path::Path;
+use std::sync::Arc;

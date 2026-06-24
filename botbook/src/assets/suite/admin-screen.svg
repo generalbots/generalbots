@@ -1,0 +1,216 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #8b5cf6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .nav-active { fill: #f5f3ff; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .stat-up { fill: #22c55e; }
+    .stat-down { fill: #ef4444; }
+    .badge { fill: #8b5cf6; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #a78bfa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .nav-active { fill: #1e1b4b; }
+      .card { fill: #1e293b; stroke: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Admin - Administration Panel</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Sidebar -->
+  <rect x="30" y="40" width="180" height="530" class="panel-bg"/>
+  <line x1="210" y1="40" x2="210" y2="570" class="border"/>
+
+  <!-- Sidebar Header -->
+  <g transform="translate(50, 60)">
+    <rect x="0" y="0" width="28" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="14" y="19" text-anchor="middle" font-size="14" class="white-text">⚙</text>
+    <text x="38" y="19" font-size="15" font-weight="600" class="main-text">Admin</text>
+  </g>
+
+  <!-- Nav Items -->
+  <g transform="translate(45, 110)">
+    <rect x="-5" y="-5" width="165" height="34" rx="6" class="nav-active"/>
+    <text x="8" y="16" font-size="13" class="accent-text">📊 Dashboard</text>
+
+    <text x="8" y="50" font-size="13" class="secondary-text">👥 Users</text>
+    <text x="8" y="82" font-size="13" class="secondary-text">🔐 Roles</text>
+    <text x="8" y="114" font-size="13" class="secondary-text">🏢 Organizations</text>
+    <text x="8" y="146" font-size="13" class="secondary-text">🌐 DNS</text>
+    <text x="8" y="178" font-size="13" class="secondary-text">📋 Billing</text>
+    <text x="8" y="210" font-size="13" class="secondary-text">🛡 Compliance</text>
+    <text x="8" y="242" font-size="13" class="secondary-text">📦 Onboarding</text>
+    <text x="8" y="274" font-size="13" class="secondary-text">🔧 Settings</text>
+  </g>
+
+  <!-- Main Content Area -->
+  <rect x="210" y="40" width="660" height="530" class="bg"/>
+
+  <!-- Top Bar -->
+  <g transform="translate(230, 55)">
+    <text x="0" y="15" font-size="18" font-weight="600" class="main-text">Operations Dashboard</text>
+    <text x="440" y="15" font-size="12" class="muted-text">Last updated: 2 min ago</text>
+    <rect x="520" y="-5" width="100" height="30" rx="6" fill="url(#accentGrad)"/>
+    <text x="570" y="15" text-anchor="middle" font-size="12" font-weight="500" class="white-text">Export CSV</text>
+  </g>
+
+  <line x1="210" y1="85" x2="870" y2="85" class="border"/>
+
+  <!-- Stats Cards Row -->
+  <g transform="translate(225, 100)">
+    <!-- Card 1: Active Users -->
+    <rect x="0" y="0" width="150" height="80" rx="8" class="card"/>
+    <text x="15" y="22" font-size="11" class="muted-text">Active Users</text>
+    <text x="15" y="48" font-size="24" font-weight="700" class="main-text">1,247</text>
+    <text x="15" y="68" font-size="11" class="stat-up">↑ 12% this month</text>
+
+    <!-- Card 2: Bots Running -->
+    <rect x="165" y="0" width="150" height="80" rx="8" class="card"/>
+    <text x="180" y="22" font-size="11" class="muted-text">Bots Running</text>
+    <text x="180" y="48" font-size="24" font-weight="700" class="main-text">38</text>
+    <text x="180" y="68" font-size="11" class="stat-up">↑ 3 new</text>
+
+    <!-- Card 3: Messages Today -->
+    <rect x="330" y="0" width="150" height="80" rx="8" class="card"/>
+    <text x="345" y="22" font-size="11" class="muted-text">Messages Today</text>
+    <text x="345" y="48" font-size="24" font-weight="700" class="main-text">24.8K</text>
+    <text x="345" y="68" font-size="11" class="stat-down">↓ 2% vs yesterday</text>
+
+    <!-- Card 4: Uptime -->
+    <rect x="495" y="0" width="140" height="80" rx="8" class="card"/>
+    <text x="510" y="22" font-size="11" class="muted-text">System Uptime</text>
+    <text x="510" y="48" font-size="24" font-weight="700" class="main-text">99.9%</text>
+    <text x="510" y="68" font-size="11" class="stat-up">30 days</text>
+  </g>
+
+  <!-- Users Table -->
+  <g transform="translate(225, 200)">
+    <text x="0" y="0" font-size="14" font-weight="600" class="main-text">Recent Users</text>
+    <text x="520" y="0" font-size="12" class="accent-text">View All →</text>
+
+    <!-- Table Header -->
+    <line x1="0" y1="12" x2="620" y2="12" class="border"/>
+    <text x="0" y="30" font-size="11" class="muted-text">USER</text>
+    <text x="220" y="30" font-size="11" class="muted-text">ROLE</text>
+    <text x="340" y="30" font-size="11" class="muted-text">ORG</text>
+    <text x="460" y="30" font-size="11" class="muted-text">STATUS</text>
+    <text x="560" y="30" font-size="11" class="muted-text">LAST LOGIN</text>
+
+    <line x1="0" y1="38" x2="620" y2="38" class="border"/>
+
+    <!-- Row 1 -->
+    <circle cx="10" cy="58" r="12" fill="#3b82f6"/>
+    <text x="10" y="62" text-anchor="middle" font-size="10" font-weight="600" class="white-text">AJ</text>
+    <text x="30" y="62" font-size="13" class="main-text">Ana Johnson</text>
+    <text x="220" y="62" font-size="12" class="secondary-text">Admin</text>
+    <text x="340" y="62" font-size="12" class="secondary-text">Pragmatismo</text>
+    <rect x="460" y="48" width="50" height="20" rx="10" fill="#dcfce7"/>
+    <text x="485" y="62" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Active</text>
+    <text x="560" y="62" font-size="12" class="muted-text">2 min ago</text>
+
+    <line x1="0" y1="78" x2="620" y2="78" class="border"/>
+
+    <!-- Row 2 -->
+    <circle cx="10" cy="98" r="12" fill="#22c55e"/>
+    <text x="10" y="102" text-anchor="middle" font-size="10" font-weight="600" class="white-text">MS</text>
+    <text x="30" y="102" font-size="13" class="main-text">Marcos Silva</text>
+    <text x="220" y="102" font-size="12" class="secondary-text">Operator</text>
+    <text x="340" y="102" font-size="12" class="secondary-text">Acme Corp</text>
+    <rect x="460" y="88" width="50" height="20" rx="10" fill="#dcfce7"/>
+    <text x="485" y="102" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Active</text>
+    <text x="560" y="102" font-size="12" class="muted-text">15 min ago</text>
+
+    <line x1="0" y1="118" x2="620" y2="118" class="border"/>
+
+    <!-- Row 3 -->
+    <circle cx="10" cy="138" r="12" fill="#f59e0b"/>
+    <text x="10" y="142" text-anchor="middle" font-size="10" font-weight="600" class="white-text">LC</text>
+    <text x="30" y="142" font-size="13" class="main-text">Lisa Chen</text>
+    <text x="220" y="142" font-size="12" class="secondary-text">Viewer</text>
+    <text x="340" y="142" font-size="12" class="secondary-text">TechStart</text>
+    <rect x="460" y="128" width="60" height="20" rx="10" fill="#fef3c7"/>
+    <text x="490" y="142" text-anchor="middle" font-size="10" font-weight="500" fill="#d97706">Invited</text>
+    <text x="560" y="142" font-size="12" class="muted-text">1 hour ago</text>
+
+    <line x1="0" y1="158" x2="620" y2="158" class="border"/>
+
+    <!-- Row 4 -->
+    <circle cx="10" cy="178" r="12" fill="#8b5cf6"/>
+    <text x="10" y="182" text-anchor="middle" font-size="10" font-weight="600" class="white-text">RP</text>
+    <text x="30" y="182" font-size="13" class="main-text">Ricardo Pereira</text>
+    <text x="220" y="182" font-size="12" class="secondary-text">Admin</text>
+    <text x="340" y="182" font-size="12" class="secondary-text">GeneralBots</text>
+    <rect x="460" y="168" width="50" height="20" rx="10" fill="#dcfce7"/>
+    <text x="485" y="182" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Active</text>
+    <text x="560" y="182" font-size="12" class="muted-text">3 hours ago</text>
+  </g>
+
+  <!-- System Health Panel (right side) -->
+  <g transform="translate(225, 420)">
+    <text x="0" y="0" font-size="14" font-weight="600" class="main-text">System Health</text>
+
+    <!-- Service indicators -->
+    <g transform="translate(0, 18)">
+      <circle cx="6" cy="6" r="5" fill="#22c55e"/>
+      <text x="18" y="10" font-size="12" class="secondary-text">BotServer</text>
+      <text x="120" y="10" font-size="11" class="muted-text">8080</text>
+      <text x="180" y="10" font-size="11" class="stat-up">OK</text>
+
+      <circle cx="6" cy="34" r="5" fill="#22c55e"/>
+      <text x="18" y="38" font-size="12" class="secondary-text">PostgreSQL</text>
+      <text x="120" y="38" font-size="11" class="muted-text">5432</text>
+      <text x="180" y="38" font-size="11" class="stat-up">OK</text>
+
+      <circle cx="6" cy="62" r="5" fill="#22c55e"/>
+      <text x="18" y="66" font-size="12" class="secondary-text">Valkey (Redis)</text>
+      <text x="120" y="66" font-size="11" class="muted-text">6379</text>
+      <text x="180" y="66" font-size="11" class="stat-up">OK</text>
+
+      <circle cx="6" cy="90" r="5" fill="#22c55e"/>
+      <text x="18" y="94" font-size="12" class="secondary-text">MinIO (Drive)</text>
+      <text x="120" y="94" font-size="11" class="muted-text">9000</text>
+      <text x="180" y="94" font-size="11" class="stat-up">OK</text>
+    </g>
+
+    <!-- Quick Actions -->
+    <g transform="translate(250, 18)">
+      <text x="0" y="0" font-size="14" font-weight="600" class="main-text">Quick Actions</text>
+
+      <rect x="0" y="14" width="120" height="32" rx="6" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1"/>
+      <text x="60" y="35" text-anchor="middle" font-size="11" font-weight="500" class="accent-text">+ Add User</text>
+
+      <rect x="130" y="14" width="120" height="32" rx="6" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1"/>
+      <text x="190" y="35" text-anchor="middle" font-size="11" font-weight="500" class="accent-text">+ New Bot</text>
+
+      <rect x="0" y="56" width="120" height="32" rx="6" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1"/>
+      <text x="60" y="77" text-anchor="middle" font-size="11" font-weight="500" class="accent-text">📋 Audit Log</text>
+
+      <rect x="130" y="56" width="120" height="32" rx="6" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1"/>
+      <text x="190" y="77" text-anchor="middle" font-size="11" font-weight="500" class="accent-text">📧 Invites</text>
+    </g>
+  </g>
+</svg>

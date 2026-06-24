@@ -1,0 +1,89 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$SCRIPT_DIR"
+OUTPUT_FILE="/tmp/prompt.out"
+
+echo "Consolidated LLM Context" > "$OUTPUT_FILE"
+
+prompts=(
+    "./prompts/dev/platform/shared.md"
+    "./prompts/dev/platform/cli.md"
+    "./prompts/dev/platform/ide.md"
+    "./Cargo.toml"
+)
+
+for file in "${prompts[@]}"; do
+    if [ -f "$file" ]; then
+        cat "$file" >> "$OUTPUT_FILE"
+        echo "" >> "$OUTPUT_FILE"
+    fi
+done
+
+dirs=(
+      "auth"
+      #"automation"
+      #"basic"
+      #"bootstrap"
+      "bot"
+      #"channels"
+      #"config"
+      #"context"
+      #"drive_monitor"
+      "email"
+      "file"
+      #"kb"
+      "llm"
+      #"llm_models"
+      "meet"
+      #"org"
+      #"package_manager"
+      #"riot_compiler"
+      "session"
+      "shared"
+      #"tests"
+      #"tools"
+      #"ui"
+      #"ui_tree"
+      #"web_server"
+      #"web_automation"
+ )
+
+
+for dir in "${dirs[@]}"; do
+    find "$PROJECT_ROOT/src/$dir" -name "*.rs" | while read -r file; do
+        echo "$file" >> "$OUTPUT_FILE"
+        cat "$file" >> "$OUTPUT_FILE"
+    done
+done
+
+# Additional specific files
+files=(
+    "$PROJECT_ROOT/src/main.rs"
+    #"$PROJECT_ROOT/src/basic/keywords/mod.rs"
+
+)
+
+for file in "${files[@]}"; do
+        echo "$file" >> "$OUTPUT_FILE"
+        cat "$file" >> "$OUTPUT_FILE"
+done
+
+# Remove all blank lines and reduce whitespace greater than 1 space
+sed -i 's/[[:space:]]*$//' "$OUTPUT_FILE"
+sed -i '/^$/d' "$OUTPUT_FILE"
+sed -i 's/  \+/ /g' "$OUTPUT_FILE"
+
+# Calculate and display token count (approximation: words * 1.3)
+WORD_COUNT=$(wc -w < "$OUTPUT_FILE")
+TOKEN_COUNT=$(echo "$WORD_COUNT * 1.3 / 1" | bc)
+FILE_SIZE=$(wc -c < "$OUTPUT_FILE")
+
+echo "" >> "$OUTPUT_FILE"
+
+echo "Approximate token count: $TOKEN_COUNT"
+echo "Context size: $FILE_SIZE bytes"
+
+cat "$OUTPUT_FILE" | xclip -selection clipboard
+echo "Content copied to clipboard (xclip)"
+rm -f "$OUTPUT_FILE"

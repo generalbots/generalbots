@@ -1,0 +1,1 @@
+ALTER TABLE bots DROP COLUMN IF EXISTS is_public;

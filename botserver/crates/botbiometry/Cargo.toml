@@ -1,0 +1,18 @@
+[package]
+name = "botbiometry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Biometric identity verification, KYC, and digital signature — Zitadel integration."
+
+[dependencies]
+async-trait = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+
+[lints]
+workspace = true

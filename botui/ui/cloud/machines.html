@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physical Machines — General Bots Cloud</title>
+  <meta name="description" content="Certified AI hardware for on-premises General Bots deployments. RTX 3060 to enterprise GPU clusters via TD SYNNEX, Ingram Micro and global distributors.">
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .machines-page { flex: 1; overflow-y: auto; }
+
+    /* Tier table */
+    .tier-table-wrap {
+      overflow-x: auto;
+      padding: 0 2rem 1.5rem;
+    }
+    .tier-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 640px;
+    }
+    .tier-table th {
+      text-align: left;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: .55rem 1rem;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .tier-table td {
+      padding: .85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .84rem;
+      color: var(--text);
+      vertical-align: middle;
+    }
+    .tier-table tr:hover td { background: rgba(0,200,122,.02); }
+    .tier-table .tier-chip {
+      font-size: .6rem;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      padding: .15rem .5rem;
+      border-radius: 99px;
+      display: inline-block;
+    }
+    .tier-chip-entry  { background: rgba(0,200,122,.1); color: var(--accent); border: 1px solid rgba(0,200,122,.2); }
+    .tier-chip-mid    { background: rgba(100,150,255,.1); color: #64a0ff;    border: 1px solid rgba(100,150,255,.2); }
+    .tier-chip-pro    { background: rgba(255,180,0,.1);  color: #ffb400;     border: 1px solid rgba(255,180,0,.2); }
+    .tier-chip-server { background: rgba(255,107,107,.1); color: var(--accent3); border: 1px solid rgba(255,107,107,.2); }
+
+    .tier-table td.price-col {
+      font-size: .92rem;
+      font-weight: 800;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .tier-table td.price-col small {
+      font-size: .68rem;
+      font-weight: 400;
+      color: var(--muted);
+      display: block;
+      margin-top: 1px;
+    }
+
+    /* Supplier logos area */
+    .supplier-section-title {
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 1.25rem 2rem .6rem;
+    }
+
+    /* Procurement steps */
+    .proc-section-title {
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 1.5rem 2rem .65rem;
+    }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <!-- Sidebar injected by cloud.js -->
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Physical Machines</span>
+      <div class="mgmt-topbar-actions">
+        <a href="https://pragmatismo.com.br/contact" target="_blank" class="btn btn-primary btn-sm">Request a Quote →</a>
+      </div>
+    </div>
+
+    <div class="machines-page">
+
+      <!-- Hero -->
+      <div class="machines-hero">
+        <div class="machines-hero-tag">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Certified Hardware Partners
+        </div>
+        <div class="machines-hero-title">On-Premises AI Machines</div>
+        <div class="machines-hero-desc">
+          From entry-level RTX 3060 builds to enterprise GPU clusters — sourced exclusively from the world's largest certified IT distributors.
+          Every machine ships pre-configured with General Bots Suite. Plug in, power on, your stack is live.
+        </div>
+        <div class="machines-hero-stats">
+          <div class="machines-hero-stat">
+            <span class="machines-hero-stat-val">4</span>
+            <span class="machines-hero-stat-lbl">Certified distributors</span>
+          </div>
+          <div class="machines-hero-stat">
+            <span class="machines-hero-stat-val">1.9M+</span>
+            <span class="machines-hero-stat-lbl">SKUs available</span>
+          </div>
+          <div class="machines-hero-stat">
+            <span class="machines-hero-stat-val">150+</span>
+            <span class="machines-hero-stat-lbl">Countries shipped</span>
+          </div>
+          <div class="machines-hero-stat">
+            <span class="machines-hero-stat-val">Pre-installed</span>
+            <span class="machines-hero-stat-lbl">General Bots Suite</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Machine tiers cards -->
+      <div class="machine-tiers-grid">
+
+        <div class="machine-tier-card">
+          <span class="machine-tier-label">Entry</span>
+          <div class="machine-tier-name">Inference Starter</div>
+          <div class="machine-tier-price">
+            <span class="machine-tier-price-from">from</span>
+            <sup>$</sup>2,499
+          </div>
+          <ul class="machine-tier-specs">
+            <li><strong>RTX 3060</strong> 12 GB VRAM</li>
+            <li>AMD Ryzen 7 / Intel i7</li>
+            <li>32 GB DDR5 RAM</li>
+            <li>1 TB NVMe SSD</li>
+            <li>General Bots pre-installed</li>
+            <li>Runs LLaMA 3.1 8B at full speed</li>
+          </ul>
+          <a href="https://pragmatismo.com.br/contact" target="_blank" class="plan-cta" style="text-align:center;text-decoration:none;display:block">Request Quote</a>
+        </div>
+
+        <div class="machine-tier-card featured">
+          <div class="machine-tier-badge">Best Value</div>
+          <span class="machine-tier-label">Mid-Range</span>
+          <div class="machine-tier-name">Inference Pro</div>
+          <div class="machine-tier-price">
+            <span class="machine-tier-price-from">from</span>
+            <sup>$</sup>5,999
+          </div>
+          <ul class="machine-tier-specs">
+            <li><strong>RTX 4090</strong> 24 GB VRAM</li>
+            <li>Intel Core i9 / Threadripper</li>
+            <li>64 GB DDR5 RAM</li>
+            <li>2 TB NVMe SSD</li>
+            <li>10 Gbps networking</li>
+            <li>Runs 34B models comfortably</li>
+          </ul>
+          <a href="https://pragmatismo.com.br/contact" target="_blank" class="plan-cta" style="text-align:center;text-decoration:none;display:block;background:var(--accent);color:#000;border-color:var(--accent)">Request Quote</a>
+        </div>
+
+        <div class="machine-tier-card">
+          <span class="machine-tier-label">Professional</span>
+          <div class="machine-tier-name">Workstation GPU</div>
+          <div class="machine-tier-price">
+            <span class="machine-tier-price-from">from</span>
+            <sup>$</sup>12,500
+          </div>
+          <ul class="machine-tier-specs">
+            <li><strong>NVIDIA A100</strong> 40 GB or 80 GB</li>
+            <li>AMD EPYC / Intel Xeon</li>
+            <li>128 GB ECC RAM</li>
+            <li>4 TB NVMe SSD</li>
+            <li>25 Gbps networking</li>
+            <li>Enterprise-grade 24/7 support</li>
+          </ul>
+          <a href="https://pragmatismo.com.br/contact" target="_blank" class="plan-cta" style="text-align:center;text-decoration:none;display:block">Request Quote</a>
+        </div>
+
+        <div class="machine-tier-card">
+          <span class="machine-tier-label">Enterprise</span>
+          <div class="machine-tier-name">GPU Cluster Node</div>
+          <div class="machine-tier-price">
+            <span class="machine-tier-price-from">from</span>
+            <sup>$</sup>45,000
+          </div>
+          <ul class="machine-tier-specs">
+            <li><strong>8× A100 / H100</strong> per node</li>
+            <li>Dual AMD EPYC 9004 series</li>
+            <li>512 GB – 2 TB ECC RAM</li>
+            <li>8 TB NVMe (PCIe Gen 5)</li>
+            <li>InfiniBand HDR 200 Gbps</li>
+            <li>Custom config + multi-node clusters</li>
+          </ul>
+          <a href="https://pragmatismo.com.br/contact" target="_blank" class="plan-cta" style="text-align:center;text-decoration:none;display:block">Request Quote</a>
+        </div>
+
+      </div><!-- /machine-tiers-grid -->
+
+      <!-- Full Tier Table -->
+      <div class="supplier-section-title" style="padding-top:0">Full Hardware Specifications</div>
+      <div class="tier-table-wrap">
+        <table class="tier-table">
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>GPU</th>
+              <th>CPU</th>
+              <th>RAM</th>
+              <th>Storage</th>
+              <th>Network</th>
+              <th>Models supported</th>
+              <th>Price (from)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tier-chip tier-chip-entry">Entry</span></td>
+              <td>RTX 3060 12 GB</td>
+              <td>Ryzen 7 / i7</td>
+              <td>32 GB DDR5</td>
+              <td>1 TB NVMe</td>
+              <td>1 Gbps</td>
+              <td>LLaMA 3.1 8B, Mistral 7B</td>
+              <td class="price-col">$2,499<small>one-time</small></td>
+              <td><a href="https://pragmatismo.com.br/contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-entry">Entry+</span></td>
+              <td>RTX 3090 24 GB</td>
+              <td>Ryzen 9 / i9</td>
+              <td>64 GB DDR5</td>
+              <td>2 TB NVMe</td>
+              <td>2.5 Gbps</td>
+              <td>LLaMA 3.1 8B, DeepSeek R1 14B</td>
+              <td class="price-col">$3,999<small>one-time</small></td>
+              <td><a href="https://pragmatismo.com.br/contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-mid">Mid</span></td>
+              <td>RTX 4090 24 GB</td>
+              <td>i9-14900K / Threadripper</td>
+              <td>64 GB DDR5</td>
+              <td>2 TB NVMe</td>
+              <td>10 Gbps</td>
+              <td>LLaMA 3.1 34B, Qwen 32B</td>
+              <td class="price-col">$5,999<small>one-time</small></td>
+              <td><a href="https://pragmatismo.com.br/contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-pro">Pro</span></td>
+              <td>A100 40 GB</td>
+              <td>AMD EPYC / Xeon Gold</td>
+              <td>128 GB ECC</td>
+              <td>4 TB NVMe</td>
+              <td>25 Gbps</td>
+              <td>LLaMA 3 70B, DeepSeek R1 70B</td>
+              <td class="price-col">$12,500<small>one-time</small></td>
+              <td><a href="https://pragmatismo.com.br/contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-pro">Pro+</span></td>
+              <td>A100 80 GB</td>
+              <td>AMD EPYC 9354</td>
+              <td>256 GB ECC</td>
+              <td>8 TB NVMe</td>
+              <td>25 Gbps</td>
+              <td>LLaMA 3 405B (quantized), Mixtral MoE</td>
+              <td class="price-col">$18,000<small>one-time</small></td>
+              <td><a href="https://pragmatismo.com.br/contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-server">Cluster</span></td>
+              <td>8× A100/H100</td>
+              <td>Dual EPYC 9004</td>
+              <td>512 GB – 2 TB</td>
+              <td>8 TB Gen 5</td>
+              <td>InfiniBand 200 Gbps</td>
+              <td>Full-precision 405B, custom training</td>
+              <td class="price-col">$45,000+<small>custom quote</small></td>
+              <td><a href="https://pragmatismo.com.br/contact" target="_blank" class="btn btn-primary btn-sm">Contact Sales</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Certified Suppliers -->
+      <div class="supplier-section-title">Certified Distributors — No Grey Market</div>
+      <div class="machine-suppliers-strip">
+        <a href="https://tdsynnex.com" target="_blank" class="machine-supplier-chip">
+          <span style="font-size:1rem">📦</span>
+          <div>
+            <div style="font-weight:700">TD SYNNEX</div>
+            <span>#1 globally · 1.9M SKUs · dropship ready</span>
+          </div>
+        </a>
+        <a href="https://ingrammicro.com" target="_blank" class="machine-supplier-chip">
+          <span style="font-size:1rem">🌎</span>
+          <div>
+            <div style="font-weight:700">Ingram Micro</div>
+            <span>Strong in LATAM · partner API · GPU stock</span>
+          </div>
+        </a>
+        <a href="https://dandh.com" target="_blank" class="machine-supplier-chip">
+          <span style="font-size:1rem">🇺🇸</span>
+          <div>
+            <div style="font-weight:700">D&amp;H Distributing</div>
+            <span>North America · volume discounts · GPU workstations</span>
+          </div>
+        </a>
+        <a href="https://alibaba.com" target="_blank" class="machine-supplier-chip">
+          <span style="font-size:1rem">🏭</span>
+          <div>
+            <div style="font-weight:700">Alibaba / 1688.com</div>
+            <span>RTX 3060 factory-direct · lowest wholesale price</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Procurement process -->
+      <div class="proc-section-title">How Procurement Works</div>
+      <div class="machine-proc-steps">
+        <div class="machine-proc-step">
+          <div class="machine-proc-num">1</div>
+          <div>
+            <div class="machine-proc-title">Choose Your Tier</div>
+            <div class="machine-proc-desc">Select the configuration that matches your workload from the table above.</div>
+          </div>
+        </div>
+        <div class="machine-proc-step">
+          <div class="machine-proc-num">2</div>
+          <div>
+            <div class="machine-proc-title">We Quote &amp; Source</div>
+            <div class="machine-proc-desc">We pull live pricing from TD SYNNEX, Ingram or D&amp;H — you get the best distributor rate.</div>
+          </div>
+        </div>
+        <div class="machine-proc-step">
+          <div class="machine-proc-num">3</div>
+          <div>
+            <div class="machine-proc-title">Dropshipped to You</div>
+            <div class="machine-proc-desc">Ships directly from the distributor with your company branding. No inventory needed.</div>
+          </div>
+        </div>
+        <div class="machine-proc-step">
+          <div class="machine-proc-num">4</div>
+          <div>
+            <div class="machine-proc-title">Pre-Configured &amp; Live</div>
+            <div class="machine-proc-desc">General Bots Suite pre-installed. Plug in, power on — your stack is running.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA strip -->
+      <div class="machines-cta-strip">
+        <div>
+          <div class="machines-cta-text">Ready to own your infrastructure?</div>
+          <div class="machines-cta-sub">From a single RTX 3060 to a full GPU cluster — we handle sourcing, configuration and delivery.</div>
+        </div>
+        <div style="display:flex;gap:.65rem;flex-wrap:wrap">
+          <a href="https://pragmatismo.com.br/contact" target="_blank" class="btn btn-primary">Contact Sales →</a>
+          <a href="tel:+552140402160" class="btn btn-secondary">+55 21 4040-2160</a>
+        </div>
+      </div>
+
+    </div><!-- /machines-page -->
+  </main>
+</div><!-- /mgmt-shell -->
+
+<div id="cloud-toast"></div>
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

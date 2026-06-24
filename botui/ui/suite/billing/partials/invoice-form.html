@@ -1,0 +1,197 @@
+<!-- Invoice Form - Billing Partial -->
+<form class="invoice-form" hx-post="/api/billing/invoices" hx-target="#invoices-table-body" hx-swap="innerHTML" hx-on::after-request="closeBillingModal()">
+    <div class="invoice-form-header">
+        <h2 class="invoice-form-title" data-i18n="billing-new-invoice">New Invoice</h2>
+        <button type="button" class="form-close" onclick="closeBillingModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Customer Section -->
+    <div class="form-section">
+        <div class="form-section-title" data-i18n="billing-customer">Customer</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-account">Account *</label>
+                <select name="account_id" class="form-select" required hx-get="/api/crm/accounts/search" hx-trigger="load">
+                    <option value="" data-i18n="billing-select-account">Select account...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-contact">Contact</label>
+                <select name="contact_id" class="form-select">
+                    <option value="" data-i18n="billing-select-contact">Select contact...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Details -->
+    <div class="form-section">
+        <div class="form-section-title" data-i18n="billing-details">Invoice Details</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-invoice-date">Invoice Date *</label>
+                <input type="date" name="invoice_date" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-due-date">Due Date *</label>
+                <input type="date" name="due_date" class="form-input" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-payment-terms">Payment Terms</label>
+                <select name="payment_terms" class="form-select">
+                    <option value="immediate" data-i18n="billing-terms-immediate">Due on Receipt</option>
+                    <option value="net15" data-i18n="billing-terms-net15">Net 15</option>
+                    <option value="net30" selected data-i18n="billing-terms-net30">Net 30</option>
+                    <option value="net45" data-i18n="billing-terms-net45">Net 45</option>
+                    <option value="net60" data-i18n="billing-terms-net60">Net 60</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" data-i18n="billing-currency">Currency</label>
+                <select name="currency" class="form-select">
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="BRL">BRL - Brazilian Real</option>
+                    <option value="GBP">GBP - British Pound</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="form-section">
+        <div class="form-section-title" data-i18n="billing-line-items">Line Items</div>
+        <div class="line-items">
+            <div class="line-items-header">
+                <span data-i18n="billing-item-description">Description</span>
+                <span data-i18n="billing-item-qty">Qty</span>
+                <span data-i18n="billing-item-price">Price</span>
+                <span data-i18n="billing-item-total">Total</span>
+                <span></span>
+            </div>
+            <div id="invoice-line-items">
+                <div class="line-item" data-index="0">
+                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required>
+                    <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateLineTotal(this)">
+                    <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateLineTotal(this)">
+                    <span class="line-item-total">$0.00</span>
+                    <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="add-line-item" onclick="addLineItem()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span data-i18n="billing-add-item">Add Line Item</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="invoice-totals">
+        <div class="invoice-total-row">
+            <span class="label" data-i18n="billing-subtotal">Subtotal</span>
+            <span class="value" id="invoice-subtotal">$0.00</span>
+        </div>
+        <div class="invoice-total-row">
+            <span class="label" data-i18n="billing-tax">Tax (0%)</span>
+            <span class="value" id="invoice-tax">$0.00</span>
+        </div>
+        <div class="invoice-total-row grand-total">
+            <span class="label" data-i18n="billing-total">Total</span>
+            <span class="value" id="invoice-total">$0.00</span>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-group">
+        <label class="form-label" data-i18n="billing-notes">Notes</label>
+        <textarea name="notes" class="form-textarea" rows="2" placeholder="Payment instructions or additional notes..."></textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="form-btn secondary" onclick="closeBillingModal()" data-i18n="common-cancel">Cancel</button>
+        <button type="submit" name="action" value="draft" class="form-btn secondary" data-i18n="billing-save-draft">Save as Draft</button>
+        <button type="submit" name="action" value="send" class="form-btn primary" data-i18n="billing-create-send">Create & Send</button>
+    </div>
+</form>
+
+<script>
+(function() {
+    let lineItemIndex = 1;
+
+    window.addLineItem = function() {
+        const container = document.getElementById('invoice-line-items');
+        const newItem = document.createElement('div');
+        newItem.className = 'line-item';
+        newItem.dataset.index = lineItemIndex;
+        newItem.innerHTML = `
+            <input type="text" name="items[${lineItemIndex}][description]" class="form-input" placeholder="Product or service description" required>
+            <input type="number" name="items[${lineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateLineTotal(this)">
+            <input type="number" name="items[${lineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateLineTotal(this)">
+            <span class="line-item-total">$0.00</span>
+            <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        `;
+        container.appendChild(newItem);
+        lineItemIndex++;
+    };
+
+    window.removeLineItem = function(btn) {
+        const items = document.querySelectorAll('.line-item');
+        if (items.length > 1) {
+            btn.closest('.line-item').remove();
+            updateInvoiceTotals();
+        }
+    };
+
+    window.updateLineTotal = function(input) {
+        const lineItem = input.closest('.line-item');
+        const qty = parseFloat(lineItem.querySelector('input[name*="quantity"]').value) || 0;
+        const price = parseFloat(lineItem.querySelector('input[name*="unit_price"]').value) || 0;
+        const total = qty * price;
+        lineItem.querySelector('.line-item-total').textContent = '$' + total.toFixed(2);
+        updateInvoiceTotals();
+    };
+
+    function updateInvoiceTotals() {
+        let subtotal = 0;
+        document.querySelectorAll('.line-item').forEach(item => {
+            const qty = parseFloat(item.querySelector('input[name*="quantity"]').value) || 0;
+            const price = parseFloat(item.querySelector('input[name*="unit_price"]').value) || 0;
+            subtotal += qty * price;
+        });
+        const tax = 0; // Could add tax calculation
+        const total = subtotal + tax;
+
+        document.getElementById('invoice-subtotal').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('invoice-tax').textContent = '$' + tax.toFixed(2);
+        document.getElementById('invoice-total').textContent = '$' + total.toFixed(2);
+    }
+
+    // Set default dates
+    const today = new Date().toISOString().split('T')[0];
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 30);
+
+    document.querySelector('input[name="invoice_date"]').value = today;
+    document.querySelector('input[name="due_date"]').value = dueDate.toISOString().split('T')[0];
+})();
+</script>

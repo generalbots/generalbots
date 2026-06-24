@@ -1,0 +1,137 @@
+<!-- Content Templates - Categories, Preview, Variables, Versioning -->
+<link rel="stylesheet" href="/suite/crm/crm.css">
+<script src="/suite/js/vendor/htmx.min.js"></script>
+<script src="/suite/js/vendor/htmx-json-enc.js"></script>
+<script src="/suite/js/security-bootstrap.js"></script>
+
+<div class="crm-container">
+    <header class="crm-header">
+        <div class="crm-header-left">
+            <h1 data-i18n="templates-title">Content Templates</h1>
+            <nav class="crm-tabs">
+                <button class="crm-tab active" data-view="all" onclick="filterTemplates('all', this)">All</button>
+                <button class="crm-tab" data-view="email" onclick="filterTemplates('email', this)">Email</button>
+                <button class="crm-tab" data-view="whatsapp" onclick="filterTemplates('whatsapp', this)">WhatsApp</button>
+                <button class="crm-tab" data-view="social" onclick="filterTemplates('social', this)">Social</button>
+                <button class="crm-tab" data-view="bot" onclick="filterTemplates('bot', this)">Bot</button>
+                <button class="crm-tab" data-view="notification" onclick="filterTemplates('notification', this)">Notification</button>
+            </nav>
+        </div>
+        <div class="crm-header-right">
+            <div class="lists-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text" id="templates-search" placeholder="Search templates..." oninput="searchTemplates(this.value)">
+            </div>
+            <button class="btn-secondary" onclick="exportTemplates()">Export</button>
+            <button class="btn-secondary" onclick="importTemplates()">Import</button>
+            <button class="btn-primary" onclick="showTemplateModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span>New Template</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="templates-grid" id="templatesList">
+        <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-secondary);">
+            Loading templates...
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Template Modal -->
+<div id="template-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="hideTemplateModal()"></div>
+    <div class="crm-modal-content" style="max-width: 700px;">
+        <div class="crm-modal-header">
+            <h2 id="template-modal-title">Create Template</h2>
+            <button class="crm-modal-close" onclick="hideTemplateModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <form id="template-form" onsubmit="saveTemplate(event)">
+            <input type="hidden" name="id" id="tpl-form-id" value="">
+            <div class="crm-form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="crm-form-group">
+                    <label>Template Name</label>
+                    <input type="text" name="name" id="tpl-form-name" required placeholder="e.g., Welcome Email">
+                </div>
+                <div class="crm-form-group">
+                    <label>Channel</label>
+                    <select name="channel" id="tpl-form-channel" required>
+                        <option value="email">Email</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="social">Social</option>
+                        <option value="bot">Bot</option>
+                        <option value="notification">Notification</option>
+                    </select>
+                </div>
+            </div>
+            <div class="crm-form-group" id="tpl-subject-group">
+                <label>Subject (for email)</label>
+                <input type="text" name="subject" id="tpl-form-subject" placeholder="e.g., Welcome to {{company}}!">
+            </div>
+            <div class="crm-form-group">
+                <label>Body <span style="font-weight:normal;color:var(--text-secondary);font-size:12px">Use {{variable}} for personalization</span></label>
+                <textarea name="body" id="tpl-form-body" rows="8" placeholder="Write your message here. Use {{contact.name}}, {{company}}, etc." oninput="previewTemplate()"></textarea>
+            </div>
+            <div class="crm-form-group">
+                <label>AI Prompt (optional)</label>
+                <textarea name="ai_prompt" id="tpl-form-ai" rows="2" placeholder="Describe how AI should generate content..."></textarea>
+            </div>
+
+            <!-- Live Preview -->
+            <div class="tpl-preview-box" id="tpl-preview-box" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <strong style="font-size:13px">Preview</strong>
+                    <select id="tpl-preview-channel" onchange="previewTemplate()" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-size:11px">
+                        <option value="email">Email</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="social">Social</option>
+                    </select>
+                </div>
+                <div id="tpl-preview-content" style="padding:12px;background:var(--surface-active,#0f172a);border-radius:6px;font-size:13px;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
+            </div>
+
+            <div class="crm-form-group">
+                <label>Available Variables</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px" id="tpl-variables">
+                    <span class="tpl-var-tag" onclick="insertVariable('contact.name')">{{contact.name}}</span>
+                    <span class="tpl-var-tag" onclick="insertVariable('contact.email')">{{contact.email}}</span>
+                    <span class="tpl-var-tag" onclick="insertVariable('company')">{{company}}</span>
+                    <span class="tpl-var-tag" onclick="insertVariable('date')">{{date}}</span>
+                    <span class="tpl-var-tag" onclick="insertVariable('bot.name')">{{bot.name}}</span>
+                    <span class="tpl-var-tag" onclick="insertVariable('user.name')">{{user.name}}</span>
+                </div>
+            </div>
+
+            <div class="crm-form-actions">
+                <button type="button" class="btn-secondary" onclick="hideTemplateModal()">Cancel</button>
+                <button type="button" class="btn-secondary" onclick="previewTemplate()">Preview</button>
+                <button type="submit" class="btn-primary" id="tpl-form-submit">Create Template</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="preview-modal" class="crm-modal" style="display:none;">
+    <div class="crm-modal-overlay" onclick="hidePreviewModal()"></div>
+    <div class="crm-modal-content" style="max-width:600px">
+        <div class="crm-modal-header">
+            <h2>Template Preview</h2>
+            <button class="crm-modal-close" onclick="hidePreviewModal()">&times;</button>
+        </div>
+        <div style="padding:16px">
+            <div id="preview-modal-body" style="padding:16px;background:var(--surface-active,#0f172a);border-radius:8px;white-space:pre-wrap;min-height:100px"></div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="/suite/templates/templates.css">
+<script src="/suite/templates/templates.js"></script>

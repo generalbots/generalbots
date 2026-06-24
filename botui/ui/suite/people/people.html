@@ -1,0 +1,387 @@
+<link rel="stylesheet" href="/suite/people/people.css" />
+
+<div class="people-container">
+    <!-- Header -->
+    <header class="people-header">
+        <div class="header-left">
+            <h1 data-i18n="people-title">People</h1>
+            <p class="header-subtitle" data-i18n="people-subtitle">
+                Contacts, Groups & Directory
+            </p>
+        </div>
+        <div class="header-actions">
+            <div class="search-box">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                    type="text"
+                    placeholder="Search contacts..."
+                    data-i18n-placeholder="people-search"
+                    id="people-search"
+                />
+            </div>
+            <button class="btn btn-primary" onclick="openAddContact()">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="8.5" cy="7" r="4" />
+                    <line x1="20" y1="8" x2="20" y2="14" />
+                    <line x1="23" y1="11" x2="17" y2="11" />
+                </svg>
+                <span data-i18n="people-add">Add Contact</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav" role="tablist">
+        <button
+            class="tab-btn active"
+            role="tab"
+            aria-selected="true"
+            onclick="showTab('contacts', this)"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+            </svg>
+            <span data-i18n="people-tab-contacts">Contacts</span>
+        </button>
+        <button
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            onclick="showTab('groups', this)"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span data-i18n="people-tab-groups">Groups</span>
+        </button>
+        <button
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            onclick="showTab('directory', this)"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path
+                    d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+                />
+            </svg>
+            <span data-i18n="people-tab-directory">Directory</span>
+        </button>
+        <button
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            onclick="showTab('recent', this)"
+        >
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span data-i18n="people-tab-recent">Recent</span>
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="people-content">
+        <!-- Contacts Tab -->
+        <div id="contacts-tab" class="tab-content active">
+            <!-- Alphabet Filter -->
+            <div class="alphabet-filter">
+                <button
+                    class="alpha-btn active"
+                    onclick="filterByLetter('all', this)"
+                >
+                    All
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('A', this)">
+                    A
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('B', this)">
+                    B
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('C', this)">
+                    C
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('D', this)">
+                    D
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('E', this)">
+                    E
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('F', this)">
+                    F
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('G', this)">
+                    G
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('H', this)">
+                    H
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('I', this)">
+                    I
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('J', this)">
+                    J
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('K', this)">
+                    K
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('L', this)">
+                    L
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('M', this)">
+                    M
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('N', this)">
+                    N
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('O', this)">
+                    O
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('P', this)">
+                    P
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('Q', this)">
+                    Q
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('R', this)">
+                    R
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('S', this)">
+                    S
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('T', this)">
+                    T
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('U', this)">
+                    U
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('V', this)">
+                    V
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('W', this)">
+                    W
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('X', this)">
+                    X
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('Y', this)">
+                    Y
+                </button>
+                <button class="alpha-btn" onclick="filterByLetter('Z', this)">
+                    Z
+                </button>
+            </div>
+
+            <!-- Contacts List -->
+            <div class="contacts-list" id="contacts-list">
+                <!-- Contacts will be loaded here -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p data-i18n="people-loading">Loading contacts...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Groups Tab -->
+        <div id="groups-tab" class="tab-content">
+            <div class="groups-grid" id="groups-list">
+                <!-- Groups will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Directory Tab -->
+        <div id="directory-tab" class="tab-content">
+            <div class="directory-tree" id="directory-tree">
+                <!-- Organization directory will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Recent Tab -->
+        <div id="recent-tab" class="tab-content">
+            <div class="recent-list" id="recent-list">
+                <!-- Recent contacts will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Detail Panel (slides in from right) -->
+    <div class="contact-panel" id="contact-panel">
+        <div class="panel-header">
+            <button class="close-btn" onclick="closeContactPanel()">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+            <div class="panel-actions">
+                <button class="icon-btn" title="Edit" onclick="editContact()">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                        />
+                        <path
+                            d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                        />
+                    </svg>
+                </button>
+                <button
+                    class="icon-btn"
+                    title="Delete"
+                    onclick="deleteContact()"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path
+                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="panel-content" id="contact-detail">
+            <!-- Contact details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Contact Modal -->
+<dialog id="contact-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title" data-i18n="people-add-contact">Add Contact</h2>
+            <button class="close-btn" onclick="closeModal()">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <form id="contact-form" onsubmit="saveContact(event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label data-i18n="people-first-name">First Name</label>
+                    <input type="text" name="firstName" required />
+                </div>
+                <div class="form-group">
+                    <label data-i18n="people-last-name">Last Name</label>
+                    <input type="text" name="lastName" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-email">Email</label>
+                <input type="email" name="email" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-phone">Phone</label>
+                <input type="tel" name="phone" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-company">Company</label>
+                <input type="text" name="company" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-title">Title</label>
+                <input type="text" name="title" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="people-notes">Notes</label>
+                <textarea name="notes" rows="3"></textarea>
+            </div>
+            <div class="form-actions">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    onclick="closeModal()"
+                    data-i18n="cancel"
+                >
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" data-i18n="save">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<script src="/suite/people/people.js"></script>

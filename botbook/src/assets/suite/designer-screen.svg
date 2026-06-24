@@ -1,0 +1,279 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .canvas-bg { fill: #f1f5f9; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .node { fill: #ffffff; stroke: #e2e8f0; stroke-width: 2; }
+    .node-selected { fill: #ffffff; stroke: #3b82f6; stroke-width: 2; }
+    .connector { stroke: #94a3b8; stroke-width: 2; fill: none; }
+    .grid-dot { fill: #cbd5e1; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .sidebar-bg { fill: #1e293b; }
+      .canvas-bg { fill: #0f172a; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .node { fill: #1e293b; stroke: #334155; }
+      .node-selected { fill: #1e293b; stroke: #3b82f6; }
+      .connector { stroke: #64748b; }
+      .grid-dot { fill: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Designer - Visual Flow Builder</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Left Toolbox Sidebar -->
+  <rect x="30" y="40" width="160" height="530" class="sidebar-bg"/>
+  <line x1="190" y1="40" x2="190" y2="570" class="border"/>
+
+  <text x="45" y="65" font-size="13" font-weight="600" class="main-text">Components</text>
+
+  <!-- Component Categories -->
+  <g transform="translate(45, 85)">
+    <!-- Triggers -->
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">TRIGGERS</text>
+
+    <g transform="translate(0, 15)">
+      <rect x="0" y="0" width="130" height="35" rx="6" class="icon-btn"/>
+      <rect x="10" y="8" width="20" height="20" rx="4" fill="url(#greenGrad)"/>
+      <text x="20" y="22" text-anchor="middle" font-size="10" class="white-text">▶</text>
+      <text x="40" y="23" font-size="11" class="main-text">Start</text>
+    </g>
+
+    <g transform="translate(0, 55)">
+      <rect x="0" y="0" width="130" height="35" rx="6" class="icon-btn"/>
+      <rect x="10" y="8" width="20" height="20" rx="4" fill="url(#accentGrad)"/>
+      <text x="20" y="22" text-anchor="middle" font-size="10" class="white-text">💬</text>
+      <text x="40" y="23" font-size="11" class="main-text">Message</text>
+    </g>
+
+    <!-- Actions -->
+    <text x="0" y="110" font-size="11" font-weight="600" class="muted-text">ACTIONS</text>
+
+    <g transform="translate(0, 125)">
+      <rect x="0" y="0" width="130" height="35" rx="6" class="icon-btn"/>
+      <rect x="10" y="8" width="20" height="20" rx="4" fill="url(#purpleGrad)"/>
+      <text x="20" y="22" text-anchor="middle" font-size="10" class="white-text">🤖</text>
+      <text x="40" y="23" font-size="11" class="main-text">AI Response</text>
+    </g>
+
+    <g transform="translate(0, 165)">
+      <rect x="0" y="0" width="130" height="35" rx="6" class="icon-btn"/>
+      <rect x="10" y="8" width="20" height="20" rx="4" fill="url(#orangeGrad)"/>
+      <text x="20" y="22" text-anchor="middle" font-size="10" class="white-text">📧</text>
+      <text x="40" y="23" font-size="11" class="main-text">Send Email</text>
+    </g>
+
+    <g transform="translate(0, 205)">
+      <rect x="0" y="0" width="130" height="35" rx="6" class="icon-btn"/>
+      <rect x="10" y="8" width="20" height="20" rx="4" fill="#ef4444"/>
+      <text x="20" y="22" text-anchor="middle" font-size="10" class="white-text">⚡</text>
+      <text x="40" y="23" font-size="11" class="main-text">API Call</text>
+    </g>
+
+    <!-- Logic -->
+    <text x="0" y="260" font-size="11" font-weight="600" class="muted-text">LOGIC</text>
+
+    <g transform="translate(0, 275)">
+      <rect x="0" y="0" width="130" height="35" rx="6" class="icon-btn"/>
+      <rect x="10" y="8" width="20" height="20" rx="4" fill="#06b6d4"/>
+      <text x="20" y="22" text-anchor="middle" font-size="10" class="white-text">◇</text>
+      <text x="40" y="23" font-size="11" class="main-text">Condition</text>
+    </g>
+
+    <g transform="translate(0, 315)">
+      <rect x="0" y="0" width="130" height="35" rx="6" class="icon-btn"/>
+      <rect x="10" y="8" width="20" height="20" rx="4" fill="#ec4899"/>
+      <text x="20" y="22" text-anchor="middle" font-size="10" class="white-text">⏱</text>
+      <text x="40" y="23" font-size="11" class="main-text">Wait</text>
+    </g>
+
+    <g transform="translate(0, 355)">
+      <rect x="0" y="0" width="130" height="35" rx="6" class="icon-btn"/>
+      <rect x="10" y="8" width="20" height="20" rx="4" fill="#64748b"/>
+      <text x="20" y="22" text-anchor="middle" font-size="10" class="white-text">⬤</text>
+      <text x="40" y="23" font-size="11" class="main-text">End</text>
+    </g>
+  </g>
+
+  <!-- Canvas Area -->
+  <rect x="200" y="50" width="550" height="510" class="canvas-bg"/>
+
+  <!-- Toolbar -->
+  <g transform="translate(210, 60)">
+    <rect x="0" y="0" width="530" height="40" rx="8" class="bg"/>
+    <rect x="0" y="0" width="530" height="40" rx="8" class="border"/>
+
+    <rect x="10" y="7" width="70" height="26" rx="6" fill="url(#accentGrad)"/>
+    <text x="45" y="25" text-anchor="middle" font-size="11" class="white-text">+ Add</text>
+
+    <rect x="90" y="7" width="32" height="26" rx="6" class="icon-btn"/>
+    <text x="106" y="25" text-anchor="middle" font-size="14" class="secondary-text">↩</text>
+
+    <rect x="130" y="7" width="32" height="26" rx="6" class="icon-btn"/>
+    <text x="146" y="25" text-anchor="middle" font-size="14" class="secondary-text">↪</text>
+
+    <line x1="175" y1="10" x2="175" y2="30" class="border"/>
+
+    <rect x="185" y="7" width="32" height="26" rx="6" class="icon-btn"/>
+    <text x="201" y="25" text-anchor="middle" font-size="12" class="secondary-text">🔍</text>
+
+    <rect x="225" y="7" width="32" height="26" rx="6" class="icon-btn"/>
+    <text x="241" y="24" text-anchor="middle" font-size="14" class="secondary-text">+</text>
+
+    <rect x="265" y="7" width="32" height="26" rx="6" class="icon-btn"/>
+    <text x="281" y="25" text-anchor="middle" font-size="14" class="secondary-text">−</text>
+
+    <text x="320" y="25" font-size="11" class="muted-text">100%</text>
+
+    <line x1="360" y1="10" x2="360" y2="30" class="border"/>
+
+    <rect x="370" y="7" width="70" height="26" rx="6" class="icon-btn"/>
+    <text x="405" y="25" text-anchor="middle" font-size="11" class="secondary-text">▶ Test</text>
+
+    <rect x="450" y="7" width="70" height="26" rx="6" fill="url(#greenGrad)"/>
+    <text x="485" y="25" text-anchor="middle" font-size="11" class="white-text">Deploy</text>
+  </g>
+
+  <!-- Grid Dots (decorative) -->
+  <g transform="translate(210, 110)">
+    <!-- Row 1 -->
+    <circle cx="20" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="60" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="100" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="140" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="180" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="220" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="260" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="300" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="340" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="380" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="420" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="460" cy="20" r="1.5" class="grid-dot"/>
+    <circle cx="500" cy="20" r="1.5" class="grid-dot"/>
+  </g>
+
+  <!-- Flow Nodes and Connections -->
+  <!-- Connection Lines -->
+  <path d="M310,195 L310,240" class="connector" marker-end="url(#arrowhead)"/>
+  <path d="M310,315 L310,360" class="connector" marker-end="url(#arrowhead)"/>
+  <path d="M310,435 L240,435 L240,480" class="connector" marker-end="url(#arrowhead)"/>
+  <path d="M310,435 L380,435 L380,480" class="connector" marker-end="url(#arrowhead)"/>
+
+  <!-- Start Node -->
+  <g transform="translate(235, 140)">
+    <rect x="0" y="0" width="150" height="55" rx="10" class="node"/>
+    <rect x="10" y="12" width="32" height="32" rx="8" fill="url(#greenGrad)"/>
+    <text x="26" y="34" text-anchor="middle" font-size="16" class="white-text">▶</text>
+    <text x="55" y="28" font-size="13" font-weight="500" class="main-text">Start</text>
+    <text x="55" y="44" font-size="10" class="secondary-text">User message</text>
+  </g>
+
+  <!-- AI Response Node (Selected) -->
+  <g transform="translate(235, 250)">
+    <rect x="0" y="0" width="150" height="65" rx="10" class="node-selected"/>
+    <rect x="10" y="12" width="32" height="32" rx="8" fill="url(#purpleGrad)"/>
+    <text x="26" y="34" text-anchor="middle" font-size="14" class="white-text">🤖</text>
+    <text x="55" y="28" font-size="13" font-weight="500" class="main-text">AI Response</text>
+    <text x="55" y="44" font-size="10" class="secondary-text">GPT-4 Model</text>
+    <circle cx="140" cy="32" r="6" fill="#3b82f6"/>
+  </g>
+
+  <!-- Condition Node -->
+  <g transform="translate(235, 370)">
+    <rect x="0" y="0" width="150" height="65" rx="10" class="node"/>
+    <rect x="10" y="12" width="32" height="32" rx="8" fill="#06b6d4"/>
+    <text x="26" y="34" text-anchor="middle" font-size="14" class="white-text">◇</text>
+    <text x="55" y="28" font-size="13" font-weight="500" class="main-text">Condition</text>
+    <text x="55" y="44" font-size="10" class="secondary-text">intent == support</text>
+  </g>
+
+  <!-- Send Email Node -->
+  <g transform="translate(165, 490)">
+    <rect x="0" y="0" width="150" height="55" rx="10" class="node"/>
+    <rect x="10" y="12" width="32" height="32" rx="8" fill="url(#orangeGrad)"/>
+    <text x="26" y="34" text-anchor="middle" font-size="12" class="white-text">📧</text>
+    <text x="55" y="28" font-size="13" font-weight="500" class="main-text">Send Email</text>
+    <text x="55" y="44" font-size="10" class="secondary-text">Support team</text>
+  </g>
+
+  <!-- End Node -->
+  <g transform="translate(305, 490)">
+    <rect x="0" y="0" width="150" height="55" rx="10" class="node"/>
+    <rect x="10" y="12" width="32" height="32" rx="8" fill="#64748b"/>
+    <text x="26" y="34" text-anchor="middle" font-size="14" class="white-text">⬤</text>
+    <text x="55" y="28" font-size="13" font-weight="500" class="main-text">End</text>
+    <text x="55" y="44" font-size="10" class="secondary-text">Complete flow</text>
+  </g>
+
+  <!-- Right Properties Panel -->
+  <rect x="760" y="40" width="110" height="530" class="sidebar-bg"/>
+  <line x1="760" y1="40" x2="760" y2="570" class="border"/>
+
+  <text x="775" y="65" font-size="13" font-weight="600" class="main-text">Properties</text>
+
+  <g transform="translate(770, 85)">
+    <text x="0" y="0" font-size="10" font-weight="500" class="muted-text">NODE</text>
+    <text x="0" y="18" font-size="12" class="main-text">AI Response</text>
+
+    <text x="0" y="50" font-size="10" font-weight="500" class="muted-text">MODEL</text>
+    <rect x="0" y="58" width="90" height="28" rx="6" class="icon-btn"/>
+    <rect x="0" y="58" width="90" height="28" rx="6" class="border"/>
+    <text x="10" y="77" font-size="11" class="main-text">GPT-4</text>
+    <text x="75" y="77" font-size="10" class="muted-text">▾</text>
+
+    <text x="0" y="110" font-size="10" font-weight="500" class="muted-text">PROMPT</text>
+    <rect x="0" y="118" width="90" height="60" rx="6" class="icon-btn"/>
+    <rect x="0" y="118" width="90" height="60" rx="6" class="border"/>
+    <text x="8" y="136" font-size="10" class="secondary-text">You are a</text>
+    <text x="8" y="150" font-size="10" class="secondary-text">helpful</text>
+    <text x="8" y="164" font-size="10" class="secondary-text">assistant...</text>
+
+    <text x="0" y="200" font-size="10" font-weight="500" class="muted-text">TEMPERATURE</text>
+    <rect x="0" y="208" width="90" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="0" y="208" width="60" height="8" rx="4" fill="#3b82f6"/>
+    <text x="0" y="232" font-size="10" class="main-text">0.7</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(210, 555)">
+    <text x="0" y="0" font-size="10" class="muted-text">Drag to connect | Del = Delete | Ctrl+D = Duplicate | Ctrl+Z = Undo</text>
+  </g>
+</svg>

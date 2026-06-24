@@ -1,0 +1,137 @@
+<svg viewBox="0 0 1200 850" xmlns="http://www.w3.org/2000/svg">
+<style>
+.title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; }
+.main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 600; }
+.secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+.white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+@media (prefers-color-scheme: dark) { .title-text { fill: #F1F5F9; } .main-text { fill: #E2E8F0; } .secondary-text { fill: #94A3B8; } }
+</style>
+<defs>
+<linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366F1"/><stop offset="100%" style="stop-color:#8B5CF6"/></linearGradient>
+<linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#06B6D4"/><stop offset="100%" style="stop-color:#0EA5E9"/></linearGradient>
+<linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#10B981"/><stop offset="100%" style="stop-color:#34D399"/></linearGradient>
+<linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#F59E0B"/><stop offset="100%" style="stop-color:#FBBF24"/></linearGradient>
+<linearGradient id="grayGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#64748B"/><stop offset="100%" style="stop-color:#94A3B8"/></linearGradient>
+<linearGradient id="timelineGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#64748B"/><stop offset="18%" style="stop-color:#10B981"/><stop offset="35%" style="stop-color:#F59E0B"/><stop offset="52%" style="stop-color:#06B6D4"/><stop offset="68%" style="stop-color:#6366F1"/><stop offset="84%" style="stop-color:#10B981"/><stop offset="100%" style="stop-color:#8B5CF6"/></linearGradient>
+<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#6366F1" flood-opacity="0.12"/></filter>
+<pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20"><circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.05"/></pattern>
+</defs>
+<rect width="1200" height="850" fill="#FAFBFC"/><rect width="1200" height="850" fill="url(#dots)"/>
+<text x="600" y="35" font-size="20" class="title-text" text-anchor="middle">General Bots Roadmap 2024-2026</text>
+<text x="600" y="55" font-size="11" class="secondary-text" text-anchor="middle">Enterprise LLM Orchestrator - V6.0 Rust Edition</text>
+<path d="M45 80 L45 820" stroke="url(#timelineGrad)" stroke-width="3" fill="none"/>
+
+<!-- 2024 -->
+<text x="45" y="95" font-size="13" class="title-text" text-anchor="middle">2024</text>
+<circle cx="45" cy="110" r="7" fill="url(#grayGrad)"/>
+<rect x="65" y="97" width="130" height="30" rx="5" fill="#fff" stroke="#E2E8F0" filter="url(#shadow)"/><text x="77" y="114" font-size="9" class="main-text">Conversation System</text>
+<rect x="205" y="97" width="130" height="30" rx="5" fill="#fff" stroke="#E2E8F0" filter="url(#shadow)"/><text x="217" y="114" font-size="9" class="main-text">Architecture Design</text>
+<rect x="345" y="97" width="130" height="30" rx="5" fill="#fff" stroke="#E2E8F0" filter="url(#shadow)"/><text x="357" y="114" font-size="9" class="main-text">Node.js Prototype</text>
+
+<!-- 2025 H1 -->
+<text x="45" y="165" font-size="12" class="title-text" text-anchor="middle">2025 H1</text>
+<text x="45" y="178" font-size="7" class="secondary-text" text-anchor="middle">RUST</text>
+<circle cx="45" cy="192" r="7" fill="url(#greenGrad)"/>
+<rect x="65" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="76" y="194" font-size="8" class="main-text">Rust Migration</text>
+<rect x="185" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="196" y="194" font-size="8" class="main-text">Actix-Web</text>
+<rect x="305" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="316" y="194" font-size="8" class="main-text">Tokio Runtime</text>
+<rect x="425" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="436" y="194" font-size="8" class="main-text">SQLx+PostgreSQL</text>
+<rect x="545" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="556" y="194" font-size="8" class="main-text">MinIO Storage</text>
+<rect x="665" y="178" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="676" y="194" font-size="8" class="main-text">Valkey Cache</text>
+<rect x="65" y="215" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="76" y="231" font-size="8" class="main-text">Knowledge Base</text>
+<rect x="185" y="215" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="196" y="231" font-size="8" class="main-text">BASIC Engine</text>
+<rect x="305" y="215" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="316" y="231" font-size="8" class="main-text">LLM Integration</text>
+<rect x="425" y="215" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="436" y="231" font-size="8" class="main-text">Vector DB</text>
+<rect x="545" y="215" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="556" y="231" font-size="8" class="main-text">Tools System</text>
+<rect x="665" y="215" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="676" y="231" font-size="8" class="main-text">HTMX UI</text>
+<rect x="65" y="252" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="76" y="268" font-size="8" class="main-text">Embeddings</text>
+<rect x="185" y="252" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="196" y="268" font-size="8" class="main-text">Semantic Cache</text>
+<rect x="305" y="252" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="316" y="268" font-size="8" class="main-text">Documentation</text>
+<rect x="425" y="252" width="110" height="28" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="436" y="268" font-size="8" class="main-text">.gbai Packages</text>
+
+<!-- 2025 H2 -->
+<text x="45" y="315" font-size="12" class="title-text" text-anchor="middle">2025 H2</text>
+<text x="45" y="328" font-size="7" class="secondary-text" text-anchor="middle">AUTOTASK</text>
+<circle cx="45" cy="345" r="9" fill="url(#orangeGrad)"><animate attributeName="r" values="7;11;7" dur="2s" repeatCount="indefinite"/></circle>
+<rect x="65" y="325" width="220" height="42" rx="6" fill="url(#orangeGrad)" filter="url(#shadow)"/><text x="82" y="345" font-size="12" class="white-text" font-weight="700">Tasks (AI Autonomous) GO</text><text x="82" y="360" font-size="8" class="white-text" opacity="0.9">Human intent - AI plans - AI deploys</text>
+<rect x="295" y="325" width="115" height="38" rx="5" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="306" y="343" font-size="8" class="main-text">CREATE SITE</text><text x="306" y="355" font-size="7" class="secondary-text">HTMX generation</text>
+<rect x="420" y="325" width="115" height="38" rx="5" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="431" y="343" font-size="8" class="main-text">App Generator</text><text x="431" y="355" font-size="7" class="secondary-text">BOT, APP, SITE</text>
+<rect x="545" y="325" width="115" height="38" rx="5" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="556" y="343" font-size="8" class="main-text">A2A Protocol</text><text x="556" y="355" font-size="7" class="secondary-text">Agent-to-Agent</text>
+<rect x="670" y="325" width="115" height="38" rx="5" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="681" y="343" font-size="8" class="main-text">Multi-Agent</text><text x="681" y="355" font-size="7" class="secondary-text">Orchestration</text>
+<rect x="65" y="375" width="100" height="26" rx="4" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="76" y="391" font-size="8" class="main-text">Memory</text>
+<rect x="175" y="375" width="100" height="26" rx="4" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="186" y="391" font-size="8" class="main-text">Sandbox</text>
+<rect x="285" y="375" width="100" height="26" rx="4" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="296" y="391" font-size="8" class="main-text">SSE Stream</text>
+<rect x="395" y="375" width="100" height="26" rx="4" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="406" y="391" font-size="8" class="main-text">Reflection</text>
+<rect x="505" y="375" width="100" height="26" rx="4" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="516" y="391" font-size="8" class="main-text">Model Route</text>
+<rect x="615" y="375" width="100" height="26" rx="4" fill="#fff" stroke="#F59E0B" filter="url(#shadow)"/><text x="626" y="391" font-size="8" class="main-text">gRPC</text>
+
+<!-- 2026 Q1 -->
+<text x="45" y="435" font-size="12" class="title-text" text-anchor="middle">Q1 2026</text>
+<text x="45" y="448" font-size="7" class="secondary-text" text-anchor="middle">CHANNELS</text>
+<circle cx="45" cy="462" r="7" fill="url(#cyanGrad)"/>
+<rect x="65" y="445" width="145" height="35" rx="5" fill="url(#cyanGrad)" filter="url(#shadow)"/><text x="78" y="463" font-size="10" class="white-text" font-weight="700">Tasks (AI Auto) GO</text><text x="78" y="475" font-size="7" class="white-text" opacity="0.9">Production release</text>
+<rect x="220" y="445" width="100" height="30" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="231" y="463" font-size="8" class="main-text">WhatsApp</text>
+<rect x="330" y="445" width="100" height="30" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="341" y="463" font-size="8" class="main-text">Security</text>
+<rect x="440" y="445" width="100" height="30" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="451" y="463" font-size="8" class="main-text">Desktop App</text>
+<rect x="550" y="445" width="100" height="30" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="561" y="463" font-size="8" class="main-text">TLS/Auth</text>
+<rect x="660" y="445" width="100" height="30" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="671" y="463" font-size="8" class="main-text">Audit</text>
+<rect x="65" y="485" width="85" height="24" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="75" y="500" font-size="7" class="main-text">Chat</text>
+<rect x="160" y="485" width="85" height="24" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="170" y="500" font-size="7" class="main-text">Drive</text>
+<rect x="255" y="485" width="85" height="24" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="265" y="500" font-size="7" class="main-text">Tasks</text>
+<rect x="350" y="485" width="85" height="24" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="360" y="500" font-size="7" class="main-text">Mail</text>
+<rect x="445" y="485" width="85" height="24" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="455" y="500" font-size="7" class="main-text">Calendar</text>
+<rect x="540" y="485" width="85" height="24" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="550" y="500" font-size="7" class="main-text">Meet</text>
+<rect x="635" y="485" width="85" height="24" rx="4" fill="#fff" stroke="#06B6D4" filter="url(#shadow)"/><text x="645" y="500" font-size="7" class="main-text">Paper</text>
+
+<!-- 2026 Q2 -->
+<text x="45" y="545" font-size="12" class="title-text" text-anchor="middle">Q2 2026</text>
+<text x="45" y="558" font-size="7" class="secondary-text" text-anchor="middle">INTEGRATIONS</text>
+<circle cx="45" cy="572" r="7" fill="url(#primaryGrad)"/>
+<rect x="65" y="555" width="100" height="30" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="76" y="573" font-size="8" class="main-text">Gmail</text>
+<rect x="175" y="555" width="100" height="30" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="186" y="573" font-size="8" class="main-text">Outlook</text>
+<rect x="285" y="555" width="100" height="30" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="296" y="573" font-size="8" class="main-text">Google Calendar</text>
+<rect x="395" y="555" width="100" height="30" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="406" y="573" font-size="8" class="main-text">O365 Calendar</text>
+<rect x="505" y="555" width="100" height="30" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="516" y="573" font-size="8" class="main-text">Instagram</text>
+<rect x="615" y="555" width="100" height="30" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="626" y="573" font-size="8" class="main-text">MS Teams</text>
+<rect x="65" y="595" width="85" height="24" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="75" y="610" font-size="7" class="main-text">Analytics</text>
+<rect x="160" y="595" width="85" height="24" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="170" y="610" font-size="7" class="main-text">Designer</text>
+<rect x="255" y="595" width="85" height="24" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="265" y="610" font-size="7" class="main-text">CRM</text>
+<rect x="350" y="595" width="85" height="24" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="360" y="610" font-size="7" class="main-text">Billing</text>
+<rect x="445" y="595" width="85" height="24" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="455" y="610" font-size="7" class="main-text">Board</text>
+<rect x="540" y="595" width="85" height="24" rx="4" fill="#fff" stroke="#6366F1" filter="url(#shadow)"/><text x="550" y="610" font-size="7" class="main-text">Forms</text>
+
+<!-- 2026 Q3 -->
+<text x="45" y="655" font-size="12" class="title-text" text-anchor="middle">Q3 2026</text>
+<text x="45" y="668" font-size="7" class="secondary-text" text-anchor="middle">STORAGE</text>
+<circle cx="45" cy="682" r="7" fill="url(#greenGrad)"/>
+<rect x="65" y="665" width="100" height="30" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="76" y="683" font-size="8" class="main-text">Google Drive</text>
+<rect x="175" y="665" width="100" height="30" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="186" y="683" font-size="8" class="main-text">OneDrive</text>
+<rect x="285" y="665" width="100" height="30" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="296" y="683" font-size="8" class="main-text">Dropbox</text>
+<rect x="395" y="665" width="100" height="30" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="406" y="683" font-size="8" class="main-text">Telegram</text>
+<rect x="505" y="665" width="100" height="30" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="516" y="683" font-size="8" class="main-text">Slack</text>
+<rect x="615" y="665" width="100" height="30" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="626" y="683" font-size="8" class="main-text">Discord</text>
+<rect x="65" y="705" width="85" height="24" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="75" y="720" font-size="7" class="main-text">Sheets</text>
+<rect x="160" y="705" width="85" height="24" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="170" y="720" font-size="7" class="main-text">Excel</text>
+<rect x="255" y="705" width="85" height="24" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="265" y="720" font-size="7" class="main-text">PDF Gen</text>
+<rect x="350" y="705" width="85" height="24" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="360" y="720" font-size="7" class="main-text">Image AI</text>
+<rect x="445" y="705" width="85" height="24" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="455" y="720" font-size="7" class="main-text">Video AI</text>
+<rect x="540" y="705" width="85" height="24" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="550" y="720" font-size="7" class="main-text">OCR</text>
+<rect x="635" y="705" width="85" height="24" rx="4" fill="#fff" stroke="#10B981" filter="url(#shadow)"/><text x="645" y="720" font-size="7" class="main-text">TTS</text>
+
+<!-- 2026 Q4 -->
+<text x="45" y="765" font-size="12" class="title-text" text-anchor="middle">Q4 2026</text>
+<text x="45" y="778" font-size="7" class="secondary-text" text-anchor="middle">MOBILE</text>
+<circle cx="45" cy="795" r="9" fill="url(#primaryGrad)"><animate attributeName="r" values="7;11;7" dur="2s" repeatCount="indefinite"/></circle>
+<rect x="65" y="775" width="155" height="38" rx="5" fill="url(#primaryGrad)" filter="url(#shadow)"/><text x="80" y="793" font-size="10" class="white-text" font-weight="700">Mobile App</text><text x="80" y="806" font-size="7" class="white-text" opacity="0.9">iOS/Android Tauri</text>
+<rect x="230" y="775" width="155" height="38" rx="5" fill="url(#primaryGrad)" filter="url(#shadow)"/><text x="245" y="793" font-size="10" class="white-text" font-weight="700">IoT Gateway</text><text x="245" y="806" font-size="7" class="white-text" opacity="0.9">Device control</text>
+<rect x="395" y="778" width="100" height="30" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="406" y="796" font-size="8" class="main-text">SMS</text>
+<rect x="505" y="778" width="100" height="30" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="516" y="796" font-size="8" class="main-text">Email Channel</text>
+<rect x="615" y="778" width="100" height="30" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="626" y="796" font-size="8" class="main-text">WeChat</text>
+<rect x="65" y="820" width="85" height="22" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="75" y="834" font-size="7" class="main-text">STT</text>
+<rect x="160" y="820" width="85" height="22" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="170" y="834" font-size="7" class="main-text">Translate</text>
+<rect x="255" y="820" width="85" height="22" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="265" y="834" font-size="7" class="main-text">Sentiment</text>
+<rect x="350" y="820" width="85" height="22" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="360" y="834" font-size="7" class="main-text">Intent</text>
+<rect x="445" y="820" width="85" height="22" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="455" y="834" font-size="7" class="main-text">NER</text>
+<rect x="540" y="820" width="85" height="22" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="550" y="834" font-size="7" class="main-text">Summary</text>
+<rect x="635" y="820" width="85" height="22" rx="4" fill="#fff" stroke="#8B5CF6" filter="url(#shadow)"/><text x="645" y="834" font-size="7" class="main-text">Q and A</text>
+</svg>

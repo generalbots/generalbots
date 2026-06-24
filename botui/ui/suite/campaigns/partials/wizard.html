@@ -1,0 +1,119 @@
+<!-- Multi-step Campaign Wizard for Unified Campaign System (#531) -->
+<div class="campaign-wizard" id="campaign-wizard">
+  <header class="wizard-header">
+    <h3>New Campaign</h3>
+    <ol class="wizard-steps">
+      <li class="active" data-step="1"><span class="step-num">1</span><span class="step-name">Channel</span></li>
+      <li data-step="2"><span class="step-num">2</span><span class="step-name">Audience</span></li>
+      <li data-step="3"><span class="step-num">3</span><span class="step-name">Content</span></li>
+      <li data-step="4"><span class="step-num">4</span><span class="step-name">Schedule</span></li>
+      <li data-step="5"><span class="step-num">5</span><span class="step-name">Review</span></li>
+    </ol>
+  </header>
+
+  <section class="wizard-step active" data-step="1">
+    <h4>Choose channels</h4>
+    <p class="hint">Multi-channel dispatch sends in parallel per channel.</p>
+    <div class="channel-grid">
+      <label class="channel-card"><input type="checkbox" name="channel" value="email" checked /><span>Email</span></label>
+      <label class="channel-card"><input type="checkbox" name="channel" value="whatsapp" /><span>WhatsApp</span></label>
+      <label class="channel-card"><input type="checkbox" name="channel" value="instagram" /><span>Instagram</span></label>
+      <label class="channel-card"><input type="checkbox" name="channel" value="telegram" /><span>Telegram</span></label>
+      <label class="channel-card"><input type="checkbox" name="channel" value="sms" /><span>SMS</span></label>
+      <label class="channel-card"><input type="checkbox" name="channel" value="push" /><span>Push</span></label>
+    </div>
+    <div class="form-row">
+      <label for="wiz-campaign-name">Campaign name</label>
+      <input type="text" id="wiz-campaign-name" placeholder="Spring sale 2026" required />
+    </div>
+  </section>
+
+  <section class="wizard-step" data-step="2">
+    <h4>Audience</h4>
+    <div class="form-row">
+      <label for="wiz-audience-source">Source</label>
+      <select id="wiz-audience-source">
+        <option value="list">Saved list</option>
+        <option value="segment">Dynamic segment</option>
+        <option value="tag">Tag filter</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="wiz-audience-list">List / segment</label>
+      <select id="wiz-audience-list">
+        <option value="all">All contacts</option>
+        <option value="vip">VIP customers</option>
+        <option value="leads">Recent leads</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="wiz-audience-size">Estimated reach</label>
+      <output id="wiz-audience-size">— contacts</output>
+    </div>
+  </section>
+
+  <section class="wizard-step" data-step="3">
+    <h4>Content</h4>
+    <ul class="ai-options">
+      <li><label><input type="radio" name="ai-gen" value="copy" checked /> Generate copy with AI</label></li>
+      <li><label><input type="radio" name="ai-gen" value="image" /> AI image (Instagram)</label></li>
+      <li><label><input type="radio" name="ai-gen" value="video" /> AI video script</label></li>
+      <li><label><input type="radio" name="ai-gen" value="none" /> Manual / template</label></li>
+    </ul>
+    <div class="form-row">
+      <label for="wiz-content-prompt">AI prompt</label>
+      <textarea id="wiz-content-prompt" rows="3" placeholder="Describe the campaign goal, tone and key offer…"></textarea>
+    </div>
+    <div class="form-row">
+      <label for="wiz-template">Template</label>
+      <select id="wiz-template">
+        <option value="blank">Blank</option>
+        <option value="promo">Promo</option>
+        <option value="newsletter">Newsletter</option>
+        <option value="event">Event invite</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="wizard-step" data-step="4">
+    <h4>Schedule</h4>
+    <div class="form-row">
+      <label for="wiz-schedule-mode">Mode</label>
+      <select id="wiz-schedule-mode">
+        <option value="now">Send now</option>
+        <option value="scheduled">At specific time</option>
+        <option value="drip">Drip sequence</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="wiz-schedule-when">When</label>
+      <input type="datetime-local" id="wiz-schedule-when" />
+    </div>
+    <div class="form-row">
+      <label for="wiz-schedule-tz">Timezone</label>
+      <select id="wiz-schedule-tz">
+        <option value="UTC">UTC</option>
+        <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+        <option value="America/New_York">America/New_York</option>
+        <option value="Europe/Lisbon">Europe/Lisbon</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="wizard-step" data-step="5">
+    <h4>Review</h4>
+    <dl class="review-summary" id="wiz-review-summary">
+      <dt>Channels</dt><dd data-review="channels">—</dd>
+      <dt>Name</dt><dd data-review="name">—</dd>
+      <dt>Audience</dt><dd data-review="audience">—</dd>
+      <dt>Content</dt><dd data-review="content">—</dd>
+      <dt>Schedule</dt><dd data-review="schedule">—</dd>
+    </dl>
+  </section>
+
+  <footer class="wizard-actions">
+    <button type="button" class="btn-secondary" id="wiz-prev" disabled>Previous</button>
+    <button type="button" class="btn-primary" id="wiz-next">Next</button>
+    <button type="button" class="btn-primary hidden" id="wiz-launch">Launch campaign</button>
+  </footer>
+</div>

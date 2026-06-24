@@ -1,0 +1,34 @@
+<!-- Analytics tab for the Social app -->
+<div class="social-analytics">
+  <h3>Post Engagement Analytics</h3>
+  <p class="hint">Last 30 days · per platform breakdown</p>
+  <div class="kpi-grid" id="analytics-kpis">
+    <div class="kpi"><span class="kpi-label">Total posts</span><span class="kpi-value" data-counter="total">—</span></div>
+    <div class="kpi"><span class="kpi-label">Reach</span><span class="kpi-value" data-counter="reach">—</span></div>
+    <div class="kpi"><span class="kpi-label">Engagement rate</span><span class="kpi-value" data-counter="engagement">—</span></div>
+    <div class="kpi"><span class="kpi-label">New followers</span><span class="kpi-value" data-counter="followers">—</span></div>
+  </div>
+  <table class="data-table" id="analytics-per-platform">
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>Posts</th>
+        <th>Reach</th>
+        <th>Likes</th>
+        <th>Comments</th>
+        <th>Shares</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Instagram</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>WhatsApp</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Telegram</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Teams</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <script>
+    document.querySelectorAll('#analytics-kpis [data-counter]').forEach((el) => {
+      el.textContent = el.dataset.counter === 'engagement' ? '0.0%' : '0';
+    });
+  </script>
+</div>

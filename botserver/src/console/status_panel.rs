@@ -1,0 +1,293 @@
+use crate::core::config::ConfigManager;
+#[cfg(feature = "nvidia")]
+use crate::nvidia::get_system_metrics;
+use crate::security::command_guard::SafeCommand;
+use crate::core::shared::models::schema::bots::dsl::*;
+use crate::core::shared::state::AppState;
+use diesel::prelude::*;
+use std::sync::Arc;
+use sysinfo::System;
+
+/// Cache for component status to avoid spawning pgrep processes too frequently
+struct ComponentStatusCache {
+    statuses: Vec<(String, bool, String)>, // (name, is_running, port)
+    last_check: std::time::Instant,
+}
+
+impl ComponentStatusCache {
+    fn new() -> Self {
+        Self {
+            statuses: Vec::new(),
+            last_check: std::time::Instant::now() - std::time::Duration::from_secs(60),
+        }
+    }
+
+    fn needs_refresh(&self) -> bool {
+        // Only check component status every 10 seconds
+        self.last_check.elapsed() > std::time::Duration::from_secs(10)
+    }
+
+    fn refresh(&mut self) {
+        let components = vec![
+            ("Tables", "postgres", "5432"),
+            ("Cache", "valkey-server", "6379"),
+            ("Drive", "minio", "9000"),
+            ("LLM", "llama-server", "8081"),
+        ];
+
+        self.statuses.clear();
+        for (comp_name, process, port) in components {
+            let is_running = Self::check_component_running(process);
+            self.statuses
+                .push((comp_name.to_string(), is_running, port.to_string()));
+        }
+        self.last_check = std::time::Instant::now();
+    }
+
+    fn check_component_running(process_name: &str) -> bool {
+        SafeCommand::new("pgrep")
+            .and_then(|c| c.arg("-f"))
+            .and_then(|c| c.arg(process_name))
+            .ok()
+            .and_then(|cmd| cmd.execute().ok())
+            .map(|output| !output.stdout.is_empty())
+            .unwrap_or(false)
+    }
+
+    fn get_statuses(&self) -> &[(String, bool, String)] {
+        &self.statuses
+    }
+}
+
+/// Cache for bot list to avoid database queries too frequently
+struct BotListCache {
+    bot_list: Vec<(String, uuid::Uuid)>,
+    last_check: std::time::Instant,
+}
+
+impl BotListCache {
+    fn new() -> Self {
+        Self {
+            bot_list: Vec::new(),
+            last_check: std::time::Instant::now() - std::time::Duration::from_secs(60),
+        }
+    }
+
+    fn needs_refresh(&self) -> bool {
+        // Only query database every 5 seconds
+        self.last_check.elapsed() > std::time::Duration::from_secs(5)
+    }
+
+    fn refresh(&mut self, app_state: &Arc<AppState>) {
+        if let Ok(mut conn) = app_state.conn.get() {
+            if let Ok(list) = bots
+                .filter(is_active.eq(true))
+                .select((name, id))
+                .load::<(String, uuid::Uuid)>(&mut *conn)
+            {
+                self.bot_list = list;
+            }
+        }
+        self.last_check = std::time::Instant::now();
+    }
+
+    fn get_bots(&self) -> &[(String, uuid::Uuid)] {
+        &self.bot_list
+    }
+}
+
+pub struct StatusPanel {
+    app_state: Arc<AppState>,
+    last_update: std::time::Instant,
+    last_system_refresh: std::time::Instant,
+    cached_content: String,
+    system: System,
+    component_cache: ComponentStatusCache,
+    bot_cache: BotListCache,
+}
+
+impl std::fmt::Debug for StatusPanel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StatusPanel")
+            .field("app_state", &"Arc<AppState>")
+            .field("last_update", &self.last_update)
+            .field("cached_content_len", &self.cached_content.len())
+            .field("system", &"System")
+            .finish()
+    }
+}
+
+impl StatusPanel {
+    pub fn new(app_state: Arc<AppState>) -> Self {
+        // Only initialize with CPU and memory info, not all system info
+        let mut system = System::new();
+        system.refresh_cpu_all();
+        system.refresh_memory();
+
+        Self {
+            app_state,
+            last_update: std::time::Instant::now(),
+            last_system_refresh: std::time::Instant::now(),
+            cached_content: String::new(),
+            system,
+            component_cache: ComponentStatusCache::new(),
+            bot_cache: BotListCache::new(),
+        }
+    }
+
+    pub fn update(&mut self) -> Result<(), std::io::Error> {
+        // Only refresh system metrics every 2 seconds instead of every call
+        // This is the main CPU hog - refresh_all() is very expensive
+        if self.last_system_refresh.elapsed() > std::time::Duration::from_secs(2) {
+            // Only refresh CPU and memory, not ALL system info
+            self.system.refresh_cpu_all();
+            self.system.refresh_memory();
+            self.last_system_refresh = std::time::Instant::now();
+        }
+
+        // Refresh component status cache if needed (every 10 seconds)
+        if self.component_cache.needs_refresh() {
+            self.component_cache.refresh();
+        }
+
+        // Refresh bot list cache if needed (every 5 seconds)
+        if self.bot_cache.needs_refresh() {
+            self.bot_cache.refresh(&self.app_state);
+        }
+
+        self.cached_content = self.render(None);
+        self.last_update = std::time::Instant::now();
+        Ok(())
+    }
+
+    pub fn render(&mut self, selected_bot: Option<String>) -> String {
+        let mut lines = vec![
+            "╔═══════════════════════════════════════╗".to_string(),
+            "║         SYSTEM METRICS                ║".to_string(),
+            "╚═══════════════════════════════════════╝".to_string(),
+            String::new(),
+        ];
+
+        // Use cached CPU usage - don't refresh here
+        let cpu_usage = self.system.global_cpu_usage();
+        let cpu_bar = Self::create_progress_bar(cpu_usage, 20);
+        lines.push(format!(" CPU: {:5.1}% {}", cpu_usage, cpu_bar));
+
+        #[cfg(feature = "nvidia")]
+        {
+            let system_metrics = get_system_metrics().unwrap_or_default();
+            if let Some(gpu_usage) = system_metrics.gpu_usage {
+                let gpu_bar = Self::create_progress_bar(gpu_usage, 20);
+                lines.push(format!(" GPU: {:5.1}% {}", gpu_usage, gpu_bar));
+            } else {
+                lines.push(" GPU: Not available".to_string());
+            }
+        }
+        #[cfg(not(feature = "nvidia"))]
+        {
+            lines.push(" GPU: Feature not enabled".to_string());
+        }
+
+        let total_mem = self.system.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
+        let used_mem = self.system.used_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
+        let mem_percentage = if total_mem > 0.0 {
+            (used_mem / total_mem) * 100.0
+        } else {
+            0.0
+        };
+        let mem_bar = Self::create_progress_bar(mem_percentage, 20);
+        lines.push(format!(
+            " MEM: {:5.1}% {} ({:.1}/{:.1} GB)",
+            mem_percentage, mem_bar, used_mem, total_mem
+        ));
+
+        lines.push("".to_string());
+        lines.push("╔═══════════════════════════════════════╗".to_string());
+        lines.push("║         COMPONENTS STATUS             ║".to_string());
+        lines.push("╚═══════════════════════════════════════╝".to_string());
+        lines.push("".to_string());
+
+        // Use cached component statuses instead of spawning pgrep every time
+        for (comp_name, is_running, port) in self.component_cache.get_statuses() {
+            let status = if *is_running {
+                format!(" ONLINE  [Port: {}]", port)
+            } else {
+                " OFFLINE".to_string()
+            };
+            lines.push(format!(" {:<10} {}", comp_name, status));
+        }
+
+        lines.push("".to_string());
+        lines.push("╔═══════════════════════════════════════╗".to_string());
+        lines.push("║         ACTIVE BOTS                   ║".to_string());
+        lines.push("╚═══════════════════════════════════════╝".to_string());
+        lines.push("".to_string());
+
+        // Use cached bot list instead of querying database every time
+        let bot_list = self.bot_cache.get_bots();
+        if bot_list.is_empty() {
+            lines.push(" No active bots".to_string());
+        } else {
+            for (bot_name, bot_id) in bot_list {
+                let marker = if let Some(ref selected) = selected_bot {
+                    if selected == bot_name {
+                        "►"
+                    } else {
+                        " "
+                    }
+                } else {
+                    " "
+                };
+                lines.push(format!(" {}  {}", marker, bot_name));
+
+                if let Some(ref selected) = selected_bot {
+                    if selected == bot_name {
+                        lines.push("".to_string());
+                        lines.push(" ┌─ Bot Configuration ─────────┐".to_string());
+                        let config_manager = ConfigManager::new(self.app_state.conn.clone());
+                        let llm_model = config_manager
+                            .get_config(bot_id, "llm-model", None)
+                            .unwrap_or_else(|_| "N/A".to_string());
+                        lines.push(format!("  Model: {}", llm_model));
+                        let ctx_size = config_manager
+                            .get_config(bot_id, "llm-server-ctx-size", None)
+                            .unwrap_or_else(|_| "N/A".to_string());
+                        lines.push(format!("  Context: {}", ctx_size));
+                        let temp = config_manager
+                            .get_config(bot_id, "llm-temperature", None)
+                            .unwrap_or_else(|_| "N/A".to_string());
+                        lines.push(format!("  Temp: {}", temp));
+                        lines.push(" └─────────────────────────────┘".to_string());
+                    }
+                }
+            }
+        }
+
+        lines.push("".to_string());
+        lines.push("╔═══════════════════════════════════════╗".to_string());
+        lines.push("║         SESSIONS                      ║".to_string());
+        lines.push("╚═══════════════════════════════════════╝".to_string());
+
+        let session_count = self
+            .app_state
+            .response_channels
+            .try_lock()
+            .map(|channels| channels.len())
+            .unwrap_or(0);
+        lines.push(format!(" Active Sessions: {}", session_count));
+
+        lines.join("\n")
+    }
+
+    fn create_progress_bar(percentage: f32, width: usize) -> String {
+        let filled = (percentage / 100.0 * width as f32).round() as usize;
+        let empty = width.saturating_sub(filled);
+        let filled_chars = "█".repeat(filled);
+        let empty_chars = "░".repeat(empty);
+        format!("[{}{}]", filled_chars, empty_chars)
+    }
+
+    pub fn check_component_running(process_name: &str) -> bool {
+        ComponentStatusCache::check_component_running(process_name)
+    }
+}

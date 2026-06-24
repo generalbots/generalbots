@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Admin - General Bots</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --border: #334155;
+            --text: #f8fafc;
+            --text-secondary: #94a3b8;
+            --error: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .setup-container {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .setup-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .setup-logo {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .setup-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .setup-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .setup-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--border);
+        }
+
+        .message-box {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .message-box.visible {
+            display: flex;
+        }
+
+        .message-box.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .message-box.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+
+        .message-box.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .form-section {
+            margin-bottom: 24px;
+        }
+
+        .form-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn.loading .btn-text {
+            display: none;
+        }
+
+        .btn.loading .spinner {
+            display: block;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .setup-footer {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .setup-footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .setup-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--warning);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .warning-box svg {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .success-actions {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .success-actions.visible {
+            display: block;
+        }
+
+        .success-actions a {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .success-actions a:hover {
+            background: var(--primary-hover);
+        }
+
+        @media (max-width: 480px) {
+            .setup-card {
+                padding: 24px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-header">
+            <div class="setup-logo"><img src="/suite/assets/icons/gb-logo.svg" alt="General Bots" width="48" height="48"></div>
+            <h1 class="setup-title">Initial Setup</h1>
+            <p class="setup-subtitle">
+                Create the first administrator account for your General Bots installation
+            </p>
+        </div>
+
+        <div class="setup-card">
+            <div class="warning-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <div>
+                    <strong>One-time setup only.</strong> This page is only accessible when no admin users exist and the bootstrap secret is configured.
+                </div>
+            </div>
+
+            <div class="message-box error" id="error-message">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <span id="error-text"></span>
+            </div>
+
+            <div class="message-box success" id="success-message">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <span id="success-text"></span>
+            </div>
+
+            <form id="bootstrap-form">
+                <div class="form-section">
+                    <div class="form-section-title">Bootstrap Authentication</div>
+                    <div class="form-group">
+                        <label class="form-label" for="bootstrap_secret">Bootstrap Secret</label>
+                        <input
+                            type="password"
+                            id="bootstrap_secret"
+                            name="bootstrap_secret"
+                            class="form-input"
+                            placeholder="Enter the GB_BOOTSTRAP_SECRET value"
+                            required
+                        />
+                        <div class="form-hint">This is the value set in your GB_BOOTSTRAP_SECRET environment variable</div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Organization</div>
+                    <div class="form-group">
+                        <label class="form-label" for="organization_name">Organization Name</label>
+                        <input
+                            type="text"
+                            id="organization_name"
+                            name="organization_name"
+                            class="form-input"
+                            placeholder="My Company"
+                            required
+                        />
+                        <div class="form-hint">This will be the default organization for your bots</div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Administrator Account</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="first_name">First Name</label>
+                            <input
+                                type="text"
+                                id="first_name"
+                                name="first_name"
+                                class="form-input"
+                                placeholder="John"
+                                required
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="last_name">Last Name</label>
+                            <input
+                                type="text"
+                                id="last_name"
+                                name="last_name"
+                                class="form-input"
+                                placeholder="Doe"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username</label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            class="form-input"
+                            placeholder="admin"
+                            required
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email Address</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            class="form-input"
+                            placeholder="admin@example.com"
+                            required
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-input"
+                            placeholder="••••••••"
+                            required
+                            minlength="8"
+                        />
+                        <div class="form-hint">Minimum 8 characters</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password_confirm">Confirm Password</label>
+                        <input
+                            type="password"
+                            id="password_confirm"
+                            name="password_confirm"
+                            class="form-input"
+                            placeholder="••••••••"
+                            required
+                        />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    <span class="btn-text">Create Admin Account</span>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+
+            <div class="success-actions" id="success-actions">
+                <a href="/auth/login">Go to Login</a>
+            </div>
+        </div>
+
+        <div class="setup-footer">
+            <p>Already have an account? <a href="/auth/login">Sign in</a></p>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var form = document.getElementById('bootstrap-form');
+            var errorBox = document.getElementById('error-message');
+            var errorText = document.getElementById('error-text');
+            var successBox = document.getElementById('success-message');
+            var successText = document.getElementById('success-text');
+            var successActions = document.getElementById('success-actions');
+            var submitBtn = document.getElementById('submit-btn');
+
+            function showError(message) {
+                errorText.textContent = message;
+                errorBox.classList.add('visible');
+                successBox.classList.remove('visible');
+            }
+
+            function showSuccess(message) {
+                successText.textContent = message;
+                successBox.classList.add('visible');
+                errorBox.classList.remove('visible');
+                successActions.classList.add('visible');
+                form.style.display = 'none';
+            }
+
+            function hideMessages() {
+                errorBox.classList.remove('visible');
+                successBox.classList.remove('visible');
+            }
+
+            function setLoading(loading) {
+                if (loading) {
+                    submitBtn.classList.add('loading');
+                    submitBtn.disabled = true;
+                } else {
+                    submitBtn.classList.remove('loading');
+                    submitBtn.disabled = false;
+                }
+            }
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                hideMessages();
+
+                var password = document.getElementById('password').value;
+                var passwordConfirm = document.getElementById('password_confirm').value;
+
+                if (password !== passwordConfirm) {
+                    showError('Passwords do not match');
+                    return;
+                }
+
+                if (password.length < 8) {
+                    showError('Password must be at least 8 characters');
+                    return;
+                }
+
+                setLoading(true);
+
+                var data = {
+                    bootstrap_secret: document.getElementById('bootstrap_secret').value,
+                    organization_name: document.getElementById('organization_name').value,
+                    first_name: document.getElementById('first_name').value,
+                    last_name: document.getElementById('last_name').value,
+                    username: document.getElementById('username').value,
+                    email: document.getElementById('email').value,
+                    password: password
+                };
+
+                fetch('/api/auth/bootstrap', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(function(response) {
+                    return response.json().then(function(data) {
+                        return { ok: response.ok, data: data };
+                    });
+                })
+                .then(function(result) {
+                    setLoading(false);
+                    if (result.ok && result.data.success) {
+                        showSuccess(result.data.message || 'Admin account created successfully!');
+                    } else {
+                        showError(result.data.error || 'Failed to create admin account');
+                    }
+                })
+                .catch(function(error) {
+                    setLoading(false);
+                    showError('Network error. Please check your connection and try again.');
+                    console.error('Bootstrap error:', error);
+                });
+            });
+
+            // Clear errors when typing
+            document.querySelectorAll('.form-input').forEach(function(input) {
+                input.addEventListener('input', hideMessages);
+            });
+        })();
+    </script>
+</body>
+</html>

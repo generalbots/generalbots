@@ -1,0 +1,135 @@
+<svg width="900" height="800" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#666" opacity="0.8"/>
+    </marker>
+    <linearGradient id="inputGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:0.3" />
+    </linearGradient>
+    <linearGradient id="processGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:0.3" />
+    </linearGradient>
+    <linearGradient id="serviceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:0.3" />
+    </linearGradient>
+    <linearGradient id="dataGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:0.3" />
+    </linearGradient>
+    <linearGradient id="outputGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#EF4444;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#EF4444;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1F2937">Data Flow Through Modules</text>
+
+  <!-- User Input -->
+  <ellipse cx="450" cy="70" rx="80" ry="25" fill="url(#inputGradient)" stroke="#3B82F6" stroke-width="2" opacity="0.9"/>
+  <text x="450" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">User Input</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="95" x2="450" y2="120" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- web_server/channels -->
+  <rect x="300" y="120" width="300" height="70" fill="url(#processGradient)" stroke="#10B981" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="450" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">web_server/ | channels/</text>
+  <text x="450" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Axum HTTP Server</text>
+  <text x="450" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Route to channel</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="190" x2="450" y2="220" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- session/ -->
+  <rect x="300" y="220" width="300" height="70" fill="url(#processGradient)" stroke="#10B981" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="450" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">session/</text>
+  <text x="450" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Load/Create Session</text>
+  <text x="450" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Validate Token</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="290" x2="450" y2="320" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- auth/ -->
+  <rect x="300" y="320" width="300" height="70" fill="url(#processGradient)" stroke="#10B981" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="450" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">auth/</text>
+  <text x="450" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Check Permissions</text>
+  <text x="450" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Apply RBAC</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="390" x2="450" y2="420" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- bot/ -->
+  <rect x="300" y="420" width="300" height="70" fill="url(#serviceGradient)" stroke="#8B5CF6" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="450" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">bot/</text>
+  <text x="450" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C3AED">Route to Bot Instance</text>
+  <text x="450" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C3AED">Load Configuration</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="490" x2="450" y2="520" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- basic/ -->
+  <rect x="300" y="520" width="300" height="70" fill="url(#serviceGradient)" stroke="#8B5CF6" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="450" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">basic/</text>
+  <text x="450" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C3AED">Execute BASIC Script</text>
+  <text x="450" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C3AED">Parse Keywords</text>
+
+  <!-- Multiple arrows branching out -->
+  <line x1="350" y1="590" x2="200" y2="640" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="400" y1="590" x2="350" y2="640" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="500" y1="590" x2="550" y2="640" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="550" y1="590" x2="700" y2="640" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- Data Layer Services -->
+  <!-- context/ -->
+  <rect x="120" y="640" width="140" height="60" fill="url(#dataGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="190" y="665" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">context/</text>
+  <text x="190" y="685" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C2D12">Load KB</text>
+
+  <!-- drive/ -->
+  <rect x="280" y="640" width="140" height="60" fill="url(#dataGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="350" y="665" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">drive/</text>
+  <text x="350" y="685" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C2D12">Get Files</text>
+
+  <!-- database/ -->
+  <rect x="480" y="640" width="140" height="60" fill="url(#dataGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="550" y="665" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">database/</text>
+  <text x="550" y="685" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C2D12">Query DB</text>
+
+  <!-- llm/ -->
+  <rect x="640" y="640" width="140" height="60" fill="url(#dataGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="710" y="665" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">llm/</text>
+  <text x="710" y="685" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C2D12">Call AI</text>
+
+  <!-- Convergence arrows -->
+  <line x1="190" y1="700" x2="400" y2="730" stroke="#666" stroke-width="1" opacity="0.5"/>
+  <line x1="350" y1="700" x2="420" y2="730" stroke="#666" stroke-width="1" opacity="0.5"/>
+  <line x1="550" y1="700" x2="480" y2="730" stroke="#666" stroke-width="1" opacity="0.5"/>
+  <line x1="710" y1="700" x2="500" y2="730" stroke="#666" stroke-width="1" opacity="0.5"/>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="730" x2="450" y2="750" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- Bot Response -->
+  <ellipse cx="450" cy="780" rx="80" ry="25" fill="url(#outputGradient)" stroke="#EF4444" stroke-width="2" opacity="0.9"/>
+  <text x="450" y="785" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1F2937">Bot Response</text>
+
+  <!-- Side annotations -->
+  <g id="annotations" opacity="0.7">
+    <!-- Processing stages -->
+    <text x="50" y="75" text-anchor="start" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">1. Input Reception</text>
+    <text x="50" y="155" text-anchor="start" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">2. HTTP Routing</text>
+    <text x="50" y="255" text-anchor="start" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">3. Session Management</text>
+    <text x="50" y="355" text-anchor="start" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">4. Authorization</text>
+    <text x="50" y="455" text-anchor="start" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">5. Bot Routing</text>
+    <text x="50" y="555" text-anchor="start" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">6. Script Execution</text>
+    <text x="50" y="670" text-anchor="start" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">7. Data Processing</text>
+    <text x="50" y="785" text-anchor="start" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">8. Response Generation</text>
+  </g>
+
+  <!-- Performance note -->
+  <text x="450" y="820" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-style="italic" fill="#9CA3AF">All operations are async with Tokio runtime for maximum throughput</text>
+</svg>

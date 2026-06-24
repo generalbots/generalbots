@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Cards — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Payment Cards</span>
+      <div class="mgmt-topbar-actions">
+        <button class="btn btn-primary btn-sm" onclick="showAddCard()">+ Add Card</button>
+      </div>
+    </div>
+
+    <div style="padding:2rem">
+      <div class="payment-cards" id="cards-grid">
+        <div class="mgmt-empty" style="grid-column:1/-1"><div class="loading-dots"><span></span><span></span><span></span></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ADD CARD MODAL -->
+<div class="mgmt-modal" id="add-card-modal">
+  <div class="mgmt-backdrop" onclick="hideAddCard()"></div>
+  <div class="mgmt-modal-box">
+    <div class="mgmt-modal-title">Add Payment Card</div>
+    <div class="form-group">
+      <label class="form-label">Cardholder Name</label>
+      <input type="text" id="card-name" class="form-control" placeholder="John Smith">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Card Number</label>
+      <input type="text" id="card-number" class="form-control" placeholder="4242 4242 4242 4242" maxlength="19" oninput="fmtCard(this)">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      <div class="form-group">
+        <label class="form-label">Expiry</label>
+        <input type="text" id="card-exp" class="form-control" placeholder="MM/YY" maxlength="5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">CVC</label>
+        <input type="text" id="card-cvc" class="form-control" placeholder="•••" maxlength="4">
+      </div>
+    </div>
+    <div class="mgmt-modal-actions">
+      <button class="btn btn-ghost" onclick="hideAddCard()">Cancel</button>
+      <button class="btn btn-primary" onclick="addCard()">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

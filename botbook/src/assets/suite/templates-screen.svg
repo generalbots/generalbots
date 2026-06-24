@@ -1,0 +1,143 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+    <filter id="shadowSm" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .nav-active { fill: #eff6ff; }
+    .badge-email { fill: #dbeafe; }
+    .badge-whatsapp { fill: #dcfce7; }
+    .badge-social { fill: #fef3c7; }
+    .badge-bot { fill: #f3e8ff; }
+    .badge-notification { fill: #fee2e2; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card { fill: #1e293b; stroke: #334155; }
+      .nav-active { fill: #1e3a5f; }
+      .badge-email { fill: #1e3a5f; }
+      .badge-whatsapp { fill: #0a3b1a; }
+      .badge-social { fill: #3b2e0a; }
+      .badge-bot { fill: #2e1a3b; }
+      .badge-notification { fill: #3b1a1a; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Content Templates</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(30, 40)">
+    <rect x="0" y="0" width="840" height="44" rx="8" class="panel-bg"/>
+    <line x1="0" y1="44" x2="840" y2="44" class="border"/>
+
+    <!-- Tabs -->
+    <rect x="20" y="8" width="60" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="50" y="27" text-anchor="middle" font-size="12" font-weight="500" class="white-text">All</text>
+
+    <text x="120" y="27" text-anchor="middle" font-size="13" class="secondary-text">Email</text>
+    <text x="210" y="27" text-anchor="middle" font-size="13" class="secondary-text">WhatsApp</text>
+    <text x="320" y="27" text-anchor="middle" font-size="13" class="secondary-text">Social</text>
+    <text x="410" y="27" text-anchor="middle" font-size="13" class="secondary-text">Bot</text>
+    <text x="490" y="27" text-anchor="middle" font-size="13" class="secondary-text">Notification</text>
+  </g>
+
+  <!-- Search + New Button -->
+  <g transform="translate(50, 100)">
+    <!-- Search Box -->
+    <rect x="0" y="0" width="400" height="36" rx="8" class="icon-btn"/>
+    <rect x="0" y="0" width="400" height="36" rx="8" class="border"/>
+    <text x="16" y="24" font-size="13" class="muted-text">🔍 Search templates...</text>
+
+    <!-- New Template Button -->
+    <rect x="680" y="0" width="140" height="36" rx="8" fill="url(#accentGrad)"/>
+    <text x="750" y="24" text-anchor="middle" font-size="13" font-weight="500" class="white-text">+ New Template</text>
+  </g>
+
+  <!-- Template Grid (3x2) -->
+  <g transform="translate(50, 155)">
+    <!-- Template Card 1: Email -->
+    <rect x="0" y="0" width="250" height="120" rx="8" class="card" filter="url(#shadowSm)"/>
+    <rect x="16" y="16" width="50" height="20" rx="10" class="badge-email"/>
+    <text x="41" y="30" text-anchor="middle" font-size="10" font-weight="500" fill="#3b82f6">Email</text>
+    <text x="16" y="56" font-size="14" font-weight="600" class="main-text">Welcome Email</text>
+    <text x="16" y="74" font-size="12" class="secondary-text">New user onboarding sequence</text>
+    <text x="16" y="100" font-size="11" class="muted-text">Last used: 2 days ago</text>
+
+    <!-- Template Card 2: WhatsApp -->
+    <rect x="270" y="0" width="250" height="120" rx="8" class="card" filter="url(#shadowSm)"/>
+    <rect x="286" y="16" width="70" height="20" rx="10" class="badge-whatsapp"/>
+    <text x="321" y="30" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">WhatsApp</text>
+    <text x="286" y="56" font-size="14" font-weight="600" class="main-text">Order Confirmation</text>
+    <text x="286" y="74" font-size="12" class="secondary-text">Purchase receipt template</text>
+    <text x="286" y="100" font-size="11" class="muted-text">Last used: 1 day ago</text>
+
+    <!-- Template Card 3: Social -->
+    <rect x="540" y="0" width="250" height="120" rx="8" class="card" filter="url(#shadowSm)"/>
+    <rect x="556" y="16" width="55" height="20" rx="10" class="badge-social"/>
+    <text x="583" y="30" text-anchor="middle" font-size="10" font-weight="500" fill="#d97706">Social</text>
+    <text x="556" y="56" font-size="14" font-weight="600" class="main-text">Product Launch</text>
+    <text x="556" y="74" font-size="12" class="secondary-text">Social media announcement</text>
+    <text x="556" y="100" font-size="11" class="muted-text">Last used: 5 days ago</text>
+
+    <!-- Template Card 4: Bot -->
+    <rect x="0" y="140" width="250" height="120" rx="8" class="card" filter="url(#shadowSm)"/>
+    <rect x="16" y="156" width="40" height="20" rx="10" class="badge-bot"/>
+    <text x="36" y="170" text-anchor="middle" font-size="10" font-weight="500" fill="#9333ea">Bot</text>
+    <text x="16" y="196" font-size="14" font-weight="600" class="main-text">FAQ Response</text>
+    <text x="16" y="214" font-size="12" class="secondary-text">Common questions handler</text>
+    <text x="16" y="240" font-size="11" class="muted-text">Last used: today</text>
+
+    <!-- Template Card 5: Notification -->
+    <rect x="270" y="140" width="250" height="120" rx="8" class="card" filter="url(#shadowSm)"/>
+    <rect x="286" y="156" width="80" height="20" rx="10" class="badge-notification"/>
+    <text x="326" y="170" text-anchor="middle" font-size="10" font-weight="500" fill="#dc2626">Notification</text>
+    <text x="286" y="196" font-size="14" font-weight="600" class="main-text">Alert Manager</text>
+    <text x="286" y="214" font-size="12" class="secondary-text">System alert dispatch</text>
+    <text x="286" y="240" font-size="11" class="muted-text">Last used: 3 hours ago</text>
+
+    <!-- Template Card 6: Email -->
+    <rect x="540" y="140" width="250" height="120" rx="8" class="card" filter="url(#shadowSm)"/>
+    <rect x="556" y="156" width="50" height="20" rx="10" class="badge-email"/>
+    <text x="581" y="170" text-anchor="middle" font-size="10" font-weight="500" fill="#3b82f6">Email</text>
+    <text x="556" y="196" font-size="14" font-weight="600" class="main-text">Newsletter</text>
+    <text x="556" y="214" font-size="12" class="secondary-text">Weekly digest template</text>
+    <text x="556" y="240" font-size="11" class="muted-text">Last used: 1 week ago</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 550)">
+    <text x="0" y="0" font-size="11" class="muted-text">Showing 6 of 24 templates</text>
+    <text x="750" y="0" font-size="11" class="accent-text" text-anchor="end">View All →</text>
+  </g>
+</svg>

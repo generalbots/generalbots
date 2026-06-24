@@ -1,0 +1,78 @@
+<!-- Lead Form - CRM Partial -->
+<form class="crm-form" id="leadForm" 
+      onsubmit="event.preventDefault(); submitLeadForm(event)">
+    <div class="crm-form-header">
+        <h2 class="crm-form-title" data-i18n="crm-new-lead">New Lead</h2>
+        <button type="button" class="crm-form-close" onclick="closeCrmModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <input type="hidden" name="title" id="leadTitle" value="New Lead">
+    
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label" data-i18n="crm-first-name">First Name</label>
+            <input type="text" name="first_name" id="leadFirstName" class="crm-form-input" placeholder="John">
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label" data-i18n="crm-last-name">Last Name</label>
+            <input type="text" name="last_name" id="leadLastName" class="crm-form-input" placeholder="Doe">
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label" data-i18n="crm-email">Email</label>
+            <input type="email" name="email" id="leadEmail" class="crm-form-input" placeholder="john@company.com">
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label" data-i18n="crm-phone">Phone</label>
+            <input type="tel" name="phone" id="leadPhone" class="crm-form-input" placeholder="+1 (555) 123-4567">
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label" data-i18n="crm-company">Company</label>
+            <input type="text" name="company" id="leadCompany" class="crm-form-input" placeholder="Company Name">
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label" data-i18n="crm-job-title">Job Title</label>
+            <input type="text" name="job_title" id="leadJobTitle" class="crm-form-input" placeholder="CEO, Manager, etc.">
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label" data-i18n="crm-source">Lead Source</label>
+            <select name="source" id="leadSource" class="crm-form-select">
+                <option value="website" data-i18n="crm-source-website">Website</option>
+                <option value="referral" data-i18n="crm-source-referral">Referral</option>
+                <option value="linkedin" data-i18n="crm-source-linkedin">LinkedIn</option>
+                <option value="email" data-i18n="crm-source-email">Email Campaign</option>
+                <option value="event" data-i18n="crm-source-event">Event/Conference</option>
+                <option value="cold-call" data-i18n="crm-source-cold-call">Cold Call</option>
+                <option value="partner" data-i18n="crm-source-partner">Partner</option>
+                <option value="other" data-i18n="crm-source-other">Other</option>
+            </select>
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label" data-i18n="crm-estimated-value">Estimated Value</label>
+            <input type="number" name="value" id="leadValue" class="crm-form-input" placeholder="0.00" min="0" step="0.01">
+        </div>
+    </div>
+
+    <div class="crm-form-group">
+        <label class="crm-form-label" data-i18n="crm-notes">Notes</label>
+        <textarea name="description" id="leadDescription" class="crm-form-textarea" rows="3" placeholder="Additional information about this lead..."></textarea>
+    </div>
+
+    <div class="crm-form-actions">
+        <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()" data-i18n="common-cancel">Cancel</button>
+        <button type="submit" class="crm-form-btn primary" data-i18n="crm-create-lead">Create Lead</button>
+    </div>
+</form>

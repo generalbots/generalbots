@@ -1,0 +1,399 @@
+[package]
+name = "botserver"
+version = "6.3.1"
+edition = "2021"
+resolver = "2"
+
+[dependencies.botlib]
+workspace = true
+features = ["database", "i18n"]
+
+[features]
+# ===== DEFAULT =====
+default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "security", "deployment", "saas", "products"]
+
+# ===== SECURITY MODES =====
+# no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
+# Build with: cargo build --no-default-features --features "no-security,chat,llm"
+no-security = []
+
+browser = ["automation", "cache"]
+terminal = ["automation", "cache"]
+external_sync = ["automation", "cache"]
+
+# ===== CORE INFRASTRUCTURE (Can be used standalone) =====
+scripting = ["dep:rhai"]
+automation = ["scripting", "dep:cron"]
+drive = ["dep:pdf-extract", "dep:rust-s3", "botcore/drive"]
+cache = ["dep:redis"]
+directory = ["rbac"]
+rbac = []
+crawler = ["cache"]
+
+# ===== APPS (Each includes what it needs from core) =====
+# Communication
+chat = ["automation", "cache", "botcore/chat"]
+people = ["automation", "drive", "cache", "dep:botpeople"]
+mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail"]
+meet = ["automation", "drive", "cache"]
+social = ["automation", "drive", "cache", "dep:botsocial"]
+marketing = ["people", "automation", "drive", "cache", "dep:botmarketing"]
+
+# Productivity
+calendar = ["automation", "drive", "cache", "dep:botcalendar"]
+tasks = ["automation", "drive", "cache", "dep:cron", "dep:bottasks"]
+project = ["automation", "drive", "cache", "dep:botproject"]
+plan = ["automation", "drive", "cache", "dep:botplan"]
+goals = ["automation", "drive", "cache"]
+workspaces = ["automation", "drive", "cache", "dep:botworkspaces"]
+tickets = ["automation", "drive", "cache", "dep:bottickets"]
+billing = ["automation", "drive", "cache", "dep:botbilling"]
+
+# Document Processing (lightweight - KB extraction without heavy OOXML SDKs)
+kb-extraction = ["drive", "dep:calamine", "dep:ole", "botcore/kb-extraction"]
+
+# Documents (full editing UI - opt-in, adds ~4min compile time from ooxmlsdk)
+docs = ["automation", "drive", "cache", "dep:docx-rs", "dep:ooxmlsdk", "kb-extraction", "dep:botdocs"]
+sheet = ["automation", "drive", "cache", "dep:calamine", "dep:rust_xlsxwriter", "dep:umya-spreadsheet", "kb-extraction", "dep:botsheet"]
+slides = ["automation", "drive", "cache", "dep:ooxmlsdk", "kb-extraction", "dep:botslides"]
+paper = ["automation", "drive", "cache", "dep:botpaper"]
+
+# Media
+video = ["automation", "drive", "cache", "dep:botvideo"]
+player = ["automation", "drive", "cache", "dep:botplayer"]
+canvas = ["automation", "drive", "cache", "dep:botcanvas"]
+
+# Learning
+learn = ["automation", "drive", "cache", "crawler", "dep:botlearn"]
+research = ["automation", "drive", "cache", "llm", "vectordb", "dep:botresearch"]
+sources = ["automation", "drive", "cache", "dep:botsources"]
+
+# Analytics
+analytics = ["automation", "drive", "cache", "dep:botanalytics"]
+dashboards = ["automation", "drive", "cache", "dep:botdashboards"]
+monitoring = ["automation", "drive", "cache", "dep:sysinfo", "dep:botmonitoring"]
+
+# Development
+designer = ["automation", "drive", "cache", "dep:botdesigner"]
+editor = ["automation", "drive", "cache", "dep:boteditor", "botcore/editor"]
+database = ["automation", "drive", "cache", "dep:botdatabase"]
+git = ["automation", "drive", "cache", "dep:botgit"]
+
+# Admin
+attendant = ["automation", "drive", "cache", "dep:botattendant"]
+security = ["automation", "drive", "cache", "dep:botsecurity"]
+settings = ["automation", "drive", "cache"]
+
+whatsapp = ["automation", "drive", "cache", "dep:botwhatsapp"]
+telegram = ["automation", "drive", "cache", "dep:bottelegram"]
+instagram = ["automation", "drive", "cache", "dep:botinstagram"]
+msteams = ["automation", "drive", "cache", "dep:botmsteams"]
+# Core Tech
+llm = ["automation", "cache", "dep:botllm"]
+vectordb = ["automation", "drive", "cache", "dep:botqdrant"]
+nvidia = ["automation", "drive", "cache", "dep:botnvidia"]
+compliance = ["automation", "drive", "cache", "legal", "dep:csv", "dep:botcompliance"]
+timeseries = ["automation", "drive", "cache", "dep:bottimeseries"]
+weba = ["automation", "drive", "cache", "dep:botweba"]
+progress-bars = ["automation", "drive", "cache", "dep:indicatif"]
+grpc = ["automation", "drive", "cache"]
+jemalloc = ["automation", "drive", "cache", "dep:mimalloc"]
+console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
+contacts = ["automation", "drive", "cache", "dep:botcontacts"]
+products = ["automation", "drive", "cache", "dep:botproducts"]
+legal = ["automation", "drive", "cache", "dep:botlegal"]
+attendance = ["automation", "drive", "cache", "dep:botattendance"]
+maintenance = ["automation", "drive", "cache", "dep:botmaintenance"]
+deployment = ["automation", "drive", "cache", "dep:botdeployment"]
+tax = ["automation", "drive", "cache", "dep:bottax"]
+vision = ["automation", "drive", "cache", "dep:botvision"]
+erp = ["automation", "drive", "cache", "dep:boterp"]
+integrations = ["automation", "drive", "cache", "dep:botintegrations"]
+hr = ["automation", "drive", "cache", "dep:bothr"]
+sales = ["automation", "drive", "cache", "dep:botsales"]
+minutes = ["automation", "drive", "cache", "dep:botminutes"]
+templates = ["automation", "drive", "cache", "dep:bottemplates"]
+itsm = ["automation", "drive", "cache", "dep:botitsm"]
+pos = ["automation", "drive", "cache", "dep:botpos"]
+handoff = ["automation", "drive", "cache", "dep:bothandoff"]
+kyc = ["automation", "drive", "cache", "dep:botkyc"]
+timeclock = ["automation", "drive", "cache", "dep:bottimeclock"]
+fraud = ["automation", "drive", "cache", "dep:botfraud"]
+inventory = ["automation", "drive", "cache", "dep:botinventory"]
+gl = ["automation", "drive", "cache", "dep:botgl"]
+retail = ["automation", "drive", "cache", "dep:botretail"]
+banking = ["automation", "drive", "cache", "dep:botbanking"]
+m365 = ["automation", "drive", "cache", "dep:botm365"]
+vibe = ["automation", "dep:botvibe", "botbasic_system/vibe"]
+kb = ["automation", "drive", "cache", "dep:botkb"]
+multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
+search = ["automation", "drive", "cache", "dep:botsearch"]
+desktop = ["automation", "drive", "cache", "dep:botdesktop"]
+saas = ["dep:botcloud", "billing", "providers"]
+providers = ["dep:botproviders"]
+
+# ===== BUNDLES (Optional - for convenience) =====
+minimal = ["chat"]
+minimal-chat = ["chat", "automation", "cache"]  # No security at all
+lightweight = ["chat", "tasks", "people"]
+full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance", "tax"]
+embed-ui = ["dep:rust-embed"]
+
+allbutooxmlsdk = [
+    "chat", "people", "mail", "meet", "social", "marketing",
+    "calendar", "tasks", "project", "plan", "goals", "workspaces", "tickets", "billing",
+    "kb-extraction", "sheet", "paper",
+    "video", "player", "canvas",
+    "learn", "research", "sources",
+    "analytics", "dashboards", "monitoring",
+    "designer", "editor", "database", "git",
+    "attendant", "settings",
+    "whatsapp", "telegram", "instagram", "msteams",
+    "compliance", "timeseries", "weba", "contacts", "products", "legal", "attendance",
+    "vibe", "kb", "multimodal", "search", "desktop",
+    "browser", "terminal", "external_sync", "nvidia",
+    "deployment",
+    "tax", "vision", "erp", "integrations", "hr", "sales", "minutes", "templates",
+    "itsm", "pos", "handoff", "kyc", "timeclock",
+    "fraud", "inventory", "gl", "retail",
+    "security", "directory", "llm", "vectordb", "crawler", "console",
+    "saas",
+]
+
+[dependencies]
+diesel_migrations = { workspace = true }
+bigdecimal = { workspace = true }
+
+# === CORE RUNTIME ===
+aes-gcm = { workspace = true }
+anyhow = { workspace = true }
+argon2 = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true }
+axum-server = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true, features = ["clock", "std"] }
+html2md = "0.2"
+color-eyre = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
+dirs = { workspace = true }
+dotenvy = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+git2 = "0.20"
+hex = { workspace = true }
+hmac = { workspace = true }
+log = { workspace = true }
+num-format = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "multipart", "stream", "json"] }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
+toml = { workspace = true }
+sha2 = { workspace = true }
+sha1 = { workspace = true }
+tokio = { workspace = true, features = ["full", "process"] }
+tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
+tracing = { workspace = true }
+url = { workspace = true }
+urlencoding = { workspace = true }
+uuid = { workspace = true, features = ["v4", "v5"] }
+
+# === TLS/SECURITY DEPENDENCIES ===
+rustls = { workspace = true, features = ["ring", "std", "tls12"] }
+tokio-rustls = { workspace = true }
+rcgen = { workspace = true, features = ["crypto", "ring", "pem"] }
+x509-parser = { workspace = true }
+ring = { workspace = true }
+ciborium = { workspace = true }
+time = { workspace = true, features = ["formatting"] }
+jsonwebtoken = { workspace = true }
+
+# === APP-SPECIFIC DEPENDENCIES ===
+
+# mail Integration (mail feature)
+imap = { workspace = true, optional = true }
+lettre = { workspace = true, optional = true }
+mailparse = { workspace = true, optional = true }
+
+# Vector Database (vectordb feature)
+
+
+# Document Processing
+docx-rs = { workspace = true, optional = true }
+ooxmlsdk = { workspace = true, optional = true, features = ["parts"] }
+calamine = { workspace = true, optional = true }
+ole = { version = "0.1", optional = true }
+rust_xlsxwriter = { workspace = true, optional = true }
+umya-spreadsheet = { workspace = true, optional = true }
+
+# File Storage & Drive (drive feature)
+# minio removed - use rust-s3 via S3Repository instead
+pdf-extract = { workspace = true, optional = true }
+quick-xml = { workspace = true }
+flate2 = { workspace = true }
+zip = { workspace = true }
+tar = { workspace = true }
+rust-s3 = { workspace = true, optional = true }
+
+# Task Management (tasks feature)
+cron = { workspace = true, optional = true }
+
+# Automation & Scripting (automation feature)
+rhai = { workspace = true, optional = true }
+
+# Compliance & Reporting (compliance feature)
+csv = { workspace = true, optional = true }
+
+# Console/TUI (console feature)
+crossterm = { workspace = true, optional = true }
+ratatui = { workspace = true, optional = true }
+
+# QR Code Generation
+png = { workspace = true }
+qrcode = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Caching/Sessions (cache feature)
+redis = { workspace = true, features = ["tokio-comp"], optional = true }
+
+# System Monitoring (monitoring feature)
+sysinfo = { workspace = true, optional = true }
+
+# UI Enhancement (progress-bars feature)
+indicatif = { workspace = true, optional = true }
+smartstring = { workspace = true }
+
+# Memory allocator (jemalloc feature)
+mimalloc = { workspace = true, optional = true }
+scopeguard = { workspace = true }
+
+# Vault secrets management
+vaultrs = { workspace = true }
+
+# Calendar standards (RFC 5545)
+icalendar = { workspace = true }
+
+# Rate limiting
+governor = { workspace = true }
+
+# RSS feed parsing
+rss = { workspace = true }
+
+# HTML parsing/web scraping
+scraper = { workspace = true }
+walkdir = { workspace = true }
+
+# Embedded static files
+rust-embed = { workspace = true, optional = true }
+
+# Blocking HTTP for Vault config
+ureq = { version = "2", features = ["json"] }
+
+# === NON-OPTIONAL EXTRACTED CRATES (always linked, no feature gate) ===
+botchannels = { workspace = true }
+botbrowser = { workspace = true }
+botcoresecrets = { workspace = true }
+botcoresession = { workspace = true }
+botcoreoauth = { workspace = true }
+botcorebot = { workspace = true }
+botcoredirectory = { workspace = true }
+botcorepkg = { workspace = true }
+botautotask = { workspace = true }
+botvibe = { workspace = true, optional = true }
+botbasic_types = { path = "crates/botbasic_types" }
+botcore = { path = "crates/botcore" }
+botbasic_core = { path = "crates/botbasic_core" }
+botbasic_data = { path = "crates/botbasic_data" }
+botbasic_comms = { path = "crates/botbasic_comms" }
+botbasic_ai = { path = "crates/botbasic_ai" }
+botbasic_system = { path = "crates/botbasic_system" }
+botbasic_compiler = { path = "crates/botbasic_compiler" }
+botapi = { path = "crates/botapi" }
+boteditor = { path = "crates/boteditor", optional = true }
+botdatabase = { path = "crates/botdatabase", optional = true }
+botgit = { path = "crates/botgit", optional = true }
+botmeet = { path = "crates/botmeet" }
+botsettings = { path = "crates/botsettings" }
+botdrive = { path = "crates/botdrive", features = ["llm", "vectordb", "drive"] }
+
+# === EXTRACTED CRATES (optional - enabled by feature flags) ===
+botbilling = { workspace = true, optional = true }
+botcanvas = { workspace = true, optional = true }
+botlegal = { workspace = true, optional = true }
+botsocial = { workspace = true, optional = true }
+botpeople = { workspace = true, optional = true }
+bottickets = { workspace = true, optional = true }
+botworkspaces = { workspace = true, optional = true }
+botattendant = { workspace = true, optional = true }
+botproducts = { workspace = true, optional = true }
+botcalendar = { workspace = true, optional = true }
+botcompliance = { workspace = true, optional = true }
+botdashboards = { workspace = true, optional = true }
+botanalytics = { workspace = true, optional = true }
+botdocs = { workspace = true, optional = true }
+botmarketing = { workspace = true, optional = true }
+botdesigner = { workspace = true, optional = true }
+botcontacts = { workspace = true, optional = true }
+botemail = { workspace = true, optional = true }
+botsheet = { workspace = true, optional = true }
+botvideo = { workspace = true, optional = true }
+botslides = { workspace = true, optional = true }
+botsources = { workspace = true, optional = true }
+botpaper = { workspace = true, optional = true }
+bottasks = { workspace = true, optional = true }
+botwhatsapp = { workspace = true, optional = true }
+botattendance = { workspace = true, optional = true }
+bottelegram = { workspace = true, optional = true }
+botmsteams = { workspace = true, optional = true }
+botinstagram = { workspace = true, optional = true }
+botmaintenance = { workspace = true, optional = true }
+botproject = { workspace = true, optional = true }
+botplan = { workspace = true, optional = true }
+botdeployment = { workspace = true, optional = true }
+botmonitoring = { workspace = true, optional = true }
+botresearch = { workspace = true, optional = true }
+botlearn = { workspace = true, optional = true }
+botkb = { workspace = true, optional = true }
+botllm = { workspace = true, optional = true }
+botqdrant = { workspace = true, optional = true }
+botnvidia = { workspace = true, optional = true }
+bottimeseries = { workspace = true, optional = true }
+botweba = { workspace = true, optional = true }
+botsecurity = { workspace = true, optional = true }
+botplayer = { workspace = true, optional = true }
+botmultimodal = { workspace = true, optional = true }
+botsearch = { workspace = true, optional = true }
+botdesktop = { workspace = true, optional = true }
+botfraud = { workspace = true, optional = true }
+botinventory = { workspace = true, optional = true }
+botgl = { workspace = true, optional = true }
+botretail = { workspace = true, optional = true }
+botbanking = { workspace = true, optional = true }
+botm365 = { workspace = true, optional = true }
+botuifragments = { workspace = true }
+bottax = { workspace = true, optional = true }
+botvision = { workspace = true, optional = true }
+boterp = { workspace = true, optional = true }
+botintegrations = { workspace = true, optional = true }
+bothr = { workspace = true, optional = true }
+botsales = { workspace = true, optional = true }
+botminutes = { workspace = true, optional = true }
+bottemplates = { workspace = true, optional = true }
+botitsm = { workspace = true, optional = true }
+botpos = { workspace = true, optional = true }
+bothandoff = { workspace = true, optional = true }
+botkyc = { workspace = true, optional = true }
+bottimeclock = { workspace = true, optional = true }
+botmodelsbridge = { workspace = true }
+botcloud = { path = "crates/botcloud", optional = true }
+botproviders = { path = "crates/botproviders", optional = true }
+
+[dev-dependencies]
+mockito = { workspace = true }
+tempfile = { workspace = true }
+bigdecimal = { workspace = true }

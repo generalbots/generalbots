@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel-bg { fill: #ffffff; }
+      .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+      .secondary-text { fill: #475569; font-family: system-ui, -apple-system, sans-serif; }
+      .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+      .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+      .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+      .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+      .icon-btn { fill: #f1f5f9; rx: 6; }
+      @media (prefers-color-scheme: dark) {
+        .bg { fill: #0f172a; }
+        .panel-bg { fill: #1e293b; }
+        .main-text { fill: #f1f5f9; }
+        .secondary-text { fill: #cbd5e1; }
+        .muted-text { fill: #64748b; }
+        .white-text { fill: #f1f5f9; }
+        .accent-text { fill: #60a5fa; }
+        .border { stroke: #334155; }
+        .icon-btn { fill: #334155; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="600" class="bg" rx="0"/>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" class="main-text" font-size="18" font-weight="600">Schema Browser</text>
+
+  <!-- Main Card -->
+  <rect x="16" y="52" width="868" height="536" rx="8" class="panel-bg"/>
+  <rect x="16" y="52" width="868" height="536" rx="8" class="border"/>
+
+  <!-- Sidebar -->
+  <rect x="16" y="52" width="220" height="536" rx="8" class="panel-bg"/>
+  <rect x="16" y="52" width="220" height="536" rx="8" class="border"/>
+
+  <!-- Sidebar Search -->
+  <rect x="28" y="68" width="196" height="32" rx="6" fill="#f1f5f9"/>
+  <text x="44" y="89" class="muted-text" font-size="13">Search tables...</text>
+
+  <!-- Table List -->
+  <text x="28" y="128" class="muted-text" font-size="11" font-weight="600" letter-spacing="0.5">TABLES</text>
+
+  <rect x="28" y="138" width="196" height="32" rx="6" fill="#3b82f6" opacity="0.1"/>
+  <text x="44" y="158" class="accent-text" font-size="13" font-weight="500">users</text>
+  <text x="208" y="158" class="muted-text" font-size="11">1,247</text>
+
+  <text x="44" y="194" class="secondary-text" font-size="13">orders</text>
+  <text x="208" y="194" class="muted-text" font-size="11">8,432</text>
+
+  <text x="44" y="226" class="secondary-text" font-size="13">products</text>
+  <text x="196" y="226" class="muted-text" font-size="11">312</text>
+
+  <text x="44" y="258" class="secondary-text" font-size="13">sessions</text>
+  <text x="202" y="258" class="muted-text" font-size="11">5,671</text>
+
+  <!-- Divider -->
+  <line x1="236" y1="52" x2="236" y2="588" class="border"/>
+
+  <!-- Toolbar -->
+  <text x="252" y="84" class="main-text" font-size="15" font-weight="600">users</text>
+  <text x="310" y="84" class="muted-text" font-size="12">1,247 rows</text>
+
+  <!-- Export Button -->
+  <rect x="660" y="64" width="96" height="30" rx="6" fill="#f1f5f9"/>
+  <text x="686" y="84" class="secondary-text" font-size="12">Export CSV</text>
+
+  <!-- Import Button -->
+  <rect x="768" y="64" width="100" height="30" rx="6" fill="#f1f5f9"/>
+  <text x="792" y="84" class="secondary-text" font-size="12">Import CSV</text>
+
+  <!-- Data Grid Header -->
+  <rect x="252" y="108" width="612" height="32" rx="0" fill="#f1f5f9"/>
+  <text x="268" y="128" class="secondary-text" font-size="12" font-weight="600">id</text>
+  <text x="380" y="128" class="secondary-text" font-size="12" font-weight="600">name</text>
+  <text x="520" y="128" class="secondary-text" font-size="12" font-weight="600">email</text>
+  <text x="700" y="128" class="secondary-text" font-size="12" font-weight="600">created_at</text>
+
+  <!-- Row 1 -->
+  <line x1="252" y1="148" x2="864" y2="148" class="border"/>
+  <text x="268" y="168" class="secondary-text" font-size="12" font-family="monospace">a1b2c3</text>
+  <text x="380" y="168" class="secondary-text" font-size="12">Maria Silva</text>
+  <text x="520" y="168" class="secondary-text" font-size="12">maria@email.com</text>
+  <text x="700" y="168" class="muted-text" font-size="12">2024-01-15</text>
+
+  <!-- Row 2 -->
+  <line x1="252" y1="186" x2="864" y2="186" class="border"/>
+  <text x="268" y="206" class="secondary-text" font-size="12" font-family="monospace">d4e5f6</text>
+  <text x="380" y="206" class="secondary-text" font-size="12">João Santos</text>
+  <text x="520" y="206" class="secondary-text" font-size="12">joao@email.com</text>
+  <text x="700" y="206" class="muted-text" font-size="12">2024-02-03</text>
+
+  <!-- Row 3 -->
+  <line x1="252" y1="224" x2="864" y2="224" class="border"/>
+  <text x="268" y="244" class="secondary-text" font-size="12" font-family="monospace">g7h8i9</text>
+  <text x="380" y="244" class="secondary-text" font-size="12">Ana Costa</text>
+  <text x="520" y="244" class="secondary-text" font-size="12">ana@email.com</text>
+  <text x="700" y="244" class="muted-text" font-size="12">2024-03-21</text>
+
+  <!-- Row 4 -->
+  <line x1="252" y1="262" x2="864" y2="262" class="border"/>
+  <text x="268" y="282" class="secondary-text" font-size="12" font-family="monospace">j0k1l2</text>
+  <text x="380" y="282" class="secondary-text" font-size="12">Carlos Lima</text>
+  <text x="520" y="282" class="secondary-text" font-size="12">carlos@email.com</text>
+  <text x="700" y="282" class="muted-text" font-size="12">2024-04-10</text>
+
+  <line x1="252" y1="300" x2="864" y2="300" class="border"/>
+</svg>

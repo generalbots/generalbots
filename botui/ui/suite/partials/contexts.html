@@ -1,0 +1,117 @@
+<div class="contexts-selector">
+    <label class="contexts-label">Context:</label>
+    <select
+        class="contexts-dropdown"
+        name="context"
+        hx-post="/api/chat/context"
+        hx-trigger="change"
+        hx-swap="none"
+    >
+        <option value="">Select context...</option>
+        {% for context in contexts %}
+        <option value="{{ context.id }}">{{ context.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+{% if contexts.len() > 0 %}
+<div class="contexts-list">
+    {% for context in contexts %}
+    <div
+        class="context-item"
+        hx-post="/api/chat/context"
+        hx-vals='{"context_id": "{{ context.id }}"}'
+        hx-swap="none"
+    >
+        <div class="context-name">{{ context.name }}</div>
+        <div class="context-description">{{ context.description }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="contexts-empty">
+    <p>No contexts configured</p>
+</div>
+{% endif %}
+
+<style>
+    .contexts-selector {
+        margin-bottom: 12px;
+    }
+
+    .contexts-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+    }
+
+    .contexts-dropdown {
+        width: 100%;
+        padding: 10px 12px;
+        background: var(--surface-hover);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .contexts-dropdown:hover {
+        border-color: var(--primary);
+    }
+
+    .contexts-dropdown:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px var(--primary-light);
+    }
+
+    .contexts-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .context-item {
+        padding: 10px 12px;
+        background: var(--surface-hover);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .context-item:hover {
+        background: var(--surface);
+        border-color: var(--primary);
+    }
+
+    .context-item.active {
+        background: var(--primary-light);
+        border-color: var(--primary);
+    }
+
+    .context-name {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+
+    .context-description {
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .contexts-empty {
+        padding: 16px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+</style>

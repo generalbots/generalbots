@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS folder_change_events;
+DROP TABLE IF EXISTS folder_monitors;
+DROP TABLE IF EXISTS document_presence;
+DROP TABLE IF EXISTS storage_quotas;
+DROP TABLE IF EXISTS file_sync_status;
+DROP TABLE IF EXISTS file_trash;
+DROP TABLE IF EXISTS file_activities;
+DROP TABLE IF EXISTS file_shares;
+DROP TABLE IF EXISTS file_comments;
+DROP TABLE IF EXISTS file_versions;

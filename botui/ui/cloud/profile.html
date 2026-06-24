@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar"><span class="mgmt-page-title">My Profile</span></div>
+
+    <div style="padding:2rem;max-width:700px">
+      <div class="profile-section">
+        <div class="profile-section-title">Account Information</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="prof-name" class="form-control"></div>
+          <div class="form-group"><label class="form-label">Email</label><input type="email" id="prof-email" class="form-control" readonly style="opacity:.6"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Organization</label><input type="text" id="prof-org" class="form-control"></div>
+        <button class="btn btn-primary btn-sm" onclick="saveProfile()">Save Changes</button>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Change Password</div>
+        <div class="form-group"><label class="form-label">Current Password</label><input type="password" id="pw-current" class="form-control" placeholder="••••••••"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="form-group"><label class="form-label">New Password</label><input type="password" id="pw-new" class="form-control" placeholder="min. 8 characters"></div>
+          <div class="form-group"><label class="form-label">Confirm</label><input type="password" id="pw-confirm" class="form-control" placeholder="repeat password"></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="changePassword()">Update Password</button>
+      </div>
+
+      <div class="profile-section" style="border-color:rgba(255,107,107,.25)">
+        <div class="profile-section-title" style="color:var(--accent3)">Danger Zone</div>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem">Permanently delete your account and all associated data. This action cannot be undone.</p>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Delete Account</button>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

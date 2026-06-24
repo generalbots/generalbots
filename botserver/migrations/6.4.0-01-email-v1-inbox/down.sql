@@ -1,0 +1,9 @@
+DROP INDEX IF EXISTS idx_email_messages_unique_sync;
+DROP INDEX IF EXISTS idx_email_messages_search;
+DROP INDEX IF EXISTS idx_email_messages_thread;
+DROP INDEX IF EXISTS idx_email_messages_flagged;
+DROP INDEX IF EXISTS idx_email_messages_read;
+DROP INDEX IF EXISTS idx_email_messages_folder;
+DROP INDEX IF EXISTS idx_email_messages_received;
+DROP INDEX IF EXISTS idx_email_messages_account;
+DROP TABLE IF EXISTS email_messages;

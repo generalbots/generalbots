@@ -1,0 +1,200 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14b8a6"/>
+      <stop offset="100%" stop-color="#2dd4bf"/>
+    </linearGradient>
+    <linearGradient id="avatar1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="avatar2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="avatar3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #14b8a6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card-bg { fill: #f8fafc; }
+    .tab-active { fill: #f0fdfa; stroke: #14b8a6; stroke-width: 1.5; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #2dd4bf; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card-bg { fill: #1e293b; }
+      .tab-active { fill: #134e4a; stroke: #14b8a6; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">People</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Tab Bar -->
+  <g transform="translate(50, 55)">
+    <rect x="0" y="0" width="90" height="34" rx="8" class="tab-active"/>
+    <text x="45" y="22" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">Contacts</text>
+
+    <rect x="100" y="0" width="80" height="34" rx="8" class="icon-btn"/>
+    <rect x="100" y="0" width="80" height="34" rx="8" class="border"/>
+    <text x="140" y="22" text-anchor="middle" font-size="12" class="secondary-text">Groups</text>
+
+    <rect x="190" y="0" width="90" height="34" rx="8" class="icon-btn"/>
+    <rect x="190" y="0" width="90" height="34" rx="8" class="border"/>
+    <text x="235" y="22" text-anchor="middle" font-size="12" class="secondary-text">Directory</text>
+  </g>
+
+  <!-- Search + Add Button -->
+  <g transform="translate(490, 55)">
+    <rect x="0" y="0" width="200" height="34" rx="8" class="icon-btn"/>
+    <rect x="0" y="0" width="200" height="34" rx="8" class="border"/>
+    <text x="12" y="22" font-size="13" class="muted-text">🔍</text>
+    <text x="32" y="22" font-size="12" class="muted-text">Search contacts...</text>
+
+    <rect x="210" y="0" width="120" height="34" rx="8" fill="url(#tealGrad)"/>
+    <text x="270" y="22" text-anchor="middle" font-size="12" font-weight="500" class="white-text">+ Add Contact</text>
+  </g>
+
+  <!-- Contact Cards Grid (3x2) -->
+  <!-- Card 1 -->
+  <g transform="translate(50, 105)">
+    <rect x="0" y="0" width="250" height="105" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="250" height="105" rx="10" class="border"/>
+    <circle cx="40" cy="40" r="22" fill="url(#avatar1)"/>
+    <text x="40" y="46" text-anchor="middle" font-size="14" font-weight="500" class="white-text">AC</text>
+    <text x="72" y="32" font-size="14" font-weight="600" class="main-text">Ana Costa</text>
+    <text x="72" y="50" font-size="12" class="secondary-text">Engineering Lead</text>
+    <text x="72" y="68" font-size="11" class="muted-text">ana@company.com</text>
+    <text x="72" y="86" font-size="11" class="muted-text">+55 11 99999-0001</text>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="icon-btn"/>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="border"/>
+    <text x="218" y="29" text-anchor="middle" font-size="12">📧</text>
+  </g>
+
+  <!-- Card 2 -->
+  <g transform="translate(325, 105)">
+    <rect x="0" y="0" width="250" height="105" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="250" height="105" rx="10" class="border"/>
+    <circle cx="40" cy="40" r="22" fill="url(#avatar2)"/>
+    <text x="40" y="46" text-anchor="middle" font-size="14" font-weight="500" class="white-text">BS</text>
+    <text x="72" y="32" font-size="14" font-weight="600" class="main-text">Bruno Silva</text>
+    <text x="72" y="50" font-size="12" class="secondary-text">Product Designer</text>
+    <text x="72" y="68" font-size="11" class="muted-text">bruno@design.io</text>
+    <text x="72" y="86" font-size="11" class="muted-text">+55 11 99999-0002</text>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="icon-btn"/>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="border"/>
+    <text x="218" y="29" text-anchor="middle" font-size="12">📧</text>
+  </g>
+
+  <!-- Card 3 -->
+  <g transform="translate(600, 105)">
+    <rect x="0" y="0" width="250" height="105" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="250" height="105" rx="10" class="border"/>
+    <circle cx="40" cy="40" r="22" fill="url(#avatar3)"/>
+    <text x="40" y="46" text-anchor="middle" font-size="14" font-weight="500" class="white-text">CL</text>
+    <text x="72" y="32" font-size="14" font-weight="600" class="main-text">Carla Lima</text>
+    <text x="72" y="50" font-size="12" class="secondary-text">Marketing Director</text>
+    <text x="72" y="68" font-size="11" class="muted-text">carla@marketing.co</text>
+    <text x="72" y="86" font-size="11" class="muted-text">+55 11 99999-0003</text>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="icon-btn"/>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="border"/>
+    <text x="218" y="29" text-anchor="middle" font-size="12">📧</text>
+  </g>
+
+  <!-- Card 4 -->
+  <g transform="translate(50, 225)">
+    <rect x="0" y="0" width="250" height="105" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="250" height="105" rx="10" class="border"/>
+    <circle cx="40" cy="40" r="22" fill="#f97316"/>
+    <text x="40" y="46" text-anchor="middle" font-size="14" font-weight="500" class="white-text">DM</text>
+    <text x="72" y="32" font-size="14" font-weight="600" class="main-text">David Martins</text>
+    <text x="72" y="50" font-size="12" class="secondary-text">DevOps Engineer</text>
+    <text x="72" y="68" font-size="11" class="muted-text">david@ops.dev</text>
+    <text x="72" y="86" font-size="11" class="muted-text">+55 11 99999-0004</text>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="icon-btn"/>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="border"/>
+    <text x="218" y="29" text-anchor="middle" font-size="12">📧</text>
+  </g>
+
+  <!-- Card 5 -->
+  <g transform="translate(325, 225)">
+    <rect x="0" y="0" width="250" height="105" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="250" height="105" rx="10" class="border"/>
+    <circle cx="40" cy="40" r="22" fill="#22c55e"/>
+    <text x="40" y="46" text-anchor="middle" font-size="14" font-weight="500" class="white-text">EF</text>
+    <text x="72" y="32" font-size="14" font-weight="600" class="main-text">Elena Ferreira</text>
+    <text x="72" y="50" font-size="12" class="secondary-text">Data Analyst</text>
+    <text x="72" y="68" font-size="11" class="muted-text">elena@data.co</text>
+    <text x="72" y="86" font-size="11" class="muted-text">+55 11 99999-0005</text>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="icon-btn"/>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="border"/>
+    <text x="218" y="29" text-anchor="middle" font-size="12">📧</text>
+  </g>
+
+  <!-- Card 6 -->
+  <g transform="translate(600, 225)">
+    <rect x="0" y="0" width="250" height="105" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="250" height="105" rx="10" class="border"/>
+    <circle cx="40" cy="40" r="22" fill="#ef4444"/>
+    <text x="40" y="46" text-anchor="middle" font-size="14" font-weight="500" class="white-text">FO</text>
+    <text x="72" y="32" font-size="14" font-weight="600" class="main-text">Felipe Oliveira</text>
+    <text x="72" y="50" font-size="12" class="secondary-text">Sales Manager</text>
+    <text x="72" y="68" font-size="11" class="muted-text">felipe@sales.co</text>
+    <text x="72" y="86" font-size="11" class="muted-text">+55 11 99999-0006</text>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="icon-btn"/>
+    <rect x="200" y="10" width="36" height="28" rx="6" class="border"/>
+    <text x="218" y="29" text-anchor="middle" font-size="12">📧</text>
+  </g>
+
+  <!-- Pagination -->
+  <g transform="translate(350, 445)">
+    <text x="0" y="0" font-size="12" class="secondary-text">Showing 6 of 128 contacts</text>
+    <g transform="translate(220, -5)">
+      <rect x="0" y="0" width="28" height="24" rx="6" class="icon-btn"/>
+      <rect x="0" y="0" width="28" height="24" rx="6" class="border"/>
+      <text x="14" y="17" text-anchor="middle" font-size="12" class="accent-text">‹</text>
+      <rect x="32" y="0" width="28" height="24" rx="6" class="icon-btn"/>
+      <rect x="32" y="0" width="28" height="24" rx="6" class="border"/>
+      <text x="46" y="17" text-anchor="middle" font-size="12" class="accent-text">1</text>
+      <rect x="64" y="0" width="28" height="24" rx="6" class="icon-btn"/>
+      <rect x="64" y="0" width="28" height="24" rx="6" class="border"/>
+      <text x="78" y="17" text-anchor="middle" font-size="12" class="secondary-text">2</text>
+      <rect x="96" y="0" width="28" height="24" rx="6" class="icon-btn"/>
+      <rect x="96" y="0" width="28" height="24" rx="6" class="border"/>
+      <text x="110" y="17" text-anchor="middle" font-size="12" class="secondary-text">3</text>
+      <rect x="128" y="0" width="28" height="24" rx="6" class="icon-btn"/>
+      <rect x="128" y="0" width="28" height="24" rx="6" class="border"/>
+      <text x="142" y="17" text-anchor="middle" font-size="12" class="secondary-text">›</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 480)">
+    <text x="0" y="0" font-size="10" class="muted-text">N = New Contact | G = Groups | F = Filter | E = Export</text>
+  </g>
+</svg>

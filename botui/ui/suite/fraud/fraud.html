@@ -1,0 +1,167 @@
+<link rel="stylesheet" href="/suite/fraud/fraud.css">
+  <header class="header">
+    <h1>Motor Anti-Fraude</h1>
+    <div class="header-actions">
+      <button class="btn btn-primary" id="btnAddRule">+ Nova Regra</button>
+    </div>
+  </header>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="label">Bloqueados Hoje</span>
+      <span class="value danger" id="statBlocked">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Fila de Revisão</span>
+      <span class="value warning" id="statReview">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Taxa de Falso Positivo</span>
+      <span class="value accent" id="statFalsePositive">0%</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Transações Analisadas</span>
+      <span class="value success" id="statAnalyzed">0</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="transactions">Transações</button>
+    <button class="tab" data-tab="rules">Regras</button>
+    <button class="tab" data-tab="blocklist">Bloqueio</button>
+    <button class="tab" data-tab="reports">Relatórios</button>
+  </div>
+
+  <div class="content">
+    <div class="tab-panel active" id="panel-transactions">
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Transações</h3>
+          <div class="table-actions">
+            <select id="filterStatus" style="padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius);color:var(--text-primary);font-size:13px;">
+              <option value="">Todos os status</option>
+              <option value="approved">Aprovado</option>
+              <option value="review">Revisão</option>
+              <option value="blocked">Bloqueado</option>
+            </select>
+          </div>
+        </div>
+        <div id="transactionsTableContainer">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-rules">
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Regras de Detecção</h3>
+          <button class="btn btn-primary btn-sm" id="btnAddRule2">+ Adicionar</button>
+        </div>
+        <div id="rulesTableContainer">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-blocklist">
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Lista de Bloqueio</h3>
+          <button class="btn btn-primary btn-sm" id="btnAddBlocklist">+ Adicionar</button>
+        </div>
+        <div id="blocklistTableContainer">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-reports">
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Relatórios</h3>
+          <button class="btn btn-primary btn-sm" id="btnGerarRelatorio">Gerar Relatório</button>
+        </div>
+        <div id="reportsContainer">
+          <div class="loading">Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="ruleModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="ruleModalTitle">Nova Regra</h3>
+        <button class="modal-close" data-close="ruleModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nome da Regra</label>
+          <input type="text" id="ruleName" placeholder="Ex: Valor alto suspeito">
+        </div>
+        <div class="form-group">
+          <label>Condição</label>
+          <input type="text" id="ruleCondition" placeholder="Ex: amount > 10000 AND country != 'BR'">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ação</label>
+            <select id="ruleAction">
+              <option value="flag">Marcar (Flag)</option>
+              <option value="block">Bloquear</option>
+              <option value="review">Revisão</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Prioridade</label>
+            <select id="rulePriority">
+              <option value="low">Baixa</option>
+              <option value="medium">Média</option>
+              <option value="high">Alta</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="ruleModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveRule">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="blocklistModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Adicionar à Lista de Bloqueio</h3>
+        <button class="modal-close" data-close="blocklistModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="blocklistType">
+            <option value="email">E-mail</option>
+            <option value="phone">Telefone</option>
+            <option value="ip">IP</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Valor</label>
+          <input type="text" id="blocklistValue" placeholder="Ex: usuario@email.com">
+        </div>
+        <div class="form-group">
+          <label>Motivo</label>
+          <input type="text" id="blocklistReason" placeholder="Ex: Fraude confirmada">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="blocklistModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveBlocklist">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/suite/fraud/fraud.js"></script>
+

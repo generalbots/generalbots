@@ -1,0 +1,79 @@
+:root {
+    /* Glass Premium Theme — frosted glass, transparency, subtle shadows */
+    --background: 220 25% 12%;
+    --foreground: 210 20% 98%;
+    --card: 220 20% 16%;
+    --card-foreground: 210 20% 98%;
+    --popover: 220 20% 14%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 210 80% 60%;
+    --primary-foreground: 220 25% 8%;
+    --secondary: 220 15% 22%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 210 15% 70%;
+    --accent: 160 70% 50%;
+    --accent-foreground: 220 25% 8%;
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 15% 25%;
+    --input: 220 15% 20%;
+    --ring: 210 80% 60%;
+    --radius: 1rem;
+    --chart-1: 210 80% 60%;
+    --chart-2: 160 70% 50%;
+    --chart-3: 280 60% 65%;
+    --chart-4: 40 80% 60%;
+    --chart-5: 340 70% 60%;
+    --glass-opacity: 0.65;
+    --glass-blur: 20px;
+    --glass-border: rgba(255,255,255,0.08);
+
+    --sentient-bg-primary: hsl(var(--background));
+    --sentient-bg-secondary: hsl(var(--card));
+    --sentient-bg-tertiary: hsl(var(--muted));
+    --sentient-bg-hover: hsla(var(--primary) / 0.08);
+    --sentient-bg-active: hsla(var(--primary) / 0.15);
+    --sentient-text-primary: hsl(var(--foreground));
+    --sentient-text-secondary: hsl(var(--muted-foreground));
+    --sentient-text-tertiary: hsla(var(--muted-foreground) / 0.7);
+    --sentient-text-muted: hsla(var(--muted-foreground) / 0.5);
+    --sentient-accent: hsl(var(--primary));
+    --sentient-accent-hover: hsl(var(--primary) / 0.85);
+    --sentient-accent-light: hsla(var(--primary) / 0.1);
+    --sentient-accent-dark: hsl(var(--primary) / 0.7);
+    --sentient-border: hsl(var(--border));
+    --sentient-border-light: hsla(var(--border) / 0.5);
+    --sentient-border-accent: hsla(var(--primary) / 0.3);
+    --sentient-surface: hsl(var(--card));
+    --sentient-surface-hover: hsla(var(--primary) / 0.08);
+    --sentient-surface-active: hsla(var(--primary) / 0.15);
+    --sentient-surface-elevated: hsl(var(--popover));
+    --sentient-input-bg: hsl(var(--input));
+    --sentient-input-border: hsl(var(--border));
+    --sentient-input-focus: hsl(var(--ring));
+    --sentient-success: hsl(142 76% 36%);
+    --sentient-success-bg: hsla(142 76% 36% / 0.15);
+    --sentient-warning: hsl(38 92% 50%);
+    --sentient-warning-bg: hsla(38 92% 50% / 0.15);
+    --sentient-error: hsl(var(--destructive));
+    --sentient-error-bg: hsla(var(--destructive) / 0.15);
+    --sentient-font-family:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+    --sentient-shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    --sentient-shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+    --sentient-shadow-lg: 0 16px 48px rgba(0,0,0,0.5);
+    --sentient-radius: 1rem;
+    --sentient-radius-sm: 0.5rem;
+    --sentient-radius-md: 0.75rem;
+    --sentient-radius-lg: 1rem;
+    --sentient-radius-xl: 1.25rem;
+
+    /* Glass-specific */
+    --glass-bg: rgba(30,35,50,0.55);
+    --glass-border-color: rgba(255,255,255,0.12);
+    --glass-highlight: rgba(255,255,255,0.06);
+    --glass-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    --glass-backdrop: blur(24px) saturate(180%);
+}

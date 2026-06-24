@@ -1,0 +1,37 @@
+[package]
+name = "botsecurity"
+version = "6.3.0"
+edition = "2021"
+description = "General Bots security infrastructure (facade crate)"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[features]
+default = []
+cache = ["botsecurity-auth/cache"]
+directory = ["botsecurity-auth/directory"]
+
+[dependencies]
+botsecurity-core = { path = "../botsecurity-core" }
+botsecurity-crypto = { path = "../botsecurity-crypto" }
+botsecurity-auth = { path = "../botsecurity-auth" }
+botsecurity-protection = { path = "../botsecurity-protection" }
+anyhow = { workspace = true }
+
+diesel = { workspace = true, features = ["postgres", "r2d2"] }
+axum = { workspace = true }
+chrono = { workspace = true, features = ["serde", "clock"] }
+base64 = { workspace = true }
+rand = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "blocking"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync", "rt", "macros", "rt-multi-thread"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[lints]
+workspace = true

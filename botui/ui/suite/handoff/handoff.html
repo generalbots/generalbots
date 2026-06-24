@@ -1,0 +1,179 @@
+<link rel="stylesheet" href="/suite/handoff/handoff.css">
+<div class="handoff-container">
+    <header class="handoff-header">
+        <div class="handoff-header-left">
+            <h1>Chatbot Handoff & Analytics</h1>
+            <nav class="handoff-tabs">
+                <button class="handoff-tab active" data-view="queue">Handoff Queue</button>
+                <button class="handoff-tab" data-view="agents">Agents</button>
+                <button class="handoff-tab" data-view="analytics">Analytics</button>
+                <button class="handoff-tab" data-view="channels">Channels</button>
+                <button class="handoff-tab" data-view="csat">CSAT</button>
+                <button class="handoff-tab" data-view="transcripts">Transcripts</button>
+                <button class="handoff-tab" data-view="sla">SLA Monitor</button>
+            </nav>
+        </div>
+        <div class="handoff-header-right">
+            <div class="handoff-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="handoffSearch" placeholder="Search conversations...">
+            </div>
+            <select id="handoffChannelFilter" class="handoff-filter-select">
+                <option value="">All channels</option>
+                <option value="webchat">Webchat</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="telegram">Telegram</option>
+                <option value="email">Email</option>
+            </select>
+            <button class="btn-primary" onclick="HandoffApp.refresh()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <section class="handoff-stats" id="handoffStats">
+        <article class="handoff-stat-card">
+            <span class="handoff-stat-label">Active conversations</span>
+            <span class="handoff-stat-value" id="stat-active">--</span>
+        </article>
+        <article class="handoff-stat-card">
+            <span class="handoff-stat-label">In queue</span>
+            <span class="handoff-stat-value orange" id="stat-queue">--</span>
+        </article>
+        <article class="handoff-stat-card">
+            <span class="handoff-stat-label">Available agents</span>
+            <span class="handoff-stat-value green" id="stat-agents">--</span>
+        </article>
+        <article class="handoff-stat-card">
+            <span class="handoff-stat-label">Avg wait (s)</span>
+            <span class="handoff-stat-value blue" id="stat-wait">--</span>
+        </article>
+        <article class="handoff-stat-card">
+            <span class="handoff-stat-label">CSAT score</span>
+            <span class="handoff-stat-value purple" id="stat-csat">--</span>
+        </article>
+    </section>
+
+    <div id="queue-view" class="handoff-view active">
+        <div class="handoff-summary" id="queue-summary"></div>
+        <div class="handoff-queue" id="queue-list">
+            <div class="loading-row"><div class="spinner"></div> Loading queue...</div>
+        </div>
+    </div>
+
+    <div id="agents-view" class="handoff-view">
+        <div class="agents-toolbar">
+            <button class="btn-secondary" onclick="HandoffApp.inviteAgent()">+ Invite agent</button>
+            <button class="btn-secondary" onclick="HandoffApp.exportAgents()">Export CSV</button>
+        </div>
+        <div class="banking-table-wrap" style="padding:24px">
+            <table class="sales-table">
+                <thead><tr><th>Agent</th><th>Status</th><th>Active chats</th><th>Handled today</th><th>Avg handling time</th><th>CSAT</th><th>Skills</th><th>Actions</th></tr></thead>
+                <tbody id="agents-body"><tr><td colspan="8" class="loading-row"><div class="spinner"></div> Loading agents...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="analytics-view" class="handoff-view">
+        <div class="analytics-cards" id="analytics-cards">
+            <div class="loading-row"><div class="spinner"></div> Loading analytics...</div>
+        </div>
+        <div class="analytics-charts" id="analytics-charts"></div>
+        <div class="banking-table-wrap" style="padding:24px">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:600">Top deflection reasons</h3>
+            <table class="sales-table">
+                <thead><tr><th>Reason</th><th>Count</th><th>Trend</th></tr></thead>
+                <tbody id="deflection-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="channels-view" class="handoff-view">
+        <div class="channels-grid" id="channels-grid">
+            <div class="loading-row"><div class="spinner"></div> Loading channels...</div>
+        </div>
+    </div>
+
+    <div id="csat-view" class="handoff-view">
+        <div class="csat-grid" id="csat-grid">
+            <div class="loading-row"><div class="spinner"></div> Loading CSAT...</div>
+        </div>
+        <div class="banking-table-wrap" style="padding:24px">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:600">Recent CSAT responses</h3>
+            <table class="sales-table">
+                <thead><tr><th>Date</th><th>Customer</th><th>Agent</th><th>Channel</th><th>Rating</th><th>Comment</th></tr></thead>
+                <tbody id="csat-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="transcripts-view" class="handoff-view">
+        <div class="handoff-search" style="margin:16px 24px;max-width:400px">
+            <input type="text" id="transcriptSearch" placeholder="Search transcripts by keyword or agent...">
+        </div>
+        <div class="banking-table-wrap" style="padding:24px">
+            <table class="sales-table">
+                <thead><tr><th>Date</th><th>Customer</th><th>Agent</th><th>Channel</th><th>Duration</th><th>Messages</th><th>Outcome</th><th>Actions</th></tr></thead>
+                <tbody id="transcripts-body"><tr><td colspan="8" class="loading-row"><div class="spinner"></div> Loading transcripts...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="sla-view" class="handoff-view">
+        <section class="handoff-sla-grid" id="sla-grid">
+            <article class="handoff-sla-card handoff-sla-card--ok">
+                <h3>First response &lt; 30s</h3>
+                <p class="handoff-sla-percentage">96%</p>
+                <small>Target 95% • 38 / 40 conversations</small>
+            </article>
+            <article class="handoff-sla-card handoff-sla-card--warn">
+                <h3>Resolution &lt; 4h</h3>
+                <p class="handoff-sla-percentage">88%</p>
+                <small>Target 90% • 3 at risk</small>
+            </article>
+            <article class="handoff-sla-card handoff-sla-card--ok">
+                <h3>CSAT &gt; 4.0</h3>
+                <p class="handoff-sla-percentage">92%</p>
+                <small>Target 85%</small>
+            </article>
+        </section>
+        <div class="banking-table-wrap" style="padding:24px;margin-top:16px">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:600">Active SLA breaches</h3>
+            <table class="sales-table">
+                <thead><tr><th>Conversation</th><th>Customer</th><th>Agent</th><th>Stage</th><th>Elapsed</th><th>SLA</th><th>Status</th></tr></thead>
+                <tbody id="sla-breach-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="handoffTransferModal" class="handoff-modal" style="display:none">
+    <div class="handoff-modal-dialog">
+        <header class="handoff-modal-header">
+            <h2>Transfer conversation</h2>
+            <button onclick="HandoffApp.closeTransferModal()">&times;</button>
+        </header>
+        <div class="handoff-modal-body">
+            <label>Target agent
+                <select id="transferAgentSelect"></select>
+            </label>
+            <label>Transfer reason
+                <select id="transferReasonSelect">
+                    <option value="skill">Skill mismatch</option>
+                    <option value="workload">Workload balancing</option>
+                    <option value="escalation">Customer escalation</option>
+                    <option value="vip">VIP handling</option>
+                </select>
+            </label>
+            <label>Internal note
+                <textarea id="transferNote" rows="3" placeholder="Optional context for the receiving agent"></textarea>
+            </label>
+        </div>
+        <footer class="handoff-modal-footer">
+            <button class="btn-secondary" onclick="HandoffApp.closeTransferModal()">Cancel</button>
+            <button class="btn-primary" onclick="HandoffApp.confirmTransfer()">Transfer</button>
+        </footer>
+    </div>
+</div>
+<script src="/suite/handoff/handoff.js"></script>

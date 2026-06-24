@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="900" viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#075e54"/>
+      <stop offset="100%" style="stop-color:#25d366"/>
+    </linearGradient>
+
+    <linearGradient id="userGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+
+    <linearGradient id="botGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#11998e"/>
+      <stop offset="100%" style="stop-color:#38ef7d"/>
+    </linearGradient>
+
+    <linearGradient id="storageGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb"/>
+      <stop offset="100%" style="stop-color:#f5576c"/>
+    </linearGradient>
+
+    <linearGradient id="llmGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe"/>
+      <stop offset="100%" style="stop-color:#00f2fe"/>
+    </linearGradient>
+
+    <linearGradient id="dbGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fa709a"/>
+      <stop offset="100%" style="stop-color:#fee140"/>
+    </linearGradient>
+
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+
+    <marker id="arrowheadGreen" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#25d366"/>
+    </marker>
+
+    <marker id="arrowheadBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4facfe"/>
+    </marker>
+
+    <marker id="arrowheadPink" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f5576c"/>
+    </marker>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#f8fafc"/>
+
+  <!-- Header -->
+  <rect x="0" y="0" width="1200" height="60" fill="url(#headerGradient)"/>
+  <text x="600" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">
+    Data Traceability Diagram - General Bots Architecture
+  </text>
+
+  <!-- Legend -->
+  <g transform="translate(900, 80)">
+    <rect x="0" y="0" width="280" height="140" rx="8" fill="white" stroke="#e2e8f0" filter="url(#shadow)"/>
+    <text x="140" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1a1a1a" text-anchor="middle">Legend</text>
+
+    <line x1="20" y1="50" x2="60" y2="50" stroke="#25d366" stroke-width="2" marker-end="url(#arrowheadGreen)"/>
+    <text x="75" y="54" font-family="Arial, sans-serif" font-size="12" fill="#666">User Input Flow</text>
+
+    <line x1="20" y1="75" x2="60" y2="75" stroke="#4facfe" stroke-width="2" marker-end="url(#arrowheadBlue)"/>
+    <text x="75" y="79" font-family="Arial, sans-serif" font-size="12" fill="#666">LLM Processing</text>
+
+    <line x1="20" y1="100" x2="60" y2="100" stroke="#f5576c" stroke-width="2" marker-end="url(#arrowheadPink)"/>
+    <text x="75" y="104" font-family="Arial, sans-serif" font-size="12" fill="#666">Storage Operations</text>
+
+    <line x1="20" y1="125" x2="60" y2="125" stroke="#666" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+    <text x="75" y="129" font-family="Arial, sans-serif" font-size="12" fill="#666">Internal Flow</text>
+  </g>
+
+  <!-- User/Channels Section -->
+  <g transform="translate(50, 100)">
+    <rect x="0" y="0" width="200" height="280" rx="12" fill="url(#userGradient)" filter="url(#shadow)"/>
+    <text x="100" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">CHANNELS</text>
+
+    <!-- WhatsApp -->
+    <rect x="20" y="50" width="160" height="40" rx="6" fill="white" opacity="0.9"/>
+    <text x="100" y="75" font-family="Arial, sans-serif" font-size="13" fill="#333" text-anchor="middle">📱 WhatsApp</text>
+
+    <!-- Telegram -->
+    <rect x="20" y="100" width="160" height="40" rx="6" fill="white" opacity="0.9"/>
+    <text x="100" y="125" font-family="Arial, sans-serif" font-size="13" fill="#333" text-anchor="middle">✈️ Telegram</text>
+
+    <!-- Web UI -->
+    <rect x="20" y="150" width="160" height="40" rx="6" fill="white" opacity="0.9"/>
+    <text x="100" y="175" font-family="Arial, sans-serif" font-size="13" fill="#333" text-anchor="middle">🌐 Web UI / gbui</text>
+
+    <!-- API -->
+    <rect x="20" y="200" width="160" height="40" rx="6" fill="white" opacity="0.9"/>
+    <text x="100" y="225" font-family="Arial, sans-serif" font-size="13" fill="#333" text-anchor="middle">🔌 REST API</text>
+
+    <!-- Webhook -->
+    <rect x="20" y="250" width="160" height="20" rx="4" fill="white" opacity="0.7"/>
+    <text x="100" y="264" font-family="Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">🪝 Webhooks</text>
+  </g>
+
+  <!-- Bot Core -->
+  <g transform="translate(350, 120)">
+    <rect x="0" y="0" width="240" height="360" rx="12" fill="url(#botGradient)" filter="url(#shadow)"/>
+    <text x="120" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">BOTSERVER CORE</text>
+
+    <!-- BASIC Interpreter -->
+    <rect x="20" y="50" width="200" height="50" rx="6" fill="white" opacity="0.95"/>
+    <text x="120" y="72" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">BASIC Interpreter</text>
+    <text x="120" y="88" font-family="Arial, sans-serif" font-size="10" fill="#666" text-anchor="middle">.bas scripts → Rhai engine</text>
+
+    <!-- Message Router -->
+    <rect x="20" y="110" width="200" height="50" rx="6" fill="white" opacity="0.95"/>
+    <text x="120" y="132" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Message Router</text>
+    <text x="120" y="148" font-family="Arial, sans-serif" font-size="10" fill="#666" text-anchor="middle">TALK / HEAR / SEND</text>
+
+    <!-- Scheduler -->
+    <rect x="20" y="170" width="200" height="50" rx="6" fill="white" opacity="0.95"/>
+    <text x="120" y="192" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Scheduler</text>
+    <text x="120" y="208" font-family="Arial, sans-serif" font-size="10" fill="#666" text-anchor="middle">SET SCHEDULE "every hour"</text>
+
+    <!-- Keywords Engine -->
+    <rect x="20" y="230" width="200" height="50" rx="6" fill="white" opacity="0.95"/>
+    <text x="120" y="252" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Keywords Engine</text>
+    <text x="120" y="268" font-family="Arial, sans-serif" font-size="10" fill="#666" text-anchor="middle">GET/POST/FIND/SAVE/LLM</text>
+
+    <!-- Session Manager -->
+    <rect x="20" y="290" width="200" height="50" rx="6" fill="white" opacity="0.95"/>
+    <text x="120" y="312" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Session Manager</text>
+    <text x="120" y="328" font-family="Arial, sans-serif" font-size="10" fill="#666" text-anchor="middle">user_id → bot_id → org_id</text>
+  </g>
+
+  <!-- LLM Section -->
+  <g transform="translate(680, 100)">
+    <rect x="0" y="0" width="200" height="200" rx="12" fill="url(#llmGradient)" filter="url(#shadow)"/>
+    <text x="100" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">LLM PROVIDERS</text>
+
+    <rect x="20" y="50" width="160" height="30" rx="4" fill="white" opacity="0.9"/>
+    <text x="100" y="70" font-family="Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">🧠 Claude Opus 4</text>
+
+    <rect x="20" y="90" width="160" height="30" rx="4" fill="white" opacity="0.9"/>
+    <text x="100" y="110" font-family="Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">🤖 GPT-4 Turbo</text>
+
+    <rect x="20" y="130" width="160" height="30" rx="4" fill="white" opacity="0.9"/>
+    <text x="100" y="150" font-family="Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">💎 Gemini Pro</text>
+
+    <rect x="20" y="170" width="160" height="20" rx="4" fill="white" opacity="0.7"/>
+    <text x="100" y="184" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">🦙 Local: Llama/Mistral</text>
+  </g>
+
+  <!-- Storage Section -->
+  <g transform="translate(680, 320)">
+    <rect x="0" y="0" width="200" height="200" rx="12" fill="url(#storageGradient)" filter="url(#shadow)"/>
+    <text x="100" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">STORAGE (MinIO)</text>
+
+    <rect x="20" y="50" width="160" height="35" rx="4" fill="white" opacity="0.9"/>
+    <text x="100" y="65" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">📁 /{org}/{botname}/</text>
+    <text x="100" y="78" font-family="Arial, sans-serif" font-size="9" fill="#666" text-anchor="middle">Bucket per bot</text>
+
+    <rect x="20" y="95" width="75" height="30" rx="4" fill="white" opacity="0.85"/>
+    <text x="57" y="114" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">.gbdialog</text>
+
+    <rect x="105" y="95" width="75" height="30" rx="4" fill="white" opacity="0.85"/>
+    <text x="142" y="114" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">.gbkb</text>
+
+    <rect x="20" y="135" width="75" height="30" rx="4" fill="white" opacity="0.85"/>
+    <text x="57" y="154" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">.gbot</text>
+
+    <rect x="105" y="135" width="75" height="30" rx="4" fill="white" opacity="0.85"/>
+    <text x="142" y="154" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">.gbtheme</text>
+
+    <rect x="20" y="175" width="160" height="18" rx="3" fill="white" opacity="0.7"/>
+    <text x="100" y="188" font-family="Arial, sans-serif" font-size="9" fill="#666" text-anchor="middle">uploads/ | exports/ | cache/</text>
+  </g>
+
+  <!-- Database Section -->
+  <g transform="translate(950, 180)">
+    <rect x="0" y="0" width="200" height="280" rx="12" fill="url(#dbGradient)" filter="url(#shadow)"/>
+    <text x="100" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">DATABASE</text>
+
+    <rect x="20" y="50" width="160" height="35" rx="4" fill="white" opacity="0.9"/>
+    <text x="100" y="65" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">🐘 PostgreSQL</text>
+    <text x="100" y="78" font-family="Arial, sans-serif" font-size="9" fill="#666" text-anchor="middle">Main database</text>
+
+    <rect x="20" y="95" width="160" height="25" rx="3" fill="white" opacity="0.85"/>
+    <text x="100" y="112" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">organizations</text>
+
+    <rect x="20" y="125" width="160" height="25" rx="3" fill="white" opacity="0.85"/>
+    <text x="100" y="142" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">bots</text>
+
+    <rect x="20" y="155" width="160" height="25" rx="3" fill="white" opacity="0.85"/>
+    <text x="100" y="172" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">users / sessions</text>
+
+    <rect x="20" y="185" width="160" height="25" rx="3" fill="white" opacity="0.85"/>
+    <text x="100" y="202" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">conversations</text>
+
+    <rect x="20" y="215" width="160" height="25" rx="3" fill="white" opacity="0.85"/>
+    <text x="100" y="232" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">system_automations</text>
+
+    <rect x="20" y="250" width="160" height="20" rx="3" fill="white" opacity="0.7"/>
+    <text x="100" y="264" font-family="Arial, sans-serif" font-size="9" fill="#666" text-anchor="middle">🔴 Redis (cache/queue)</text>
+  </g>
+
+  <!-- Data Flow Arrows -->
+  <!-- Channels to Bot Core -->
+  <path d="M 250 240 L 350 300" stroke="#25d366" stroke-width="2" fill="none" marker-end="url(#arrowheadGreen)"/>
+  <path d="M 250 220 L 350 280" stroke="#25d366" stroke-width="2" fill="none" marker-end="url(#arrowheadGreen)"/>
+
+  <!-- Bot Core to LLM -->
+  <path d="M 590 200 L 680 200" stroke="#4facfe" stroke-width="2" fill="none" marker-end="url(#arrowheadBlue)"/>
+  <text x="635" y="190" font-family="Arial, sans-serif" font-size="9" fill="#4facfe">LLM</text>
+
+  <!-- LLM back to Bot Core -->
+  <path d="M 680 230 L 590 270" stroke="#4facfe" stroke-width="2" fill="none" marker-end="url(#arrowheadBlue)"/>
+
+  <!-- Bot Core to Storage -->
+  <path d="M 590 380 L 680 400" stroke="#f5576c" stroke-width="2" fill="none" marker-end="url(#arrowheadPink)"/>
+  <text x="620" y="375" font-family="Arial, sans-serif" font-size="9" fill="#f5576c">FILES</text>
+
+  <!-- Bot Core to Database -->
+  <path d="M 590 340 Q 750 340 950 340" stroke="#666" stroke-width="2" stroke-dasharray="5,5" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="770" y="330" font-family="Arial, sans-serif" font-size="9" fill="#666">FIND/SAVE</text>
+
+  <!-- Storage to Database (metadata) -->
+  <path d="M 880 420 L 950 380" stroke="#666" stroke-width="1.5" stroke-dasharray="3,3" fill="none" marker-end="url(#arrowhead)"/>
+
+  <!-- Key Data Flows Section -->
+  <g transform="translate(50, 550)">
+    <rect x="0" y="0" width="1100" height="300" rx="12" fill="white" stroke="#e2e8f0" filter="url(#shadow)"/>
+    <text x="550" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1a1a1a" text-anchor="middle">Key Data Flows</text>
+
+    <!-- Flow 1: User Message -->
+    <g transform="translate(30, 50)">
+      <rect x="0" y="0" width="320" height="100" rx="8" fill="#e8f5e9" stroke="#4caf50"/>
+      <text x="160" y="25" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#2e7d32" text-anchor="middle">1. User Message Flow</text>
+      <text x="10" y="50" font-family="monospace" font-size="10" fill="#333">Channel → Router → Session</text>
+      <text x="10" y="65" font-family="monospace" font-size="10" fill="#333">→ BASIC Script → LLM (if needed)</text>
+      <text x="10" y="80" font-family="monospace" font-size="10" fill="#333">→ Response → Channel</text>
+      <text x="10" y="95" font-family="Arial, sans-serif" font-size="9" fill="#666">Key: {org}_{bot}_{user}_{session}</text>
+    </g>
+
+    <!-- Flow 2: Scheduled Task -->
+    <g transform="translate(380, 50)">
+      <rect x="0" y="0" width="320" height="100" rx="8" fill="#e3f2fd" stroke="#2196f3"/>
+      <text x="160" y="25" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1565c0" text-anchor="middle">2. Scheduled Task Flow</text>
+      <text x="10" y="50" font-family="monospace" font-size="10" fill="#333">Cron Trigger → Load Script</text>
+      <text x="10" y="65" font-family="monospace" font-size="10" fill="#333">→ Execute Keywords → External APIs</text>
+      <text x="10" y="80" font-family="monospace" font-size="10" fill="#333">→ Save Results → Log</text>
+      <text x="10" y="95" font-family="Arial, sans-serif" font-size="9" fill="#666">Key: {org}_{bot}_schedule_{name}</text>
+    </g>
+
+    <!-- Flow 3: File Operations -->
+    <g transform="translate(730, 50)">
+      <rect x="0" y="0" width="320" height="100" rx="8" fill="#fce4ec" stroke="#e91e63"/>
+      <text x="160" y="25" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#c2185b" text-anchor="middle">3. File Operations Flow</text>
+      <text x="10" y="50" font-family="monospace" font-size="10" fill="#333">UPLOAD/DOWNLOAD → MinIO</text>
+      <text x="10" y="65" font-family="monospace" font-size="10" fill="#333">Bucket: /{org}/{botname}/</text>
+      <text x="10" y="80" font-family="monospace" font-size="10" fill="#333">→ Metadata → PostgreSQL</text>
+      <text x="10" y="95" font-family="Arial, sans-serif" font-size="9" fill="#666">Path: s3://{org}/{bot}/{path}</text>
+    </g>
+
+    <!-- Flow 4: Knowledge Base -->
+    <g transform="translate(30, 165)">
+      <rect x="0" y="0" width="320" height="100" rx="8" fill="#fff3e0" stroke="#ff9800"/>
+      <text x="160" y="25" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#e65100" text-anchor="middle">4. Knowledge Base Flow</text>
+      <text x="10" y="50" font-family="monospace" font-size="10" fill="#333">USE KB "docs" → Load .gbkb</text>
+      <text x="10" y="65" font-family="monospace" font-size="10" fill="#333">→ Embed → Vector DB (pgvector)</text>
+      <text x="10" y="80" font-family="monospace" font-size="10" fill="#333">→ Semantic Search → LLM Context</text>
+      <text x="10" y="95" font-family="Arial, sans-serif" font-size="9" fill="#666">Key: {org}_{bot}_kb_{name}</text>
+    </g>
+
+    <!-- Flow 5: Webhook -->
+    <g transform="translate(380, 165)">
+      <rect x="0" y="0" width="320" height="100" rx="8" fill="#f3e5f5" stroke="#9c27b0"/>
+      <text x="160" y="25" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#7b1fa2" text-anchor="middle">5. Webhook Flow</text>
+      <text x="10" y="50" font-family="monospace" font-size="10" fill="#333">External POST → /webhook/{id}</text>
+      <text x="10" y="65" font-family="monospace" font-size="10" fill="#333">→ Validate → Trigger Script</text>
+      <text x="10" y="80" font-family="monospace" font-size="10" fill="#333">→ Process → Response/Notify</text>
+      <text x="10" y="95" font-family="Arial, sans-serif" font-size="9" fill="#666">Key: {org}_{bot}_webhook_{path}</text>
+    </g>
+
+    <!-- Flow 6: Bot Memory -->
+    <g transform="translate(730, 165)">
+      <rect x="0" y="0" width="320" height="100" rx="8" fill="#e0f2f1" stroke="#009688"/>
+      <text x="160" y="25" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#00695c" text-anchor="middle">6. Bot Memory Flow</text>
+      <text x="10" y="50" font-family="monospace" font-size="10" fill="#333">SET/GET BOT MEMORY → Redis</text>
+      <text x="10" y="65" font-family="monospace" font-size="10" fill="#333">→ Persist → PostgreSQL (backup)</text>
+      <text x="10" y="80" font-family="monospace" font-size="10" fill="#333">→ Scope: global | user | session</text>
+      <text x="10" y="95" font-family="Arial, sans-serif" font-size="9" fill="#666">Key: {org}_{bot}_mem_{scope}_{key}</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <text x="600" y="880" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">
+    General Bots Data Traceability - All keys follow pattern: {org}_{botname}_{resource}_{identifier}
+  </text>
+</svg>

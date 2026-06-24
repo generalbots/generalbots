@@ -1,0 +1,3 @@
+/* Quick Note CSS — split into modules */
+@import url("./quicknote-base.css");
+@import url("./quicknote-components.css");

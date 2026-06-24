@@ -1,0 +1,101 @@
+<!-- Main Canvas Area -->
+    <main class="canvas-main">
+        <!-- Top Bar -->
+        <header class="canvas-header">
+            <div class="header-left">
+                <input
+                    type="text"
+                    id="canvas-name"
+                    value="Untitled Canvas"
+                    class="canvas-name-input"
+                    onblur="renameCanvas(this.value)"
+                />
+                <span class="save-status" id="save-status">Saved</span>
+            </div>
+            <div class="header-center">
+                <div class="zoom-controls">
+                    <button
+                        class="zoom-btn"
+                        onclick="zoomOut()"
+                        title="Zoom Out"
+                    >
+                        −
+                    </button>
+                    <span id="zoom-level">100%</span>
+                    <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">
+                        +
+                    </button>
+                    <button
+                        class="zoom-btn"
+                        onclick="resetZoom()"
+                        title="Reset Zoom"
+                    >
+                        ⟲
+                    </button>
+                    <button
+                        class="zoom-btn"
+                        onclick="fitToScreen()"
+                        title="Fit to Screen"
+                    >
+                        ⤢
+                    </button>
+                </div>
+            </div>
+            <div class="header-right">
+                <button
+                    class="btn-icon"
+                    onclick="undo()"
+                    title="Undo (Ctrl+Z)"
+                    data-i18n-title="canvas-undo"
+                >
+                    <span>↶</span>
+                </button>
+                <button
+                    class="btn-icon"
+                    onclick="redo()"
+                    title="Redo (Ctrl+Y)"
+                    data-i18n-title="canvas-redo"
+                >
+                    <span>↷</span>
+                </button>
+                <div class="separator"></div>
+                <button
+                    class="btn-icon"
+                    onclick="clearCanvas()"
+                    title="Clear Canvas"
+                    data-i18n-title="canvas-clear"
+                >
+                    <span>🗑️</span>
+                </button>
+                <button
+                    class="btn-secondary"
+                    onclick="exportCanvas()"
+                    data-i18n="canvas-export"
+                >
+                    <span>📤</span> Export
+                </button>
+                <button
+                    class="btn-primary"
+                    onclick="shareCanvas()"
+                    data-i18n="canvas-collaborate"
+                >
+                    <span>👥</span> Share
+                </button>
+            </div>
+        </header>
+
+        <!-- Canvas Container -->
+        <div class="canvas-container" id="canvas-container">
+            <canvas id="main-canvas"></canvas>
+            <div id="selection-box" class="selection-box hidden"></div>
+            <div id="cursor-indicators" class="cursor-indicators"></div>
+        </div>
+
+        <!-- Mini Map -->
+        <div class="mini-map" id="mini-map">
+            <canvas id="mini-map-canvas"></canvas>
+            <div class="viewport-indicator" id="viewport-indicator"></div>
+        </div>
+    </main>
+
+    

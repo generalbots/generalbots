@@ -1,0 +1,194 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+    <filter id="shadowSm" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card-bg { fill: #f8fafc; }
+    .tab-active { fill: #eff6ff; stroke: #3b82f6; stroke-width: 1.5; }
+    .progress-bg { fill: #e2e8f0; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card-bg { fill: #1e293b; }
+      .tab-active { fill: #1e3a5f; stroke: #3b82f6; }
+      .progress-bg { fill: #334155; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Learning Platform</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Stats Row -->
+  <g transform="translate(50, 55)">
+    <!-- Hours Learned -->
+    <rect x="0" y="0" width="185" height="75" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="185" height="75" rx="10" class="border"/>
+    <rect x="12" y="12" width="32" height="32" rx="8" fill="url(#blueGrad)"/>
+    <text x="28" y="33" text-anchor="middle" font-size="14" class="white-text">⏱</text>
+    <text x="54" y="30" font-size="22" font-weight="700" class="main-text">42</text>
+    <text x="54" y="50" font-size="11" class="secondary-text">Hours Learned</text>
+    <text x="12" y="68" font-size="10" class="accent-text">↑ 8h this week</text>
+
+    <!-- Courses Done -->
+    <rect x="200" y="0" width="185" height="75" rx="10" class="card-bg"/>
+    <rect x="200" y="0" width="185" height="75" rx="10" class="border"/>
+    <rect x="212" y="12" width="32" height="32" rx="8" fill="url(#greenGrad)"/>
+    <text x="228" y="33" text-anchor="middle" font-size="14" class="white-text">✓</text>
+    <text x="254" y="30" font-size="22" font-weight="700" class="main-text">8</text>
+    <text x="254" y="50" font-size="11" class="secondary-text">Courses Done</text>
+    <text x="212" y="68" font-size="10" fill="#22c55e">↑ 2 this month</text>
+
+    <!-- Streak -->
+    <rect x="400" y="0" width="185" height="75" rx="10" class="card-bg"/>
+    <rect x="400" y="0" width="185" height="75" rx="10" class="border"/>
+    <rect x="412" y="12" width="32" height="32" rx="8" fill="url(#orangeGrad)"/>
+    <text x="428" y="33" text-anchor="middle" font-size="14" class="white-text">🔥</text>
+    <text x="454" y="30" font-size="22" font-weight="700" class="main-text">15</text>
+    <text x="454" y="50" font-size="11" class="secondary-text">Day Streak</text>
+    <text x="412" y="68" font-size="10" fill="#f97316">Personal best!</text>
+
+    <!-- Badges -->
+    <rect x="600" y="0" width="185" height="75" rx="10" class="card-bg"/>
+    <rect x="600" y="0" width="185" height="75" rx="10" class="border"/>
+    <rect x="612" y="12" width="32" height="32" rx="8" fill="url(#purpleGrad)"/>
+    <text x="628" y="33" text-anchor="middle" font-size="14" class="white-text">🏅</text>
+    <text x="654" y="30" font-size="22" font-weight="700" class="main-text">12</text>
+    <text x="654" y="50" font-size="11" class="secondary-text">Badges Earned</text>
+    <text x="612" y="68" font-size="10" fill="#8b5cf6">3 unlocked recently</text>
+  </g>
+
+  <!-- Tab Bar -->
+  <g transform="translate(50, 145)">
+    <rect x="0" y="0" width="90" height="34" rx="8" class="tab-active"/>
+    <text x="45" y="22" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">Courses</text>
+
+    <rect x="100" y="0" width="120" height="34" rx="8" class="icon-btn"/>
+    <rect x="100" y="0" width="120" height="34" rx="8" class="border"/>
+    <text x="160" y="22" text-anchor="middle" font-size="12" class="secondary-text">Certifications</text>
+
+    <rect x="230" y="0" width="90" height="34" rx="8" class="icon-btn"/>
+    <rect x="230" y="0" width="90" height="34" rx="8" class="border"/>
+    <text x="275" y="22" text-anchor="middle" font-size="12" class="secondary-text">Creator</text>
+
+    <rect x="330" y="0" width="90" height="34" rx="8" class="icon-btn"/>
+    <rect x="330" y="0" width="90" height="34" rx="8" class="border"/>
+    <text x="375" y="22" text-anchor="middle" font-size="12" class="secondary-text">Progress</text>
+  </g>
+
+  <!-- Course Cards Grid -->
+  <!-- Course 1: In Progress -->
+  <g transform="translate(50, 195)">
+    <rect x="0" y="0" width="390" height="145" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="390" height="145" rx="10" class="border"/>
+    <!-- Thumbnail placeholder -->
+    <rect x="15" y="15" width="80" height="55" rx="6" fill="#eff6ff"/>
+    <text x="55" y="48" text-anchor="middle" font-size="22">📐</text>
+    <text x="105" y="32" font-size="14" font-weight="600" class="main-text">System Design Fundamentals</text>
+    <text x="105" y="50" font-size="12" class="secondary-text">12 lessons • 6 hours</text>
+    <rect x="15" y="80" width="56" height="20" rx="10" fill="#dbeafe"/>
+    <text x="43" y="94" text-anchor="middle" font-size="10" font-weight="500" fill="#2563eb">In Progress</text>
+    <g transform="translate(15, 108)">
+      <rect x="0" y="0" width="360" height="8" rx="4" class="progress-bg"/>
+      <rect x="0" y="0" width="252" height="8" rx="4" fill="#3b82f6"/>
+    </g>
+    <text x="15" y="135" font-size="11" class="secondary-text">70% complete • Lesson 8 of 12</text>
+  </g>
+
+  <!-- Course 2: Completed -->
+  <g transform="translate(460, 195)">
+    <rect x="0" y="0" width="390" height="145" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="390" height="145" rx="10" class="border"/>
+    <rect x="15" y="15" width="80" height="55" rx="6" fill="#f0fdf4"/>
+    <text x="55" y="48" text-anchor="middle" font-size="22">🧠</text>
+    <text x="105" y="32" font-size="14" font-weight="600" class="main-text">Machine Learning Basics</text>
+    <text x="105" y="50" font-size="12" class="secondary-text">15 lessons • 8 hours</text>
+    <rect x="15" y="80" width="72" height="20" rx="10" fill="#dcfce7"/>
+    <text x="51" y="94" text-anchor="middle" font-size="10" font-weight="500" fill="#16a34a">Completed</text>
+    <g transform="translate(15, 108)">
+      <rect x="0" y="0" width="360" height="8" rx="4" class="progress-bg"/>
+      <rect x="0" y="0" width="360" height="8" rx="4" fill="#22c55e"/>
+    </g>
+    <text x="15" y="135" font-size="11" class="secondary-text">100% complete • Certificate earned</text>
+  </g>
+
+  <!-- Course 3: Not Started -->
+  <g transform="translate(50, 355)">
+    <rect x="0" y="0" width="390" height="145" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="390" height="145" rx="10" class="border"/>
+    <rect x="15" y="15" width="80" height="55" rx="6" fill="#fef3c7"/>
+    <text x="55" y="48" text-anchor="middle" font-size="22">🔐</text>
+    <text x="105" y="32" font-size="14" font-weight="600" class="main-text">Cybersecurity Essentials</text>
+    <text x="105" y="50" font-size="12" class="secondary-text">10 lessons • 5 hours</text>
+    <rect x="15" y="80" width="72" height="20" rx="10" fill="#fef3c7"/>
+    <text x="51" y="94" text-anchor="middle" font-size="10" font-weight="500" fill="#d97706">Not Started</text>
+    <g transform="translate(15, 108)">
+      <rect x="0" y="0" width="360" height="8" rx="4" class="progress-bg"/>
+      <rect x="0" y="0" width="0" height="8" rx="4" fill="#f97316"/>
+    </g>
+    <text x="15" y="135" font-size="11" class="secondary-text">Start course to begin tracking progress</text>
+  </g>
+
+  <!-- Course 4: In Progress -->
+  <g transform="translate(460, 355)">
+    <rect x="0" y="0" width="390" height="145" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="390" height="145" rx="10" class="border"/>
+    <rect x="15" y="15" width="80" height="55" rx="6" fill="#f5f3ff"/>
+    <text x="55" y="48" text-anchor="middle" font-size="22">☁️</text>
+    <text x="105" y="32" font-size="14" font-weight="600" class="main-text">Cloud Architecture on AWS</text>
+    <text x="105" y="50" font-size="12" class="secondary-text">18 lessons • 10 hours</text>
+    <rect x="15" y="80" width="56" height="20" rx="10" fill="#dbeafe"/>
+    <text x="43" y="94" text-anchor="middle" font-size="10" font-weight="500" fill="#2563eb">In Progress</text>
+    <g transform="translate(15, 108)">
+      <rect x="0" y="0" width="360" height="8" rx="4" class="progress-bg"/>
+      <rect x="0" y="0" width="108" height="8" rx="4" fill="#8b5cf6"/>
+    </g>
+    <text x="15" y="135" font-size="11" class="secondary-text">30% complete • Lesson 5 of 18</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 515)">
+    <text x="0" y="0" font-size="10" class="muted-text">C = Certificates | B = Browse Courses | F = Filter | S = Schedule</text>
+  </g>
+</svg>

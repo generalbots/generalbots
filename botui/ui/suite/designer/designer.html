@@ -1,0 +1,70 @@
+<link rel="stylesheet" href="/suite/designer/designer.css" />
+
+<div class="designer-app" id="designer-app">
+  <header class="designer-header">
+    <h2 data-i18n="designer-title">Component Library</h2>
+    <div class="designer-search">
+      <input type="search" id="designer-search-input"
+             placeholder="Search components…"
+             data-i18n-placeholder="designer-search-placeholder"
+             autocomplete="off" />
+      <select id="designer-category-filter">
+        <option value="">All categories</option>
+        <option value="triggers">Triggers</option>
+        <option value="actions">Actions</option>
+        <option value="integrations">Integrations</option>
+        <option value="flow">Flow control</option>
+        <option value="ai">AI / LLM</option>
+      </select>
+    </div>
+    <div class="designer-actions">
+      <button id="designer-deploy-btn" class="btn-primary" data-i18n="designer-deploy">Deploy</button>
+      <button id="designer-export-btn" class="btn-secondary" data-i18n="designer-export">Export</button>
+    </div>
+  </header>
+
+  <main class="designer-main">
+    <aside class="designer-palette">
+      <h4 data-i18n="designer-palette-title">Components</h4>
+      <ul id="designer-palette-list" class="palette-list">
+        <li draggable="true" data-node-type="trigger" data-category="triggers"><span>Trigger</span></li>
+        <li draggable="true" data-node-type="action" data-category="actions"><span>Action</span></li>
+        <li draggable="true" data-node-type="integration" data-category="integrations"><span>Integration</span></li>
+        <li draggable="true" data-node-type="branch" data-category="flow"><span>Branch</span></li>
+        <li draggable="true" data-node-type="parallel" data-category="flow"><span>Parallel</span></li>
+        <li draggable="true" data-node-type="merge" data-category="flow"><span>Merge</span></li>
+        <li draggable="true" data-node-type="llm" data-category="ai"><span>LLM</span></li>
+        <li draggable="true" data-node-type="kb" data-category="ai"><span>Knowledge Base</span></li>
+      </ul>
+    </aside>
+    <section class="designer-canvas">
+      <svg id="designer-svg" class="canvas-svg"></svg>
+    </section>
+    <aside class="designer-properties" id="designer-properties">
+      <h4 data-i18n="designer-properties-title">Properties</h4>
+      <p class="empty" data-i18n="designer-properties-empty">Select a node to edit properties.</p>
+    </aside>
+  </main>
+
+  <footer class="designer-status">
+    <span id="designer-status-text" data-i18n="designer-status-ready">Ready</span>
+    <span id="designer-node-count">0 nodes</span>
+  </footer>
+</div>
+
+<script src="/suite/designer/designer-state.js"></script>
+<script src="/suite/designer/designer-nodes.js"></script>
+<script src="/suite/designer/designer-connections.js"></script>
+<script src="/suite/designer/designer-properties.js"></script>
+<script src="/suite/designer/designer-history.js"></script>
+<script src="/suite/designer/designer-keyboard.js"></script>
+<script src="/suite/designer/designer-canvas.js"></script>
+<script src="/suite/designer/designer-io.js"></script>
+<script src="/suite/designer/designer-magic.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.Designer && typeof window.Designer.boot === "function") {
+      window.Designer.boot();
+    }
+  });
+</script>

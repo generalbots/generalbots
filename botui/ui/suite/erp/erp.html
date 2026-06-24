@@ -1,0 +1,282 @@
+<link rel="stylesheet" href="/suite/erp/erp.css">
+<div class="erp-app">
+<header class="app-header">
+<h1>Enterprise ERP</h1>
+<div class="header-actions">
+<span class="branch-label" id="currentBranch">All Branches</span>
+<span class="header-meta-item">FY: <strong>2025</strong></span>
+<button class="btn-refresh" id="refreshBtn">&#8635;</button>
+</div>
+</header>
+<nav class="tab-bar">
+<button class="tab active" data-tab="financial">Financial</button>
+<button class="tab" data-tab="inventory">Inventory</button>
+<button class="tab" data-tab="procurement">Procurement</button>
+<button class="tab" data-tab="branches">Multi-Branch</button>
+<button class="tab" data-tab="orders">Sales Orders</button>
+<button class="tab" data-tab="taxes">Tax & Compliance</button>
+<button class="tab" data-tab="reports">Reports</button>
+<button class="tab" data-tab="settings">Settings</button>
+</nav>
+<section class="erp-stats">
+<article class="erp-stat-card"><span class="erp-stat-label">Revenue MTD</span><span class="erp-stat-value green" id="erp-stat-revenue-mtd">$--</span></article>
+<article class="erp-stat-card"><span class="erp-stat-label">Expenses MTD</span><span class="erp-stat-value red" id="erp-stat-expenses-mtd">$--</span></article>
+<article class="erp-stat-card"><span class="erp-stat-label">Net Profit</span><span class="erp-stat-value blue" id="erp-stat-profit-mtd">$--</span></article>
+<article class="erp-stat-card"><span class="erp-stat-label">Open POs</span><span class="erp-stat-value orange" id="erp-stat-pos">--</span></article>
+<article class="erp-stat-card"><span class="erp-stat-label">Low stock items</span><span class="erp-stat-value purple" id="erp-stat-lowstock">--</span></article>
+</section>
+<main class="tab-content">
+<section class="tab-panel active" id="panel-financial">
+<div class="metrics-row">
+<div class="metric-card">
+<div class="metric-label">Revenue</div>
+<div class="metric-value" id="revenue">$0</div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Expenses</div>
+<div class="metric-value" id="expenses">$0</div>
+</div>
+<div class="metric-card profit">
+<div class="metric-label">Net Profit</div>
+<div class="metric-value" id="netProfit">$0</div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Margin</div>
+<div class="metric-value" id="margin">0%</div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Cash on hand</div>
+<div class="metric-value" id="cashOnHand">$0</div>
+</div>
+<div class="metric-card">
+<div class="metric-label">AR outstanding</div>
+<div class="metric-value" id="arOutstanding">$0</div>
+</div>
+</div>
+<div class="table-section">
+<h2>Accounts Receivable</h2>
+<div class="table-toolbar">
+<input type="text" class="search-input" id="arSearch" placeholder="Search invoices...">
+<select class="filter-select" id="arStatusFilter">
+<option value="">All Status</option>
+<option value="open">Open</option>
+<option value="overdue">Overdue</option>
+<option value="paid">Paid</option>
+</select>
+</div>
+<table class="data-table" id="arTable">
+<thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Issued</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="table-section">
+<h2>Accounts Payable</h2>
+<div class="table-toolbar">
+<input type="text" class="search-input" id="apSearch" placeholder="Search bills...">
+<select class="filter-select" id="apStatusFilter">
+<option value="">All Status</option>
+<option value="open">Open</option>
+<option value="due">Due soon</option>
+<option value="paid">Paid</option>
+</select>
+</div>
+<table class="data-table" id="apTable">
+<thead><tr><th>Bill</th><th>Vendor</th><th>Amount</th><th>Received</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-inventory">
+<div class="table-section">
+<h2>Stock Levels</h2>
+<div class="table-toolbar">
+<input type="text" class="search-input" id="invSearch" placeholder="Search products...">
+<select class="filter-select" id="invStatusFilter">
+<option value="">All Status</option>
+<option value="in_stock">In Stock</option>
+<option value="low">Low Stock</option>
+<option value="out">Out of Stock</option>
+</select>
+<button class="btn-primary" id="addProductBtn">+ Add product</button>
+</div>
+<table class="data-table" id="invTable">
+<thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Quantity</th><th>Reorder Point</th><th>Unit cost</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-procurement">
+<div class="table-section">
+<div class="section-header">
+<h2>Purchase Orders</h2>
+<button class="btn-primary" id="createPoBtn">Create PO</button>
+</div>
+<table class="data-table" id="poTable">
+<thead><tr><th>PO #</th><th>Vendor</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="modal-overlay" id="poModal">
+<div class="modal">
+<div class="modal-header">
+<h3>New Purchase Order</h3>
+<button class="modal-close" id="closePoModal">&times;</button>
+</div>
+<form id="poForm">
+<div class="form-row">
+<div class="form-group">
+<label>Vendor</label>
+<select id="poVendor" required></select>
+</div>
+<div class="form-group">
+<label>Expected delivery</label>
+<input type="date" id="poExpected">
+</div>
+</div>
+<div class="form-group">
+<label>Items</label>
+<div id="poItems">
+<div class="po-item-row">
+<select class="po-item-select" required></select>
+<input type="number" class="po-item-qty" value="1" min="1" required>
+<input type="number" class="po-item-price" placeholder="Unit price" step="0.01" min="0">
+<button type="button" class="btn-remove-item">&times;</button>
+</div>
+</div>
+<button type="button" class="btn-add-item" id="addItemBtn">+ Add Item</button>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Shipping address</label>
+<input type="text" id="poShipping" placeholder="Warehouse or branch">
+</div>
+<div class="form-group">
+<label>Payment terms</label>
+<select id="poTerms">
+<option value="net-15">Net 15</option>
+<option value="net-30" selected>Net 30</option>
+<option value="net-60">Net 60</option>
+<option value="prepaid">Prepaid</option>
+</select>
+</div>
+</div>
+<div class="form-group">
+<label>Notes</label>
+<textarea id="poNotes" rows="3"></textarea>
+</div>
+<div class="form-actions">
+<button type="button" class="btn-secondary" id="cancelPoBtn">Cancel</button>
+<button type="submit" class="btn-primary">Submit PO</button>
+</div>
+</form>
+</div>
+</div>
+</section>
+<section class="tab-panel" id="panel-branches">
+<div class="table-section">
+<h2>Branch Performance</h2>
+<div class="table-toolbar">
+<select class="filter-select" id="branchFilter">
+<option value="">All branches</option>
+<option value="sao-paulo">São Paulo</option>
+<option value="rio">Rio de Janeiro</option>
+<option value="belo-horizonte">Belo Horizonte</option>
+<option value="remote-hq">Remote HQ</option>
+</select>
+<button class="btn-primary" id="addBranchBtn">+ Add branch</button>
+</div>
+<table class="data-table" id="branchTable">
+<thead><tr><th>Branch</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Headcount</th><th>Tickets</th><th>Status</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-orders">
+<div class="table-section">
+<h2>Sales orders</h2>
+<div class="table-toolbar">
+<input type="text" class="search-input" id="orderSearch" placeholder="Search orders...">
+<select class="filter-select" id="orderStatusFilter">
+<option value="">All Status</option>
+<option value="draft">Draft</option>
+<option value="confirmed">Confirmed</option>
+<option value="shipped">Shipped</option>
+<option value="delivered">Delivered</option>
+<option value="cancelled">Cancelled</option>
+</select>
+</div>
+<table class="data-table" id="orderTable">
+<thead><tr><th>Order #</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-taxes">
+<div class="table-section">
+<h2>Tax obligations</h2>
+<div class="table-toolbar">
+<select class="filter-select" id="taxPeriodFilter">
+<option value="month">This month</option>
+<option value="quarter">This quarter</option>
+<option value="year">This year</option>
+</select>
+</div>
+<table class="data-table" id="taxTable">
+<thead><tr><th>Tax</th><th>Period</th><th>Base</th><th>Rate</th><th>Amount</th><th>Due</th><th>Status</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+<section class="tab-panel" id="panel-reports">
+<div class="section-header">
+<h2>Reports</h2>
+</div>
+<section class="erp-report-grid" id="erpReportGrid">
+<article class="erp-report-card"><h3>Income statement</h3><div class="erp-report-body" id="erpReportPnL">Loading...</div></article>
+<article class="erp-report-card"><h3>Cash flow</h3><div class="erp-report-body" id="erpReportCash">Loading...</div></article>
+<article class="erp-report-card"><h3>Top customers</h3><div class="erp-report-body" id="erpReportCustomers">Loading...</div></article>
+<article class="erp-report-card"><h3>Inventory turnover</h3><div class="erp-report-body" id="erpReportInv">Loading...</div></article>
+</section>
+</section>
+<section class="tab-panel" id="panel-settings">
+<div class="table-section" style="max-width:720px">
+<h2>ERP settings</h2>
+<form id="erpSettingsForm" onsubmit="window.ErpApp && window.ErpApp.saveSettings(event)">
+<label>Default currency
+<select id="erp-currency">
+<option value="BRL">BRL — Brazilian Real</option>
+<option value="USD" selected>USD — US Dollar</option>
+<option value="EUR">EUR — Euro</option>
+</select>
+</label>
+<label>Fiscal year start
+<select id="erp-fy-start">
+<option value="01-01">January 1</option>
+<option value="04-01">April 1</option>
+<option value="07-01">July 1</option>
+<option value="10-01">October 1</option>
+</select>
+</label>
+<label>Low stock threshold (default)
+<input type="number" id="erp-lowstock" value="10" min="0">
+</label>
+<label>Auto-reorder
+<input type="checkbox" id="erp-autoreorder" checked>
+</label>
+<label>Approval threshold (R$)
+<input type="number" id="erp-approval" value="5000" min="0">
+</label>
+<label>Notify email
+<input type="email" id="erp-notify" placeholder="ops@example.com">
+</label>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn-primary" type="submit">Save settings</button>
+<button class="btn-secondary" type="reset">Reset</button>
+</div>
+</form>
+</div>
+</section>
+</main>
+</div>
+<script src="/suite/erp/erp.js"></script>
+

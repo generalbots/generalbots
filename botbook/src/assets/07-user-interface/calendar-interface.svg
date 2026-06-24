@@ -1,0 +1,211 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .header-bg { fill: #e8e8e8; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ddd; stroke-width: 1; }
+    .button { fill: #4A90E2; }
+    .button-text { fill: #fff; font-family: Arial, sans-serif; }
+    .input-field { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .today { fill: #4A90E2; }
+    .event-bg { fill: #4A90E2; opacity: 0.8; }
+    .event-text { fill: #fff; font-family: Arial, sans-serif; }
+    .weekend { fill: #f0f0f0; }
+    .cell-border { stroke: #e0e0e0; stroke-width: 1; fill: none; }
+    .nav-btn { fill: #f0f0f0; stroke: #ccc; stroke-width: 1; }
+    .view-active { fill: #4A90E2; }
+    .view-inactive { fill: #e0e0e0; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .today { fill: #00D4FF; }
+      .event-bg { fill: #00D4FF; opacity: 0.8; }
+      .weekend { fill: #252525; }
+      .cell-border { stroke: #444; }
+      .nav-btn { fill: #333; stroke: #555; }
+      .button { fill: #00D4FF; }
+      .view-active { fill: #00D4FF; }
+      .view-inactive { fill: #333; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Calendar - Scheduling Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Header -->
+  <rect x="30" y="50" width="840" height="50" rx="8" class="header-bg"/>
+  <rect x="30" y="92" width="840" height="8" class="bg"/>
+
+  <!-- Navigation -->
+  <g transform="translate(50, 62)">
+    <!-- Prev/Next Buttons -->
+    <rect x="0" y="0" width="30" height="30" rx="4" class="nav-btn"/>
+    <text x="15" y="21" text-anchor="middle" font-size="16" class="icon-text">◄</text>
+
+    <rect x="40" y="0" width="30" height="30" rx="4" class="nav-btn"/>
+    <text x="55" y="21" text-anchor="middle" font-size="16" class="icon-text">►</text>
+
+    <!-- Month/Year -->
+    <text x="100" y="22" font-size="18" font-weight="600" class="main-text">March 2024</text>
+  </g>
+
+  <!-- View Toggle -->
+  <g transform="translate(650, 62)">
+    <rect x="0" y="0" width="50" height="30" rx="4" class="view-inactive"/>
+    <text x="25" y="20" text-anchor="middle" font-size="12" class="main-text">Day</text>
+
+    <rect x="55" y="0" width="55" height="30" rx="4" class="view-inactive"/>
+    <text x="82" y="20" text-anchor="middle" font-size="12" class="main-text">Week</text>
+
+    <rect x="115" y="0" width="60" height="30" rx="4" class="view-active"/>
+    <text x="145" y="20" text-anchor="middle" font-size="12" fill="#fff">Month</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="30" y1="100" x2="870" y2="100" class="divider"/>
+
+  <!-- Calendar Grid -->
+  <g transform="translate(50, 110)">
+    <!-- Day Headers -->
+    <g>
+      <text x="55" y="20" text-anchor="middle" font-size="13" font-weight="500" class="secondary-text">Mon</text>
+      <text x="170" y="20" text-anchor="middle" font-size="13" font-weight="500" class="secondary-text">Tue</text>
+      <text x="285" y="20" text-anchor="middle" font-size="13" font-weight="500" class="secondary-text">Wed</text>
+      <text x="400" y="20" text-anchor="middle" font-size="13" font-weight="500" class="secondary-text">Thu</text>
+      <text x="515" y="20" text-anchor="middle" font-size="13" font-weight="500" class="secondary-text">Fri</text>
+      <text x="630" y="20" text-anchor="middle" font-size="13" font-weight="500" class="secondary-text">Sat</text>
+      <text x="745" y="20" text-anchor="middle" font-size="13" font-weight="500" class="secondary-text">Sun</text>
+    </g>
+
+    <!-- Grid Lines and Cells -->
+    <!-- Row 1 -->
+    <g transform="translate(0, 35)">
+      <rect x="0" y="0" width="115" height="65" class="cell-border"/>
+      <rect x="115" y="0" width="115" height="65" class="cell-border"/>
+      <rect x="230" y="0" width="115" height="65" class="cell-border"/>
+      <rect x="345" y="0" width="115" height="65" class="cell-border"/>
+      <text x="435" y="20" text-anchor="middle" font-size="14" class="main-text">1</text>
+      <rect x="460" y="0" width="115" height="65" class="cell-border"/>
+      <text x="550" y="20" text-anchor="middle" font-size="14" class="main-text">2</text>
+      <rect x="575" y="0" width="115" height="65" class="cell-border weekend"/>
+      <text x="665" y="20" text-anchor="middle" font-size="14" class="secondary-text">3</text>
+      <rect x="690" y="0" width="110" height="65" class="cell-border weekend"/>
+    </g>
+
+    <!-- Row 2 -->
+    <g transform="translate(0, 100)">
+      <rect x="0" y="0" width="115" height="65" class="cell-border"/>
+      <text x="15" y="20" font-size="14" class="main-text">4</text>
+
+      <rect x="115" y="0" width="115" height="65" class="cell-border"/>
+      <text x="130" y="20" font-size="14" class="main-text">5</text>
+      <!-- Event -->
+      <rect x="120" y="28" width="105" height="22" rx="3" class="event-bg"/>
+      <text x="125" y="43" font-size="11" class="event-text">Team Meeting</text>
+
+      <rect x="230" y="0" width="115" height="65" class="cell-border"/>
+      <text x="245" y="20" font-size="14" class="main-text">6</text>
+
+      <rect x="345" y="0" width="115" height="65" class="cell-border"/>
+      <text x="360" y="20" font-size="14" class="main-text">7</text>
+
+      <rect x="460" y="0" width="115" height="65" class="cell-border"/>
+      <text x="475" y="20" font-size="14" class="main-text">8</text>
+
+      <rect x="575" y="0" width="115" height="65" class="cell-border weekend"/>
+      <text x="590" y="20" font-size="14" class="secondary-text">9</text>
+
+      <rect x="690" y="0" width="110" height="65" class="cell-border weekend"/>
+      <text x="705" y="20" font-size="14" class="secondary-text">10</text>
+    </g>
+
+    <!-- Row 3 -->
+    <g transform="translate(0, 165)">
+      <rect x="0" y="0" width="115" height="65" class="cell-border"/>
+      <text x="15" y="20" font-size="14" class="main-text">11</text>
+
+      <rect x="115" y="0" width="115" height="65" class="cell-border"/>
+      <text x="130" y="20" font-size="14" class="main-text">12</text>
+
+      <rect x="230" y="0" width="115" height="65" class="cell-border"/>
+      <text x="245" y="20" font-size="14" class="main-text">13</text>
+      <!-- Event -->
+      <rect x="235" y="28" width="105" height="22" rx="3" class="event-bg"/>
+      <text x="240" y="43" font-size="11" class="event-text">Project Review</text>
+
+      <rect x="345" y="0" width="115" height="65" class="cell-border"/>
+      <text x="360" y="20" font-size="14" class="main-text">14</text>
+      <!-- Event -->
+      <rect x="350" y="28" width="105" height="22" rx="3" class="event-bg"/>
+      <text x="355" y="43" font-size="11" class="event-text">1:1 Meeting</text>
+
+      <rect x="460" y="0" width="115" height="65" class="cell-border"/>
+      <!-- Today -->
+      <circle cx="485" cy="18" r="14" class="today"/>
+      <text x="485" y="23" text-anchor="middle" font-size="14" fill="#fff">15</text>
+
+      <rect x="575" y="0" width="115" height="65" class="cell-border weekend"/>
+      <text x="590" y="20" font-size="14" class="secondary-text">16</text>
+
+      <rect x="690" y="0" width="110" height="65" class="cell-border weekend"/>
+      <text x="705" y="20" font-size="14" class="secondary-text">17</text>
+    </g>
+
+    <!-- Row 4 -->
+    <g transform="translate(0, 230)">
+      <rect x="0" y="0" width="115" height="65" class="cell-border"/>
+      <text x="15" y="20" font-size="14" class="main-text">18</text>
+
+      <rect x="115" y="0" width="115" height="65" class="cell-border"/>
+      <text x="130" y="20" font-size="14" class="main-text">19</text>
+
+      <rect x="230" y="0" width="115" height="65" class="cell-border"/>
+      <text x="245" y="20" font-size="14" class="main-text">20</text>
+
+      <rect x="345" y="0" width="115" height="65" class="cell-border"/>
+      <text x="360" y="20" font-size="14" class="main-text">21</text>
+
+      <rect x="460" y="0" width="115" height="65" class="cell-border"/>
+      <text x="475" y="20" font-size="14" class="main-text">22</text>
+
+      <rect x="575" y="0" width="115" height="65" class="cell-border weekend"/>
+      <text x="590" y="20" font-size="14" class="secondary-text">23</text>
+
+      <rect x="690" y="0" width="110" height="65" class="cell-border weekend"/>
+      <text x="705" y="20" font-size="14" class="secondary-text">24</text>
+    </g>
+  </g>
+
+  <!-- Add Event Button -->
+  <g transform="translate(750, 470)">
+    <circle cx="30" cy="30" r="28" class="button"/>
+    <text x="30" y="38" text-anchor="middle" font-size="28" fill="#fff">+</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30, 535)">
+    <circle cx="10" cy="-4" r="8" class="today"/>
+    <text x="25" y="0" font-size="11" class="secondary-text">Today</text>
+
+    <rect x="80" y="-10" width="40" height="14" rx="3" class="event-bg"/>
+    <text x="130" y="0" font-size="11" class="secondary-text">Event</text>
+
+    <rect x="200" y="-10" width="20" height="14" class="weekend"/>
+    <text x="230" y="0" font-size="11" class="secondary-text">Weekend</text>
+
+    <text x="400" y="0" font-size="11" class="secondary-text">Shortcuts: N = New event | T = Today | ← → = Navigate | D/W/M = View</text>
+  </g>
+</svg>

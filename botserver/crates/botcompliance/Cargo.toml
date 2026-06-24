@@ -1,0 +1,24 @@
+[package]
+name = "botcompliance"
+version = "6.3.0"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+anyhow = { workspace = true }
+axum = { workspace = true }
+bigdecimal = { workspace = true, features = ["serde"] }
+chrono = { workspace = true, features = ["serde"] }
+csv = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid", "numeric"] }
+log = { workspace = true }
+r2d2 = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+uuid = { workspace = true, features = ["v4", "v5", "serde"] }
+walkdir = { workspace = true }

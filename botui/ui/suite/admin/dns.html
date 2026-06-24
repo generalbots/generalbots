@@ -1,0 +1,498 @@
+<div class="dns-view">
+    <div class="page-header">
+        <div class="header-left">
+            <h1 data-i18n="admin-dns-title">DNS Management</h1>
+            <p class="subtitle" data-i18n="admin-dns-subtitle">
+                Register and manage DNS hostnames for your bots
+            </p>
+        </div>
+        <div class="header-actions">
+            <button
+                class="btn-primary"
+                onclick="document.getElementById('register-dns-modal').showModal()"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                <span data-i18n="admin-dns-register">Register Hostname</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- DNS Records Table -->
+    <div class="table-container">
+        <div class="table-header">
+            <h2 data-i18n="admin-dns-registered">Registered Hostnames</h2>
+            <div class="table-actions">
+                <div class="search-box">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input
+                        type="text"
+                        data-i18n-placeholder="admin-dns-search"
+                        placeholder="Search hostnames..."
+                        name="q"
+                        hx-get="/api/dns/search"
+                        hx-trigger="keyup changed delay:300ms"
+                        hx-target="#dns-table-body"
+                        hx-swap="innerHTML"
+                    />
+                </div>
+                <button
+                    class="btn-secondary"
+                    hx-get="/api/dns/list"
+                    hx-target="#dns-table-body"
+                    hx-swap="innerHTML"
+                >
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    <span data-i18n="action-refresh">Refresh</span>
+                </button>
+            </div>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th data-i18n="admin-dns-col-hostname">Hostname</th>
+                    <th data-i18n="admin-dns-col-type">Type</th>
+                    <th data-i18n="admin-dns-col-target">Target/IP</th>
+                    <th data-i18n="admin-dns-col-ttl">TTL</th>
+                    <th data-i18n="admin-dns-col-status">Status</th>
+                    <th data-i18n="label-created">Created</th>
+                    <th data-i18n="admin-dns-col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody
+                id="dns-table-body"
+                hx-get="/api/dns/list"
+                hx-trigger="load"
+                hx-swap="innerHTML"
+            >
+                <tr>
+                    <td colspan="7" class="loading-cell">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p data-i18n="admin-dns-loading">
+                                Loading DNS records...
+                            </p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- DNS Info Cards -->
+    <div class="info-section">
+        <h2 data-i18n="admin-dns-help-title">DNS Configuration Help</h2>
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-icon">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                        ></path>
+                    </svg>
+                </div>
+                <h3 data-i18n="admin-dns-help-a-record">A Record</h3>
+                <p data-i18n="admin-dns-help-a-record-desc">
+                    Maps a domain name to an IPv4 address. Use this to point
+                    your hostname directly to a server IP.
+                </p>
+            </div>
+            <div class="info-card">
+                <div class="info-icon">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                </div>
+                <h3 data-i18n="admin-dns-help-aaaa-record">AAAA Record</h3>
+                <p data-i18n="admin-dns-help-aaaa-record-desc">
+                    Maps a domain name to an IPv6 address. Similar to A record
+                    but for IPv6 connectivity.
+                </p>
+            </div>
+            <div class="info-card">
+                <div class="info-icon">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                        ></path>
+                        <path
+                            d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                        ></path>
+                    </svg>
+                </div>
+                <h3 data-i18n="admin-dns-help-cname-record">CNAME Record</h3>
+                <p data-i18n="admin-dns-help-cname-record-desc">
+                    Creates an alias from one domain to another. Useful for
+                    pointing subdomains to your main domain.
+                </p>
+            </div>
+            <div class="info-card">
+                <div class="info-icon">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect
+                            x="3"
+                            y="11"
+                            width="18"
+                            height="11"
+                            rx="2"
+                            ry="2"
+                        ></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </div>
+                <h3 data-i18n="admin-dns-help-ssl">SSL/TLS</h3>
+                <p data-i18n="admin-dns-help-ssl-desc">
+                    Automatically provisions Let's Encrypt certificates for
+                    secure HTTPS connections.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Register DNS Modal -->
+<dialog id="register-dns-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-dns-register">Register Hostname</h2>
+            <button
+                type="button"
+                class="close-btn"
+                onclick="document.getElementById('register-dns-modal').close()"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form
+            hx-post="/api/dns/register"
+            hx-target="#dns-result"
+            hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful) { setTimeout(() => { document.getElementById('register-dns-modal').close(); htmx.trigger('#dns-table-body', 'load'); }, 1500); }"
+        >
+            <div class="form-group">
+                <label data-i18n="admin-dns-hostname">Hostname</label>
+                <span class="required">*</span>
+                <input
+                    type="text"
+                    name="hostname"
+                    required
+                    data-i18n-placeholder="admin-dns-hostname-placeholder"
+                    placeholder="mybot.example.com"
+                />
+                <p class="help-text" data-i18n="admin-dns-hostname-help">
+                    Enter the full domain name you want to register
+                </p>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label data-i18n="admin-dns-record-type">Record Type</label>
+                    <select
+                        name="record_type"
+                        id="record-type"
+                        onchange="updateTargetPlaceholder()"
+                    >
+                        <option value="A" data-i18n="admin-dns-record-type-a">
+                            A (IPv4)
+                        </option>
+                        <option
+                            value="AAAA"
+                            data-i18n="admin-dns-record-type-aaaa"
+                        >
+                            AAAA (IPv6)
+                        </option>
+                        <option
+                            value="CNAME"
+                            data-i18n="admin-dns-record-type-cname"
+                        >
+                            CNAME
+                        </option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin-dns-ttl">TTL (seconds)</label>
+                    <select name="ttl">
+                        <option value="300" data-i18n="admin-dns-ttl-5min">
+                            5 minutes (300)
+                        </option>
+                        <option
+                            value="3600"
+                            selected
+                            data-i18n="admin-dns-ttl-1hour"
+                        >
+                            1 hour (3600)
+                        </option>
+                        <option value="86400" data-i18n="admin-dns-ttl-1day">
+                            1 day (86400)
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label data-i18n="admin-dns-target">Target/IP Address</label>
+                <span class="required">*</span>
+                <input
+                    type="text"
+                    name="target"
+                    id="target-input"
+                    required
+                    data-i18n-placeholder="admin-dns-target-placeholder-ipv4"
+                    placeholder="192.168.1.1"
+                />
+                <p
+                    class="help-text"
+                    id="target-help"
+                    data-i18n="admin-dns-target-help-a"
+                >
+                    Enter the IPv4 address to point to
+                </p>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="auto_ssl" checked />
+                    <span data-i18n="admin-dns-auto-ssl"
+                        >Automatically provision SSL certificate</span
+                    >
+                </label>
+            </div>
+            <div id="dns-result"></div>
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="document.getElementById('register-dns-modal').close()"
+                    data-i18n="action-cancel"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    class="btn-primary"
+                    data-i18n="admin-dns-register"
+                >
+                    Register Hostname
+                </button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Remove DNS Modal -->
+<dialog id="remove-dns-modal" class="modal modal-small">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-dns-remove-title">Remove Hostname</h2>
+            <button
+                type="button"
+                class="close-btn"
+                onclick="document.getElementById('remove-dns-modal').close()"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="warning-icon">
+                <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    ></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <p>
+                <span data-i18n="confirm-delete-item"
+                    >Are you sure you want to delete</span
+                >
+                <strong id="remove-hostname-name"></strong>?
+            </p>
+            <p class="warning-text" data-i18n="admin-dns-remove-warning">
+                This will delete the DNS record and any associated SSL
+                certificates. The hostname will no longer resolve.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button
+                type="button"
+                class="btn-secondary"
+                onclick="document.getElementById('remove-dns-modal').close()"
+                data-i18n="action-cancel"
+            >
+                Cancel
+            </button>
+            <button
+                type="button"
+                class="btn-danger"
+                id="confirm-remove-btn"
+                hx-post="/api/dns/remove"
+                hx-target="#dns-table-body"
+                hx-swap="innerHTML"
+                hx-on::after-request="document.getElementById('remove-dns-modal').close();"
+            >
+                <span data-i18n="action-delete">Remove Hostname</span>
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Edit DNS Modal -->
+<dialog id="edit-dns-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-dns-edit-title">Edit DNS Record</h2>
+            <button
+                type="button"
+                class="close-btn"
+                onclick="document.getElementById('edit-dns-modal').close()"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div id="edit-dns-form-container">
+            <!-- Form loaded via HTMX -->
+        </div>
+    </div>
+</dialog>
+
+<script>
+    function updateTargetPlaceholder() {
+        const recordType = document.getElementById("record-type").value;
+        const targetInput = document.getElementById("target-input");
+        const targetHelp = document.getElementById("target-help");
+
+        switch (recordType) {
+            case "A":
+                targetInput.placeholder = "192.168.1.1";
+                targetHelp.textContent = window.t
+                    ? window.t("admin-dns-target-help-a")
+                    : "Enter the IPv4 address to point to";
+                break;
+            case "AAAA":
+                targetInput.placeholder = "2001:db8::1";
+                targetHelp.textContent = window.t
+                    ? window.t("admin-dns-target-help-aaaa")
+                    : "Enter the IPv6 address to point to";
+                break;
+            case "CNAME":
+                targetInput.placeholder = "target.example.com";
+                targetHelp.textContent = window.t
+                    ? window.t("admin-dns-target-help-cname")
+                    : "Enter the target domain name";
+                break;
+        }
+    }
+
+    function openRemoveModal(hostname, id) {
+        document.getElementById("remove-hostname-name").textContent = hostname;
+        document
+            .getElementById("confirm-remove-btn")
+            .setAttribute("hx-vals", JSON.stringify({ id: id }));
+        htmx.process(document.getElementById("confirm-remove-btn"));
+        document.getElementById("remove-dns-modal").showModal();
+    }
+
+    function openEditModal(id) {
+        htmx.ajax("GET", "/api/dns/" + id + "/edit", {
+            target: "#edit-dns-form-container",
+            swap: "innerHTML",
+        });
+        document.getElementById("edit-dns-modal").showModal();
+    }
+</script>

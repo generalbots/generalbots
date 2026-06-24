@@ -1,0 +1,126 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+    <filter id="shadowSm" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .panel-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #8b5cf6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .nav-active { fill: #f5f3ff; }
+    .page-block { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .toggle-block { fill: #f8fafc; stroke: #e2e8f0; stroke-width: 1; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .panel-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #a78bfa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .nav-active { fill: #1e1b4b; }
+      .page-block { fill: #1e293b; stroke: #334155; }
+      .toggle-block { fill: #1e293b; stroke: #334155; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Workspace</text>
+
+  <!-- Main Container -->
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Sidebar -->
+  <rect x="30" y="40" width="200" height="530" class="panel-bg"/>
+  <line x1="230" y1="40" x2="230" y2="570" class="border"/>
+
+  <!-- Sidebar Header -->
+  <g transform="translate(50, 60)">
+    <rect x="0" y="0" width="28" height="28" rx="6" fill="url(#accentGrad)"/>
+    <text x="14" y="19" text-anchor="middle" font-size="14" class="white-text">W</text>
+    <text x="38" y="19" font-size="15" font-weight="600" class="main-text">Workspace</text>
+  </g>
+
+  <!-- Search -->
+  <g transform="translate(50, 100)">
+    <rect x="0" y="0" width="160" height="32" rx="6" class="icon-btn"/>
+    <text x="10" y="21" font-size="12" class="muted-text">🔍 Search pages...</text>
+  </g>
+
+  <!-- Recent Section -->
+  <g transform="translate(50, 150)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">RECENT</text>
+
+    <rect x="-5" y="10" width="170" height="30" rx="6" class="nav-active"/>
+    <text x="8" y="30" font-size="12" class="accent-text">📋 Product Roadmap</text>
+
+    <text x="8" y="60" font-size="12" class="secondary-text">📊 Meeting Notes</text>
+    <text x="8" y="88" font-size="12" class="secondary-text">📝 Sprint Planning</text>
+  </g>
+
+  <!-- Favorites Section -->
+  <g transform="translate(50, 260)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">FAVORITES</text>
+
+    <text x="8" y="25" font-size="12" class="secondary-text">⭐ Team Handbook</text>
+    <text x="8" y="53" font-size="12" class="secondary-text">⭐ API Documentation</text>
+  </g>
+
+  <!-- Main Content Area -->
+  <rect x="230" y="40" width="640" height="530" class="bg"/>
+
+  <!-- Page Title -->
+  <g transform="translate(270, 70)">
+    <text x="0" y="0" font-size="28" font-weight="700" class="main-text">Product Roadmap</text>
+    <text x="0" y="25" font-size="12" class="muted-text">Last edited 2 hours ago</text>
+  </g>
+
+  <!-- Content Blocks -->
+  <g transform="translate(270, 120)">
+    <!-- Heading Block -->
+    <rect x="0" y="0" width="560" height="40" rx="6" class="page-block"/>
+    <text x="16" y="26" font-size="18" font-weight="600" class="main-text">Q2 2026 Objectives</text>
+
+    <!-- Paragraph Block -->
+    <rect x="0" y="50" width="560" height="55" rx="6" class="page-block"/>
+    <text x="16" y="22" font-size="13" class="main-text">Our primary focus this quarter is to expand the AI capabilities of the</text>
+    <text x="16" y="40" font-size="13" class="main-text">platform while improving enterprise compliance features.</text>
+
+    <!-- Bullet List Block -->
+    <rect x="0" y="115" width="560" height="90" rx="6" class="page-block"/>
+    <text x="16" y="22" font-size="13" font-weight="500" class="main-text">Key Initiatives:</text>
+    <circle cx="24" cy="40" r="3" fill="#8b5cf6"/>
+    <text x="36" y="44" font-size="13" class="secondary-text">Launch Advanced Analytics Dashboard</text>
+    <circle cx="24" cy="60" r="3" fill="#8b5cf6"/>
+    <text x="36" y="64" font-size="13" class="secondary-text">Implement Multi-language Support</text>
+    <circle cx="24" cy="80" r="3" fill="#8b5cf6"/>
+    <text x="36" y="84" font-size="13" class="secondary-text">GDPR Compliance Automation</text>
+
+    <!-- Toggle Block -->
+    <rect x="0" y="215" width="560" height="35" rx="6" class="toggle-block"/>
+    <text x="16" y="23" font-size="13" font-weight="500" class="main-text">▸ Detailed Timeline</text>
+  </g>
+
+  <!-- Breadcrumb -->
+  <g transform="translate(270, 555)">
+    <text x="0" y="0" font-size="11" class="muted-text">Workspace / Product / Roadmap</text>
+  </g>
+</svg>

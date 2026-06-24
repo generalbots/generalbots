@@ -1,0 +1,133 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#666" opacity="0.8"/>
+    </marker>
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:0.3" />
+    </linearGradient>
+    <linearGradient id="coreGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:0.3" />
+    </linearGradient>
+    <linearGradient id="serviceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:0.3" />
+    </linearGradient>
+    <linearGradient id="leafGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1F2937">Module Dependency Graph</text>
+
+  <!-- main.rs (Entry Point) -->
+  <rect x="350" y="50" width="100" height="40" fill="url(#mainGradient)" stroke="#3B82F6" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="400" y="75" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#1F2937">main.rs</text>
+
+  <!-- Arrow to bootstrap -->
+  <line x1="400" y1="90" x2="400" y2="120" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- bootstrap/ -->
+  <rect x="330" y="120" width="140" height="40" fill="url(#coreGradient)" stroke="#10B981" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="400" y="145" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#1F2937">bootstrap/</text>
+
+  <!-- Arrows from bootstrap to core modules -->
+  <line x1="350" y1="160" x2="200" y2="210" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="400" y1="160" x2="400" y2="210" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="450" y1="160" x2="600" y2="210" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- Core Layer -->
+  <!-- package_manager/ -->
+  <rect x="120" y="210" width="160" height="40" fill="url(#coreGradient)" stroke="#10B981" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="200" y="235" text-anchor="middle" font-family="monospace" font-size="18" fill="#1F2937">package_manager/</text>
+
+  <!-- config/ -->
+  <rect x="320" y="210" width="160" height="40" fill="url(#coreGradient)" stroke="#10B981" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="400" y="235" text-anchor="middle" font-family="monospace" font-size="18" fill="#1F2937">config/</text>
+
+  <!-- database/ -->
+  <rect x="520" y="210" width="160" height="40" fill="url(#coreGradient)" stroke="#10B981" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="600" y="235" text-anchor="middle" font-family="monospace" font-size="18" fill="#1F2937">database/</text>
+
+  <!-- Convergence arrows to session -->
+  <line x1="400" y1="250" x2="400" y2="290" stroke="#666" stroke-width="1" opacity="0.5"/>
+  <line x1="600" y1="250" x2="450" y2="290" stroke="#666" stroke-width="1" opacity="0.5"/>
+
+  <!-- session/ -->
+  <rect x="350" y="290" width="100" height="40" fill="url(#serviceGradient)" stroke="#8B5CF6" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="400" y="315" text-anchor="middle" font-family="monospace" font-size="18" fill="#1F2937">session/</text>
+
+  <!-- web_server/ and bidirectional arrow with session -->
+  <rect x="180" y="290" width="120" height="40" fill="url(#serviceGradient)" stroke="#8B5CF6" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="240" y="315" text-anchor="middle" font-family="monospace" font-size="18" fill="#1F2937">web_server/</text>
+
+  <line x1="300" y1="310" x2="350" y2="310" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="350" y1="320" x2="300" y2="320" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- Arrow from package_manager to web_server -->
+  <line x1="200" y1="250" x2="240" y2="290" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- Service Layer branches -->
+  <line x1="240" y1="330" x2="140" y2="380" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="240" y1="330" x2="260" y2="380" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="240" y1="330" x2="380" y2="380" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="400" y1="330" x2="500" y2="380" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- Feature Modules -->
+  <!-- channels/ -->
+  <rect x="80" y="380" width="100" height="40" fill="url(#leafGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="130" y="405" text-anchor="middle" font-family="monospace" font-size="16" fill="#1F2937">channels/</text>
+
+  <!-- bot/ -->
+  <rect x="210" y="380" width="100" height="40" fill="url(#leafGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="260" y="405" text-anchor="middle" font-family="monospace" font-size="16" fill="#1F2937">bot/</text>
+
+  <!-- basic/ -->
+  <rect x="340" y="380" width="100" height="40" fill="url(#leafGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="390" y="405" text-anchor="middle" font-family="monospace" font-size="16" fill="#1F2937">basic/</text>
+
+  <!-- auth/ -->
+  <rect x="470" y="380" width="100" height="40" fill="url(#leafGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="520" y="405" text-anchor="middle" font-family="monospace" font-size="16" fill="#1F2937">auth/</text>
+
+  <!-- Convergence to LLM -->
+  <line x1="130" y1="420" x2="340" y2="470" stroke="#666" stroke-width="1" opacity="0.5"/>
+  <line x1="260" y1="420" x2="340" y2="470" stroke="#666" stroke-width="1" opacity="0.5"/>
+  <line x1="390" y1="420" x2="390" y2="470" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="520" y1="420" x2="430" y2="470" stroke="#666" stroke-width="1" opacity="0.5"/>
+
+  <!-- llm/ -->
+  <rect x="340" y="470" width="100" height="40" fill="url(#serviceGradient)" stroke="#8B5CF6" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="390" y="495" text-anchor="middle" font-family="monospace" font-size="18" fill="#1F2937">llm/</text>
+
+  <!-- Arrow to context -->
+  <line x1="390" y1="510" x2="390" y2="540" stroke="#666" stroke-width="2" marker-end="url(#arrow)" opacity="0.6"/>
+
+  <!-- context/ -->
+  <rect x="340" y="540" width="100" height="40" fill="url(#leafGradient)" stroke="#F59E0B" stroke-width="2" rx="8" opacity="0.9"/>
+  <text x="390" y="565" text-anchor="middle" font-family="monospace" font-size="18" fill="#1F2937">context/</text>
+
+  <!-- Legend -->
+  <g id="legend" transform="translate(580, 480)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1F2937">Layers:</text>
+
+    <rect x="0" y="10" width="15" height="15" fill="url(#mainGradient)" stroke="#3B82F6" stroke-width="1" rx="2" opacity="0.8"/>
+    <text x="20" y="22" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Entry Point</text>
+
+    <rect x="0" y="30" width="15" height="15" fill="url(#coreGradient)" stroke="#10B981" stroke-width="1" rx="2" opacity="0.8"/>
+    <text x="20" y="42" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Core System</text>
+
+    <rect x="0" y="50" width="15" height="15" fill="url(#serviceGradient)" stroke="#8B5CF6" stroke-width="1" rx="2" opacity="0.8"/>
+    <text x="20" y="62" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Services</text>
+
+    <rect x="0" y="70" width="15" height="15" fill="url(#leafGradient)" stroke="#F59E0B" stroke-width="1" rx="2" opacity="0.8"/>
+    <text x="20" y="82" font-family="Arial, sans-serif" font-size="16" fill="#4B5563">Features</text>
+  </g>
+
+  <!-- Dependency Flow Note -->
+  <text x="50" y="580" font-family="Arial, sans-serif" font-size="16" fill="#6B7280">Arrows indicate compile-time dependencies</text>
+</svg>
