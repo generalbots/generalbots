@@ -3,11 +3,15 @@ use std::sync::Arc;
 
 use crate::shared::utils::DbPool;
 use diesel::prelude::*;
+use botsecurity_crypto::encryption::{encrypt_field, decrypt_field, derive_key_from_password};
+use botsecurity_crypto::secrets::is_sensitive_key;
 
 #[derive(Debug, Clone, QueryableByName)]
 struct ConfigRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
     config_value: String,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    is_encrypted: bool,
 }
 
 fn is_placeholder_value(val: &str) -> bool {
@@ -162,34 +166,46 @@ impl ConfigManager {
         key: &str,
         default: Option<&str>,
     ) -> Result<String, Box<dyn std::error::Error>> {
+        let salt = b"generalbots_config_salt_default_456";
+        let key_bytes = derive_key_from_password("generalbots_config_system_secret", salt)
+            .unwrap_or_else(|_| vec![0u8; 32]);
+
         if let Ok(mut conn) = self.pool.get() {
             let bot_val = diesel::sql_query(
-                "SELECT config_value FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+                "SELECT config_value, is_encrypted FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Text, _>(key)
             .get_result::<ConfigRow>(&mut conn)
-            .ok()
-            .map(|r| r.config_value);
+            .ok();
 
-            if let Some(ref val) = bot_val {
-                if !is_placeholder_value(val) && !is_local_file_path(val) {
-                    return Ok(val.clone());
+            if let Some(r) = bot_val {
+                if !is_placeholder_value(&r.config_value) && !is_local_file_path(&r.config_value) {
+                    let val = if r.is_encrypted {
+                        decrypt_field(&r.config_value, &key_bytes).unwrap_or_else(|_| r.config_value.clone())
+                    } else {
+                        r.config_value
+                    };
+                    return Ok(val);
                 }
             }
 
             let default_val = diesel::sql_query(
-                "SELECT config_value FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+                "SELECT config_value, is_encrypted FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
             .bind::<diesel::sql_types::Text, _>(key)
             .get_result::<ConfigRow>(&mut conn)
-            .ok()
-            .map(|r| r.config_value);
+            .ok();
 
-            if let Some(ref val) = default_val {
-                if !is_placeholder_value(val) {
-                    return Ok(val.clone());
+            if let Some(r) = default_val {
+                if !is_placeholder_value(&r.config_value) {
+                    let val = if r.is_encrypted {
+                        decrypt_field(&r.config_value, &key_bytes).unwrap_or_else(|_| r.config_value.clone())
+                    } else {
+                        r.config_value
+                    };
+                    return Ok(val);
                 }
             }
         }
@@ -201,16 +217,25 @@ impl ConfigManager {
         bot_id: &uuid::Uuid,
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error>> {
+        let salt = b"generalbots_config_salt_default_456";
+        let key_bytes = derive_key_from_password("generalbots_config_system_secret", salt)
+            .unwrap_or_else(|_| vec![0u8; 32]);
+
         if let Ok(mut conn) = self.pool.get() {
             let row = diesel::sql_query(
-                "SELECT config_value FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+                "SELECT config_value, is_encrypted FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
             )
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Text, _>(key)
             .get_result::<ConfigRow>(&mut conn)
             .ok();
             if let Some(r) = row {
-                return Ok(r.config_value);
+                let val = if r.is_encrypted {
+                    decrypt_field(&r.config_value, &key_bytes).unwrap_or_else(|_| r.config_value.clone())
+                } else {
+                    r.config_value
+                };
+                return Ok(val);
             }
         }
         Err("Config key not found".into())
@@ -222,16 +247,28 @@ impl ConfigManager {
         key: &str,
         value: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let is_sensitive = is_sensitive_key(key);
+        let salt = b"generalbots_config_salt_default_456";
+        let key_bytes = derive_key_from_password("generalbots_config_system_secret", salt)
+            .unwrap_or_else(|_| vec![0u8; 32]);
+
+        let final_value = if is_sensitive {
+            encrypt_field(value, &key_bytes).unwrap_or_else(|_| value.to_string())
+        } else {
+            value.to_string()
+        };
+
         if let Ok(mut conn) = self.pool.get() {
             diesel::sql_query(
                 "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type, is_encrypted, created_at, updated_at) \
-                 VALUES ($1, $2, $3, $4, 'string', false, NOW(), NOW()) \
-                 ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, updated_at = NOW()"
+                 VALUES ($1, $2, $3, $4, 'string', $5, NOW(), NOW()) \
+                 ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, is_encrypted = $5, updated_at = NOW()"
             )
             .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Text, _>(key)
-            .bind::<diesel::sql_types::Text, _>(value)
+            .bind::<diesel::sql_types::Text, _>(final_value)
+            .bind::<diesel::sql_types::Bool, _>(is_sensitive)
             .execute(&mut conn)?;
         }
         Ok(())
