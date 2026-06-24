@@ -1,4 +1,4 @@
-// use crate::core::{organizations, bots};
+// use crate::core::{bots, branches, organizations};
 
 diesel::table! {
     learn_courses (id) {

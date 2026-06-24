@@ -1,10 +1,10 @@
-use crate::core::{bots, organizations};
+use crate::core::{bots, branches, organizations};
 
 diesel::table! {
     social_communities (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         name -> Varchar,
         slug -> Varchar,
         description -> Nullable<Text>,
@@ -40,7 +40,7 @@ diesel::table! {
     social_posts (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         author_id -> Uuid,
         community_id -> Nullable<Uuid>,
         parent_id -> Nullable<Uuid>,
@@ -131,7 +131,7 @@ diesel::table! {
     social_announcements (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         author_id -> Uuid,
         title -> Varchar,
         content -> Text,
@@ -151,7 +151,7 @@ diesel::table! {
     social_praises (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         from_user_id -> Uuid,
         to_user_id -> Uuid,
         badge_type -> Varchar,
@@ -175,7 +175,7 @@ diesel::table! {
     social_hashtags (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         tag -> Varchar,
         post_count -> Int4,
         last_used_at -> Timestamptz,
@@ -184,27 +184,28 @@ diesel::table! {
 }
 
 diesel::joinable!(social_communities -> organizations (org_id));
-diesel::joinable!(social_communities -> bots (bot_id));
+diesel::joinable!(social_communities -> branches (branch_id));
 diesel::joinable!(social_community_members -> social_communities (community_id));
 diesel::joinable!(social_posts -> organizations (org_id));
-diesel::joinable!(social_posts -> bots (bot_id));
+diesel::joinable!(social_posts -> branches (branch_id));
 diesel::joinable!(social_comments -> social_posts (post_id));
 diesel::joinable!(social_polls -> social_posts (post_id));
 diesel::joinable!(social_poll_options -> social_polls (poll_id));
 diesel::joinable!(social_poll_votes -> social_polls (poll_id));
 diesel::joinable!(social_poll_votes -> social_poll_options (option_id));
 diesel::joinable!(social_announcements -> organizations (org_id));
-diesel::joinable!(social_announcements -> bots (bot_id));
+diesel::joinable!(social_announcements -> branches (branch_id));
 diesel::joinable!(social_praises -> organizations (org_id));
-diesel::joinable!(social_praises -> bots (bot_id));
+diesel::joinable!(social_praises -> branches (branch_id));
 diesel::joinable!(social_bookmarks -> social_posts (post_id));
 diesel::joinable!(social_hashtags -> organizations (org_id));
-diesel::joinable!(social_hashtags -> bots (bot_id));
+diesel::joinable!(social_hashtags -> branches (branch_id));
 
 diesel::table! {
     social_channel_accounts (id) {
         id -> Uuid,
         org_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         name -> Varchar,
         channel_type -> Varchar,
         credentials -> Jsonb,
@@ -216,6 +217,7 @@ diesel::table! {
 }
 
 diesel::joinable!(social_channel_accounts -> organizations (org_id));
+diesel::joinable!(social_channel_accounts -> branches (branch_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     social_communities,

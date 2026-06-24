@@ -1,10 +1,10 @@
-// use crate::core::{organizations, bots};
+// use crate::core::{bots, branches, organizations};
 
 diesel::table! {
     support_tickets (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         ticket_number -> Varchar,
         subject -> Varchar,
         description -> Nullable<Text>,
@@ -47,7 +47,7 @@ diesel::table! {
     ticket_sla_policies (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         name -> Varchar,
         priority -> Varchar,
         first_response_hours -> Int4,
@@ -63,7 +63,7 @@ diesel::table! {
     ticket_canned_responses (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         title -> Varchar,
         content -> Text,
         category -> Nullable<Varchar>,
@@ -79,7 +79,7 @@ diesel::table! {
     ticket_categories (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         name -> Varchar,
         description -> Nullable<Text>,
         parent_id -> Nullable<Uuid>,
@@ -95,7 +95,7 @@ diesel::table! {
     ticket_tags (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         name -> Varchar,
         color -> Nullable<Varchar>,
         created_at -> Timestamptz,

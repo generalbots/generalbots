@@ -4,6 +4,7 @@ diesel::table! {
     feature_flags (id) {
         id -> Uuid,
         org_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         feature -> Varchar,
         enabled -> Bool,
         created_at -> Timestamp,

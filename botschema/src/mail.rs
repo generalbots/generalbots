@@ -1,9 +1,8 @@
-// use crate::core::{organizations, bots};
+// use crate::core::{bots, branches, organizations};
 
 diesel::table! {
     global_email_signatures (id) {
         id -> Uuid,
-        bot_id -> Uuid,
         name -> Varchar,
         content_html -> Text,
         content_plain -> Text,
@@ -67,7 +66,6 @@ diesel::table! {
     email_signatures (id) {
         id -> Uuid,
         user_id -> Uuid,
-        bot_id -> Nullable<Uuid>,
         name -> Varchar,
         content_html -> Text,
         content_plain -> Text,
@@ -82,7 +80,6 @@ diesel::table! {
     scheduled_emails (id) {
         id -> Uuid,
         user_id -> Uuid,
-        bot_id -> Uuid,
         to_addresses -> Text,
         cc_addresses -> Nullable<Text>,
         bcc_addresses -> Nullable<Text>,
@@ -102,7 +99,6 @@ diesel::table! {
 diesel::table! {
     email_templates (id) {
         id -> Uuid,
-        bot_id -> Uuid,
         user_id -> Nullable<Uuid>,
         name -> Varchar,
         description -> Nullable<Text>,
@@ -122,7 +118,6 @@ diesel::table! {
     email_auto_responders (id) {
         id -> Uuid,
         user_id -> Uuid,
-        bot_id -> Uuid,
         responder_type -> Varchar,
         subject -> Text,
         body_html -> Text,
@@ -142,7 +137,6 @@ diesel::table! {
     email_rules (id) {
         id -> Uuid,
         user_id -> Uuid,
-        bot_id -> Uuid,
         name -> Varchar,
         priority -> Int4,
         conditions_json -> Text,
@@ -159,7 +153,6 @@ diesel::table! {
     email_labels (id) {
         id -> Uuid,
         user_id -> Uuid,
-        bot_id -> Uuid,
         name -> Varchar,
         color -> Varchar,
         parent_id -> Nullable<Uuid>,
@@ -180,7 +173,6 @@ diesel::table! {
 diesel::table! {
     distribution_lists (id) {
         id -> Uuid,
-        bot_id -> Uuid,
         owner_id -> Uuid,
         name -> Varchar,
         email_alias -> Nullable<Varchar>,
@@ -196,7 +188,6 @@ diesel::table! {
 diesel::table! {
     shared_mailboxes (id) {
         id -> Uuid,
-        bot_id -> Uuid,
         email_address -> Varchar,
         display_name -> Varchar,
         description -> Nullable<Text>,
