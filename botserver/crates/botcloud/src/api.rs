@@ -181,6 +181,8 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/offers", get(list_offers))
         // LLM Providers catalog
         .route("/api/cloud/llm-providers", get(list_llm_providers))
+        // Admin
+        .route("/api/cloud/admin/server-capacity", get(get_server_capacity))
         // JWT auth middleware — protects all routes except /api/cloud/auth/*
         .layer(axum::Extension(jwt_secret))
         .layer(middleware::from_fn(cloud_jwt_middleware))
@@ -269,6 +271,24 @@ async fn handle_signup(
         .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
         .unwrap_or_else(|| "free".to_string());
 
+    // Auto-pause free signups when server is under pressure
+    if chosen_plan == "free" || chosen_plan == "shared" {
+        let capacity = botbilling::server_capacity::calculate_server_capacity(
+            &botbilling::server_capacity::ServerCapacityConfig::default(),
+            0, 0,
+        );
+        if !capacity.new_signups_allowed {
+            return Err((StatusCode::SERVICE_UNAVAILABLE, format!(
+                "{{ \"error\": \"server_at_capacity\", \"message\": \"{} plan temporarily unavailable. Please try again later or upgrade.\", \"capacity_health\": \"{}\" }}",
+                chosen_plan, capacity.capacity_health
+            )));
+        }
+    }
+    let chosen_plan = body.plan.as_deref()
+        .map(|p| p.to_lowercase())
+        .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
+        .unwrap_or_else(|| "free".to_string());
+
     let product_config = botbilling::default_product_config();
     let plan_config = product_config.plans.get(&chosen_plan)
         .ok_or((StatusCode::BAD_REQUEST, "Invalid plan".to_string()))?;
@@ -324,6 +344,34 @@ async fn handle_signup(
         "trial_days": trial_days,
         "token": token,
     })))
+}
+
+/// `GET /api/cloud/admin/server-capacity`
+///
+/// Returns real-time server capacity metrics for SaaS admin dashboard.
+async fn get_server_capacity(
+    State(_service): State<Arc<SaasService>>,
+) -> Json<serde_json::Value> {
+    let capacity = botbilling::server_capacity::calculate_server_capacity(
+        &botbilling::server_capacity::ServerCapacityConfig::default(),
+        0, 0,
+    );
+    Json(serde_json::json!({
+        "server": {
+            "cpu_cores": capacity.cpu_cores,
+            "cpu_usage_pct": (capacity.cpu_usage_pct * 100.0).round() / 100.0,
+            "ram_total_gb": (capacity.ram_total_gb * 100.0).round() / 100.0,
+            "ram_used_gb": (capacity.ram_used_gb * 100.0).round() / 100.0,
+            "ram_available_gb": (capacity.ram_available_gb * 100.0).round() / 100.0,
+        },
+        "saas_capacity": {
+            "available_free_slots": capacity.available_free_slots,
+            "available_shared_slots": capacity.available_shared_slots,
+            "new_signups_allowed": capacity.new_signups_allowed,
+            "capacity_health": capacity.capacity_health,
+            "pressure_index": (capacity.pressure_index * 100.0).round() / 100.0,
+        },
+    }))
 }
 
 /// `POST /api/cloud/checkout`

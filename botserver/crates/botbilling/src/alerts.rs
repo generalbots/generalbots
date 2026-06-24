@@ -874,6 +874,9 @@ impl UsageMetric {
             Self::Users => "Users",
             Self::KbDocuments => "KB Documents",
             Self::Apps => "Apps",
+            Self::EmailsPerDay => "Emails Per Day",
+            Self::BuildsPerDay => "Builds Per Day",
+            Self::UploadsPerHour => "Uploads Per Hour",
         }
     }
 }
