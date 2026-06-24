@@ -35,12 +35,31 @@ rm -rf botserver-stack/ botserver/botserver-stack/ ./work/ botserver/work/ .env 
   botserver.log botserver/botserver.log botui.log botserver/botui.log botmodels.log botserver/botmodels.log
 
 echo "Killing any remaining botserver/botui/botmodels processes..."
+
+# Save PIDs to files for precise tracking
+pgrep -f 'target/debug/botserver' > /tmp/botserver.pid 2>/dev/null || true
+pgrep -f 'target/debug/botui' > /tmp/botui.pid 2>/dev/null || true
+pgrep -f 'uvicorn.*src.main' > /tmp/botmodels.pid 2>/dev/null || true
+
 pkill -f 'target/debug/botserver' 2>/dev/null || true
 pkill -f 'target/debug/botui' 2>/dev/null || true
 pkill -f 'uvicorn.*src.main' 2>/dev/null || true
 fuser -k 8080/tcp 2>/dev/null || true
 fuser -k 3000/tcp 2>/dev/null || true
 sleep 3
+
+# Verify processes are gone using PID files
+for pidfile in /tmp/botserver.pid /tmp/botui.pid /tmp/botmodels.pid; do
+  if [ -f "$pidfile" ]; then
+    for pid in $(cat "$pidfile"); do
+      if kill -0 "$pid" 2>/dev/null; then
+        echo "WARNING: Process $pid still running, sending SIGKILL"
+        kill -9 "$pid" 2>/dev/null || true
+      fi
+    done
+    rm -f "$pidfile"
+  fi
+done
 
 echo "Starting services..."
 ./restart.sh

@@ -7,6 +7,9 @@ use log::{error, info, trace, warn};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::basic::AppStateBasicRuntime;
+use crate::basic::keywords::table_definition::process_table_definitions;
+
 const DEFAULT_TENANT_ID: Uuid = Uuid::from_u128(1);
 const DEFAULT_ORG_ID: Uuid = Uuid::from_u128(1);
 const DEFAULT_BRANCH_ID: Uuid = Uuid::from_u128(1);
@@ -383,15 +386,125 @@ async fn process_flat_bucket(
     let bn = bot_name.clone();
     let pool_create = pool.clone();
     let ld = load_only.to_vec();
-    match tokio::task::spawn_blocking(move || {
+    let created = match tokio::task::spawn_blocking(move || {
         create_bot_from_drive(&create_state, &pool_create, &bn, None, None, &ld)
     })
     .await
     {
-        Ok(Ok(_)) => info!("Bot '{}' created successfully", bot_name),
-        Ok(Err(e)) => error!("Failed to create bot '{}': {}", bot_name, e),
-        Err(e) => error!("Task failed to create bot '{}': {}", bot_name, e),
+        Ok(Ok(_)) => {
+            info!("Bot '{}' created successfully", bot_name);
+            true
+        }
+        Ok(Err(e)) => {
+            error!("Failed to create bot '{}': {}", bot_name, e);
+            false
+        }
+        Err(e) => {
+            error!("Task failed to create bot '{}': {}", bot_name, e);
+            false
+        }
+    };
+
+    if created {
+        // Sync tables.bas immediately so table schema exists before any script runs
+        if let Err(e) = sync_tables_for_bot(state, pool, &bot_name).await {
+            warn!("Failed to sync tables for new bot '{}': {}", bot_name, e);
+        }
     }
+}
+
+/// Sync tables.bas for a bot immediately after creation.
+/// Downloads tables.bas from S3 and processes table definitions so schema exists before scripts run.
+async fn sync_tables_for_bot(
+    state: &Arc<AppState>,
+    pool: &botcore::shared::utils::DbPool,
+    bot_name: &str,
+) -> Result<(), String> {
+    let bot_id = get_bot_id(pool, bot_name).await?;
+
+    let bucket_name = format!("{}.gbai", bot_name);
+    let tables_key = format!("{}.gbdialog/tables.bas", bot_name);
+
+    let content = match &state.drive {
+        Some(s3) => {
+            match s3.get_object_direct(&bucket_name, &tables_key).await {
+                Ok(data) => String::from_utf8(data).map_err(|e| format!("UTF-8 error: {e}"))?,
+                Err(_) => {
+                    trace!("tables.bas not found in S3 for bot {}, skipping", bot_name);
+                    return Ok(());
+                }
+            }
+        }
+        None => {
+            trace!("S3 client not available, skipping table sync for bot {}", bot_name);
+            return Ok(());
+        }
+    };
+
+    let runtime: Arc<dyn botbasic_types::BasicRuntime> = Arc::new(AppStateBasicRuntime(state.clone()));
+    match process_table_definitions(runtime, bot_id, &content) {
+        Ok(tables) => info!("Synced {} table definitions for bot '{}'", tables.len(), bot_name),
+        Err(e) => warn!("Failed to sync table definitions for bot '{}': {}", bot_name, e),
+    }
+    Ok(())
+}
+
+/// Sync tables.bas for a bot within a .gborg bucket structure.
+async fn sync_tables_for_org_bot(
+    state: &Arc<AppState>,
+    pool: &botcore::shared::utils::DbPool,
+    bot_name: &str,
+    bucket_name: &str,
+    s3_prefix: &str,
+) -> Result<(), String> {
+    let bot_id = get_bot_id(pool, bot_name).await?;
+
+    let content = match &state.drive {
+        Some(s3) => {
+            match s3.get_object_direct(bucket_name, &format!("{}{}.gbdialog/tables.bas", s3_prefix, bot_name)).await {
+                Ok(data) => String::from_utf8(data).map_err(|e| format!("UTF-8 error: {e}"))?,
+                Err(_) => {
+                    trace!("tables.bas not found in S3 for org bot {}, skipping", bot_name);
+                    return Ok(());
+                }
+            }
+        }
+        None => {
+            trace!("S3 client not available, skipping table sync for org bot {}", bot_name);
+            return Ok(());
+        }
+    };
+
+    let runtime: Arc<dyn botbasic_types::BasicRuntime> = Arc::new(AppStateBasicRuntime(state.clone()));
+    match process_table_definitions(runtime, bot_id, &content) {
+        Ok(tables) => info!("Synced {} table definitions for org bot '{}'", tables.len(), bot_name),
+        Err(e) => warn!("Failed to sync table definitions for org bot '{}': {}", bot_name, e),
+    }
+    Ok(())
+}
+
+async fn get_bot_id(
+    pool: &botcore::shared::utils::DbPool,
+    bot_name: &str,
+) -> Result<Uuid, String> {
+    let bn = bot_name.to_string();
+    let pool = pool.clone();
+    tokio::task::spawn_blocking(move || {
+        use diesel::prelude::*;
+        use botcore::shared::models::schema::bots;
+        let mut conn = match pool.get() {
+            Ok(c) => c,
+            Err(_) => return None,
+        };
+        bots::dsl::bots
+            .filter(bots::dsl::name.eq(&bn))
+            .select(bots::dsl::id)
+            .first::<Uuid>(&mut conn)
+            .ok()
+    })
+    .await
+    .map_err(|e| format!("Task error: {e}"))?
+    .ok_or_else(|| format!("Bot '{}' not found in database", bot_name))
 }
 
 /// Process a .gborg bucket (tenant) during initial discovery
@@ -498,16 +611,33 @@ async fn discover_and_create_bots(
                     let bs_is_default = bn == bs;
                     let pool_create = pool.clone();
                     let ld = load_only.to_vec();
-                    match tokio::task::spawn_blocking(move || {
+                    let created = match tokio::task::spawn_blocking(move || {
                         create_bot_from_drive(
                             &create_state, &pool_create, &bn,
                             Some((tenant_id, org_id, bs)),
                             Some(bs_is_default), &ld,
                         )
                     }).await {
-                        Ok(Ok(_)) => info!("Bot '{}' created in org", bot_name),
-                        Ok(Err(e)) => error!("Failed to create bot '{}' in org: {}", bot_name, e),
-                        Err(e) => error!("Task failed for bot '{}' in org: {}", bot_name, e),
+                        Ok(Ok(_)) => {
+                            info!("Bot '{}' created in org", bot_name);
+                            true
+                        }
+                        Ok(Err(e)) => {
+                            error!("Failed to create bot '{}' in org: {}", bot_name, e);
+                            false
+                        }
+                        Err(e) => {
+                            error!("Task failed for bot '{}' in org: {}", bot_name, e);
+                            false
+                        }
+                    };
+
+                    if created {
+                        if let Err(e) = sync_tables_for_org_bot(
+                            state, pool, bot_name, bucket_name, branch_prefix,
+                        ).await {
+                            warn!("Failed to sync tables for new org bot '{}': {}", bot_name, e);
+                        }
                     }
                 }
             }
@@ -560,6 +690,10 @@ async fn scan_flat_bucket(
     };
 
     if created {
+        // Sync tables before starting monitor so schema exists before scripts run
+        if let Err(e) = sync_tables_for_bot(state, pool, &bot_name).await {
+            warn!("Periodic scan: failed to sync tables for '{}': {}", bot_name, e);
+        }
         monitored_bots.insert(bot_name.clone());
         start_bot_monitor(state, pool, &bot_name).await;
     }
