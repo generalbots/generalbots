@@ -90,7 +90,7 @@ impl BasicCompiler {
             {
                 map_pairs.push(format!("{}: {}", column_name, value_var));
             } else {
-                log::warn!("No matching column for variable '{}'", value_var);
+                log::info!("No matching column for variable '{}'", value_var);
             }
         }
 
@@ -382,7 +382,7 @@ impl BasicCompiler {
         let columns: Vec<String> = match sql_query(&query).load(&mut conn) {
             Ok(cols) => {
                 if cols.is_empty() {
-                    log::warn!(
+                    log::info!(
                         "Found 0 columns for table '{}' in main database, trying bot database",
                         table_name
                     );
@@ -432,7 +432,7 @@ impl BasicCompiler {
                 }
             }
             Err(e) => {
-                log::warn!(
+                log::info!(
                     "Failed to get columns for table '{}' from main DB: {}",
                     table_name,
                     e

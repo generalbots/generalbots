@@ -64,9 +64,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (sidebar) initNavActive(sidebar);
 
   const email = localStorage.getItem('management_email') || '';
-  if (email === 'admin@localhost' || email.startsWith('admin')) {
+  const isAdmin = localStorage.getItem('management_is_admin') === 'true';
+  if (isAdmin) {
     const navVouchers = document.getElementById('nav-vouchers');
     if (navVouchers) navVouchers.style.display = 'flex';
+  }
+
+  // Show admin badge in sidebar footer if super-admin
+  if (isAdmin) {
+    const avatarEl = document.getElementById('sidebar-avatar');
+    if (avatarEl) avatarEl.title = 'Super Admin';
   }
 
   // Fill user email + avatar
@@ -84,6 +91,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try { loadDashboardOrgs(token).catch(() => {}); } catch (_) {}
   try { loadDashboardPlans(token).catch(() => {}); } catch (_) {}
+
+  // Check super-admin status from server (not hardcoded email)
+  try {
+    const res = await fetch(`${API_BASE}/organizations`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const isAdmin = data.is_admin === true;
+      localStorage.setItem('management_is_admin', isAdmin ? 'true' : 'false');
+      if (isAdmin) {
+        const navVouchers = document.getElementById('nav-vouchers');
+        if (navVouchers) navVouchers.style.display = 'flex';
+      }
+    }
+  } catch (_) {}
 });
 
 

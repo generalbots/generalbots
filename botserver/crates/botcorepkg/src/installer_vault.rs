@@ -316,6 +316,11 @@ VAULT_CACERT={}
 
     installer_vault2::seed_vault_defaults(&vault_addr, root_token, &ca_cert, &vault_bin)?;
 
+    // Write token to /tmp for developer tools
+    if let Err(e) = std::fs::write("/tmp/vault-token-gb", root_token) {
+        log::warn!("Failed to write vault token to /tmp: {e}");
+    }
+
     Ok(())
 }
 

@@ -34,10 +34,18 @@ pub struct SaasService {
 pub struct SaasConfig {
     pub base_url: String,
     pub jwt_secret: String,
+    pub mc_path: String,
+    pub mc_alias: String,
+    pub directory_api_url: Option<String>,
+    pub directory_service_token: Option<String>,
 }
 
 impl SaasService {
-    pub fn new(billing_state: Arc<BillingApiState>, stripe: StripeClient, config: SaasConfig) -> Self {
+    pub fn new(
+        billing_state: Arc<BillingApiState>,
+        stripe: StripeClient,
+        config: SaasConfig,
+    ) -> Self {
         Self {
             billing_state,
             stripe,

@@ -1,4 +1,6 @@
-use axum::{extract::State, http::{HeaderMap, StatusCode}, routing::{get, post, put, delete}, Json, Router};
+use axum::{extract::State, http::{HeaderMap, StatusCode}, middleware, routing::{get, post, put, delete}, Json, Router};
+use axum::response::{IntoResponse, Response};
+use axum::body::Body;
 use diesel::deserialize::QueryableByName;
 use diesel::prelude::*;
 use diesel::{ExpressionMethods, RunQueryDsl};
@@ -15,11 +17,64 @@ struct OrgRow {
     name: String,
 }
 
-use crate::{integration, notifier, CalculatorPayload, SaasService};
+use crate::{integration, notifier, CalculatorPayload, SaasConfig, SaasService};
 use botproviders::{ComputeProvider, MachineSpec};
 use botproviders::runpod::RunPodProvider;
 use botproviders::vultr::VultrProvider;
 use botproviders::vast::VastAiProvider;
+
+/// JWT authentication middleware for cloud API routes.
+/// Validates Bearer token on all routes except `/api/cloud/auth/*`.
+async fn cloud_jwt_middleware(
+    axum::Extension(jwt_secret): axum::Extension<String>,
+    request: axum::http::Request<Body>,
+    next: middleware::Next,
+) -> Response {
+    let path = request.uri().path().to_string();
+
+    // Skip auth for public endpoints
+    if path.starts_with("/api/cloud/auth/") {
+        return next.run(request).await;
+    }
+
+    let auth_header = request
+        .headers()
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
+
+    match auth_header {
+        Some(token) => {
+            let parts: Vec<&str> = token.split('.').collect();
+            if parts.len() != 3 {
+                let err = serde_json::json!({"error": "Invalid token format"});
+                return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+            }
+            let (header_b64, _payload_b64, sig_b64) = (parts[0], parts[1], parts[2]);
+            let message = format!("{}.{}", header_b64, parts[1]);
+            let expected_sig = jwt_sign_inner(&message, jwt_secret.as_bytes());
+            if sig_b64 != expected_sig {
+                let err = serde_json::json!({"error": "Invalid token signature"});
+                return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+            }
+            next.run(request).await
+        }
+        None => {
+            let err = serde_json::json!({"error": "Missing Authorization header"});
+            (StatusCode::UNAUTHORIZED, Json(err)).into_response()
+        }
+    }
+}
+
+/// HMAC-SHA256 sign a message and return the base64url-encoded signature.
+fn jwt_sign_inner(message: &str, secret: &[u8]) -> String {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret).expect("valid HMAC key");
+    mac.update(message.as_bytes());
+    base64_url_encode(&mac.finalize().into_bytes())
+}
 
 #[derive(diesel::QueryableByName, Debug)]
 struct ProviderKeyRow {
@@ -39,7 +94,9 @@ pub struct CheckoutBody {
 pub struct SignupBody {
     pub email: String,
     pub name: String,
+    pub bot_name: Option<String>,
     pub password: Option<String>,
+    pub plan: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,6 +112,7 @@ pub struct CreateOrgBody {
     pub period: Option<String>,
     pub storage_gb: Option<f64>,
     pub ai_addons: Option<Vec<String>>,
+    pub domain: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -77,7 +135,8 @@ pub struct ProfileUpdateBody {
     pub organization: Option<String>,
 }
 
-pub fn configure_cloud_api_routes() -> Router<Arc<SaasService>> {
+pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>> {
+    let jwt_secret = config.jwt_secret.clone();
     Router::new()
         // Auth
         .route("/api/cloud/auth/login", post(handle_login))
@@ -122,6 +181,11 @@ pub fn configure_cloud_api_routes() -> Router<Arc<SaasService>> {
         .route("/api/cloud/offers", get(list_offers))
         // LLM Providers catalog
         .route("/api/cloud/llm-providers", get(list_llm_providers))
+        // Admin
+        .route("/api/cloud/admin/server-capacity", get(get_server_capacity))
+        // JWT auth middleware — protects all routes except /api/cloud/auth/*
+        .layer(axum::Extension(jwt_secret))
+        .layer(middleware::from_fn(cloud_jwt_middleware))
 }
 
 /// `POST /api/cloud/auth/signup`
@@ -131,35 +195,183 @@ async fn handle_signup(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<SignupBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let (org_id, bot_id) = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
+    let bot_name = body.bot_name.as_deref()
+        .map(|n| n.trim().to_lowercase().replace(' ', "-"))
+        .filter(|n| !n.is_empty())
+        .unwrap_or_else(|| {
+            body.email.split('@').next().unwrap_or("default").to_lowercase()
+        });
 
-    let effective_org_id = if org_id == Uuid::nil() {
-        integration::create_organization(service.pool(), &body.name)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
+    // 1. Get or create tenant
+    let tenant_id = integration::get_or_create_default_tenant(service.pool())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    // 2. Create organization named after the bot
+    let slug = bot_name.to_lowercase().replace(' ', "-");
+    let org_domain = format!("{slug}.org.pragmatismo.com.br");
+    let org_id = integration::create_organization(service.pool(), &bot_name, Some(&org_domain))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    integration::link_org_to_tenant(service.pool(), org_id, tenant_id)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    // 3. Create branch with same name
+    let branch_id = integration::create_branch(service.pool(), org_id, tenant_id, &bot_name)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    // 4. Create bot record
+    let (new_bot_id, org_slug) = integration::create_bot(
+        service.pool(), org_id, branch_id, tenant_id, &bot_name,
+    ).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    // 5. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal)
+    if let Err(e) = integration::create_bot_bucket(&service.config, &org_slug, &bot_name, &bot_name) {
+        tracing::warn!("MinIO bucket creation skipped (non-fatal): {e}");
+    }
+
+    // 6. Create CRM contact (org_id here is branch_id because crm_contacts.org_id REFERENCES branches.id)
+    let pass_hash = body.password.as_ref().map(|p| {
+        use argon2::password_hash::{rand_core::OsRng, SaltString};
+        use argon2::{Argon2, PasswordHasher};
+        let salt = SaltString::generate(&mut OsRng);
+        Argon2::default()
+            .hash_password(p.as_bytes(), &salt)
+            .map(|h| h.to_string())
+            .unwrap_or_else(|_| String::new())
+    }).filter(|h| !h.is_empty());
+    let contact_id = integration::create_crm_contact(
+        service.pool(), branch_id, new_bot_id, &body.name, &body.email, pass_hash.as_deref(),
+    ).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    // 6.5. Create identity in directory (Zitadel) if configured
+    if let (Some(dir_url), Some(dir_token)) = (&service.config.directory_api_url, &service.config.directory_service_token) {
+        let parts: Vec<&str> = body.name.splitn(2, ' ').collect();
+        let first_name = parts.first().unwrap_or(&"");
+        let last_name = parts.get(1).unwrap_or(&"");
+        let _ = reqwest::Client::new()
+            .post(format!("{dir_url}/management/v1/users/human"))
+            .header("Authorization", format!("Bearer {dir_token}"))
+            .json(&serde_json::json!({
+                "userName": &body.email,
+                "profile": { "firstName": first_name, "lastName": last_name, "displayName": &body.name },
+                "email": { "email": &body.email, "isVerified": true },
+            }))
+            .send()
+            .await
+            .map(|resp| {
+                if !resp.status().is_success() {
+                    tracing::warn!("Zitadel user creation returned {}", resp.status());
+                }
+            })
+            .unwrap_or_else(|e| tracing::warn!("Zitadel user creation failed: {e}"));
+    }
+
+    // 7. Determine plan from body (default: free)
+    let chosen_plan = body.plan.as_deref()
+        .map(|p| p.to_lowercase())
+        .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
+        .unwrap_or_else(|| "free".to_string());
+
+    // Auto-pause free signups when server is under pressure
+    if chosen_plan == "free" || chosen_plan == "shared" {
+        let capacity = botbilling::server_capacity::calculate_server_capacity(
+            &botbilling::server_capacity::ServerCapacityConfig::default(),
+            0, 0,
+        );
+        if !capacity.new_signups_allowed {
+            return Err((StatusCode::SERVICE_UNAVAILABLE, format!(
+                "{{ \"error\": \"server_at_capacity\", \"message\": \"{} plan temporarily unavailable. Please try again later or upgrade.\", \"capacity_health\": \"{}\" }}",
+                chosen_plan, capacity.capacity_health
+            )));
+        }
+    }
+    let chosen_plan = body.plan.as_deref()
+        .map(|p| p.to_lowercase())
+        .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
+        .unwrap_or_else(|| "free".to_string());
+
+    let product_config = botbilling::default_product_config();
+    let plan_config = product_config.plans.get(&chosen_plan)
+        .ok_or((StatusCode::BAD_REQUEST, "Invalid plan".to_string()))?;
+
+    let is_custom_plan = matches!(plan_config.price, botbilling::PlanPrice::Custom);
+    let is_free_plan = matches!(plan_config.price, botbilling::PlanPrice::Free);
+    let trial_days = plan_config.trial_days.unwrap_or(0);
+
+    let subscription_id = if is_custom_plan {
+        // Private Server / custom plans: no billing_recurring entry
+        None
+    } else if is_free_plan {
+        Some(integration::create_free_subscription(
+            service.pool(), branch_id, new_bot_id, branch_id,
+            &body.name, &body.email,
+        ).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?)
     } else {
-        org_id
+        Some(integration::create_trial_subscription(
+            service.pool(), branch_id, new_bot_id, branch_id,
+            &body.name, &body.email, &chosen_plan, trial_days as i32,
+        ).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?)
     };
 
-    let contact_id = integration::create_crm_contact(
-        service.pool(),
-        effective_org_id,
-        bot_id,
-        &body.name,
-        &body.email,
-    )
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // 8. Create default cloud workspace
+    integration::create_cloud_workspace(service.pool(), org_id, &bot_name)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     notifier::notify_welcome(&notifier::EmailVars::new(
-        &body.name, &body.email, "free", 0.0, "USD",
+        &body.name, &body.email, &chosen_plan, 0.0, "USD",
     ));
+
+    let header = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
+    let now_ts = (chrono::Utc::now() + chrono::Duration::hours(24)).timestamp();
+    let payload = base64_url_encode(
+        format!(
+            "{{\"sub\":\"{}\",\"email\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bot_id\":\"{}\",\"exp\":{}}}",
+            body.name, body.email, org_id, branch_id, new_bot_id, now_ts,
+        ).as_bytes()
+    );
+    let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(serde_json::json!({
         "status": "ok",
         "account": { "email": body.email, "name": body.name },
-        "org_id": effective_org_id,
+        "org_id": org_id,
+        "branch_id": branch_id,
+        "bot_id": new_bot_id,
+        "bucket": format!("{}.gborg", org_slug),
         "contact_id": contact_id,
-        "token": "placeholder-token",
+        "subscription_id": subscription_id,
+        "plan": chosen_plan,
+        "trial_days": trial_days,
+        "token": token,
     })))
+}
+
+/// `GET /api/cloud/admin/server-capacity`
+///
+/// Returns real-time server capacity metrics for SaaS admin dashboard.
+async fn get_server_capacity(
+    State(_service): State<Arc<SaasService>>,
+) -> Json<serde_json::Value> {
+    let capacity = botbilling::server_capacity::calculate_server_capacity(
+        &botbilling::server_capacity::ServerCapacityConfig::default(),
+        0, 0,
+    );
+    Json(serde_json::json!({
+        "server": {
+            "cpu_cores": capacity.cpu_cores,
+            "cpu_usage_pct": (capacity.cpu_usage_pct * 100.0).round() / 100.0,
+            "ram_total_gb": (capacity.ram_total_gb * 100.0).round() / 100.0,
+            "ram_used_gb": (capacity.ram_used_gb * 100.0).round() / 100.0,
+            "ram_available_gb": (capacity.ram_available_gb * 100.0).round() / 100.0,
+        },
+        "saas_capacity": {
+            "available_free_slots": capacity.available_free_slots,
+            "available_shared_slots": capacity.available_shared_slots,
+            "new_signups_allowed": capacity.new_signups_allowed,
+            "capacity_health": capacity.capacity_health,
+            "pressure_index": (capacity.pressure_index * 100.0).round() / 100.0,
+        },
+    }))
 }
 
 /// `POST /api/cloud/checkout`
@@ -252,6 +464,7 @@ async fn handle_checkout(
         bot_id,
         &customer_name,
         &customer_email,
+        None,  // checkout: no password set
     )
     .map_err(|e| {
         tracing::warn!("CRM contact creation failed (non-fatal): {e}");
@@ -517,13 +730,35 @@ async fn handle_login(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
-    use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, id, first_name, last_name};
+    use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, id, first_name, last_name, pass_hash};
     let contact_opt = crm_contacts
         .filter(email.eq(&body.email))
-        .select((id, first_name, last_name, email))
-        .first::<(Uuid, Option<String>, Option<String>, String)>(&mut conn)
+        .select((id, first_name, last_name, email, pass_hash))
+        .first::<(Uuid, Option<String>, Option<String>, String, Option<String>)>(&mut conn)
         .optional()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    // Verify password against stored hash
+    if let Some((_, _, _, _, Some(stored_hash))) = &contact_opt {
+        let password_matches = {
+            use argon2::password_hash::{PasswordHash, PasswordVerifier};
+            use argon2::Argon2;
+            if let Ok(parsed) = PasswordHash::new(stored_hash) {
+                Argon2::default()
+                    .verify_password(body.password.as_bytes(), &parsed)
+                    .is_ok()
+            } else {
+                false
+            }
+        };
+        if !password_matches {
+            return Err((StatusCode::UNAUTHORIZED, "Invalid email or password".to_string()));
+        }
+    } else if contact_opt.is_some() {
+        // Contact exists but no password set (legacy account) — skip verification
+    } else {
+        return Err((StatusCode::UNAUTHORIZED, "Invalid email or password".to_string()));
+    }
 
     // Gerar token JWT simples (HMAC-SHA256 com o secret configurado)
     let exp = SystemTime::now()
@@ -532,19 +767,17 @@ async fn handle_login(
         .as_secs() + 86400 * 7; // 7 dias
 
     let header  = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
-    let payload = base64_url_encode(
-        format!(
-            "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
-            contact_opt.as_ref().map(|c| c.0.to_string()).unwrap_or_else(|| "guest".to_string()),
-            body.email,
-            exp
-        ).as_bytes()
+    let payload_body = format!(
+        "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
+        contact_opt.as_ref().map(|c| c.0.to_string()).unwrap_or_else(|| "guest".to_string()),
+        body.email,
+        exp
     );
-    // Signature stub (real HMAC signing requires a crypto crate)
-    let signature = base64_url_encode(service.config.jwt_secret.as_bytes());
-    let token = format!("{header}.{payload}.{signature}");
+    let payload = base64_url_encode(payload_body.as_bytes());
+    let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let (user_name, found) = if let Some((_, fn_, ln_, _)) = &contact_opt {
+    let (user_name, found) = if let Some((_, fn_, ln_, _, _)) = &contact_opt {
         let n = [fn_.as_deref().unwrap_or(""), ln_.as_deref().unwrap_or("")]
             .iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" ");
         (if n.is_empty() { body.email.split('@').next().unwrap_or("User").to_string() } else { n }, true)
@@ -578,7 +811,19 @@ fn base64_url_encode(input: &[u8]) -> String {
     out
 }
 
-fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
+fn jwt_sign(header: &str, payload: &str, secret: &[u8]) -> Result<String, String> {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    type HmacSha256 = Hmac<Sha256>;
+    let mut mac = HmacSha256::new_from_slice(secret)
+        .map_err(|e| format!("HMAC init: {e}"))?;
+    let signing_input = format!("{header}.{payload}");
+    mac.update(signing_input.as_bytes());
+    let signature = base64_url_encode(&mac.finalize().into_bytes());
+    Ok(format!("{signing_input}.{signature}"))
+}
+
+pub(crate) fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
     // Convert URL-safe base64 to standard base64
     let raw = input.replace('-', "+").replace('_', "/");
     let raw = match raw.len() % 4 {
@@ -594,20 +839,29 @@ fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
     let mut i = 0;
     while i < chars.len() {
         if chars[i] == '=' { break; }
-        let vals: Vec<u8> = chars[i..(i+4).min(chars.len())].iter().map(|&c| {
-            alphabet.iter().position(|&a| a as char == c).unwrap_or(0) as u8
-        }).collect();
-        let n = ((vals[0] as u32) << 18) | ((vals.get(1).copied().unwrap_or(0) as u32) << 12)
-            | ((vals.get(2).copied().unwrap_or(0) as u32) << 6) | (vals.get(3).copied().unwrap_or(0) as u32);
+        let mut vals = [0u8; 4];
+        let mut valid = 0usize;
+        for j in 0..4 {
+            if i + j >= chars.len() || chars[i + j] == '=' { break; }
+            if let Some(pos) = alphabet.iter().position(|&a| a as char == chars[i + j]) {
+                vals[valid] = pos as u8;
+                valid += 1;
+            }
+        }
+        if valid == 0 { break; }
+        let n = ((vals[0] as u32) << 18)
+            | (if valid > 1 { (vals[1] as u32) << 12 } else { 0 })
+            | (if valid > 2 { (vals[2] as u32) << 6 } else { 0 })
+            | (if valid > 3 { vals[3] as u32 } else { 0 });
         out.push((n >> 16) as u8);
-        if vals.len() > 2 { out.push((n >> 8) as u8); }
-        if vals.len() > 3 { out.push(n as u8); }
+        if valid > 2 { out.push((n >> 8) as u8); }
+        if valid > 3 { out.push(n as u8); }
         i += 4;
     }
     Ok(out)
 }
 
-fn get_branch_id_from_jwt(
+pub fn get_branch_id_from_jwt(
     headers: &HeaderMap,
     conn: &mut diesel::PgConnection,
 ) -> Result<Option<Uuid>, String> {
@@ -637,6 +891,57 @@ fn get_branch_id_from_jwt(
     Ok(None)
 }
 
+/// Check if the authenticated user is the SaaS super-admin.
+/// A user is super-admin if their CRM org is the default organization
+/// (slug = 'default'). In development, the bootstrap admin email
+/// (admin@localhost) is also treated as super-admin.
+pub fn is_super_admin(
+    headers: &HeaderMap,
+    conn: &mut diesel::PgConnection,
+) -> Result<bool, String> {
+    // Extract email from JWT
+    let user_email = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .and_then(|token| {
+            let parts: Vec<&str> = token.split('.').collect();
+            if parts.len() == 3 {
+                base64_url_decode(parts[1]).ok()
+                    .and_then(|decoded| serde_json::from_slice::<serde_json::Value>(&decoded).ok())
+                    .and_then(|payload| payload.get("email").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            } else { None }
+        });
+
+    // Dev mode: admin@localhost is always super-admin
+    if let Some(ref email) = user_email {
+        if email == "admin@localhost" {
+            return Ok(true);
+        }
+    }
+
+    // Check if user's organization is the default org
+    let user_org_id = get_branch_id_from_jwt(headers, conn)?;
+
+    #[derive(diesel::QueryableByName)]
+    struct DefaultOrgRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+    }
+
+    let default_org_id: Option<Uuid> = diesel::sql_query(
+        "SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1"
+    )
+    .get_result::<DefaultOrgRow>(conn)
+    .optional()
+    .map_err(|e| format!("Query default org: {e}?"))?
+    .map(|r| r.org_id);
+
+    match (user_org_id, default_org_id) {
+        (Some(uid), Some(did)) => Ok(uid == did),
+        _ => Ok(false),
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Organizations
 // ─────────────────────────────────────────────────────────────────────────────
@@ -652,27 +957,70 @@ async fn list_organizations(
     let user_branch_id = get_branch_id_from_jwt(&headers, &mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let orgs: Vec<OrgRow> = if let Some(bid) = user_branch_id {
-        diesel::sql_query("SELECT org_id AS id, name FROM organizations WHERE org_id = (SELECT org_id FROM branches WHERE id = $1)")
-            .bind::<diesel::sql_types::Uuid, _>(bid)
-            .load(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
+    let admin = is_super_admin(&headers, &mut conn).unwrap_or(false);
+
+    #[derive(diesel::QueryableByName, Debug)]
+    struct OrgWithCounts {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        domain: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        plan_name: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        branches_count: i64,
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        bots_count: i64,
+    }
+
+    let base_query = r#"
+        SELECT o.org_id AS id, o.name, o.domain,
+            (SELECT br.description FROM billing_recurring br
+             JOIN branches b2 ON b2.id = br.org_id
+             WHERE b2.org_id = o.org_id
+             ORDER BY br.created_at DESC LIMIT 1) AS plan_name,
+            COUNT(DISTINCT b.id) AS branches_count,
+            COUNT(DISTINCT bt.id) AS bots_count
+        FROM organizations o
+        LEFT JOIN branches b ON b.org_id = o.org_id
+        LEFT JOIN bots bt ON bt.branch_id = b.id
+    "#;
+
+    let orgs: Vec<OrgWithCounts> = if admin {
+        diesel::sql_query(format!("{base_query} GROUP BY o.org_id, o.name ORDER BY o.name"))
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
+    } else if let Some(bid) = user_branch_id {
+        diesel::sql_query(format!("{base_query} WHERE o.org_id = (SELECT org_id FROM branches WHERE id = $1) GROUP BY o.org_id, o.name"))
+        .bind::<diesel::sql_types::Uuid, _>(bid)
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
     } else {
-        diesel::sql_query("SELECT org_id AS id, name FROM organizations")
-            .load(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
+        diesel::sql_query(format!("{base_query} GROUP BY o.org_id, o.name ORDER BY o.name"))
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
     };
 
     let result: Vec<serde_json::Value> = orgs.into_iter().map(|r| {
+        let plan = r.plan_name.as_deref()
+            .and_then(|d| d.split_once(" - ").map(|(p, _)| p).or(Some(d)))
+            .map(|p| p.to_lowercase().replace(' ', "-"))
+            .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
+            .unwrap_or_else(|| "free".to_string());
         serde_json::json!({
             "id": r.id,
             "name": r.name,
-            "plan": "personal",
+            "plan": plan,
             "status": "active",
+            "domain": r.domain,
+            "branches_count": r.branches_count,
+            "bots_count": r.bots_count,
         })
     }).collect();
 
-    Ok(Json(serde_json::json!({ "organizations": result })))
+    Ok(Json(serde_json::json!({ "organizations": result, "is_admin": admin })))
 }
 
 /// `POST /api/cloud/organizations`
@@ -684,7 +1032,7 @@ async fn create_organization(
         return Err((StatusCode::BAD_REQUEST, "Organization name is required".to_string()));
     }
 
-    let org_id = integration::create_organization(service.pool(), &body.name)
+    let org_id = integration::create_organization(service.pool(), &body.name, body.domain.as_deref())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let plan = body.plan.unwrap_or_else(|| "personal".to_string());

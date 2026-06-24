@@ -101,6 +101,8 @@ pub fn configure_router() -> Router {
     #[cfg(feature = "embed-ui")]
     {
         router = router.route("/auth/*path", get(handle_auth_asset));
+    }
+
     router = add_static_routes(router, &suite_path);
 
     router.fallback(get(index)).with_state(state)

@@ -37,8 +37,8 @@ pub async fn create_app_state(
     };
 
     #[cfg(feature = "drive")]
-    if let Err(e) = drive.create_bucket_if_not_exists("default.gbai").await {
-        warn!("Failed to create default.gbai bucket: {}", e);
+    if let Err(e) = drive.create_bucket_if_not_exists("default.gborg").await {
+        warn!("Failed to create default.gborg bucket: {}", e);
     }
 
     #[cfg(feature = "drive")]

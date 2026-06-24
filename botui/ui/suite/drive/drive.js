@@ -562,8 +562,23 @@
     try {
       const params = new URLSearchParams();
       params.set("scope", currentScope);
-      const files = await apiRequest("/favorite?" + params.toString());
-      renderFiles(files);
+      const items = await apiRequest("/favorite?" + params.toString());
+      if (!items || items.length === 0) {
+        content.innerHTML = `<div class="empty-state"><h3>No starred files</h3><p>Click the star icon on any file to add it here.</p></div>`;
+        return;
+      }
+      let html = `<div class="file-grid ${viewMode === 'grid' ? 'grid-view' : 'list-view'}">`;
+      for (const item of items) {
+        const name = item.path.split('/').pop() || item.path;
+        html += `<div class="file-card" data-path="${escapeHtml(item.path)}" data-bucket="${escapeHtml(item.bucket)}">
+          <div class="file-icon">${getFileIcon(name)}</div>
+          <div class="file-name">${escapeHtml(name)}</div>
+          <div class="file-meta">${escapeHtml(item.bucket)}</div>
+          <button class="star-btn active" onclick="window.toggleStar('${escapeJs(item.path)}', '${escapeJs(item.bucket)}', false)" title="Unstar">★</button>
+        </div>`;
+      }
+      html += `</div>`;
+      content.innerHTML = html;
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><h3>No starred files</h3></div>`;
     }
@@ -576,8 +591,22 @@
     try {
       const params = new URLSearchParams();
       params.set("scope", currentScope);
-      const files = await apiRequest("/shared?" + params.toString());
-      renderFiles(files);
+      const items = await apiRequest("/shared?" + params.toString());
+      if (!items || items.length === 0) {
+        content.innerHTML = `<div class="empty-state"><h3>No shared files</h3><p>Files shared with you will appear here.</p></div>`;
+        return;
+      }
+      let html = `<div class="file-grid ${viewMode === 'grid' ? 'grid-view' : 'list-view'}">`;
+      for (const item of items) {
+        const name = item.path.split('/').pop() || item.path;
+        html += `<div class="file-card" data-path="${escapeHtml(item.path)}" data-bucket="${escapeHtml(item.bucket)}">
+          <div class="file-icon">${getFileIcon(name)}</div>
+          <div class="file-name">${escapeHtml(name)}</div>
+          <div class="file-meta">${escapeHtml(item.owner_id)} · ${escapeHtml(item.permissions)}</div>
+        </div>`;
+      }
+      html += `</div>`;
+      content.innerHTML = html;
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><h3>No shared files</h3></div>`;
     }
@@ -586,7 +615,31 @@
   async function loadTrashFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = `<div class="empty-state"><h3>Trash is empty</h3></div>`;
+    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    try {
+      const params = new URLSearchParams();
+      params.set("scope", currentScope);
+      const items = await apiRequest("/trash?" + params.toString());
+      if (!items || items.length === 0) {
+        content.innerHTML = `<div class="empty-state"><h3>Trash is empty</h3></div>`;
+        return;
+      }
+      let html = `<div style="margin-bottom:12px"><button class="btn-danger" onclick="window.emptyTrash()">Empty Trash</button></div>`;
+      html += `<div class="file-grid ${viewMode === 'grid' ? 'grid-view' : 'list-view'}">`;
+      for (const item of items) {
+        const name = item.original_path.split('/').pop() || item.path;
+        html += `<div class="file-card" data-trash-id="${escapeHtml(item.id)}">
+          <div class="file-icon">${getFileIcon(name)}</div>
+          <div class="file-name">${escapeHtml(name)}</div>
+          <div class="file-meta">Deleted ${escapeHtml(item.deleted_at)} · ${formatFileSize(item.size)}</div>
+          <button class="btn-sm" onclick="window.restoreTrash('${escapeJs(item.id)}')" title="Restore">↩ Restore</button>
+        </div>`;
+      }
+      html += `</div>`;
+      content.innerHTML = html;
+    } catch (err) {
+      content.innerHTML = `<div class="empty-state"><h3>Trash is empty</h3></div>`;
+    }
   }
 
   function bindViewToggle() {
@@ -1332,6 +1385,37 @@
   }
 
   function uploadFile() { triggerUpload(); }
+
+  window.toggleStar = async function(path, bucket, starred) {
+    try {
+      await apiRequest("/favorite/toggle", {
+        method: "POST",
+        body: JSON.stringify({ path, bucket, starred, scope: currentScope })
+      });
+      loadStarredFiles();
+    } catch (err) { console.error("Star toggle failed:", err); }
+  };
+
+  window.restoreTrash = async function(id) {
+    try {
+      await apiRequest("/trash/restore", {
+        method: "POST",
+        body: JSON.stringify({ id, scope: currentScope })
+      });
+      loadTrashFiles();
+    } catch (err) { console.error("Restore failed:", err); }
+  };
+
+  window.emptyTrash = async function() {
+    if (!confirm("Empty trash? All trashed files will be permanently deleted.")) return;
+    try {
+      await apiRequest("/trash/empty", {
+        method: "POST",
+        body: JSON.stringify({ scope: currentScope })
+      });
+      loadTrashFiles();
+    } catch (err) { console.error("Empty trash failed:", err); }
+  };
 
   window.DriveModule = {
     init, loadFiles, loadStorageInfo, discoverBuckets, retryWithBackoff,

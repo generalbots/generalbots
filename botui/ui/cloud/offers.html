@@ -61,11 +61,12 @@
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
-  await requireAuth();
+  const token = requireAuth();
+  if (!token) return;
 
   let offers = [];
   try {
-    const res = await fetch('/api/cloud/offers');
+    const res = await fetch('/api/cloud/offers', { headers: { 'Authorization': 'Bearer ' + token } });
     const ct = res.headers.get('content-type') || '';
     if (res.ok && ct.includes('json')) {
       const data = await res.json();

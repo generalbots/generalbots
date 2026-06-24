@@ -81,7 +81,7 @@ pub async fn ensure_llama_servers_running(
 
     // Use default models when config is empty (no default.gbai/config.csv)
     let llm_server_path = if llm_server_path.is_empty() {
-        format!("{}/bin/llm/build/bin", botcore::shared::utils::get_stack_path())
+        format!("{}/bin/llm/bin", botcore::shared::utils::get_stack_path())
     } else {
         llm_server_path
     };

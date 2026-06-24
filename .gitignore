@@ -109,3 +109,6 @@ opt/
 
 session-*.md
 todo.tmp
+.git-rewrite/
+*.tmp
+

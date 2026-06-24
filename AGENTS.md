@@ -1104,33 +1104,31 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
 5. **Find the bot** — check MinIO drive buckets via `mc`: `/tmp/mc ls local/` (each bucket = `{bot}.gbai`)
 6. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
 7. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
-8. **Start Chrome CDP** — verificar se Chrome está rodando com `--remote-debugging-port=9222`; se não, iniciar: `export DISPLAY=:1 && google-chrome --no-sandbox --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug --start-maximized &`
-9. **Abrir 3 abas (casos de teste)** — cada aba é um caso de uso diferente, via CDP:
+8. **Start Chrome CDP** — verificar se Chrome está rodando com `--remote-debugging-port=9222`; se não, iniciar com `--remote-allow-origins=*` para permitir conexões WebSocket de qualquer origem:
    ```bash
-   # Usar Node.js para abrir abas via CDP HTTP
-   node -e "
-   const http = require('http');
-   function openTab(url) {
-     return new Promise(r => {
-       const opts = { hostname: '127.0.0.1', port: 9222, path: '/json/new?' + encodeURI(url), method: 'PUT' };
-       http.request(opts, res => { let d=''; res.on('data',c=>d+=c); res.on('end',()=>r(JSON.parse(d))); }).end();
-     });
-   }
-   (async () => {
-     const t1 = await openTab('http://localhost:3000/{bot}');
-     const t2 = await openTab('http://localhost:3000/{bot}');
-     const t3 = await openTab('http://localhost:3000/{bot}');
-     console.log('3 abas abertas');
-   })();
-   "
+   export DISPLAY=:1
+   google-chrome --no-sandbox --remote-debugging-port=9222 --remote-allow-origins=* \
+     --user-data-dir=/tmp/chrome-debug --start-maximized &
    ```
-10. **Testar 3 casos de uso no chat** — após 8s de carregamento, enviar mensagens via CDP:
+9. **🚨 NUNCA FECHAR O NAVEGADOR** — cada aba aberta representa um caso de uso e deve permanecer aberta para inspeção do usuário. Fechar apenas quando solicitado explicitamente.
+10. **Abrir abas via Playwright CDP** (conecta ao Chrome já aberto na 9222, abas persistem após o script):
+    ```python
+    from playwright.async_api import async_playwright
+    async with async_playwright() as p:
+        browser = await p.chromium.connect_over_cdp("http://localhost:9222")
+        default_ctx = browser.contexts[0]
+        page = await default_ctx.new_page()
+        await page.goto('http://localhost:4000/cloud/signup')
+        # ... interagir ...
+        # NÃO fechar o browser ao final — abas permanecem abertas
+    ```
+11. **Testar 3 casos de uso em abas separadas** — cada aba é um caso diferente:
     - **Caso 1 (Saudação):** Enviar "Olá", verificar TALK de boas-vindas e botões de sugestão
     - **Caso 2 (Serviço principal):** Enviar mensagem sobre o serviço principal do bot, verificar fluxo de coleta de dados
     - **Caso 3 (Segundo serviço ou pendência):** Testar segundo serviço ou listar pendências
-11. **Verificar respostas** — usar `getLastBotMessage()` no CDP para capturar resposta do bot (último `.message.bot .bot-message`)
-12. **Capturar screenshots** — salvar em `/tmp/{bot}_case{N}_{before|after}.png`
-13. **Report results** — evidencias visuais + resumo de cada caso: mensagens enviadas, respostas obtidas, sugestões
+12. **Verificar respostas** — usar `page.evaluate()` para capturar último `.message.bot .bot-message`
+13. **Capturar screenshots** — salvar em `/tmp/{bot}_case{N}_{before|after}.png`
+14. **Report results** — evidencias visuais + resumo de cada caso: mensagens enviadas, respostas obtidas, sugestões
 
 **Script padrão para interagir via CDP (Node.js):**
 ```javascript
@@ -1179,6 +1177,61 @@ DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
 # Check botserver logs for errors
 grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
 ```
+
+---
+
+## ☁️ Cloud Management Testing
+
+### Portas
+| Serviço | Porta | Descrição |
+|---------|-------|-----------|
+| Cloud UI (botui) | **4000** | Páginas de signup, login, dashboard, store, offers |
+| Cloud API (botserver) | **8080** | `/api/cloud/auth/signup`, `/api/cloud/auth/login`, etc. |
+
+### Fluxo de Teste dos Planos (Free, Shared, Private Cloud)
+
+Usar Playwright conectado via CDP ao Chrome existente na porta 9222:
+
+```python
+from playwright.async_api import async_playwright
+
+async def test_cloud_plans():
+    async with async_playwright() as p:
+        browser = await p.chromium.connect_over_cdp("http://localhost:9222")
+        ctx = browser.contexts[0]  # usa o contexto default do Chrome
+
+        plans = [
+            ('free', 'http://localhost:4000/cloud/signup'),
+            ('shared', 'http://localhost:4000/cloud/signup?plan=shared'),
+            ('private-cloud', 'http://localhost:4000/cloud/signup?plan=private-cloud'),
+        ]
+
+        for plan_id, url in plans:
+            page = await ctx.new_page()
+            await page.goto(url, wait_until='networkidle')
+            await page.fill('#signup-name', 'Test User')
+            await page.fill('#signup-botname', f'Bot{suffix}')
+            await page.fill('#signup-email', f'{plan_id}-{suffix}@example.com')
+            await page.fill('#signup-password', 'Test1234!')
+            await page.click('#signup-btn')
+            # NÃO fechar a página — manter aberta para inspeção
+```
+
+### Comportamento esperado por plano
+
+| Plano | Redirecionamento | Assinatura criada |
+|-------|-----------------|-------------------|
+| **free** | `/cloud/dashboard` | `billing_recurring` status=`active`, amount=`0.0` |
+| **shared** | `/cloud/dashboard` | `billing_recurring` status=`trialing`, trial=14 dias |
+| **private-cloud** | `/cloud/store` | Nenhuma (Custom/sob consulta) |
+
+### Bug conhecido (corrigido)
+
+**Sintoma:** Signup com planos `free` ou `shared` retorna erro `"Insert ... subscription: insert or update on table 'billing_recurring' violates foreign key constraint 'billing_recurring_org_id_fkey'"`
+
+**Causa:** A migration `9.16-branch-id-isolation` alterou a FK de `billing_recurring.org_id` para referenciar `branches(id)` em vez de `organizations(org_id)`, mas o handler `handle_signup` em `botserver/crates/botcloud/src/api.rs` passava `org_id` (da organização) em vez de `branch_id`.
+
+**Correção:** Substituir `org_id` por `branch_id` nas chamadas a `create_free_subscription` e `create_trial_subscription` no `handle_signup`.
 
 ---
 
@@ -1257,10 +1310,12 @@ Se o Chrome ainda não estiver rodando com `--remote-debugging-port=9222`:
 ```bash
 # Se VNC disponível (display :1), Chrome visível
 export DISPLAY=:1
-google-chrome --no-sandbox --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug &
+google-chrome --no-sandbox --remote-debugging-port=9222 --remote-allow-origins=* \
+  --user-data-dir=/tmp/chrome-debug &
 
 # Ou headless (sem display)
-google-chrome --no-sandbox --remote-debugging-port=9222 --headless --user-data-dir=/tmp/chrome-debug &
+google-chrome --no-sandbox --remote-debugging-port=9222 --remote-allow-origins=* \
+  --headless --user-data-dir=/tmp/chrome-debug &
 ```
 
 ### 2. ABRIR URL POR CASO DE USO

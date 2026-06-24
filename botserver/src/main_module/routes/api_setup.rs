@@ -37,7 +37,14 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route("/api/files/open", axum_post(crate::drive::drive_handlers::open_file))
             .route("/api/files/ai/chat", axum_post(crate::drive::drive_handlers::ai_chat_handler))
             .route("/api/files/favorite", axum_get(crate::drive::drive_handlers::list_favorites))
-            .route("/api/files/shared", axum_get(crate::drive::drive_handlers::list_shared));
+            .route("/api/files/favorite/toggle", axum_post(crate::drive::drive_handlers::toggle_star))
+            .route("/api/files/shared", axum_get(crate::drive::drive_handlers::list_shared))
+            .route("/api/files/share", axum_post(crate::drive::drive_handlers::share_folder))
+            .route("/api/files/trash", axum_get(crate::drive::drive_handlers::list_trash))
+            .route("/api/files/trash/move", axum_post(crate::drive::drive_handlers::trash_file))
+            .route("/api/files/trash/restore", axum_post(crate::drive::drive_handlers::restore_trash))
+            .route("/api/files/trash/empty", axum_post(crate::drive::drive_handlers::empty_trash))
+            .route("/api/files/upload-binary", axum_post(crate::drive::drive_handlers::upload_file_binary));
     }
 
     api_router = api_router

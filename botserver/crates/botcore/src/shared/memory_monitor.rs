@@ -199,7 +199,7 @@ pub fn compare_and_log(&self) {
     let diff = current.rss_bytes as i64 - self.stats.rss_bytes as i64;
 
     if diff > 0 {
-        warn!(
+        info!(
             "[CHECKPOINT] {} INCREASED by {}",
             self.name,
             MemoryStats::format_bytes(diff as u64),
@@ -429,7 +429,7 @@ tokio::spawn(async move {
         record_component("global");
 
         if let Some(warning) = detector.check() {
-            warn!("{}", warning);
+            info!("{}", warning);
             stats.log();
             log_component_stats();
             log_thread_stats();

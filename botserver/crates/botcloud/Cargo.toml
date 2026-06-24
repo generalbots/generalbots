@@ -8,9 +8,12 @@ authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 
 [dependencies]
+argon2 = { workspace = true }
 axum = { workspace = true }
 chrono = { workspace = true, features = ["serde", "clock"] }
 diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json", "numeric"] }
+hmac = { workspace = true }
+sha2 = { workspace = true }
 r2d2 = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

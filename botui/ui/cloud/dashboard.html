@@ -47,7 +47,7 @@
         <div class="stat-card"><div class="stat-label">Active Services</div><div class="stat-value" id="stat-services">—</div><div class="stat-delta">running</div></div>
         <div class="stat-card"><div class="stat-label">Monthly Spend</div><div class="stat-value" id="stat-spend">—</div><div class="stat-delta">this cycle</div></div>
         <div class="stat-card"><div class="stat-label">Open Invoices</div><div class="stat-value" id="stat-invoices">—</div><div class="stat-delta">unpaid</div></div>
-        <div class="stat-card"><div class="stat-label">Organization</div><div class="stat-value" id="stat-org" style="font-size:1rem;line-height:1.4">—</div><div class="stat-delta">active</div></div>
+        <div class="stat-card"><div class="stat-label">Organization</div><div class="stat-value" id="stat-org" style="font-size:1rem;line-height:1.4">—</div><div class="stat-delta" id="stat-plan-badge">active</div></div>
       </div>
 
       <!-- USAGE BARS -->
@@ -87,7 +87,7 @@
         </div>
         <div class="upgrade-info">
           <div class="upgrade-title">Go Private Cloud</div>
-          <div class="upgrade-desc">Upgrade to Private Cloud for dedicated VPS, unlimited workspaces, and exclusive GPU access. Starting at $12.99/mo.</div>
+          <div class="upgrade-desc">Upgrade to Private Cloud for dedicated VPS, unlimited workspaces, and exclusive GPU access. Starting at $9.99/mo.</div>
           <div class="upgrade-features">
             <span class="upgrade-feature">Dedicated VPS</span>
             <span class="upgrade-feature">Unlimited Workspaces</span>
@@ -156,15 +156,17 @@
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
-  await requireAuth();
+  const token = requireAuth();
+  if (!token) return;
 
   // Load dashboard data
   async function loadDashboard() {
     try {
+      const authHeaders = { 'Authorization': 'Bearer ' + token };
       const [orgRes, svcRes, invRes] = await Promise.all([
-        fetch('/api/cloud/organizations'),
-        fetch('/api/cloud/services'),
-        fetch('/api/cloud/invoices'),
+        fetch('/api/cloud/organizations', { headers: authHeaders }),
+        fetch('/api/cloud/services', { headers: authHeaders }),
+        fetch('/api/cloud/invoices', { headers: authHeaders }),
       ]);
 
       const orgs = orgRes.ok ? (await orgRes.json()).organizations || [] : [];
@@ -174,33 +176,65 @@
       document.getElementById('stat-services').textContent = services.length;
       document.getElementById('stat-invoices').textContent = invoices.filter(i => i.status === 'open' || i.status === 'draft').length;
 
-      const totalSpend = services.reduce((sum, s) => sum + (s.amount || 0), 0);
+      const totalSpend = (services || []).reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
       document.getElementById('stat-spend').textContent = '$' + totalSpend.toFixed(2);
 
       const orgName = orgs.length ? orgs[0].name : 'No organization';
       document.getElementById('stat-org').innerHTML = orgName + (orgs.length > 1 ? ' <small style="color:var(--muted)">+' + (orgs.length-1) + '</small>' : '');
 
-      // Usage bars
-      const wsCount = 0; // would need workspaces endpoint
+      // Plan badge
+      const currentPlan = orgs.length ? (orgs[0].plan || 'free') : 'free';
+      const badge = document.getElementById('stat-plan-badge');
+      const planLabels = { free: 'Free Plan', shared: 'Shared Plan', 'private-cloud': 'Private Cloud' };
+      badge.textContent = planLabels[currentPlan] || currentPlan;
+      badge.style.fontWeight = '600';
+
+      // Hide upgrade card for private-cloud users
+      const upgradeCard = document.querySelector('.upgrade-card');
+      if (upgradeCard && (currentPlan === 'private-cloud' || currentPlan === 'private')) {
+        upgradeCard.style.display = 'none';
+      }
+
+      // Usage bars with plan-aware limits
+      const wsCount = 0;
       const orgCount = orgs.length;
       const storageGB = 0;
 
-      document.getElementById('usage-msgs-label').textContent = '0 / Unlimited';
+      // Load plan limits
+      let planLimits = { messages: 'Unlimited', storage: 50, workspaces: 5, orgs: 5 };
+      try {
+        const plansRes = await fetch('/api/cloud/plans', { headers: authHeaders });
+        if (plansRes.ok) {
+          const plansData = await plansRes.json();
+          const planDef = plansData.plans && plansData.plans[currentPlan];
+          if (planDef && planDef.limits) {
+            planLimits = {
+              messages: planDef.limits.messages_per_day === 0 ? 'Unlimited' : String(planDef.limits.messages_per_day),
+              storage: planDef.limits.storage_mb / 1024 || 50,
+              workspaces: planDef.limits.bots || 5,
+              orgs: planDef.limits.users || 5,
+            };
+          }
+        }
+      } catch(_) {}
+
+      const msgLimit = planLimits.messages;
+      document.getElementById('usage-msgs-label').textContent = '0 / ' + msgLimit;
       document.getElementById('usage-msgs-bar').style.width = '5%';
       document.getElementById('usage-msgs-bar').className = 'usage-bar-fill';
 
-      document.getElementById('usage-storage-label').textContent = storageGB + ' GB / 50 GB';
-      const storagePct = Math.min((storageGB / 50) * 100, 100);
+      document.getElementById('usage-storage-label').textContent = storageGB + ' GB / ' + planLimits.storage + ' GB';
+      const storagePct = Math.min((storageGB / planLimits.storage) * 100, 100);
       document.getElementById('usage-storage-bar').style.width = storagePct + '%';
       document.getElementById('usage-storage-bar').className = 'usage-bar-fill' + (storagePct > 80 ? ' warning' : '');
 
-      document.getElementById('usage-ws-label').textContent = wsCount + ' / 5';
-      const wsPct = Math.min((wsCount / 5) * 100, 100);
+      document.getElementById('usage-ws-label').textContent = wsCount + ' / ' + planLimits.workspaces;
+      const wsPct = Math.min((wsCount / planLimits.workspaces) * 100, 100);
       document.getElementById('usage-ws-bar').style.width = wsPct + '%';
       document.getElementById('usage-ws-bar').className = 'usage-bar-fill' + (wsPct > 80 ? ' warning' : '');
 
-      document.getElementById('usage-org-label').textContent = orgCount + ' / 5';
-      const orgPct = Math.min((orgCount / 5) * 100, 100);
+      document.getElementById('usage-org-label').textContent = orgCount + ' / ' + planLimits.orgs;
+      const orgPct = Math.min((orgCount / planLimits.orgs) * 100, 100);
       document.getElementById('usage-org-bar').style.width = orgPct + '%';
       document.getElementById('usage-org-bar').className = 'usage-bar-fill' + (orgPct > 80 ? ' warning' : '');
 

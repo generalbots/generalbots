@@ -49,6 +49,8 @@ async function handleSignup(e) {
   const name  = document.getElementById('signup-name').value.trim();
   const email = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
+  const botName = document.getElementById('signup-botname').value.trim();
+  const plan = document.querySelector('input[name="plan"]:checked')?.value || 'free';
 
   btn.textContent = 'Creating account…';
   btn.disabled = true;
@@ -58,7 +60,7 @@ async function handleSignup(e) {
     const res = await fetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, password }),
+      body: JSON.stringify({ email, name, bot_name: botName, password, plan }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -66,13 +68,23 @@ async function handleSignup(e) {
       errEl.style.display = 'block';
       return;
     }
-    // Handler returns: { status, account: { email, name }, token, org_id }
+    // Handler returns: { status, account: { email, name }, org_id, branch_id, bot_id,
+    //                    bucket, subscription_id, plan, trial_days, token }
     const token = data.token;
     const emailOut = data.account?.email || email;
     localStorage.setItem('management_token', token);
     localStorage.setItem('management_email', emailOut);
     localStorage.setItem('management_name',  data.account?.name || name);
-    window.location.href = '/cloud/dashboard';
+    localStorage.setItem('management_org_id', data.org_id || '');
+    localStorage.setItem('management_bot_id', data.bot_id || '');
+    localStorage.setItem('management_bot_name', botName);
+    localStorage.setItem('management_plan', data.plan || 'free');
+    // Private Server: redirect to Store VPS calculator instead of Dashboard
+    if (plan === 'private-cloud') {
+      window.location.href = '/cloud/store';
+    } else {
+      window.location.href = '/cloud/dashboard';
+    }
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';
@@ -83,6 +95,35 @@ async function handleSignup(e) {
 }
 
 async function doSignup(e) { return handleSignup(e); }
+
+// ── Plan selector visual highlight + private server toggle ──
+document.addEventListener('DOMContentLoaded', function() {
+  // Use ?plan= query param to pre-select a plan
+  var params = new URLSearchParams(window.location.search);
+  var presetPlan = params.get('plan');
+  if (presetPlan) {
+    var presetInput = document.querySelector('input[name="plan"][value="' + presetPlan + '"]');
+    if (presetInput) {
+      document.querySelectorAll('.plan-option').forEach(function(o) { o.classList.remove('selected'); });
+      var presetLabel = presetInput.closest('.plan-option');
+      if (presetLabel) presetLabel.classList.add('selected');
+      presetInput.checked = true;
+    }
+  }
+
+  var infoEl = document.getElementById('private-server-info');
+  var btn = document.getElementById('signup-btn');
+  document.querySelectorAll('.plan-option').forEach(function(el) {
+    el.addEventListener('click', function() {
+      document.querySelectorAll('.plan-option').forEach(function(o) { o.classList.remove('selected'); });
+      el.classList.add('selected');
+      var isPrivate = el.querySelector('input[name="plan"]')?.value === 'private-cloud';
+      if (infoEl) infoEl.style.display = isPrivate ? 'block' : 'none';
+      // All plans use "Create Account" — private redirects to store after signup
+      if (btn) btn.textContent = 'Create Account';
+    });
+  });
+});
 
 // ── Token helpers ──
 function getToken() {

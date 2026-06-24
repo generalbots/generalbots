@@ -441,5 +441,6 @@ diesel::table! {
 diesel::table! {
     bots (id) {
         id -> Uuid,
+        branch_id -> Uuid,
     }
 }

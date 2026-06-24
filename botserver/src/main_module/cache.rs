@@ -13,9 +13,20 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         .or_else(|_| std::env::var("VALKEY_URL"))
         .ok();
 
+    // Check for Redis database number for namespace isolation
+    let redis_db = std::env::var("REDIS_DB").ok()
+        .and_then(|s| s.parse::<u8>().ok())
+        .unwrap_or(0);
+
     // Build candidate URLs: try env first, then Vault with password if available
     let mut urls: Vec<String> = Vec::new();
     if let Some(url) = env_url.clone() {
+        let url = if redis_db > 0 {
+            let base = url.trim_end_matches('/');
+            format!("{base}/{redis_db}")
+        } else {
+            url
+        };
         urls.push(url);
     }
     if let Ok(secrets) = SecretsManager::get() {

@@ -165,7 +165,7 @@ impl KbIndexer {
         if !is_embedding_server_ready() {
             info!("Embedding server not ready yet, waiting up to 60s...");
             if !self.embedding_generator.wait_for_server(60).await {
-                warn!(
+                info!(
                     "Embedding server is not available. KB indexing skipped. \
                     Wait for the embedding server to start before indexing."
                 );
@@ -176,7 +176,7 @@ impl KbIndexer {
         }
 
         if !self.check_qdrant_health().await.unwrap_or(false) {
-            warn!(
+            info!(
                 "Qdrant vector database is not available at {}. KB indexing skipped. \
                 Install and start vector_db component to enable KB indexing.",
                 self.qdrant_config.url
@@ -291,7 +291,7 @@ impl KbIndexer {
 
             // Re-validate embedding server is still available
             if !is_embedding_server_ready() {
-                warn!("Embedding server became unavailable during indexing, aborting batch");
+                info!("Embedding server became unavailable during indexing, aborting batch");
                 return Err(anyhow::anyhow!(
                     "Embedding server became unavailable during KB indexing. Processed {} documents before failure.",
                     processed_count
@@ -358,7 +358,7 @@ impl KbIndexer {
                     return Ok(());
                 }
                 Some(dims) => {
-                    warn!(
+                    info!(
                         "Collection {} exists with dim={} but embedding requires dim={}. \
                         Recreating collection.",
                         collection_name, dims, required_dims
@@ -377,7 +377,7 @@ impl KbIndexer {
                 }
                 None => {
                     // Could not read dims – recreate to be safe
-                    warn!("Could not read dims for collection {}, recreating", collection_name);
+                    info!("Could not read dims for collection {}, recreating", collection_name);
                     let delete_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
                     let _ = self.http_client.delete(&delete_url).send().await;
                 }
@@ -439,7 +439,7 @@ impl KbIndexer {
             .await?;
 
         if !response.status().is_success() {
-            warn!("Failed to create index, using defaults");
+            info!("Failed to create index, using defaults");
         }
 
         Ok(())
@@ -583,13 +583,13 @@ pub async fn index_single_file_with_id(
     );
 
     if let Err(e) = self.delete_file_points(&collection_name, &doc_path).await {
-        warn!("Failed to delete old points for {} before reindex: {}", doc_path, e);
+        info!("Failed to delete old points for {} before reindex: {}", doc_path, e);
     }
 
     let chunks = self.document_processor.process_document(file_path).await?;
 
     if chunks.is_empty() {
-        warn!("No chunks extracted from file: {}", file_path.display());
+        info!("No chunks extracted from file: {}", file_path.display());
         return Ok(IndexingResult {
             collection_name,
             documents_processed: 0,
@@ -829,7 +829,7 @@ pub async fn index_single_file_with_id(
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            warn!(
+            info!(
                 "Failed to delete collection {}: {}",
                 collection_name, error_text
             );

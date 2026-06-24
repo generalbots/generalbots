@@ -16,6 +16,7 @@ pub mod middleware;
 pub mod plans;
 pub mod quotas;
 pub mod schema;
+pub mod server_capacity;
 pub mod stripe_integration;
 pub mod testing;
 
@@ -87,6 +88,9 @@ pub struct PlanLimits {
     pub signups_per_day: Option<LimitValue>,
     pub kb_documents: LimitValue,
     pub apps: LimitValue,
+    pub emails_per_day: LimitValue,
+    pub builds_per_day: LimitValue,
+    pub uploads_per_hour: LimitValue,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -175,6 +179,9 @@ pub enum UsageMetric {
     Users,
     KbDocuments,
     Apps,
+    EmailsPerDay,
+    BuildsPerDay,
+    UploadsPerHour,
 }
 
 pub struct BillingService {
@@ -232,6 +239,9 @@ impl BillingService {
             UsageMetric::Users => plan.limits.users,
             UsageMetric::KbDocuments => plan.limits.kb_documents,
             UsageMetric::Apps => plan.limits.apps,
+            UsageMetric::EmailsPerDay => plan.limits.emails_per_day,
+            UsageMetric::BuildsPerDay => plan.limits.builds_per_day,
+            UsageMetric::UploadsPerHour => plan.limits.uploads_per_hour,
         };
 
         Ok(limit.check(current_usage))
@@ -275,20 +285,25 @@ pub fn default_product_config() -> ProductConfig {
 
     plans.insert("free".to_string(), PlanConfig {
         name: "Free".to_string(),
-        description: Some("Experimente a plataforma sem custo".to_string()),
+        description: Some("Um bot, 20MB, apps ilimitados — gratuito".to_string()),
         price: PlanPrice::Free,
         limits: PlanLimits {
             messages_per_day: LimitValue::Limited(10),
-            storage_mb: LimitValue::Limited(50),
+            storage_mb: LimitValue::Limited(20),
             bots: LimitValue::Limited(1),
             users: LimitValue::Limited(1),
             api_calls_per_day: LimitValue::Limited(100),
             signups_per_day: Some(LimitValue::Limited(1)),
             kb_documents: LimitValue::Limited(10),
-            apps: LimitValue::Limited(1),
+            apps: LimitValue::Unlimited,
+            emails_per_day: LimitValue::Limited(10),
+            builds_per_day: LimitValue::Limited(5),
+            uploads_per_hour: LimitValue::Limited(5),
         },
         features: vec![
             "basic_chat".to_string(),
+            "file_upload".to_string(),
+            "email_support".to_string(),
         ],
         stripe_price_id: None,
         trial_days: None,
@@ -311,6 +326,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Limited(100),
             apps: LimitValue::Limited(5),
+            emails_per_day: LimitValue::Limited(500),
+            builds_per_day: LimitValue::Limited(50),
+            uploads_per_hour: LimitValue::Limited(50),
         },
         features: vec![
             "basic_chat".to_string(),
@@ -337,6 +355,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Unlimited,
             apps: LimitValue::Unlimited,
+            emails_per_day: LimitValue::Unlimited,
+            builds_per_day: LimitValue::Unlimited,
+            uploads_per_hour: LimitValue::Unlimited,
         },
         features: vec![
             "basic_chat".to_string(),
@@ -378,6 +399,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Limited(100),
             apps: LimitValue::Limited(5),
+            emails_per_day: LimitValue::Limited(50),
+            builds_per_day: LimitValue::Limited(25),
+            uploads_per_hour: LimitValue::Limited(25),
         },
         features: vec![
             "basic_chat".to_string(),
@@ -405,6 +429,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Limited(1000),
             apps: LimitValue::Limited(25),
+            emails_per_day: LimitValue::Limited(500),
+            builds_per_day: LimitValue::Limited(100),
+            uploads_per_hour: LimitValue::Limited(100),
         },
         features: vec![
             "basic_chat".to_string(),
@@ -431,6 +458,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Unlimited,
             apps: LimitValue::Unlimited,
+            emails_per_day: LimitValue::Unlimited,
+            builds_per_day: LimitValue::Unlimited,
+            uploads_per_hour: LimitValue::Unlimited,
         },
         features: vec![
             "basic_chat".to_string(),
@@ -484,6 +514,33 @@ pub fn default_product_config() -> ProductConfig {
 
 pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (Uuid, String);
 
+/// Queries the database for the first active bot, falling back to Uuid::nil() if none exists.
+/// Returns (bot_id, bot_name).
+pub fn query_first_bot(conn: &mut diesel::PgConnection) -> (Uuid, String) {
+    use diesel::prelude::*;
+    use diesel::sql_types::{Uuid as SqlUuid, Nullable, Text};
+
+    #[derive(diesel::QueryableByName, Debug)]
+    struct BotRow {
+        #[diesel(sql_type = SqlUuid)]
+        id: Uuid,
+        #[diesel(sql_type = Nullable<Text>)]
+        name: Option<String>,
+    }
+
+    let result = diesel::sql_query(
+        "SELECT id, name FROM bots WHERE is_active = true ORDER BY created_at LIMIT 1"
+    )
+    .load::<BotRow>(conn);
+    match result {
+        Ok(rows) if !rows.is_empty() => {
+            let name = rows[0].name.clone().unwrap_or_else(|| "default".to_string());
+            (rows[0].id, name)
+        }
+        _ => (Uuid::nil(), "default".to_string()),
+    }
+}
+
 pub fn get_bot_context(pool: &DbPool, get_default_bot: &Option<GetDefaultBotFn>) -> (Uuid, Uuid) {
     use diesel::prelude::*;
     use crate::schema::bots;
@@ -491,16 +548,37 @@ pub fn get_bot_context(pool: &DbPool, get_default_bot: &Option<GetDefaultBotFn>)
     let Ok(mut conn) = pool.get() else {
         return (Uuid::nil(), Uuid::nil());
     };
-    match get_default_bot {
+
+    let (bot_id, branch_id) = match get_default_bot {
         Some(f) => {
             let (bot_id, _) = f(&mut conn);
-            let branch_id = bots::table
-                .filter(bots::id.eq(bot_id))
-                .select(bots::branch_id)
-                .first::<Uuid>(&mut conn)
-                .unwrap_or_else(|_| Uuid::nil());
-            (branch_id, bot_id)
+            if bot_id == Uuid::nil() {
+                (Uuid::nil(), Uuid::nil())
+            } else {
+                let branch_id = bots::table
+                    .filter(bots::id.eq(bot_id))
+                    .select(bots::branch_id)
+                    .first::<Uuid>(&mut conn)
+                    .unwrap_or_else(|_| Uuid::nil());
+                (bot_id, branch_id)
+            }
         }
+        None => (Uuid::nil(), Uuid::nil()),
+    };
+
+    if bot_id != Uuid::nil() {
+        return (branch_id, bot_id);
+    }
+
+    // Fallback: pick the first bot from the database
+    let fallback = bots::table
+        .select((bots::id, bots::branch_id))
+        .first::<(Uuid, Uuid)>(&mut conn)
+        .optional()
+        .ok()
+        .flatten();
+    match fallback {
+        Some((bid, brid)) => (brid, bid),
         None => (Uuid::nil(), Uuid::nil()),
     }
 }
@@ -580,6 +658,9 @@ mod tests {
         assert!(enterprise.limits.api_calls_per_day.is_unlimited());
         assert!(enterprise.limits.kb_documents.is_unlimited());
         assert!(enterprise.limits.apps.is_unlimited());
+        assert!(enterprise.limits.emails_per_day.is_unlimited());
+        assert!(enterprise.limits.builds_per_day.is_unlimited());
+        assert!(enterprise.limits.uploads_per_hour.is_unlimited());
     }
 
     #[test]
@@ -760,6 +841,9 @@ mod tests {
             UsageMetric::Users,
             UsageMetric::KbDocuments,
             UsageMetric::Apps,
+            UsageMetric::EmailsPerDay,
+            UsageMetric::BuildsPerDay,
+            UsageMetric::UploadsPerHour,
         ];
 
         for metric in metrics {
@@ -843,6 +927,9 @@ mod tests {
         assert!(personal.limits.api_calls_per_day.value().is_some());
         assert!(personal.limits.kb_documents.value().is_some());
         assert!(personal.limits.apps.value().is_some());
+        assert!(personal.limits.emails_per_day.value().is_some());
+        assert!(personal.limits.builds_per_day.value().is_some());
+        assert!(personal.limits.uploads_per_hour.value().is_some());
     }
 
     #[test]

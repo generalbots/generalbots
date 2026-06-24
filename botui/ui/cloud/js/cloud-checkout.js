@@ -100,10 +100,12 @@ async function doCheckout(e) {
   const raw = params.get('payload');
   const payload = JSON.parse(decodeURIComponent(raw));
 
+  const token = getToken();
+
   try {
     const res = await fetch(`${API_BASE}/checkout`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
         payload: JSON.stringify(payload),
         email,

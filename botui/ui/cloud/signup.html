@@ -7,6 +7,19 @@
    <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
    <link rel="stylesheet" href="/cloud/css/cloud-components.css">
    <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+   <style>
+     .plan-chooser { display: flex; gap: .75rem; margin-top: .35rem; flex-wrap: wrap; }
+      .plan-option { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: .85rem 1rem; border: 2px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .15s; background: var(--card); }
+     .plan-option input { position: absolute; opacity: 0; pointer-events: none; }
+     .plan-option.selected { border-color: var(--accent); background: var(--accent-dim); }
+     .plan-option:hover { border-color: var(--accent); }
+     .plan-option-name { font-weight: 700; font-size: .95rem; color: var(--text); }
+     .plan-option-price { font-weight: 800; font-size: 1.1rem; color: var(--accent); }
+     .plan-option-desc { font-size: .72rem; color: var(--muted); line-height: 1.3; }
+     .plan-option-private { border-style: dashed; border-color: var(--muted); opacity: .85; }
+     .plan-option-private.selected { border-style: solid; border-color: var(--accent2, #a855f7); opacity: 1; background: var(--accent3-dim, rgba(168,85,247,.08)); }
+     .plan-option-private .plan-option-price { color: var(--accent2, #a855f7); font-size: .85rem; }
+   </style>
 </head>
 <body class="mgmt-layout">
   <div class="mgmt-shell">
@@ -14,20 +27,53 @@
       <div class="saas-auth-card">
         <h1>Create Account</h1>
         <p>Start managing your General Bots Cloud organizations</p>
-        <form id="signup-form" onsubmit="return doSignup(event)">
+          <div id="signup-error" class="alert alert-error" style="display:none"></div>
+          <form id="signup-form" onsubmit="return doSignup(event)">
           <div class="form-group">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" placeholder="Your name">
+            <label for="name">Your Name</label>
+            <input type="text" id="signup-name" name="name" placeholder="Your full name">
+          </div>
+          <div class="form-group">
+            <label for="bot-name">Bot Name</label>
+            <input type="text" id="signup-botname" name="bot_name" required placeholder="e.g. MyAssistant">
+            <small class="form-help">This will be used to create your bot, organization, and workspace.</small>
           </div>
           <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" required placeholder="you@example.com">
+            <input type="email" id="signup-email" name="email" required placeholder="you@example.com">
           </div>
           <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required minlength="8" placeholder="At least 8 characters">
+            <input type="password" id="signup-password" name="password" required minlength="8" placeholder="At least 8 characters">
           </div>
-          <button type="submit" class="btn-primary btn-block">Create Account</button>
+          <div class="form-group">
+            <label>Choose your plan</label>
+            <div class="plan-chooser">
+              <label class="plan-option selected">
+                <input type="radio" name="plan" value="free" checked>
+                <span class="plan-option-name">Free</span>
+                <span class="plan-option-price">$0/mo</span>
+                <span class="plan-option-desc">1 bot, 20MB, all apps included</span>
+              </label>
+              <label class="plan-option">
+                <input type="radio" name="plan" value="shared">
+                <span class="plan-option-name">Shared</span>
+                <span class="plan-option-price">$3.99/mo</span>
+                <span class="plan-option-desc">5 bots, 50GB, 14-day free trial</span>
+              </label>
+              <label class="plan-option plan-option-private">
+                <input type="radio" name="plan" value="private-cloud">
+                <span class="plan-option-name">Private Server</span>
+                <span class="plan-option-price">Your infra</span>
+                <span class="plan-option-desc">Self-hosted, unlimited, custom branding</span>
+              </label>
+            </div>
+          </div>
+          <button type="submit" id="signup-btn" class="btn-primary btn-block">Create Account</button>
+          <div id="private-server-info" class="alert alert-info" style="display:none;margin-top:.75rem;font-size:.82rem">
+            You are signing up for a <strong>Private Server</strong> environment.
+            After creating your account, you will be redirected to configure and purchase a VPS.
+          </div>
         </form>
         <p class="saas-auth-alt">Already have an account? <a href="/cloud/login">Sign in</a></p>
       </div>

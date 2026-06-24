@@ -4,8 +4,8 @@
 pub async fn ensure_vendor_files_in_minio(drive: &crate::drive::s3_repository::S3Repository) {
     use log::{info, warn};
 
-    if let Err(e) = drive.create_bucket_if_not_exists("default.gbai").await {
-        warn!("Failed to ensure bucket default.gbai exists: {}", e);
+    if let Err(e) = drive.create_bucket_if_not_exists("default.gborg").await {
+        warn!("Failed to ensure bucket default.gborg exists: {}", e);
         return;
     }
 
@@ -17,9 +17,9 @@ pub async fn ensure_vendor_files_in_minio(drive: &crate::drive::s3_repository::S
     let htmx_content = htmx_paths.iter().find_map(|path| std::fs::read(path).ok());
 
     if let Some(content) = htmx_content {
-        let key = "default.gblib/vendor/htmx.min.js";
-        match drive.put_object_direct("default.gbai", key, content, Some("application/javascript")).await {
-            Ok(_) => info!("Uploaded vendor file to MinIO: s3://default.gbai/{}", key),
+        let key = "default.gbai/default.gblib/vendor/htmx.min.js";
+        match drive.put_object_direct("default.gborg", key, content, Some("application/javascript")).await {
+            Ok(_) => info!("Uploaded vendor file to MinIO: s3://default.gborg/{}", key),
             Err(e) => warn!("Failed to upload vendor file to MinIO: {}", e),
         }
     } else {
@@ -76,7 +76,7 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
                 stack.push(path);
             } else if path.is_file() {
                 let rel = path.strip_prefix(source).unwrap_or(&path);
-                let key = rel.to_str().unwrap_or("");
+                let key = format!("default.gbai/{}", rel.to_str().unwrap_or(""));
                 let data = match tokio::fs::read(&path).await {
                     Ok(d) => d,
                     Err(e) => {
@@ -84,10 +84,10 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
                         continue;
                     }
                 };
-                match drive.put_object_direct("default.gbai", key, data, None).await {
+                match drive.put_object_direct("default.gborg", &key, data, None).await {
                     Ok(_) => {
                         count += 1;
-                        debug!("Uploaded bot file: s3://default.gbai/{}", key);
+                        debug!("Uploaded bot file: s3://default.gborg/{}", key);
                     }
                     Err(e) => warn!("Failed to upload {}: {}", key, e),
                 }

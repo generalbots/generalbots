@@ -39,7 +39,7 @@ impl WebsiteCrawlerService {
                 match reset {
                     Ok(n) if n > 0 => info!("Reset {} stale in-progress crawl(s) to pending", n),
                     Ok(_) => {}
-                    Err(e) => warn!("Could not reset stale crawl statuses: {}", e),
+                    Err(e) => info!("Could not reset stale crawl statuses: {}", e),
                 }
             }
 
@@ -49,7 +49,7 @@ impl WebsiteCrawlerService {
                 ticker.tick().await;
 
                 if *service.running.read().await {
-                    warn!("Website crawler is already running, skipping this cycle");
+                    info!("Website crawler is already running, skipping this cycle");
                     continue;
                 }
 
@@ -107,7 +107,7 @@ impl WebsiteCrawlerService {
             };
 
             if should_skip {
-                warn!("Skipping {} - already being crawled", website.url);
+                info!("Skipping {} - already being crawled", website.url);
                 continue;
             }
 
@@ -150,7 +150,7 @@ impl WebsiteCrawlerService {
         {
             let mut active = active_crawls.write().await;
             if active.contains(&website.url) {
-                warn!("Crawl already in progress for {}, skipping", website.url);
+                info!("Crawl already in progress for {}, skipping", website.url);
                 return Ok(());
             }
             active.insert(website.url.clone());
@@ -624,7 +624,7 @@ pub async fn ensure_crawler_service_running(
 
         Ok(())
     } else {
-        warn!("KB manager not available, website crawler service not started");
+        info!("KB manager not available, website crawler service not started");
         Ok(())
     }
 }

@@ -54,9 +54,17 @@ impl EmbeddingConfig {
 
         let config_manager = ConfigManager::new(pool.clone());
 
-        let embedding_url = config_manager
+        let embedding_url_raw = config_manager
             .get_config(_bot_id, "embedding-url", Some(""))
             .unwrap_or_default();
+
+        let embedding_url = if embedding_url_raw.is_empty() {
+            let default_url = "http://localhost:8082/v1/embeddings".to_string();
+            info!("No embedding-url configured for bot {_bot_id}, using default: {default_url}");
+            default_url
+        } else {
+            embedding_url_raw
+        };
 
         let embedding_model = config_manager
             .get_config(_bot_id, "embedding-model", Some("BAAI/bge-multilingual-gemma2"))
@@ -265,7 +273,7 @@ impl KbEmbeddingGenerator {
             .tcp_nodelay(true)
             .build()
             .unwrap_or_else(|e| {
-                warn!("Failed to create HTTP client with timeout: {}, using default", e);
+                info!("Failed to create HTTP client with timeout: {}, using default", e);
                 Client::new()
             });
 
@@ -333,12 +341,12 @@ impl KbEmbeddingGenerator {
                         true
                     }
                     Ok(Err(e)) => {
-                        warn!("Embedding server unreachable at {}: {}", base_url, e);
+                        info!("Embedding server unreachable at {}: {}", base_url, e);
                         set_embedding_server_ready(false);
                         false
                     }
                     Err(_) => {
-                        warn!("Embedding server probe timed out for {}", base_url);
+                        info!("Embedding server probe timed out for {}", base_url);
                         set_embedding_server_ready(false);
                         false
                     }
@@ -350,19 +358,19 @@ impl KbEmbeddingGenerator {
                 set_embedding_server_ready(true);
                 true
             } else {
-                warn!("Embedding server health check returned status {}", status);
+                info!("Embedding server health check returned status {}", status);
                 set_embedding_server_ready(false);
                 false
             }
             }
             Ok(Err(e)) => {
                 // Connection failed entirely — server not running or network issue
-                warn!("Embedding server connection failed for {}: {}", self.config.embedding_url, e);
+                info!("Embedding server connection failed for {}: {}", self.config.embedding_url, e);
                 set_embedding_server_ready(false);
                 false
             }
             Err(_) => {
-                warn!("Embedding server health check timed out for {}", self.config.embedding_url);
+                info!("Embedding server health check timed out for {}", self.config.embedding_url);
                 set_embedding_server_ready(false);
                 false
             }
@@ -383,7 +391,7 @@ impl KbEmbeddingGenerator {
             }
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
-        warn!("Embedding server not available after {}s", max_wait_secs);
+        info!("Embedding server not available after {}s", max_wait_secs);
         false
     }
     /// Get the configured embedding dimensions

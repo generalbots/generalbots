@@ -84,7 +84,8 @@
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
-  await requireAuth();
+  const token = requireAuth();
+  if (!token) return;
 
   const PROV_ICONS = {
     glm: { bg: '#2563eb', label: 'GL' },
@@ -116,7 +117,7 @@
 
   async function loadData() {
     try {
-      const res = await fetch('/api/cloud/llm-providers');
+      const res = await fetch('/api/cloud/llm-providers', { headers: { 'Authorization': 'Bearer ' + token } });
       const ct = res.headers.get('content-type') || '';
       if (res.ok && ct.includes('json')) {
         const data = await res.json();

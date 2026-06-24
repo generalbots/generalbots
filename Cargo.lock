@@ -1419,6 +1419,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "sysinfo",
  "tokio",
  "tracing",
  "uuid",
@@ -1552,17 +1553,20 @@ dependencies = [
 name = "botcloud"
 version = "0.1.0"
 dependencies = [
+ "argon2",
  "axum 0.7.9",
  "bigdecimal",
  "botbilling",
  "botproviders",
  "chrono",
  "diesel",
+ "hmac 0.12.1",
  "r2d2",
  "rand 0.9.4",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tokio",
  "tracing",
  "url",
