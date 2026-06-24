@@ -107,6 +107,13 @@ impl AutomationService {
         &self,
         automation: &Automation,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let bot_id = match automation.bot_id {
+            Some(id) => id,
+            None => {
+                log::error!("Automation {} has no bot_id assigned", automation.id);
+                return Ok(());
+            }
+        };
         let bot_name: String = {
             use crate::shared::models::schema::bots::dsl::*;
             let mut conn = self
@@ -114,7 +121,7 @@ impl AutomationService {
                 .conn
                 .get()
                 .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
-            bots.filter(id.eq(automation.bot_id))
+            bots.filter(id.eq(bot_id))
                 .select(name)
                 .first(&mut conn)?
         };
@@ -131,13 +138,12 @@ impl AutomationService {
         };
         let session = {
             let mut sm = self.state.session_manager.lock().await;
-            let admin_user = automation.bot_id;
-            sm.get_or_create_user_session(admin_user, automation.bot_id, "Automation")?
+            sm.get_or_create_user_session(bot_id, bot_id, "Automation")?
                 .ok_or("Failed to create session")?
         };
         // ScriptService stays in botserver — use ScriptRunner trait
         if let Some(runner) = &self.state.script_runner {
-            match runner.run_script(&script_content, session.id, &automation.bot_id.to_string()).await {
+            match runner.run_script(&script_content, session.id, &bot_id.to_string()).await {
                 Ok(_) => {}
                 Err(e) => {
                     log::error!("Script execution failed: {}", e);

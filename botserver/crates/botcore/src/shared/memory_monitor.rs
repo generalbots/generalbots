@@ -1,4 +1,4 @@
-use log::{debug, info, trace, warn};
+use log::{debug, info, trace};
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex, RwLock};
 use std::time::{Duration, Instant};

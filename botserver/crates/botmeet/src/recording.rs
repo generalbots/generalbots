@@ -1052,16 +1052,15 @@ impl RecordingService {
         tokio::task::spawn_blocking(move || {
             let mut conn = pool.get().map_err(|e| RecordingError::DatabaseError(e.to_string()))?;
 
-            // Get org_id and bot_id from room - for now use defaults
+            // Get org_id from room - for now use defaults
             let org_id = Uuid::nil();
-            let bot_id = Uuid::nil();
 
             diesel::insert_into(meeting_recordings::table)
                 .values((
                     meeting_recordings::id.eq(recording_id),
                     meeting_recordings::room_id.eq(webinar_id),
                     meeting_recordings::org_id.eq(org_id),
-                    meeting_recordings::bot_id.eq(bot_id),
+                    meeting_recordings::branch_id.eq(None::<Uuid>),
                     meeting_recordings::recording_type.eq(&quality_str),
                     meeting_recordings::status.eq("recording"),
                     meeting_recordings::started_at.eq(started_at),

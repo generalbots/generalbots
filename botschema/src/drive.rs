@@ -22,7 +22,6 @@ diesel::table! {
 #[derive(Queryable, Debug, Clone)]
 pub struct DriveFile {
     pub id: Uuid,
-    pub bot_id: Uuid,
     pub file_path: String,
     pub file_type: String,
     pub etag: Option<String>,
@@ -39,7 +38,6 @@ pub struct DriveFile {
 #[derive(Insertable, Debug)]
 #[diesel(table_name = drive_files)]
 pub struct NewDriveFile {
-    pub bot_id: Uuid,
     pub file_path: String,
     pub file_type: String,
     pub etag: Option<String>,

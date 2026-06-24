@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use log::{info, warn};
+use log::info;
 use crate::generate_random_string;
 use botlib::security::get_stack_path;
 

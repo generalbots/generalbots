@@ -1154,6 +1154,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
+ "botsecurity-crypto",
  "chrono",
  "diesel",
  "futures",
@@ -1625,6 +1626,7 @@ dependencies = [
  "botcoresecrets",
  "botlib",
  "botschema",
+ "botsecurity-crypto",
  "calamine",
  "chrono",
  "cron",
@@ -1783,6 +1785,7 @@ dependencies = [
  "anyhow",
  "axum 0.7.9",
  "botlib",
+ "botsecurity-crypto",
  "chrono",
  "diesel",
  "log",

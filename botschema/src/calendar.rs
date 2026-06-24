@@ -1,4 +1,4 @@
-use crate::core::{bots, branches, organizations};
+use crate::core::{branches, organizations};
 
 diesel::table! {
     calendars (id) {
