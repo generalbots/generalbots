@@ -16,6 +16,7 @@ pub mod middleware;
 pub mod plans;
 pub mod quotas;
 pub mod schema;
+pub mod server_capacity;
 pub mod stripe_integration;
 pub mod testing;
 
@@ -87,6 +88,9 @@ pub struct PlanLimits {
     pub signups_per_day: Option<LimitValue>,
     pub kb_documents: LimitValue,
     pub apps: LimitValue,
+    pub emails_per_day: LimitValue,
+    pub builds_per_day: LimitValue,
+    pub uploads_per_hour: LimitValue,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -175,6 +179,9 @@ pub enum UsageMetric {
     Users,
     KbDocuments,
     Apps,
+    EmailsPerDay,
+    BuildsPerDay,
+    UploadsPerHour,
 }
 
 pub struct BillingService {
@@ -232,6 +239,9 @@ impl BillingService {
             UsageMetric::Users => plan.limits.users,
             UsageMetric::KbDocuments => plan.limits.kb_documents,
             UsageMetric::Apps => plan.limits.apps,
+            UsageMetric::EmailsPerDay => plan.limits.emails_per_day,
+            UsageMetric::BuildsPerDay => plan.limits.builds_per_day,
+            UsageMetric::UploadsPerHour => plan.limits.uploads_per_hour,
         };
 
         Ok(limit.check(current_usage))
@@ -286,6 +296,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: Some(LimitValue::Limited(1)),
             kb_documents: LimitValue::Limited(10),
             apps: LimitValue::Unlimited,
+            emails_per_day: LimitValue::Limited(10),
+            builds_per_day: LimitValue::Limited(5),
+            uploads_per_hour: LimitValue::Limited(5),
         },
         features: vec![
             "basic_chat".to_string(),
@@ -313,6 +326,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Limited(100),
             apps: LimitValue::Limited(5),
+            emails_per_day: LimitValue::Limited(500),
+            builds_per_day: LimitValue::Limited(50),
+            uploads_per_hour: LimitValue::Limited(50),
         },
         features: vec![
             "basic_chat".to_string(),
@@ -339,6 +355,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Unlimited,
             apps: LimitValue::Unlimited,
+            emails_per_day: LimitValue::Unlimited,
+            builds_per_day: LimitValue::Unlimited,
+            uploads_per_hour: LimitValue::Unlimited,
         },
         features: vec![
             "basic_chat".to_string(),
@@ -380,6 +399,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Limited(100),
             apps: LimitValue::Limited(5),
+            emails_per_day: LimitValue::Limited(50),
+            builds_per_day: LimitValue::Limited(25),
+            uploads_per_hour: LimitValue::Limited(25),
         },
         features: vec![
             "basic_chat".to_string(),
@@ -407,6 +429,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Limited(1000),
             apps: LimitValue::Limited(25),
+            emails_per_day: LimitValue::Limited(500),
+            builds_per_day: LimitValue::Limited(100),
+            uploads_per_hour: LimitValue::Limited(100),
         },
         features: vec![
             "basic_chat".to_string(),
@@ -433,6 +458,9 @@ pub fn default_product_config() -> ProductConfig {
             signups_per_day: None,
             kb_documents: LimitValue::Unlimited,
             apps: LimitValue::Unlimited,
+            emails_per_day: LimitValue::Unlimited,
+            builds_per_day: LimitValue::Unlimited,
+            uploads_per_hour: LimitValue::Unlimited,
         },
         features: vec![
             "basic_chat".to_string(),
@@ -630,6 +658,9 @@ mod tests {
         assert!(enterprise.limits.api_calls_per_day.is_unlimited());
         assert!(enterprise.limits.kb_documents.is_unlimited());
         assert!(enterprise.limits.apps.is_unlimited());
+        assert!(enterprise.limits.emails_per_day.is_unlimited());
+        assert!(enterprise.limits.builds_per_day.is_unlimited());
+        assert!(enterprise.limits.uploads_per_hour.is_unlimited());
     }
 
     #[test]
@@ -810,6 +841,9 @@ mod tests {
             UsageMetric::Users,
             UsageMetric::KbDocuments,
             UsageMetric::Apps,
+            UsageMetric::EmailsPerDay,
+            UsageMetric::BuildsPerDay,
+            UsageMetric::UploadsPerHour,
         ];
 
         for metric in metrics {
@@ -893,6 +927,9 @@ mod tests {
         assert!(personal.limits.api_calls_per_day.value().is_some());
         assert!(personal.limits.kb_documents.value().is_some());
         assert!(personal.limits.apps.value().is_some());
+        assert!(personal.limits.emails_per_day.value().is_some());
+        assert!(personal.limits.builds_per_day.value().is_some());
+        assert!(personal.limits.uploads_per_hour.value().is_some());
     }
 
     #[test]

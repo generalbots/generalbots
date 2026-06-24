@@ -41,6 +41,9 @@ impl PlanManager {
             UsageMetric::Users => plan.limits.users,
             UsageMetric::KbDocuments => plan.limits.kb_documents,
             UsageMetric::Apps => plan.limits.apps,
+            UsageMetric::EmailsPerDay => plan.limits.emails_per_day,
+            UsageMetric::BuildsPerDay => plan.limits.builds_per_day,
+            UsageMetric::UploadsPerHour => plan.limits.uploads_per_hour,
         })
     }
 
@@ -366,6 +369,9 @@ impl PlanManager {
             Self::compare_limit(UsageMetric::Users, from.limits.users, to.limits.users),
             Self::compare_limit(UsageMetric::ApiCalls, from.limits.api_calls_per_day, to.limits.api_calls_per_day),
             Self::compare_limit(UsageMetric::Apps, from.limits.apps, to.limits.apps),
+            Self::compare_limit(UsageMetric::EmailsPerDay, from.limits.emails_per_day, to.limits.emails_per_day),
+            Self::compare_limit(UsageMetric::BuildsPerDay, from.limits.builds_per_day, to.limits.builds_per_day),
+            Self::compare_limit(UsageMetric::UploadsPerHour, from.limits.uploads_per_hour, to.limits.uploads_per_hour),
         ];
 
         let added: Vec<String> = to
