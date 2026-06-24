@@ -14,6 +14,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
+use botsecurity_crypto::encryption::{encrypt_field, derive_key_from_password};
 
 pub fn configure_attendance_routes() -> Router<Arc<AttendanceConfig>> {
     let router = Router::new()
@@ -145,7 +146,7 @@ pub async fn attendant_respond(
     )
 }
 
-async fn save_message_to_history(
+pub async fn save_attendance_message(
     config: &Arc<AttendanceConfig>,
     session: &crate::models::UserSession,
     content: &str,
@@ -157,7 +158,11 @@ async fn save_message_to_history(
     }
     let pool = config.pool.clone();
     let session_id = session.id;
-    let content_clone = content.to_string();
+
+    let salt = b"generalbots_msg_salt_default_123";
+    let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)?;
+    let encrypted_content = encrypt_field(content, &key_bytes)?;
+
     let sender_clone = sender.to_string();
     tokio::task::spawn_blocking(move || {
         let mut db_conn = pool.get().map_err(|e| format!("DB error: {}", e))?;
@@ -168,7 +173,7 @@ async fn save_message_to_history(
                 message_history::session_id.eq(session_id),
                 message_history::user_id.eq(session_id),
                 message_history::role.eq(if sender_clone == "user" { 1 } else { 2 }),
-                message_history::content_encrypted.eq(content_clone),
+                message_history::content_encrypted.eq(encrypted_content),
                 message_history::message_type.eq(1),
                 message_history::message_index.eq(0i32),
                 message_history::created_at.eq(diesel::dsl::now),
