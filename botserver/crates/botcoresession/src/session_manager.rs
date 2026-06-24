@@ -214,9 +214,9 @@ impl SessionManager {
 
         let salt = b"generalbots_msg_salt_default_123";
         let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
-            .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?;
+            .map_err(|e| format!("Key derivation failed: {e}"))?;
         let encrypted_content = encrypt_field(content, &key_bytes)
-            .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?;
+            .map_err(|e| format!("Encryption failed: {e}"))?;
 
         diesel::insert_into(message_history::table)
             .values((
@@ -324,7 +324,7 @@ impl SessionManager {
 
         let salt = b"generalbots_msg_salt_default_123";
         let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
-            .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?;
+            .map_err(|e| format!("Key derivation failed: {e}"))?;
 
         let mut history: Vec<(String, String)> = Vec::new();
         for (other_role, content, _idx) in recent_messages {

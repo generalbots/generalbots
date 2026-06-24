@@ -7,7 +7,7 @@ use uuid::Uuid;
 #[diesel(table_name = crate::shared::schema::core::workflow_executions, check_for_backend(diesel::pg::Pg))]
 pub struct WorkflowExecution {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub bot_id: Option<Uuid>,
     pub workflow_name: String,
     pub current_step: Option<i32>,
     pub state_json: Option<JsonValue>,

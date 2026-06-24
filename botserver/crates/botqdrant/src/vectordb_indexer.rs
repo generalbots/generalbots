@@ -213,10 +213,16 @@ impl VectorDBIndexer {
 
             let mut db_conn = pool.get()?;
 
-            let results: Vec<(Uuid, Uuid)> = user_sessions
+            let results: Vec<(Uuid, Option<Uuid>)> = user_sessions
                 .select((user_id, bot_id))
+                .filter(bot_id.is_not_null())
                 .distinct()
                 .load(&mut db_conn)?;
+
+            let results = results
+                .into_iter()
+                .filter_map(|(uid, bid)| bid.map(|b| (uid, b)))
+                .collect::<Vec<(Uuid, Uuid)>>();
 
             Ok::<_, anyhow::Error>(results)
         })

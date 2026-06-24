@@ -32,7 +32,6 @@ diesel::table! {
 #[diesel(table_name = database_query_history)]
 pub struct QueryHistoryDb {
     pub id: Uuid,
-    pub bot_id: Uuid,
     pub user_id: Uuid,
     pub query_text: String,
     pub is_mutation: bool,
@@ -45,7 +44,6 @@ pub struct QueryHistoryDb {
 #[derive(Insertable, Debug)]
 #[diesel(table_name = database_query_history)]
 pub struct NewQueryHistory {
-    pub bot_id: Uuid,
     pub user_id: Uuid,
     pub query_text: String,
     pub is_mutation: bool,
@@ -58,7 +56,6 @@ pub struct NewQueryHistory {
 #[diesel(table_name = database_saved_queries)]
 pub struct SavedQueryDb {
     pub id: Uuid,
-    pub bot_id: Uuid,
     pub user_id: Uuid,
     pub name: String,
     pub query_text: String,
@@ -71,7 +68,6 @@ pub struct SavedQueryDb {
 #[derive(Insertable, Debug)]
 #[diesel(table_name = database_saved_queries)]
 pub struct NewSavedQuery {
-    pub bot_id: Uuid,
     pub user_id: Uuid,
     pub name: String,
     pub query_text: String,

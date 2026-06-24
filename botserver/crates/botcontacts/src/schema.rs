@@ -2,6 +2,7 @@ diesel::table! {
     bots (id) {
         id -> Uuid,
         org_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         llm_provider -> Varchar,

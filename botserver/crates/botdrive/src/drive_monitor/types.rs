@@ -96,7 +96,7 @@ impl DriveMonitor {
                         let full_key = format!("{}.gbai/{}", bot_name, relative_key);
                         let etag = obj.etag.as_deref().map(normalize_etag);
 
-            let existing = self.file_repo.get_file_state(self.bot_id, &full_key);
+            let existing = self.file_repo.get_file_state(&full_key);
 
             // Skip re-indexing files that have failed too many times (prevent infinite loops)
             // Automatically retry after FAIL_RETRY_COOLDOWN hours so transient issues (e.g., disk full) self-heal.
@@ -118,7 +118,7 @@ impl DriveMonitor {
                             "Retrying {} after cooldown (last failed {} min ago).",
                             full_key, elapsed.num_minutes()
                         );
-                        let _ = self.file_repo.reset_file_fail_count(self.bot_id, &full_key);
+                        let _ = self.file_repo.reset_file_fail_count(&full_key);
                     }
                 }
             }
@@ -141,7 +141,6 @@ impl DriveMonitor {
 
         if etag_changed || existing.is_none() || needs_reindex {
             match self.file_repo.upsert_file(
-                self.bot_id,
                 &full_key,
                 file_type,
                 etag.clone(),
@@ -156,7 +155,7 @@ impl DriveMonitor {
             } else if file_type == "prompt" {
                 self.sync_gbot_to_work(bot_name, &obj.key, etag.clone()).await;
             } else if file_type != "kb" && file_type != "config" {
-                let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag.clone());
+                let _ = self.file_repo.mark_indexed(&full_key, etag.clone());
             }
         } else {
             log::trace!("{} unchanged, skipping upsert", full_key);
@@ -197,7 +196,7 @@ impl DriveMonitor {
     }
 
     fn handle_deleted_files(&self, bot_name: &str, current_keys: &[String]) {
-        let db_files = self.file_repo.get_all_files_for_bot(self.bot_id);
+        let db_files = self.file_repo.get_all_files_for_bot();
         for db_file in &db_files {
             let s3_key = match db_file.file_path.strip_prefix(&format!("{}.gbai/", bot_name)) {
                 Some(k) => k,
@@ -213,7 +212,7 @@ impl DriveMonitor {
                     }
                 }
 
-                if let Err(e) = self.file_repo.delete_file(self.bot_id, &db_file.file_path) {
+                if let Err(e) = self.file_repo.delete_file(&db_file.file_path) {
                     log::error!("Failed to delete drive_files entry for {}: {}", db_file.file_path, e);
                 }
             }
@@ -251,7 +250,7 @@ impl DriveMonitor {
             Ok(d) => d,
             Err(e) => {
                 log::error!("Failed to download KB file {}/{}: {}", self.bucket_name, s3_key, e);
-                let _ = self.file_repo.mark_failed(self.bot_id, full_key);
+                let _ = self.file_repo.mark_failed(full_key);
                 self.files_being_indexed.write().await.remove(full_key);
                 return;
             }
@@ -284,16 +283,16 @@ impl DriveMonitor {
                     full_key,
                     result.collection_name
                 );
-                let _ = self.file_repo.mark_indexed(self.bot_id, full_key, etag);
+                let _ = self.file_repo.mark_indexed(full_key, etag);
                 self.upsert_kb_collection(bot_name, &parsed.kb_name, &result.collection_name, result.documents_processed);
             }
             Ok(Err(e)) => {
                 log::error!("KB indexing failed for {}: {}", full_key, e);
-                let _ = self.file_repo.mark_failed(self.bot_id, full_key);
+                let _ = self.file_repo.mark_failed(full_key);
             }
             Err(_) => {
                 log::error!("KB indexing timed out after 120s for {}", full_key);
-                let _ = self.file_repo.mark_failed(self.bot_id, full_key);
+                let _ = self.file_repo.mark_failed(full_key);
             }
         }
 
@@ -369,7 +368,7 @@ impl DriveMonitor {
 
         let relative_key = self.strip_prefix(s3_key);
         let full_key = format!("{}.gbai/{}", bot_name, relative_key);
-        let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
+        let _ = self.file_repo.mark_indexed(&full_key, etag);
     }
 
     async fn sync_bas_to_work(&self, bot_name: &str, s3_key: &str, etag: Option<String>) {
@@ -411,7 +410,7 @@ impl DriveMonitor {
                 } else {
                     log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
                     let full_key = format!("{}.gbai/{}", bot_name, relative_key);
-                    let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
+                    let _ = self.file_repo.mark_indexed(&full_key, etag);
                 }
             }
             Err(e) => {
@@ -454,7 +453,7 @@ impl DriveMonitor {
                 } else {
                     log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
                     let full_key = format!("{}.gbai/{}", bot_name, relative_key);
-                    let _ = self.file_repo.mark_indexed(self.bot_id, &full_key, etag);
+                    let _ = self.file_repo.mark_indexed(&full_key, etag);
                 }
             }
             Err(e) => {
@@ -571,21 +570,21 @@ impl DriveMonitor {
                             indexed.insert(kb_key.clone());
                         }
                         let pattern = format!("{}/", kb_folder_name);
-                        if let Err(e) = file_repo.mark_indexed_by_pattern(bot_id, &pattern) {
+                        if let Err(e) = file_repo.mark_indexed_by_pattern(&pattern) {
                             log::warn!("Failed to mark files indexed for {}: {}", kb_key, e);
                         }
                     }
                     Ok(Err(e)) => {
                         log::warn!("Failed to index KB {}: {}", kb_key, e);
                         let pattern = format!("{}/", kb_folder_name);
-                        if let Err(e) = file_repo.mark_failed_by_pattern(bot_id, &pattern) {
+                        if let Err(e) = file_repo.mark_failed_by_pattern(&pattern) {
                             log::warn!("Failed to mark files failed for {}: {}", kb_key, e);
                         }
                     }
                     Err(_) => {
                         log::error!("KB indexing timed out after 120s for {}", kb_key);
                         let pattern = format!("{}/", kb_folder_name);
-                        if let Err(e) = file_repo.mark_failed_by_pattern(bot_id, &pattern) {
+                        if let Err(e) = file_repo.mark_failed_by_pattern(&pattern) {
                             log::warn!("Failed to mark files failed for {}: {}", kb_key, e);
                         }
                     }

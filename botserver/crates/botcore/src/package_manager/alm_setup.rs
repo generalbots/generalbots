@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use log::{info, warn};
+use log::info;
 
 pub async fn setup_alm() -> anyhow::Result<()> {
     let stack_path_raw = get_stack_path();
