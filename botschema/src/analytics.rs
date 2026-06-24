@@ -1,10 +1,10 @@
-use crate::core::{bots, organizations};
+use crate::core::{bots, branches, organizations};
 
 diesel::table! {
     dashboards (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         owner_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
@@ -40,7 +40,7 @@ diesel::table! {
     dashboard_data_sources (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         name -> Varchar,
         description -> Nullable<Text>,
         source_type -> Varchar,
@@ -81,7 +81,7 @@ diesel::table! {
     conversational_queries (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         dashboard_id -> Nullable<Uuid>,
         user_id -> Uuid,
         natural_language -> Text,
@@ -92,12 +92,12 @@ diesel::table! {
 }
 
 diesel::joinable!(dashboards -> organizations (org_id));
-diesel::joinable!(dashboards -> bots (bot_id));
+diesel::joinable!(dashboards -> branches (branch_id));
 diesel::joinable!(dashboard_widgets -> dashboards (dashboard_id));
 diesel::joinable!(dashboard_data_sources -> organizations (org_id));
-diesel::joinable!(dashboard_data_sources -> bots (bot_id));
+diesel::joinable!(dashboard_data_sources -> branches (branch_id));
 diesel::joinable!(dashboard_filters -> dashboards (dashboard_id));
 diesel::joinable!(dashboard_widget_data_sources -> dashboard_widgets (widget_id));
 diesel::joinable!(dashboard_widget_data_sources -> dashboard_data_sources (data_source_id));
 diesel::joinable!(conversational_queries -> organizations (org_id));
-diesel::joinable!(conversational_queries -> bots (bot_id));
+diesel::joinable!(conversational_queries -> branches (branch_id));

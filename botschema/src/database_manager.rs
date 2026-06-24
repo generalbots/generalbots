@@ -5,7 +5,6 @@ use uuid::Uuid;
 diesel::table! {
     database_query_history (id) {
         id -> Uuid,
-        bot_id -> Uuid,
         user_id -> Uuid,
         query_text -> Text,
         is_mutation -> Bool,
@@ -19,7 +18,6 @@ diesel::table! {
 diesel::table! {
     database_saved_queries (id) {
         id -> Uuid,
-        bot_id -> Uuid,
         user_id -> Uuid,
         name -> Varchar,
         query_text -> Text,
