@@ -1,10 +1,10 @@
-use crate::core::{bots, organizations};
+use crate::core::{bots, branches, organizations};
 
 diesel::table! {
     canvases (id) {
         id -> Uuid,
         org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         name -> Varchar,
         description -> Nullable<Text>,
         width -> Int4,
@@ -80,7 +80,7 @@ diesel::table! {
 }
 
 diesel::joinable!(canvases -> organizations (org_id));
-diesel::joinable!(canvases -> bots (bot_id));
+diesel::joinable!(canvases -> branches (branch_id));
 diesel::joinable!(canvas_elements -> canvases (canvas_id));
 diesel::joinable!(canvas_collaborators -> canvases (canvas_id));
 diesel::joinable!(canvas_versions -> canvases (canvas_id));

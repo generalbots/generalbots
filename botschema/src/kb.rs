@@ -5,7 +5,7 @@ use crate::core::users;
 diesel::table! {
     kb_collections (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
         name -> Text,
         folder_path -> Text,
         qdrant_collection -> Text,

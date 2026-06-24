@@ -23,6 +23,7 @@ diesel::table! {
     organization_invitations (id) {
         id -> Uuid,
         org_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         email -> Varchar,
         role -> Varchar,
         status -> Varchar,
@@ -82,7 +83,7 @@ diesel::joinable!(bots -> organizations (org_id));
 diesel::table! {
     system_automations (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
         kind -> Int4,
         target -> Nullable<Text>,
         schedule -> Nullable<Text>,
@@ -96,7 +97,7 @@ diesel::table! {
     user_sessions (id) {
         id -> Uuid,
         user_id -> Uuid,
-        bot_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
         title -> Text,
         context_data -> Jsonb,
         current_tool -> Nullable<Text>,
@@ -108,7 +109,7 @@ diesel::table! {
 diesel::table! {
     workflow_executions (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
         workflow_name -> Text,
         current_step -> Nullable<Int4>,
         state_json -> Nullable<Jsonb>,
@@ -181,7 +182,7 @@ diesel::table! {
 diesel::table! {
     bot_memories (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
         key -> Text,
         value -> Text,
         created_at -> Timestamptz,
@@ -192,7 +193,7 @@ diesel::table! {
 diesel::table! {
     basic_tools (id) {
         id -> Text,
-        bot_id -> Text,
+        bot_id -> Nullable<Text>,
         tool_name -> Text,
         file_path -> Text,
         ast_path -> Text,
@@ -218,7 +219,7 @@ diesel::table! {
 diesel::table! {
     bot_configuration (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
         config_key -> Text,
         config_value -> Text,
         is_encrypted -> Bool,
@@ -321,6 +322,7 @@ diesel::joinable!(rbac_group_roles -> rbac_groups (group_id));
 diesel::joinable!(rbac_group_roles -> rbac_roles (role_id));
 diesel::joinable!(website_crawls -> bots (bot_id));
 diesel::joinable!(organization_invitations -> organizations (org_id));
+diesel::joinable!(organization_invitations -> branches (branch_id));
 
 diesel::table! {
     user_organizations (id) {
@@ -364,7 +366,7 @@ diesel::table! {
 diesel::table! {
     website_crawls (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
         url -> Text,
         last_crawled -> Nullable<Timestamptz>,
         next_crawl -> Nullable<Timestamptz>,
@@ -405,7 +407,7 @@ diesel::table! {
 diesel::table! {
     kb_collections (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
         name -> Varchar,
         description -> Nullable<Varchar>,
         folder_path -> Nullable<Text>,

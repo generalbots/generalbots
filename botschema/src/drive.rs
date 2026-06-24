@@ -5,7 +5,6 @@ use uuid::Uuid;
 diesel::table! {
     drive_files (id) {
         id -> Uuid,
-        bot_id -> Uuid,
         file_path -> Text,
         file_type -> Varchar,
         etag -> Nullable<Text>,
