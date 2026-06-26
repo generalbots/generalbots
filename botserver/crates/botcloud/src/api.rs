@@ -19,9 +19,8 @@ struct OrgRow {
 
 use crate::{integration, notifier, CalculatorPayload, SaasConfig, SaasService};
 use botproviders::{ComputeProvider, MachineSpec};
-use botproviders::runpod::RunPodProvider;
-use botproviders::vultr::VultrProvider;
 use botproviders::vast::VastAiProvider;
+use botproviders::contabo::ContaboProvider;
 
 /// JWT authentication middleware for cloud API routes.
 /// Validates Bearer token on all routes except `/api/cloud/auth/*`.
@@ -150,6 +149,9 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/organizations", get(list_organizations).post(create_organization))
         .route("/api/cloud/organizations/{org_id}", get(get_organization).put(update_organization).delete(delete_organization))
         .route("/api/cloud/organizations/{org_id}/billing", get(org_billing_portal))
+        // Branches per organization
+        .route("/api/cloud/organizations/{org_id}/branches", get(list_branches).post(create_branch_handler))
+        .route("/api/cloud/organizations/{org_id}/branches/{branch_id}", put(update_branch_handler).delete(delete_branch_handler))
         // Workspaces per organization
         .route("/api/cloud/organizations/{org_id}/workspaces", get(list_workspaces).post(create_workspace))
         .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}", put(update_workspace).delete(delete_workspace))
@@ -184,8 +186,8 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         // Admin
         .route("/api/cloud/admin/server-capacity", get(get_server_capacity))
         // JWT auth middleware — protects all routes except /api/cloud/auth/*
-        .layer(axum::Extension(jwt_secret))
         .layer(middleware::from_fn(cloud_jwt_middleware))
+        .layer(axum::Extension(jwt_secret))
 }
 
 /// `POST /api/cloud/auth/signup`
@@ -202,47 +204,114 @@ async fn handle_signup(
             body.email.split('@').next().unwrap_or("default").to_lowercase()
         });
 
-    // 1. Get or create tenant
-    let tenant_id = integration::get_or_create_default_tenant(service.pool())
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // 7. Determine plan from body (default: free) — checked early for capacity gate
+    let chosen_plan = body.plan.as_deref()
+        .map(|p| p.to_lowercase())
+        .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
+        .unwrap_or_else(|| "free".to_string());
 
-    // 2. Create organization named after the bot
-    let slug = bot_name.to_lowercase().replace(' ', "-");
-    let org_domain = format!("{slug}.org.pragmatismo.com.br");
-    let org_id = integration::create_organization(service.pool(), &bot_name, Some(&org_domain))
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-    integration::link_org_to_tenant(service.pool(), org_id, tenant_id)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // Auto-pause free signups when server is under pressure
+    // Can be disabled via SAAS_DISABLE_CAPACITY_CHECK=1 for dev/testing
+    if (chosen_plan == "free" || chosen_plan == "shared")
+        && std::env::var("SAAS_DISABLE_CAPACITY_CHECK").as_deref() != Ok("1")
+    {
+        let capacity = botbilling::server_capacity::calculate_server_capacity(
+            &botbilling::server_capacity::ServerCapacityConfig::default(),
+            0, 0,
+        );
+        if !capacity.new_signups_allowed {
+            return Err((StatusCode::SERVICE_UNAVAILABLE, format!(
+                "{{ \"error\": \"server_at_capacity\", \"message\": \"{} plan temporarily unavailable. Please try again later or upgrade.\", \"capacity_health\": \"{}\" }}",
+                chosen_plan, capacity.capacity_health
+            )));
+        }
+    }
 
-    // 3. Create branch with same name
-    let branch_id = integration::create_branch(service.pool(), org_id, tenant_id, &bot_name)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    // Determine plan config (no DB needed — done before transaction)
+    let product_config = botbilling::default_product_config();
+    let plan_config = product_config.plans.get(&chosen_plan)
+        .ok_or((StatusCode::BAD_REQUEST, "Invalid plan".to_string()))?;
 
-    // 4. Create bot record
-    let (new_bot_id, org_slug) = integration::create_bot(
-        service.pool(), org_id, branch_id, tenant_id, &bot_name,
-    ).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let is_custom_plan = matches!(plan_config.price, botbilling::PlanPrice::Custom);
+    let is_free_plan = matches!(plan_config.price, botbilling::PlanPrice::Free);
+    let trial_days = plan_config.trial_days.unwrap_or(0);
 
-    // 5. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal)
+    // Get a single DB connection for the entire signup transaction (raw SQL tx)
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
+
+    use diesel::sql_query;
+    sql_query("BEGIN").execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("BEGIN: {e}")))?;
+
+    let tx_result = (|| -> Result<(Uuid, Uuid, Uuid, String, Uuid, Option<Uuid>), String> {
+        // 1. Get or create tenant
+        let tenant_id = integration::get_or_create_default_tenant_inner(&mut conn)?;
+
+        // 2. Create organization named after the bot
+        let org_domain = format!("{bot_name}.org.pragmatismo.com.br");
+        let org_id = integration::create_organization_inner(&mut conn, &bot_name, Some(&org_domain))?;
+        integration::link_org_to_tenant_inner(&mut conn, org_id, tenant_id)?;
+
+        // 3. Create branch with same name
+        let branch_id = integration::create_branch_inner(&mut conn, org_id, tenant_id, &bot_name)?;
+
+        // 4. Create bot record
+        let (new_bot_id, org_slug) = integration::create_bot_inner(&mut conn, org_id, branch_id, &bot_name)?;
+
+        // 5. Create CRM contact
+        let pass_hash = body.password.as_ref().map(|p| {
+            use argon2::password_hash::{rand_core::OsRng, SaltString};
+            use argon2::{Argon2, PasswordHasher};
+            let salt = SaltString::generate(&mut OsRng);
+            Argon2::default()
+                .hash_password(p.as_bytes(), &salt)
+                .map(|h| h.to_string())
+                .unwrap_or_else(|_| String::new())
+        }).filter(|h| !h.is_empty());
+        let contact_id = integration::create_crm_contact_inner(
+            &mut conn, branch_id, new_bot_id, &body.name, &body.email, pass_hash.as_deref(),
+        )?;
+
+        // 6. Create subscription
+        // Note: org_id column in billing_recurring now references branches(id) per migration 9.16
+        let subscription_id = if is_custom_plan {
+            None
+        } else if is_free_plan {
+            Some(integration::create_free_subscription_inner(
+                &mut conn, branch_id, new_bot_id, &body.name, &body.email,
+            )?)
+        } else {
+            Some(integration::create_trial_subscription_inner(
+                &mut conn, branch_id, new_bot_id, &body.name, &body.email,
+                &chosen_plan, trial_days as i32,
+            )?)
+        };
+
+        // 7. Create default cloud workspace
+        integration::create_cloud_workspace_inner(&mut conn, org_id, &bot_name)?;
+
+        Ok((org_id, branch_id, new_bot_id, org_slug, contact_id, subscription_id))
+    })();
+
+    let (org_id, branch_id, new_bot_id, org_slug, contact_id, subscription_id) = match tx_result {
+        Ok(result) => {
+            sql_query("COMMIT").execute(&mut conn)
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("COMMIT: {e}")))?;
+            result
+        }
+        Err(e) => {
+            sql_query("ROLLBACK").execute(&mut conn).ok();
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, e));
+        }
+    };
+
+    // 8. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal — outside tx)
     if let Err(e) = integration::create_bot_bucket(&service.config, &org_slug, &bot_name, &bot_name) {
         tracing::warn!("MinIO bucket creation skipped (non-fatal): {e}");
     }
 
-    // 6. Create CRM contact (org_id here is branch_id because crm_contacts.org_id REFERENCES branches.id)
-    let pass_hash = body.password.as_ref().map(|p| {
-        use argon2::password_hash::{rand_core::OsRng, SaltString};
-        use argon2::{Argon2, PasswordHasher};
-        let salt = SaltString::generate(&mut OsRng);
-        Argon2::default()
-            .hash_password(p.as_bytes(), &salt)
-            .map(|h| h.to_string())
-            .unwrap_or_else(|_| String::new())
-    }).filter(|h| !h.is_empty());
-    let contact_id = integration::create_crm_contact(
-        service.pool(), branch_id, new_bot_id, &body.name, &body.email, pass_hash.as_deref(),
-    ).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    // 6.5. Create identity in directory (Zitadel) if configured
+    // 9. Create identity in directory (Zitadel) if configured (non-fatal — outside tx)
     if let (Some(dir_url), Some(dir_token)) = (&service.config.directory_api_url, &service.config.directory_service_token) {
         let parts: Vec<&str> = body.name.splitn(2, ' ').collect();
         let first_name = parts.first().unwrap_or(&"");
@@ -264,57 +333,6 @@ async fn handle_signup(
             })
             .unwrap_or_else(|e| tracing::warn!("Zitadel user creation failed: {e}"));
     }
-
-    // 7. Determine plan from body (default: free)
-    let chosen_plan = body.plan.as_deref()
-        .map(|p| p.to_lowercase())
-        .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
-        .unwrap_or_else(|| "free".to_string());
-
-    // Auto-pause free signups when server is under pressure
-    if chosen_plan == "free" || chosen_plan == "shared" {
-        let capacity = botbilling::server_capacity::calculate_server_capacity(
-            &botbilling::server_capacity::ServerCapacityConfig::default(),
-            0, 0,
-        );
-        if !capacity.new_signups_allowed {
-            return Err((StatusCode::SERVICE_UNAVAILABLE, format!(
-                "{{ \"error\": \"server_at_capacity\", \"message\": \"{} plan temporarily unavailable. Please try again later or upgrade.\", \"capacity_health\": \"{}\" }}",
-                chosen_plan, capacity.capacity_health
-            )));
-        }
-    }
-    let chosen_plan = body.plan.as_deref()
-        .map(|p| p.to_lowercase())
-        .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
-        .unwrap_or_else(|| "free".to_string());
-
-    let product_config = botbilling::default_product_config();
-    let plan_config = product_config.plans.get(&chosen_plan)
-        .ok_or((StatusCode::BAD_REQUEST, "Invalid plan".to_string()))?;
-
-    let is_custom_plan = matches!(plan_config.price, botbilling::PlanPrice::Custom);
-    let is_free_plan = matches!(plan_config.price, botbilling::PlanPrice::Free);
-    let trial_days = plan_config.trial_days.unwrap_or(0);
-
-    let subscription_id = if is_custom_plan {
-        // Private Server / custom plans: no billing_recurring entry
-        None
-    } else if is_free_plan {
-        Some(integration::create_free_subscription(
-            service.pool(), branch_id, new_bot_id, branch_id,
-            &body.name, &body.email,
-        ).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?)
-    } else {
-        Some(integration::create_trial_subscription(
-            service.pool(), branch_id, new_bot_id, branch_id,
-            &body.name, &body.email, &chosen_plan, trial_days as i32,
-        ).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?)
-    };
-
-    // 8. Create default cloud workspace
-    integration::create_cloud_workspace(service.pool(), org_id, &bot_name)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     notifier::notify_welcome(&notifier::EmailVars::new(
         &body.name, &body.email, &chosen_plan, 0.0, "USD",
@@ -1402,13 +1420,13 @@ async fn assign_resource(
 
 fn store_item_to_spec(store_item_id: &str) -> Option<(MachineSpec, Vec<&'static str>)> {
     match store_item_id {
-        "vps-small" => Some((MachineSpec { cpu_cores: 4, ram_gb: 8, disk_gb: 100, gpu_type: None, gpu_count: 0, bandwidth_tb: 2 }, vec!["runpod", "vultr", "vast"])),
-        "vps-medium" => Some((MachineSpec { cpu_cores: 6, ram_gb: 16, disk_gb: 200, gpu_type: None, gpu_count: 0, bandwidth_tb: 4 }, vec!["runpod", "vultr", "vast"])),
-        "vps-large" => Some((MachineSpec { cpu_cores: 8, ram_gb: 32, disk_gb: 400, gpu_type: None, gpu_count: 0, bandwidth_tb: 8 }, vec!["runpod", "vultr"])),
-        "vps-xl" => Some((MachineSpec { cpu_cores: 16, ram_gb: 64, disk_gb: 800, gpu_type: None, gpu_count: 0, bandwidth_tb: 16 }, vec!["runpod", "vultr"])),
-        "gpu-basic" => Some((MachineSpec { cpu_cores: 4, ram_gb: 8, disk_gb: 50, gpu_type: Some("GT 730".into()), gpu_count: 1, bandwidth_tb: 2 }, vec!["vast"])),
-        "gpu-pro" => Some((MachineSpec { cpu_cores: 8, ram_gb: 32, disk_gb: 200, gpu_type: Some("RTX 4090".into()), gpu_count: 1, bandwidth_tb: 4 }, vec!["runpod", "vultr", "vast"])),
-        "gpu-enterprise" => Some((MachineSpec { cpu_cores: 16, ram_gb: 64, disk_gb: 500, gpu_type: Some("A100".into()), gpu_count: 1, bandwidth_tb: 8 }, vec!["runpod", "vast"])),
+        "vps-small" => Some((MachineSpec { cpu_cores: 4, ram_gb: 8, disk_gb: 100, gpu_type: None, gpu_count: 0, bandwidth_tb: 2 }, vec!["vast", "contabo"])),
+        "vps-medium" => Some((MachineSpec { cpu_cores: 6, ram_gb: 16, disk_gb: 200, gpu_type: None, gpu_count: 0, bandwidth_tb: 4 }, vec!["vast", "contabo"])),
+        "vps-large" => Some((MachineSpec { cpu_cores: 8, ram_gb: 32, disk_gb: 400, gpu_type: None, gpu_count: 0, bandwidth_tb: 8 }, vec!["contabo"])),
+        "vps-xl" => Some((MachineSpec { cpu_cores: 16, ram_gb: 64, disk_gb: 800, gpu_type: None, gpu_count: 0, bandwidth_tb: 16 }, vec!["contabo"])),
+        "gpu-basic" => Some((MachineSpec { cpu_cores: 4, ram_gb: 8, disk_gb: 50, gpu_type: Some("RTX 3060 12 GB".into()), gpu_count: 1, bandwidth_tb: 2 }, vec!["vast"])),
+        "gpu-pro" => Some((MachineSpec { cpu_cores: 8, ram_gb: 32, disk_gb: 200, gpu_type: Some("RTX 4090 24 GB".into()), gpu_count: 1, bandwidth_tb: 4 }, vec!["vast", "contabo"])),
+        "gpu-enterprise" => Some((MachineSpec { cpu_cores: 16, ram_gb: 64, disk_gb: 500, gpu_type: Some("A100".into()), gpu_count: 1, bandwidth_tb: 8 }, vec!["vast", "contabo"])),
         _ => None,
     }
 }
@@ -1447,17 +1465,16 @@ async fn provision_compute_resource(
         }
     };
 
-    let preferred_provider = std::env::var("GB_PROVIDER").unwrap_or_else(|_| "vultr".into());
+    let preferred_provider = std::env::var("GB_PROVIDER").unwrap_or_else(|_| "vast".into());
     let provider_name = if candidates.contains(&preferred_provider.as_str()) {
         preferred_provider.clone()
     } else {
-        candidates.first().unwrap_or(&"vultr").to_string()
+        candidates.first().copied().unwrap_or("vast").to_string()
     };
 
     let provider: Box<dyn ComputeProvider> = match provider_name.as_str() {
-        "runpod" => Box::new(RunPodProvider::new()),
-        "vultr" => Box::new(VultrProvider::new()),
         "vast" => Box::new(VastAiProvider::new()),
+        "contabo" => Box::new(ContaboProvider::new()),
         other => return Err(format!("Unknown provider: {other}")),
     };
 
@@ -1512,6 +1529,184 @@ async fn remove_resource(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete: {e}")))?;
 
     Ok(Json(serde_json::json!({ "status": "removed" })))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Branches per organization
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+pub struct CreateBranchBody {
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateBranchBody {
+    pub name: Option<String>,
+    pub description: Option<String>,
+}
+
+/// `GET /api/cloud/organizations/{org_id}/branches`
+async fn list_branches(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(org_id_param): axum::extract::Path<Uuid>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    #[derive(diesel::QueryableByName, Debug)]
+    struct BranchRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        slug: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        description: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Bool)]
+        is_active: bool,
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        bots_count: i64,
+    }
+
+    let rows: Vec<BranchRow> = diesel::sql_query(
+        r#"SELECT b.id, b.name, b.slug, b.description, b.is_active,
+                  COUNT(DISTINCT bt.id) AS bots_count
+           FROM branches b
+           LEFT JOIN bots bt ON bt.branch_id = b.id
+           WHERE b.org_id = $1
+           GROUP BY b.id ORDER BY b.name"#,
+    )
+    .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+    .load(&mut conn)
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    let result: Vec<serde_json::Value> = rows.into_iter().map(|r| {
+        serde_json::json!({
+            "id": r.id,
+            "name": r.name,
+            "slug": r.slug,
+            "description": r.description,
+            "is_active": r.is_active,
+            "bots_count": r.bots_count,
+        })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "branches": result })))
+}
+
+/// `POST /api/cloud/organizations/{org_id}/branches`
+async fn create_branch_handler(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path(org_id_param): axum::extract::Path<Uuid>,
+    Json(body): Json<CreateBranchBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    if body.name.trim().is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Branch name is required".to_string()));
+    }
+
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    // Get tenant_id for this organization
+    #[derive(diesel::QueryableByName, Debug)]
+    struct TenantIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        tenant_id: Uuid,
+    }
+
+    let tenant_row: Option<TenantIdRow> = diesel::sql_query(
+        "SELECT tenant_id FROM organizations WHERE org_id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+    .get_result(&mut conn)
+    .ok();
+
+    let tenant_id = match tenant_row {
+        Some(row) => row.tenant_id,
+        None => return Err((StatusCode::NOT_FOUND, "Organization not found".to_string())),
+    };
+
+    let branch_id = integration::create_branch_inner(&mut conn, org_id_param, tenant_id, body.name.trim())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    Ok(Json(serde_json::json!({
+        "id": branch_id,
+        "name": body.name.trim(),
+        "org_id": org_id_param,
+    })))
+}
+
+/// `PUT /api/cloud/organizations/{org_id}/branches/{branch_id}`
+async fn update_branch_handler(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path((org_id_param, branch_id_param)): axum::extract::Path<(Uuid, Uuid)>,
+    Json(body): Json<UpdateBranchBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    if let Some(ref n) = body.name {
+        if n.trim().is_empty() {
+            return Err((StatusCode::BAD_REQUEST, "Branch name cannot be empty".to_string()));
+        }
+        let slug = n.trim().to_lowercase().replace(' ', "-");
+        let affected = diesel::sql_query(
+            "UPDATE branches SET name = $1, slug = $2, updated_at = NOW() WHERE id = $3 AND org_id = $4",
+        )
+        .bind::<diesel::sql_types::Text, _>(n.trim())
+        .bind::<diesel::sql_types::Text, _>(&slug)
+        .bind::<diesel::sql_types::Uuid, _>(branch_id_param)
+        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update: {e}")))?;
+
+        if affected == 0 {
+            return Err((StatusCode::NOT_FOUND, "Branch not found".to_string()));
+        }
+    }
+
+    if let Some(ref desc) = body.description {
+        diesel::sql_query(
+            "UPDATE branches SET description = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3",
+        )
+        .bind::<diesel::sql_types::Text, _>(desc)
+        .bind::<diesel::sql_types::Uuid, _>(branch_id_param)
+        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update desc: {e}")))?;
+    }
+
+    Ok(Json(serde_json::json!({ "status": "updated" })))
+}
+
+/// `DELETE /api/cloud/organizations/{org_id}/branches/{branch_id}`
+async fn delete_branch_handler(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Path((org_id_param, branch_id_param)): axum::extract::Path<(Uuid, Uuid)>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    // Unlink bots first
+    diesel::sql_query("UPDATE bots SET branch_id = NULL WHERE branch_id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(branch_id_param)
+        .execute(&mut conn)
+        .ok();
+
+    let deleted = diesel::sql_query("DELETE FROM branches WHERE id = $1 AND org_id = $2")
+        .bind::<diesel::sql_types::Uuid, _>(branch_id_param)
+        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete: {e}")))?;
+
+    if deleted == 0 {
+        return Err((StatusCode::NOT_FOUND, "Branch not found".to_string()));
+    }
+
+    Ok(Json(serde_json::json!({ "status": "deleted" })))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1635,8 +1830,8 @@ async fn list_store_items(
             { "id":"vps-large",  "category":"compute", "name":"VPS Large",  "icon":"🖥️", "price_type":"fixed", "amount":3999, "currency":"usd", "period":"mo", "description":"8 vCPU · 32 GB RAM · 400 GB NVMe · 8 TB BW" },
             { "id":"vps-xl",     "category":"compute", "name":"VPS XL",     "icon":"🖥️", "price_type":"fixed", "amount":7999, "currency":"usd", "period":"mo", "description":"16 vCPU · 64 GB RAM · 800 GB NVMe · 16 TB BW" },
             // ── GPU ──
-            { "id":"gpu-basic",      "category":"compute", "name":"GPU Basic",      "icon":"⚡", "price_type":"fixed", "amount":2999,  "currency":"usd", "period":"mo", "description":"GT 730 · 4 vCPU · 8 GB RAM" },
-            { "id":"gpu-pro",        "category":"compute", "name":"GPU Pro",        "icon":"⚡", "price_type":"fixed", "amount":9999,  "currency":"usd", "period":"mo", "description":"RTX 4090 · 8 vCPU · 32 GB RAM" },
+            { "id":"gpu-basic",      "category":"compute", "name":"GPU Basic",      "icon":"⚡", "price_type":"fixed", "amount":3999,  "currency":"usd", "period":"mo", "description":"RTX 3060 12 GB · 4 vCPU · 8 GB RAM" },
+            { "id":"gpu-pro",        "category":"compute", "name":"GPU Pro",        "icon":"⚡", "price_type":"fixed", "amount":9999,  "currency":"usd", "period":"mo", "description":"RTX 4090 (24 GB VRAM) · 8 vCPU · 32 GB RAM" },
             { "id":"gpu-enterprise", "category":"compute", "name":"GPU Enterprise", "icon":"⚡", "price_type":"fixed", "amount":29999, "currency":"usd", "period":"mo", "description":"A100 80 GB · 16 vCPU · 64 GB RAM" },
             // ── Storage ──
             { "id":"storage-50",   "category":"storage", "name":"Storage 50 GB",  "icon":"💾", "price_type":"fixed", "amount":999,  "currency":"usd", "period":"mo", "description":"S3-compatible · 100 GB egress" },
@@ -2023,19 +2218,19 @@ async fn list_llm_providers() -> Result<Json<serde_json::Value>, (StatusCode, St
                 "description": "Chinese models from Zhipu AI with excellent reasoning performance and long context.",
                 "website": "https://open.bigmodel.cn", "requires_byok": true, "icon": "glm",
                 "models": [
-                    {"id": "glm-4-plus", "name": "GLM-4-Plus", "context": 131072, "description": "Flagship with advanced reasoning", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
-                    {"id": "glm-4-air", "name": "GLM-4-Air", "context": 131072, "description": "Lightweight and fast for chatbots", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "glm-5.2", "name": "GLM-5.2", "context": 262144, "description": "Flagship model with deep reasoning and agentic capabilities", "pricing": "pay-per-token", "capabilities": ["chat","tools","vision"]},
+                    {"id": "glm-5.2-air", "name": "GLM-5.2-Air", "context": 131072, "description": "Lightweight and fast for chatbots", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
                     {"id": "glm-4-flash", "name": "GLM-4-Flash", "context": 131072, "description": "Free tier with high request rate", "pricing": "free-tier", "capabilities": ["chat"]}
                 ]
             },
             {
                 "id": "alibaba", "name": "Qwen (Alibaba Cloud)",
-                "description": "Alibaba's Qwen family — high-performance open models.",
+                "description": "Alibaba's Qwen 3.6 family — latest-generation open models with breakthrough performance.",
                 "website": "https://tongyi.aliyun.com", "requires_byok": true, "icon": "qwen",
                 "models": [
-                    {"id": "qwen-max", "name": "Qwen-Max", "context": 131072, "description": "Most powerful in the family", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
-                    {"id": "qwen-plus", "name": "Qwen-Plus", "context": 131072, "description": "Performance-cost balance", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
-                    {"id": "qwen-turbo", "name": "Qwen-Turbo", "context": 131072, "description": "Fast and economical", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                    {"id": "qwen-3.6-max", "name": "Qwen 3.6-Max", "context": 262144, "description": "Most powerful in the 3.6 family", "pricing": "pay-per-token", "capabilities": ["chat","tools","reasoning"]},
+                    {"id": "qwen-3.6-plus", "name": "Qwen 3.6-Plus", "context": 131072, "description": "Performance-cost balance", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "qwen-3.6-turbo", "name": "Qwen 3.6-Turbo", "context": 131072, "description": "Fast and economical", "pricing": "pay-per-token", "capabilities": ["chat"]}
                 ]
             },
             {
@@ -2043,9 +2238,9 @@ async fn list_llm_providers() -> Result<Json<serde_json::Value>, (StatusCode, St
                 "description": "Deep reasoning models from DeepSeek (深度求索).",
                 "website": "https://platform.deepseek.com", "requires_byok": true, "icon": "deepseek",
                 "models": [
-                    {"id": "deepseek-v3", "name": "DeepSeek-V3", "context": 65536, "description": "High-performance general model", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "context": 131072, "description": "Latest generation — fast and powerful reasoning model", "pricing": "pay-per-token", "capabilities": ["chat","tools","reasoning"]},
                     {"id": "deepseek-r1", "name": "DeepSeek-R1", "context": 65536, "description": "Reasoning with chain-of-thought", "pricing": "pay-per-token", "capabilities": ["chat","reasoning"]},
-                    {"id": "deepseek-chat", "name": "DeepSeek-Chat", "context": 65536, "description": "Standard chat with good cost-benefit", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                    {"id": "deepseek-v3", "name": "DeepSeek-V3", "context": 65536, "description": "Previous gen — still available for cost savings", "pricing": "pay-per-token", "capabilities": ["chat","tools"]}
                 ]
             },
             {
@@ -2068,49 +2263,52 @@ async fn list_llm_providers() -> Result<Json<serde_json::Value>, (StatusCode, St
             },
             {
                 "id": "openai", "name": "OpenAI",
-                "description": "Global reference in LLMs with GPT-4o, GPT-4.1 and o-3.",
+                "description": "Frontier models: GPT-5.5, GPT-5.4 and o-5 reasoning.",
                 "website": "https://platform.openai.com", "requires_byok": false, "icon": "openai",
                 "models": [
-                    {"id": "gpt-4o", "name": "GPT-4o", "context": 131072, "description": "Fastest and smartest multimodal model", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools"]},
-                    {"id": "gpt-4.1", "name": "GPT-4.1", "context": 1048576, "description": "1M token context", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]},
-                    {"id": "o3", "name": "o-3", "context": 262144, "description": "Advanced reasoning", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","reasoning"]}
+                    {"id": "gpt-5.5", "name": "GPT-5.5", "context": 1048576, "description": "Frontier multimodal intelligence — 1M context", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools","reasoning"]},
+                    {"id": "gpt-5.4", "name": "GPT-5.4", "context": 262144, "description": "Previous frontier — still excellent for production", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools","reasoning"]},
+                    {"id": "o-5", "name": "o-5", "context": 524288, "description": "Advanced reasoning with full chain-of-thought", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","reasoning"]}
                 ]
             },
             {
                 "id": "anthropic", "name": "Anthropic",
-                "description": "Claude models — safe and interpretable.",
+                "description": "Claude Fable 5 (Mythos-class), Opus 4.8, Sonnet 4.6, Haiku 4.5 — no legacy 3.x.",
                 "website": "https://console.anthropic.com", "requires_byok": false, "icon": "anthropic",
                 "models": [
-                    {"id": "claude-4-sonnet", "name": "Claude 4 Sonnet", "context": 262144, "description": "Speed-capability balance", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision"]},
-                    {"id": "claude-4-haiku", "name": "Claude 4 Haiku", "context": 262144, "description": "Fast and economical", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]}
+                    {"id": "claude-fable-5", "name": "Claude Fable 5", "context": 1048576, "description": "Mythos-class — Anthropic's most capable model", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision","reasoning"]},
+                    {"id": "claude-opus-4-8", "name": "Claude Opus 4.8", "context": 1048576, "description": "Top Opus-tier — complex reasoning & agentic coding", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision","reasoning"]},
+                    {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "context": 1048576, "description": "Best speed-intelligence balance for production", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision"]},
+                    {"id": "claude-haiku-4-5", "name": "Claude Haiku 4.5", "context": 204800, "description": "Fastest — high-volume, cost-sensitive tasks", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]}
                 ]
             },
             {
                 "id": "google", "name": "Google",
-                "description": "Gemini models with strong multimodal capabilities. Token packages available.",
+                "description": "Gemini 3.5 Flash and 3.1 Pro — agentic frontier. Token packages available.",
                 "website": "https://ai.google.dev", "requires_byok": false, "icon": "google",
                 "models": [
-                    {"id": "gemini-pro", "name": "Gemini Pro", "context": 131072, "description": "Multimodal with strong reasoning", "pricing": "token-package", "capabilities": ["chat","vision","tools"]},
-                    {"id": "gemini-flash", "name": "Gemini Flash", "context": 131072, "description": "Fast and economical", "pricing": "token-package", "capabilities": ["chat","tools"]}
+                    {"id": "gemini-3.5-flash", "name": "Gemini 3.5 Flash", "context": 1048576, "description": "GA — frontier agentic performance, 1M context", "pricing": "token-package", "capabilities": ["chat","vision","tools","reasoning","code-execution"]},
+                    {"id": "gemini-3.1-pro", "name": "Gemini 3.1 Pro", "context": 1048576, "description": "Preview — advanced reasoning for complex tasks", "pricing": "token-package", "capabilities": ["chat","vision","tools","reasoning"]}
                 ]
             },
             {
                 "id": "groq", "name": "Groq",
-                "description": "Fast inference models with industry-leading speed. Token packages available.",
+                "description": "Ultra-fast inference on LPU. No Llama, no Mistral — only GPT-OSS and Qwen.",
                 "website": "https://groq.com", "requires_byok": false, "icon": "groq",
                 "models": [
-                    {"id": "mixtral-8x7b", "name": "Mixtral 8x7B", "context": 32768, "description": "Mixture of experts for high quality", "pricing": "token-package", "capabilities": ["chat","tools"]},
-                    {"id": "llama-3.3-70b", "name": "Llama 3.3 70B", "context": 131072, "description": "Meta Llama 3.3 for chat and tools", "pricing": "token-package", "capabilities": ["chat","tools"]}
+                    {"id": "gpt-oss-120b", "name": "GPT-OSS 120B", "context": 131072, "description": "120B MoE — reasoning at 500 tok/s on LPU", "pricing": "token-package", "capabilities": ["chat","tools","reasoning"]},
+                    {"id": "qwen-3.6-27b", "name": "Qwen 3.6-27B", "context": 131072, "description": "Best open 27B — 500 tok/s on Groq", "pricing": "token-package", "capabilities": ["chat","tools","reasoning"]},
+                    {"id": "gpt-oss-20b", "name": "GPT-OSS 20B", "context": 131072, "description": "20B at 1000 tok/s — fastest option", "pricing": "token-package", "capabilities": ["chat","tools"]}
                 ]
             },
             {
                 "id": "generalbots", "name": "General Bots (Own GPU)",
-                "description": "Open-source models running on General Bots' own GPUs. Included in the plan.",
+                "description": "Open-weight models running on General Bots' own GPU infrastructure. Included in all plans.",
                 "website": "https://generalbots.com.br", "requires_byok": false, "icon": "gb",
                 "models": [
-                    {"id": "gpt-oss-20b", "name": "GPT-OSS 20B", "context": 32768, "description": "20B parameters on dedicated GPU", "pricing": "included", "capabilities": ["chat","tools"]},
+                    {"id": "qwen-3.6-27b", "name": "Qwen 3.6-27B", "context": 131072, "description": "27B parameters — best open model in its class", "pricing": "included", "capabilities": ["chat","tools","reasoning"]},
                     {"id": "deepseek-r1-distill-qwen", "name": "DeepSeek-R1-Distill-Qwen-1.5B", "context": 32768, "description": "Lightweight reasoning included in all plans", "pricing": "included", "capabilities": ["chat","reasoning"]},
-                    {"id": "llama-3.1-8b", "name": "Llama 3.1 8B", "context": 131072, "description": "Meta Llama 3.1 for chat and tools", "pricing": "included", "capabilities": ["chat","tools"]}
+                    {"id": "gpt-oss-20b", "name": "GPT-OSS 20B", "context": 32768, "description": "20B parameters on dedicated GPU", "pricing": "included", "capabilities": ["chat","tools"]}
                 ]
             }
         ]

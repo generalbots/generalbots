@@ -37,8 +37,7 @@ function renderPlans(period) {
     const periodLabel = period === 'yearly' ? '/yr' : '/mo';
 
     return `
-      <div class="saas-plan-card ${id === 'business' ? 'featured' : ''}">
-        ${id === 'business' ? '<div class="plan-badge">Most Popular</div>' : ''}
+      <div class="saas-plan-card">
         <h3>${escapeHtml(plan.name)}</h3>
         <div class="plan-subtitle">${escapeHtml(plan.description || '')}</div>
         <div class="price">
