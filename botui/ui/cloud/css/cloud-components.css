@@ -1,504 +1,823 @@
-/* ── SPLIT LAYOUT ── */
+/* ============================================================
+   General Bots Cloud · Components
+   Design: "Prism" — monochrome + rainbow spectrum accents
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. SPLIT LAYOUT (Login / Signup)
+   ---------------------------------------------------------- */
+
 .mgmt-split {
-  flex: 1;
   display: grid;
-  grid-template-columns: 380px 1fr;
-  min-height: calc(100vh - 52px);
+  grid-template-columns: 420px 1fr;
+  min-height: 100vh;
 }
+
 .mgmt-split-left {
-  background: linear-gradient(160deg, #07070a 0%, #0d0d12 60%, #141420 100%);
-  border-right: 1px solid var(--border);
-  padding: 2.5rem 2rem;
+  position: relative;
+  background: #08080a;
+  color: #ededf0;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  position: sticky;
-  top: 52px;
-  height: calc(100vh - 52px);
-  overflow-y: auto;
+  justify-content: center;
+  padding: 48px 40px;
+  overflow: hidden;
 }
+
+/* Subtle dot-grid pattern */
+.mgmt-split-left::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
 .mgmt-split-right {
   background: var(--bg);
-  padding: 2rem;
-  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
 }
+
+/* --- Pitch content --- */
 
 .split-pitch-tag {
   display: inline-flex;
   align-items: center;
-  gap: .4rem;
-  background: rgba(255,0,128,.1);
-  border: 1px solid rgba(255,0,128,.25);
-  color: var(--accent);
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  padding: .28rem .75rem;
+  padding: 4px 14px;
   border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #08080a;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  z-index: 1;
 }
+
+.split-pitch-tag::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--prism-gradient);
+  z-index: -1;
+}
+
 .split-pitch-title {
-  font-size: 1.85rem;
+  font-size: 2rem;
   font-weight: 900;
-  line-height: 1.15;
-  letter-spacing: -.04em;
-  color: var(--text);
+  color: #fff;
+  line-height: 1.2;
+  margin-top: 20px;
+  letter-spacing: -0.02em;
 }
+
 .split-pitch-title span {
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  background: var(--prism-gradient);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-.split-pitch-body { color: var(--muted); font-size: .875rem; line-height: 1.7; }
-.split-pitch-bullets { list-style: none; display: flex; flex-direction: column; gap: .55rem; }
+
+.split-pitch-body {
+  color: #a0a0aa;
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-top: 16px;
+  max-width: 340px;
+}
+
+.split-pitch-bullets {
+  list-style: none;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .split-pitch-bullets li {
   display: flex;
-  align-items: flex-start;
-  gap: .6rem;
-  color: var(--muted);
-  font-size: .85rem;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.92rem;
+  color: #c8c8d0;
+  position: relative;
+  padding-left: 20px;
 }
-.split-pitch-bullets li::before {
-  content: '✓';
-  color: var(--accent);
-  font-weight: 800;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-.split-trust { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); }
-.split-trust-item { display: flex; flex-direction: column; }
-.split-trust-num { font-size: 1.25rem; font-weight: 900; color: var(--text); }
-.split-trust-label { font-size: .68rem; color: var(--muted); }
 
-/* ── SECTION HEADER ── */
+.split-pitch-bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--prism-gradient);
+}
+
+/* --- Trust bar --- */
+
+.split-trust {
+  display: flex;
+  gap: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 32px;
+  padding-top: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.split-trust-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.split-trust-num {
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: var(--prism-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.split-trust-label {
+  font-size: 0.75rem;
+  color: #7e7e8a;
+  letter-spacing: 0.02em;
+}
+
+/* ----------------------------------------------------------
+   2. SECTION HEADERS
+   ---------------------------------------------------------- */
+
 .mgmt-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.25rem;
+  margin-bottom: 20px;
 }
-.mgmt-section-title { font-size: 1.1rem; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
-.mgmt-section-sub { font-size: .82rem; color: var(--muted); margin-top: .1rem; }
 
-/* ── GUIDE CARDS ── */
-.guide-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.35rem;
-  margin-bottom: 1rem;
-  position: relative;
-}
-.guide-card::before {
-  content: '';
-  position: absolute;
-  left: -1px;
-  top: 12px; bottom: 12px;
-  width: 3px;
-  background: linear-gradient(180deg, var(--accent), var(--accent2));
-  border-radius: 0 3px 3px 0;
-}
-.guide-card-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  background: rgba(255,0,128,.1);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-.guide-card-title { font-size: .92rem; font-weight: 700; color: var(--text); }
-.guide-card-body { font-size: .82rem; color: var(--muted); line-height: 1.6; }
-
-/* ── TABS ── */
-.mgmt-tabs {
-  display: flex;
-  gap: .2rem;
-  background: var(--bg3);
-  border-radius: var(--radius);
-  padding: .2rem;
-  margin-bottom: 1.35rem;
-}
-.mgmt-tab {
-  flex: 1;
-  padding: .5rem 1rem;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: .82rem;
-  font-weight: 500;
-  font-family: inherit;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all .12s;
-}
-.mgmt-tab.active {
-  background: var(--surface);
-  color: var(--text);
+.mgmt-section-title {
+  font-size: 1.15rem;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0,0,0,.3);
-}
-
-/* ── PLAN CARDS ── */
-.plans-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 1rem;
-}
-.plan-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.4rem;
-  cursor: pointer;
-  transition: all .18s;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: .55rem;
-}
-.plan-card:hover {
-  border-color: rgba(255,0,128,.4);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(255,0,128,.12);
-}
-.plan-card.popular {
-  border-color: var(--accent);
-  background: linear-gradient(135deg, rgba(255,0,128,.08) 0%, var(--card) 65%);
-}
-.plan-card-badge {
-  position: absolute;
-  top: .7rem; right: .7rem;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  color: #000;
-  font-size: .6rem;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  padding: .18rem .5rem;
-  border-radius: 99px;
-}
-.plan-tier { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
-.plan-price { font-size: 1.9rem; font-weight: 900; color: var(--text); letter-spacing: -.05em; line-height: 1; }
-.plan-price sup { font-size: .95rem; font-weight: 600; vertical-align: super; }
-.plan-price sub { font-size: .72rem; font-weight: 400; color: var(--muted); }
-.plan-desc { font-size: .78rem; color: var(--muted); margin: .25rem 0 .75rem; }
-.plan-specs { list-style: none; display: flex; flex-direction: column; gap: .38rem; margin-bottom: 1rem; }
-.plan-specs li { font-size: .78rem; color: var(--muted); display: flex; align-items: center; gap: .4rem; }
-.plan-specs li::before { content: '—'; color: var(--accent); font-weight: 700; font-size: .72rem; }
-
-/* ── STORE GRID ── */
-.store-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1rem;
-}
-.store-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.2rem;
-  display: flex;
-  flex-direction: column;
-  gap: .55rem;
-  transition: all .18s;
-  cursor: pointer;
-}
-.store-card:hover {
-  border-color: rgba(255,0,128,.35);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-accent);
-}
-.store-icon { font-size: 1.9rem; }
-.store-cat { font-size: .65rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent2); }
-.store-card h3 { font-size: .98rem; font-weight: 700; color: var(--text); }
-.store-desc { font-size: .78rem; color: var(--muted); flex: 1; }
-.store-price { font-size: 1.25rem; font-weight: 900; color: var(--text); }
-.store-price small { font-size: .72rem; font-weight: 400; color: var(--muted); }
-
-/* ── SERVICES LIST ── */
-.services-list { display: flex; flex-direction: column; gap: .65rem; }
-.service-row {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: .95rem 1.15rem;
-  display: flex;
-  align-items: center;
-  gap: .9rem;
-  transition: border-color .12s;
-}
-.service-row:hover { border-color: rgba(255,0,128,.2); }
-.service-icon { font-size: 1.4rem; flex-shrink: 0; }
-.service-info { flex: 1; min-width: 0; }
-.service-name { font-size: .88rem; font-weight: 600; color: var(--text); }
-.service-detail { font-size: .75rem; color: var(--muted); margin-top: .08rem; }
-
-/* Service type labels */
-.service-type-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: .25rem;
-  font-size: .6rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  padding: .15rem .45rem;
-  border-radius: 99px;
-  margin-top: .25rem;
-}
-.service-type-tag.recurring { background: rgba(255,0,128,.1); color: var(--accent); }
-.service-type-tag.one-time  { background: rgba(255,180,0,.1);  color: #ffb400; }
-.service-type-tag.managed   { background: rgba(100,150,255,.1); color: #64a0ff; }
-
-.service-price { font-size: .88rem; font-weight: 700; color: var(--text); white-space: nowrap; }
-.service-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
-
-/* ── SERVICE ACTION BADGES: what can be done ── */
-.service-action-hint {
-  font-size: .6rem;
-  color: var(--muted);
-  font-style: italic;
-  margin-top: .2rem;
-}
-
-/* ── STATUS BADGES ── */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: .3rem;
-  font-size: .68rem;
-  font-weight: 600;
-  padding: .18rem .55rem;
-  border-radius: 99px;
-}
-.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
-.badge-active  { background: rgba(255,0,128,.1); color: var(--accent); }
-.badge-active::before  { background: var(--accent); }
-.badge-pending { background: rgba(255,180,0,.1); color: #ffb400; }
-.badge-pending::before { background: #ffb400; }
-.badge-error   { background: rgba(255,107,107,.1); color: var(--accent3); }
-.badge-error::before   { background: var(--accent3); }
-
-/* ── INVOICES TABLE ── */
-.invoice-table { width: 100%; border-collapse: collapse; }
-.invoice-table th {
-  text-align: left;
-  font-size: .68rem;
-  font-weight: 700;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: .55rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-.invoice-table td {
-  padding: .8rem 1rem;
-  border-bottom: 1px solid var(--border);
-  font-size: .84rem;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
-.invoice-table tr:hover td { background: rgba(255,0,128,.02); }
 
-/* ── PAYMENT CARDS ── */
-.payment-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-.payment-card {
-  background: linear-gradient(135deg, var(--bg3), var(--surface));
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.5rem;
-  position: relative;
-  overflow: hidden;
+.mgmt-section-subtitle {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-top: 4px;
 }
-.payment-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,0,128,.08) 0%, transparent 55%);
-  pointer-events: none;
-}
-.payment-card-brand { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.payment-card-number { font-size: 1rem; font-weight: 600; letter-spacing: .12em; margin: .7rem 0 .45rem; color: var(--text); }
-.payment-card-exp { font-size: .75rem; color: var(--muted); }
-.payment-card-default { position: absolute; top: .7rem; right: .7rem; }
 
-/* ── MACHINES SECTION ── */
-.machines-hero {
-  background: linear-gradient(135deg, var(--bg2) 0%, var(--bg) 100%);
-  border-bottom: 1px solid var(--border);
-  padding: 2rem 2rem 1.5rem;
-  position: relative;
-  overflow: hidden;
-}
-.machines-hero::before {
-  content: '';
-  position: absolute;
-  width: 500px; height: 500px;
-  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 65%);
-  top: -200px; right: -100px;
-  border-radius: 50%;
-  pointer-events: none;
-}
-.machines-hero-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  background: var(--accent-dim);
-  border: 1px solid var(--border-hover);
-  color: var(--accent);
-  font-size: .65rem;
-  font-weight: 800;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  padding: .25rem .7rem;
-  border-radius: 99px;
-  margin-bottom: .75rem;
-}
-.machines-hero-title {
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: -.035em;
-  color: var(--text);
-  margin-bottom: .5rem;
-}
-.machines-hero-desc { font-size: .85rem; color: var(--muted); line-height: 1.7; max-width: 680px; }
-.machines-hero-stats {
+.mgmt-section-actions {
   display: flex;
-  gap: 1.75rem;
-  flex-wrap: wrap;
-  margin-top: 1.25rem;
+  align-items: center;
+  gap: 8px;
 }
-.machines-hero-stat { display: flex; flex-direction: column; }
-.machines-hero-stat-val { font-size: 1.2rem; font-weight: 900; color: var(--text); letter-spacing: -.02em; }
-.machines-hero-stat-lbl { font-size: .68rem; color: var(--muted); }
 
-.machine-tiers-grid {
+/* ----------------------------------------------------------
+   3. GUIDE CARDS
+   ---------------------------------------------------------- */
+
+.mgmt-guide-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  padding: 1.5rem 2rem;
+  gap: 16px;
+  margin-bottom: 28px;
 }
-.machine-tier-card {
+
+.mgmt-guide-card {
+  position: relative;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.4rem;
+  padding: 20px 20px 20px 28px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-guide-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--prism-gradient);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.mgmt-guide-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.mgmt-guide-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.mgmt-guide-card-body {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.mgmt-guide-card-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+/* ----------------------------------------------------------
+   4. TABS
+   ---------------------------------------------------------- */
+
+.mgmt-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.mgmt-tab {
+  position: relative;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: color 0.15s ease;
+}
+
+.mgmt-tab:hover {
+  color: var(--text);
+}
+
+.mgmt-tab.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.mgmt-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+.mgmt-tab-content {
+  display: none;
+}
+
+.mgmt-tab-content.active {
+  display: block;
+}
+
+/* ----------------------------------------------------------
+   5. PLAN CARDS
+   ---------------------------------------------------------- */
+
+.mgmt-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.mgmt-plan-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: .75rem;
-  transition: all .18s;
-  position: relative;
-  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
-.machine-tier-card:hover {
+
+.mgmt-plan-card:hover {
   border-color: var(--border-hover);
+  box-shadow: var(--shadow);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-accent);
 }
-.machine-tier-card.featured {
+
+.mgmt-plan-card.featured {
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--accent-dim) 0%, var(--card) 60%);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-accent);
 }
-.machine-tier-badge {
-  position: absolute;
-  top: .7rem; right: .7rem;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  color: #000;
-  font-size: .58rem;
-  font-weight: 800;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  padding: .15rem .5rem;
-  border-radius: 99px;
+
+.mgmt-plan-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
 }
-.machine-tier-label { font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
-.machine-tier-name { font-size: 1rem; font-weight: 800; color: var(--text); letter-spacing: -.015em; }
-.machine-tier-price {
-  display: flex;
-  align-items: baseline;
-  gap: .2rem;
-  font-size: 1.5rem;
+
+.mgmt-plan-price {
+  font-size: 2rem;
   font-weight: 900;
   color: var(--text);
-  letter-spacing: -.04em;
+  margin-top: 8px;
+  letter-spacing: -0.03em;
 }
-.machine-tier-price-from { font-size: .68rem; color: var(--muted); font-weight: 400; align-self: center; }
-.machine-tier-specs { list-style: none; display: flex; flex-direction: column; gap: .35rem; }
-.machine-tier-specs li {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  font-size: .78rem;
+
+.mgmt-plan-price span {
+  font-size: 0.9rem;
+  font-weight: 500;
   color: var(--muted);
 }
-.machine-tier-specs li::before { content: '─'; color: var(--accent); font-size: .65rem; }
-.machine-tier-specs li strong { color: var(--text); font-weight: 600; }
 
-.machine-suppliers-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .75rem;
-  padding: 1rem 2rem 1.5rem;
+.mgmt-plan-desc {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.5;
 }
-.machine-supplier-chip {
+
+.mgmt-plan-features {
+  list-style: none;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.mgmt-plan-features li {
   display: flex;
   align-items: center;
-  gap: .5rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: .6rem .9rem;
-  font-size: .75rem;
+  gap: 8px;
+  font-size: 0.88rem;
   color: var(--text);
-  text-decoration: none;
-  transition: all .12s;
 }
-.machine-supplier-chip:hover {
-  border-color: var(--border-hover);
-  background: var(--accent-dim);
+
+.mgmt-plan-features li::before {
+  content: '✓';
+  color: var(--accent2);
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
-.machine-supplier-chip span { color: var(--muted); font-size: .68rem; }
-.machine-proc-steps {
+
+.mgmt-plan-action {
+  margin-top: 24px;
+}
+
+/* ----------------------------------------------------------
+   6. STORE / BOT CARDS
+   ---------------------------------------------------------- */
+
+.mgmt-store-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: .75rem;
-  padding: 0 2rem 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
 }
-.machine-proc-step {
+
+.mgmt-store-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
+  border-radius: var(--radius);
+  padding: 20px;
   display: flex;
-  gap: .75rem;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
-.machine-proc-num {
-  width: 26px; height: 26px;
-  border-radius: 50%;
+
+.mgmt-store-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.mgmt-store-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mgmt-store-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
   background: var(--accent-dim);
-  border: 1px solid var(--border-hover);
-  display: flex; align-items: center; justify-content: center;
-  font-size: .72rem;
-  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--accent);
   flex-shrink: 0;
 }
-.machine-proc-title { font-size: .82rem; font-weight: 700; color: var(--text); margin-bottom: .2rem; }
-.machine-proc-desc { font-size: .72rem; color: var(--muted); line-height: 1.5; }
 
-.machines-cta-strip {
-  margin: 0 2rem 2rem;
-  background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 100%);
-  border: 1px solid var(--border-hover);
-  border-radius: var(--radius);
-  padding: 1.5rem;
+.mgmt-store-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.mgmt-store-card-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mgmt-store-card-tag {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.mgmt-store-card-body {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.mgmt-store-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.mgmt-store-card-price {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ----------------------------------------------------------
+   7. SERVICES LIST
+   ---------------------------------------------------------- */
+
+.mgmt-services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mgmt-service-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-service-item:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.mgmt-service-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.mgmt-service-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mgmt-service-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mgmt-service-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mgmt-service-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.mgmt-service-status {
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------------------------
+   8. STATUS BADGES
+   ---------------------------------------------------------- */
+
+.mgmt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.mgmt-status-badge--active,
+.mgmt-status-badge--online,
+.mgmt-status-badge--paid {
+  background: rgba(48, 209, 88, 0.1);
+  color: #30d158;
+}
+
+.mgmt-status-badge--warning,
+.mgmt-status-badge--pending {
+  background: rgba(255, 149, 0, 0.1);
+  color: #ff9500;
+}
+
+.mgmt-status-badge--error,
+.mgmt-status-badge--offline,
+.mgmt-status-badge--overdue {
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+}
+
+.mgmt-status-badge--neutral,
+.mgmt-status-badge--inactive {
+  background: var(--accent-dim);
+  color: var(--muted);
+}
+
+.mgmt-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ----------------------------------------------------------
+   9. INVOICE TABLE
+   ---------------------------------------------------------- */
+
+.mgmt-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.mgmt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.mgmt-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+.mgmt-table td {
+  padding: 12px 16px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.mgmt-table tr:last-child td {
+  border-bottom: none;
+}
+
+.mgmt-table tr:hover td {
+  background: var(--accent-dim);
+}
+
+.mgmt-table-amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------
+   10. PAYMENT CARDS
+   ---------------------------------------------------------- */
+
+.mgmt-payment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.mgmt-payment-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-payment-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.mgmt-payment-card-icon {
+  width: 44px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 800;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.mgmt-payment-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mgmt-payment-card-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mgmt-payment-card-detail {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.mgmt-payment-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.mgmt-payment-card.default {
+  border-color: var(--accent);
+}
+
+/* ----------------------------------------------------------
+   11. MACHINES
+   ---------------------------------------------------------- */
+
+.mgmt-machines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.mgmt-machine-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-machine-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.mgmt-machine-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.mgmt-machine-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mgmt-machine-specs {
+  display: flex;
+  gap: 16px;
   flex-wrap: wrap;
 }
-.machines-cta-text { font-size: .9rem; font-weight: 600; color: var(--text); }
-.machines-cta-sub { font-size: .78rem; color: var(--muted); margin-top: .2rem; }
+
+.mgmt-machine-spec {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mgmt-machine-spec-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mgmt-machine-spec-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mgmt-machine-meter {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg3);
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.mgmt-machine-meter-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.mgmt-machine-meter-fill.warning {
+  background: #ff9500;
+}
+
+.mgmt-machine-meter-fill.danger {
+  background: #ff3b30;
+}
+
+/* ----------------------------------------------------------
+   12. CONTENT AREA PADDING
+   ---------------------------------------------------------- */
+
+.mgmt-content {
+  flex: 1;
+  padding: 28px;
+}
+
+.mgmt-content-narrow {
+  max-width: 720px;
+}
+
+.mgmt-content-wide {
+  max-width: 1100px;
+}
+
+/* ----------------------------------------------------------
+   13. RESPONSIVE — SPLIT
+   ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .mgmt-split {
+    grid-template-columns: 1fr;
+  }
+
+  .mgmt-split-left {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .mgmt-plan-grid,
+  .mgmt-store-grid,
+  .mgmt-machines-grid,
+  .mgmt-guide-grid,
+  .mgmt-payment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mgmt-content {
+    padding: 16px;
+  }
+}

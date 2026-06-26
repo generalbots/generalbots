@@ -1,319 +1,602 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
+/* ============================================================
+   General Bots Cloud · Layout & Theme System
+   Design: "Prism" — monochrome + rainbow spectrum accents
+   ============================================================ */
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-:root {
-  /* ── Black & White with Pink lines (Light Theme) ── */
-  --bg:          #f5f5f5;
-  --bg2:         #eaeaea;
-  --bg3:         #ddd;
-  --surface:     #ffffff;
-  --border:      rgba(0,0,0,0.08);
-  --border-hover:rgba(255,0,128,0.3);
-  --accent:      #ff0080;
-  --accent2:     #d6006e;
-  --accent3:     #d90429;
-  --accent-dim:  rgba(255,0,128,0.08);
-  --accent-glow: rgba(255,0,128,0.15);
-  --text:        #111;
-  --muted:       #666;
-  --card:        #ffffff;
-  --nav-w:       220px;
-  --radius:      12px;
-  --radius-sm:   8px;
-  --shadow:      0 8px 24px rgba(0,0,0,0.06);
-  --shadow-accent: 0 8px 24px rgba(255,0,128,0.08);
-  --topbar-bg:   rgba(245,245,245,0.85);
-  --scrollbar-thumb: rgba(0,0,0,0.12);
-  --scrollbar-thumb-hover: rgba(0,0,0,0.25);
+/* ----------------------------------------------------------
+   1. DESIGN TOKENS — Light (default)
+   ---------------------------------------------------------- */
+
+:root,
+:root[data-theme="light"] {
+  /* Surface */
+  --bg:            #f8f8fa;
+  --bg2:           #efefef;
+  --bg3:           #e2e2e6;
+  --surface:       #ffffff;
+  --card:          #ffffff;
+
+  /* Typography */
+  --text:          #0c0c0e;
+  --muted:         #64646e;
+
+  /* Borders */
+  --border:        rgba(0, 0, 0, 0.07);
+  --border-hover:  rgba(0, 0, 0, 0.18);
+
+  /* Accent palette */
+  --accent:        #0077b6;
+  --accent2:       #1a9a5c;
+  --accent3:       #d9303e;
+  --accent-dim:    rgba(0, 119, 182, 0.08);
+  --accent-glow:   rgba(0, 119, 182, 0.2);
+
+  /* Shadows */
+  --shadow:        0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-accent: 0 0 0 3px var(--accent-glow);
+
+  /* Topbar */
+  --topbar-bg:     rgba(248, 248, 250, 0.82);
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+
+  /* Prism spectrum — shared */
+  --prism-gradient: linear-gradient(90deg, #ff2d55, #ff9500, #ffd60a, #30d158, #00c7ff, #5856d6, #bf5af2);
+  --neon-magenta:  #ff2d55;
+  --neon-violet:   #bf5af2;
+
+  /* Radii */
+  --radius:        14px;
+  --radius-sm:     10px;
+
+  /* Layout */
+  --nav-w:         240px;
 }
 
+/* ----------------------------------------------------------
+   2. DESIGN TOKENS — Dark (OS preference)
+   ---------------------------------------------------------- */
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    /* ── Black & White with Pink lines (Dark Theme) ── */
-    --bg:          #07070a;
-    --bg2:         #0d0d12;
-    --bg3:         #141420;
-    --surface:     #12121c;
-    --border:      rgba(255,255,255,0.07);
-    --border-hover:rgba(255,0,128,0.35);
-    --accent:      #ff0080;
-    --accent2:     #e50073;
-    --accent3:     #ff6b6b;
-    --accent-dim:  rgba(255,0,128,0.12);
-    --accent-glow: rgba(255,0,128,0.25);
-    --text:        #f4f4f6;
-    --muted:       #888;
-    --card:        #0d0d12;
-    --shadow:      0 8px 32px rgba(0,0,0,0.65);
-    --shadow-accent: 0 8px 32px rgba(255,0,128,0.15);
-    --topbar-bg:   rgba(7,7,10,0.85);
-    --scrollbar-thumb: rgba(255,255,255,0.1);
-    --scrollbar-thumb-hover: rgba(255,255,255,0.2);
+  :root:not([data-theme="light"]) {
+    --bg:            #08080a;
+    --bg2:           #0e0e12;
+    --bg3:           #17171d;
+    --surface:       #111116;
+    --card:          #0e0e12;
+
+    --text:          #ededf0;
+    --muted:         #7e7e8a;
+
+    --border:        rgba(255, 255, 255, 0.07);
+    --border-hover:  rgba(255, 255, 255, 0.18);
+
+    --accent:        #00c7ff;
+    --accent2:       #30d158;
+    --accent3:       #ff3b30;
+    --accent-dim:    rgba(0, 199, 255, 0.08);
+    --accent-glow:   rgba(0, 199, 255, 0.2);
+
+    --shadow:        0 1px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-accent: 0 0 0 3px var(--accent-glow);
+
+    --topbar-bg:     rgba(8, 8, 10, 0.82);
+    --scrollbar-thumb: rgba(255, 255, 255, 0.12);
   }
 }
 
-body, html {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg);
+/* ----------------------------------------------------------
+   3. DESIGN TOKENS — Dark (explicit)
+   ---------------------------------------------------------- */
+
+:root[data-theme="dark"] {
+  --bg:            #08080a;
+  --bg2:           #0e0e12;
+  --bg3:           #17171d;
+  --surface:       #111116;
+  --card:          #0e0e12;
+
+  --text:          #ededf0;
+  --muted:         #7e7e8a;
+
+  --border:        rgba(255, 255, 255, 0.07);
+  --border-hover:  rgba(255, 255, 255, 0.18);
+
+  --accent:        #00c7ff;
+  --accent2:       #30d158;
+  --accent3:       #ff3b30;
+  --accent-dim:    rgba(0, 199, 255, 0.08);
+  --accent-glow:   rgba(0, 199, 255, 0.2);
+
+  --shadow:        0 1px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-accent: 0 0 0 3px var(--accent-glow);
+
+  --topbar-bg:     rgba(8, 8, 10, 0.82);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+}
+
+/* ----------------------------------------------------------
+   4. BASE RESET & TYPOGRAPHY
+   ---------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
   color: var(--text);
-  min-height: 100vh;
-  font-size: 14px;
-  line-height: 1.5;
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── LAYOUT ── */
-.mgmt-layout  { min-height: 100vh; display: flex; flex-direction: column; }
-.mgmt-shell   { display: flex; min-height: 100vh; }
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
 
-/* ── SVG ── */
-.mgmt-nav-icon { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex-shrink: 0; }
-.mgmt-nav-icon svg { width: 16px; height: 16px; }
-.mgmt-nav-sub-icon svg { width: 14px; height: 14px; }
-.mgmt-nav-toggle-arrow svg { display: block; transition: transform .2s; }
-.mgmt-nav-toggle.open .mgmt-nav-toggle-arrow svg { transform: rotate(90deg); }
-.mgmt-logout svg { width: 14px; height: 14px; }
+a:hover {
+  color: var(--accent);
+  opacity: 0.85;
+}
 
-/* ── LEFT SIDEBAR ── */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ----------------------------------------------------------
+   5. SCROLLBAR
+   ---------------------------------------------------------- */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* ----------------------------------------------------------
+   6. LAYOUT SHELL
+   ---------------------------------------------------------- */
+
+.mgmt-layout {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.mgmt-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ----------------------------------------------------------
+   7. SIDEBAR
+   ---------------------------------------------------------- */
+
 .mgmt-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
   width: var(--nav-w);
   background: var(--bg2);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  position: fixed;
-  top: 0; left: 0; bottom: 0;
   z-index: 100;
   overflow-y: auto;
   overflow-x: hidden;
+  -ms-overflow-style: none;
   scrollbar-width: none;
 }
-.mgmt-sidebar::-webkit-scrollbar { display: none; }
+
+.mgmt-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+/* --- Logo --- */
 
 .mgmt-logo {
-  padding: 1.25rem 1rem 1rem;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.mgmt-logo-mark {
   display: flex;
   align-items: center;
-  gap: .65rem;
+  gap: 10px;
+  padding: 20px 18px 16px;
   text-decoration: none;
-}
-.mgmt-logo-icon {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, #ff0080 0%, #d6006e 100%);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 4px 16px var(--accent-glow);
-}
-.mgmt-logo-icon svg { display: block; }
-.mgmt-logo-text {
-  font-size: .92rem;
-  font-weight: 800;
   color: var(--text);
-  letter-spacing: -.025em;
-  line-height: 1.2;
+  user-select: none;
 }
+
+.mgmt-logo-mark {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--prism-gradient);
+  flex-shrink: 0;
+}
+
+.mgmt-logo-icon {
+  width: 20px;
+  height: 20px;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.mgmt-logo-text {
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
 .mgmt-logo-sub {
-  font-size: .6rem;
-  color: var(--accent);
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
   display: block;
+  font-weight: 500;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   margin-top: 1px;
 }
 
-.mgmt-nav { flex: 1; padding: .5rem 0 1rem; }
+/* --- Navigation --- */
+
+.mgmt-nav {
+  flex: 1;
+  padding: 4px 10px;
+}
 
 .mgmt-nav-section {
-  padding: .8rem .9rem .2rem;
-  font-size: .58rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  letter-spacing: .12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(122,144,128,.45);
+  color: var(--muted);
+  padding: 18px 8px 6px;
+  user-select: none;
 }
 
 .mgmt-nav-link {
   display: flex;
   align-items: center;
-  gap: .55rem;
-  padding: .42rem .9rem;
+  gap: 10px;
+  padding: 8px 10px;
+  margin: 1px 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
   color: var(--muted);
   text-decoration: none;
-  font-size: .8rem;
-  font-weight: 500;
-  border-left: 2px solid transparent;
-  transition: all .12s ease;
-  margin: 1px 0;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+  position: relative;
 }
+
 .mgmt-nav-link:hover {
+  background: var(--accent-dim);
   color: var(--text);
-  background: rgba(255,0,128,.05);
-  border-left-color: rgba(255,0,128,.25);
+  border-left-color: var(--accent);
 }
+
 .mgmt-nav-link.active {
+  background: var(--accent-dim);
   color: var(--accent);
   border-left-color: var(--accent);
-  background: var(--accent-dim);
   font-weight: 600;
 }
-.mgmt-nav-link.active .mgmt-nav-icon svg { stroke: var(--accent); }
+
+/* Toggle (expandable nav items) */
 
 .mgmt-nav-toggle {
   display: flex;
   align-items: center;
-  gap: .55rem;
-  padding: .42rem .9rem;
+  gap: 10px;
+  padding: 8px 10px;
+  margin: 1px 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
   color: var(--muted);
-  font-size: .8rem;
-  font-weight: 600;
   cursor: pointer;
-  border-left: 2px solid transparent;
-  transition: all .12s ease;
-  font-family: inherit;
+  border: none;
   background: none;
-  border-top: none;
-  border-right: none;
-  border-bottom: 1px solid transparent;
   width: 100%;
   text-align: left;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
 }
-.mgmt-nav-toggle:hover { color: var(--text); background: rgba(255,0,128,.05); }
-.mgmt-nav-toggle.open { color: var(--accent); }
-.mgmt-nav-toggle-arrow { margin-left: auto; display: flex; align-items: center; }
 
-.mgmt-nav-sub { display: none; }
-.mgmt-nav-sub.open { display: block; }
+.mgmt-nav-toggle:hover {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+.mgmt-nav-toggle-arrow {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  transition: transform 0.2s ease;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.mgmt-nav-toggle[aria-expanded="true"] .mgmt-nav-toggle-arrow {
+  transform: rotate(90deg);
+}
+
+/* Sub-navigation */
+
+.mgmt-nav-sub {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+  padding-left: 14px;
+}
+
+.mgmt-nav-sub.open {
+  max-height: 500px;
+}
 
 .mgmt-nav-sub-link {
   display: flex;
   align-items: center;
-  gap: .5rem;
-  padding: .32rem .9rem .32rem 2.4rem;
+  gap: 8px;
+  padding: 6px 10px 6px 18px;
+  margin: 1px 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
   color: var(--muted);
   text-decoration: none;
-  font-size: .75rem;
-  font-weight: 400;
-  border-left: 2px solid transparent;
-  transition: all .1s;
-}
-.mgmt-nav-sub-link:hover { color: var(--text); background: rgba(255,0,128,.04); }
-.mgmt-nav-sub-link.active {
-  color: var(--accent2);
-  border-left-color: var(--accent2);
-  background: rgba(255,0,128,.08);
-  font-weight: 600;
-}
-.mgmt-nav-badge {
-  margin-left: auto;
-  background: var(--accent3);
-  color: #fff;
-  font-size: .58rem;
-  font-weight: 700;
-  padding: .08rem .4rem;
-  border-radius: 99px;
+  transition: all 0.15s ease;
 }
 
-.mgmt-alpha-badge {
-  margin-left: .35rem;
-  background: linear-gradient(135deg,#ff0080,#7c3aed);
-  color: #fff;
-  font-size: .5rem;
-  font-weight: 800;
-  padding: .06rem .35rem;
-  border-radius: 99px;
-  vertical-align: middle;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+.mgmt-nav-sub-link:hover {
+  background: var(--accent-dim);
+  color: var(--text);
 }
+
+.mgmt-nav-sub-link.active {
+  color: var(--accent);
+}
+
+/* Badge */
+
+.mgmt-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--prism-gradient);
+  margin-left: auto;
+  line-height: 1;
+}
+
+/* --- SVG Icon Sizing --- */
+
+.mgmt-nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.mgmt-nav-link.active .mgmt-nav-icon {
+  opacity: 1;
+}
+
+.mgmt-nav-sub-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* --- Sidebar Footer --- */
 
 .mgmt-sidebar-footer {
-  padding: .85rem 1rem;
+  padding: 12px 10px;
   border-top: 1px solid var(--border);
-  flex-shrink: 0;
+  margin-top: auto;
 }
+
 .mgmt-user-chip {
   display: flex;
   align-items: center;
-  gap: .6rem;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
 }
+
+.mgmt-user-chip:hover {
+  background: var(--accent-dim);
+}
+
 .mgmt-avatar {
-  width: 28px; height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  display: flex; align-items: center; justify-content: center;
-  font-size: .68rem;
-  font-weight: 800;
-  color: #000;
-  flex-shrink: 0;
-  letter-spacing: 0;
-}
-.mgmt-user-email {
-  color: var(--muted);
-  font-size: .72rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 130px;
-}
-.mgmt-logout {
-  margin-left: auto;
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
+  background: var(--prism-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px; height: 26px;
-  border-radius: 6px;
-  transition: all .12s;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
   flex-shrink: 0;
 }
-.mgmt-logout:hover { color: var(--accent3); background: rgba(255,107,107,.1); }
 
-/* ── MAIN CONTENT ── */
+.mgmt-user-email {
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.mgmt-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mgmt-logout:hover {
+  color: var(--accent3);
+  background: rgba(217, 48, 62, 0.08);
+}
+
+.mgmt-logout svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ----------------------------------------------------------
+   8. MAIN CONTENT
+   ---------------------------------------------------------- */
+
 .mgmt-main {
   margin-left: var(--nav-w);
   flex: 1;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  min-height: 100vh;
+  min-width: 0;
 }
 
-/* ── TOP BAR ── */
+/* ----------------------------------------------------------
+   9. TOPBAR
+   ---------------------------------------------------------- */
+
 .mgmt-topbar {
-  background: var(--topbar-bg);
-  border-bottom: 1px solid var(--border);
-  padding: .7rem 1.75rem;
+  position: sticky;
+  top: 0;
+  z-index: 90;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  height: 52px;
+  height: 56px;
+  padding: 0 28px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
 }
+
+/* Prism signature line — the rainbow whisper */
+.mgmt-topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--prism-gradient);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 .mgmt-page-title {
-  font-size: .95rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -.015em;
+  letter-spacing: -0.01em;
 }
-.mgmt-topbar-actions { display: flex; align-items: center; gap: .6rem; }
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+.mgmt-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ----------------------------------------------------------
+   10. ALPHA BADGE
+   ---------------------------------------------------------- */
+
+.mgmt-alpha-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--prism-gradient);
+  color: #fff;
+  line-height: 1.6;
+}
+
+/* ----------------------------------------------------------
+   11. RESPONSIVE
+   ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .mgmt-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .mgmt-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .mgmt-main {
+    margin-left: 0;
+  }
+}
