@@ -221,6 +221,19 @@ body, html {
   border-radius: 99px;
 }
 
+.mgmt-alpha-badge {
+  margin-left: .35rem;
+  background: linear-gradient(135deg,#ff0080,#7c3aed);
+  color: #fff;
+  font-size: .5rem;
+  font-weight: 800;
+  padding: .06rem .35rem;
+  border-radius: 99px;
+  vertical-align: middle;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
 .mgmt-sidebar-footer {
   padding: .85rem 1rem;
   border-top: 1px solid var(--border);
