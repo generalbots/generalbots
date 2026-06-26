@@ -3,6 +3,13 @@ name = "botproviders"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["providers-vast", "providers-contabo"]
+providers-vast = []
+providers-contabo = []
+providers-runpod = []
+providers-vultr = []
+
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

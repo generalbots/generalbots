@@ -381,103 +381,7 @@ pub fn default_product_config() -> ProductConfig {
         trial_days: None,
     });
 
-    // Planos legados mantidos para organizações existentes no banco
-    plans.insert("personal".to_string(), PlanConfig {
-        name: "Personal".to_string(),
-        description: Some("Plano anterior — mantido para organizações existentes".to_string()),
-        price: PlanPrice::Fixed {
-            amount: 900,
-            currency: "usd".to_string(),
-            period: BillingPeriod::Monthly,
-        },
-        limits: PlanLimits {
-            messages_per_day: LimitValue::Limited(100),
-            storage_mb: LimitValue::Limited(1024),
-            bots: LimitValue::Limited(5),
-            users: LimitValue::Limited(1),
-            api_calls_per_day: LimitValue::Limited(1000),
-            signups_per_day: None,
-            kb_documents: LimitValue::Limited(100),
-            apps: LimitValue::Limited(5),
-            emails_per_day: LimitValue::Limited(50),
-            builds_per_day: LimitValue::Limited(25),
-            uploads_per_hour: LimitValue::Limited(25),
-        },
-        features: vec![
-            "basic_chat".to_string(),
-            "file_upload".to_string(),
-            "email_support".to_string(),
-        ],
-        stripe_price_id: None,
-        trial_days: Some(14),
-    });
 
-    plans.insert("business".to_string(), PlanConfig {
-        name: "Business".to_string(),
-        description: Some("Plano anterior — mantido para organizações existentes".to_string()),
-        price: PlanPrice::Fixed {
-            amount: 4900,
-            currency: "usd".to_string(),
-            period: BillingPeriod::Monthly,
-        },
-        limits: PlanLimits {
-            messages_per_day: LimitValue::Limited(1000),
-            storage_mb: LimitValue::Limited(10240),
-            bots: LimitValue::Limited(25),
-            users: LimitValue::Limited(10),
-            api_calls_per_day: LimitValue::Limited(10000),
-            signups_per_day: None,
-            kb_documents: LimitValue::Limited(1000),
-            apps: LimitValue::Limited(25),
-            emails_per_day: LimitValue::Limited(500),
-            builds_per_day: LimitValue::Limited(100),
-            uploads_per_hour: LimitValue::Limited(100),
-        },
-        features: vec![
-            "basic_chat".to_string(),
-            "file_upload".to_string(),
-            "priority_support".to_string(),
-            "custom_branding".to_string(),
-            "api_access".to_string(),
-            "analytics".to_string(),
-        ],
-        stripe_price_id: None,
-        trial_days: Some(14),
-    });
-
-    plans.insert("enterprise".to_string(), PlanConfig {
-        name: "Enterprise".to_string(),
-        description: Some("Plano anterior — mantido para organizações existentes".to_string()),
-        price: PlanPrice::Custom,
-        limits: PlanLimits {
-            messages_per_day: LimitValue::Unlimited,
-            storage_mb: LimitValue::Unlimited,
-            bots: LimitValue::Unlimited,
-            users: LimitValue::Unlimited,
-            api_calls_per_day: LimitValue::Unlimited,
-            signups_per_day: None,
-            kb_documents: LimitValue::Unlimited,
-            apps: LimitValue::Unlimited,
-            emails_per_day: LimitValue::Unlimited,
-            builds_per_day: LimitValue::Unlimited,
-            uploads_per_hour: LimitValue::Unlimited,
-        },
-        features: vec![
-            "basic_chat".to_string(),
-            "file_upload".to_string(),
-            "priority_support".to_string(),
-            "custom_branding".to_string(),
-            "api_access".to_string(),
-            "analytics".to_string(),
-            "sso_saml".to_string(),
-            "sla_guarantee".to_string(),
-            "dedicated_support".to_string(),
-            "on_premise".to_string(),
-            "audit_logs".to_string(),
-        ],
-        stripe_price_id: None,
-        trial_days: None,
-    });
 
     ProductConfig {
         branding: BrandingConfig {
@@ -624,9 +528,9 @@ mod tests {
     fn test_default_product_config_has_required_plans() {
         let config = test_product_config();
         assert!(config.plans.contains_key("free"));
-        assert!(config.plans.contains_key("personal"));
-        assert!(config.plans.contains_key("business"));
-        assert!(config.plans.contains_key("enterprise"));
+        // personal/business/enterprise removed — legacy cleanup
+        assert!(config.plans.contains_key("shared")); // placeholder
+        assert!(config.plans.contains_key("private-cloud")); // placeholder
     }
 
     #[test]
@@ -637,51 +541,21 @@ mod tests {
         assert_eq!(free.name, "Free");
         assert!(matches!(free.price, PlanPrice::Free));
 
-        assert_eq!(free.limits.messages_per_day.value(), Some(5));
-        assert_eq!(free.limits.storage_mb.value(), Some(50));
+        assert_eq!(free.limits.messages_per_day.value(), Some(10));
+        assert_eq!(free.limits.storage_mb.value(), Some(20));
         assert_eq!(free.limits.bots.value(), Some(1));
         assert_eq!(free.limits.users.value(), Some(1));
     }
 
-    #[test]
-    fn test_enterprise_plan_unlimited() {
-        let config = test_product_config();
-        let enterprise = config.plans.get("enterprise").unwrap();
 
-        assert_eq!(enterprise.name, "Enterprise");
-        assert!(matches!(enterprise.price, PlanPrice::Custom));
 
-        assert!(enterprise.limits.messages_per_day.is_unlimited());
-        assert!(enterprise.limits.storage_mb.is_unlimited());
-        assert!(enterprise.limits.bots.is_unlimited());
-        assert!(enterprise.limits.users.is_unlimited());
-        assert!(enterprise.limits.api_calls_per_day.is_unlimited());
-        assert!(enterprise.limits.kb_documents.is_unlimited());
-        assert!(enterprise.limits.apps.is_unlimited());
-        assert!(enterprise.limits.emails_per_day.is_unlimited());
-        assert!(enterprise.limits.builds_per_day.is_unlimited());
-        assert!(enterprise.limits.uploads_per_hour.is_unlimited());
-    }
+
 
     #[test]
-    fn test_business_plan_pricing() {
+    fn test_shared_plan_has_trial() {
         let config = test_product_config();
-        let business = config.plans.get("business").unwrap();
-
-        let PlanPrice::Fixed { amount, currency, period } = &business.price else {
-            assert!(false, "Business plan should have fixed pricing");
-            return;
-        };
-        assert_eq!(*amount, 4900);
-        assert_eq!(currency, "usd");
-        assert_eq!(*period, BillingPeriod::Monthly);
-    }
-
-    #[test]
-    fn test_personal_plan_has_trial() {
-        let config = test_product_config();
-        let personal = config.plans.get("personal").unwrap();
-        assert_eq!(personal.trial_days, Some(14));
+        let shared = config.plans.get("shared").unwrap();
+        assert_eq!(shared.trial_days, Some(14));
     }
 
     #[test]
@@ -707,14 +581,14 @@ mod tests {
     }
 
     #[test]
-    fn test_enterprise_has_all_features() {
+    fn test_private_cloud_has_features() {
         let config = test_product_config();
-        let enterprise = config.plans.get("enterprise").unwrap();
+        let pc = config.plans.get("private-cloud").unwrap();
 
-        assert!(enterprise.features.contains(&"basic_chat".to_string()));
-        assert!(enterprise.features.contains(&"sso_saml".to_string()));
-        assert!(enterprise.features.contains(&"audit_logs".to_string()));
-        assert!(enterprise.features.contains(&"on_premise".to_string()));
+        assert!(pc.features.contains(&"basic_chat".to_string()));
+        assert!(pc.features.contains(&"sso_saml".to_string()));
+        assert!(pc.features.contains(&"audit_logs".to_string()));
+        assert!(pc.features.contains(&"on_premise".to_string()));
     }
 
     #[tokio::test]
@@ -736,11 +610,10 @@ mod tests {
         let service = BillingService::new(config, true);
 
         let plans = service.get_all_plans().await;
-        assert_eq!(plans.len(), 4);
+        assert_eq!(plans.len(), 3);
         assert!(plans.contains_key("free"));
-        assert!(plans.contains_key("personal"));
-        assert!(plans.contains_key("business"));
-        assert!(plans.contains_key("enterprise"));
+        assert!(plans.contains_key("shared"));
+        assert!(plans.contains_key("private-cloud"));
     }
 
     #[tokio::test]
@@ -773,7 +646,7 @@ mod tests {
         let service = BillingService::new(config, true);
 
         let result = service
-            .check_limit("enterprise", UsageMetric::Messages, 1_000_000)
+            .check_limit("private-cloud", UsageMetric::Messages, 1_000_000)
             .await;
         assert!(result.is_ok());
         assert!(result.unwrap());
@@ -883,13 +756,13 @@ mod tests {
         let service = BillingService::new(config, true);
 
         let result = service
-            .check_limit("free", UsageMetric::StorageBytes, 50 * 1024 * 1024 - 1)
+            .check_limit("free", UsageMetric::StorageBytes, 10 * 1024 * 1024)
             .await;
         assert!(result.is_ok());
         assert!(result.unwrap());
 
         let result_exceeded = service
-            .check_limit("free", UsageMetric::StorageBytes, 51 * 1024 * 1024)
+            .check_limit("free", UsageMetric::StorageBytes, 21 * 1024 * 1024)
             .await;
         assert!(result_exceeded.is_ok());
         assert!(!result_exceeded.unwrap());
@@ -899,7 +772,7 @@ mod tests {
     fn test_plan_price_serialization() {
         let free = PlanPrice::Free;
         let free_json = serde_json::to_string(&free).unwrap();
-        assert!(free_json.contains("Free") || free_json == "\"Free\"");
+        assert_eq!(free_json, "null", "untagged unit variants serialize as null");
 
         let fixed = PlanPrice::Fixed {
             amount: 1000,
@@ -912,24 +785,24 @@ mod tests {
 
         let custom = PlanPrice::Custom;
         let custom_json = serde_json::to_string(&custom).unwrap();
-        assert!(custom_json.contains("Custom") || custom_json == "\"Custom\"");
+        assert_eq!(custom_json, "null", "untagged unit variants serialize as null");
     }
 
     #[test]
     fn test_plan_limits_all_metrics() {
         let config = test_product_config();
-        let personal = config.plans.get("personal").unwrap();
+        let shared = config.plans.get("shared").unwrap();
 
-        assert!(personal.limits.messages_per_day.value().is_some());
-        assert!(personal.limits.storage_mb.value().is_some());
-        assert!(personal.limits.bots.value().is_some());
-        assert!(personal.limits.users.value().is_some());
-        assert!(personal.limits.api_calls_per_day.value().is_some());
-        assert!(personal.limits.kb_documents.value().is_some());
-        assert!(personal.limits.apps.value().is_some());
-        assert!(personal.limits.emails_per_day.value().is_some());
-        assert!(personal.limits.builds_per_day.value().is_some());
-        assert!(personal.limits.uploads_per_hour.value().is_some());
+        assert!(shared.limits.messages_per_day.is_unlimited());
+        assert!(shared.limits.storage_mb.value().is_some());
+        assert!(shared.limits.bots.value().is_some());
+        assert!(shared.limits.users.value().is_some());
+        assert!(shared.limits.api_calls_per_day.is_unlimited());
+        assert!(shared.limits.kb_documents.value().is_some());
+        assert!(shared.limits.apps.value().is_some());
+        assert!(shared.limits.emails_per_day.value().is_some());
+        assert!(shared.limits.builds_per_day.value().is_some());
+        assert!(shared.limits.uploads_per_hour.value().is_some());
     }
 
     #[test]

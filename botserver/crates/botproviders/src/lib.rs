@@ -1,6 +1,11 @@
+#[cfg(feature = "providers-runpod")]
 pub mod runpod;
+#[cfg(feature = "providers-vultr")]
 pub mod vultr;
+#[cfg(feature = "providers-vast")]
 pub mod vast;
+#[cfg(feature = "providers-contabo")]
+pub mod contabo;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
