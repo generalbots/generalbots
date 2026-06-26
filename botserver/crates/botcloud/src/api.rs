@@ -236,6 +236,26 @@ async fn handle_signup(
     let is_free_plan = matches!(plan_config.price, botbilling::PlanPrice::Free);
     let trial_days = plan_config.trial_days.unwrap_or(0);
 
+    // Hash password before transaction (fail fast if Argon2 fails)
+    let pass_hash = match &body.password {
+        Some(p) => {
+            use argon2::password_hash::{rand_core::OsRng, SaltString};
+            use argon2::{Argon2, PasswordHasher};
+            let salt = SaltString::generate(&mut OsRng);
+            Some(
+                Argon2::default()
+                    .hash_password(p.as_bytes(), &salt)
+                    .map(|h| h.to_string())
+                    .map_err(|e| {
+                        tracing::error!("Argon2 password hashing failed: {e}");
+                        format!("Password hashing failed")
+                    })
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?,
+            )
+        }
+        None => None,
+    };
+
     // Get a single DB connection for the entire signup transaction (raw SQL tx)
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
@@ -260,15 +280,6 @@ async fn handle_signup(
         let (new_bot_id, org_slug) = integration::create_bot_inner(&mut conn, org_id, branch_id, &bot_name)?;
 
         // 5. Create CRM contact
-        let pass_hash = body.password.as_ref().map(|p| {
-            use argon2::password_hash::{rand_core::OsRng, SaltString};
-            use argon2::{Argon2, PasswordHasher};
-            let salt = SaltString::generate(&mut OsRng);
-            Argon2::default()
-                .hash_password(p.as_bytes(), &salt)
-                .map(|h| h.to_string())
-                .unwrap_or_else(|_| String::new())
-        }).filter(|h| !h.is_empty());
         let contact_id = integration::create_crm_contact_inner(
             &mut conn, branch_id, new_bot_id, &body.name, &body.email, pass_hash.as_deref(),
         )?;
@@ -288,7 +299,38 @@ async fn handle_signup(
             )?)
         };
 
-        // 7. Create default cloud workspace
+        // 7. For free plan, create a $0 invoice to populate billing/ERP
+        if is_free_plan {
+            let now = chrono::Utc::now();
+            let zero = bigdecimal::BigDecimal::from(0);
+            let inv_id = Uuid::new_v4();
+            let inv_number = botbilling::api_models::generate_invoice_number(&mut conn, branch_id);
+            diesel::insert_into(botbilling::schema::billing_invoices::table)
+                .values((
+                    botbilling::schema::billing_invoices::id.eq(inv_id),
+                    botbilling::schema::billing_invoices::org_id.eq(branch_id),
+                    botbilling::schema::billing_invoices::bot_id.eq(new_bot_id),
+                    botbilling::schema::billing_invoices::invoice_number.eq(&inv_number),
+                    botbilling::schema::billing_invoices::customer_name.eq(&body.name),
+                    botbilling::schema::billing_invoices::customer_email.eq(Some(&body.email)),
+                    botbilling::schema::billing_invoices::status.eq("paid"),
+                    botbilling::schema::billing_invoices::issue_date.eq(now.date_naive()),
+                    botbilling::schema::billing_invoices::due_date.eq(now.date_naive()),
+                    botbilling::schema::billing_invoices::subtotal.eq(&zero),
+                    botbilling::schema::billing_invoices::total.eq(&zero),
+                    botbilling::schema::billing_invoices::amount_due.eq(&zero),
+                    botbilling::schema::billing_invoices::amount_paid.eq(&zero),
+                    botbilling::schema::billing_invoices::currency.eq("usd"),
+                    botbilling::schema::billing_invoices::notes.eq(Some("Free Plan activation".to_string())),
+                    botbilling::schema::billing_invoices::paid_at.eq(Some(now)),
+                    botbilling::schema::billing_invoices::created_at.eq(now),
+                    botbilling::schema::billing_invoices::updated_at.eq(now),
+                ))
+                .execute(&mut conn)
+                .map_err(|e| format!("Insert free plan invoice: {e}"))?;
+        }
+
+        // 8. Create default cloud workspace
         integration::create_cloud_workspace_inner(&mut conn, org_id, &bot_name)?;
 
         Ok((org_id, branch_id, new_bot_id, org_slug, contact_id, subscription_id))
@@ -1727,7 +1769,7 @@ async fn list_services(
 
     use crate::schema_ext::billing_recurring::dsl::*;
     let mut query = billing_recurring
-        .select((id, customer_name, frequency, status, amount, currency, interval_count))
+        .select((id, customer_name, description, frequency, status, amount, currency, interval_count, start_date, created_at))
         .into_boxed();
 
     if let Some(bid) = user_branch_id {
@@ -1735,18 +1777,30 @@ async fn list_services(
     }
 
     let subs = query
-        .load::<(Uuid, String, String, String, bigdecimal::BigDecimal, String, i32)>(&mut conn)
+        .load::<(Uuid, String, Option<String>, String, String, bigdecimal::BigDecimal, String, i32, chrono::NaiveDate, chrono::NaiveDateTime)>(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
 
-    let result: Vec<serde_json::Value> = subs.into_iter().map(|(sid, cname, freq, stat, amt, cur, _interval)| {
+    let result: Vec<serde_json::Value> = subs.into_iter().map(|(sid, cname, desc, freq, stat, amt, cur, _interval, sdate, cdate)| {
+        let plan_label = desc.as_deref().unwrap_or(&cname);
+        let friendly_desc = if stat == "active" && amt == bigdecimal::BigDecimal::from(0) {
+            "GBO Free Service".to_string()
+        } else if stat == "trialing" {
+            format!("GBO {} Service (Trial)", plan_label)
+        } else if stat == "active" {
+            format!("GBO {} Service", plan_label)
+        } else {
+            plan_label.to_string()
+        };
         serde_json::json!({
             "id": sid,
-            "name": cname,
-            "plan_id": freq,
+            "name": friendly_desc,
+            "description": desc,
             "status": stat,
             "amount": amt.to_string(),
             "currency": cur,
             "period": if _interval > 1 { format!("every {} {}", _interval, freq) } else { freq.to_string() },
+            "created_at": cdate.and_utc().to_rfc3339(),
+            "expires_at": sdate,
         })
     }).collect();
 

@@ -150,6 +150,7 @@ async function showOrgDetail(orgId) {
       <button class="btn btn-danger btn-sm" onclick="deleteOrg('${orgId}','${safeName}')">Delete</button>
     </div>
   `;
+  document.querySelector('#app-root > .mgmt-topbar').style.display = 'none';
   document.getElementById('org-list').parentElement.style.display = 'none';
   document.getElementById('org-detail-view').style.display = 'block';
   document.getElementById('page-content').style.display = 'none';
@@ -161,6 +162,7 @@ async function showOrgDetail(orgId) {
 
 function showOrgList() {
   currentOrgId = null;
+  document.querySelector('#app-root > .mgmt-topbar').style.display = '';
   document.getElementById('org-list').parentElement.style.display = '';
   document.getElementById('org-detail-view').style.display = 'none';
   document.getElementById('page-content').style.display = '';

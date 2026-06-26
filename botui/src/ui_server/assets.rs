@@ -95,72 +95,18 @@ pub async fn handle_auth_asset(
     }
 }
 
-/// Serve login page at clean /login route (hides physical path /suite/auth/login.html)
-pub async fn serve_login() -> impl IntoResponse {
-    #[cfg(feature = "embed-ui")]
-    {
-        let asset_path = "suite/auth/login.html";
-        match Assets::get(asset_path) {
-            Some(content) => {
-                let mime = mime_guess::from_path(asset_path).first_or_octet_stream();
-                (
-                    [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                    content.data,
-                )
-                    .into_response()
-            }
-            None => StatusCode::NOT_FOUND.into_response(),
-        }
-    }
+use axum::response::Redirect;
 
-    #[cfg(not(feature = "embed-ui"))]
-    {
-        let login_path = get_ui_root().join("suite/auth/login.html");
-        match tokio::fs::read(&login_path).await {
-            Ok(content) => {
-                let mime = mime_guess::from_path(&login_path).first_or_octet_stream();
-                (
-                    [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                    content,
-                )
-                    .into_response()
-            }
-            Err(_) => StatusCode::NOT_FOUND.into_response(),
-        }
-    }
+/// Login and logout now served by dedicated login app on port 5000.
+/// Redirect requests to the login server URL.
+fn get_login_url() -> String {
+    std::env::var("LOGIN_URL").unwrap_or_else(|_| "http://localhost:5000".to_string())
 }
 
-/// Serve logout page at clean /logout route (hides physical path /suite/auth/logout.html)
-pub async fn serve_logout() -> impl IntoResponse {
-    #[cfg(feature = "embed-ui")]
-    {
-        let asset_path = "suite/auth/logout.html";
-        match Assets::get(asset_path) {
-            Some(content) => {
-                let mime = mime_guess::from_path(asset_path).first_or_octet_stream();
-                (
-                    [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                    content.data,
-                )
-                    .into_response()
-            }
-            None => StatusCode::NOT_FOUND.into_response(),
-        }
-    }
+pub async fn serve_login() -> impl IntoResponse {
+    Redirect::to(&get_login_url()).into_response()
+}
 
-    #[cfg(not(feature = "embed-ui"))]
-    {
-        let logout_path = get_ui_root().join("suite/auth/logout.html");
-        match tokio::fs::read(&logout_path).await {
-            Ok(content) => {
-                let mime = mime_guess::from_path(&logout_path).first_or_octet_stream();
-                (
-                    [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                    content,
-                )
-                    .into_response()
-            }
-            Err(_) => StatusCode::NOT_FOUND.into_response(),
-        }
-    }
+pub async fn serve_logout() -> impl IntoResponse {
+    Redirect::to(&format!("{}/logout", get_login_url())).into_response()
 }

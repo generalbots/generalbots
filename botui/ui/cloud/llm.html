@@ -169,7 +169,7 @@
     const badge = prov.requires_byok
       ? '<span class="provider-badge byok">Requires BYOK</span>'
       : prov.models && prov.models.some(m => m.pricing === 'token-package')
-        ? '<a href="/cloud/store?calc=1#calc-llm-grid" class="provider-badge" style="background:rgba(52,211,153,.12);color:#34d399;text-decoration:none">Token packages ↗</a>'
+        ? '<a href="/cloud/store?calc=1#calc-llm-grid" class="provider-badge" style="background:rgba(255,0,128,.1);color:var(--accent);text-decoration:none">Token packages ↗</a>'
         : '<span class="provider-badge included">Included</span>';
 
     const modelsHtml = (prov.models || []).map(m => {

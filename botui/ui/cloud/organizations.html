@@ -79,6 +79,26 @@
     <div style="padding:2rem" id="page-content">
       <div class="org-grid" id="org-list"></div>
     </div>
+
+    <!-- Org Detail View (inside main, so it inherits margin-left from sidebar) -->
+    <div style="display:none" id="org-detail-view">
+      <div class="mgmt-topbar">
+        <a href="#" class="back-link" onclick="showOrgList()">← My Organizations</a>
+        <div class="mgmt-topbar-actions">
+          <button class="btn btn-primary btn-sm" onclick="showCreateWorkspace()">+ New Workspace</button>
+        </div>
+      </div>
+      <div style="padding:2rem">
+        <div class="org-detail-header" id="org-detail-header"></div>
+        <div class="mgmt-section-header">
+          <div>
+            <div class="mgmt-section-title">Workspaces</div>
+            <div class="mgmt-section-sub">each workspace has its own assigned resources</div>
+          </div>
+        </div>
+        <div class="ws-grid" id="ws-list"></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -123,26 +143,6 @@
         <button class="btn btn-primary" onclick="updateOrg()">Save</button>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Org Detail View (hidden by default, shown when clicking org) -->
-<div style="display:none" id="org-detail-view">
-  <div class="mgmt-topbar">
-    <a href="#" class="back-link" onclick="showOrgList()">← My Organizations</a>
-    <div class="mgmt-topbar-actions">
-      <button class="btn btn-primary btn-sm" onclick="showCreateWorkspace()">+ New Workspace</button>
-    </div>
-  </div>
-  <div style="padding:2rem">
-    <div class="org-detail-header" id="org-detail-header"></div>
-    <div class="mgmt-section-header">
-      <div>
-        <div class="mgmt-section-title">Workspaces</div>
-        <div class="mgmt-section-sub">each workspace has its own assigned resources</div>
-      </div>
-    </div>
-    <div class="ws-grid" id="ws-list"></div>
   </div>
 </div>
 

@@ -1,14 +1,16 @@
 pub mod assets;
 pub mod cloud;
 pub mod constants;
+pub mod login;
 pub mod proxy;
 pub mod suite;
 pub mod suite_ops;
 pub mod ws;
 
-pub use self::assets::*;
+pub use self::assets::{serve_favicon, serve_login, serve_logout};
 pub use self::cloud::*;
 pub use self::constants::get_ui_root;
+pub use self::login::{serve_login_index, serve_login_signup, serve_login_cloud_css, serve_login_cloud_js, serve_login_cloud_images};
 pub use self::proxy::*;
 pub use self::suite::*;
 pub use self::suite_ops::*;
@@ -115,11 +117,29 @@ pub fn configure_cloud_router() -> Router {
         .route("/health", get(health))
         .route("/cloud", get(serve_cloud_index))
         .route("/cloud/", get(serve_cloud_index))
+        .route("/cloud/login", get(redirect_to_login))
+        .route("/cloud/login/", get(redirect_to_login))
         .route("/cloud/*path", get(serve_cloud))
         .nest("/api", create_api_router())
         .nest("/ui", create_ui_router())
         .nest("/ws", create_ws_router())
         .route("/", get(serve_cloud_index))
         .fallback(get(serve_cloud_index))
+        .with_state(state)
+}
+
+pub fn configure_login_router() -> Router {
+    let state = AppState::new();
+
+    Router::new()
+        .route("/health", get(health))
+        .route("/", get(serve_login_index))
+        .route("/signup", get(serve_login_signup))
+        .route("/cloud/css/*path", get(serve_login_cloud_css))
+        .route("/cloud/js/*path", get(serve_login_cloud_js))
+        .route("/cloud/images/*path", get(serve_login_cloud_images))
+        .nest("/api", create_api_router())
+        .nest("/ws", create_ws_router())
+        .fallback(get(serve_login_index))
         .with_state(state)
 }

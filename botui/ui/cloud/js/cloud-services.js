@@ -2,7 +2,8 @@ const API_BASE = '/api/cloud';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const token = requireAuth();
-  document.getElementById('user-email').textContent = localStorage.getItem('management_email') || '';
+  const emailEl = document.getElementById('user-email');
+  if (emailEl) emailEl.textContent = localStorage.getItem('management_email') || '';
   await loadServices(token);
 });
 

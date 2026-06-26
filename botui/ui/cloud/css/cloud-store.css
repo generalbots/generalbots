@@ -563,11 +563,11 @@
   align-items: center;
   gap: .4rem;
   font-size: .78rem;
-  color: #34d399;
+  color: var(--accent);
   font-weight: 600;
   padding: .5rem .75rem;
-  background: rgba(52,211,153,.06);
-  border: 1px solid rgba(52,211,153,.2);
+  background: rgba(255,0,128,.08);
+  border: 1px solid rgba(255,0,128,.2);
   border-radius: 8px;
   margin-bottom: 1rem;
 }

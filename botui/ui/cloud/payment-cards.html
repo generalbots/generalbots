@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Cards — General Bots Cloud</title>
+  <title>Payment &amp; Cards — General Bots Cloud</title>
   <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
   <link rel="stylesheet" href="/cloud/css/cloud-components.css">
   <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
@@ -10,17 +10,13 @@
 <body class="mgmt-layout">
 <div class="mgmt-shell">
 
-
-
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Payment Cards</span>
-      <div class="mgmt-topbar-actions">
-        <button class="btn btn-primary btn-sm" onclick="showAddCard()">+ Add Card</button>
-      </div>
+      <span class="mgmt-page-title">Payment &amp; Cards</span>
+      <div class="mgmt-topbar-actions"></div>
     </div>
 
-    <div style="padding:2rem">
+    <div style="padding:2rem" id="payment-page">
       <div class="payment-cards" id="cards-grid">
         <div class="mgmt-empty" style="grid-column:1/-1"><div class="loading-dots"><span></span><span></span><span></span></div></div>
       </div>
@@ -28,36 +24,68 @@
   </main>
 </div>
 
-<!-- ADD CARD MODAL -->
-<div class="mgmt-modal" id="add-card-modal">
-  <div class="mgmt-backdrop" onclick="hideAddCard()"></div>
-  <div class="mgmt-modal-box">
-    <div class="mgmt-modal-title">Add Payment Card</div>
-    <div class="form-group">
-      <label class="form-label">Cardholder Name</label>
-      <input type="text" id="card-name" class="form-control" placeholder="John Smith">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Card Number</label>
-      <input type="text" id="card-number" class="form-control" placeholder="4242 4242 4242 4242" maxlength="19" oninput="fmtCard(this)">
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-      <div class="form-group">
-        <label class="form-label">Expiry</label>
-        <input type="text" id="card-exp" class="form-control" placeholder="MM/YY" maxlength="5">
-      </div>
-      <div class="form-group">
-        <label class="form-label">CVC</label>
-        <input type="text" id="card-cvc" class="form-control" placeholder="•••" maxlength="4">
-      </div>
-    </div>
-    <div class="mgmt-modal-actions">
-      <button class="btn btn-ghost" onclick="hideAddCard()">Cancel</button>
-      <button class="btn btn-primary" onclick="addCard()">Save Card</button>
-    </div>
-  </div>
-</div>
-
 <script src="/cloud/js/cloud.js"></script>
+<script>
+(async function() {
+  const token = requireAuth();
+  if (!token) return;
+
+  const container = document.getElementById('cards-grid');
+
+  try {
+    const [servicesRes, plansRes] = await Promise.all([
+      fetch('/api/cloud/services', { headers: { 'Authorization': 'Bearer ' + token } }),
+      fetch('/api/cloud/plans', { headers: { 'Authorization': 'Bearer ' + token } }),
+    ]);
+
+    let hasPaidPlan = false;
+    let planName = 'Free';
+
+    if (servicesRes.ok) {
+      const data = await servicesRes.json();
+      const active = (data.services || []).filter(s => s.status === 'active' || s.status === 'trialing');
+      hasPaidPlan = active.some(s => parseFloat(s.amount || '0') > 0);
+    }
+
+    if (plansRes.ok) {
+      const plans = await plansRes.json();
+      const orgsRes = await fetch('/api/cloud/organizations', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (orgsRes.ok) {
+        const orgs = await orgsRes.json();
+        const currentPlan = (orgs.organizations || [])[0]?.plan || 'free';
+        planName = (plans.plans && plans.plans[currentPlan]?.name) || currentPlan;
+      }
+    }
+
+    if (hasPaidPlan) {
+      container.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem">
+          <div style="font-size:3rem;margin-bottom:1rem">💳</div>
+          <h2 style="margin:0 0 .5rem;font-size:1.2rem">Payment Methods</h2>
+          <p style="color:var(--muted);margin:0 0 1.5rem;max-width:400px;margin-inline:auto">
+            Card management for paid plans is handled via our secure payment partner.
+            Click below to manage your payment methods.
+          </p>
+          <a href="/cloud/offers" class="btn btn-primary">Manage Payment Methods</a>
+        </div>`;
+    } else {
+      container.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem">
+          <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
+          <h2 style="margin:0 0 .5rem;font-size:1.2rem">No Payment Method Needed</h2>
+          <p style="color:var(--muted);margin:0 0 .25rem;max-width:450px;margin-inline:auto">
+            You are currently on the <strong>${planName}</strong> plan — no payment card is required.
+          </p>
+          <p style="color:var(--muted);margin:0 0 1.5rem;max-width:450px;margin-inline:auto">
+            When you upgrade to a paid plan, you will be guided to set up your payment method securely.
+          </p>
+          <a href="/cloud/offers" class="btn btn-primary">View Upgrade Options</a>
+        </div>`;
+    }
+  } catch (e) {
+    container.innerHTML = '<div class="mgmt-empty" style="grid-column:1/-1"><p>Could not load payment info. <a href="/cloud/offers">View plans</a>.</p></div>';
+  }
+})();
+</script>
 </body>
 </html>

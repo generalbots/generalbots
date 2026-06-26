@@ -24,8 +24,10 @@ bigdecimal = { workspace = true, features = ["serde"] }
 url = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 rand = { workspace = true }
+lettre = { workspace = true, features = ["tokio1-rustls-tls", "tokio1"] }
 botbilling = { workspace = true }
 botproviders = { workspace = true }
+botsecurity = { path = "../botsecurity" }
 
 [lints]
 workspace = true
