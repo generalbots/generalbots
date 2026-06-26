@@ -4,243 +4,106 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Account — General Bots Cloud</title>
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family:system-ui,-apple-system,'Noto Sans','Liberation Sans',sans-serif;
-      background:#07070a;color:#f4f4f6;min-height:100vh;display:flex;
-      -webkit-font-smoothing:antialiased;
-    }
-    .gb-auth{
-      display:grid;grid-template-columns:1fr 1fr;min-height:100vh;width:100%;
-    }
-    @media(max-width:900px){.gb-auth{grid-template-columns:1fr}}
-
-    /* ── LEFT ── */
-    .gb-left{
-      background:#07070a;
-      display:flex;flex-direction:column;justify-content:center;
-      padding:4rem 3rem;position:relative;overflow:hidden;
-    }
-    .gb-left::before{
-      content:'';position:absolute;width:500px;height:500px;
-      background:radial-gradient(circle,rgba(255,0,128,.12),transparent 70%);
-      top:-120px;right:-120px;border-radius:50%;pointer-events:none;
-    }
-    .gb-left::after{
-      content:'';position:absolute;width:400px;height:400px;
-      background:radial-gradient(circle,rgba(124,58,237,.1),transparent 70%);
-      bottom:-100px;left:-100px;border-radius:50%;pointer-events:none;
-    }
-    @media(max-width:900px){.gb-left{display:none}}
-
-    /* ── LOGO (desktop na esquerda, mobile no topo do form) ── */
-    .gb-logo{
-      display:flex;align-items:center;gap:.75rem;text-decoration:none;
-      position:relative;z-index:1;
-    }
-    .gb-logo-mark{
-      width:40px;height:40px;flex-shrink:0;
-    }
-    .gb-logo-mark svg{width:100%;height:100%;display:block}
-    .gb-logo-text{font-size:1rem;font-weight:900;letter-spacing:-.04em;color:#f4f4f6;line-height:1.1}
-    .gb-logo-sub{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#ff0080;display:block;margin-top:1px}
-
-    .gb-logo-left{margin-bottom:2.5rem}
-    .gb-logo-mobile{
-      display:none;margin-bottom:1.5rem;justify-content:center;
-    }
-    @media(max-width:900px){.gb-logo-mobile{display:flex}}
-
-    /* ── PITCH ── */
-    .gb-pitch{position:relative;z-index:1}
-    .gb-pitch-tag{
-      display:inline-flex;align-items:center;gap:.5rem;
-      padding:.3rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-      color:#ff0080;border:1px solid rgba(255,0,128,.25);border-radius:99px;
-      background:rgba(255,0,128,.08);margin-bottom:1.5rem;
-    }
-    .gb-pitch-title{
-      font-size:clamp(1.8rem,3.5vw,2.4rem);font-weight:900;letter-spacing:-.04em;line-height:1.05;margin-bottom:1rem;
-    }
-    .gb-pitch-title span{
-      background:linear-gradient(135deg,#ff0080,#a855f7);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    }
-    .gb-pitch-body{font-size:.9rem;color:#9c9cb0;line-height:1.7;margin-bottom:1.5rem;max-width:440px}
-    .gb-pitch-list{list-style:none;padding:0;margin-bottom:2rem}
-    .gb-pitch-list li{
-      display:flex;align-items:center;gap:.6rem;padding:.3rem 0;
-      font-size:.82rem;color:#9c9cb0;
-    }
-    .gb-pitch-list li::before{
-      content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;
-      background:linear-gradient(135deg,#ff0080,#a855f7);
-    }
-    .gb-trust{display:flex;gap:2rem}
-    .gb-trust-item{text-align:center}
-    .gb-trust-num{font-size:1.3rem;font-weight:900;background:linear-gradient(135deg,#ff0080,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;line-height:1}
-    .gb-trust-label{font-size:.6rem;color:#5e5e76;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:.25rem;display:block}
-
-    /* ── RIGHT ── */
-    .gb-right{
-      display:flex;flex-direction:column;justify-content:center;align-items:center;
-      padding:3rem 2rem;background:#0d0d12;
-    }
-    .gb-card{width:100%;max-width:400px}
-    .gb-card h2{font-size:1.4rem;font-weight:800;margin-bottom:.25rem;letter-spacing:-.03em;text-align:center}
-    .gb-card > p{color:#9c9cb0;font-size:.85rem;margin-bottom:1.75rem;text-align:center}
-
-    .form-group{display:flex;flex-direction:column;gap:.3rem;margin-bottom:1rem}
-    .form-group label{font-size:.78rem;font-weight:600;color:#9c9cb0}
-    .form-group input{
-      background:#141420;border:1px solid rgba(255,255,255,.08);border-radius:8px;
-      color:#f4f4f6;font-family:inherit;font-size:.85rem;padding:.65rem .85rem;transition:border-color .15s;width:100%;outline:none;
-    }
-    .form-group input:focus{border-color:#ff0080;box-shadow:0 0 0 3px rgba(255,0,128,.15)}
-    .form-group input::placeholder{color:#5e5e76}
-    .form-help{font-size:.7rem;color:#5e5e76;margin-top:.15rem}
-
-    .btn-primary{
-      display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
-      font-family:inherit;font-size:.85rem;font-weight:700;border:none;border-radius:8px;
-      cursor:pointer;padding:.7rem 1.1rem;transition:all .15s;text-decoration:none;width:100%;
-      background:linear-gradient(135deg,#ff0080,#7c3aed);color:#fff;
-      box-shadow:0 4px 20px rgba(255,0,128,.25);
-    }
-    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(255,0,128,.35)}
-
-    .plan-chooser{display:flex;gap:.6rem;margin-top:.2rem;flex-wrap:wrap}
-    .plan-option{
-      flex:1;display:flex;flex-direction:column;gap:2px;padding:.7rem .85rem;
-      border:2px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;
-      transition:all .15s;background:#141420;min-width:0;
-    }
-    .plan-option input{position:absolute;opacity:0;pointer-events:none}
-    .plan-option.selected{border-color:#ff0080;background:rgba(255,0,128,.08)}
-    .plan-option:hover{border-color:#ff0080}
-    .plan-option-name{font-weight:700;font-size:.85rem;color:#f4f4f6}
-    .plan-option-price{font-weight:800;font-size:1rem;color:#ff0080}
-    .plan-option-desc{font-size:.65rem;color:#5e5e76;line-height:1.3}
-    .plan-option-private{border-style:dashed;border-color:rgba(255,255,255,.12)}
-    .plan-option-private.selected{border-style:solid;border-color:#a855f7;background:rgba(168,85,247,.1)}
-    .plan-option-private .plan-option-price{color:#a855f7;font-size:.8rem}
-
-    .alert-info{
-      background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);
-      border-radius:8px;padding:.65rem .85rem;font-size:.78rem;color:#9c9cb0;margin-top:.75rem;
-    }
-    .alert-error{
-      background:rgba(255,0,0,.12);border:1px solid rgba(255,0,0,.25);
-      border-radius:8px;padding:.65rem .85rem;font-size:.78rem;color:#ff6b6b;margin-bottom:1rem;
-    }
-    .auth-alt{text-align:center;font-size:.82rem;color:#5e5e76;margin-top:1.25rem}
-    .auth-alt a{color:#ff0080;text-decoration:none;font-weight:600}
-    .auth-alt a:hover{text-decoration:underline}
-  </style>
+  <meta name="description" content="Create your General Bots Cloud account to deploy AI bots, manage infrastructure, and scale your operations.">
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
 </head>
 <body>
-<div class="gb-auth">
-  <!-- LEFT PITCH -->
-  <div class="gb-left">
-    <a href="/cloud" class="gb-logo gb-logo-left">
-      <div class="gb-logo-mark">
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="100" height="100" rx="20" fill="#141420"/>
-          <rect x="18" y="18" width="64" height="64" rx="10" fill="none" stroke="url(#gbg)" stroke-width="2.5"/>
-          <path d="M38 32h16c7 0 12 4 12 11s-5 11-12 11H38V32z" fill="url(#gbg)" opacity=".3"/>
-          <path d="M62 68L50 54l12-14h-8L42 54l12 14h8z" fill="url(#gbg)"/>
-          <path d="M38 56h10l6 12H38V56z" fill="url(#gbg)" opacity=".5"/>
-          <path d="M48 32L34 56h8l12-24h-6z" fill="url(#gbg)" opacity=".6"/>
-          <defs>
-            <linearGradient id="gbg" x1="0" y1="0" x2="100" y2="100">
-              <stop stop-color="#ff0080"/>
-              <stop offset="1" stop-color="#7c3aed"/>
-            </linearGradient>
-          </defs>
+<div class="theme-toggle" aria-label="Theme switcher" role="radiogroup">
+  <button data-theme="system" class="active" title="System theme" aria-label="Use system theme">💻</button>
+  <button data-theme="light" title="Light theme" aria-label="Use light theme">☀️</button>
+  <button data-theme="dark" title="Dark theme" aria-label="Use dark theme">🌙</button>
+</div>
+
+<div class="mgmt-auth">
+  <div class="mgmt-auth-left">
+    <a href="/cloud" class="mgmt-logo-mark" style="margin-bottom:2rem;text-decoration:none">
+      <div class="mgmt-logo-icon">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="1.5">
+          <rect x="4" y="7" width="16" height="13" rx="3"/>
+          <circle cx="9" cy="11" r="1.5" fill="#fff"/>
+          <circle cx="15" cy="11" r="1.5" fill="#fff"/>
+          <path d="M9 16c1.5 1.5 4.5 1.5 6 0"/>
+          <path d="M8 7V4M16 7V4"/>
         </svg>
       </div>
       <div>
-        <div class="gb-logo-text">General Bots</div>
-        <span class="gb-logo-sub">Cloud</span>
+        <div class="mgmt-logo-text" style="color:#fff">General Bots</div>
+        <span class="mgmt-logo-sub">Cloud</span>
       </div>
     </a>
 
-    <div class="gb-pitch">
-      <div class="gb-pitch-tag">Multi-Agent AI · Open Source</div>
-      <h1 class="gb-pitch-title">
-        Create your<br><span>cloud workspace.</span>
-      </h1>
-      <p class="gb-pitch-body">
-        Deploy intelligent bots, manage infrastructure, and scale your AI operations — all from one unified platform.
-      </p>
-      <ul class="gb-pitch-list">
-        <li>Free tier included — no credit card required</li>
-        <li>Deploy bots in minutes, not days</li>
-        <li>S3-compatible storage + vector database</li>
-        <li>Global VPS provisioning from $9.99/mo</li>
-        <li>24/7 monitoring and auto-scaling</li>
-      </ul>
-      <div class="gb-trust">
-        <div class="gb-trust-item"><span class="gb-trust-num">99.9%</span><span class="gb-trust-label">Uptime SLA</span></div>
-        <div class="gb-trust-item"><span class="gb-trust-num">150+</span><span class="gb-trust-label">Countries</span></div>
-        <div class="gb-trust-item"><span class="gb-trust-num">24/7</span><span class="gb-trust-label">Support</span></div>
-      </div>
+    <div class="prism-scene" aria-hidden="true">
+      <div class="prism-beam-in"></div>
+      <div class="prism-triangle"></div>
+      <div class="prism-spectrum"></div>
+    </div>
+
+    <span class="split-pitch-tag">Multi-Agent AI · Open Source</span>
+    <h1 class="split-pitch-title" style="margin-top:1.25rem;font-size:2rem">
+      Create your<br><span>cloud workspace.</span>
+    </h1>
+    <p class="split-pitch-body" style="margin-top:1rem">
+      Deploy intelligent bots, manage infrastructure, and scale your AI operations — all from one unified platform.
+    </p>
+    <ul class="split-pitch-bullets" style="margin-top:1.5rem">
+      <li>Free tier included — no credit card required</li>
+      <li>Deploy bots in minutes, not days</li>
+      <li>S3-compatible storage + vector database</li>
+      <li>Global VPS provisioning from $9.99/mo</li>
+      <li>24/7 monitoring and auto-scaling</li>
+    </ul>
+    <div class="split-trust" style="margin-top:2rem">
+      <div class="split-trust-item"><span class="split-trust-num">99.9%</span><span class="split-trust-label">Uptime SLA</span></div>
+      <div class="split-trust-item"><span class="split-trust-num">150+</span><span class="split-trust-label">Countries</span></div>
+      <div class="split-trust-item"><span class="split-trust-num">24/7</span><span class="split-trust-label">Support</span></div>
     </div>
   </div>
 
-  <!-- RIGHT FORM -->
-  <div class="gb-right">
-    <div class="gb-card">
-      <!-- LOGO MOBILE — visível apenas em telas pequenas -->
-      <a href="/cloud" class="gb-logo gb-logo-mobile">
-        <div class="gb-logo-mark">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100" height="100" rx="20" fill="#141420"/>
-            <rect x="18" y="18" width="64" height="64" rx="10" fill="none" stroke="url(#gbg)" stroke-width="2.5"/>
-            <path d="M38 32h16c7 0 12 4 12 11s-5 11-12 11H38V32z" fill="url(#gbg)" opacity=".3"/>
-            <path d="M62 68L50 54l12-14h-8L42 54l12 14h8z" fill="url(#gbg)"/>
-            <path d="M38 56h10l6 12H38V56z" fill="url(#gbg)" opacity=".5"/>
-            <path d="M48 32L34 56h8l12-24h-6z" fill="url(#gbg)" opacity=".6"/>
-            <defs>
-              <linearGradient id="gbg" x1="0" y1="0" x2="100" y2="100">
-                <stop stop-color="#ff0080"/>
-                <stop offset="1" stop-color="#7c3aed"/>
-              </linearGradient>
-            </defs>
+  <div class="mgmt-auth-right">
+    <div class="mgmt-auth-card">
+      <a href="/cloud" class="mgmt-logo-mark mgmt-auth-mobile-logo" style="display:none;margin-bottom:1.5rem;justify-content:center;text-decoration:none">
+        <div class="mgmt-logo-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="1.5">
+            <rect x="4" y="7" width="16" height="13" rx="3"/>
+            <circle cx="9" cy="11" r="1.5" fill="#fff"/>
+            <circle cx="15" cy="11" r="1.5" fill="#fff"/>
+            <path d="M9 16c1.5 1.5 4.5 1.5 6 0"/>
+            <path d="M8 7V4M16 7V4"/>
           </svg>
         </div>
         <div>
-          <div class="gb-logo-text">General Bots</div>
-          <span class="gb-logo-sub">Cloud</span>
+          <div class="mgmt-logo-text">General Bots</div>
+          <span class="mgmt-logo-sub">Cloud</span>
         </div>
       </a>
 
       <h2>Create Account</h2>
       <p>Start managing your General Bots Cloud</p>
 
-      <div id="signup-error" class="alert-error" style="display:none"></div>
+      <div id="signup-error" style="display:none;background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.25);border-radius:10px;padding:.85rem 1.1rem;font-size:.9rem;color:var(--accent3);margin-bottom:1.25rem"></div>
 
       <form id="signup-form" onsubmit="return doSignup(event)">
         <div class="form-group">
-          <label>Your Name</label>
-          <input type="text" id="signup-name" name="name" placeholder="Your full name">
+          <label class="form-label">Your Name</label>
+          <input type="text" id="signup-name" name="name" class="form-control" placeholder="Your full name">
         </div>
         <div class="form-group">
-          <label>Bot Name</label>
-          <input type="text" id="signup-botname" name="bot_name" required placeholder="e.g. MyAssistant">
+          <label class="form-label">Bot Name</label>
+          <input type="text" id="signup-botname" name="bot_name" class="form-control" required placeholder="e.g. MyAssistant">
           <span class="form-help">Used to create your bot, organization, and workspace.</span>
         </div>
         <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="signup-email" name="email" required placeholder="you@example.com">
+          <label class="form-label">Email</label>
+          <input type="email" id="signup-email" name="email" class="form-control" required placeholder="you@example.com">
         </div>
         <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="signup-password" name="password" required minlength="8" placeholder="At least 8 characters">
+          <label class="form-label">Password</label>
+          <input type="password" id="signup-password" name="password" class="form-control" required minlength="8" placeholder="At least 8 characters">
         </div>
         <div class="form-group">
-          <label>Choose your plan</label>
+          <label class="form-label">Choose your plan</label>
           <div class="plan-chooser">
             <label class="plan-option selected">
               <input type="radio" name="plan" value="free" checked>
@@ -262,9 +125,9 @@
             </label>
           </div>
         </div>
-        <button type="submit" id="signup-btn" class="btn-primary">Create Account</button>
-        <div id="private-server-info" class="alert-info" style="display:none">
-          You are signing up for a <strong>Private Server</strong> environment.
+        <button type="submit" id="signup-btn" class="btn btn-primary btn-block">Create Account</button>
+        <div id="private-server-info" style="display:none;background:rgba(0,199,255,.08);border:1px solid rgba(0,199,255,.2);border-radius:10px;padding:.85rem 1.1rem;font-size:.9rem;color:var(--muted);margin-top:.85rem">
+          You are signing up for a <strong style="color:var(--text)">Private Server</strong> environment.
           After creating your account, you will be redirected to configure and purchase a VPS.
         </div>
       </form>
@@ -273,6 +136,29 @@
     </div>
   </div>
 </div>
+
+<script src="/cloud/js/cloud-theme.js"></script>
 <script src="/cloud/js/cloud-auth.js"></script>
+<style>
+  .plan-chooser { display: flex; gap: .65rem; margin-top: .25rem; flex-wrap: wrap; }
+  .plan-option {
+    flex: 1; display: flex; flex-direction: column; gap: 3px; padding: .8rem 1rem;
+    border: 2px solid var(--border); border-radius: 12px; cursor: pointer;
+    transition: all .15s; background: var(--bg3); min-width: 0;
+  }
+  .plan-option input { position: absolute; opacity: 0; pointer-events: none; }
+  .plan-option.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .plan-option:hover { border-color: var(--accent); }
+  .plan-option-name { font-weight: 700; font-size: .95rem; color: var(--text); }
+  .plan-option-price { font-weight: 800; font-size: 1.1rem; color: var(--accent); }
+  .plan-option-desc { font-size: .75rem; color: var(--muted); line-height: 1.4; }
+  .plan-option-private { border-style: dashed; border-color: var(--border); }
+  .plan-option-private.selected { border-style: solid; border-color: #bf5af2; background: rgba(191,90,242,.08); }
+  .plan-option-private .plan-option-price { color: #bf5af2; font-size: .9rem; }
+  .form-help { font-size: .8rem; color: var(--muted); margin-top: .2rem; }
+  @media (max-width: 900px) {
+    .mgmt-auth-mobile-logo { display: flex !important; }
+  }
+</style>
 </body>
 </html>
