@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In — General Bots Cloud</title>
+  <title>Sign In — General Bots</title>
   <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
   <link rel="stylesheet" href="/cloud/css/cloud-components.css">
   <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
 </head>
 <body style="background:var(--bg)">
 <div class="mgmt-auth">
-  <!-- LEFT PITCH -->
   <div class="mgmt-auth-left">
-    <a href="/cloud" class="mgmt-logo-mark" style="margin-bottom:2.5rem;text-decoration:none">
-      <div class="mgmt-logo-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="7" width="16" height="13" rx="3"/><circle cx="9" cy="11" r="1.5" fill="currentColor"/><circle cx="15" cy="11" r="1.5" fill="currentColor"/><path d="M9 16c1.5 1.5 4.5 1.5 6 0"/><path d="M8 7V4M16 7V4"/></svg></div>
+    <a href="/" class="mgmt-logo-mark" style="margin-bottom:2.5rem;text-decoration:none">
+      <div class="mgmt-logo-icon"><img src="/cloud/images/logo-general-bots.svg" alt="General Bots" style="width:24px;height:24px"></div>
       <div><div class="mgmt-logo-text">General Bots</div><span class="mgmt-logo-sub">Cloud</span></div>
     </a>
     <span class="split-pitch-tag">All-in-one platform</span>
@@ -36,37 +35,31 @@
       <div class="split-trust-item"><span class="split-trust-num">24/7</span><span class="split-trust-label">Support</span></div>
     </div>
   </div>
-
-  <!-- RIGHT FORM -->
   <div class="mgmt-auth-right">
     <div class="mgmt-auth-card">
       <h2>Welcome back</h2>
       <p>Sign in to your management account</p>
-
       <div id="login-error" style="display:none;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.3);border-radius:8px;padding:.75rem 1rem;font-size:.85rem;color:var(--accent3);margin-bottom:1rem"></div>
-
-      <form id="login-form" onsubmit="onCloudLoginSubmit(event)">
+      <form id="login-form" onsubmit="onLoginSubmit(event)">
         <div class="form-group">
           <label class="form-label">Email address</label>
           <input id="login-email" type="email" class="form-control" placeholder="you@company.com" required autocomplete="email">
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
-          <input id="login-password" type="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+          <input id="login-password" type="password" class="form-control" placeholder="password" required autocomplete="current-password">
         </div>
         <button type="submit" class="btn btn-primary btn-block" id="login-btn" style="margin-top:.5rem;padding:.7rem">
           Sign In
         </button>
       </form>
-
-      <div class="auth-alt">Don't have an account? <a href="/cloud/signup">Create one</a></div>
+      <div class="auth-alt">Don't have an account? <a href="/signup">Create one</a></div>
     </div>
   </div>
 </div>
 <script src="/cloud/js/cloud-auth.js"></script>
 <script>
-// Dev auto-login — cria contato CRM via signup, depois loga
-(async function devAutoLogin() {
+(async function() {
   if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
   if (sessionStorage.getItem('gb-signed-out') === 'true') return;
   const savedEmail = localStorage.getItem('management_email');
@@ -78,14 +71,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: savedEmail || 'admin@localhost', password: 'dev' }),
       });
-      if (res.ok) window.location.href = '/cloud/dashboard';
+      if (res.ok) window.location.href = '/dashboard';
     } catch (_) {}
   } else {
     document.getElementById('login-email').value = savedEmail || '';
   }
 })();
-function onCloudLoginSubmit(e) {
-  // Limpa flag signed-out para que proximo auto-login funcione
+function onLoginSubmit(e) {
   sessionStorage.removeItem('gb-signed-out');
   handleLogin(e);
 }

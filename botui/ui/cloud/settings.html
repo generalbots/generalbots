@@ -110,22 +110,23 @@
       <div class="settings-section">
         <div class="settings-card">
           <div class="settings-card-title">Token Packs</div>
+          <div class="settings-card-desc">Purchase token packs to use across your bots. Available on paid plans.</div>
           <div class="token-grid" id="token-grid">
-            <div class="token-card" onclick="alert('Buy 10K tokens')">
+            <div class="token-card" onclick="openUpgrade()">
               <div class="token-amount">10K <small>tokens</small></div>
               <div class="token-price">$1.00</div>
             </div>
-            <div class="token-card" onclick="alert('Buy 100K tokens')">
+            <div class="token-card" onclick="openUpgrade()">
               <div class="token-amount">100K <small>tokens</small></div>
               <div class="token-price">$9.00</div>
               <div class="token-bonus">+10% bonus</div>
             </div>
-            <div class="token-card" onclick="alert('Buy 1M tokens')">
+            <div class="token-card" onclick="openUpgrade()">
               <div class="token-amount">1M <small>tokens</small></div>
               <div class="token-price">$79.00</div>
               <div class="token-bonus">+21% bonus</div>
             </div>
-            <div class="token-card" onclick="alert('Buy 10M tokens')">
+            <div class="token-card" onclick="openUpgrade()">
               <div class="token-amount">10M <small>tokens</small></div>
               <div class="token-price">$699.00</div>
               <div class="token-bonus">+30% bonus</div>
@@ -290,6 +291,10 @@
 
   await loadByok();
 })();
+
+function openUpgrade() {
+  window.location.href = '/cloud/offers';
+}
 </script>
 </body>
 </html>

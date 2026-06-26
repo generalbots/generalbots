@@ -203,19 +203,19 @@ function renderStoreLanding() {
     <div style="padding:1.5rem 2rem 1rem">
       <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">How to buy</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin-bottom:2rem">
-        <a href="/cloud/offers" style="text-decoration:none;display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid rgba(0,200,122,.2);border-radius:var(--radius);padding:1.15rem;transition:all .18s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(0,200,122,.2)'">
+        <a href="/cloud/offers" style="text-decoration:none;display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid rgba(255,0,128,.2);border-radius:var(--radius);padding:1.15rem;transition:all .18s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,0,128,.2)'">
           <div style="font-size:1.4rem">⭐</div>
           <div style="font-size:.88rem;font-weight:700;color:var(--text)">Offers &amp; Bundles</div>
           <div style="font-size:.75rem;color:var(--muted);line-height:1.5">Pre-composed packages at the best price. Multiple services at once, single invoice.</div>
           <div style="font-size:.78rem;font-weight:600;color:var(--accent);margin-top:auto">Browse Offers →</div>
         </a>
-        <div style="display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.15rem;cursor:pointer;transition:all .18s" onclick="document.getElementById('calc-panel').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.borderColor='rgba(0,200,122,.2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.15rem;cursor:pointer;transition:all .18s" onclick="document.getElementById('calc-panel').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.borderColor='rgba(255,0,128,.2)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:1.4rem">🧮</div>
           <div style="font-size:.88rem;font-weight:700;color:var(--text)">Calculator</div>
           <div style="font-size:.75rem;color:var(--muted);line-height:1.5">Configure VPS, GPU, storage, phone and LLM tokens. See your total before committing.</div>
           <div style="font-size:.78rem;font-weight:600;color:var(--accent);margin-top:auto">Use Calculator →</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.15rem;cursor:pointer;transition:all .18s" onclick="document.getElementById('store-categories').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.borderColor='rgba(0,200,122,.2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.15rem;cursor:pointer;transition:all .18s" onclick="document.getElementById('store-categories').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.borderColor='rgba(255,0,128,.2)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:1.4rem">🛒</div>
           <div style="font-size:.88rem;font-weight:700;color:var(--text)">Individual Services</div>
           <div style="font-size:.75rem;color:var(--muted);line-height:1.5">Pick exactly what you need. Each service managed independently — upgrade or cancel anytime.</div>
@@ -238,7 +238,7 @@ function renderStoreLanding() {
           <div class="store-landing-card" onclick="location.href='/cloud/store?cat=${c.cat}'">
             <div style="display:flex;align-items:center;justify-content:space-between">
               <div class="store-landing-icon">${c.icon}</div>
-              <span style="font-size:.58rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.15rem .5rem;border-radius:99px;background:rgba(0,200,122,.1);color:var(--accent);border:1px solid rgba(0,200,122,.2)">${c.badge}</span>
+              <span style="font-size:.58rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.15rem .5rem;border-radius:99px;background:rgba(255,0,128,.1);color:var(--accent);border:1px solid rgba(255,0,128,.2)">${c.badge}</span>
             </div>
             <div class="store-landing-name">${c.name}</div>
             <div class="store-landing-desc">${c.desc}</div>
