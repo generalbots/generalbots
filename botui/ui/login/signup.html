@@ -4,11 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Account — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{
-      font-family:system-ui,-apple-system,'Noto Sans','Liberation Sans',sans-serif;
-      background:#07070a;color:#f4f4f6;min-height:100vh;display:flex;
+      font-family:'Inter',system-ui,-apple-system,'Noto Sans','Liberation Sans',sans-serif;
+      background:var(--bg);color:var(--text);min-height:100vh;display:flex;
       -webkit-font-smoothing:antialiased;
     }
     .gb-auth{
@@ -39,10 +42,13 @@
       display:flex;align-items:center;gap:.75rem;text-decoration:none;
       position:relative;z-index:1;
     }
-    .gb-logo-mark{
+    .gb-logo-icon{
       width:44px;height:44px;flex-shrink:0;
+      background:var(--prism-gradient);
+      border-radius:12px;
+      display:flex;align-items:center;justify-content:center;
     }
-    .gb-logo-mark img{width:100%;height:100%;display:block}
+    .gb-logo-icon svg{width:24px;height:24px;color:#fff}
     .gb-logo-text{font-size:1rem;font-weight:900;letter-spacing:-.04em;color:#f4f4f6;line-height:1.1}
     .gb-logo-sub{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#ff0080;display:block;margin-top:1px}
     .gb-badge{
@@ -92,67 +98,70 @@
     /* ── RIGHT ── */
     .gb-right{
       display:flex;flex-direction:column;justify-content:center;align-items:center;
-      padding:3rem 2rem;background:#0d0d12;
+      padding:3rem 2rem;background:var(--surface);
     }
     .gb-card{width:100%;max-width:400px}
-    .gb-card h2{font-size:1.4rem;font-weight:800;margin-bottom:.25rem;letter-spacing:-.03em;text-align:center}
-    .gb-card > p{color:#9c9cb0;font-size:.85rem;margin-bottom:1.75rem;text-align:center}
+    .gb-card h2{font-size:1.4rem;font-weight:800;margin-bottom:.25rem;letter-spacing:-.03em;text-align:center;color:var(--text)}
+    .gb-card > p{color:var(--muted);font-size:.85rem;margin-bottom:1.75rem;text-align:center}
 
     .form-group{display:flex;flex-direction:column;gap:.3rem;margin-bottom:1rem}
-    .form-group label{font-size:.78rem;font-weight:600;color:#9c9cb0}
+    .form-group label{font-size:.78rem;font-weight:600;color:var(--muted)}
     .form-group input{
-      background:#141420;border:1px solid rgba(255,255,255,.08);border-radius:8px;
-      color:#f4f4f6;font-family:inherit;font-size:.85rem;padding:.65rem .85rem;transition:border-color .15s;width:100%;outline:none;
+      background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+      color:var(--text);font-family:inherit;font-size:.85rem;padding:.65rem .85rem;transition:border-color .15s;width:100%;outline:none;
     }
-    .form-group input:focus{border-color:#ff0080;box-shadow:0 0 0 3px rgba(255,0,128,.15)}
-    .form-group input::placeholder{color:#5e5e76}
-    .form-help{font-size:.7rem;color:#5e5e76;margin-top:.15rem}
-
-    .btn-primary{
-      display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
-      font-family:inherit;font-size:.85rem;font-weight:700;border:none;border-radius:8px;
-      cursor:pointer;padding:.7rem 1.1rem;transition:all .15s;text-decoration:none;width:100%;
-      background:linear-gradient(135deg,#ff0080,#7c3aed);color:#fff;
-      box-shadow:0 4px 20px rgba(255,0,128,.25);
-    }
-    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(255,0,128,.35)}
+    .form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .form-group input::placeholder{color:var(--muted);opacity:.6}
+    .form-help{font-size:.7rem;color:var(--muted);margin-top:.15rem}
 
     .plan-chooser{display:flex;gap:.6rem;margin-top:.2rem;flex-wrap:wrap}
     .plan-option{
       flex:1;display:flex;flex-direction:column;gap:2px;padding:.7rem .85rem;
-      border:2px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;
-      transition:all .15s;background:#141420;min-width:0;
+      border:2px solid var(--border);border-radius:10px;cursor:pointer;
+      transition:all .15s;background:var(--bg3);min-width:0;
     }
     .plan-option input{position:absolute;opacity:0;pointer-events:none}
-    .plan-option.selected{border-color:#ff0080;background:rgba(255,0,128,.08)}
-    .plan-option:hover{border-color:#ff0080}
-    .plan-option-name{font-weight:700;font-size:.85rem;color:#f4f4f6}
-    .plan-option-price{font-weight:800;font-size:1rem;color:#ff0080}
-    .plan-option-desc{font-size:.65rem;color:#5e5e76;line-height:1.3}
-    .plan-option-private{border-style:dashed;border-color:rgba(255,255,255,.12)}
+    .plan-option.selected{border-color:var(--accent);background:var(--accent-dim)}
+    .plan-option:hover{border-color:var(--accent)}
+    .plan-option-name{font-weight:700;font-size:.85rem;color:var(--text)}
+    .plan-option-price{font-weight:800;font-size:1rem;color:var(--accent)}
+    .plan-option-desc{font-size:.65rem;color:var(--muted);line-height:1.3}
+    .plan-option-private{border-style:dashed;border-color:var(--border)}
     .plan-option-private.selected{border-style:solid;border-color:#a855f7;background:rgba(168,85,247,.1)}
     .plan-option-private .plan-option-price{color:#a855f7;font-size:.8rem}
 
     .alert-info{
       background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);
-      border-radius:8px;padding:.65rem .85rem;font-size:.78rem;color:#9c9cb0;margin-top:.75rem;
+      border-radius:8px;padding:.65rem .85rem;font-size:.78rem;color:var(--muted);margin-top:.75rem;
     }
     .alert-error{
       background:rgba(255,0,0,.12);border:1px solid rgba(255,0,0,.25);
       border-radius:8px;padding:.65rem .85rem;font-size:.78rem;color:#ff6b6b;margin-bottom:1rem;
     }
-    .auth-alt{text-align:center;font-size:.82rem;color:#5e5e76;margin-top:1.25rem}
-    .auth-alt a{color:#ff0080;text-decoration:none;font-weight:600}
+    .auth-alt{text-align:center;font-size:.82rem;color:var(--muted);margin-top:1.25rem}
+    .auth-alt a{color:var(--accent);text-decoration:none;font-weight:600}
     .auth-alt a:hover{text-decoration:underline}
   </style>
 </head>
 <body>
+<div class="theme-toggle" aria-label="Theme switcher" role="radiogroup">
+  <button data-theme="system" class="active" title="System theme" aria-label="Use system theme">💻</button>
+  <button data-theme="light" title="Light theme" aria-label="Use light theme">☀️</button>
+  <button data-theme="dark" title="Dark theme" aria-label="Use dark theme">🌙</button>
+</div>
+
 <div class="gb-auth">
   <!-- LEFT PITCH -->
   <div class="gb-left">
     <a href="/" class="gb-logo gb-logo-left">
-      <div class="gb-logo-mark">
-        <img src="/cloud/images/logo-general-bots.svg" alt="General Bots" style="width:64px;height:64px">
+      <div class="gb-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="7" width="16" height="13" rx="3"/>
+          <circle cx="9" cy="11" r="1.5" fill="#fff"/>
+          <circle cx="15" cy="11" r="1.5" fill="#fff"/>
+          <path d="M9 16c1.5 1.5 4.5 1.5 6 0"/>
+          <path d="M8 7V4M16 7V4"/>
+        </svg>
       </div>
       <div>
           <div class="gb-logo-text">General Bots <span class="gb-badge">Alpha</span></div>
@@ -188,8 +197,14 @@
     <div class="gb-card">
       <!-- LOGO MOBILE — visível apenas em telas pequenas -->
       <a href="/" class="gb-logo gb-logo-mobile">
-        <div class="gb-logo-mark">
-          <img src="/cloud/images/logo-general-bots.svg" alt="General Bots" style="width:64px;height:64px">
+        <div class="gb-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="7" width="16" height="13" rx="3"/>
+            <circle cx="9" cy="11" r="1.5" fill="#fff"/>
+            <circle cx="15" cy="11" r="1.5" fill="#fff"/>
+            <path d="M9 16c1.5 1.5 4.5 1.5 6 0"/>
+            <path d="M8 7V4M16 7V4"/>
+          </svg>
         </div>
         <div>
         <div class="gb-logo-text">General Bots <span class="gb-badge">Alpha</span></div>
@@ -254,6 +269,7 @@
     </div>
   </div>
 </div>
+<script src="/cloud/js/cloud-theme.js"></script>
 <script src="/cloud/js/cloud-auth.js"></script>
 </body>
 </html>
