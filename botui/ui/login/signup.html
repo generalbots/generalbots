@@ -12,12 +12,12 @@
     :root{--bg:#ffffff;--fg:#0a0a0e;--muted:#64646e;--card-bg:#ffffff;--card-border:#e4e4ea;
       --input-bg:#fafafa;--input-border:#d4d4da;--bar-bg:#040404;--bar-fg:rgba(245,245,249,.5);
       --bar-link:rgba(245,245,249,.55);--toggle-bg:rgba(0,0,0,.6);--placeholder:#8e8e96;
-      --label:#3a3a42;--btn-bg:#0a0a0e;--btn-fg:#ffffff;--plan-bg:#fafafa;--plan-border:#d4d4da;
+      --label:#3a3a42;--plan-bg:#fafafa;--plan-border:#d4d4da;
       --plan-selected-bg:#f0f0f4;--plan-selected-border:#0a0a0e}
     [data-theme="dark"]{--bg:#0d0d12;--fg:#e8e8ee;--muted:#8a8a96;--card-bg:#16161e;
       --card-border:#2a2a34;--input-bg:#1a1a24;--input-border:#2a2a34;--bar-bg:#f0f0f4;
       --bar-fg:rgba(10,10,14,.5);--bar-link:rgba(10,10,14,.55);--toggle-bg:rgba(255,255,255,.15);
-      --placeholder:#6a6a76;--label:#b0b0ba;--btn-bg:#e8e8ee;--btn-fg:#0a0a0e;
+      --placeholder:#6a6a76;--label:#b0b0ba;
       --plan-bg:#1a1a24;--plan-border:#2a2a34;--plan-selected-bg:#22222e;--plan-selected-border:#e8e8ee}
 
     body{display:flex;flex-direction:column;min-height:100vh;background:var(--bg);color:var(--fg);transition:background .3s,color .3s}
@@ -27,24 +27,26 @@
     .card{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center}
 
     .product-logo{margin-bottom:4px;display:flex;align-items:center;justify-content:center}
-    .product-logo img{width:52px;height:52px}
+    .product-logo img{width:80px;height:80px}
+    .product-logo a{display:flex}
 
-    .card h1{font-size:1.1rem;font-weight:700;letter-spacing:-.02em;margin-bottom:1px}
-    .card > p{font-size:.72rem;color:var(--muted);margin-bottom:10px}
+    .card h1{font-size:1.2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+    .card > p{font-size:.78rem;color:var(--muted);margin-bottom:14px}
 
-    .form-row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-    .form-group{display:flex;flex-direction:column;gap:2px}
-    .form-label{font-size:.65rem;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.04em}
-    .form-input{width:100%;padding:7px 9px;font-size:.8rem;font-family:inherit;
+    .form-row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+    .form-group{display:flex;flex-direction:column;gap:4px}
+    .form-label{font-size:.7rem;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.04em}
+    .form-input{width:100%;padding:10px 12px;font-size:.85rem;font-family:inherit;
       border:1.5px solid var(--input-border);border-radius:7px;background:var(--input-bg);
       color:var(--fg);transition:border-color .15s,box-shadow .15s;outline:none}
     .form-input:focus{border-color:#0077b6;box-shadow:0 0 0 3px rgba(0,119,182,.15)}
     .form-input::placeholder{color:var(--placeholder)}
     .form-help{font-size:.62rem;color:var(--muted);margin-top:1px}
 
-    .btn{width:100%;padding:8px 12px;font-size:.8rem;font-weight:700;font-family:inherit;
-      border:none;border-radius:7px;cursor:pointer;transition:background .15s,transform .1s;
-      background:var(--btn-bg);color:var(--btn-fg);margin-top:2px}
+    .btn{width:100%;padding:10px 14px;font-size:.85rem;font-weight:700;font-family:inherit;
+      border:none;border-radius:7px;cursor:pointer;transition:opacity .15s,transform .1s;
+      background:#0a0a0e;color:#fff;margin-top:4px}
+    [data-theme="dark"] .btn{background:#0a0a0e;color:#fff}
     .btn:active{transform:scale(.98)}
     .btn:disabled{opacity:.5;cursor:not-allowed}
 
@@ -52,11 +54,11 @@
       border:1px solid rgba(217,48,62,.25);border-radius:7px;
       padding:7px 11px;font-size:.75rem;color:#b91c1c;margin-bottom:8px}
 
-    .alt{width:100%;text-align:center;font-size:.72rem;color:var(--muted);margin-top:8px}
+    .alt{width:100%;text-align:center;font-size:.75rem;color:var(--muted);margin-top:12px}
     .alt a{color:var(--fg);font-weight:600;text-decoration:none}
     .alt a:hover{text-decoration:underline}
 
-    .plan-chooser{width:100%;display:flex;gap:6px;margin-bottom:6px}
+    .plan-chooser{width:100%;display:flex;gap:8px;margin-bottom:8px}
     .plan-option{flex:1;display:flex;flex-direction:column;gap:1px;padding:7px 8px;
       border:1.5px solid var(--plan-border);border-radius:8px;cursor:pointer;
       transition:border-color .15s,background .15s;background:var(--plan-bg);
@@ -95,7 +97,7 @@
 
 <main class="middle">
   <div class="card">
-    <div class="product-logo"><a href="https://generalbots.org" target="_blank"><img src="/cloud/images/logo-square.svg" alt="General Bots"></a></div>
+    <div class="product-logo"><a href="https://generalbots.org" target="_blank"><img src="/cloud/images/logo.svg" alt="General Bots"></a></div>
     <h1>Create Account</h1>
     <p>Start managing your General Bots Cloud</p>
 
