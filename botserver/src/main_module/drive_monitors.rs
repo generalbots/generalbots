@@ -597,12 +597,7 @@ async fn discover_and_create_bots(
                         continue;
                     }
 
-                    let exists = bot_exists_in_db_async(pool, bot_name).await;
-                    if exists {
-                        continue;
-                    }
-
-                    info!("Creating bot '{}' in branch '{}' (org: {}, tenant: {})",
+                    info!("Ensuring bot '{}' in branch '{}' (org: {}, tenant: {})",
                           bot_name, branch_slug, org_id, tenant_id);
 
                     let create_state = state.clone();
@@ -1047,7 +1042,8 @@ fn create_bot_from_drive(
                           context_provider, context_config, is_public) \
          VALUES ('{bid}', '{name}', '{name}', '{oid}', '{branchid}', {isdef}, \
                  true, NOW(), NOW(), 'openai', '{{}}', 'openai', '{{}}', false) \
-         ON CONFLICT (slug) DO UPDATE SET is_active = true, branch_id = '{branchid}'",
+         ON CONFLICT (slug) DO UPDATE SET is_active = true, org_id = '{oid}', \
+         branch_id = '{branchid}', updated_at = NOW()",
         bid = bot_id,
         name = bot_name,
         oid = org_id,
