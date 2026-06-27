@@ -1,5 +1,6 @@
 #[cfg(feature = "embed-ui")]
 use rust_embed::RustEmbed;
+#[cfg(not(feature = "embed-ui"))]
 use log::{error, info};
 use std::path::PathBuf;
 

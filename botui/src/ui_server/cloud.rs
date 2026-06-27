@@ -3,6 +3,8 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 
+#[cfg(feature = "embed-ui")]
+use crate::ui_server::constants::Assets;
 use crate::ui_server::constants::get_ui_root;
 
 fn get_login_url() -> String {
@@ -14,19 +16,38 @@ pub async fn redirect_to_login() -> Response {
 }
 
 async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
-    match tokio::fs::read(&file_path).await {
-        Ok(bytes) => {
-            let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
-            (
-                [(
-                    axum::http::header::CONTENT_TYPE,
-                    mime.as_ref(),
-                )],
-                bytes,
+    #[cfg(feature = "embed-ui")]
+    {
+        let cloud_root = get_ui_root().join("cloud");
+        let relative = file_path.strip_prefix(&cloud_root).unwrap_or(&file_path);
+        let asset_path = format!("cloud/{}", relative.display()).replace('\\', "/");
+        if let Some(content) = Assets::get(&asset_path) {
+            let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
+            return (
+                [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
+                content.data,
             )
-                .into_response()
+                .into_response();
         }
-        Err(_) => StatusCode::NOT_FOUND.into_response(),
+        return StatusCode::NOT_FOUND.into_response();
+    }
+
+    #[cfg(not(feature = "embed-ui"))]
+    {
+        match tokio::fs::read(&file_path).await {
+            Ok(bytes) => {
+                let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
+                (
+                    [(
+                        axum::http::header::CONTENT_TYPE,
+                        mime.as_ref(),
+                    )],
+                    bytes,
+                )
+                    .into_response()
+            }
+            Err(_) => StatusCode::NOT_FOUND.into_response(),
+        }
     }
 }
 

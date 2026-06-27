@@ -5,10 +5,12 @@ use axum::{
     Json,
 };
 use log::error;
+#[cfg(not(feature = "embed-ui"))]
 use std::fs;
 
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
+#[cfg(not(feature = "embed-ui"))]
 use crate::ui_server::constants::get_ui_root;
 use crate::shared::AppState;
 
