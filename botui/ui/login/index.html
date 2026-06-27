@@ -9,6 +9,12 @@
   <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
 </head>
 <body style="background:var(--bg)">
+<div class="theme-toggle" aria-label="Theme switcher" role="radiogroup">
+  <button data-theme="system" class="active" title="System theme" aria-label="Use system theme">💻</button>
+  <button data-theme="light" title="Light theme" aria-label="Use light theme">☀️</button>
+  <button data-theme="dark" title="Dark theme" aria-label="Use dark theme">🌙</button>
+</div>
+
 <div class="mgmt-auth">
   <div class="mgmt-auth-left">
     <a href="/" class="mgmt-logo-mark" style="margin-bottom:2.5rem;text-decoration:none">
@@ -57,6 +63,7 @@
     </div>
   </div>
 </div>
+<script src="/cloud/js/cloud-theme.js"></script>
 <script src="/cloud/js/cloud-auth.js"></script>
 <script>
 (async function() {
