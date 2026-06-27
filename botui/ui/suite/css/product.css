@@ -1,0 +1,29 @@
+/* ── Product Brand Assets ──
+   Centralized brand definitions for General Bots.
+   Change paths below OR replace the SVG files at those paths
+   to update ALL logo references across botui.
+   ──────────────────────────────────────────── */
+
+.product {
+  /* Logo — square/icon version, no text */
+  --logo-square: url("/cloud/images/logo-square.svg");
+  /* Logo — with text */
+  --logo-text: url("/cloud/images/logo.svg");
+}
+
+/* Convenience classes */
+.product-logo-square {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: var(--logo-square) no-repeat center / contain;
+  flex-shrink: 0;
+}
+
+.product-logo-text {
+  display: inline-block;
+  width: auto;
+  height: 24px;
+  background: var(--logo-text) no-repeat left / contain;
+  flex-shrink: 0;
+}

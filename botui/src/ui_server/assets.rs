@@ -5,6 +5,7 @@ use axum::{
 
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::{Assets, ROOT_FILES, SUITE_DIRS};
+#[cfg(not(feature = "embed-ui"))]
 use crate::ui_server::constants::get_ui_root;
 
 pub async fn serve_favicon() -> impl IntoResponse {

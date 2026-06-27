@@ -8,6 +8,8 @@ pub mod suite_ops;
 pub mod ws;
 
 pub use self::assets::{serve_favicon, serve_login, serve_logout};
+#[cfg(feature = "embed-ui")]
+pub use self::assets::{handle_embedded_asset, handle_embedded_root_asset, handle_auth_asset};
 pub use self::cloud::*;
 pub use self::constants::get_ui_root;
 pub use self::login::{serve_login_index, serve_login_signup, serve_login_cloud_css, serve_login_cloud_js, serve_login_cloud_images};
@@ -20,13 +22,16 @@ use axum::{
     routing::{any, get},
     Router,
 };
+#[cfg(not(feature = "embed-ui"))]
 use log::info;
 use std::path::Path;
 #[cfg(not(feature = "embed-ui"))]
 use tower_http::services::{ServeDir, ServeFile};
 
 use crate::shared::AppState;
-use crate::ui_server::constants::{ROOT_FILES, SUITE_DIRS};
+use crate::ui_server::constants::ROOT_FILES;
+#[cfg(not(feature = "embed-ui"))]
+use crate::ui_server::constants::SUITE_DIRS;
 
 fn create_api_router() -> Router<AppState> {
     Router::new()

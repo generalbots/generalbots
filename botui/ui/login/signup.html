@@ -3,273 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Account — General Bots Cloud</title>
-  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <title>Create a Free Account — General Bots Cloud</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family:'Inter',system-ui,-apple-system,'Noto Sans','Liberation Sans',sans-serif;
-      background:var(--bg);color:var(--text);min-height:100vh;display:flex;
-      -webkit-font-smoothing:antialiased;
-    }
-    .gb-auth{
-      display:grid;grid-template-columns:1fr 1fr;min-height:100vh;width:100%;
-    }
-    @media(max-width:900px){.gb-auth{grid-template-columns:1fr}}
 
-    /* ── LEFT ── */
-    .gb-left{
-      background:#07070a;
-      display:flex;flex-direction:column;justify-content:center;
-      padding:4rem 3rem;position:relative;overflow:hidden;
-    }
-    .gb-left::before{
-      content:'';position:absolute;width:500px;height:500px;
-      background:radial-gradient(circle,rgba(255,0,128,.12),transparent 70%);
-      top:-120px;right:-120px;border-radius:50%;pointer-events:none;
-    }
-    .gb-left::after{
-      content:'';position:absolute;width:400px;height:400px;
-      background:radial-gradient(circle,rgba(124,58,237,.1),transparent 70%);
-      bottom:-100px;left:-100px;border-radius:50%;pointer-events:none;
-    }
-    @media(max-width:900px){.gb-left{display:none}}
+    html,body{height:100%;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Oxygen,sans-serif;
+      -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
-    /* ── LOGO (desktop na esquerda, mobile no topo do form) ── */
-    .gb-logo{
-      display:flex;align-items:center;gap:.75rem;text-decoration:none;
-      position:relative;z-index:1;
-    }
-    .gb-logo-icon{
-      width:44px;height:44px;flex-shrink:0;
-      background:var(--prism-gradient);
-      border-radius:12px;
-      display:flex;align-items:center;justify-content:center;
-    }
-    .gb-logo-icon svg{width:24px;height:24px;color:#fff}
-    .gb-logo-text{font-size:1rem;font-weight:900;letter-spacing:-.04em;color:#f4f4f6;line-height:1.1}
-    .gb-logo-sub{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#ff0080;display:block;margin-top:1px}
-    .gb-badge{
-      display:inline-block;margin-left:.35rem;
-      background:linear-gradient(135deg,#ff0080,#7c3aed);
-      color:#fff;font-size:.5rem;font-weight:800;
-      padding:.06rem .35rem;border-radius:99px;
-      vertical-align:middle;letter-spacing:.04em;text-transform:uppercase;
-    }
+    :root{--bg:#ffffff;--fg:#0a0a0e;--muted:#64646e;--card-bg:#ffffff;--card-border:#e4e4ea;
+      --input-bg:#fafafa;--input-border:#d4d4da;--bar-bg:#040404;--bar-fg:rgba(245,245,249,.5);
+      --bar-link:rgba(245,245,249,.55);--toggle-bg:rgba(0,0,0,.6);--placeholder:#8e8e96;
+      --label:#3a3a42;--btn-bg:#0a0a0e;--btn-fg:#ffffff;--plan-bg:#fafafa;--plan-border:#d4d4da;
+      --plan-selected-bg:#f0f0f4;--plan-selected-border:#0a0a0e}
+    [data-theme="dark"]{--bg:#0d0d12;--fg:#e8e8ee;--muted:#8a8a96;--card-bg:#16161e;
+      --card-border:#2a2a34;--input-bg:#1a1a24;--input-border:#2a2a34;--bar-bg:#f0f0f4;
+      --bar-fg:rgba(10,10,14,.5);--bar-link:rgba(10,10,14,.55);--toggle-bg:rgba(255,255,255,.15);
+      --placeholder:#6a6a76;--label:#b0b0ba;--btn-bg:#e8e8ee;--btn-fg:#0a0a0e;
+      --plan-bg:#1a1a24;--plan-border:#2a2a34;--plan-selected-bg:#22222e;--plan-selected-border:#e8e8ee}
 
-    .gb-logo-left{margin-bottom:2.5rem}
-    .gb-logo-mobile{
-      display:none;margin-bottom:1.5rem;justify-content:center;
-    }
-    @media(max-width:900px){.gb-logo-mobile{display:flex}}
+    body{display:flex;flex-direction:column;min-height:100vh;background:var(--bg);color:var(--fg);transition:background .3s,color .3s}
 
-    /* ── PITCH ── */
-    .gb-pitch{position:relative;z-index:1}
-    .gb-pitch-tag{
-      display:inline-flex;align-items:center;gap:.5rem;
-      padding:.3rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-      color:#ff0080;border:1px solid rgba(255,0,128,.25);border-radius:99px;
-      background:rgba(255,0,128,.08);margin-bottom:1.5rem;
-    }
-    .gb-pitch-title{
-      font-size:clamp(1.8rem,3.5vw,2.4rem);font-weight:900;letter-spacing:-.04em;line-height:1.05;margin-bottom:1rem;
-    }
-    .gb-pitch-title span{
-      background:linear-gradient(135deg,#ff0080,#a855f7);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    }
-    .gb-pitch-body{font-size:.9rem;color:#9c9cb0;line-height:1.7;margin-bottom:1.5rem;max-width:440px}
-    .gb-pitch-list{list-style:none;padding:0;margin-bottom:2rem}
-    .gb-pitch-list li{
-      display:flex;align-items:center;gap:.6rem;padding:.3rem 0;
-      font-size:.82rem;color:#9c9cb0;
-    }
-    .gb-pitch-list li::before{
-      content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;
-      background:linear-gradient(135deg,#ff0080,#a855f7);
-    }
-    .gb-trust{display:flex;gap:2rem}
-    .gb-trust-item{text-align:center}
-    .gb-trust-num{font-size:1.3rem;font-weight:900;background:linear-gradient(135deg,#ff0080,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;line-height:1}
-    .gb-trust-label{font-size:.6rem;color:#5e5e76;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:.25rem;display:block}
+    .bar{background:var(--bar-bg);height:4px;flex-shrink:0;transition:background .3s}
 
-    /* ── RIGHT ── */
-    .gb-right{
-      display:flex;flex-direction:column;justify-content:center;align-items:center;
-      padding:3rem 2rem;background:var(--surface);
-    }
-    .gb-card{width:100%;max-width:400px}
-    .gb-card h2{font-size:1.4rem;font-weight:800;margin-bottom:.25rem;letter-spacing:-.03em;text-align:center;color:var(--text)}
-    .gb-card > p{color:var(--muted);font-size:.85rem;margin-bottom:1.75rem;text-align:center}
+    .middle{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px}
 
-    .form-group{display:flex;flex-direction:column;gap:.3rem;margin-bottom:1rem}
-    .form-group label{font-size:.78rem;font-weight:600;color:var(--muted)}
-    .form-group input{
-      background:var(--bg3);border:1px solid var(--border);border-radius:8px;
-      color:var(--text);font-family:inherit;font-size:.85rem;padding:.65rem .85rem;transition:border-color .15s;width:100%;outline:none;
-    }
-    .form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-    .form-group input::placeholder{color:var(--muted);opacity:.6}
-    .form-help{font-size:.7rem;color:var(--muted);margin-top:.15rem}
+    .card{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center}
 
-    .plan-chooser{display:flex;gap:.6rem;margin-top:.2rem;flex-wrap:wrap}
-    .plan-option{
-      flex:1;display:flex;flex-direction:column;gap:2px;padding:.7rem .85rem;
-      border:2px solid var(--border);border-radius:10px;cursor:pointer;
-      transition:all .15s;background:var(--bg3);min-width:0;
-    }
+    .product-logo{width:240px;height:240px;margin-bottom:10px;border-radius:24px;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .product-logo img{width:160px;height:160px}
+
+    .card h1{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+    .card > p{font-size:.82rem;color:var(--muted);margin-bottom:24px}
+
+    .form-group{width:100%;display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+    .form-label{font-size:.75rem;font-weight:600;color:var(--label)}
+    .form-input{width:100%;padding:10px 12px;font-size:.88rem;font-family:inherit;
+      border:1.5px solid var(--input-border);border-radius:8px;background:var(--input-bg);
+      color:var(--fg);transition:border-color .15s,box-shadow .15s;outline:none}
+    .form-input:focus{border-color:#0077b6;box-shadow:0 0 0 3px rgba(0,119,182,.15)}
+    .form-input::placeholder{color:var(--placeholder)}
+    .form-help{font-size:.7rem;color:var(--muted);margin-top:2px}
+
+    .btn{width:100%;padding:11px 16px;font-size:.88rem;font-weight:700;font-family:inherit;
+      border:none;border-radius:8px;cursor:pointer;transition:background .15s,transform .1s;
+      background:var(--btn-bg);color:var(--btn-fg);margin-top:4px}
+    .btn:active{transform:scale(.98)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .error-box{width:100%;display:none;background:rgba(217,48,62,.08);
+      border:1px solid rgba(217,48,62,.25);border-radius:8px;
+      padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:14px}
+
+    .alt{width:100%;text-align:center;font-size:.82rem;color:var(--muted);margin-top:20px}
+    .alt a{color:var(--fg);font-weight:600;text-decoration:none}
+    .alt a:hover{text-decoration:underline}
+
+    .plan-chooser{width:100%;display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+    .plan-option{flex:1;display:flex;flex-direction:column;gap:2px;padding:12px 14px;
+      border:1.5px solid var(--plan-border);border-radius:10px;cursor:pointer;
+      transition:border-color .15s,background .15s;background:var(--plan-bg);min-width:0;
+      position:relative}
     .plan-option input{position:absolute;opacity:0;pointer-events:none}
-    .plan-option.selected{border-color:var(--accent);background:var(--accent-dim)}
-    .plan-option:hover{border-color:var(--accent)}
-    .plan-option-name{font-weight:700;font-size:.85rem;color:var(--text)}
-    .plan-option-price{font-weight:800;font-size:1rem;color:var(--accent)}
+    .plan-option.selected{border-color:var(--plan-selected-border);background:var(--plan-selected-bg)}
+    .plan-option:hover{border-color:var(--muted)}
+    .plan-option-name{font-weight:700;font-size:.82rem;color:var(--fg)}
+    .plan-option-price{font-weight:800;font-size:.95rem;color:var(--fg)}
     .plan-option-desc{font-size:.65rem;color:var(--muted);line-height:1.3}
-    .plan-option-private{border-style:dashed;border-color:var(--border)}
-    .plan-option-private.selected{border-style:solid;border-color:#a855f7;background:rgba(168,85,247,.1)}
-    .plan-option-private .plan-option-price{color:#a855f7;font-size:.8rem}
+    .plan-option-private{border-style:dashed}
+    .plan-option-private.selected{border-style:solid;border-color:#7c3aed;background:rgba(124,58,237,.06)}
+    .plan-option-private .plan-option-price{color:#7c3aed;font-size:.78rem}
 
-    .alert-info{
-      background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);
-      border-radius:8px;padding:.65rem .85rem;font-size:.78rem;color:var(--muted);margin-top:.75rem;
-    }
-    .alert-error{
-      background:rgba(255,0,0,.12);border:1px solid rgba(255,0,0,.25);
-      border-radius:8px;padding:.65rem .85rem;font-size:.78rem;color:#ff6b6b;margin-bottom:1rem;
-    }
-    .auth-alt{text-align:center;font-size:.82rem;color:var(--muted);margin-top:1.25rem}
-    .auth-alt a{color:var(--accent);text-decoration:none;font-weight:600}
-    .auth-alt a:hover{text-decoration:underline}
+    .info-box{width:100%;background:rgba(0,119,182,.06);border:1px solid rgba(0,119,182,.2);
+      border-radius:8px;padding:10px 14px;font-size:.78rem;color:var(--muted);margin-top:10px}
+
+    .bottombar{background:var(--bar-bg);height:4px;flex-shrink:0;transition:background .3s}
+
+    .bottom-links{display:flex;align-items:center;justify-content:space-between;
+      padding:8px 24px;background:var(--bar-bg);transition:background .3s}
+    .bottom-links a{font-size:.7rem;color:var(--bar-link);text-decoration:none;letter-spacing:.02em}
+    .bottom-links a:hover{color:var(--fg)}
+    .bottom-links nav{display:flex;gap:14px}
+
+    .theme-btn{position:fixed;top:10px;right:14px;z-index:100;width:34px;height:34px;
+      border-radius:99px;border:none;cursor:pointer;font-size:1rem;display:flex;
+      align-items:center;justify-content:center;background:var(--toggle-bg);
+      color:#fff;transition:background .2s,transform .2s}
+    .theme-btn:hover{transform:scale(1.1)}
+    .theme-btn:active{transform:scale(.95)}
   </style>
 </head>
 <body>
-<div class="theme-toggle" aria-label="Theme switcher" role="radiogroup">
-  <button data-theme="system" class="active" title="System theme" aria-label="Use system theme">💻</button>
-  <button data-theme="light" title="Light theme" aria-label="Use light theme">☀️</button>
-  <button data-theme="dark" title="Dark theme" aria-label="Use dark theme">🌙</button>
+
+<div class="bar"></div>
+
+<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
+
+<main class="middle">
+  <div class="card">
+    <div class="product-logo"><img src="/cloud/images/logo.svg" alt=""></div>
+    <h1>Create a Free Account</h1>
+    <p>Start managing your General Bots Cloud</p>
+
+    <div id="signup-error" class="error-box"></div>
+
+    <form id="signup-form" onsubmit="return doSignup(event)" style="width:100%">
+      <div class="form-group">
+        <label class="form-label" for="signup-name">Your Name</label>
+        <input id="signup-name" class="form-input" type="text" name="name" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="signup-botname">Bot Name</label>
+        <input id="signup-botname" class="form-input" type="text" name="bot_name" required placeholder="e.g. MyAssistant">
+        <span class="form-help">Used to create your bot, organization, and workspace.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="signup-email">Email</label>
+        <input id="signup-email" class="form-input" type="email" name="email" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="signup-password">Password</label>
+        <input id="signup-password" class="form-input" type="password" name="password" required minlength="8" placeholder="At least 8 characters">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Choose your plan</label>
+        <div class="plan-chooser">
+          <label class="plan-option selected">
+            <input type="radio" name="plan" value="free" checked>
+            <span class="plan-option-name">Free</span>
+            <span class="plan-option-price">$0/mo</span>
+            <span class="plan-option-desc">1 bot, 20MB, all apps</span>
+          </label>
+          <label class="plan-option">
+            <input type="radio" name="plan" value="shared">
+            <span class="plan-option-name">Shared</span>
+            <span class="plan-option-price">$3.99/mo</span>
+            <span class="plan-option-desc">5 bots, 50GB, 14-day trial</span>
+          </label>
+          <label class="plan-option plan-option-private">
+            <input type="radio" name="plan" value="private-cloud">
+            <span class="plan-option-name">Private Server</span>
+            <span class="plan-option-price">from $9.99/mo</span>
+            <span class="plan-option-desc">Isolated tenant, auto-provisioned</span>
+          </label>
+        </div>
+      </div>
+      <button type="submit" id="signup-btn" class="btn">Create Free Account</button>
+      <div id="private-server-info" class="info-box" style="display:none">
+        You are signing up for a <strong>Private Server</strong> environment.
+        After creating your account, you will be redirected to configure and purchase a VPS.
+      </div>
+    </form>
+
+    <div class="alt">Already have an account? <a href="/">Sign in</a></div>
+  </div>
+</main>
+
+<div class="bottom-links">
+  <a href="https://generalbots.org">generalbots.org</a>
+  <nav>
+    <a href="https://docs.pragmatismo.com.br">Docs</a>
+    <a href="https://github.com/GeneralBots/BotServer">GitHub</a>
+  </nav>
 </div>
 
-<div class="gb-auth">
-  <!-- LEFT PITCH -->
-  <div class="gb-left">
-    <a href="/" class="gb-logo gb-logo-left">
-      <div class="gb-logo-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="7" width="16" height="13" rx="3"/>
-          <circle cx="9" cy="11" r="1.5" fill="#fff"/>
-          <circle cx="15" cy="11" r="1.5" fill="#fff"/>
-          <path d="M9 16c1.5 1.5 4.5 1.5 6 0"/>
-          <path d="M8 7V4M16 7V4"/>
-        </svg>
-      </div>
-      <div>
-          <div class="gb-logo-text">General Bots <span class="gb-badge">Alpha</span></div>
-        <span class="gb-logo-sub">Cloud</span>
-      </div>
-    </a>
+<div class="bottombar"></div>
 
-    <div class="gb-pitch">
-      <div class="gb-pitch-tag">Multi-Agent AI · Open Source</div>
-      <h1 class="gb-pitch-title">
-        Create your<br><span>cloud workspace.</span>
-      </h1>
-      <p class="gb-pitch-body">
-        Deploy intelligent bots, manage infrastructure, and scale your AI operations — all from one unified platform.
-      </p>
-      <ul class="gb-pitch-list">
-        <li>Free tier included — no credit card required</li>
-        <li>Deploy bots in minutes, not days</li>
-        <li>S3-compatible storage + vector database</li>
-        <li>Global VPS provisioning from $9.99/mo</li>
-        <li>24/7 monitoring and auto-scaling</li>
-      </ul>
-      <div class="gb-trust">
-        <div class="gb-trust-item"><span class="gb-trust-num">99.9%</span><span class="gb-trust-label">Uptime SLA</span></div>
-        <div class="gb-trust-item"><span class="gb-trust-num">150+</span><span class="gb-trust-label">Countries</span></div>
-        <div class="gb-trust-item"><span class="gb-trust-num">24/7</span><span class="gb-trust-label">Support</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT FORM -->
-  <div class="gb-right">
-    <div class="gb-card">
-      <!-- LOGO MOBILE — visível apenas em telas pequenas -->
-      <a href="/" class="gb-logo gb-logo-mobile">
-        <div class="gb-logo-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="7" width="16" height="13" rx="3"/>
-            <circle cx="9" cy="11" r="1.5" fill="#fff"/>
-            <circle cx="15" cy="11" r="1.5" fill="#fff"/>
-            <path d="M9 16c1.5 1.5 4.5 1.5 6 0"/>
-            <path d="M8 7V4M16 7V4"/>
-          </svg>
-        </div>
-        <div>
-        <div class="gb-logo-text">General Bots <span class="gb-badge">Alpha</span></div>
-          <span class="gb-logo-sub">Cloud</span>
-        </div>
-      </a>
-
-      <h2>Create Account</h2>
-      <p>Start managing your General Bots Cloud</p>
-
-      <div id="signup-error" class="alert-error" style="display:none"></div>
-
-      <form id="signup-form" onsubmit="return doSignup(event)">
-        <div class="form-group">
-          <label>Your Name</label>
-          <input type="text" id="signup-name" name="name" placeholder="Your full name">
-        </div>
-        <div class="form-group">
-          <label>Bot Name</label>
-          <input type="text" id="signup-botname" name="bot_name" required placeholder="e.g. MyAssistant">
-          <span class="form-help">Used to create your bot, organization, and workspace.</span>
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="signup-email" name="email" required placeholder="you@example.com">
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="signup-password" name="password" required minlength="8" placeholder="At least 8 characters">
-        </div>
-        <div class="form-group">
-          <label>Choose your plan</label>
-          <div class="plan-chooser">
-            <label class="plan-option selected">
-              <input type="radio" name="plan" value="free" checked>
-              <span class="plan-option-name">Free</span>
-              <span class="plan-option-price">$0/mo</span>
-              <span class="plan-option-desc">1 bot, 20MB, all apps</span>
-            </label>
-            <label class="plan-option">
-              <input type="radio" name="plan" value="shared">
-              <span class="plan-option-name">Shared</span>
-              <span class="plan-option-price">$3.99/mo</span>
-              <span class="plan-option-desc">5 bots, 50GB, 14-day trial</span>
-            </label>
-            <label class="plan-option plan-option-private">
-              <input type="radio" name="plan" value="private-cloud">
-              <span class="plan-option-name">Private Server</span>
-              <span class="plan-option-price">Your infra</span>
-              <span class="plan-option-desc">Self-hosted, unlimited, branding</span>
-            </label>
-          </div>
-        </div>
-        <button type="submit" id="signup-btn" class="btn-primary">Create Account</button>
-        <div id="private-server-info" class="alert-info" style="display:none">
-          You are signing up for a <strong>Private Server</strong> environment.
-          After creating your account, you will be redirected to configure and purchase a VPS.
-        </div>
-      </form>
-
-      <div class="auth-alt">Already have an account? <a href="/">Sign in</a></div>
-    </div>
-  </div>
-</div>
-<script src="/cloud/js/cloud-theme.js"></script>
 <script src="/cloud/js/cloud-auth.js"></script>
+<script>
+(function(){var k='gb-login-theme',r=document.documentElement,b=document.getElementById('theme-btn');
+
+function apply(t){if(t==='dark'){r.setAttribute('data-theme','dark');b.textContent='🌙'}else{r.removeAttribute('data-theme');b.textContent='☀️'}
+localStorage.setItem(k,t)}
+var s=localStorage.getItem(k);if(s)apply(s);
+
+window.toggleTheme=function(){var n=r.getAttribute('data-theme')==='dark'?'light':'dark';apply(n)};})();
+</script>
 </body>
 </html>
