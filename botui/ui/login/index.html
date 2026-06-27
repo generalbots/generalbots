@@ -6,68 +6,61 @@
   <title>Sign In — General Bots</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
     html,body{height:100%;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Oxygen,sans-serif;
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
     :root{--bg:#ffffff;--fg:#0a0a0e;--muted:#64646e;--card-bg:#ffffff;--card-border:#e4e4ea;
       --input-bg:#fafafa;--input-border:#d4d4da;--bar-bg:#040404;--bar-fg:rgba(245,245,249,.5);
-      --bar-link:rgba(245,245,249,.55);--toggle-bg:rgba(0,0,0,.6);--toggle-btn:transparent;
-      --toggle-active:rgba(255,255,255,.25);--placeholder:#8e8e96;--label:#3a3a42;
-      --btn-bg:#0a0a0e;--btn-fg:#ffffff}
+      --bar-link:rgba(245,245,249,.55);--toggle-bg:rgba(0,0,0,.6);--placeholder:#8e8e96;
+      --label:#3a3a42;--btn-bg:#0a0a0e;--btn-fg:#ffffff}
     [data-theme="dark"]{--bg:#0d0d12;--fg:#e8e8ee;--muted:#8a8a96;--card-bg:#16161e;
       --card-border:#2a2a34;--input-bg:#1a1a24;--input-border:#2a2a34;--bar-bg:#f0f0f4;
       --bar-fg:rgba(10,10,14,.5);--bar-link:rgba(10,10,14,.55);--toggle-bg:rgba(255,255,255,.15);
-      --toggle-btn:transparent;--toggle-active:rgba(255,255,255,.2);--placeholder:#6a6a76;
-      --label:#b0b0ba;--btn-bg:#e8e8ee;--btn-fg:#0a0a0e}
+      --placeholder:#6a6a76;--label:#b0b0ba;--btn-bg:#e8e8ee;--btn-fg:#0a0a0e}
 
     body{display:flex;flex-direction:column;min-height:100vh;background:var(--bg);color:var(--fg);transition:background .3s,color .3s}
-
     .bar{background:var(--bar-bg);height:4px;flex-shrink:0;transition:background .3s}
 
-    .middle{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px}
+    .middle{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 24px}
+    .card{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center}
 
-    .card{width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center}
+    .product-logo{margin-bottom:6px;display:flex;align-items:center;justify-content:center}
+    .product-logo img{width:56px;height:56px}
 
-    .product-logo{width:240px;height:240px;margin-bottom:10px;border-radius:24px;
-      display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .product-logo img{width:160px;height:160px}
+    .card h1{font-size:1.15rem;font-weight:700;letter-spacing:-.02em;margin-bottom:1px}
+    .card > p{font-size:.75rem;color:var(--muted);margin-bottom:12px}
 
-    .card h1{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
-    .card > p{font-size:.82rem;color:var(--muted);margin-bottom:28px}
-
-    .form-group{width:100%;display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
-    .form-label{font-size:.75rem;font-weight:600;color:var(--label)}
-    .form-input{width:100%;padding:10px 12px;font-size:.88rem;font-family:inherit;
-      border:1.5px solid var(--input-border);border-radius:8px;background:var(--input-bg);
+    .form-row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    .form-group{display:flex;flex-direction:column;gap:3px}
+    .form-label{font-size:.68rem;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.04em}
+    .form-input{width:100%;padding:8px 10px;font-size:.82rem;font-family:inherit;
+      border:1.5px solid var(--input-border);border-radius:7px;background:var(--input-bg);
       color:var(--fg);transition:border-color .15s,box-shadow .15s;outline:none}
     .form-input:focus{border-color:#0077b6;box-shadow:0 0 0 3px rgba(0,119,182,.15)}
     .form-input::placeholder{color:var(--placeholder)}
 
-    .btn{width:100%;padding:11px 16px;font-size:.88rem;font-weight:700;font-family:inherit;
-      border:none;border-radius:8px;cursor:pointer;transition:background .15s,transform .1s;
-      background:var(--btn-bg);color:var(--btn-fg);margin-top:4px}
+    .btn{width:100%;padding:9px 14px;font-size:.82rem;font-weight:700;font-family:inherit;
+      border:none;border-radius:7px;cursor:pointer;transition:background .15s,transform .1s;
+      background:var(--btn-bg);color:var(--btn-fg);margin-top:2px}
     .btn:active{transform:scale(.98)}
     .btn:disabled{opacity:.5;cursor:not-allowed}
 
     .error-box{width:100%;display:none;background:rgba(217,48,62,.08);
-      border:1px solid rgba(217,48,62,.25);border-radius:8px;
-      padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:14px}
+      border:1px solid rgba(217,48,62,.25);border-radius:7px;
+      padding:8px 12px;font-size:.78rem;color:#b91c1c;margin-bottom:10px}
 
-    .alt{width:100%;text-align:center;font-size:.82rem;color:var(--muted);margin-top:20px}
+    .alt{width:100%;text-align:center;font-size:.75rem;color:var(--muted);margin-top:10px}
     .alt a{color:var(--fg);font-weight:600;text-decoration:none}
     .alt a:hover{text-decoration:underline}
 
+    .bottom-links{display:flex;align-items:center;justify-content:space-between;padding:6px 24px}
+    .bottom-links a{font-size:.65rem;color:var(--bar-link);text-decoration:none;letter-spacing:.02em}
+    .bottom-links a:hover{color:var(--fg)}
+    .bottom-links nav{display:flex;gap:12px}
     .bottombar{height:4px;flex-shrink:0}
 
-    .bottom-links{display:flex;align-items:center;justify-content:space-between;
-      padding:8px 24px}
-    .bottom-links a{font-size:.7rem;color:var(--bar-link);text-decoration:none;letter-spacing:.02em}
-    .bottom-links a:hover{color:var(--fg)}
-    .bottom-links nav{display:flex;gap:14px}
-
-    .theme-btn{position:fixed;top:10px;right:14px;z-index:100;width:34px;height:34px;
-      border-radius:99px;border:none;cursor:pointer;font-size:1rem;display:flex;
+    .theme-btn{position:fixed;top:8px;right:12px;z-index:100;width:30px;height:30px;
+      border-radius:99px;border:none;cursor:pointer;font-size:.9rem;display:flex;
       align-items:center;justify-content:center;background:var(--toggle-bg);
       color:#fff;transition:background .2s,transform .2s}
     .theme-btn:hover{transform:scale(1.1)}
@@ -77,25 +70,26 @@
 <body>
 
 <div class="bar"></div>
-
 <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
 
 <main class="middle">
   <div class="card">
-    <div class="product-logo"><img src="/cloud/images/logo.svg" alt=""></div>
+    <div class="product-logo"><a href="https://generalbots.org" target="_blank"><img src="/cloud/images/logo-square.svg" alt="General Bots"></a></div>
     <h1>Welcome back</h1>
     <p>Sign in to your management account</p>
 
     <div id="login-error" class="error-box"></div>
 
     <form id="login-form" onsubmit="onLoginSubmit(event)" style="width:100%">
-      <div class="form-group">
-        <label class="form-label" for="login-email">Email address</label>
-        <input id="login-email" class="form-input" type="email" placeholder="you@company.com" required autocomplete="email">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="login-password">Password</label>
-        <input id="login-password" class="form-input" type="password" placeholder="Password" required autocomplete="current-password">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Email</label>
+          <input id="login-email" class="form-input" type="email" placeholder="you@company.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input id="login-password" class="form-input" type="password" placeholder="Password" required autocomplete="current-password">
+        </div>
       </div>
       <button type="submit" class="btn" id="login-btn">Sign In</button>
     </form>
@@ -111,17 +105,14 @@
     <a href="https://github.com/GeneralBots/BotServer">GitHub</a>
   </nav>
 </div>
-
 <div class="bottombar"></div>
 
 <script src="/cloud/js/cloud-auth.js"></script>
 <script>
 (function(){var k='gb-login-theme',r=document.documentElement,b=document.getElementById('theme-btn');
-
 function apply(t){if(t==='dark'){r.setAttribute('data-theme','dark');b.textContent='🌙'}else{r.removeAttribute('data-theme');b.textContent='☀️'}
 localStorage.setItem(k,t)}
 var s=localStorage.getItem(k);if(s)apply(s);
-
 window.toggleTheme=function(){var n=r.getAttribute('data-theme')==='dark'?'light':'dark';apply(n)};})();
 
 (async function(){if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')return;
