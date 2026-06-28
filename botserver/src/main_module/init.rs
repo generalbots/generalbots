@@ -235,6 +235,14 @@ pub async fn init_database(
             } else {
                 info!("Database migrations completed successfully");
             }
+
+            #[cfg(feature = "saas")]
+            {
+                if let Ok(mut conn) = pool.get() {
+                    botproducts::seed::seed_default_products(&mut conn, uuid::Uuid::nil(), uuid::Uuid::nil());
+                }
+            }
+
             pool
         }
         Err(e) => {

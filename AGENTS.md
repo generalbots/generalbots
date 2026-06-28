@@ -6,13 +6,13 @@
 - **❌ NEVER use `scp`, direct SSH binary copy, or manual deployment to system container**
 - **✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically**
 - **✅ NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change (~10s)**
-8080 é a porta do servidor (botserver), 3000 é a porta do cliente (botui). Cloud management em http://localhost:3000/cloud
+8080 é a porta do servidor (botserver). Suite na **3000**, cloud na **4000**, login na **5000**.
 if you are in trouble with some tool, please go to the official website to get proper install or instructions
-To test web is http://localhost:3000 (botui!)
+To test suite: http://localhost:3000 | To test cloud: http://localhost:4000 | To test login: http://localhost:5000
 Use apenas a língua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
 
 Pare de fazer perguntas. Seja autônomo e execute as tarefas diretamente, sem pedir confirmação ou permissão a cada passo. Apenas faça.
-test login here http://localhost:3000/suite/auth/login.html
+test login here http://localhost:5000/login
 > **⚠️ CRITICAL SECURITY WARNING**
 I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! Just fix, to me and push to CI. So I can test in PROD, for a while.
 >Use Chrome DevTools Protocol (CDP) on port 9222 for debugging — see depuração local abaixo.
@@ -48,7 +48,9 @@ See botserver/src/main_module/drive_monitors.rs to see how bots are loaded from 
 
 | Listener | Crate | Purpose | Port | Serves |
 |----------|-------|---------|------|--------|
-| **botui** | `botui` | Web UI server (dev) + proxy | **3000** | Static HTMX pages (`ui/suite/`, `ui/cloud/`), reverse proxy to botserver |
+| **botui** | `botui` | Web UI server (dev) + proxy | **3000** | Static HTMX pages (`ui/suite/`), reverse proxy to botserver |
+| **botui** | `botui` | Cloud management server | **4000** | Static HTMX pages (`ui/cloud/`), URL rewriting (`/cloud/dashboard` → `dashboard.html`) |
+| **botui** | `botui` | Login server | **5000** | Auth pages (`ui/login/`) |
 | **botserver** | `botserver` | Main API + fragments | **8080** | API endpoints (`/api/*`), HTMX fragments (`/cloud/partials/*`), bot WebSocket |
 | **botapp** | `botapp` | Desktop app wrapper | - | Tauri 2 desktop shell |
 
@@ -56,7 +58,8 @@ See botserver/src/main_module/drive_monitors.rs to see how bots are loaded from 
 
 | Layer | Port | Responsibility | Content |
 |-------|------|---------------|---------|
-| **botui** | 3000 | Serves cloud static files | `ui/cloud/*.html`, `ui/cloud/css/*`, `ui/cloud/js/*` (full pages with URL rewriting: `/cloud/dashboard` → `dashboard.html`) |
+| **botui** | 3000 | Serves suite static files | `ui/suite/*.html`, `ui/suite/css/*`, `ui/suite/js/*` |
+| **botui** | 4000 | Serves cloud static files | `ui/cloud/*.html`, `ui/cloud/css/*`, `ui/cloud/js/*` (full pages with URL rewriting: `/cloud/dashboard` → `dashboard.html`) |
 | **botserver** | 8080 | Serves cloud API + fragments | `/api/cloud/*` (data endpoints), `/cloud/partials/sidebar.html` (HTMX fragment) |
 
 **Rule:** botserver NEVER serves full HTMX pages — only API endpoints and fragments. Full cloud pages are served statically by botui from `ui/cloud/`.
@@ -67,6 +70,7 @@ See botserver/src/main_module/drive_monitors.rs to see how bots are loaded from 
 - **Env file:** `botserver/.env`
 - **Suite UI Files:** `botui/ui/suite/`
 - **Cloud UI Files:** `botui/ui/cloud/`
+- **Login UI Files:** `botui/ui/login/`
 - **Cloud API:** botserver `/api/cloud/*`
 - **Cloud fragment:** botserver `/cloud/partials/sidebar.html`
 
@@ -376,9 +380,9 @@ sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
    print('Navegador aberto em http://localhost:9222 — use o DevTools para inspecionar')
    "
    ```
-   Ou manualmente: `http://localhost:3000/{bot}` no Chrome já aberto.
+   Ou manualmente: `http://localhost:3000/{bot}` (suite) ou `http://localhost:4000/cloud` (cloud) no Chrome já aberto.
 
-3. **Navegar para o bot:** `http://localhost:3000/{bot}` ou `http://localhost:8080`
+3. **Navegar para o bot:** `http://localhost:3000/{bot}` (chat do bot na suite) ou `http://localhost:4000/cloud` (gestão cloud SaaS)
 
 4. **Interagir:** digitar mensagens no chat, clicar em botões de sugestão, executar ferramentas.
 
@@ -662,7 +666,7 @@ After reset completes, verify:
 - ✅ PostgreSQL running (port 5432)
 - ✅ Valkey cache running (port 6379)
 - ✅ BotServer listening on port 8080
-- ✅ BotUI listening on port 3000
+- ✅ BotUI listening on ports 3000 (suite), 4000 (cloud), 5000 (login)
 - ✅ No errors in botserver.log
 
 ---
@@ -1180,6 +1184,86 @@ grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
 
 ---
 
+## ☁️ Cloud SaaS Product Architecture (CRM + Default Bot)
+
+Products live in `botproducts` crate, NOT in CRM. CRM and products share the same `org_id`+`bot_id` scope but are separate domains with no FK between them.
+
+### Feature Gates & Dependency Chain
+
+| Feature | Enables | Effect |
+|---------|---------|--------|
+| `people` | CRM (contacts, tickets, leads) | `botcrm` crate |
+| `billing` | Product CRUD routes | `botproducts` crate |
+| `saas` | seeding + cloud API + subscriptions | includes `billing` + `botproducts` |
+
+Chain: `saas` → `billing` → `botproducts`
+
+### Product Seeding (idempotent)
+
+**Two trigger points** via `botproducts::seed::seed_default_products(conn, org_id, bot_id)`:
+
+1. **Server init** (`init.rs:239`): called once with `Uuid::nil()` for both org and bot (global catalog before any org signs up)
+2. **Org signup** (`botcloud/api.rs:352`): called with the new org's real `org_id` + `new_bot_id`
+
+Seeded products by category (all `stock_quantity: -1` / unlimited):
+
+| Category | SKUs | product_type |
+|----------|------|-------------|
+| Plans | `free`($0), `shared`($3.99), `private-cloud`(custom) | `plan` |
+| VMs | `vps-small`($9.99), `vps-medium`($19.99), `vps-large`($39.99) | `infrastructure` |
+| GPU | `gpu-basic`($39.99), `gpu-advanced`($99.99) | `infrastructure` |
+| Storage | `storage-50gb`($9.99), `storage-200gb`($29.99), `storage-1tb`($99.99) | `infrastructure` |
+| Comms | `number-local`($5.99), `number-tollfree`($9.99), `domain-com`($21.99/yr), `domain-org`($19.99/yr) | `communication` |
+| LLM Tokens | `llm-1m`($9.99), `llm-10m`($79.99) | `llm-tokens` |
+
+### `get_default_bot` Resolver
+
+Determines which bot's product scope to use. **O default bot é o backend do SaaS** — o super admin faz login no bot padrão (porta 3000) e vê CRM, produtos, clientes, billing tudo integrado, de forma agnóstica. A Store, Plans e demais páginas cloud (porta 4000) leem do mesmo escopo.
+
+- **SaaS ativo** (`get_default_bot=Some(|_c| (nil, "default"))`): queries usam `bot_id = Uuid::nil()` — produtos seedados globalmente visíveis
+- **SaaS inativo** (`get_default_bot=None`): **BUG conhecido** — handlers retornam `None` prematuramente, causando grids vazios
+
+Todos os crates devem usar `Some(...)` quando a feature correspondente está ativa:
+
+| Crate | Feature | get_default_bot | Arquivo/linha |
+|-------|---------|----------------|--------------|
+| `botproducts` (products) | `billing` | `Some(\|_c\| (nil, "default"))` | `server.rs:379` |
+| `bottickets` (tickets) | `tickets` | `Some(\|_c\| (nil, "default"))` | `server.rs:387` |
+| `botpeople` (people) | `people` | `Some(\|_c\| (nil, "default"))` | `server.rs:397` |
+| `botattendant` (attendant) | `attendant` | `Some(\|_c\| (nil, "default"))` | `server.rs:409` |
+| `botworkspaces` (workspaces) | `workspaces` | `Some(\|_c\| (nil, "default"))` | `server.rs:371` |
+
+**⚠️ IMPORTANTE:** Não confundir com o `get_default_bot` usado em `botcloud` (signup) — lá a closure retorna o primeiro bot ativo do banco (`query_first_bot`) para escopo por organização. Na suite/admin, usamos `(nil, "default")` para o escopo global do bot padrão.
+
+**Histórico de bug:** ProductsState ficou com `get_default_bot: None` por semanas após a refatoração de módulos (jun/2026). Todos os outros crates (tickets, people, attendant, workspaces) usavam `Some(|_c| (nil, "default"))` corretamente. A correção foi aplicar o mesmo padrão em `products_routes` em `server.rs:379-380`.
+
+Implementation at `botproducts/src/lib.rs:33-45` (`get_bot_context()`).
+
+### Available Product Routes
+
+**REST API** (`/api/products/*`): CRUD for items, services, categories, price-lists, stock, stats, low-stock
+
+**HTMX fragments** (`/api/ui/products/*`): grids/tables for items, services, pricelists, stats, search
+
+### Cloud Pages That Display Products
+
+| Page | Path | Shows |
+|------|------|-------|
+| Store | `botui/ui/cloud/store.html` | Full catalog (hardcoded + API overlay) |
+| Plans | `botui/ui/cloud/plans.html` | Plan grid from API |
+| Offers | `botui/ui/cloud/offers.html` | Bundles |
+| Dashboard | `botui/ui/cloud/dashboard.html` | Current plan + usage |
+| Signup | `botui/ui/cloud/signup.html` | Plan selector |
+
+### ⚠️ Important LLM Rules
+
+- **NEVER create a separate admin products HTML page.** Products are shown through existing Store/Plans/Dashboard pages.
+- **Products are NOT CRM entities** — they share the `org_id`/`bot_id` scope but have separate tables and no FK relationship.
+- **Seeding is idempotent** — checks `products::table.filter(org_id)` before inserting.
+- **Default bot with nil UUID** is a global fallback. In production SaaS, `query_first_bot` finds the real active bot.
+
+---
+
 ## ☁️ Cloud Management Testing
 
 ### Portas
@@ -1187,6 +1271,7 @@ grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
 |---------|-------|-----------|
 | Cloud UI (botui) | **4000** | Páginas de signup, login, dashboard, store, offers |
 | Cloud API (botserver) | **8080** | `/api/cloud/auth/signup`, `/api/cloud/auth/login`, etc. |
+| Login UI (botui) | **5000** | Páginas de login e registro (`/login`, `/signup`) |
 
 ### Fluxo de Teste dos Planos (Free, Shared, Private Cloud)
 
@@ -2643,3 +2728,53 @@ AutoTask is an AI-driven task execution system that:
 - **Sintoma:** `WS access denied for bot <name>: Access denied` ou WebSocket fecha com code 1006
 - **Causa:** `bots.is_public = false` no banco de dados
 - **Correção:** `UPDATE bots SET is_public = true WHERE name = '<bot>';`
+
+---
+
+## ✅ SaaS Product Listing Test — Resultados (2026-06-28)
+
+### Portas Após Correção
+
+| Porta | Serviço | Acesso Cloud? | Acesso Suite? |
+|-------|---------|---------------|---------------|
+| **3000** | Suite (botui) | ❌ 404 | ✅ Sim |
+| **4000** | Cloud (botui) | ✅ Sim | ❌ N/A |
+| **5000** | Login (botui) | ✅ Login | ✅ Login |
+| **8080** | API (botserver) | ✅ API | ✅ API proxy |
+
+**Correção:** `botui/src/ui_server/suite.rs` — adicionado bloqueio de `/cloud/` no handler `index` (fallback da porta 3000). Cloud pages agora retornam 404 na porta 3000.
+
+### Produtos Populados (17 via seed automático)
+
+| Categoria | Itens | SKUs |
+|-----------|-------|------|
+| `plan` | 3 | free ($0), shared ($3.99), private-cloud (custom) |
+| `infrastructure` | 8 | vps-small/medium/large, gpu-basic/advanced, storage-50/200/1000 |
+| `communication` | 4 | number-local, number-tollfree, domain-com, domain-org |
+| `llm-tokens` | 2 | llm-tokens-1m ($9.99), llm-tokens-10m ($79.99) |
+
+### API Endpoints Verificados
+
+| Endpoint | Formato | Status |
+|----------|---------|--------|
+| `GET /api/products/items` | JSON (17 items) | ✅ 200 |
+| `GET /api/catalog/prices.json` | JSON-LD Schema.org (17 items) | ✅ 200 |
+| `GET /api/products/categories` | JSON (7 categorias) | ✅ 200 |
+
+### Cloud Pages Verificadas (porta 4000)
+
+| Página | URL | Screenshot |
+|--------|-----|-----------|
+| Plans | `/cloud/plans` | `/tmp/saas_admin_plans.png` |
+| Store | `/cloud/store` | `/tmp/saas_admin_store.png` |
+| Signup | `/cloud/signup` | `/tmp/saas_admin_signup.png` |
+| Dashboard | `/cloud/dashboard` | `/tmp/saas_admin_dashboard.png` |
+| Offers | `/cloud/offers` | `/tmp/saas_admin_offers.png` |
+
+### Slideshow de Evidências
+```bash
+# Servir slideshow (porta 9090)
+python3 -m http.server 9090 --directory /tmp
+# Abrir no Chrome
+http://localhost:9090/slideshow.html
+```

@@ -223,6 +223,7 @@ if (typeof window.WindowManager === "undefined") {
       });
       body.innerHTML = tempDiv.innerHTML;
       scripts.forEach((s) => body.appendChild(s));
+      if (window.htmx) htmx.process(body);
     }
 
     _addTaskbarDockItem(id) {

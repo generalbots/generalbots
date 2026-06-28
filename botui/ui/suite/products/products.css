@@ -396,51 +396,155 @@
     color: #6b7280;
 }
 
+/* ── Server-rendered product card classes ── */
+/* The Rust backend generates these class names (botproducts/src/lib.rs) */
+.product-card .product-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 16px 16px 0;
+}
+.product-card .product-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text, #f8fafc);
+    margin: 0;
+}
+.product-card .product-sku {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+    font-family: 'SF Mono', 'Monaco', monospace;
+}
+.product-card .product-body {
+    padding: 0 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.product-card .product-desc {
+    font-size: 13px;
+    color: var(--text-secondary, #888);
+    line-height: 1.4;
+    margin: 8px 0 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.product-card .product-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.product-card .product-category {
+    display: inline-flex;
+    padding: 4px 8px;
+    background: rgba(212, 245, 5, 0.1);
+    color: var(--accent, #d4f505);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-radius: 4px;
+}
+.product-card .product-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text, #f8fafc);
+}
+.product-card .product-stock {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+}
+.product-card .status-active,
+.product-card .status-inactive {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.product-card .status-active {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+.product-card .status-inactive {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+.product-card .product-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border, #2a2a2a);
+    margin-top: auto;
+}
+.product-card .btn-sm {
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 4px;
+    color: var(--text-secondary, #888);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+.product-card .btn-sm:hover {
+    border-color: var(--accent, #d4f505);
+    color: var(--accent, #d4f505);
+}
+.product-card .btn-sm.btn-secondary {
+    background: var(--surface, rgba(255,255,255,0.05));
+}
+
 /* List View Card Styles */
 .products-grid.list-view .product-card {
     flex-direction: row;
     align-items: center;
 }
 
-.products-grid.list-view .product-card-image {
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
-    border-bottom: none;
-    border-right: 1px solid var(--border, #2a2a2a);
+.products-grid.list-view .product-header {
+    flex: 0 0 200px;
+    margin-bottom: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
 }
 
-.products-grid.list-view .product-card-image svg {
-    width: 32px;
-    height: 32px;
+.products-grid.list-view .product-name {
+    flex: 0 0 auto;
 }
 
-.products-grid.list-view .product-card-body {
+.products-grid.list-view .product-body {
     flex-direction: row;
     align-items: center;
     gap: 24px;
     padding: 12px 16px;
+    flex: 1;
 }
 
-.products-grid.list-view .product-card-header {
-    flex: 0 0 200px;
-    margin-bottom: 0;
-}
-
-.products-grid.list-view .product-card-description {
+.products-grid.list-view .product-desc {
     flex: 1;
     margin-bottom: 0;
     -webkit-line-clamp: 1;
 }
 
-.products-grid.list-view .product-card-category {
+.products-grid.list-view .product-meta {
+    flex-wrap: nowrap;
     margin-bottom: 0;
+    gap: 16px;
+    flex-shrink: 0;
 }
 
-.products-grid.list-view .product-card-footer {
+.products-grid.list-view .product-actions {
     border-top: none;
-    padding-top: 0;
-    gap: 16px;
+    padding: 12px 16px;
 }
 
 /* Table Styles (Services, Price Lists) */

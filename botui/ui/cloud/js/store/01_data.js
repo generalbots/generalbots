@@ -1,250 +1,354 @@
-// ── Product catalogue — General Bots Cloud Store ──
-// Service consistency rules:
-//   RECURRING  = billed monthly, tied to workspace (VPS, GPU, Storage, Numbers, LLM)
-//   ONE-TIME   = purchase once, no subscription (Domains, Call top-ups, App Publishing)
-//   MANAGED    = tied services that cannot be removed independently (bundled w/ offers)
-//   UPGRADEABLE = can scale up/down anytime (VPS, Storage)
-//   REMOVABLE   = can cancel anytime (Numbers, standalone GPU)
+const CAT_MAP = { compute: 'vps-small', gpu: 'gpu-basic', storage: 'storage-50', comms: 'number-local', apps: 'domain-search' };
 
-const SERVICE_META = {
-  'virtual-machine': { recurring: true,  upgradeable: true,  removable: true,  managed: false },
-  'gpu':             { recurring: true,  upgradeable: true,  removable: true,  managed: false },
-  'storage':         { recurring: true,  upgradeable: true,  removable: true,  managed: false },
-  'number':          { recurring: true,  upgradeable: false, removable: true,  managed: false },
-  'llm-tokens':      { recurring: true,  upgradeable: true,  removable: true,  managed: false },
-  'domain':          { recurring: false, upgradeable: false, removable: false, managed: false },
-  'calls':           { recurring: false, upgradeable: false, removable: false, managed: false },
-  'appstore':        { recurring: false, upgradeable: false, removable: false, managed: false },
-};
+// ── Product catalogue — dynamically loaded from API ──
+// All prices, specs, and descriptions come from /api/products/items
 
+let CATALOGUE = {};     // Populated by loadCatalogProducts()
+let TLD_PRICES = [];    // Populated from domain-type products
+let PRODUCT_MAP = {};   // All products keyed by sku
+
+async function loadCatalogProducts() {
+  try {
+    const res = await fetch('/api/products/items?limit=100');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const items = await res.json();
+
+    // Build product map
+    PRODUCT_MAP = {};
+    for (const item of items) PRODUCT_MAP[item.sku] = item;
+
+    // Build TLD_PRICES from domain products
+    TLD_PRICES = items
+      .filter(p => p.sku && p.sku.startsWith('domain-') && p.sku !== 'domain-search')
+      .map(p => ({
+        ext: '.' + (p.attributes?.tld || p.sku.replace('domain-', '')),
+        price: '$' + parseFloat(p.price).toFixed(2),
+        period: 'yr',
+        sku: p.sku
+      }));
+
+    // Build CATALOGUE from infrastructure + communication products
+    CATALOGUE = buildCatalogue(items);
+
+    // Update store UI if already rendered
+    syncStoreFromAPI();
+    return items;
+  } catch(e) {
+    console.warn('Catalog API unavailable, using fallback:', e);
+  }
+}
+
+function buildCatalogue(items) {
+  const C = {};
+
+  // Helper: add product group
+  function addGroup(skus, group) {
+    const plans = skus.map(sku => items.find(p => p.sku === sku)).filter(Boolean);
+    if (!plans.length) return;
+    const first = plans[0];
+    C[skus[0]] = {
+      tag: group.tag, icon: group.icon,
+      title: group.title, cat: group.cat,
+      desc: first.description || group.desc,
+      bullets: group.bullets || [],
+      serviceType: group.serviceType,
+      plans: plans.map(p => ({
+        id: p.sku,
+        tier: group.tierMap ? group.tierMap[p.sku] : p.sku,
+        name: p.name,
+        amount: parseFloat(p.price).toFixed(2),
+        period: group.period || 'mo',
+        currency: '$',
+        specs: buildSpecs(p, group.specKeys),
+        featured: p.sku === (group.featured || '')
+      }))
+    };
+    // Aliases
+    for (const sku of skus.slice(1)) C[sku] = { alias: skus[0] };
+  }
+
+  function buildSpecs(product, keys) {
+    const a = product.attributes || {};
+    const parts = [];
+    if (keys) {
+      for (const key of keys) {
+        const val = a[key];
+        if (val !== undefined && val !== null) {
+          const label = (key === 'vcpu' ? 'vCPU' : key === 'ram_gb' ? 'GB RAM' : key === 'storage_gb' ? 'GB' : key === 'vram_gb' ? 'GB VRAM' : key === 'bandwidth_tb' ? 'TB bandwidth' : key === 'storage_type' ? '' : key === 'gpu_model' ? '' : key);
+          if (key === 'storage_type') continue;
+          if (key === 'gpu_model') { parts.push(val); continue; }
+          parts.push(val + (label ? ' ' + label : ''));
+        }
+      }
+    }
+    return parts.length ? parts : [product.description || product.name];
+  }
+
+  addGroup(['vps-small','vps-medium','vps-large','vps-xl'], {
+    tag: 'Virtual Machine', icon: '\uD83D\uDDA5\uFE0F',
+    title: 'Virtual Machines', cat: 'compute',
+    desc: 'Linux VMs with full root access, NVMe SSD, DDoS protection.',
+    bullets: ['Full root SSH access','NVMe SSD storage','DDoS protection','Hourly snapshots','Upgradeable anytime'],
+    serviceType: 'virtual-machine',
+    period: 'mo',
+    tierMap: { 'vps-small':'Small','vps-medium':'Medium','vps-large':'Large','vps-xl':'XL' },
+    specKeys: ['vcpu','ram_gb','storage_gb','bandwidth_tb'],
+    featured: 'vps-medium'
+  });
+
+  addGroup(['gpu-basic','gpu-pro','gpu-enterprise'], {
+    tag: 'GPU Computing', icon: '\u26A1',
+    title: 'GPU Computing', cat: 'gpu',
+    desc: 'Dedicated NVIDIA GPUs for AI inference and LLM fine-tuning.',
+    bullets: ['Dedicated NVIDIA GPU','CUDA 12 pre-installed','Persistent storage','Upgradeable anytime','Cancel independently'],
+    serviceType: 'gpu',
+    period: 'mo',
+    tierMap: { 'gpu-basic':'Basic','gpu-pro':'Pro','gpu-enterprise':'Enterprise' },
+    specKeys: ['gpu_model','vram_gb','vcpu','ram_gb','storage_gb'],
+    featured: 'gpu-pro'
+  });
+
+  addGroup(['storage-50','storage-250','storage-1tb','storage-10tb'], {
+    tag: 'Object Storage', icon: '\uD83D\uDCBE',
+    title: 'Object Storage', cat: 'storage',
+    desc: 'S3-compatible storage for bot data, backups and media.',
+    bullets: ['S3-compatible API','Versioning & lifecycle rules','End-to-end encryption','Zero-egress option','Upgrade anytime'],
+    serviceType: 'storage',
+    period: 'mo',
+    tierMap: { 'storage-50':'Starter','storage-250':'Growth','storage-1tb':'Scale','storage-10tb':'Power' },
+    specKeys: ['size_gb'],
+    featured: 'storage-250'
+  });
+
+  addGroup(['number-local','number-global','number-business'], {
+    tag: 'Phone Numbers', icon: '\uD83D\uDCDE',
+    title: 'Virtual Phone Numbers', cat: 'comms',
+    desc: 'Virtual numbers for WhatsApp, SMS and voice.',
+    bullets: ['150+ countries','WhatsApp Business ready','SMS + Voice','Instant activation','Cancel any number'],
+    serviceType: 'number',
+    period: 'mo',
+    tierMap: { 'number-local':'Local','number-global':'Global','number-business':'Business' },
+    specKeys: ['type'],
+    featured: 'number-local'
+  });
+
+  return C;
+}
+
+// ── Sync hardcoded store UI with live API data ──
+function syncStoreFromAPI() {
+  if (!Object.keys(PRODUCT_MAP).length) return;
+
+  // 1. Update calculator VPS buttons
+  document.querySelectorAll('.calc-vps-btn').forEach(el => {
+    const sku = el.dataset.value;
+    const p = PRODUCT_MAP[sku];
+    if (!p) return;
+    const price = parseFloat(p.price).toFixed(2);
+    el.dataset.price = price;
+    const em = el.querySelector('em');
+    if (em) em.innerHTML = '$' + price + '<small>/mo</small>';
+    const spec = el.querySelector('.calc-vps-spec');
+    if (spec) {
+      const a = p.attributes || {};
+      const parts = [];
+      if (a.vcpu) parts.push(a.vcpu + ' vCPU');
+      if (a.ram_gb) parts.push(a.ram_gb + ' GB RAM');
+      if (a.storage_gb) parts.push(a.storage_gb + ' GB' + (a.storage_type === 'ssd' ? ' SSD' : ''));
+      if (a.bandwidth_tb) parts.push(a.bandwidth_tb + ' TB bandwidth');
+      if (parts.length) spec.textContent = parts.join(' \u00B7 ');
+    }
+  });
+
+  // 2. Update calculator GPU buttons
+  document.querySelectorAll('.calc-gpu-options .calc-addon-btn').forEach(el => {
+    const sku = el.dataset.value || el.querySelector('input')?.value;
+    if (!sku || sku === 'none') return;
+    const p = PRODUCT_MAP[sku];
+    if (!p) return;
+    const price = parseFloat(p.price).toFixed(2);
+    el.dataset.price = price;
+    const small = el.querySelector('small');
+    if (small) small.textContent = '$' + price;
+  });
+
+  // 3. Update calculator storage buttons
+  document.querySelectorAll('.calc-storage-options .calc-addon-btn').forEach(el => {
+    const input = el.querySelector('input');
+    const val = input?.value;
+    if (!val || val === '0') return;
+    const sku = 'storage-' + val.replace('000', 'k').replace(/0+$/, '').replace('k', '000');
+    const p = PRODUCT_MAP[sku];
+    if (!p) return;
+    const price = parseFloat(p.price).toFixed(2);
+    el.dataset.price = price;
+    const small = el.querySelector('small');
+    if (small) small.textContent = '$' + price;
+  });
+
+  // 4. Update calculator phone buttons
+  document.querySelectorAll('.calc-phone-options .calc-addon-btn').forEach(el => {
+    const input = el.querySelector('input');
+    const val = input?.value;
+    if (!val || val === '0') return;
+    const sku = val === '1' ? 'number-local' : val === '3' ? 'number-global' : val === '10' ? 'number-business' : null;
+    if (!sku) return;
+    const p = PRODUCT_MAP[sku];
+    if (!p) return;
+    const price = parseFloat(p.price).toFixed(2);
+    el.dataset.price = price;
+    const small = el.querySelector('small');
+    if (small) small.textContent = '$' + price;
+  });
+
+  // 5. Update calculator domain buttons
+  document.querySelectorAll('.calc-domain-options .calc-addon-btn').forEach(el => {
+    const input = el.querySelector('input');
+    const ext = input?.value;
+    if (!ext) return;
+    const tld = ext.replace('.', '');
+    const p = PRODUCT_MAP['domain-' + tld];
+    if (!p) return;
+    const monthlyPrice = (parseFloat(p.price) / 12).toFixed(2);
+    el.dataset.price = monthlyPrice;
+    const small = el.querySelector('small');
+    if (small) small.textContent = '$' + monthlyPrice;
+  });
+
+  // 6. Update LLM token prices (hardcoded but use product data)
+  document.querySelectorAll('.calc-pkg-btn').forEach(btn => {
+    const span = btn.querySelector('span');
+    if (!span) return;
+    const onclick = btn.getAttribute('onclick') || '';
+    const match = onclick.match(/selectLLM\([^,]+,[^,]+,[^,]+/);
+    // LLM prices are hardcoded in onclick - we keep them for now since the LLM products
+    // use different pricing tiers than the simple token bundles
+  });
+
+  // 7. Update domain TLD cards in store landing
+  document.querySelectorAll('.domain-tld-card').forEach(card => {
+    const extEl = card.querySelector('.domain-tld-ext');
+    const priceEl = card.querySelector('.domain-tld-price strong');
+    if (!extEl || !priceEl) return;
+    const ext = extEl.textContent.trim();
+    const tld = ext.replace('.', '');
+    const p = PRODUCT_MAP['domain-' + tld];
+    if (!p) return;
+    priceEl.textContent = '$' + parseFloat(p.price).toFixed(2);
+    const extData = TLD_PRICES.find(t => t.ext === ext);
+    if (extData) card.onclick = function() { orderDomain(ext); };
+  });
+
+  // 8. Update plan cards in store landing
+  document.querySelectorAll('.plan-card').forEach(card => {
+    const nameEl = card.querySelector('.plan-name');
+    const amountEl = card.querySelector('.plan-amount');
+    if (!nameEl || !amountEl) return;
+    const name = nameEl.textContent.trim();
+    const p = Object.values(PRODUCT_MAP).find(pp => pp.name === name);
+    if (!p) return;
+    amountEl.textContent = parseFloat(p.price).toFixed(2);
+  });
+
+  // 9. Recalc
+  if (window.calcUpdate) calcUpdate();
+}
+
+// Keep loadCatalogProducts callable for backward compat
+const catalogApiProducts = [];
+function getCatalogProduct(sku) {
+  return PRODUCT_MAP[sku] || null;
+}
+
+// ── Profile recommendations ──
 const PROFILE_RECS = {
   whatsapp: {
-    label: 'WhatsApp Bots',
-    vps: { small: 'VM Small handles up to 5 bots comfortably. Scale to Medium for 20+.', medium: 'VM Medium recommended for multiple high-volume bots.', large: 'VM Large for dozens of simultaneous bots.' },
-    gpu: 'GPU not needed for WhatsApp bots. VM handles the processing efficiently.',
-    phone: 'Phone numbers are essential — each includes 1,000 free WhatsApp messages/month.',
-    storage: '50 GB included is enough to start. Add more as you grow.',
-    domain: 'A custom domain adds credibility to your bots.',
-    summary: 'For WhatsApp Bots: VM Small + 1 phone number + .com domain. GPU not needed.'
+    label: 'WhatsApp',
+    vps: {
+      small: 'Good fit for up to 5k contacts/day',
+      medium: 'Recommended: handles 15k+ contacts/day',
+      large: 'For high-volume campaigns (50k+)',
+      xl: 'Enterprise scale (100k+ contacts)'
+    },
+    gpu: 'Not required for WhatsApp bots',
+    summary: 'VPS + phone numbers for WhatsApp Business API'
   },
   llm: {
     label: 'AI / LLM',
-    vps: { small: 'VM Small runs small models (1.5B). Medium handles 7B–8B.', medium: 'VM Medium ideal for LLaMA 3.1 8B and DeepSeek R1.', large: 'VM Large + GPU Pro for 20B+ models in production.' },
-    gpu: 'GPU highly recommended for LLMs. GPU Basic for testing, Pro for production.',
-    phone: 'Phone optional for LLMs. Prioritize VM and GPU.',
-    storage: 'GGUF models range 1–40 GB. Invest in extra storage.',
-    domain: 'Custom domain for your LLM API endpoint.',
-    summary: 'For AI/LLM: VM Medium + GPU Pro is the ideal production starting point.'
+    vps: {
+      small: 'Suitable for API-based LLM calls',
+      medium: 'Recommended for self-hosted small models',
+      large: 'For fine-tuning or medium models (7B-13B)',
+      xl: 'Enterprise inference (70B+ models)'
+    },
+    gpu: 'GPU accelerates local inference significantly',
+    summary: 'VPS + GPU + LLM tokens for AI workloads'
   },
   webapp: {
     label: 'Web Apps',
-    vps: { small: 'VM Small for simple low-traffic apps.', medium: 'VM Medium for apps with database + API.', large: 'VM Large for high-traffic with multiple services.' },
-    gpu: 'GPU generally not needed for web apps.',
-    phone: 'Phone numbers for 2FA and SMS notifications.',
-    storage: 'Storage for uploads, assets and backups.',
-    domain: 'Domain is essential for any web application.',
-    summary: 'For Web Apps: VM Medium + .com domain + 50 GB storage is the go-to combo.'
+    vps: {
+      small: 'Great for static sites and small APIs',
+      medium: 'Recommended for most web apps',
+      large: 'High-traffic or database-heavy apps',
+      xl: 'Multi-service or media-heavy applications'
+    },
+    gpu: 'Optional: video rendering or ML features',
+    summary: 'VPS + storage for web applications'
   },
   enterprise: {
     label: 'Enterprise',
-    vps: { small: 'Minimum VM Medium for enterprise.', medium: 'VM Medium for staging/QA environments.', large: 'VM Large+ for enterprise production with HA.' },
-    gpu: 'A100 GPU for enterprise ML workloads.',
-    phone: 'Business Pack (10 numbers) for corporate communications.',
-    storage: 'Minimum 1 TB for logs, backups and customer data.',
-    domain: 'Multiple domains recommended.',
-    summary: 'Enterprise: VM Large + A100 GPU + Business Pack + 1 TB storage.'
+    vps: {
+      small: 'Development and testing only',
+      medium: 'Staging and QA environments',
+      large: 'Recommended for production workloads',
+      xl: 'Mission-critical with redundancy'
+    },
+    gpu: 'For enterprise AI pipelines',
+    summary: 'Full stack: VPS + GPU + storage + phone'
   }
 };
 
-const CATALOGUE = {
-  // ── Virtual Machines (renamed from VPS, upgradeable + removable) ──
-  'vps-small': {
-    tag: 'Virtual Machine', icon: '🖥️',
-    title: 'Virtual Machines', cat: 'compute',
-    desc: 'Linux VMs with full root access, NVMe SSD, DDoS protection. Scale up or down anytime. Cancel whenever you need.',
-    bullets: ['Full root SSH access', 'NVMe SSD storage', 'DDoS protection', 'Hourly snapshots', 'Upgradeable anytime'],
-    serviceType: 'virtual-machine',
-    plans: [
-      { id:'vps-small',  tier:'Small',  name:'VM Small',  amount:'9.99',  period:'mo', currency:'$', specs:['4 vCPU','8 GB RAM','100 GB NVMe','2 TB bandwidth'],  featured:false },
-      { id:'vps-medium', tier:'Medium', name:'VM Medium', amount:'19.99', period:'mo', currency:'$', specs:['6 vCPU','16 GB RAM','200 GB NVMe','4 TB bandwidth'], featured:true  },
-      { id:'vps-large',  tier:'Large',  name:'VM Large',  amount:'39.99', period:'mo', currency:'$', specs:['8 vCPU','32 GB RAM','400 GB NVMe','8 TB bandwidth'], featured:false },
-      { id:'vps-xl',     tier:'XL',     name:'VM XL',     amount:'79.99', period:'mo', currency:'$', specs:['16 vCPU','64 GB RAM','800 GB NVMe','16 TB bandwidth'],featured:false },
-    ]
-  },
-  'vps-medium': { alias: 'vps-small' },
-  'vps-large':  { alias: 'vps-small' },
-  'vps-xl':     { alias: 'vps-small' },
-
-  // ── GPU (recurring, upgradeable, removable) ──
-  'gpu-basic': {
-    tag: 'GPU Computing', icon: '⚡',
-    title: 'GPU Computing', cat: 'gpu',
-    desc: 'Dedicated NVIDIA GPUs for AI inference, LLM fine-tuning and HPC. Add to any VM or use standalone. Upgrade between tiers at any time.',
-    bullets: ['Dedicated NVIDIA GPU', 'CUDA 12 pre-installed', 'Persistent storage', 'Upgradeable anytime', 'Cancel independently'],
-    serviceType: 'gpu',
-    plans: [
-      { id:'gpu-basic',      tier:'Basic',      name:'RTX 3060',  amount:'39.99',  period:'mo', currency:'$', specs:['RTX 3060 12GB','4 vCPU','8 GB RAM','100 GB NVMe'],   featured:false },
-      { id:'gpu-pro',        tier:'Pro',        name:'RTX 4090',  amount:'99.99',  period:'mo', currency:'$', specs:['RTX 4090','8 vCPU','32 GB RAM','200 GB NVMe'],   featured:true  },
-      { id:'gpu-enterprise', tier:'Enterprise', name:'A100 80GB', amount:'299.99', period:'mo', currency:'$', specs:['A100 80GB','16 vCPU','64 GB RAM','400 GB NVMe'], featured:false },
-    ]
-  },
-  'gpu-pro':        { alias: 'gpu-basic' },
-  'gpu-enterprise': { alias: 'gpu-basic' },
-
-  // ── Storage (recurring, upgradeable, removable) ──
-  'storage-50': {
-    tag: 'Object Storage', icon: '💾',
-    title: 'Object Storage', cat: 'storage',
-    desc: 'S3-compatible storage for bot documents, backups and datasets. Upgrade capacity at any time without downtime.',
-    bullets: ['S3-compatible API', 'Versioning & lifecycle rules', 'End-to-end encryption', 'Zero-egress option', 'Upgrade anytime'],
-    serviceType: 'storage',
-    plans: [
-      { id:'storage-50',   tier:'Starter', name:'50 GB',   amount:'9.99',   period:'mo', currency:'$', specs:['50 GB storage','100 GB egress','S3-compatible','99.9% uptime'],    featured:false },
-      { id:'storage-250',  tier:'Growth',  name:'250 GB',  amount:'29.99',  period:'mo', currency:'$', specs:['250 GB storage','500 GB egress','S3-compatible','Versioning'],      featured:true  },
-      { id:'storage-1tb',  tier:'Scale',   name:'1 TB',    amount:'59.99',  period:'mo', currency:'$', specs:['1 TB storage','2 TB egress','Zero-egress opt.','Lifecycle mgmt'], featured:false },
-      { id:'storage-10tb', tier:'Power',   name:'10 TB',   amount:'199.99', period:'mo', currency:'$', specs:['10 TB storage','20 TB egress','Zero-egress opt.','Priority'],      featured:false },
-    ]
-  },
-  'storage-250': { alias:'storage-50' },
-  'storage-1tb':  { alias:'storage-50' },
-  'storage-10tb': { alias:'storage-50' },
-
-  // ── Phone Numbers (recurring, removable, NOT upgradeable) ──
-  'number-local': {
-    tag: 'Phone Numbers', icon: '📞',
-    title: 'Virtual Phone Numbers', cat: 'comms',
-    desc: 'Local and international phone numbers for WhatsApp, SMS and voice in 150+ countries. Each number is an independent subscription.',
-    bullets: ['150+ countries', 'WhatsApp Business ready', 'SMS + Voice', 'Instant activation', 'Cancel any number independently'],
-    serviceType: 'number',
-    plans: [
-      { id:'number-local',    tier:'Local',    name:'Local Number',  amount:'5.99',  period:'mo', currency:'$', specs:['1 number','1 country','SMS + Voice','WhatsApp-ready'],           featured:false },
-      { id:'number-global',   tier:'Global',   name:'Global Bundle', amount:'19.99', period:'mo', currency:'$', specs:['3 numbers','3+ countries','SMS + Voice','Priority routing'],     featured:true  },
-      { id:'number-business', tier:'Business', name:'Business Pack', amount:'49.99', period:'mo', currency:'$', specs:['10 numbers','Any countries','SMS + Voice + WA','Dedicated'],    featured:false },
-    ]
-  },
-  'number-global':   { alias:'number-local' },
-  'number-business': { alias:'number-local' },
-
-  'number-search': {
-    tag: 'Search Numbers', icon: '🔍',
-    title: 'Find Available Numbers', cat: 'comms',
-    desc: 'Search for available numbers by country and capabilities.',
-    bullets: ['Search by country','Filter by SMS, Voice, WhatsApp','Instant purchase','Port your existing number'],
-    type: 'number-search'
-  },
-
-  // ── Call top-ups (ONE-TIME, not recurring) ──
-  'calls-100': {
-    tag: 'Call Minutes — Top-Up', icon: '📱',
-    title: 'Call Minute Bundles', cat: 'comms',
-    desc: 'Pre-paid outbound call minutes. One-time purchase — top up whenever you need. No subscription, no commitment.',
-    bullets: ['One-time purchase','Global outbound calls','HD voice quality','CDR analytics'],
-    serviceType: 'calls',
-    plans: [
-      { id:'calls-100',  tier:'Starter', name:'100 Minutes',  amount:'9.99',  period:'once', currency:'$', specs:['100 min outbound','Global coverage','HD voice','CDR report'],       featured:false },
-      { id:'calls-500',  tier:'Growth',  name:'500 Minutes',  amount:'39.99', period:'once', currency:'$', specs:['500 min outbound','Global coverage','HD voice','Priority routing'], featured:true  },
-      { id:'calls-1000', tier:'Power',   name:'1,000+ Minutes',amount:'69.99',period:'once', currency:'$', specs:['1000 min outbound','Global coverage','HD voice','Dedicated'],       featured:false },
-    ]
-  },
-  'calls-500':  { alias:'calls-100' },
-  'calls-1000': { alias:'calls-100' },
-  'sim': { alias:'calls-100' },
-
-  // ── Domains (ONE-TIME/annual, NOT removable once registered) ──
-  'domain-search': {
-    tag: 'Domains — Annual', icon: '🌐',
-    title: 'Domain Registration', cat: 'apps',
-    desc: 'Register the perfect domain. Annual billing — renew yearly. Includes free WHOIS privacy and managed DNS. Domains cannot be removed after purchase.',
-    bullets: ['Annual billing','Free WHOIS privacy','Managed DNS','SSL ready','Auto-renew available'],
-    serviceType: 'domain',
-    type: 'domain-search'
-  },
-  'domain-tlds': {
-    tag: 'Domains', icon: '🌐',
-    title: 'Domain Extensions & Pricing', cat: 'apps',
-    desc: 'Popular TLDs with free WHOIS protection, DNS management and auto-renew.',
-    bullets: ['Free WHOIS privacy','Managed DNS','SSL ready','Transfer-in supported'],
-    serviceType: 'domain',
-    type: 'domain-tlds'
-  },
-  'domains': { alias:'domain-tlds' },
-  'numbers': { alias:'number-local' },
-};
-
-const TLD_PRICES = [
-  { ext:'.com', price:'$21.99', period:'yr' },
-  { ext:'.net', price:'$25.99', period:'yr' },
-  { ext:'.org', price:'$23.99', period:'yr' },
-  { ext:'.io',  price:'$71.99', period:'yr' },
-  { ext:'.ai',  price:'$159.99',period:'yr' },
-  { ext:'.app', price:'$29.99', period:'yr' },
-  { ext:'.dev', price:'$27.99', period:'yr' },
-  { ext:'.co',  price:'$35.99', period:'yr' },
-  { ext:'.me',  price:'$19.99', period:'yr' },
-  { ext:'.info',price:'$17.99', period:'yr' },
-  { ext:'.biz', price:'$21.99', period:'yr' },
-  { ext:'.us',  price:'$15.99', period:'yr' },
+// ── Store landing page ──
+const STORE_CATEGORIES = [
+  { key: 'compute', icon: '\uD83D\uDDA5\uFE0F', name: 'Virtual Machines', desc: 'Linux VPS with NVMe SSD, hourly snapshots, DDoS protection. Starts at $7.99/mo.' },
+  { key: 'gpu', icon: '\u26A1', name: 'GPU Computing', desc: 'Dedicated NVIDIA GPUs for AI inference, rendering, and HPC workloads.' },
+  { key: 'storage', icon: '\uD83D\uDCBE', name: 'Object Storage', desc: 'S3-compatible storage with versioning, encryption, and zero-egress option.' },
+  { key: 'comms', icon: '\uD83D\uDCDE', name: 'Phone Numbers', desc: 'Virtual numbers with SMS, voice, and WhatsApp Business API support.' },
+  { key: 'apps', icon: '\uD83C\uDF10', name: 'Domains', desc: 'Register domains with free WHOIS privacy, managed DNS, and auto-renew.' }
 ];
 
-// ── Store landing — three paths to purchase ──
 function renderStoreLanding() {
   const right = document.getElementById('store-right');
-  right.innerHTML = `
-    <!-- Mission strip -->
-    <div class="store-hero" style="background:linear-gradient(135deg,#060d0a 0%,#0a1a10 60%,#060e08 100%);padding:2rem 2rem 1.5rem">
-      <div class="store-hero-body">
-        <div class="store-hero-tag">General Bots Cloud Store</div>
-        <div class="store-hero-title" style="font-size:1.5rem;margin:.5rem 0 .4rem">Your sovereign AI infrastructure</div>
-        <div class="store-hero-desc">Buy individual services, compose a bundle with Offers, or use the Calculator to price your full Private Cloud — your way.</div>
+  if (!right) return;
+  right.innerHTML =
+`<div class="mission-banner">
+    <div class="mission-banner-inner">
+      <div class="mission-badge">New: Sovereign Cloud</div>
+      <div class="mission-title">Your data, your infrastructure, your rules.</div>
+      <div class="mission-desc">
+        General Bots Cloud lets you provision bare-metal servers, GPU nodes, object storage,
+        phone numbers and domains — all in one place. No vendor lock-in, full root access,
+        transparent pricing with no surprise bills.
+      </div>
+      <div class="mission-badges">
+        <span class="mission-badge-sm">\uD83D\uDD12 End-to-end encryption</span>
+        <span class="mission-badge-sm">\uD83C\uDF0D 150+ countries</span>
+        <span class="mission-badge-sm">\u269B\uFE0F NVMe SSD storage</span>
+        <span class="mission-badge-sm">\uD83D\uDEE1\uFE0F DDoS protection included</span>
       </div>
     </div>
-
-    <!-- Three purchase paths -->
-    <div style="padding:1.5rem 2rem 1rem">
-      <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">How to buy</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin-bottom:2rem">
-        <a href="/cloud/offers" style="text-decoration:none;display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid rgba(255,0,128,.2);border-radius:var(--radius);padding:1.15rem;transition:all .18s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,0,128,.2)'">
-          <div style="font-size:1.4rem">⭐</div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text)">Offers &amp; Bundles</div>
-          <div style="font-size:.75rem;color:var(--muted);line-height:1.5">Pre-composed packages at the best price. Multiple services at once, single invoice.</div>
-          <div style="font-size:.78rem;font-weight:600;color:var(--accent);margin-top:auto">Browse Offers →</div>
-        </a>
-        <div style="display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.15rem;cursor:pointer;transition:all .18s" onclick="document.getElementById('calc-panel').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.borderColor='rgba(255,0,128,.2)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:1.4rem">🧮</div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text)">Calculator</div>
-          <div style="font-size:.75rem;color:var(--muted);line-height:1.5">Configure VPS, GPU, storage, phone and LLM tokens. See your total before committing.</div>
-          <div style="font-size:.78rem;font-weight:600;color:var(--accent);margin-top:auto">Use Calculator →</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.15rem;cursor:pointer;transition:all .18s" onclick="document.getElementById('store-categories').scrollIntoView({behavior:'smooth'})" onmouseover="this.style.borderColor='rgba(255,0,128,.2)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:1.4rem">🛒</div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text)">Individual Services</div>
-          <div style="font-size:.75rem;color:var(--muted);line-height:1.5">Pick exactly what you need. Each service managed independently — upgrade or cancel anytime.</div>
-          <div style="font-size:.78rem;font-weight:600;color:var(--accent);margin-top:auto">Browse Store →</div>
-        </div>
-      </div>
-
-      <!-- Categories -->
-      <div id="store-categories">
-        <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">Services catalog</div>
-        <div class="store-landing">` +
-    [
-      { cat:'compute',  icon:'🖥️', name:'Virtual Machines',    badge:'Upgradeable', desc:'Linux VMs with full root access, NVMe SSD, DDoS protection. Scale up or down anytime.' },
-      { cat:'gpu',      icon:'⚡',  name:'GPU Computing',       badge:'Upgradeable', desc:'Dedicated NVIDIA GPUs for AI inference and LLM fine-tuning. Add to any VM.' },
-      { cat:'storage',  icon:'💾',  name:'Object Storage',      badge:'Upgradeable', desc:'S3-compatible storage for bot data, backups and media. Grow capacity on demand.' },
-      { cat:'comms',    icon:'📞',  name:'Phone Numbers',       badge:'Recurring',   desc:'Virtual numbers for WhatsApp, SMS and voice in 150+ countries.' },
-      { cat:'apps',     icon:'🌐',  name:'Domains',             badge:'Annual',      desc:'Domain registration with free WHOIS privacy, DNS and auto-renew.' },
-      { cat:'machines', icon:'🖥',  name:'Physical Machines',   badge:'Partner',     desc:'Certified on-premises AI hardware. RTX builds to GPU clusters via global distributors.' },
-    ].map(c => `
-          <div class="store-landing-card" onclick="location.href='/cloud/store?cat=${c.cat}'">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <div class="store-landing-icon">${c.icon}</div>
-              <span style="font-size:.58rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.15rem .5rem;border-radius:99px;background:rgba(255,0,128,.1);color:var(--accent);border:1px solid rgba(255,0,128,.2)">${c.badge}</span>
-            </div>
-            <div class="store-landing-name">${c.name}</div>
-            <div class="store-landing-desc">${c.desc}</div>
-            <div class="store-landing-action">Browse ${c.name}</div>
-          </div>`).join('') + `
-        </div>
+  </div>
+  <div class="store-landing">${STORE_CATEGORIES.map(c => {
+    const p = PRODUCT_MAP[CAT_MAP[c.key]];
+    const price = p ? '$' + parseFloat(p.price).toFixed(2) + '/mo' : '';
+    return `<div class="store-landing-card" onclick="renderRight('${CAT_MAP[c.key] || c.key}')">
+      <div class="store-landing-icon">${c.icon}</div>
+      <div class="store-landing-name">${c.name}</div>
+      <div class="store-landing-desc">${c.desc}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto">
+        <span class="store-landing-action">Browse</span>
+        ${price ? '<span style="font-size:.78rem;color:var(--accent2);font-weight:700">' + price + '</span>' : ''}
       </div>
     </div>`;
+  }).join('')}</div>`;
 }

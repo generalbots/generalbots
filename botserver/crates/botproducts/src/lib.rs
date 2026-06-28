@@ -3,6 +3,7 @@ pub mod pos;
 pub mod pricing;
 pub mod routes;
 pub mod schema;
+pub mod seed;
 
 use axum::{
     extract::{Path, Query, State},
@@ -1034,10 +1035,24 @@ async fn handle_products_items(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let (org_id, bot_id) = match get_default_bot {
+            Some(f) => {
+                let (id, _) = f(&mut conn);
+                (Uuid::nil(), id)
+            }
             None => return None,
         };
+
+        let cat_map: std::collections::HashMap<String, String> = product_categories::table
+            .filter(product_categories::org_id.eq(org_id))
+            .filter(product_categories::bot_id.eq(bot_id))
+            .select((product_categories::id, product_categories::name))
+            .load::<(Uuid, String)>(&mut conn)
+            .ok()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(id, name)| (id.to_string(), name))
+            .collect();
 
         let mut db_query = products::table
             .filter(products::bot_id.eq(bot_id))
@@ -1057,7 +1072,7 @@ async fn handle_products_items(
         let limit = query.limit.unwrap_or(50);
         db_query = db_query.limit(limit);
 
-        db_query
+        let items = db_query
             .select((
                 products::id,
                 products::sku,
@@ -1070,56 +1085,63 @@ async fn handle_products_items(
                 products::is_active,
             ))
             .load::<(Uuid, Option<String>, String, Option<String>, Option<String>, BigDecimal, String, i32, bool)>(&mut conn)
-            .ok()
+            .ok()?;
+
+        if items.is_empty() {
+            return Some(String::new());
+        }
+
+        let mut html = String::new();
+        for (id, sku, name, desc, category, price, currency, stock, is_active) in items {
+            let sku_str = sku.unwrap_or_else(|| "-".to_string());
+            let desc_str = desc.unwrap_or_default();
+            let cat_id = category.unwrap_or_default();
+            let cat_str = cat_map.get(&cat_id).cloned().unwrap_or_else(|| {
+                if cat_id.is_empty() { "Uncategorized".to_string() } else { cat_id }
+            });
+            let price_str = format_currency(bd_to_f64(&price), &currency);
+            let stock_str = if stock == -1 { "Unlimited".to_string() } else { stock.to_string() };
+            let status_class = if is_active { "status-active" } else { "status-inactive" };
+            let status_text = if is_active { "Active" } else { "Inactive" };
+
+            html.push_str(&format!(
+                "<div class=\"product-card\" data-id=\"{id}\">\
+                <div class=\"product-header\">\
+                <span class=\"product-name\">{}</span>\
+                <span class=\"product-sku\">{}</span>\
+                </div>\
+                <div class=\"product-body\">\
+                <p class=\"product-desc\">{}</p>\
+                <div class=\"product-meta\">\
+                <span class=\"product-category\">{}</span>\
+                <span class=\"product-price\">{}</span>\
+                <span class=\"product-stock\">Stock: {}</span>\
+                <span class=\"{}\">{}</span>\
+                </div>\
+                </div>\
+                <div class=\"product-actions\">\
+                <button class=\"btn-sm\" hx-get=\"/api/products/{id}\" hx-target=\"#product-detail\">View</button>\
+                <button class=\"btn-sm btn-secondary\" hx-get=\"/api/products/{id}/edit\" hx-target=\"#modal-content\">Edit</button>\
+                </div>\
+                </div>",
+                html_escape(&name),
+                html_escape(&sku_str),
+                html_escape(&desc_str),
+                html_escape(&cat_str),
+                price_str,
+                stock_str,
+                status_class,
+                status_text
+            ));
+        }
+        Some(html)
     })
     .await
     .ok()
     .flatten();
 
     match result {
-        Some(items) if !items.is_empty() => {
-            let mut html = String::new();
-            for (id, sku, name, desc, category, price, currency, stock, is_active) in items {
-                let sku_str = sku.unwrap_or_else(|| "-".to_string());
-                let desc_str = desc.unwrap_or_default();
-                let cat_str = category.unwrap_or_else(|| "Uncategorized".to_string());
-                let price_str = format_currency(bd_to_f64(&price), &currency);
-                let stock_str = stock.to_string();
-                let status_class = if is_active { "status-active" } else { "status-inactive" };
-                let status_text = if is_active { "Active" } else { "Inactive" };
-
-                html.push_str(&format!(
-                    "<div class=\"product-card\" data-id=\"{id}\">\
-                    <div class=\"product-header\">\
-                    <span class=\"product-name\">{}</span>\
-                    <span class=\"product-sku\">{}</span>\
-                    </div>\
-                    <div class=\"product-body\">\
-                    <p class=\"product-desc\">{}</p>\
-                    <div class=\"product-meta\">\
-                    <span class=\"product-category\">{}</span>\
-                    <span class=\"product-price\">{}</span>\
-                    <span class=\"product-stock\">Stock: {}</span>\
-                    <span class=\"{}\">{}</span>\
-                    </div>\
-                    </div>\
-                    <div class=\"product-actions\">\
-                    <button class=\"btn-sm\" hx-get=\"/api/products/{id}\" hx-target=\"#product-detail\">View</button>\
-                    <button class=\"btn-sm btn-secondary\" hx-get=\"/api/products/{id}/edit\" hx-target=\"#modal-content\">Edit</button>\
-                    </div>\
-                    </div>",
-                    html_escape(&name),
-                    html_escape(&sku_str),
-                    html_escape(&desc_str),
-                    html_escape(&cat_str),
-                    price_str,
-                    stock_str,
-                    status_class,
-                    status_text
-                ));
-            }
-            Html(format!("<div class=\"products-grid\">{html}</div>"))
-        }
+        Some(html) if !html.is_empty() => Html(format!("<div class=\"products-grid\">{html}</div>")),
         _ => Html(
             "<div class=\"products-empty\">\
             <div class=\"empty-icon\">\u{1f4e6}</div>\
@@ -1139,10 +1161,24 @@ async fn handle_products_services(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let (org_id, bot_id) = match get_default_bot {
+            Some(f) => {
+                let (id, _) = f(&mut conn);
+                (Uuid::nil(), id)
+            }
             None => return None,
         };
+
+        let cat_map: std::collections::HashMap<String, String> = product_categories::table
+            .filter(product_categories::org_id.eq(org_id))
+            .filter(product_categories::bot_id.eq(bot_id))
+            .select((product_categories::id, product_categories::name))
+            .load::<(Uuid, String)>(&mut conn)
+            .ok()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(id, name)| (id.to_string(), name))
+            .collect();
 
         let mut db_query = services::table
             .filter(services::bot_id.eq(bot_id))
@@ -1162,7 +1198,7 @@ async fn handle_products_services(
         let limit = query.limit.unwrap_or(50);
         db_query = db_query.limit(limit);
 
-        db_query
+        let items = db_query
             .select((
                 services::id,
                 services::name,
@@ -1176,52 +1212,59 @@ async fn handle_products_services(
                 services::is_active,
             ))
             .load::<(Uuid, String, Option<String>, Option<String>, String, Option<BigDecimal>, Option<BigDecimal>, String, Option<i32>, bool)>(&mut conn)
-            .ok()
+            .ok()?;
+
+        if items.is_empty() {
+            return Some(String::new());
+        }
+
+        let mut html = String::new();
+        for (id, name, _desc, category, svc_type, hourly, fixed, currency, duration, is_active) in items {
+            let cat_id = category.unwrap_or_default();
+            let cat_str = cat_map.get(&cat_id).cloned().unwrap_or_else(|| {
+                if cat_id.is_empty() { "General".to_string() } else { cat_id }
+            });
+            let type_str = svc_type;
+            let price_str = if let Some(ref h) = hourly {
+                format!("{}/hr", format_currency(bd_to_f64(h), &currency))
+            } else if let Some(ref f) = fixed {
+                format_currency(bd_to_f64(f), &currency)
+            } else {
+                "-".to_string()
+            };
+            let duration_str = duration.map(|d| format!("{} min", d)).unwrap_or_else(|| "-".to_string());
+            let status_class = if is_active { "status-active" } else { "status-inactive" };
+            let status_text = if is_active { "Active" } else { "Inactive" };
+
+            html.push_str(&format!(
+                "<tr class=\"service-row\" data-id=\"{id}\">\
+                <td class=\"service-name\">{}</td>\
+                <td class=\"service-category\">{}</td>\
+                <td class=\"service-type\">{}</td>\
+                <td class=\"service-price\">{}</td>\
+                <td class=\"service-duration\">{}</td>\
+                <td class=\"service-status\"><span class=\"{}\">{}</span></td>\
+                <td class=\"service-actions\">\
+                <button class=\"btn-sm\" hx-get=\"/api/products/services/{id}\" hx-target=\"#service-detail\">View</button>\
+                </td>\
+                </tr>",
+                html_escape(&name),
+                html_escape(&cat_str),
+                html_escape(&type_str),
+                price_str,
+                duration_str,
+                status_class,
+                status_text
+            ));
+        }
+        Some(html)
     })
     .await
     .ok()
     .flatten();
 
     match result {
-        Some(items) if !items.is_empty() => {
-            let mut html = String::new();
-            for (id, name, _desc, category, svc_type, hourly, fixed, currency, duration, is_active) in items {
-                let cat_str = category.unwrap_or_else(|| "General".to_string());
-                let type_str = svc_type;
-                let price_str = if let Some(ref h) = hourly {
-                    format!("{}/hr", format_currency(bd_to_f64(h), &currency))
-                } else if let Some(ref f) = fixed {
-                    format_currency(bd_to_f64(f), &currency)
-                } else {
-                    "-".to_string()
-                };
-                let duration_str = duration.map(|d| format!("{} min", d)).unwrap_or_else(|| "-".to_string());
-                let status_class = if is_active { "status-active" } else { "status-inactive" };
-                let status_text = if is_active { "Active" } else { "Inactive" };
-
-                html.push_str(&format!(
-                    "<tr class=\"service-row\" data-id=\"{id}\">\
-                    <td class=\"service-name\">{}</td>\
-                    <td class=\"service-category\">{}</td>\
-                    <td class=\"service-type\">{}</td>\
-                    <td class=\"service-price\">{}</td>\
-                    <td class=\"service-duration\">{}</td>\
-                    <td class=\"service-status\"><span class=\"{}\">{}</span></td>\
-                    <td class=\"service-actions\">\
-                    <button class=\"btn-sm\" hx-get=\"/api/products/services/{id}\" hx-target=\"#service-detail\">View</button>\
-                    </td>\
-                    </tr>",
-                    html_escape(&name),
-                    html_escape(&cat_str),
-                    html_escape(&type_str),
-                    price_str,
-                    duration_str,
-                    status_class,
-                    status_text
-                ));
-            }
-            Html(html)
-        }
+        Some(html) if !html.is_empty() => Html(html),
         _ => Html(
             "<tr class=\"empty-row\">\
             <td colspan=\"7\" class=\"empty-state\">\
@@ -1437,12 +1480,26 @@ async fn handle_products_search(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let (org_id, bot_id) = match get_default_bot {
+            Some(f) => {
+                let (id, _) = f(&mut conn);
+                (Uuid::nil(), id)
+            }
             None => return None,
         };
 
-        products::table
+        let cat_map: std::collections::HashMap<String, String> = product_categories::table
+            .filter(product_categories::org_id.eq(org_id))
+            .filter(product_categories::bot_id.eq(bot_id))
+            .select((product_categories::id, product_categories::name))
+            .load::<(Uuid, String)>(&mut conn)
+            .ok()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(id, name)| (id.to_string(), name))
+            .collect();
+
+        let items = products::table
             .filter(products::bot_id.eq(bot_id))
             .filter(
                 products::name.ilike(&search_term)
@@ -1460,35 +1517,42 @@ async fn handle_products_search(
                 products::currency,
             ))
             .load::<(Uuid, Option<String>, String, Option<String>, BigDecimal, String)>(&mut conn)
-            .ok()
+            .ok()?;
+
+        if items.is_empty() {
+            return Some(String::new());
+        }
+
+        let mut html = String::new();
+        for (id, sku, name, category, price, currency) in items {
+            let sku_str = sku.unwrap_or_else(|| "-".to_string());
+            let cat_id = category.unwrap_or_default();
+            let cat_str = cat_map.get(&cat_id).cloned().unwrap_or_else(|| {
+                if cat_id.is_empty() { "Uncategorized".to_string() } else { cat_id }
+            });
+            let price_str = format_currency(bd_to_f64(&price), &currency);
+
+            html.push_str(&format!(
+                "<div class=\"search-result-item\" hx-get=\"/api/products/{id}\" hx-target=\"#product-detail\">\
+                <span class=\"result-name\">{}</span>\
+                <span class=\"result-sku\">{}</span>\
+                <span class=\"result-category\">{}</span>\
+                <span class=\"result-price\">{}</span>\
+                </div>",
+                html_escape(&name),
+                html_escape(&sku_str),
+                html_escape(&cat_str),
+                price_str
+            ));
+        }
+        Some(format!("<div class=\"search-results\">{html}</div>"))
     })
     .await
     .ok()
     .flatten();
 
     match result {
-        Some(items) if !items.is_empty() => {
-            let mut html = String::new();
-            for (id, sku, name, category, price, currency) in items {
-                let sku_str = sku.unwrap_or_else(|| "-".to_string());
-                let cat_str = category.unwrap_or_else(|| "Uncategorized".to_string());
-                let price_str = format_currency(bd_to_f64(&price), &currency);
-
-                html.push_str(&format!(
-                    "<div class=\"search-result-item\" hx-get=\"/api/products/{id}\" hx-target=\"#product-detail\">\
-                    <span class=\"result-name\">{}</span>\
-                    <span class=\"result-sku\">{}</span>\
-                    <span class=\"result-category\">{}</span>\
-                    <span class=\"result-price\">{}</span>\
-                    </div>",
-                    html_escape(&name),
-                    html_escape(&sku_str),
-                    html_escape(&cat_str),
-                    price_str
-                ));
-            }
-            Html(format!("<div class=\"search-results\">{html}</div>"))
-        }
+        Some(html) if !html.is_empty() => Html(html),
         _ => Html(format!(
             "<div class=\"search-results-empty\">\
             <p>No results for \"{}\"</p>\

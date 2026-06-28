@@ -7,21 +7,68 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 let allPlans = {};
+let catalogProducts = [];
 let currentPeriod = 'monthly';
 
 async function loadPlans(token) {
   try {
-    const res = await fetch(`${API_BASE}/plans`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (!res.ok) { showError('Failed to load plans'); return; }
-    const data = await res.json();
-    allPlans = data.plans || {};
+    const [plansRes, catalogRes] = await Promise.all([
+      fetch(`${API_BASE}/plans`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      }),
+      fetch('/api/catalog/plans'),
+    ]);
+
+    if (plansRes.ok) {
+      const data = await plansRes.json();
+      allPlans = data.plans || {};
+    } else {
+      showError('Failed to load plans');
+      return;
+    }
+
+    if (catalogRes.ok) {
+      catalogProducts = await catalogRes.json();
+    }
+
     renderPlans(currentPeriod);
     renderFeatureMatrix();
+    injectCatalogJsonLd();
   } catch (err) {
     showError('Error: ' + err.message);
   }
+}
+
+function injectCatalogJsonLd() {
+  if (catalogProducts.length === 0) return;
+  const items = catalogProducts.map((p, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: {
+      '@type': 'Product',
+      name: p.name,
+      description: p.description || '',
+      sku: p.sku || '',
+      offers: {
+        '@type': 'Offer',
+        price: p.price_usd.toFixed(2),
+        priceCurrency: p.currency,
+        availability: 'https://schema.org/InStock',
+      },
+    },
+  }));
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: items,
+  };
+  const existing = document.getElementById('catalog-schema');
+  if (existing) existing.remove();
+  const el = document.createElement('script');
+  el.type = 'application/ld+json';
+  el.id = 'catalog-schema';
+  el.textContent = JSON.stringify(schema);
+  document.head.appendChild(el);
 }
 
 function renderPlans(period) {

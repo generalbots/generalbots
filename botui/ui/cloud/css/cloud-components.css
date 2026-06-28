@@ -81,10 +81,7 @@
 }
 
 .split-pitch-title span {
-  background: var(--prism-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--prism-gradient);
 }
 
 .split-pitch-body {
@@ -146,10 +143,7 @@
 .split-trust-num {
   font-size: 1.5rem;
   font-weight: 800;
-  background: var(--prism-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--prism-gradient);
 }
 
 .split-trust-label {

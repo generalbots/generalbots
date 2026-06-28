@@ -50,6 +50,9 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
     api_router = api_router
         .route(ApiUrls::AUTH, get(super::anonymous_auth::anonymous_auth_handler));
 
+    // Public catalog API — no auth required (before auth middleware)
+    api_router = api_router.merge(super::catalog::configure_catalog_routes());
+
     api_router
 }
 
