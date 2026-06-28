@@ -5,7 +5,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--bg-primary, #0a0a0a);
+    background: transparent;
     color: var(--text, #f8fafc);
 }
 
