@@ -1141,7 +1141,7 @@ async fn handle_products_items(
     .flatten();
 
     match result {
-        Some(html) if !html.is_empty() => Html(format!("<div class=\"products-grid\">{html}</div>")),
+        Some(html) if !html.is_empty() => Html(html),
         _ => Html(
             "<div class=\"products-empty\">\
             <div class=\"empty-icon\">\u{1f4e6}</div>\
