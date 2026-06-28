@@ -9,7 +9,7 @@ const RES_ITEMS = {
     { id: 'vps-medium', label: 'VPS Medium — $19.99/mo' },
     { id: 'vps-large', label: 'VPS Large — $39.99/mo' },
     { id: 'vps-xl', label: 'VPS XL — $79.99/mo' },
-    { id: 'gpu-basic', label: 'GPU Basic — $29.99/mo' },
+    { id: 'gpu-basic', label: 'GPU Basic — $39.99/mo' },
     { id: 'gpu-pro', label: 'GPU Pro — $99.99/mo' },
   ],
   storage: [

@@ -1,10 +1,10 @@
 <div class="navigation-menu" id="navigation-menu">
     <nav class="nav-menu-content">
-        <a href="/auth/login"
+        <a href="/login"
            class="nav-menu-item nav-sign-in"
-           hx-get="/auth/login"
+           hx-get="/login"
            hx-swap="none"
-           hx-on::after-request="window.location.href='/login'">
+           hx-on::after-request="window.location.href=(window.GB_LOGIN_URL||'/login')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                 <polyline points="10 17 15 12 10 7"></polyline>

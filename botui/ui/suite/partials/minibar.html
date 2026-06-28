@@ -139,7 +139,7 @@
                 </div>
                 <a
                     id="authAction"
-                    href="/auth/login.html"
+                    href="/login"
                     style="
                         display: flex;
                         align-items: center;
@@ -227,7 +227,7 @@
                             }).finally(function () {
                                 localStorage.removeItem("gb-access-token");
                                 sessionStorage.removeItem("gb-access-token");
-                                window.location.href = "/auth/login.html";
+                                window.location.href = window.GB_LOGIN_URL || "/login";
                             });
                         };
 

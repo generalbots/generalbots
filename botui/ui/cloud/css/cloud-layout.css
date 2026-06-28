@@ -1,6 +1,6 @@
 /* ============================================================
    General Bots Cloud · Layout & Theme System
-   Design: "Prism" — monochrome + rainbow spectrum accents
+   Design: monochrome — clean, thin, bw
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -27,11 +27,11 @@
   --border-hover:  rgba(0, 0, 0, 0.18);
 
   /* Accent palette */
-  --accent:        #0077b6;
-  --accent2:       #1a9a5c;
-  --accent3:       #d9303e;
-  --accent-dim:    rgba(0, 119, 182, 0.08);
-  --accent-glow:   rgba(0, 119, 182, 0.2);
+  --accent:        #555;
+  --accent2:       #777;
+  --accent3:       #999;
+  --accent-dim:    rgba(0, 0, 0, 0.06);
+  --accent-glow:   rgba(0, 0, 0, 0.12);
 
   /* Shadows */
   --shadow:        0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -43,7 +43,7 @@
   /* Scrollbar */
   --scrollbar-thumb: rgba(0, 0, 0, 0.15);
 
-  /* Prism spectrum — shared */
+  /* Prism spectrum — rainbow accent line under topbar only */
   --prism-gradient: linear-gradient(90deg, #ff2d55, #ff9500, #ffd60a, #30d158, #00c7ff, #5856d6, #bf5af2);
   --neon-magenta:  #ff2d55;
   --neon-violet:   #bf5af2;
@@ -74,11 +74,11 @@
     --border:        rgba(255, 255, 255, 0.07);
     --border-hover:  rgba(255, 255, 255, 0.18);
 
-    --accent:        #00c7ff;
-    --accent2:       #30d158;
-    --accent3:       #ff3b30;
-    --accent-dim:    rgba(0, 199, 255, 0.08);
-    --accent-glow:   rgba(0, 199, 255, 0.2);
+    --accent:        #aaa;
+    --accent2:       #888;
+    --accent3:       #666;
+    --accent-dim:    rgba(255, 255, 255, 0.06);
+    --accent-glow:   rgba(255, 255, 255, 0.12);
 
     --shadow:        0 1px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-accent: 0 0 0 3px var(--accent-glow);
@@ -105,11 +105,11 @@
   --border:        rgba(255, 255, 255, 0.07);
   --border-hover:  rgba(255, 255, 255, 0.18);
 
-  --accent:        #00c7ff;
-  --accent2:       #30d158;
-  --accent3:       #ff3b30;
-  --accent-dim:    rgba(0, 199, 255, 0.08);
-  --accent-glow:   rgba(0, 199, 255, 0.2);
+  --accent:        #aaa;
+  --accent2:       #888;
+  --accent3:       #666;
+  --accent-dim:    rgba(255, 255, 255, 0.06);
+  --accent-glow:   rgba(255, 255, 255, 0.12);
 
   --shadow:        0 1px 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-accent: 0 0 0 3px var(--accent-glow);
@@ -233,11 +233,14 @@ img {
 .mgmt-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 20px 18px 16px;
-  text-decoration: none;
-  color: var(--text);
+  justify-content: center;
+  background: #000;
+  padding: 6px 16px 4px;
   user-select: none;
+}
+
+.mgmt-logo img {
+  filter: brightness(0) invert(1);
 }
 
 .mgmt-logo-mark {
@@ -409,9 +412,9 @@ img {
   padding: 0 6px;
   border-radius: 99px;
   font-size: 0.65rem;
-  font-weight: 700;
-  color: #fff;
-  background: var(--prism-gradient);
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--accent-dim);
   margin-left: auto;
   line-height: 1;
 }
@@ -461,7 +464,7 @@ img {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--prism-gradient);
+  background: var(--accent3);
   display: flex;
   align-items: center;
   justify-content: center;

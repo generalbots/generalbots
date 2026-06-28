@@ -100,6 +100,9 @@ pub fn configure_router() -> Router {
         .route("/minimal", get(serve_minimal))
         .route("/suite", get(serve_suite));
 
+    // Route /auth/login.html to the configured LOGIN_URL (before any static file service)
+    router = router.route("/auth/login.html", get(serve_login));
+
     #[cfg(not(feature = "embed-ui"))]
     {
         router = router.nest_service("/auth", ServeDir::new(suite_path.join("auth")));
