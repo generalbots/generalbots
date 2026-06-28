@@ -1,5 +1,3 @@
-const API_BASE = '/api/cloud';
-
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get('payload');

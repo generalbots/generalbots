@@ -1,5 +1,3 @@
-const API_BASE = '/api/cloud';
-
 document.addEventListener('DOMContentLoaded', async () => {
   const token = requireAuth();
   const emailEl = document.getElementById('user-email');
