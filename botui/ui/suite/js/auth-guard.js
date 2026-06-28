@@ -2,12 +2,12 @@
 /* GBAuthGuard — front-end auth check + login redirect for Zitadel-protected apps.
  * Public API (window.GBAuthGuard):
  *   require()          — async; resolves to { id, name, email, color, token } if logged in,
- *                        or redirects to /suite/auth/login.html?return_to=<current-url> otherwise
+ *                        or redirects to GB_LOGIN_URL?return_to=<current-url> otherwise
  *   getUser()          — sync; returns parsed user from localStorage or null
  *   getToken()         — sync; returns JWT or ""
  *   isAuthenticated()  — sync; boolean
  *   logout(returnTo)   — clears storage, redirects to login
- *   loginUrl(returnTo) — builds /suite/auth/login.html URL with return_to
+ *   loginUrl(returnTo) — builds GB_LOGIN_URL URL with return_to
  *
  * Depends on auth-service.js (loaded before this file in suite_app.js order).
  */
@@ -55,7 +55,7 @@
 
   function loginUrl(returnTo) {
     const rt = returnTo || (window.location.pathname + window.location.search + window.location.hash);
-    return "/suite/auth/login.html?return_to=" + encodeURIComponent(rt);
+    return (window.GB_LOGIN_URL || "/login") + "?return_to=" + encodeURIComponent(rt);
   }
 
   function require() {

@@ -222,7 +222,7 @@
       } finally {
         this.clearAuth();
         this.emit("logout");
-        window.location.href = "/auth/login.html";
+        window.location.href = window.GB_LOGIN_URL || "/login";
       }
     }
 
@@ -354,7 +354,7 @@
       const currentPath = window.location.pathname + window.location.hash;
       if (!window.location.pathname.startsWith("/auth/")) {
         window.location.href =
-          "/auth/login.html?expired=1&redirect=" +
+          (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
           encodeURIComponent(currentPath);
       }
     }

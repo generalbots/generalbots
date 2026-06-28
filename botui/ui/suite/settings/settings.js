@@ -612,7 +612,7 @@
     localStorage.removeItem("gb-refresh-token");
     localStorage.removeItem("gb-token-expires");
     localStorage.removeItem("gb-user-data");
-    window.location.href = "/auth/login.html";
+    window.location.href = window.GB_LOGIN_URL || "/login";
   }
 
   function escapeHtml(text) {

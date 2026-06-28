@@ -1286,7 +1286,7 @@ document.addEventListener("DOMContentLoaded", () => {
           localStorage.removeItem("gb-refresh-token");
           localStorage.removeItem("gb-user-data");
           sessionStorage.removeItem("gb-access-token");
-          window.location.href = "/auth/login.html";
+          window.location.href = window.GB_LOGIN_URL || "/login";
         });
       };
       authAction.style.color = "var(--error)";
@@ -1374,7 +1374,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (userAvatarLarge) userAvatarLarge.textContent = "U";
 
     if (authAction) {
-      authAction.href = "/auth/login.html";
+      authAction.href = window.GB_LOGIN_URL || "/login";
       authAction.removeAttribute("onclick");
       authAction.style.color = "var(--primary)";
     }

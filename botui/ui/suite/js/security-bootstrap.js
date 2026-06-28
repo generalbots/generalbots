@@ -429,7 +429,7 @@
             sessionStorage.setItem('gb-signed-out', 'true');
             var path = window.location.pathname + window.location.hash;
             window.location.href =
-              "/auth/login.html?expired=1&redirect=" +
+              (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
               encodeURIComponent(path);
           }, 5000);
           window.__checkBotPublicStatusPromise.then(function () {
@@ -444,7 +444,7 @@
             sessionStorage.setItem('gb-signed-out', 'true');
             var path = window.location.pathname + window.location.hash;
             window.location.href =
-              "/auth/login.html?expired=1&redirect=" +
+              (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
               encodeURIComponent(path);
           });
           return;
@@ -458,7 +458,7 @@
 
         var currentPath = window.location.pathname + window.location.hash;
         window.location.href =
-          "/auth/login.html?expired=1&redirect=" +
+          (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
           encodeURIComponent(currentPath);
       });
 

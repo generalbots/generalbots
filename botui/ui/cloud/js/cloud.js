@@ -1,5 +1,19 @@
 const API_BASE = '/api/cloud';
 
+// Accept auth token from URL params (cross-domain redirect from login.pragmatismo.com.br)
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  var tok = p.get('token');
+  if (tok) {
+    localStorage.setItem('management_token', tok);
+    localStorage.setItem('management_email', p.get('email') || '');
+    localStorage.setItem('management_name', p.get('name') || '');
+    var u = new URL(window.location.href);
+    u.search = '';
+    window.history.replaceState({}, '', u);
+  }
+})();
+
 const SVG = {
   robot: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="7" width="16" height="13" rx="3"/><circle cx="9" cy="11" r="1.5" fill="currentColor"/><circle cx="15" cy="11" r="1.5" fill="currentColor"/><path d="M9 16c1.5 1.5 4.5 1.5 6 0"/><path d="M8 7V4M16 7V4"/></svg>',
   dashboard: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/></svg>',

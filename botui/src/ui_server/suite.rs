@@ -1,7 +1,7 @@
 use axum::{
     extract::{OriginalUri, Query, State},
     http::StatusCode,
-    response::{Html, IntoResponse, Response},
+    response::{Html, IntoResponse, Redirect, Response},
 };
 use log::{error, info, warn};
 use serde::Deserialize;
@@ -69,7 +69,9 @@ pub async fn index(
                         || resp.status() == axum::http::StatusCode::UNAUTHORIZED)
                 {
                     info!("index: Access denied for bot {} (invalid token)", bot);
-                    return axum::response::Redirect::to("/auth/login.html").into_response();
+                    let login_url = std::env::var("LOGIN_URL")
+                        .unwrap_or_else(|_| "http://localhost:5000".to_string());
+                    return Redirect::to(&login_url).into_response();
                 }
             }
             Err(e) => {
@@ -78,8 +80,16 @@ pub async fn index(
         }
     }
 
-    // Check if path contains static asset directories - serve them directly
     let path_lower = path.to_lowercase();
+
+    // Redirect auth login paths to the configured LOGIN_URL (e.g. login.pragmatismo.com.br)
+    if path_lower.contains("/auth/") && path_lower.ends_with("login.html") {
+        let login_url = std::env::var("LOGIN_URL")
+            .unwrap_or_else(|_| "http://localhost:5000".to_string());
+        return Redirect::to(&login_url).into_response();
+    }
+
+    // Check if path contains static asset directories - serve them directly
     if path_lower.contains("/js/")
         || path_lower.contains("/css/")
         || path_lower.contains("/vendor/")
@@ -260,13 +270,22 @@ pub async fn serve_suite_impl(_state: &AppState, bot_name: Option<String>, _head
                 html.insert_str(head_end, &base_tag);
 
                 if !is_auth_page {
+                    let login_url = std::env::var("LOGIN_URL")
+                        .unwrap_or_else(|_| "http://localhost:5000".to_string());
+                    let login_script = format!(
+                        r#"<script>window.GB_LOGIN_URL = "{}";</script>"#,
+                        &login_url
+                    );
+                    html.insert_str(head_end + base_tag.len(), &login_script);
+
                     if let Some(name) = bot_name {
+                        let ins_offset = head_end + base_tag.len() + login_script.len();
                         info!("serve_suite: Injecting bot_name '{}' into page with base href='{}'", name, base_href);
                         let bot_script = format!(
                             r#"<script>window.__INITIAL_BOT_NAME__ = "{}"; window.__BOT_IS_PUBLIC__ = false;</script>"#,
                             &name
                         );
-                        html.insert_str(head_end + base_tag.len(), &bot_script);
+                        html.insert_str(ins_offset, &bot_script);
                         info!("serve_suite: Successfully injected base tag and bot_name script");
                     } else {
                         info!("serve_suite: Successfully injected base tag (no bot_name)");

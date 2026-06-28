@@ -456,8 +456,8 @@
                     </div>
                     <div class="taskbar-right">
                         <div id="themeSelectorContainer" style="margin-right:2px;"></div>
-                        <button class="taskbar-widget" title="Login"
-                            onclick="window.location.href='/suite/auth/login.html'">
+                        <button id="loginBtn" class="taskbar-widget" title="Entrar"
+                            onclick="window.location.href=(window.GB_LOGIN_URL||'/login')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </button>
                         <div class="taskbar-clock">
@@ -544,22 +544,49 @@
             });
 
             // Update login button based on auth state
+            function setLoginSignIn(btn) {
+                btn.title = "Entrar";
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+                btn.style.gap = "";
+                btn.onclick = function () {
+                    window.location.href = (window.GB_LOGIN_URL || '/login');
+                };
+            }
+
             function updateLoginButton() {
-                var token = window.getGBAccessToken && window.getGBAccessToken();
                 var loginBtn = document.getElementById("loginBtn");
-                if (token && loginBtn) {
-                    loginBtn.textContent = "Sign Out";
+                if (!loginBtn) return;
+                var isAuth = window.GBSecurity && window.GBSecurity.isAuthenticated();
+                var token = window.getGBAccessToken && window.getGBAccessToken();
+                if (!isAuth || !token) {
+                    setLoginSignIn(loginBtn);
+                    return;
+                }
+                fetch("/api/auth/me", {
+                    headers: { Authorization: "Bearer " + token }
+                })
+                .then(function (resp) {
+                    if (!resp.ok) throw new Error("Not authenticated");
+                    return resp.json();
+                })
+                .then(function (user) {
+                    var displayName = user.display_name || user.first_name || user.username || "User";
+                    var initial = displayName.charAt(0).toUpperCase();
+                    loginBtn.title = displayName + " — clique para sair";
+                    loginBtn.innerHTML = '<span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--primary,#84d669);color:#fff;font-size:11px;line-height:20px;text-align:center;font-weight:700;margin-right:4px;">' + initial + '</span>' + displayName;
+                    loginBtn.style.gap = "4px";
                     loginBtn.onclick = function () {
                         sessionStorage.setItem('gb-signed-out', 'true');
-                        fetch("/api/auth/logout", { method: "POST" }).finally(
-                            function () {
-                                localStorage.removeItem("gb-access-token");
-                                sessionStorage.removeItem("gb-access-token");
-                                window.location.href = '/auth/login.html';
-                            },
-                        );
+                        fetch("/api/auth/logout", { method: "POST" }).finally(function () {
+                            localStorage.removeItem("gb-access-token");
+                            sessionStorage.removeItem("gb-access-token");
+                            window.location.href = window.GB_LOGIN_URL || '/login';
+                        });
                     };
-                }
+                })
+                .catch(function () {
+                    setLoginSignIn(loginBtn);
+                });
             }
 
             function getActiveUsername() {
@@ -599,8 +626,23 @@
                 if (workspace) window.Desktop3D.init(workspace);
             }
 
-            // Check login state on load
-            setTimeout(updateLoginButton, 500);
+            // Listen for auth state changes
+            function initAuthUI() {
+                updateLoginButton();
+                window.addEventListener("gb:auth:login", updateLoginButton);
+                window.addEventListener("gb:auth:logout", updateLoginButton);
+                window.addEventListener("gb:auth:expired", function () {
+                    var btn = document.getElementById("loginBtn");
+                    if (btn) setLoginSignIn(btn);
+                });
+            }
+
+            if (window.GBSecurity && window.GBSecurity.initialized) {
+                initAuthUI();
+            } else {
+                window.addEventListener("gb:security:ready", initAuthUI);
+                setTimeout(initAuthUI, 1000);
+            }
 
             // Simple Clock implementation matching the screenshot bottom right corner
             setInterval(() => {

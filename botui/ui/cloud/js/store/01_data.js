@@ -83,7 +83,7 @@ const CATALOGUE = {
     bullets: ['Dedicated NVIDIA GPU', 'CUDA 12 pre-installed', 'Persistent storage', 'Upgradeable anytime', 'Cancel independently'],
     serviceType: 'gpu',
     plans: [
-      { id:'gpu-basic',      tier:'Basic',      name:'GT 730',    amount:'29.99',  period:'mo', currency:'$', specs:['GT 730 GPU','4 vCPU','8 GB RAM','100 GB NVMe'],   featured:false },
+      { id:'gpu-basic',      tier:'Basic',      name:'RTX 3060',  amount:'39.99',  period:'mo', currency:'$', specs:['RTX 3060 12GB','4 vCPU','8 GB RAM','100 GB NVMe'],   featured:false },
       { id:'gpu-pro',        tier:'Pro',        name:'RTX 4090',  amount:'99.99',  period:'mo', currency:'$', specs:['RTX 4090','8 vCPU','32 GB RAM','200 GB NVMe'],   featured:true  },
       { id:'gpu-enterprise', tier:'Enterprise', name:'A100 80GB', amount:'299.99', period:'mo', currency:'$', specs:['A100 80GB','16 vCPU','64 GB RAM','400 GB NVMe'], featured:false },
     ]

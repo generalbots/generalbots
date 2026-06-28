@@ -28,7 +28,7 @@ async function handleLogin(e) {
     localStorage.setItem('management_token', data.token);
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
-    window.location.href = '/cloud/dashboard';
+    window.location.href = 'https://cloud.pragmatismo.com.br/cloud/dashboard?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';
@@ -80,11 +80,11 @@ async function handleSignup(e) {
     localStorage.setItem('management_bot_name', botName);
     localStorage.setItem('management_plan', data.plan || 'free');
     // Private Server: redirect to Store VPS calculator instead of Dashboard
-    if (plan === 'private-cloud') {
-      window.location.href = '/cloud/store';
-    } else {
-      window.location.href = '/cloud/dashboard';
-    }
+    const dest = plan === 'private-cloud' ? '/cloud/store' : '/cloud/dashboard';
+    window.location.href = 'https://cloud.pragmatismo.com.br' + dest
+      + '?token=' + encodeURIComponent(token)
+      + '&email=' + encodeURIComponent(emailOut)
+      + '&name=' + encodeURIComponent(data.account?.name || name);
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';

@@ -51,6 +51,11 @@ ChatState.ws.onopen = function () {
   if (typeof window.showChatApp === "function") {
     window.showChatApp();
   }
+  var params = new URLSearchParams(window.location.search);
+  var q = params.get("q");
+  if (q && typeof window.sendMessage === "function") {
+    setTimeout(function () { window.sendMessage(q); }, 300);
+  }
 };
 
   ChatState.ws.onmessage = function (event) {
