@@ -6,6 +6,21 @@
   <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
   <link rel="stylesheet" href="/cloud/css/cloud-components.css">
   <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <script>
+  (async function() {
+    try {
+      const res = await fetch('/api/catalog/prices.json');
+      if (res.ok) {
+        const data = await res.json();
+        const el = document.createElement('script');
+        el.type = 'application/ld+json';
+        el.id = 'product-schema';
+        el.textContent = JSON.stringify(data);
+        document.head.appendChild(el);
+      }
+    } catch(e) { /* JSON-LD not critical */ }
+  })();
+  </script>
 </head>
 <body class="mgmt-layout">
 <div class="mgmt-shell">
@@ -70,5 +85,6 @@
   </main>
 </div>
 <script src="/cloud/js/cloud.js"></script>
+<script src="/cloud/js/cloud-plans.js"></script>
 </body>
 </html>

@@ -101,7 +101,7 @@ pub async fn run_axum_server(
             "/api/health".into(), "/api/auth".into(), "/api/auth/login".into(),
             "/api/auth/refresh".into(), "/api/auth/bootstrap".into(), "/api/setup/status".into(),
             "/api/product".into(), "/api/manifest".into(), "/api/i18n".into(),
-            "/api/client-errors".into(), "/api/cloud/auth*".into(), "/ws".into(),
+            "/api/client-errors".into(), "/api/cloud/auth*".into(), "/api/catalog".into(), "/ws".into(),
             "/ws/".into(), "/webhook/whatsapp".into(), "/webhook".into(),
         ],
         ..Default::default()
@@ -376,8 +376,12 @@ fn add_workspaces_routes(r: Router, s: &Arc<AppState>) -> Router {
 
 #[cfg(feature = "billing")]
 fn add_products_routes(r: Router, s: &Arc<AppState>) -> Router {
-    r.merge(crate::products::configure_products_routes().with_state(Arc::new(botproducts::ProductsState { pool: Arc::new(s.conn.clone()), get_default_bot: None })))
-        .merge(crate::products::configure_products_api_routes().with_state(Arc::new(botproducts::ProductsState { pool: Arc::new(s.conn.clone()), get_default_bot: None })))
+    let make_state = || Arc::new(botproducts::ProductsState {
+        pool: Arc::new(s.conn.clone()),
+        get_default_bot: Some((|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
+    });
+    r.merge(crate::products::configure_products_routes().with_state(make_state()))
+        .merge(crate::products::configure_products_api_routes().with_state(make_state()))
 }
 
 #[cfg(feature = "tickets")]

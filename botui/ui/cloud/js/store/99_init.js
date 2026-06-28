@@ -1,6 +1,5 @@
-const CAT_MAP = { compute: 'vps-small', gpu: 'gpu-basic', storage: 'storage-50', comms: 'number-local', apps: 'domain-search' };
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadCatalogProducts();
   const email = localStorage.getItem('management_email') || '';
   const emailEl = document.getElementById('sidebar-email');
   const avatarEl = document.getElementById('sidebar-avatar');

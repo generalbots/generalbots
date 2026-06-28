@@ -47,6 +47,13 @@ function esc(s) {
 let currentProduct = 'vps-small';
 let selectedPlan = null;
 
+function catalogPriceBadge(sku) {
+  const p = getCatalogProduct(sku);
+  if (!p) return '';
+  const price = parseFloat(p.price).toFixed(2);
+  return `<span style="font-size:.55rem;color:var(--accent2);margin-left:.3rem;opacity:.7" title="CRM verified">✓ ${p.currency || '$'}${price}</span>`;
+}
+
 // ── Product catalogue (all prices in USD, doubled) ──
 
 function renderRight(productKey) {
@@ -224,9 +231,12 @@ function orderDomain(ext) {
 }
 
 function orderDomainName(domain) {
-  selectedPlan = { name: domain, amount:'21.99', currency:'$', period:'yr', specs:['Free WHOIS privacy','Managed DNS'] };
+  const ext = '.' + domain.split('.').pop();
+  const p = PRODUCT_MAP['domain-' + ext.replace('.', '')];
+  const price = p ? parseFloat(p.price).toFixed(2) : '21.99';
+  selectedPlan = { name: domain, amount: price, currency: '$', period: 'yr', specs:['Free WHOIS privacy','Managed DNS'] };
   document.getElementById('modal-title').textContent = `Register ${domain}`;
-  document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Register <strong style="color:var(--text)">${esc(domain)}</strong> for $21.99/yr including free WHOIS privacy.</p>`;
+  document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Register <strong style="color:var(--text)">${esc(domain)}</strong> for $${price}/yr including free WHOIS privacy.</p>`;
   document.getElementById('purchase-modal').classList.add('open');
 }
 
@@ -238,21 +248,25 @@ function searchNumbers() {
     `+1 415-555-0101`, `+1 415-555-0182`, `+1 415-555-0207`,
     `+1 650-555-0143`, `+1 650-555-0167`,
   ];
+  const p = PRODUCT_MAP['number-local'];
+  const price = p ? parseFloat(p.price).toFixed(2) : '5.99';
   tbody.innerHTML = mockNumbers.map(n => `
     <tr>
       <td style="font-family:monospace;font-size:.9rem">${n}</td>
       <td>United States</td>
       <td><span class="badge badge-active">SMS + Voice</span></td>
-      <td>$5.99/mo</td>
+      <td>$${price}/mo</td>
       <td><button class="btn btn-secondary btn-sm" onclick="orderNumber('${n}')">Buy</button></td>
     </tr>`).join('');
 }
 
 
 function orderNumber(number) {
-  selectedPlan = { name:'Virtual Number', amount:'5.99', currency:'$', period:'mo', specs:[number,'SMS + Voice','WhatsApp-ready'] };
+  const p = PRODUCT_MAP['number-local'];
+  const price = p ? parseFloat(p.price).toFixed(2) : '5.99';
+  selectedPlan = { name:'Virtual Number', amount: price, currency:'$', period:'mo', specs:[number,'SMS + Voice','WhatsApp-ready'] };
   document.getElementById('modal-title').textContent = `Order Number ${number}`;
-  document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Purchase <strong style="color:var(--text)">${esc(number)}</strong> for $5.99/mo with SMS + Voice capabilities.</p>`;
+  document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Purchase <strong style="color:var(--text)">${esc(number)}</strong> for $${price}/mo with SMS + Voice capabilities.</p>`;
   document.getElementById('purchase-modal').classList.add('open');
 }
 

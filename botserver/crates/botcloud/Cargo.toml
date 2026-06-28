@@ -28,6 +28,10 @@ lettre = { workspace = true, features = ["tokio1-rustls-tls", "tokio1"] }
 botbilling = { workspace = true }
 botproviders = { workspace = true }
 botsecurity = { path = "../botsecurity" }
+botproducts = { workspace = true, optional = true }
+
+[features]
+saas = ["dep:botproducts"]
 
 [lints]
 workspace = true

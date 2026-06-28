@@ -10,9 +10,10 @@ name=General Bots
 
 # Active apps (comma-separated list)
 # Available apps: chat, mail, calendar, drive, tasks, docs, paper, sheet, slides,
-#                 meet, research, sources, analytics, admin, monitoring, settings
+#                 meet, research, sources, analytics, admin, monitoring, settings,
+#                 products, billing, people, tickets, social, compliance
 # Only listed apps will be visible in the UI and have their APIs enabled.
-apps=chat,drive,editor
+apps=chat,drive,editor,products
 
 # Sidebar visibility
 # Controls whether the left sidebar is shown in the suite

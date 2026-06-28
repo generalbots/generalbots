@@ -149,6 +149,18 @@
           No services yet. <a href="/cloud/store" style="color:var(--accent)">Browse the store</a> to get started.
         </div>
       </div>
+
+      <!-- PRODUCT CATALOG -->
+      <div class="mgmt-section-header">
+        <div><div class="mgmt-section-title">Product Catalog</div><div class="mgmt-section-sub">Products recorded in the default org</div></div>
+        <a href="/cloud/store" class="btn btn-ghost btn-sm">Browse Store</a>
+      </div>
+      <div class="products-grid" id="catalog-products" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;margin-bottom:2rem">
+        <div class="mgmt-empty" style="grid-column:1/-1">
+          <div class="mgmt-empty-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
+          Loading products...
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -254,6 +266,33 @@
   }
 
   await loadDashboard();
+
+  // Load catalog products (from DB seeded data)
+  async function loadCatalogProducts() {
+    try {
+      const res = await fetch('/api/catalog/products');
+      if (!res.ok) { return; }
+      const products = await res.json();
+      const container = document.getElementById('catalog-products');
+      if (!container) return;
+      if (!products || products.length === 0) {
+        container.innerHTML = '<div class="mgmt-empty" style="grid-column:1/-1"><p>No products in catalog yet.</p></div>';
+        return;
+      }
+      container.innerHTML = products.map(p => {
+        const price = p.price_usd ? '$' + p.price_usd.toFixed(2) : (p.price_cents ? '$' + (p.price_cents/100).toFixed(2) : '—');
+        const cat = p.product_type || p.category || 'general';
+        return '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem">' +
+          '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--accent3)">' + escapeHtml(cat) + '</div>' +
+          '<div style="font-size:.9rem;font-weight:700;color:var(--text);margin:.25rem 0">' + escapeHtml(p.name) + '</div>' +
+          (p.sku ? '<div style="font-size:.7rem;color:var(--muted);font-family:monospace">' + escapeHtml(p.sku) + '</div>' : '') +
+          '<div style="font-size:.85rem;font-weight:600;color:var(--accent2);margin-top:.5rem">' + price + '</div>' +
+          '</div>';
+      }).join('');
+    } catch(e) { /* non-critical */ }
+  }
+
+  await loadCatalogProducts();
 })();
 </script>
 </body>

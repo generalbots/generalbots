@@ -11,6 +11,7 @@ repository = "https://github.com/GeneralBots/BotServer"
 axum = { workspace = true }
 bigdecimal = { workspace = true, features = ["serde"] }
 chrono = { workspace = true, features = ["serde", "clock"] }
+log = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json", "numeric", "32-column-tables"] }
 r2d2 = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

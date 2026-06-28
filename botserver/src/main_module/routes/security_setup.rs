@@ -60,6 +60,7 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_anonymous_path("/ws")
             .add_anonymous_path("/auth")
             .add_anonymous_path("/webhook/whatsapp")
+            .add_anonymous_path("/api/catalog")
             .add_public_path("/static")
             .add_public_path("/favicon.ico")
             .add_public_path("/suite")

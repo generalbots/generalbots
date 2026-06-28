@@ -348,12 +348,19 @@ async fn handle_signup(
         }
     };
 
-    // 8. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal — outside tx)
+    // 8. Seed default cloud CRM products (non-fatal — outside tx)
+    #[cfg(feature = "saas")]
+    {
+        use botproducts::seed::seed_default_products;
+        seed_default_products(&mut conn, org_id, new_bot_id);
+    }
+
+    // 9. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal — outside tx)
     if let Err(e) = integration::create_bot_bucket(&service.config, &org_slug, &bot_name, &bot_name) {
         tracing::warn!("MinIO bucket creation skipped (non-fatal): {e}");
     }
 
-    // 9. Create identity in directory (Zitadel) if configured (non-fatal — outside tx)
+    // 10. Create identity in directory (Zitadel) if configured (non-fatal — outside tx)
     if let (Some(dir_url), Some(dir_token)) = (&service.config.directory_api_url, &service.config.directory_service_token) {
         let parts: Vec<&str> = body.name.splitn(2, ' ').collect();
         let first_name = parts.first().unwrap_or(&"");

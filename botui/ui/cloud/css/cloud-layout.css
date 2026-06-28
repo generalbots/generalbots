@@ -43,8 +43,8 @@
   /* Scrollbar */
   --scrollbar-thumb: rgba(0, 0, 0, 0.15);
 
-  /* Prism spectrum — rainbow accent line under topbar only */
-  --prism-gradient: linear-gradient(90deg, #ff2d55, #ff9500, #ffd60a, #30d158, #00c7ff, #5856d6, #bf5af2);
+  /* Prism spectrum — solid accent (replaced rainbow gradient) */
+  --prism-gradient: #0077b6;
   --neon-magenta:  #ff2d55;
   --neon-violet:   #bf5af2;
 
