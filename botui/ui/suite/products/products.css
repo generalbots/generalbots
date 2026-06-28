@@ -273,7 +273,7 @@
     background: var(--surface, rgba(255, 255, 255, 0.02));
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 12px;
-    overflow: hidden;
+    isolation: isolate;
     transition: all 0.15s ease;
 }
 
