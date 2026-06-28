@@ -1,5 +1,3 @@
-const API_BASE = '/api/cloud';
-
 document.addEventListener('DOMContentLoaded', async () => {
   const token = requireAuth();
   document.getElementById('user-email').textContent = localStorage.getItem('management_email') || '';
