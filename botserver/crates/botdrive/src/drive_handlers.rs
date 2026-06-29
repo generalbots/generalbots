@@ -4,10 +4,11 @@ use botcore::shared::state::AppState;
 use crate::drive_types::*;
 use crate::user_scope;
 use axum::{
-    extract::{Query, State},
+    extract::{Extension, Query, State},
     http::StatusCode,
     response::Json,
 };
+use botcore::middleware::AuthenticatedUser;
 use base64::Engine;
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz};
@@ -472,7 +473,14 @@ pub async fn recent_files(
 
 pub async fn list_buckets(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Json<Vec<BucketListItem>>, (StatusCode, Json<serde_json::Value>)> {
+    if !user.is_authenticated() {
+        return Err(err(
+            StatusCode::UNAUTHORIZED,
+            "Authentication required to list buckets",
+        ));
+    }
     let drive = get_drive(&state)?;
 
     let bucket_names = drive
