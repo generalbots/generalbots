@@ -41,8 +41,15 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
 
     let cors = create_cors_layer();
 
-    let auth_config = Arc::new(
-        AuthConfig::from_env()
+    let auth_config = {
+        let mut cfg = AuthConfig::from_env();
+        // ⚠️ Remove catch-all "/" from public paths — CRITICAL SECURITY.
+        // The default AuthConfig includes "/" which makes every endpoint
+        // publicly accessible, including /api/files/buckets that enumerates
+        // all MinIO buckets. Only explicitly listed paths are public.
+        cfg.public_paths.retain(|p| p != "/");
+
+        Arc::new(cfg
             .add_anonymous_path("/health")
             .add_anonymous_path("/healthz")
             .add_anonymous_path("/api/health")
@@ -66,8 +73,8 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_public_path("/suite")
             .add_public_path("/themes")
             .add_public_path("/api/product")
-            .add_public_path("/")
-    );
+        )
+    };
 
     let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
         info!("JWT_SECRET not set, using default development secret");

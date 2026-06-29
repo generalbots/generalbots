@@ -17,6 +17,11 @@
                     <div class="switchers-label">Formato:</div>
                     <div class="switchers-chips" id="switcherChips"></div>
                 </div>
+                <!-- Signup CTA for public bots — shown when user is not authenticated -->
+                <div id="publicSignupCta" class="public-signup-cta" style="display:none;">
+                    <span>Crie uma conta gratuita para salvar seu histórico e acessar de qualquer lugar.</span>
+                    <a href="#" onclick="window.location.href=(window.GB_LOGIN_URL||'/login')+'?signup=1&bot='+encodeURIComponent(window.__INITIAL_BOT_NAME__||'');return false;">Criar conta gratuita</a>
+                </div>
             </div>
             <div class="mention-dropdown" id="mentionDropdown">
                 <div class="mention-header">

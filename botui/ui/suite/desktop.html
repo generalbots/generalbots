@@ -266,6 +266,55 @@
                 height: 100vh !important;
             }
 
+            /* Public Bot Mode — hides sidebar, chat maximized, toolbar stays visible */
+            body.public-mode .chat-sidebar {
+                display: none !important;
+            }
+            body.public-mode .workspace-v15 {
+                height: calc(100vh - 56px) !important;
+            }
+            body.public-mode .window-element-glass,
+            body.public-mode .window-element {
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+            body.public-mode .window-titlebar {
+                display: none !important;
+            }
+            body.public-mode .window-element-glass > div:first-child,
+            body.public-mode .window-element > div:first-child {
+                display: none !important;
+            }
+
+            /* Signup CTA for public bots */
+            .public-signup-cta {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 16px;
+                background: var(--primary, #84d669);
+                color: #fff;
+                border-radius: 8px;
+                margin: 8px 12px;
+                font-size: 13px;
+                gap: 12px;
+            }
+            .public-signup-cta a {
+                color: #fff;
+                text-decoration: underline;
+                font-weight: 600;
+                white-space: nowrap;
+                cursor: pointer;
+            }
+            .public-signup-cta a:hover {
+                text-decoration: none;
+            }
+
             body.fullscreen .window-titlebar {
                 display: none !important;
             }
@@ -513,6 +562,26 @@
                 // Get bot name from URL path
                 const pathParts = window.location.pathname.split('/');
                 const botName = pathParts[1] || 'default';
+
+                // Check if bot is public → hide sidebar, maximize chat
+                (async () => {
+                    try {
+                        if (botName && botName !== 'default') {
+                            const resp = await fetch('/api/bot/config?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());
+                            if (resp.ok) {
+                                const config = await resp.json();
+                                if (config.is_public === 'true') {
+                                    window.__BOT_IS_PUBLIC__ = true;
+                                    document.body.classList.add('public-mode');
+                                    const sidebar = document.getElementById('chatSidebar');
+                                    if (sidebar) sidebar.style.display = 'none';
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Failed to check bot public status:', e);
+                    }
+                })();
                 
                 // Auto-open Chat window maximized for all bots
                 if (window.wm) {
@@ -545,12 +614,23 @@
 
             // Update login button based on auth state
             function setLoginSignIn(btn) {
-                btn.title = "Entrar";
-                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-                btn.style.gap = "";
-                btn.onclick = function () {
-                    window.location.href = (window.GB_LOGIN_URL || '/login');
-                };
+                var isPublic = window.__BOT_IS_PUBLIC__ === true;
+                var botName = window.__INITIAL_BOT_NAME__ || '';
+                if (isPublic) {
+                    btn.title = "Entrar / Criar conta gratuita";
+                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span style="font-size:11px;margin-left:4px;">Entrar</span>';
+                    btn.style.gap = "2px";
+                    btn.onclick = function () {
+                        window.location.href = (window.GB_LOGIN_URL || '/login') + '?signup=1&bot=' + encodeURIComponent(botName);
+                    };
+                } else {
+                    btn.title = "Entrar";
+                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+                    btn.style.gap = "";
+                    btn.onclick = function () {
+                        window.location.href = (window.GB_LOGIN_URL || '/login');
+                    };
+                }
             }
 
             function updateLoginButton() {
