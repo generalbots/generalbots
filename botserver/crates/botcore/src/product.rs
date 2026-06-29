@@ -350,7 +350,7 @@ pub fn get_product_config_json() -> serde_json::Value {
         .map(|c| c.get_enabled_apps())
         .unwrap_or_default()
         .into_iter()
-        .filter(|app| compiled.contains(&app.as_str()) || app == "settings" || app == "auth") // Always allow settings/auth
+        .filter(|app| compiled.contains(&app.as_str()) || app == "settings" || app == "auth" || app == "admin") // Always allow core features
         .collect();
 
     match config {

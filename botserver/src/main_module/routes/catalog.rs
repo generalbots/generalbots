@@ -140,6 +140,7 @@ fn load_public_products(
 
     dsl::products
         .filter(dsl::is_active.eq(true))
+        .filter(dsl::org_id.eq(uuid::Uuid::nil()))
         .select(CatalogProduct::as_select())
         .order((dsl::product_type, dsl::name))
         .load::<CatalogProduct>(conn)
