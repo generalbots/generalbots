@@ -27,6 +27,10 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "research",
     #[cfg(feature = "people")]
     "people",
+    #[cfg(feature = "people")]
+    "crm", // Alias for people
+    #[cfg(any(feature = "people", feature = "billing", feature = "chat"))]
+    "admin", // Core admin panel
     #[cfg(feature = "social")]
     "social",
     #[cfg(feature = "analytics")]

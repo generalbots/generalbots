@@ -88,7 +88,7 @@ function renderPlans(period) {
         <div class="price">
           ${isFree ? 'Free' : isCustom ? 'Custom' : '$' + displayAmount.toFixed(2) + '<span class="price-period">' + periodLabel + '</span>'}
         </div>
-        ${plan.trial_days ? `<div class="plan-trial">${plan.trial_days}-day free trial</div>` : ''}
+        ${plan.trial_days ? `<div class="plan-trial">${plan.trial_days}-day free trial — no credit card required</div>` : ''}
         <ul class="plan-features">
           ${(plan.features || []).map(f => '<li>' + featureLabel(f) + '</li>').join('')}
         </ul>

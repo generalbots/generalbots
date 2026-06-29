@@ -2,6 +2,8 @@ if (typeof window.WindowManager === "undefined") {
   "use strict";
 
   const APPS_REGISTRY = [
+    { id: "admin", title: "Admin Panel", category: "system", color: "#ef4444", hxGet: "/suite/admin/index.html",
+      icon: '<path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/>' },
     { id: "vibe", title: "Vibe", category: "ai", color: "#84d669", hxGet: "/suite/partials/vibe.html",
       icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
     { id: "crm", title: "CRM", category: "business", color: "#3b82f6", hxGet: "/suite/crm/crm.html",
