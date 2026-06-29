@@ -246,14 +246,27 @@ impl BasicRuntime for AppStateBasicRuntime {
         let sid = response.session_id.clone();
         let resp = response.clone();
         let channels = self.0.response_channels.clone();
+        let bot_id = response.bot_id.clone();
+        let content_preview = response.content.chars().take(60).collect::<String>();
+        info!("send_message: attempting to send to session={}, bot={}, content='{}'",
+            sid, bot_id, content_preview);
         tokio::task::block_in_place(move || {
             let rt = tokio::runtime::Handle::current();
+            let got_sid = sid.clone();
             rt.block_on(async move {
                 let guard = channels.lock().await;
-                if let Some(tx) = guard.get(&sid).cloned() {
-                    let _ = tx.send(resp).await;
+                let count = guard.len();
+                if let Some(tx) = guard.get(&got_sid).cloned() {
+                    info!("send_message: FOUND channel for session {} ({} channels total)", got_sid, count);
+                    let result = tx.send(resp).await;
+                    match result {
+                        Ok(()) => info!("send_message: sent to channel for session {}", got_sid),
+                        Err(e) => warn!("send_message: tx.send failed for session {}: {}", got_sid, e),
+                    }
                 } else {
-                    warn!("send_message: no channel for session {}", sid);
+                    let keys: Vec<&String> = guard.keys().collect();
+                    warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
+                        got_sid, count, keys);
                 }
             });
         });
