@@ -149,9 +149,11 @@ fn load_public_products(
 pub async fn list_products(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<CatalogProductResponse>>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}"))
-    })?;
+    let pool = state.conn.clone();
+    let mut conn = tokio::task::spawn_blocking(move || pool.get())
+        .await
+        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("Join error: {e}")))?
+        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
 
     let products = load_public_products(&mut conn).map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))
@@ -172,9 +174,11 @@ pub async fn get_product_by_sku(
 ) -> Result<Json<CatalogProductResponse>, (StatusCode, String)> {
     use self::prod_schema::products::dsl;
 
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}"))
-    })?;
+    let pool = state.conn.clone();
+    let mut conn = tokio::task::spawn_blocking(move || pool.get())
+        .await
+        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("Join error: {e}")))?
+        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
 
     let product: Option<CatalogProduct> = dsl::products
         .filter(dsl::is_active.eq(true))
@@ -202,9 +206,11 @@ pub async fn list_plans(
 ) -> Result<Json<Vec<CatalogProductResponse>>, (StatusCode, String)> {
     use self::prod_schema::products::dsl;
 
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}"))
-    })?;
+    let pool = state.conn.clone();
+    let mut conn = tokio::task::spawn_blocking(move || pool.get())
+        .await
+        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("Join error: {e}")))?
+        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
 
     let products: Vec<CatalogProduct> = dsl::products
         .filter(dsl::is_active.eq(true))
@@ -228,9 +234,11 @@ pub async fn list_plans(
 pub async fn prices_json(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<JsonLdItemList>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}"))
-    })?;
+    let pool = state.conn.clone();
+    let mut conn = tokio::task::spawn_blocking(move || pool.get())
+        .await
+        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("Join error: {e}")))?
+        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
 
     let products = load_public_products(&mut conn).map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))

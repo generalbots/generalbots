@@ -289,6 +289,7 @@ pub(super) fn make_attendant_router(app_state: &Arc<AppState>) -> Router<()> {
     Router::new()
         .merge(crate::attendance::routes::configure_attendance_routes().with_state(Arc::new(botattendance::AttendanceConfig {
             pool: Arc::new(app_state.conn.clone()),
+            master_key: botsecurity_crypto::encryption::load_master_encryption_key(),
             get_default_bot: Arc::new(|_conn: &mut _| (uuid::Uuid::nil(), "default".to_string())),
             llm_generate: Arc::new(|_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, Box<dyn std::error::Error + Send + Sync>> { Ok(String::new()) }),
             process_content: Arc::new(|_: &str, _: &str| -> String { String::new() }),

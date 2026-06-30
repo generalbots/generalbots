@@ -112,21 +112,21 @@
           <div class="settings-card-title">Token Packs</div>
           <div class="settings-card-desc">Purchase token packs to use across your bots. Available on paid plans.</div>
           <div class="token-grid" id="token-grid">
-            <div class="token-card" onclick="openUpgrade()">
+            <div class="token-card" data-token="10K" data-price="1.00" onclick="purchaseTokens('llm-tokens-10k', '10K tokens', 1.00)">
               <div class="token-amount">10K <small>tokens</small></div>
               <div class="token-price">$1.00</div>
             </div>
-            <div class="token-card" onclick="openUpgrade()">
+            <div class="token-card" data-token="100K" data-price="9.00" onclick="purchaseTokens('llm-tokens-100k', '100K tokens', 9.00)">
               <div class="token-amount">100K <small>tokens</small></div>
               <div class="token-price">$9.00</div>
               <div class="token-bonus">+10% bonus</div>
             </div>
-            <div class="token-card" onclick="openUpgrade()">
+            <div class="token-card" data-token="1M" data-price="79.00" onclick="purchaseTokens('llm-tokens-1m', '1M tokens', 79.00)">
               <div class="token-amount">1M <small>tokens</small></div>
               <div class="token-price">$79.00</div>
               <div class="token-bonus">+21% bonus</div>
             </div>
-            <div class="token-card" onclick="openUpgrade()">
+            <div class="token-card" data-token="10M" data-price="699.00" onclick="purchaseTokens('llm-tokens-10m', '10M tokens', 699.00)">
               <div class="token-amount">10M <small>tokens</small></div>
               <div class="token-price">$699.00</div>
               <div class="token-bonus">+30% bonus</div>
@@ -214,22 +214,49 @@
     }
   }
 
-  window.saveByokKeys = function() {
+  window.saveByokKeys = async function() {
     const inputs = document.querySelectorAll('[data-provider]');
     const keys = {};
     inputs.forEach(inp => {
       const val = inp.value.trim();
       if (val) keys[inp.dataset.provider] = val;
     });
-    localStorage.setItem('gb_byok_keys', JSON.stringify(keys));
+
+    // Send keys to server for encrypted storage
+    const token = requireAuth();
+    if (token) {
+      try {
+        const res = await fetch('/api/cloud/tenant/settings/byok', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
+          body: JSON.stringify({ keys }),
+        });
+        if (res.ok) {
+          showToast('API keys saved encrypted on server.', 'success');
+        } else {
+          const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+          showToast('Server save failed: ' + (err.error || 'Unknown'), 'error');
+          // Fallback: save locally
+          localStorage.setItem('gb_byok_keys', JSON.stringify(keys));
+          showToast('Keys saved locally as fallback.', 'info');
+        }
+      } catch (e) {
+        localStorage.setItem('gb_byok_keys', JSON.stringify(keys));
+        showToast('Server unavailable. Keys saved locally.', 'info');
+      }
+    } else {
+      localStorage.setItem('gb_byok_keys', JSON.stringify(keys));
+      showToast('Keys saved locally.', 'info');
+    }
 
     // Update status indicators
     Object.keys(keys).forEach(id => {
       const status = document.getElementById('byok-status-' + id);
       if (status) { status.className = 'byok-status active'; status.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved'; }
     });
-
-    alert('API keys saved locally. In production, keys are encrypted and stored server-side.');
   };
 
   window.redeemVoucher = async function() {
@@ -271,7 +298,7 @@
     }
   };
 
-  // Plan info
+  // Plan info + free tier blocking
   try {
     const [plansRes, orgsRes] = await Promise.all([
       fetch('/api/cloud/plans', { headers: { 'Authorization': 'Bearer ' + token } }),
@@ -287,10 +314,45 @@
         document.getElementById('plan-price').textContent = price;
       }
     }
+    // Hide token packs for free tier
+    if (currentPlan === 'free') {
+      const tokenSection = document.getElementById('token-grid');
+      if (tokenSection) {
+        var parent = tokenSection.closest('.settings-section') || tokenSection.parentElement;
+        if (parent) parent.style.display = 'none';
+      }
+    }
   } catch(e) {}
 
   await loadByok();
 })();
+
+window.purchaseTokens = async function(itemId, label, price) {
+  const token = requireAuth();
+  if (!token) return;
+  const email = localStorage.getItem('management_email') || '';
+  if (!email) { showToast('Please sign in first.', 'error'); return; }
+
+  var confirmed = confirm('Purchase ' + label + ' for $' + price.toFixed(2) + '?');
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(API_BASE + '/store/purchase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ item_id: itemId, email: email }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast('Purchase complete! Invoice #' + (data.invoice_number || data.invoice_id) + ' created.', 'success');
+    } else {
+      const err = await res.json().catch(() => ({ error: 'Request failed' }));
+      showToast('Purchase failed: ' + (err.error || err.message || 'Unknown error'), 'error');
+    }
+  } catch (e) {
+    showToast('Network error: ' + e.message, 'error');
+  }
+};
 
 function openUpgrade() {
   window.location.href = '/cloud/offers';

@@ -236,8 +236,8 @@ pub fn create_conn() -> Result<DbPool, anyhow::Error> {
     let database_url = get_database_url_sync()?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder()
-        .max_size(10)
-        .min_idle(Some(1))
+        .max_size(50)
+        .min_idle(Some(5))
         .connection_timeout(std::time::Duration::from_secs(5))
         .idle_timeout(Some(std::time::Duration::from_secs(300)))
         .max_lifetime(Some(std::time::Duration::from_secs(1800)))
@@ -249,8 +249,8 @@ pub async fn create_conn_async() -> Result<DbPool, anyhow::Error> {
     let database_url = get_database_url_sync()?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder()
-        .max_size(10)
-        .min_idle(Some(1))
+        .max_size(50)
+        .min_idle(Some(5))
         .connection_timeout(std::time::Duration::from_secs(5))
         .idle_timeout(Some(std::time::Duration::from_secs(300)))
         .max_lifetime(Some(std::time::Duration::from_secs(1800)))
@@ -389,7 +389,9 @@ pub fn create_tls_client(timeout_secs: Option<u64>) -> Client {
 /// A reqwest::Client configured for TLS verification
 pub fn create_tls_client_with_ca(ca_cert_path: &str, timeout_secs: Option<u64>) -> Client {
     let timeout = Duration::from_secs(timeout_secs.unwrap_or(30));
-    let mut builder = Client::builder().timeout(timeout);
+    let mut builder = Client::builder()
+        .timeout(timeout)
+        .connect_timeout(Duration::from_secs(5));
 
     // Try to load local CA cert (dev stack with self-signed certs)
     // If it doesn't exist, we use system CA store (production with public certs)

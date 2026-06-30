@@ -8,7 +8,14 @@ use std::sync::Arc;
 use botcore::shared::state::AppState;
 
 pub async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
-    let db_ok = state.conn.get().is_ok();
+    let pool = state.conn.clone();
+    let db_ok = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        tokio::task::spawn_blocking(move || pool.get().is_ok()),
+    )
+    .await
+    .unwrap_or(Ok(false))
+    .unwrap_or(false);
 
     let status = if db_ok { "healthy" } else { "degraded" };
     let code = if db_ok {
