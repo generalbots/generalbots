@@ -141,6 +141,7 @@ impl DriveMonitor {
 
         if etag_changed || existing.is_none() || needs_reindex {
             match self.file_repo.upsert_file(
+                self.bot_id,
                 &full_key,
                 file_type,
                 etag.clone(),
@@ -772,9 +773,16 @@ impl DriveMonitor {
     }
 
     fn bot_work_dir(&self, subdir: &str) -> PathBuf {
-        self.work_root
-            .join(&self.tenant_slug)
-            .join(&self.org_slug)
-            .join(format!("{}.gbai/{}.{}", self.branch_slug, self.bot_name, subdir))
+        if &self.tenant_slug == "default" && &self.org_slug == "default" {
+            // Flat bot (no tenant/org isolation) — store directly under work_root
+            self.work_root
+                .join(format!("{}.gbai/{}.{}", self.branch_slug, self.bot_name, subdir))
+        } else {
+            // Multi-tenant bot — store under tenant/org prefix
+            self.work_root
+                .join(&self.tenant_slug)
+                .join(&self.org_slug)
+                .join(format!("{}.gbai/{}.{}", self.branch_slug, self.bot_name, subdir))
+        }
     }
 }

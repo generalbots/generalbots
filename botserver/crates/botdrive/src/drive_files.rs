@@ -26,6 +26,7 @@ pub mod dsl {
 pub use botcore::shared::schema::drive::DriveFile;
 
 pub struct FileUpsertParams {
+    pub bot_id: uuid::Uuid,
     pub file_path: String,
     pub file_type: String,
     pub etag: Option<String>,
@@ -64,6 +65,7 @@ impl DriveFileRepository {
 
     pub fn upsert_file(
         &self,
+        bot_id: uuid::Uuid,
         file_path: &str,
         file_type: &str,
         etag: Option<String>,
@@ -71,31 +73,20 @@ impl DriveFileRepository {
     ) -> Result<(), String> {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
-        let now = Utc::now();
-        let etag_clone = etag.clone();
-        let last_modified_clone = last_modified;
-
-        diesel::insert_into(drive_files::table)
-            .values((
-                drive_files::file_path.eq(file_path),
-                drive_files::file_type.eq(file_type),
-                drive_files::etag.eq(etag),
-                drive_files::last_modified.eq(last_modified),
-                drive_files::indexed.eq(false),
-                drive_files::fail_count.eq(0),
-                drive_files::created_at.eq(now),
-                drive_files::updated_at.eq(now),
-            ))
-        .on_conflict(drive_files::file_path)
-        .do_update()
-        .set((
-            drive_files::file_type.eq(file_type),
-            drive_files::etag.eq(etag_clone),
-            drive_files::last_modified.eq(last_modified_clone),
-            drive_files::updated_at.eq(now),
-        ))
-            .execute(&mut conn)
-            .map_err(|e| e.to_string())?;
+        diesel::sql_query(
+            "INSERT INTO drive_files (bot_id, file_path, file_type, etag, last_modified, indexed, fail_count, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, false, 0, NOW(), NOW()) \
+             ON CONFLICT (bot_id, file_path) DO UPDATE SET \
+             file_type = EXCLUDED.file_type, etag = EXCLUDED.etag, \
+             last_modified = EXCLUDED.last_modified, updated_at = NOW()"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(file_path)
+        .bind::<diesel::sql_types::Text, _>(file_type)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(etag)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(last_modified)
+        .execute(&mut conn)
+        .map_err(|e| e.to_string())?;
 
         Ok(())
     }
@@ -198,42 +189,33 @@ impl DriveFileRepository {
         self.get_file_state(file_path).is_some()
     }
 
-    /// Upsert a file with full state (including indexed and fail_count)
-pub fn upsert_file_full(
-&self,
-params: FileUpsertParams,
-) -> Result<(), String> {
-let mut conn = self.pool.get().map_err(|e| e.to_string())?;
+    pub fn upsert_file_full(
+        &self,
+        params: FileUpsertParams,
+    ) -> Result<(), String> {
+        let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
-let now = Utc::now();
+        diesel::sql_query(
+            "INSERT INTO drive_files (bot_id, file_path, file_type, etag, last_modified, indexed, fail_count, last_failed_at, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) \
+             ON CONFLICT (bot_id, file_path) DO UPDATE SET \
+             etag = EXCLUDED.etag, last_modified = EXCLUDED.last_modified, \
+             indexed = EXCLUDED.indexed, fail_count = EXCLUDED.fail_count, \
+             last_failed_at = EXCLUDED.last_failed_at, updated_at = NOW()"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(params.bot_id)
+        .bind::<diesel::sql_types::Text, _>(&params.file_path)
+        .bind::<diesel::sql_types::Text, _>(&params.file_type)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&params.etag)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(params.last_modified)
+        .bind::<diesel::sql_types::Bool, _>(params.indexed)
+        .bind::<diesel::sql_types::Int4, _>(params.fail_count)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(params.last_failed_at)
+        .execute(&mut conn)
+        .map_err(|e| e.to_string())?;
 
-diesel::insert_into(drive_files::table)
-.values((
-drive_files::file_path.eq(params.file_path),
-drive_files::file_type.eq(params.file_type),
-drive_files::etag.eq(&params.etag),
-drive_files::last_modified.eq(params.last_modified),
-drive_files::indexed.eq(params.indexed),
-drive_files::fail_count.eq(params.fail_count),
-drive_files::last_failed_at.eq(params.last_failed_at),
-drive_files::created_at.eq(now),
-drive_files::updated_at.eq(now),
-))
-.on_conflict(drive_files::file_path)
-.do_update()
-.set((
-drive_files::etag.eq(&params.etag),
-drive_files::last_modified.eq(params.last_modified),
-drive_files::indexed.eq(params.indexed),
-drive_files::fail_count.eq(params.fail_count),
-drive_files::last_failed_at.eq(params.last_failed_at),
-drive_files::updated_at.eq(now),
-))
-.execute(&mut conn)
-.map_err(|e| e.to_string())?;
-
-Ok(())
-}
+        Ok(())
+    }
 
     /// Mark all files matching a path pattern as indexed (for KB folder indexing)
     /// Does NOT update ETag — individual file ETags are already set by upsert_file during scan
