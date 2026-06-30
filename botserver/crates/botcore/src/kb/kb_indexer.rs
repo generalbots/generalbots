@@ -583,7 +583,7 @@ pub async fn index_single_file_with_id(
     );
 
     if let Err(e) = self.delete_file_points(&collection_name, &doc_path).await {
-        info!("Failed to delete old points for {} before reindex: {}", doc_path, e);
+        warn!("Failed to delete old points for {} before reindex: {}", doc_path, e);
     }
 
     let chunks = self.document_processor.process_document(file_path).await?;
@@ -642,24 +642,45 @@ pub async fn index_single_file_with_id(
             self.qdrant_config.url, collection_name
         );
 
-        let response = self
-            .http_client
-            .post(&delete_url)
-            .json(&serde_json::json!({ "filter": filter }))
-            .send()
-            .await?;
+        let mut last_error = None;
+        for attempt in 1..=3 {
+            match self
+                .http_client
+                .post(&delete_url)
+                .json(&serde_json::json!({ "filter": filter }))
+                .send()
+                .await
+            {
+                Ok(response) => {
+                    if !response.status().is_success() {
+                        let error_text = response.text().await.unwrap_or_default();
+                        return Err(anyhow::anyhow!("Failed to delete points: {}", error_text));
+                    }
 
-        if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!("Failed to delete points: {}", error_text));
+                    info!(
+                        "Deleted points for document {} from collection {}",
+                        document_path, collection_name
+                    );
+                    return Ok(());
+                }
+                Err(e) => {
+                    warn!(
+                        "Failed to delete points for {} (attempt {}): {}",
+                        document_path, attempt, e
+                    );
+                    last_error = Some(e);
+                    if attempt < 3 {
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    }
+                }
+            }
         }
 
-        info!(
-            "Deleted points for document {} from collection {}",
-            document_path, collection_name
-        );
-
-        Ok(())
+        Err(anyhow::anyhow!(
+            "Failed to delete points for {} after 3 attempts: {}",
+            document_path,
+            last_error.unwrap()
+        ))
     }
 
     fn update_collection_metadata(
