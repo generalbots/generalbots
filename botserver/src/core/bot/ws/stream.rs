@@ -111,11 +111,35 @@ pub async fn process_llm_response(
                     Ok(id) => id,
                     Err(_) => Uuid::new_v4(),
                 };
-                crate::core::bot::tool_context::get_session_tools(
-                    &state_clone.conn, &bot_name_clone, &sid,
-                ).ok().unwrap_or_default()
+                let pool = state_clone.conn.clone();
+                let name = bot_name_clone.clone();
+                let sid_for_block = sid;
+                match tokio::time::timeout(
+                    std::time::Duration::from_secs(10),
+                    tokio::task::spawn_blocking(move || {
+                        crate::core::bot::tool_context::get_session_tools(
+                            &pool, &name, &sid_for_block,
+                        )
+                    }),
+                ).await {
+                    Ok(Ok(Ok(tools))) => {
+                        info!("Loaded {} tools for LLM session {}", tools.len(), session_id_s);
+                        tools
+                    }
+                    Ok(Ok(Err(e))) => {
+                        warn!("get_session_tools error for {}: {}", session_id_s, e);
+                        Vec::new()
+                    }
+                    Ok(Err(e)) => {
+                        warn!("get_session_tools spawn_blocking join error for {}: {}", session_id_s, e);
+                        Vec::new()
+                    }
+                    Err(_) => {
+                        warn!("get_session_tools TIMEOUT after 10s for session {}", session_id_s);
+                        Vec::new()
+                    }
+                }
             };
-            info!("Loaded {} tools for LLM session {}", session_tools.len(), session_id_s);
 
             let _stream_handle = tokio::spawn(async move {
                 info!("LLM spawn task starting: model={}, key_len={}", llm_model_clone, llm_key_clone.len());

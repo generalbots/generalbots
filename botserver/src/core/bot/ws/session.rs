@@ -106,7 +106,7 @@ async fn handle_text_message(
         let _ = sm.get_or_create_session_by_id(session_id, user_id, bot_uuid, "");
     }
 
-    if msg_type == 7 {
+    if msg_type == 7 || msg_type == 0 {
         return;
     }
 
@@ -372,14 +372,21 @@ async fn handle_text_message(
 
     let user_query = user_text.clone();
     let mut messages_val = serde_json::Value::Array(messages.clone());
-    crate::core::bot::kb_context::inject_kb_context(
-        &state.conn,
-        session_id,
-        bot_uuid,
-        &user_query,
-        &mut messages_val,
-        4000,
-    ).await;
+    info!("ws_handler: injecting KB context for session {}", session_id);
+    if tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        crate::core::bot::kb_context::inject_kb_context(
+            &state.conn,
+            session_id,
+            bot_uuid,
+            &user_query,
+            &mut messages_val,
+            4000,
+        ),
+    ).await.is_err() {
+        warn!("ws_handler: inject_kb_context TIMEOUT after 30s for session {}", session_id);
+    }
+    info!("ws_handler: KB context injection completed for session {}", session_id);
     if let Some(arr) = messages_val.as_array() {
         messages = arr.clone();
     }
@@ -403,8 +410,15 @@ async fn handle_text_message(
     full_prompt.push_str(&format!("\nUser: {}", user_text));
     full_prompt.push_str("\nAssistant: ");
 
-    super::stream::process_llm_response(
-        ws_sender, rx, state, bot_uuid, session_id, user_id, bot_name,
-        &full_prompt, &user_text,
-    ).await;
+    info!("ws_handler: calling process_llm_response for session {}", session_id);
+    if tokio::time::timeout(
+        std::time::Duration::from_secs(300),
+        super::stream::process_llm_response(
+            ws_sender, rx, state, bot_uuid, session_id, user_id, bot_name,
+            &full_prompt, &user_text,
+        ),
+    ).await.is_err() {
+        warn!("ws_handler: process_llm_response TIMEOUT after 300s for session {}", session_id);
+    }
+    info!("ws_handler: process_llm_response finished for session {}", session_id);
 }
