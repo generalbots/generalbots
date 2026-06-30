@@ -78,7 +78,7 @@
       </div>
 
       <!-- UPGRADE PATH -->
-      <div class="upgrade-card">
+      <div class="upgrade-card" id="upgrade-card">
         <div style="flex-shrink:0">
           <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--accent)" stroke-width="1.5">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -86,10 +86,10 @@
           </svg>
         </div>
         <div class="upgrade-info">
-          <div class="upgrade-title">Go Private Cloud</div>
-          <div class="upgrade-desc">Upgrade to Private Cloud for dedicated VPS, unlimited workspaces, and exclusive GPU access. Starting at $9.99/mo.</div>
-          <div class="upgrade-features">
-            <span class="upgrade-feature">Dedicated VPS</span>
+          <div class="upgrade-title" id="upgrade-title">Go Shared or Private Cloud</div>
+          <div class="upgrade-desc" id="upgrade-desc">Upgrade to unlock dedicated VPS, unlimited workspaces, GPU access, phone numbers, domains, and more. Starting at $3.99/mo.</div>
+          <div class="upgrade-features" id="upgrade-features">
+            <span class="upgrade-feature">More Messages</span>
             <span class="upgrade-feature">Unlimited Workspaces</span>
             <span class="upgrade-feature">GPU Access</span>
             <span class="upgrade-feature">BYOK + Tokens</span>
@@ -97,15 +97,15 @@
           </div>
         </div>
         <div>
-          <a href="/cloud/offers" class="btn btn-primary">View Offers</a>
+          <a href="/cloud/offers" class="btn btn-primary" id="upgrade-btn">View Offers</a>
         </div>
       </div>
 
-      <!-- QUICK LAUNCH -->
-      <div class="mgmt-section-header">
-        <div><div class="mgmt-section-title">Quick Launch</div><div class="mgmt-section-sub">Most popular add-ons</div></div>
+      <!-- QUICK LAUNCH (paid) -->
+      <div class="mgmt-section-header" id="quick-launch-header">
+        <div><div class="mgmt-section-title">Quick Launch</div><div class="mgmt-section-sub" id="quick-launch-sub">Most popular add-ons</div></div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin-bottom:2rem">
+      <div id="quick-launch-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin-bottom:2rem">
         <a href="/cloud/store?cat=compute" class="store-card" style="text-decoration:none">
           <div class="store-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h6"/><path d="M9 19h6"/></svg></div>
           <div class="store-cat">Compute</div>
@@ -201,10 +201,50 @@
       badge.textContent = planLabels[currentPlan] || currentPlan;
       badge.style.fontWeight = '600';
 
-      // Hide upgrade card for private-cloud users
-      const upgradeCard = document.querySelector('.upgrade-card');
-      if (upgradeCard && (currentPlan === 'private-cloud' || currentPlan === 'private')) {
-        upgradeCard.style.display = 'none';
+      // Plan-aware upgrade card + free tier blocking
+      const upgradeCard = document.getElementById('upgrade-card');
+      const quickLaunchHeader = document.getElementById('quick-launch-header');
+      const quickLaunchGrid = document.getElementById('quick-launch-grid');
+      if (currentPlan === 'private-cloud' || currentPlan === 'private') {
+        if (upgradeCard) upgradeCard.style.display = 'none';
+      } else if (currentPlan === 'free') {
+        // Free: hide Quick Launch (all items are paid)
+        if (quickLaunchHeader) quickLaunchHeader.style.display = 'none';
+        if (quickLaunchGrid) quickLaunchGrid.style.display = 'none';
+        // Upgrade card points to Shared as next step
+        const ut = document.getElementById('upgrade-title');
+        const ud = document.getElementById('upgrade-desc');
+        const uf = document.getElementById('upgrade-features');
+        const ub = document.getElementById('upgrade-btn');
+        if (ut) ut.textContent = 'Go Shared Plan';
+        if (ud) ud.textContent = 'Upgrade to Shared Plan ($3.99/mo) for more messages, phone numbers, domains, and LLM access.';
+        if (uf) uf.innerHTML = '<span class="upgrade-feature">More Messages</span><span class="upgrade-feature">Phone Numbers</span><span class="upgrade-feature">Domains</span><span class="upgrade-feature">BYOK</span><span class="upgrade-feature">LLM Models</span>';
+        if (ub) ub.textContent = 'See Plans';
+      } else {
+        // Shared: upgrade card points to Private Cloud, Quick Launch stays
+        const ut = document.getElementById('upgrade-title');
+        const ud = document.getElementById('upgrade-desc');
+        const uf = document.getElementById('upgrade-features');
+        if (ut) ut.textContent = 'Go Private Cloud';
+        if (ud) ud.textContent = 'Upgrade to Private Cloud for dedicated VPS, unlimited workspaces, and exclusive GPU access. Starting at $9.99/mo.';
+        if (uf) uf.innerHTML = '<span class="upgrade-feature">Dedicated VPS</span><span class="upgrade-feature">Unlimited Workspaces</span><span class="upgrade-feature">GPU Access</span><span class="upgrade-feature">BYOK + Tokens</span><span class="upgrade-feature">Priority Support</span>';
+      }
+
+      // Update plan note on usage bars
+      const msgsNote = document.getElementById('usage-msgs-note');
+      const storageNote = document.getElementById('usage-storage-note');
+      const wsNote = document.getElementById('usage-ws-note');
+      const orgNote = document.getElementById('usage-org-note');
+      if (currentPlan === 'free') {
+        if (msgsNote) msgsNote.textContent = 'Free: 10 msg/day. Upgrade for more.';
+        if (storageNote) storageNote.textContent = 'Free: 50 MB. Upgrade for more.';
+        if (wsNote) wsNote.textContent = 'Free: 1 workspace. Upgrade for more.';
+        if (orgNote) orgNote.textContent = 'Single organization on Free plan.';
+      } else if (currentPlan === 'shared') {
+        if (msgsNote) msgsNote.textContent = 'Shared: 100 msg/day. Private Cloud: unlimited.';
+        if (storageNote) storageNote.textContent = 'Pool storage across all workspaces.';
+        if (wsNote) wsNote.textContent = 'Shared max: 5. Private Cloud: unlimited.';
+        if (orgNote) orgNote.textContent = 'Shared max: 5 orgs. Private Cloud: unlimited.';
       }
 
       // Usage bars with plan-aware limits

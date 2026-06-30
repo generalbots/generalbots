@@ -381,6 +381,35 @@ async fn main() -> std::io::Result<()> {
     trace!("Initial data setup task spawned");
     trace!("All system threads started, starting HTTP server...");
 
+    // Watchdog thread: logs diagnostics every 10s, independent of tokio runtime.
+    // If the tokio runtime freezes, this thread continues writing logs.
+    {
+        use std::time::Duration;
+        let pool = app_state.conn.clone();
+        let server_port = config.server.port;
+        std::thread::Builder::new()
+            .name("watchdog".to_string())
+            .spawn(move || {
+                info!("[watchdog] started on std::thread, monitoring tokio runtime");
+                loop {
+                    std::thread::sleep(Duration::from_secs(10));
+                    let state = pool.state();
+                    let http_ok = std::net::TcpStream::connect_timeout(
+                        &format!("127.0.0.1:{}", server_port).parse().unwrap(),
+                        Duration::from_secs(1),
+                    ).is_ok();
+                    info!(
+                        "[watchdog] alive | pool: {} conns, {} idle, {} in_use | http: {}",
+                        state.connections,
+                        state.idle_connections,
+                        state.connections.saturating_sub(state.idle_connections),
+                        if http_ok { "OK" } else { "DOWN" },
+                    );
+                }
+            })
+            .ok();
+    }
+
     info!("Server started on port {}", config.server.port);
     if let Err(e) = run_axum_server(app_state, config.server.port, worker_count).await {
         error!("Failed to start HTTP server: {}", e);

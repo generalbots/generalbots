@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::shared::utils::DbPool;
 use diesel::prelude::*;
-use botsecurity_crypto::encryption::{encrypt_field, decrypt_field, derive_key_from_password};
+use botsecurity_crypto::encryption::{encrypt_field, decrypt_field, derive_scope_key, load_master_encryption_key};
 use botsecurity_crypto::secrets::is_sensitive_key;
 
 #[derive(Debug, Clone, QueryableByName)]
@@ -153,11 +153,17 @@ pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
 /// Configuration manager for runtime config updates
 pub struct ConfigManager {
     pool: Arc<DbPool>,
+    master_key: Vec<u8>,
 }
 
 impl ConfigManager {
     pub fn new(pool: DbPool) -> Self {
-        Self { pool: Arc::new(pool) }
+        let master_key = load_master_encryption_key();
+        Self { pool: Arc::new(pool), master_key }
+    }
+
+    fn config_key(&self, bot_id: &uuid::Uuid) -> Vec<u8> {
+        derive_scope_key(&self.master_key, "config", bot_id)
     }
 
     pub fn get_config(
@@ -166,9 +172,7 @@ impl ConfigManager {
         key: &str,
         default: Option<&str>,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let salt = b"generalbots_config_salt_default_456";
-        let key_bytes = derive_key_from_password("generalbots_config_system_secret", salt)
-            .unwrap_or_else(|_| vec![0u8; 32]);
+        let key_bytes = self.config_key(bot_id);
 
         if let Ok(mut conn) = self.pool.get() {
             let bot_val = diesel::sql_query(
@@ -217,9 +221,7 @@ impl ConfigManager {
         bot_id: &uuid::Uuid,
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let salt = b"generalbots_config_salt_default_456";
-        let key_bytes = derive_key_from_password("generalbots_config_system_secret", salt)
-            .unwrap_or_else(|_| vec![0u8; 32]);
+        let key_bytes = self.config_key(bot_id);
 
         if let Ok(mut conn) = self.pool.get() {
             let row = diesel::sql_query(
@@ -248,9 +250,7 @@ impl ConfigManager {
         value: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let is_sensitive = is_sensitive_key(key);
-        let salt = b"generalbots_config_salt_default_456";
-        let key_bytes = derive_key_from_password("generalbots_config_system_secret", salt)
-            .unwrap_or_else(|_| vec![0u8; 32]);
+        let key_bytes = self.config_key(bot_id);
 
         let final_value = if is_sensitive {
             encrypt_field(value, &key_bytes).unwrap_or_else(|_| value.to_string())

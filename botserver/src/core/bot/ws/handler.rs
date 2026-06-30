@@ -52,31 +52,36 @@ pub fn verify_path_within_workdir(sub_path: &str) -> bool {
 }
 
 fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
-    let mut conn = match state.conn.get() {
-        Ok(c) => c,
-        Err(e) => {
-            warn!("DB conn: {}", e);
-            return Uuid::nil();
-        }
-    };
-
     use botcorebot::schema::bots::dsl::{bots, id, name};
     use diesel::prelude::*;
 
-    if let Ok(uuid) = Uuid::parse_str(bot_name) {
-        bots.filter(id.eq(uuid))
-            .select(id)
-            .first::<Uuid>(&mut conn)
-            .unwrap_or(Uuid::nil())
-    } else {
-        bots.filter(name.eq(bot_name))
-            .select(id)
-            .first::<Uuid>(&mut conn)
-            .unwrap_or_else(|_| {
-                warn!("Bot not found: {}", bot_name);
-                Uuid::nil()
-            })
-    }
+    let pool = state.conn.clone();
+    let bot_name = bot_name.to_string();
+    let result = tokio::task::block_in_place(move || {
+        let mut conn = match pool.get() {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("DB conn: {}", e);
+                return Uuid::nil();
+            }
+        };
+
+        if let Ok(uuid) = Uuid::parse_str(&bot_name) {
+            bots.filter(id.eq(uuid))
+                .select(id)
+                .first::<Uuid>(&mut conn)
+                .unwrap_or(Uuid::nil())
+        } else {
+            bots.filter(name.eq(&bot_name))
+                .select(id)
+                .first::<Uuid>(&mut conn)
+                .unwrap_or_else(|_| {
+                    warn!("Bot not found: {}", bot_name);
+                    Uuid::nil()
+                })
+        }
+    });
+    result
 }
 
 pub async fn websocket_handler(

@@ -14,7 +14,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
-use botsecurity_crypto::encryption::{encrypt_field, derive_key_from_password};
+use botsecurity_crypto::encryption::{encrypt_field, derive_scope_key};
 
 pub fn configure_attendance_routes() -> Router<Arc<AttendanceConfig>> {
     let router = Router::new()
@@ -102,7 +102,7 @@ pub async fn attendant_respond(
         );
     };
 
-    if let Err(e) = save_message_to_history(&config, &session, &request.message, "attendant").await {
+    if let Err(e) = save_attendance_message(&config, &session, &request.message, "attendant").await {
         log::error!("Failed to save attendant message: {}", e);
     }
 
@@ -159,8 +159,7 @@ pub async fn save_attendance_message(
     let pool = config.pool.clone();
     let session_id = session.id;
 
-    let salt = b"generalbots_msg_salt_default_123";
-    let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)?;
+    let key_bytes = derive_scope_key(&config.master_key, "message", &session.bot_id);
     let encrypted_content = encrypt_field(content, &key_bytes)?;
 
     let sender_clone = sender.to_string();

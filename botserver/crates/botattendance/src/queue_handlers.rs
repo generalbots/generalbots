@@ -18,7 +18,7 @@ use log::{warn, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
-use botsecurity_crypto::encryption::{decrypt_field, derive_key_from_password};
+use botsecurity_crypto::encryption::{decrypt_field, derive_scope_key};
 
 pub use queue_csv::{
     find_attendant_by_identifier, find_attendants_by_channel, find_attendants_by_department,
@@ -356,6 +356,7 @@ pub async fn get_insights(
     info!("Getting insights for session {}", session_id);
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
+        let master_key = config.master_key.clone();
         move || {
             let mut db_conn = pool.get().map_err(|e| format!("Failed to get database connection: {}", e))?;
             let messages: Vec<(String, i32)> = message_history::table
@@ -366,9 +367,12 @@ pub async fn get_insights(
                 .load(&mut db_conn)
                 .map_err(|e| format!("Failed to load messages: {}", e))?;
 
-            let salt = b"generalbots_msg_salt_default_123";
-            let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
-                .map_err(|e| format!("Key derivation error: {}", e))?;
+            let bot_id: Uuid = user_sessions::table
+                .filter(user_sessions::id.eq(session_id))
+                .select(user_sessions::bot_id)
+                .first(&mut db_conn)
+                .map_err(|e| format!("Failed to get bot_id: {}", e))?;
+            let key_bytes = derive_scope_key(&master_key, "message", &bot_id);
 
             let user_messages: Vec<String> = messages.iter()
                 .filter(|(_, r)| *r == 0)

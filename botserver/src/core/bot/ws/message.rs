@@ -211,7 +211,7 @@ pub async fn run_start_bas_on_connect(
         match rx.try_recv() {
             Ok(response) => {
                 info!("start.bas: drained BotResponse[{}]: mtype={}, session={}, content='{}'",
-                    i, response.message_type as i32, response.session_id,
+                    i, i32::from(response.message_type), response.session_id,
                     response.content.chars().take(80).collect::<String>());
                 if let Ok(json) = serde_json::to_string(&response) {
                     info!("start.bas: ws_sender.send json len={}", json.len());

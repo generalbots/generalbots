@@ -11,10 +11,11 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::Arc;
 use uuid::Uuid;
-use botsecurity_crypto::encryption::{encrypt_field, decrypt_field, derive_key_from_password};
+use botsecurity_crypto::encryption::{encrypt_field, decrypt_field, derive_scope_key, load_master_encryption_key};
 
 pub struct SessionManager {
     pool: Pool<ConnectionManager<PgConnection>>,
+    master_key: Vec<u8>,
     sessions: HashMap<Uuid, SessionData>,
     waiting_for_input: HashSet<Uuid>,
     #[cfg(feature = "cache")]
@@ -38,8 +39,26 @@ impl SessionManager {
         #[cfg(feature = "cache")]
         redis_client: Option<Arc<Client>>,
     ) -> Self {
+        let master_key = load_master_encryption_key();
         Self {
             pool,
+            master_key,
+            sessions: HashMap::new(),
+            waiting_for_input: HashSet::new(),
+            #[cfg(feature = "cache")]
+            redis: redis_client,
+        }
+    }
+
+    pub fn with_key(
+        pool: Pool<ConnectionManager<PgConnection>>,
+        master_key: Vec<u8>,
+        #[cfg(feature = "cache")]
+        redis_client: Option<Arc<Client>>,
+    ) -> Self {
+        Self {
+            pool,
+            master_key,
             sessions: HashMap::new(),
             waiting_for_input: HashSet::new(),
             #[cfg(feature = "cache")]
@@ -212,9 +231,11 @@ impl SessionManager {
             .get_result::<i64>(&mut conn)
             .unwrap_or(0) as i32;
 
-        let salt = b"generalbots_msg_salt_default_123";
-        let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
-            .map_err(|e| format!("Key derivation failed: {e}"))?;
+        let bot_id: Uuid = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select(user_sessions::bot_id)
+            .first(&mut conn)?;
+        let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
         let encrypted_content = encrypt_field(content, &key_bytes)
             .map_err(|e| format!("Encryption failed: {e}"))?;
 
@@ -322,9 +343,11 @@ impl SessionManager {
         let start_idx = messages.len().saturating_sub(total_messages_needed);
         let recent_messages: Vec<_> = messages.into_iter().skip(start_idx).collect();
 
-        let salt = b"generalbots_msg_salt_default_123";
-        let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
-            .map_err(|e| format!("Key derivation failed: {e}"))?;
+        let bot_id: Uuid = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select(user_sessions::bot_id)
+            .first(&mut conn)?;
+        let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
 
         let mut history: Vec<(String, String)> = Vec::new();
         for (other_role, content, _idx) in recent_messages {

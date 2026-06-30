@@ -299,6 +299,7 @@ botchannels = { workspace = true }
 botbrowser = { workspace = true }
 botcoresecrets = { workspace = true }
 botcoresession = { workspace = true }
+botsecurity-crypto = { path = "crates/botsecurity-crypto" }
 botcoreoauth = { workspace = true }
 botcorebot = { workspace = true }
 botcoredirectory = { workspace = true }

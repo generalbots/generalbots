@@ -119,6 +119,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const navVouchers = document.getElementById('nav-vouchers');
         if (navVouchers) navVouchers.style.display = 'flex';
       }
+
+      // Free tier UX blocking: hide paid sidebar links based on plan
+      const currentPlan = (data.organizations || [])[0]?.plan || 'free';
+      const PLAN_TIER = { free: 0, shared: 1, 'private-cloud': 2 };
+      const userTier = PLAN_TIER[currentPlan] || 0;
+      sidebar.querySelectorAll('[data-paid]').forEach(function(link) {
+        var required = link.getAttribute('data-paid') || 'private-cloud';
+        var requiredTier = PLAN_TIER[required] || 2;
+        if (userTier < requiredTier) {
+          link.style.display = 'none';
+        }
+      });
     }
   } catch (_) {}
 });

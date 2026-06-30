@@ -183,6 +183,8 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/offers", get(list_offers))
         // LLM Providers catalog
         .route("/api/cloud/llm-providers", get(list_llm_providers))
+        // BYOK (Bring Your Own Key) — encrypted server-side storage
+        .route("/api/cloud/tenant/settings/byok", post(handle_save_byok))
         // Admin
         .route("/api/cloud/admin/server-capacity", get(get_server_capacity))
         // JWT auth middleware — protects all routes except /api/cloud/auth/*
@@ -2474,6 +2476,82 @@ async fn handle_topup(
         "invoice_number": invoice_num,
         "amount": decimal_amount.to_string(),
         "customer": contact_name,
+    })))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BYOK: Bring Your Own Key — Encrypted Server-Side Storage
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+struct ByokSaveBody {
+    keys: std::collections::HashMap<String, String>,
+}
+
+/// `POST /api/cloud/tenant/settings/byok`
+///
+/// Receives BYOK API keys from the frontend and stores them encrypted
+/// in the `bot_configuration` table using AES-256-GCM.
+async fn handle_save_byok(
+    State(service): State<Arc<SaasService>>,
+    headers: HeaderMap,
+    Json(body): Json<ByokSaveBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    use sha2::Digest;
+    use botsecurity_crypto::encryption::{encrypt_field, derive_key_from_password};
+
+    let user_email = headers.get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .and_then(|token| {
+            let parts: Vec<&str> = token.split('.').collect();
+            if parts.len() == 3 {
+                base64_url_decode(parts[1]).ok()
+                    .and_then(|decoded| serde_json::from_slice::<serde_json::Value>(&decoded).ok())
+                    .and_then(|payload| payload.get("email").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            } else { None }
+        })
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
+
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
+
+    let salt: [u8; 32] = {
+        let mut s = [0u8; 32];
+        let hash = sha2::Sha256::digest(user_email.as_bytes());
+        s.copy_from_slice(&hash);
+        s
+    };
+    let key_bytes = derive_key_from_password(&service.config.jwt_secret, &salt)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Key derivation: {e}")))?;
+
+    let mut saved_count = 0u32;
+    for (provider_id, api_key) in &body.keys {
+        if api_key.trim().is_empty() {
+            continue;
+        }
+        let encrypted = encrypt_field(api_key, &key_bytes)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Encryption failed for {provider_id}: {e}")))?;
+
+        let config_key = format!("byok_{provider_id}");
+        diesel::sql_query(
+            r#"INSERT INTO bot_configuration (bot_id, key, value, is_encrypted, created_at, updated_at)
+               VALUES ('00000000-0000-0000-0000-000000000000', $1, $2, true, NOW(), NOW())
+               ON CONFLICT (bot_id, key) DO UPDATE SET value = $2, is_encrypted = true, updated_at = NOW()"#,
+        )
+        .bind::<diesel::sql_types::Text, _>(&config_key)
+        .bind::<diesel::sql_types::Text, _>(&encrypted)
+        .execute(&mut conn)
+        .map_err(|e| format!("DB upsert: {e}"))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+        saved_count += 1;
+    }
+
+    Ok(Json(serde_json::json!({
+        "status": "ok",
+        "saved": saved_count,
+        "providers": body.keys.keys().collect::<Vec<&String>>(),
     })))
 }
 

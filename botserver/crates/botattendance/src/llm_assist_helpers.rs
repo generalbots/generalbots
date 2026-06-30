@@ -6,7 +6,7 @@ use crate::AttendanceConfig;
 use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
-use botsecurity_crypto::encryption::{decrypt_field, derive_key_from_password};
+use botsecurity_crypto::encryption::{decrypt_field, derive_scope_key};
 
 pub async fn execute_llm_with_context(
     config: &Arc<AttendanceConfig>,
@@ -45,6 +45,7 @@ pub async fn load_conversation_history(
     session_id: Uuid,
 ) -> Vec<ConversationMessage> {
     let pool = config.pool.clone();
+    let master_key = config.master_key.clone();
     let result = tokio::task::spawn_blocking(move || {
         let Ok(mut db_conn) = pool.get() else {
             return Vec::new();
@@ -61,9 +62,12 @@ pub async fn load_conversation_history(
             .load(&mut db_conn)
             .unwrap_or_default();
 
-        let salt = b"generalbots_msg_salt_default_123";
-        let key_bytes = derive_key_from_password("generalbots_default_system_secret", salt)
-            .unwrap_or_else(|_| vec![0u8; 32]);
+        let bot_id: Uuid = user_sessions::table
+            .filter(user_sessions::id.eq(session_id))
+            .select(user_sessions::bot_id)
+            .first(&mut db_conn)
+            .unwrap_or_else(|_| Uuid::nil());
+        let key_bytes = derive_scope_key(&master_key, "message", &bot_id);
 
         messages
             .into_iter()

@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::info;
+use tracing::{info, warn};
 use uuid::Uuid;
 
 const NONCE_SIZE: usize = 12;
@@ -511,6 +511,50 @@ pub fn hash_for_search(plaintext: &str, pepper: &[u8]) -> String {
     hasher.update(plaintext.as_bytes());
     hasher.update(pepper);
     hex::encode(hasher.finalize())
+}
+
+/// Deriva uma chave de escopo a partir da chave mestre + identificador de escopo (branch_id / bot_id).
+/// Usa SHA-256(domain ":" master_key ":" scope_id) para isolamento criptográfico entre escopos.
+pub fn derive_scope_key(master_key: &[u8], domain: &str, scope_id: &Uuid) -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    hasher.update(domain.as_bytes());
+    hasher.update(b":");
+    hasher.update(master_key);
+    hasher.update(b":");
+    hasher.update(scope_id.as_bytes());
+    let result = hasher.finalize();
+    result.to_vec()
+}
+
+/// Carrega a chave mestra de criptografia a partir de variáveis de ambiente.
+/// Prioridade:
+/// 1. `MESSAGE_ENCRYPTION_KEY` (hex ou raw string, hasheada para 32 bytes)
+/// 2. `JWT_SECRET` (hasheada para 32 bytes, fallback dev)
+/// 3. Hash fixo para desenvolvimento (log warning se cair aqui)
+pub fn load_master_encryption_key() -> Vec<u8> {
+    if let Ok(key) = std::env::var("MESSAGE_ENCRYPTION_KEY") {
+        if !key.is_empty() {
+            if let Ok(bytes) = hex::decode(&key) {
+                if bytes.len() == 32 {
+                    return bytes;
+                }
+            }
+            let mut hasher = Sha256::new();
+            hasher.update(key.as_bytes());
+            return hasher.finalize().to_vec();
+        }
+    }
+    if let Ok(jwt) = std::env::var("JWT_SECRET") {
+        if !jwt.is_empty() {
+            let mut hasher = Sha256::new();
+            hasher.update(jwt.as_bytes());
+            return hasher.finalize().to_vec();
+        }
+    }
+    warn!("MESSAGE_ENCRYPTION_KEY not configured. Using dev fallback key (NOT SECURE).");
+    let mut hasher = Sha256::new();
+    hasher.update(b"generalbots_dev_fallback_key_2026");
+    hasher.finalize().to_vec()
 }
 
 #[cfg(test)]

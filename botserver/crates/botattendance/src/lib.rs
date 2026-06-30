@@ -41,6 +41,7 @@ pub type SaveMessageFn = Arc<dyn Fn(uuid::Uuid, &str, &str, i32) -> Result<(), S
 
 pub struct AttendanceConfig {
     pub pool: Arc<DbPool>,
+    pub master_key: Vec<u8>,
     pub get_default_bot: GetDefaultBotFn,
     pub llm_generate: LlmGenerateFn,
     pub process_content: ProcessContentFn,
