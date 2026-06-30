@@ -264,7 +264,18 @@ pub fn log_all(&self) {
     if let Ok(components) = self.components.lock() {
         for (name, history) in components.iter() {
             if let Some(last) = history.last() {
-                let growth = self.get_growth_rate(name);
+                let growth = if history.len() >= 2 {
+                    let first = &history[0];
+                    let duration = last.timestamp.duration_since(first.timestamp).as_secs_f64();
+                    if duration > 0.0 {
+                        let byte_diff = last.rss_bytes as f64 - first.rss_bytes as f64;
+                        Some(byte_diff / duration)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
                 let growth_str = growth
                     .map(|g| {
                         let sign = if g >= 0.0 { "+" } else { "-" };
