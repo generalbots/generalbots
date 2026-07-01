@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get('payload');
   if (!raw) {
-    document.querySelector('.saas-auth-card').innerHTML = '<h1>Invalid Checkout</h1><p>No plan data found. Please go back and choose a plan.</p><a href="https://pragmatismo.com.br/hosting" class="btn-primary">Back to Plans</a>';
+    document.querySelector('.saas-auth-card').innerHTML = '<h1>Invalid Checkout</h1><p>No plan data found. Please go back and choose a plan.</p><a href="/plans" class="btn-primary">Back to Plans</a>';
     return;
   }
   try {
@@ -108,7 +108,7 @@ async function doCheckout(e) {
         payload: JSON.stringify(payload),
         email,
         organization_name: orgName || undefined,
-        return_url: window.location.origin + '/cloud/dashboard',
+        return_url: window.location.origin + '/dashboard',
       }),
     });
 

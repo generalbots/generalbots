@@ -35,8 +35,8 @@
     --sentient-bg-primary: #ffffff;
     --sentient-bg-secondary: #fafafa;
     --sentient-bg-tertiary: #f5f5f5;
-    --sentient-bg-hover: rgba(59, 130, 246, 0.08);
-    --sentient-bg-active: rgba(59, 130, 246, 0.15);
+    --sentient-bg-hover: rgba(37, 99, 235, 0.08);
+    --sentient-bg-active: rgba(37, 99, 235, 0.15);
 
     /* Text */
     --sentient-text-primary: #1e293b;
@@ -45,15 +45,15 @@
     --sentient-text-muted: #cbd5e1;
 
     /* Accent Colors */
-    --sentient-accent: #3b82f6;
-    --sentient-accent-hover: #2563eb;
-    --sentient-accent-light: rgba(59, 130, 246, 0.1);
-    --sentient-accent-dark: #1d4ed8;
+    --sentient-accent: #2563eb;
+    --sentient-accent-hover: #1d4ed8;
+    --sentient-accent-light: rgba(37, 99, 235, 0.1);
+    --sentient-accent-dark: #1e40af;
 
     /* Borders */
     --sentient-border: #e2e8f0;
     --sentient-border-light: #f1f5f9;
-    --sentient-border-accent: rgba(59, 130, 246, 0.3);
+    --sentient-border-accent: rgba(37, 99, 235, 0.3);
 
     /* Surfaces */
     --sentient-surface: #fafafa;
@@ -64,7 +64,7 @@
     /* Inputs */
     --sentient-input-bg: #ffffff;
     --sentient-input-border: #e2e8f0;
-    --sentient-input-focus: #3b82f6;
+    --sentient-input-focus: #2563eb;
 
     /* Status Colors */
     --sentient-success: #22c55e;

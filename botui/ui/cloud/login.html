@@ -17,44 +17,6 @@
 </div>
 
 <div class="mgmt-auth">
-  <div class="mgmt-auth-left">
-    <a href="/cloud" class="mgmt-logo-mark" style="margin-bottom:2rem;text-decoration:none">
-      <div class="mgmt-logo-icon">
-        <img src="/cloud/images/logo-square.svg" alt="General Bots" width="20" height="20" style="filter:brightness(0) invert(1)">
-      </div>
-      <div>
-        <div class="mgmt-logo-text" style="color:#fff">General Bots</div>
-        <span class="mgmt-logo-sub">Cloud</span>
-      </div>
-    </a>
-
-    <div class="prism-scene" aria-hidden="true">
-      <div class="prism-beam-in"></div>
-      <div class="prism-triangle"></div>
-      <div class="prism-spectrum"></div>
-    </div>
-
-    <span class="split-pitch-tag">All-in-one AI platform</span>
-    <h2 class="split-pitch-title" style="margin-top:1.25rem;font-size:2rem">
-      Your bots.<br>Your <span>infrastructure.</span>
-    </h2>
-    <p class="split-pitch-body" style="margin-top:1rem">
-      Manage VPS servers, phone numbers, domains, storage and billing — all in one unified console designed for AI-powered workflows.
-    </p>
-    <ul class="split-pitch-bullets" style="margin-top:1.5rem">
-      <li>Instant VPS provisioning from $9.99/mo</li>
-      <li>Phone numbers in 150+ countries</li>
-      <li>S3-compatible object storage</li>
-      <li>One-click domain registration</li>
-      <li>Unified invoicing, no hidden fees</li>
-    </ul>
-    <div class="split-trust" style="margin-top:2rem">
-      <div class="split-trust-item"><span class="split-trust-num">99.9%</span><span class="split-trust-label">Uptime SLA</span></div>
-      <div class="split-trust-item"><span class="split-trust-num">150+</span><span class="split-trust-label">Countries</span></div>
-      <div class="split-trust-item"><span class="split-trust-num">24/7</span><span class="split-trust-label">Support</span></div>
-    </div>
-  </div>
-
   <div class="mgmt-auth-right">
     <div class="mgmt-auth-card">
       <h2>Welcome back</h2>
@@ -76,7 +38,7 @@
         </button>
       </form>
 
-      <div class="auth-alt">Don't have an account? <a href="/cloud/signup">Create one</a></div>
+      <div class="auth-alt">Don't have an account? <a href="/signup">Create one</a></div>
     </div>
   </div>
 </div>
@@ -96,7 +58,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: savedEmail || 'admin@localhost', password: 'dev' }),
       });
-      if (res.ok) window.location.href = '/cloud/dashboard';
+      if (res.ok) window.location.href = '/dashboard';
     } catch (_) {}
   } else {
     document.getElementById('login-email').value = savedEmail || '';

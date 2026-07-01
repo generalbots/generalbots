@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const token = requireAuth();
-  document.getElementById('user-email').textContent = localStorage.getItem('management_email') || '';
+  const token = getToken();
   await loadPlans(token);
 });
 
@@ -144,12 +143,12 @@ function selectPlan(planId) {
   const plan = allPlans[planId];
   if (!plan) return;
   if (plan.price.type === 'custom') {
-    window.location.href = 'mailto:sales@pragmatismo.com.br?subject=' + encodeURIComponent('Enterprise plan inquiry');
+    window.location.href = 'mailto:' + CLOUD_CONFIG.salesEmail + '?subject=' + encodeURIComponent('Enterprise plan inquiry');
     return;
   }
   const isFree = plan.price.type === 'free';
   if (isFree) {
-    window.location.href = '/cloud/signup?plan=free';
+    window.location.href = '/signup?plan=free';
     return;
   }
   const payload = encodeURIComponent(JSON.stringify({
@@ -160,7 +159,7 @@ function selectPlan(planId) {
     total: currentPeriod === 'yearly' ? ((plan.price.amount || 0) / 100 * 12 * 0.8) : ((plan.price.amount || 0) / 100),
     currency: 'usd',
   }));
-  window.location.href = '/cloud/checkout?payload=' + payload;
+  window.location.href = '/checkout?payload=' + payload;
 }
 
 function featureLabel(f) {
@@ -212,16 +211,10 @@ function showError(msg) {
   document.getElementById('plans-grid').innerHTML = '<div class="saas-loading" style="color:red">' + escapeHtml(msg) + '</div>';
 }
 
-function requireAuth() {
-  const token = localStorage.getItem('management_token');
-  if (!token) window.location.href = '/cloud/login';
-  return token;
-}
-
 function doLogout() {
   localStorage.removeItem('management_token');
   localStorage.removeItem('management_email');
-  window.location.href = '/cloud';
+  window.location.href = '/';
 }
 
 function escapeHtml(str) {

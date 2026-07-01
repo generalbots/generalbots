@@ -158,6 +158,6 @@ function submitCalculator() {
 
   showToast('Redirecting to checkout…', 'info');
   setTimeout(() => {
-    window.location.href = '/cloud/checkout?payload=' + payload;
+    window.location.href = '/checkout?payload=' + payload;
   }, 800);
 }

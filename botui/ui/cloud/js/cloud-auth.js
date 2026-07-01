@@ -24,11 +24,11 @@ async function handleLogin(e) {
       errEl.style.display = 'block';
       return;
     }
-    // Persist session (token + email from new handler shape)
+    // Persist session
     localStorage.setItem('management_token', data.token);
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
-    window.location.href = 'https://cloud.pragmatismo.com.br/cloud/dashboard?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
+    window.location.href = CLOUD_CONFIG.baseUrl + '/dashboard?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';
@@ -80,8 +80,8 @@ async function handleSignup(e) {
     localStorage.setItem('management_bot_name', botName);
     localStorage.setItem('management_plan', data.plan || 'free');
     // Private Server: redirect to Store VPS calculator instead of Dashboard
-    const dest = plan === 'private-cloud' ? '/cloud/store' : '/cloud/dashboard';
-    window.location.href = 'https://cloud.pragmatismo.com.br' + dest
+    const dest = plan === 'private-cloud' ? '/store' : '/dashboard';
+    window.location.href = CLOUD_CONFIG.baseUrl + dest
       + '?token=' + encodeURIComponent(token)
       + '&email=' + encodeURIComponent(emailOut)
       + '&name=' + encodeURIComponent(data.account?.name || name);
@@ -132,7 +132,7 @@ function getToken() {
 
 function requireAuth() {
   const token = getToken();
-  if (!token) window.location.href = '/cloud/login';
+  if (!token) window.location.href = '/login';
   return token;
 }
 
@@ -141,5 +141,5 @@ function doLogout() {
   localStorage.removeItem('management_email');
   localStorage.removeItem('management_name');
   sessionStorage.setItem('gb-signed-out', 'true');
-  window.location.href = '/cloud';
+  window.location.href = '/';
 }

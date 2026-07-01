@@ -62,11 +62,15 @@ pub async fn serve_cloud(
     let cloud_root = get_ui_root().join("cloud");
     let normalized = path.strip_prefix('/').unwrap_or(&path);
     let file_path = if normalized.contains('.') {
+        // Static asset: /cloud/js/file.js, /cloud/css/file.css
         cloud_root.join(normalized)
     } else if normalized.is_empty() || normalized.ends_with('/') {
         cloud_root.join("index.html")
     } else {
-        cloud_root.join(format!("{normalized}.html"))
+        // Use first path segment as page name
+        // e.g., /cloud/store/gpu → store.html, /cloud/dashboard → dashboard.html
+        let first_seg = normalized.split('/').next().unwrap_or(normalized);
+        cloud_root.join(format!("{first_seg}.html"))
     };
 
     serve_cloud_file(file_path).await

@@ -13,11 +13,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const calc = params.get('calc') === '1';
 
   if (!calc) {
-    const cat = params.get('cat');
+    // Read category from path: /store/gpu → cat = gpu
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const cat = pathParts.length > 1 ? pathParts[pathParts.length - 1] : params.get('cat');
 
     // Machines has its own dedicated page
     if (cat === 'machines') {
-      window.location.replace('/cloud/machines');
+      window.location.replace('/machines');
       return;
     }
 
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       gpu: 'GPU Computing',
       storage: 'Object Storage',
       comms: 'Phone Numbers',
-      apps: 'Domains',
+      domains: 'Domains',
     };
     const topbarLabel = document.getElementById('topbar-cat-label');
     if (topbarLabel && cat && catLabels[cat]) {

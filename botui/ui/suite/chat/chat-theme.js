@@ -42,7 +42,7 @@ function loadBotConfig() {
     .then(function (config) {
       if (!config) return;
 
-      var color1 = config.theme_color1 || config["theme-color1"] || config["Theme Color"] || "#3b82f6";
+      var color1 = config.theme_color1 || config["theme-color1"] || config["Theme Color"] || "#2563eb";
       var color2 = config.theme_color2 || config["theme-color2"] || config["theme-color2"] || "#f5deb3";
       var title = config.theme_title || config["theme-title"] || botName;
       var logo = config.theme_logo || config["theme-logo"] || "";

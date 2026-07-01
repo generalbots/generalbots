@@ -62,14 +62,14 @@ async function cancelService(id) {
 
 function requireAuth() {
   const token = localStorage.getItem('management_token');
-  if (!token) window.location.href = '/cloud/login';
+  if (!token) window.location.href = '/login';
   return token;
 }
 
 function doLogout() {
   localStorage.removeItem('management_token');
   localStorage.removeItem('management_email');
-  window.location.href = '/cloud';
+  window.location.href = '/';
 }
 
 function escapeHtml(str) {

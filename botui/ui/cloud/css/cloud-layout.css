@@ -586,7 +586,44 @@ img {
 }
 
 /* ----------------------------------------------------------
-   11. RESPONSIVE
+   11. ANONYMOUS CTA BANNER
+   ---------------------------------------------------------- */
+
+.anon-cta-banner {
+  background: linear-gradient(135deg, var(--accent-dim) 0%, var(--bg2) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: .65rem 1.5rem;
+  flex-shrink: 0;
+}
+.anon-cta-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: .82rem;
+  color: var(--text);
+  flex-wrap: wrap;
+}
+.anon-cta-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff !important;
+  font-weight: 700;
+  font-size: .78rem;
+  padding: .45rem 1.1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all .2s;
+  letter-spacing: -.01em;
+}
+.anon-cta-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+/* ----------------------------------------------------------
+   12. RESPONSIVE
    ---------------------------------------------------------- */
 
 @media (max-width: 900px) {

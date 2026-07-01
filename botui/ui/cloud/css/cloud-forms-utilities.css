@@ -385,13 +385,13 @@ textarea.form-control {
    ---------------------------------------------------------- */
 
 .mgmt-auth {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   min-height: 100vh;
   width: 100%;
 }
 
 .mgmt-auth-left {
+  flex: 1;
   position: relative;
   background: #08080a;
   display: flex;
@@ -427,6 +427,7 @@ textarea.form-control {
 }
 
 .mgmt-auth-right {
+  flex: 1;
   background: var(--bg);
   display: flex;
   align-items: center;
@@ -947,10 +948,6 @@ textarea.form-control {
    ---------------------------------------------------------- */
 
 @media (max-width: 900px) {
-  .mgmt-auth {
-    grid-template-columns: 1fr;
-  }
-
   .mgmt-auth-left {
     display: none;
   }
