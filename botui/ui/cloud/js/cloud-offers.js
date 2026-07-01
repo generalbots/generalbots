@@ -1,23 +1,17 @@
 const API_BASE = '/api/cloud';
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const token = requireAuth();
+  const token = getToken();
   const email = localStorage.getItem('management_email') || '';
-  document.getElementById('sidebar-email').textContent = email;
-  document.getElementById('sidebar-avatar').textContent = email ? email[0].toUpperCase() : '?';
 
-  await loadOrgs(token);
-  await loadInvoicesAndBalance(token, email);
+  if (token) {
+    await loadOrgs(token);
+    await loadInvoicesAndBalance(token, email);
+  }
 });
 
 let organizations = [];
 let currentBalance = 0.0;
-
-function requireAuth() {
-  const token = localStorage.getItem('management_token');
-  if (!token) window.location.href = '/cloud/login';
-  return token;
-}
 
 async function loadOrgs(token) {
   try {
@@ -225,5 +219,5 @@ function showToast(msg, type = 'success') {
 function doLogout() {
   localStorage.removeItem('management_token');
   localStorage.removeItem('management_email');
-  window.location.href = '/cloud';
+  window.location.href = '/';
 }

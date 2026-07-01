@@ -1,6 +1,14 @@
 const API_BASE = '/api/cloud';
 
-// Accept auth token from URL params (cross-domain redirect from login.pragmatismo.com.br)
+// ── Configurable URLs (override via env or build step) ──
+const CLOUD_CONFIG = {
+  baseUrl: 'https://cloud.pragmatismo.com.br',
+  contactUrl: 'https://pragmatismo.com.br/contact',
+  docsUrl: 'https://docs.generalbots.org',
+  salesEmail: 'sales@pragmatismo.com.br',
+};
+
+// Accept auth token from URL params (cross-domain redirect from login server)
 (function() {
   var p = new URLSearchParams(window.location.search);
   var tok = p.get('token');
@@ -54,85 +62,100 @@ async function loadSidebar() {
 
 function initNavActive(sidebar) {
   const path = window.location.pathname;
-  const params = new URLSearchParams(window.location.search);
   sidebar.querySelectorAll('.mgmt-nav-link').forEach(a => {
     const href = a.getAttribute('href') || '';
-    const cat = href.includes('cat=') ? new URLSearchParams(href.split('?')[1] || '').get('cat') : null;
-    if (cat) {
-      if (params.get('cat') === cat) a.classList.add('active');
-    } else if (href && href !== '#' && href !== 'javascript:void(0)') {
-      const hrefPath = href.split('?')[0];
-      if (path === hrefPath || (hrefPath !== '/cloud' && path.startsWith(hrefPath))) {
-        a.classList.add('active');
-      }
-    }
+    if (!href || href === '#' || href === 'javascript:void(0)') return;
+    if (path === href) a.classList.add('active');
   });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   const token = requireAuth();
+  const authenticated = !!token;
 
   await loadSidebar();
 
   const sidebar = document.querySelector('.mgmt-sidebar');
   if (sidebar) initNavActive(sidebar);
 
-  const email = localStorage.getItem('management_email') || '';
-  const isAdmin = localStorage.getItem('management_is_admin') === 'true';
-  if (isAdmin) {
-    const navVouchers = document.getElementById('nav-vouchers');
-    if (navVouchers) navVouchers.style.display = 'flex';
-  }
+  if (authenticated) {
+    const email = localStorage.getItem('management_email') || '';
+    const isAdmin = localStorage.getItem('management_is_admin') === 'true';
 
-  // Show admin badge in sidebar footer if super-admin
-  if (isAdmin) {
+    // Fill user email + avatar
+    const emailEl = document.getElementById('sidebar-email');
+    if (emailEl) emailEl.textContent = email;
+
     const avatarEl = document.getElementById('sidebar-avatar');
-    if (avatarEl) avatarEl.title = 'Super Admin';
-  }
-
-  // Fill user email + avatar
-  const emailEl = document.getElementById('sidebar-email');
-  if (emailEl) emailEl.textContent = email;
-
-  const avatarEl = document.getElementById('sidebar-avatar');
-  if (avatarEl && email) {
-    avatarEl.textContent = email[0].toUpperCase();
-    avatarEl.title = email;
-  }
-
-  const userEmail = document.getElementById('user-email');
-  if (userEmail) userEmail.textContent = email;
-
-  try { loadDashboardOrgs(token).catch(() => {}); } catch (_) {}
-  try { loadDashboardPlans(token).catch(() => {}); } catch (_) {}
-
-  // Check super-admin status from server (not hardcoded email)
-  try {
-    const res = await fetch(`${API_BASE}/organizations`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const isAdmin = data.is_admin === true;
-      localStorage.setItem('management_is_admin', isAdmin ? 'true' : 'false');
-      if (isAdmin) {
-        const navVouchers = document.getElementById('nav-vouchers');
-        if (navVouchers) navVouchers.style.display = 'flex';
-      }
-
-      // Free tier UX blocking: hide paid sidebar links based on plan
-      const currentPlan = (data.organizations || [])[0]?.plan || 'free';
-      const PLAN_TIER = { free: 0, shared: 1, 'private-cloud': 2 };
-      const userTier = PLAN_TIER[currentPlan] || 0;
-      sidebar.querySelectorAll('[data-paid]').forEach(function(link) {
-        var required = link.getAttribute('data-paid') || 'private-cloud';
-        var requiredTier = PLAN_TIER[required] || 2;
-        if (userTier < requiredTier) {
-          link.style.display = 'none';
-        }
-      });
+    if (avatarEl && email) {
+      avatarEl.textContent = email[0].toUpperCase();
+      avatarEl.title = email;
     }
-  } catch (_) {}
+
+    const userEmail = document.getElementById('user-email');
+    if (userEmail) userEmail.textContent = email;
+
+    // Show logout button
+    const logoutBtn = document.getElementById('sidebar-logout');
+    if (logoutBtn) logoutBtn.style.display = '';
+    const signupBtn = document.getElementById('sidebar-signup');
+    if (signupBtn) signupBtn.style.display = 'none';
+
+    try { loadDashboardOrgs(token).catch(() => {}); } catch (_) {}
+    try { loadDashboardPlans(token).catch(() => {}); } catch (_) {}
+
+    // Check super-admin status from server
+    try {
+      const res = await fetch(`${API_BASE}/organizations`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const isAdmin = data.is_admin === true;
+        localStorage.setItem('management_is_admin', isAdmin ? 'true' : 'false');
+        if (isAdmin) {
+          const navVouchers = document.getElementById('nav-vouchers');
+          if (navVouchers) navVouchers.style.display = 'flex';
+          const avatarEl = document.getElementById('sidebar-avatar');
+          if (avatarEl) avatarEl.title = 'Super Admin';
+        }
+
+        // Free tier UX blocking: hide paid sidebar links based on plan
+        const currentPlan = (data.organizations || [])[0]?.plan || 'free';
+        const PLAN_TIER = { free: 0, shared: 1, 'private-cloud': 2 };
+        const userTier = PLAN_TIER[currentPlan] || 0;
+        sidebar.querySelectorAll('[data-paid]').forEach(function(link) {
+          var required = link.getAttribute('data-paid') || 'private-cloud';
+          var requiredTier = PLAN_TIER[required] || 2;
+          if (userTier < requiredTier) {
+            link.style.display = 'none';
+          }
+        });
+      }
+    } catch (_) {}
+  } else {
+    // Anonymous: show sign-up prompt in sidebar
+    const emailEl = document.getElementById('sidebar-email');
+    if (emailEl) emailEl.textContent = 'Browse anonymously';
+    const avatarEl = document.getElementById('sidebar-avatar');
+    if (avatarEl) avatarEl.textContent = '?';
+    const logoutBtn = document.getElementById('sidebar-logout');
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    const signupBtn = document.getElementById('sidebar-signup');
+    if (signupBtn) signupBtn.style.display = '';
+
+    // CTA banner on all pages for anonymous users
+    const main = document.querySelector('.mgmt-main');
+    if (main && !main.querySelector('.anon-cta-banner')) {
+      const banner = document.createElement('div');
+      banner.className = 'anon-cta-banner';
+      banner.innerHTML = '<div class="anon-cta-content">' +
+        '<span>Explore the cloud — <strong>Create your free account</strong> to deploy bots, manage services, and scale.</span>' +
+        '<a href="/signup" class="anon-cta-btn">Create Free Account</a>' +
+        '</div>';
+      main.insertBefore(banner, main.firstChild);
+    }
+  }
 });
 
 
@@ -246,25 +269,27 @@ function doLogout() {
   localStorage.removeItem('management_token');
   localStorage.removeItem('management_email');
   sessionStorage.setItem('gb-signed-out', 'true');
-  window.location.href = '/cloud';
+  window.location.href = '/';
 }
 function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 function getToken() { return localStorage.getItem('management_token'); }
+function isAuthenticated() {
+  return !!getToken();
+}
+
 function requireAuth() {
   let t = getToken();
   if (!t) {
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
       if (sessionStorage.getItem('gb-signed-out') === 'true') {
-        window.location.href = '/cloud/login';
         return null;
       }
       localStorage.setItem('management_token', 'dev-token');
       localStorage.setItem('management_email', 'admin@localhost');
       devAutoLogin();
       t = 'dev-token';
-    } else {
-      window.location.href = '/cloud/login';
     }
+    // Anonymous browsing allowed — return null instead of redirecting
   }
   return t;
 }
@@ -288,11 +313,12 @@ async function devAutoLogin() {
 
 // ── Calculator: scroll to calc-panel if on store page, else navigate to store ──
 function openCalculator() {
-  if (window.location.pathname === '/cloud/store') {
-    const panel = document.getElementById('calc-panel');
+  var p = window.location.pathname;
+  if (p === '/store' || p.indexOf('/store/') === 0) {
+    var panel = document.getElementById('calc-panel');
     if (panel) { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   }
-  window.location.href = '/cloud/store';
+  window.location.href = '/store';
 }
 function calcUpdate() { /* defined in 02_calc.js */ }
 function submitCalculator() { /* defined in 02_calc.js */ }

@@ -40,7 +40,7 @@
     <div class="mgmt-topbar">
       <span class="mgmt-page-title">Special Offers</span>
       <div class="mgmt-topbar-actions">
-        <a href="/cloud/store" class="btn btn-outline btn-sm">Build Your Own</a>
+        <a href="/store" class="btn btn-outline btn-sm">Build Your Own</a>
       </div>
     </div>
 
@@ -61,12 +61,11 @@
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
-  const token = requireAuth();
-  if (!token) return;
+  const token = getToken();
 
   let offers = [];
   try {
-    const res = await fetch('/api/cloud/offers', { headers: { 'Authorization': 'Bearer ' + token } });
+    const res = await fetch('/api/cloud/offers');
     const ct = res.headers.get('content-type') || '';
     if (res.ok && ct.includes('json')) {
       const data = await res.json();
@@ -130,7 +129,7 @@
     };
 
     const payload = encodeURIComponent(JSON.stringify(payloadObj));
-    window.location.href = '/cloud/checkout?payload=' + payload;
+    window.location.href = '/checkout?payload=' + payload;
   };
 
   function renderCard(o) {

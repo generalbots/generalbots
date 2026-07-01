@@ -4,7 +4,7 @@ const API_BASE = '/api/cloud';
 function requireAuth() {
   const token = localStorage.getItem('management_token');
   if (!token) {
-    window.location.href = '/cloud/login';
+    window.location.href = '/login';
   }
   return token;
 }
@@ -13,7 +13,7 @@ function doLogout() {
   localStorage.removeItem('management_token');
   localStorage.removeItem('management_email');
   localStorage.removeItem('management_name');
-  window.location.href = '/cloud';
+  window.location.href = '/';
 }
 
 function escapeHtml(str) {
@@ -77,7 +77,7 @@ async function purchaseAppStore(store) {
       window.location.href = data.checkout_url;
     } else {
       showToast('Order placed! Invoice: ' + data.invoice_number);
-      setTimeout(() => { window.location.href = '/cloud/invoices'; }, 1500);
+      setTimeout(() => { window.location.href = '/invoices'; }, 1500);
     }
   } catch (err) {
     showToast('Network error: ' + err.message);

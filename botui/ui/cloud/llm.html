@@ -84,8 +84,7 @@
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
-  const token = requireAuth();
-  if (!token) return;
+  const token = getToken();
 
   const PROV_ICONS = {
     glm: { bg: '#2563eb', label: 'GL' },
@@ -117,7 +116,7 @@
 
   async function loadData() {
     try {
-      const res = await fetch('/api/cloud/llm-providers', { headers: { 'Authorization': 'Bearer ' + token } });
+      const res = await fetch('/api/cloud/llm-providers');
       const ct = res.headers.get('content-type') || '';
       if (res.ok && ct.includes('json')) {
         const data = await res.json();
@@ -137,20 +136,20 @@
         { id: 'deepseek-v3', name: 'DeepSeek V3', context: 64000, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'pay-per-token' },
       ]},
       { id: 'openai', name: 'OpenAI', description: 'Industry-standard models for chat, code, and reasoning. Token packages available from $9.99/mo.', icon: 'openai', requires_byok: false, models: [
-        { id: 'gpt-4o', name: 'GPT-4o', context: 128000, capabilities: ['chat', 'streaming', 'function-calling', 'vision'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
-        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', context: 128000, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+        { id: 'gpt-4o', name: 'GPT-4o', context: 128000, capabilities: ['chat', 'streaming', 'function-calling', 'vision'], pricing: 'token-package', package_url: '/store?calc=1#calc-llm-grid' },
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', context: 128000, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'token-package', package_url: '/store?calc=1#calc-llm-grid' },
       ]},
       { id: 'anthropic', name: 'Anthropic', description: 'Safety-focused models with advanced reasoning. Token packages available from $17.99/mo.', icon: 'anthropic', requires_byok: false, models: [
-        { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', context: 200000, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
-        { id: 'claude-3-haiku', name: 'Claude 3 Haiku', context: 200000, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+        { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', context: 200000, capabilities: ['chat', 'streaming', 'function-calling'], pricing: 'token-package', package_url: '/store?calc=1#calc-llm-grid' },
+        { id: 'claude-3-haiku', name: 'Claude 3 Haiku', context: 200000, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/store?calc=1#calc-llm-grid' },
       ]},
       { id: 'google', name: 'Google', description: 'Gemini models with strong multimodal capabilities. Token packages from $4.99/mo.', icon: 'google', requires_byok: false, models: [
-        { id: 'gemini-pro', name: 'Gemini Pro', context: 128000, capabilities: ['chat', 'streaming', 'vision'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
-        { id: 'gemini-flash', name: 'Gemini Flash', context: 128000, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+        { id: 'gemini-pro', name: 'Gemini Pro', context: 128000, capabilities: ['chat', 'streaming', 'vision'], pricing: 'token-package', package_url: '/store?calc=1#calc-llm-grid' },
+        { id: 'gemini-flash', name: 'Gemini Flash', context: 128000, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/store?calc=1#calc-llm-grid' },
       ]},
       { id: 'groq', name: 'Groq', description: 'Fast inference models with industry-leading speed. Token packages from $16.99/mo.', icon: 'groq', requires_byok: false, models: [
-        { id: 'mixtral-8x7b', name: 'Mixtral 8x7B', context: 32768, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
-        { id: 'llama-3.3-70b', name: 'Llama 3.3 70B', context: 131072, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/cloud/store?calc=1#calc-llm-grid' },
+        { id: 'mixtral-8x7b', name: 'Mixtral 8x7B', context: 32768, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/store?calc=1#calc-llm-grid' },
+        { id: 'llama-3.3-70b', name: 'Llama 3.3 70B', context: 131072, capabilities: ['chat', 'streaming'], pricing: 'token-package', package_url: '/store?calc=1#calc-llm-grid' },
       ]},
       { id: 'qwen', name: 'Qwen (Alibaba)', description: 'Strong multilingual models from Alibaba Cloud.', icon: 'qwen', requires_byok: true, models: [
         { id: 'qwen-2.5-72b', name: 'Qwen 2.5 72B', context: 128000, capabilities: ['chat', 'streaming'], pricing: 'pay-per-token' },
@@ -169,7 +168,7 @@
     const badge = prov.requires_byok
       ? '<span class="provider-badge byok">Requires BYOK</span>'
       : prov.models && prov.models.some(m => m.pricing === 'token-package')
-        ? '<a href="/cloud/store?calc=1#calc-llm-grid" class="provider-badge" style="background:rgba(255,0,128,.1);color:var(--accent);text-decoration:none">Token packages ↗</a>'
+        ? '<a href="/store?calc=1#calc-llm-grid" class="provider-badge" style="background:rgba(255,0,128,.1);color:var(--accent);text-decoration:none">Token packages ↗</a>'
         : '<span class="provider-badge included">Included</span>';
 
     const modelsHtml = (prov.models || []).map(m => {
@@ -177,7 +176,7 @@
       const ctx = m.context ? (m.context / 1000).toFixed(0) + 'K' : '\u2014';
       const pricing = m.pricing === 'included' ? '<span class="free">Included</span>'
         : m.pricing === 'token-package'
-          ? '<a href="' + (m.package_url || '/cloud/store?calc=1#calc-llm-grid') + '" style="color:var(--accent2);font-weight:600;text-decoration:none">Buy tokens ↗</a>'
+          ? '<a href="' + (m.package_url || '/store?calc=1#calc-llm-grid') + '" style="color:var(--accent2);font-weight:600;text-decoration:none">Buy tokens ↗</a>'
           : '<span class="paid">Pay-per-token</span>';
       return '<div class="model-card">' +
         '<div class="model-name">' + m.name + '</div>' +

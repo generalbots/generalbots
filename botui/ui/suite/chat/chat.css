@@ -34,7 +34,7 @@
 }
 
 .toast-success {
-    border-left: 4px solid var(--accent, #3b82f6);
+    border-left: 4px solid var(--accent, #2563eb);
 }
 
 .toast-error {
@@ -141,7 +141,7 @@
     flex-direction: column !important;
     gap: 16px;
     scrollbar-width: thin;
-    scrollbar-color: var(--accent, #3b82f6) var(--surface, #1a1a24);
+    scrollbar-color: var(--accent, #2563eb) var(--surface, #1a1a24);
     scroll-behavior: smooth;
     justify-content: flex-start;
     align-items: stretch;
@@ -157,12 +157,12 @@
 }
 
 #messages::-webkit-scrollbar-thumb {
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     border-radius: 3px;
 }
 
 #messages::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-hover, #2563eb);
+    background: var(--accent-hover, #1d4ed8);
 }
 
 /* Scrollbar Markers */
@@ -196,7 +196,7 @@
 }
 
 .scrollbar-marker.user-marker {
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
 }
 
 .scrollbar-marker.bot-marker {
@@ -262,7 +262,7 @@
 }
 
 .user-message {
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     color: white;
     border-bottom-right-radius: 4px;
 }
@@ -370,7 +370,7 @@ footer {
     overflow-y: auto;
     max-height: 250px;
     scrollbar-width: thin;
-    scrollbar-color: var(--accent, #3b82f6) transparent;
+    scrollbar-color: var(--accent, #2563eb) transparent;
 }
 
 .mention-results::-webkit-scrollbar {
@@ -382,12 +382,12 @@ footer {
 }
 
 .mention-results::-webkit-scrollbar-thumb {
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     border-radius: 3px;
 }
 
 .mention-results::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-hover, #2563eb);
+    background: var(--accent-hover, #1d4ed8);
 }
 
 .mention-item {
@@ -413,7 +413,7 @@ footer {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -456,7 +456,7 @@ footer {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     color: white;
     padding: 2px 8px;
     border-radius: 4px;
@@ -466,7 +466,7 @@ footer {
 }
 
 .mention-tag:hover {
-    background: var(--accent-hover, #2563eb);
+    background: var(--accent-hover, #1d4ed8);
 }
 
 .mention-icon {
@@ -512,7 +512,7 @@ footer {
     letter-spacing: 0.5px;
     padding: 3px 8px;
     border-radius: 4px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     color: white;
 }
 
@@ -553,8 +553,8 @@ footer {
 }
 
 .entity-card-btn:hover {
-    background: var(--accent, #3b82f6);
-    border-color: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
     color: white;
 }
 
@@ -658,7 +658,7 @@ footer {
 
 .suggestion-chip:hover,
 .suggestion-button:hover {
-  border-color: var(--accent, #3b82f6);
+  border-color: var(--accent, #2563eb);
   z-index: 100;
 }
 
@@ -684,7 +684,7 @@ footer {
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -720,7 +720,7 @@ form.input-container {
 }
 
 .input-container:focus-within {
-    border-color: var(--accent, #3b82f6);
+    border-color: var(--accent, #2563eb);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -757,7 +757,7 @@ form.input-container {
 }
 
 #sendBtn {
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     color: white;
 }
 
@@ -772,7 +772,7 @@ form.input-container {
 }
 
 #sendBtn:hover {
-    background: var(--accent-hover, #2563eb);
+    background: var(--accent-hover, #1d4ed8);
 }
 
 #voiceBtn:active,
@@ -782,7 +782,7 @@ form.input-container {
 
 [data-theme="dark"] #sendBtn,
 [data-theme="sentient"] #sendBtn {
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
 }
 
 [data-theme="dark"] #voiceBtn,
@@ -818,8 +818,8 @@ form.input-container {
 }
 
 .scroll-to-bottom:hover {
-    background: var(--accent, #3b82f6);
-    border-color: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
     transform: translateY(-2px);
 }
 
@@ -938,7 +938,7 @@ form.input-container {
 
 .projector-btn:hover {
     background: var(--surface-active, rgba(255, 255, 255, 0.1));
-    border-color: var(--accent, #3b82f6);
+    border-color: var(--accent, #2563eb);
 }
 
 .projector-btn.close-btn:hover {
@@ -975,7 +975,7 @@ form.input-container {
     width: 40px;
     height: 40px;
     border: 3px solid var(--border, var(--border-color, #2a2a2a));
-    border-top-color: var(--accent, #3b82f6);
+    border-top-color: var(--accent, #2563eb);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -1157,8 +1157,8 @@ form.input-container {
 }
 
 .control-btn.active {
-    background: var(--accent, #3b82f6);
-    border-color: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
 }
 
 .play-btn {
@@ -1187,7 +1187,7 @@ form.input-container {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     border-radius: 50%;
     cursor: pointer;
 }
@@ -1195,7 +1195,7 @@ form.input-container {
 .progress-bar::-moz-range-thumb {
     width: 14px;
     height: 14px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     border-radius: 50%;
     cursor: pointer;
     border: none;
@@ -1223,7 +1223,7 @@ form.input-container {
     -webkit-appearance: none;
     width: 12px;
     height: 12px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     border-radius: 50%;
     cursor: pointer;
 }
@@ -1231,7 +1231,7 @@ form.input-container {
 .volume-slider::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     border-radius: 50%;
     cursor: pointer;
     border: none;
@@ -1341,7 +1341,7 @@ form.input-container {
 .thinking-dot {
     width: 8px;
     height: 8px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     border-radius: 50%;
     animation: bounce 1.4s infinite ease-in-out;
 }
@@ -1452,7 +1452,7 @@ form.input-container {
 }
 
 .message.user:hover .message-content {
-    background: var(--accent-hover, #2563eb);
+    background: var(--accent-hover, #1d4ed8);
 }
 
 /* Messages container for light theme */
@@ -1466,7 +1466,7 @@ form.input-container {
     top: 8px;
     right: 8px;
     padding: 4px 12px;
-    background: var(--accent, #3b82f6);
+    background: var(--accent, #2563eb);
     color: white;
     font-size: 12px;
     font-weight: 500;
@@ -1484,7 +1484,7 @@ form.input-container {
 }
 
 .new-message-indicator:hover {
-    background: var(--accent-hover, #2563eb);
+    background: var(--accent-hover, #1d4ed8);
 }
 
 /* Typing Indicator */
@@ -1553,9 +1553,9 @@ form.input-container {
   gap: 4px;
   width: 24px;
   height: 8px;
-  background-image: radial-gradient(circle, var(--accent, #3b82f6) 2px, transparent 2px),
-                    radial-gradient(circle, var(--accent, #3b82f6) 2px, transparent 2px),
-                    radial-gradient(circle, var(--accent, #3b82f6) 2px, transparent 2px);
+  background-image: radial-gradient(circle, var(--accent, #2563eb) 2px, transparent 2px),
+                    radial-gradient(circle, var(--accent, #2563eb) 2px, transparent 2px),
+                    radial-gradient(circle, var(--accent, #2563eb) 2px, transparent 2px);
   background-size: 8px 8px;
   background-position: 0 50%, 50% 50%, 100% 50%;
   background-repeat: no-repeat;
