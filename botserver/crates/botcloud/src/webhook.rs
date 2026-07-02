@@ -196,7 +196,6 @@ async fn process_checkout_completed(
     let _ = integration::create_billing_subscription(
         service.pool(),
         invoice.branch_id,
-        invoice.branch_id,
         invoice.customer_name.as_deref().unwrap_or(""),
         &email_ref,
         &plan_label,

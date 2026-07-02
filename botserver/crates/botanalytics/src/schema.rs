@@ -2,7 +2,6 @@ diesel::table! {
     bots (id) {
         id -> Uuid,
         branch_id -> Uuid,
-        bot_id -> Uuid,
         name -> Varchar,
         slug -> Varchar,
         org_id -> Uuid,

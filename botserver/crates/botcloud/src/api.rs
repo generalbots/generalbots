@@ -302,7 +302,7 @@ async fn handle_signup(
 
         // 5. Create CRM contact
         let contact_id = integration::create_crm_contact_inner(
-            &mut conn, branch_id, new_bot_id, &body.name, &body.email, pass_hash.as_deref(),
+            &mut conn, branch_id, &body.name, &body.email, pass_hash.as_deref(),
         )?;
 
         // 6. Create subscription
@@ -311,11 +311,11 @@ async fn handle_signup(
             None
         } else if is_free_plan {
             Some(integration::create_free_subscription_inner(
-                &mut conn, branch_id, new_bot_id, &body.name, &body.email,
+                &mut conn, branch_id, &body.name, &body.email,
             )?)
         } else {
             Some(integration::create_trial_subscription_inner(
-                &mut conn, branch_id, new_bot_id, &body.name, &body.email,
+                &mut conn, branch_id, &body.name, &body.email,
                 &chosen_plan, trial_days as i32,
             )?)
         };
@@ -351,7 +351,7 @@ async fn handle_signup(
         }
 
         // 8. Create default cloud workspace
-        integration::create_cloud_workspace_inner(&mut conn, org_id, &bot_name)?;
+        integration::create_cloud_workspace_inner(&mut conn, branch_id, &bot_name)?;
 
         Ok((org_id, branch_id, new_bot_id, org_slug, contact_id, subscription_id))
     })();
@@ -548,7 +548,6 @@ async fn handle_checkout(
     let contact_id = integration::create_crm_contact(
         service.pool(),
         effective_branch_id,
-        effective_branch_id,
         &customer_name,
         &customer_email,
         None,  // checkout: no password set
@@ -560,7 +559,6 @@ async fn handle_checkout(
 
     let _deal_id = integration::create_crm_deal(
         service.pool(),
-        effective_branch_id,
         effective_branch_id,
         contact_id.unwrap_or(Uuid::nil()),
         invoice_id,
@@ -695,7 +693,6 @@ async fn checkout_success(
 
         let _ = integration::create_billing_subscription(
             service.pool(),
-            invoice.branch_id,
             invoice.branch_id,
             invoice.customer_name.as_deref().unwrap_or(""),
             invoice.customer_email.as_deref().unwrap_or(""),

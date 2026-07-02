@@ -48,9 +48,38 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    users (id) {
+        id -> Uuid,
+        username -> Varchar,
+        email -> Nullable<Varchar>,
+        phone_number -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
+        password_hash -> Text,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    message_history (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        user_id -> Nullable<Uuid>,
+        session_id -> Nullable<Uuid>,
+        phone_number -> Nullable<Varchar>,
+        direction -> Varchar,
+        content -> Text,
+        message_type -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+    }
+}
 
 diesel::allow_tables_to_appear_in_same_query!(
     bots,
     bot_configuration,
     user_sessions,
+    users,
+    message_history,
 );

@@ -158,7 +158,7 @@ impl FraudEngine {
             serde_json::to_value(triggered).unwrap_or_default();
 
         diesel::sql_query(
-            "INSERT INTO fraud_events (id, bot_id, event_type, entity_type, entity_id, \
+            "INSERT INTO fraud_events (id, branch_id, event_type, entity_type, entity_id, \
              risk_score, risk_level, triggered_rules, action_taken, details) \
              VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, $6, $7, $8, $9)",
         )
@@ -176,7 +176,7 @@ impl FraudEngine {
         // Update velocity counter
         if let Some(ip) = request.details.get("ip").and_then(|v| v.as_str()) {
             diesel::sql_query(
-                "INSERT INTO fraud_velocity (id, bot_id, identifier, identifier_type, event_type) \
+                "INSERT INTO fraud_velocity (id, branch_id, identifier, identifier_type, event_type) \
                  VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, 'ip', $3)",
             )
             .bind::<diesel::sql_types::Uuid, _>(&Uuid::new_v4())

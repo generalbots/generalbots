@@ -31,7 +31,7 @@ pub async fn objectives_list(
         let branch_id = get_default_bot(&mut conn);
 
         let mut db_query = okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(status) = query.status {
@@ -135,7 +135,7 @@ pub async fn objectives_count(
         let branch_id = get_default_bot(&mut conn);
 
         okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()
@@ -155,7 +155,7 @@ pub async fn active_objectives_count(
         let branch_id = get_default_bot(&mut conn);
 
         okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::status.eq("active"))
             .count()
             .get_result::<i64>(&mut conn)
@@ -176,7 +176,7 @@ pub async fn at_risk_count(
         let branch_id = get_default_bot(&mut conn);
 
         okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::status.eq("at_risk"))
             .count()
             .get_result::<i64>(&mut conn)
@@ -197,7 +197,7 @@ pub async fn average_progress(
         let branch_id = get_default_bot(&mut conn);
 
         let objectives = okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::status.ne("draft"))
             .filter(okr_objectives::status.ne("cancelled"))
             .select(okr_objectives::progress)
@@ -228,27 +228,27 @@ pub async fn dashboard_stats(
         let branch_id = get_default_bot(&mut conn);
 
         let total: i64 = okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let active: i64 = okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::status.eq("active"))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let at_risk: i64 = okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::status.eq("at_risk"))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let completed: i64 = okr_objectives::table
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::status.eq("completed"))
             .count()
             .get_result(&mut conn)
@@ -371,7 +371,7 @@ pub async fn recent_checkins(
         let branch_id = get_default_bot(&mut conn);
 
         okr_checkins::table
-            .filter(okr_checkins::bot_id.eq(bot_id))
+            .filter(okr_checkins::branch_id.eq(branch_id))
             .order(okr_checkins::created_at.desc())
             .limit(10)
             .select((

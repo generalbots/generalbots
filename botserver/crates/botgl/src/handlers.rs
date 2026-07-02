@@ -1,10 +1,9 @@
 use crate::types::{
     BalanceSheetRow, CreateAccountRequest, CreateJournalEntryRequest, GlAccount, GlJournalEntry,
-    GlJournalLine, IncomeStatementRow, TrialBalanceRow,
+    IncomeStatementRow, TrialBalanceRow,
 };
 use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use diesel::prelude::*;
-use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -30,7 +29,7 @@ async fn list_accounts(
 ) -> Result<Json<Vec<GlAccount>>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let accounts = diesel::sql_query(
-        "SELECT id, bot_id, code, name, account_type, parent_id, is_active, created_at \
+        "SELECT id, branch_id, code, name, account_type, parent_id, is_active, created_at \
          FROM gl_accounts ORDER BY code",
     )
     .load::<GlAccountDbRow>(&mut conn)
@@ -38,7 +37,7 @@ async fn list_accounts(
     .into_iter()
     .map(|r| GlAccount {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         code: r.code,
         name: r.name,
         account_type: r.account_type,
@@ -58,7 +57,7 @@ async fn create_account(
     let id = Uuid::new_v4();
 
     diesel::sql_query(
-        "INSERT INTO gl_accounts (id, bot_id, code, name, account_type, parent_id, is_active) \
+        "INSERT INTO gl_accounts (id, branch_id, code, name, account_type, parent_id, is_active) \
          VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, true)",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -78,7 +77,7 @@ async fn get_account(
 ) -> Result<Json<GlAccount>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
-        "SELECT id, bot_id, code, name, account_type, parent_id, is_active, created_at \
+        "SELECT id, branch_id, code, name, account_type, parent_id, is_active, created_at \
          FROM gl_accounts WHERE id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -87,7 +86,7 @@ async fn get_account(
 
     Ok(Json(GlAccount {
         id: row.id,
-        bot_id: row.bot_id,
+        branch_id: row.branch_id,
         code: row.code,
         name: row.name,
         account_type: row.account_type,
@@ -95,6 +94,7 @@ async fn get_account(
         is_active: row.is_active,
         created_at: row.created_at,
     }))
+
 }
 
 async fn list_entries(
@@ -102,7 +102,7 @@ async fn list_entries(
 ) -> Result<Json<Vec<GlJournalEntry>>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let entries = diesel::sql_query(
-        "SELECT id, bot_id, entry_date, description, reference_type, reference_id, \
+        "SELECT id, branch_id, entry_date, description, reference_type, reference_id, \
          status, created_by, posted_at, created_at \
          FROM gl_journal_entries ORDER BY entry_date DESC",
     )
@@ -111,7 +111,7 @@ async fn list_entries(
     .into_iter()
     .map(|r| GlJournalEntry {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         entry_date: r.entry_date,
         description: r.description,
         reference_type: r.reference_type,
@@ -134,7 +134,7 @@ async fn create_entry(
 
     conn.transaction(|tx| {
         diesel::sql_query(
-            "INSERT INTO gl_journal_entries (id, bot_id, entry_date, description, reference_type, reference_id, status) \
+            "INSERT INTO gl_journal_entries (id, branch_id, entry_date, description, reference_type, reference_id, status) \
              VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, 'draft')",
         )
         .bind::<diesel::sql_types::Uuid, _>(&entry_id)
@@ -256,7 +256,7 @@ struct GlAccountDbRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: Uuid,
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     code: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -277,7 +277,7 @@ struct GlEntryDbRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: Uuid,
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Date)]
     entry_date: chrono::NaiveDate,
     #[diesel(sql_type = diesel::sql_types::Text)]

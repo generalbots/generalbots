@@ -28,7 +28,7 @@ async fn list_items(
 ) -> Result<Json<Vec<InventoryItem>>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let items = diesel::sql_query(
-        "SELECT id, bot_id, product_id, sku, name, description, quantity, unit, \
+        "SELECT id, branch_id, product_id, sku, name, description, quantity, unit, \
          min_stock, max_stock, location, category, unit_cost, is_active, created_at, updated_at \
          FROM inventory_items ORDER BY name",
     )
@@ -50,7 +50,7 @@ async fn create_item(
     let cost = payload.unit_cost.unwrap_or_default();
 
     diesel::sql_query(
-        "INSERT INTO inventory_items (id, bot_id, sku, name, description, quantity, unit, \
+        "INSERT INTO inventory_items (id, branch_id, sku, name, description, quantity, unit, \
          min_stock, max_stock, location, category, unit_cost, is_active) \
          VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)",
     )
@@ -77,7 +77,7 @@ async fn get_item(
 ) -> Result<Json<InventoryItem>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
-        "SELECT id, bot_id, product_id, sku, name, description, quantity, unit, \
+        "SELECT id, branch_id, product_id, sku, name, description, quantity, unit, \
          min_stock, max_stock, location, category, unit_cost, is_active, created_at, updated_at \
          FROM inventory_items WHERE id = $1",
     )
@@ -92,7 +92,7 @@ async fn list_movements(
 ) -> Result<Json<Vec<InventoryMovement>>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
-        "SELECT id, bot_id, item_id, movement_type, quantity, reference_type, \
+        "SELECT id, branch_id, item_id, movement_type, quantity, reference_type, \
          reference_id, notes, created_by, created_at \
          FROM inventory_movements ORDER BY created_at DESC",
     )
@@ -101,7 +101,7 @@ async fn list_movements(
     .into_iter()
     .map(|r| InventoryMovement {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         item_id: r.item_id,
         movement_type: r.movement_type,
         quantity: r.quantity,
@@ -123,7 +123,7 @@ async fn create_movement(
     let id = Uuid::new_v4();
 
     diesel::sql_query(
-        "INSERT INTO inventory_movements (id, bot_id, item_id, movement_type, quantity, notes) \
+        "INSERT INTO inventory_movements (id, branch_id, item_id, movement_type, quantity, notes) \
          VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5)",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -142,7 +142,7 @@ async fn list_pos(
 ) -> Result<Json<Vec<PurchaseOrder>>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
-        "SELECT id, bot_id, po_number, vendor_name, status, total_amount, currency, \
+        "SELECT id, branch_id, po_number, vendor_name, status, total_amount, currency, \
          expected_date, notes, created_at \
          FROM purchase_orders ORDER BY created_at DESC",
     )
@@ -151,7 +151,7 @@ async fn list_pos(
     .into_iter()
     .map(|r| PurchaseOrder {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         po_number: r.po_number,
         vendor_name: r.vendor_name,
         status: r.status,
@@ -180,7 +180,7 @@ async fn create_po(
         }
 
         diesel::sql_query(
-            "INSERT INTO purchase_orders (id, bot_id, po_number, vendor_name, status, total_amount, expected_date, notes) \
+            "INSERT INTO purchase_orders (id, branch_id, po_number, vendor_name, status, total_amount, expected_date, notes) \
              VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, 'draft', $4, $5, $6)",
         )
         .bind::<diesel::sql_types::Uuid, _>(&po_id)
@@ -219,7 +219,7 @@ async fn get_po(
 ) -> Result<Json<PurchaseOrder>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
-        "SELECT id, bot_id, po_number, vendor_name, status, total_amount, currency, \
+        "SELECT id, branch_id, po_number, vendor_name, status, total_amount, currency, \
          expected_date, notes, created_at \
          FROM purchase_orders WHERE id = $1",
     )
@@ -229,7 +229,7 @@ async fn get_po(
 
     Ok(Json(PurchaseOrder {
         id: row.id,
-        bot_id: row.bot_id,
+        branch_id: row.branch_id,
         po_number: row.po_number,
         vendor_name: row.vendor_name,
         status: row.status,
@@ -244,7 +244,7 @@ async fn get_po(
 fn item_from_row(r: ItemDbRow) -> InventoryItem {
     InventoryItem {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         product_id: r.product_id,
         sku: r.sku,
         name: r.name,
@@ -268,7 +268,7 @@ struct ItemDbRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: Uuid,
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
     product_id: Option<Uuid>,
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -305,7 +305,7 @@ struct MovementDbRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: Uuid,
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     item_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -330,7 +330,7 @@ struct PoDbRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: Uuid,
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     po_number: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
