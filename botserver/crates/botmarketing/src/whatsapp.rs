@@ -105,9 +105,9 @@ pub async fn send_whatsapp_message(
                     marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)),
                 )
                 .set((
-                    marketing_recipients::status.eq("sent"),
+                    marketing_recipients::status.eq(Some("sent")),
                     marketing_recipients::sent_at.eq(Some(Utc::now())),
-                    marketing_recipients::response.eq(serde_json::json!({ "message_id": message_id })),
+                    marketing_recipients::response.eq(Some(serde_json::json!({ "message_id": message_id }).to_string())),
                 ))
                 .execute(&mut conn)
                 .ok();
@@ -126,9 +126,9 @@ pub async fn send_whatsapp_message(
                     marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)),
                 )
                 .set((
-                    marketing_recipients::status.eq("failed"),
+                    marketing_recipients::status.eq(Some("failed")),
                     marketing_recipients::failed_at.eq(Some(Utc::now())),
-                    marketing_recipients::error_message.eq(Some(send_err.to_string())),
+                    marketing_recipients::error_message.eq(Some(send_err.clone())),
                 ))
                 .execute(&mut conn)
                 .ok();
@@ -152,13 +152,16 @@ pub async fn send_bulk_whatsapp_messages(
     let mut sent = 0;
     let mut failed = 0;
 
+    let (bot_id, _) = state.get_bot_context();
+
     let campaign: CrmCampaign = marketing_campaigns::table
         .filter(marketing_campaigns::id.eq(campaign_id))
         .first(&mut *state.conn.get().map_err(|e| format!("DB error: {}", e))?)
         .map_err(|_| "Campaign not found")?;
 
-    let body = campaign
-        .content_template
+    let default_metrics = serde_json::json!({});
+    let template_data = campaign.metrics.as_ref().unwrap_or(&default_metrics);
+    let body = template_data
         .get("body")
         .and_then(|b| b.as_str())
         .unwrap_or("")
@@ -170,13 +173,13 @@ pub async fn send_bulk_whatsapp_messages(
         let payload = WhatsAppCampaignPayload {
             to: phone,
             body: personalized_body,
-            media_url: campaign.content_template.get("media_url").and_then(|m| m.as_str()).map(String::from),
+            media_url: template_data.get("media_url").and_then(|m| m.as_str()).map(String::from),
             campaign_id: Some(campaign_id),
             recipient_id: Some(contact_id),
             template_name: None,
         };
 
-        match send_whatsapp_message(state, campaign.bot_id, payload).await {
+        match send_whatsapp_message(state, bot_id, payload).await {
             Ok(result) => {
                 if result.success {
                     sent += 1;
@@ -203,33 +206,35 @@ pub async fn get_whatsapp_metrics(
 ) -> Result<WhatsAppMetrics, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-    let recipients: Vec<(String, Option<serde_json::Value>)> = marketing_recipients::table
+    let recipients: Vec<(Option<String>, Option<String>)> = marketing_recipients::table
         .filter(marketing_recipients::campaign_id.eq(campaign_id))
-        .filter(marketing_recipients::channel.eq("whatsapp"))
+        .filter(marketing_recipients::channel.eq(Some("whatsapp")))
         .select((marketing_recipients::status, marketing_recipients::response))
         .load(&mut conn)
         .map_err(|e| format!("Query error: {}", e))?;
 
+    let parse_response = |r: &Option<String>| -> Option<serde_json::Value> {
+        r.as_ref().and_then(|s| serde_json::from_str(s).ok())
+    };
+
     let total = recipients.len() as i64;
-    let sent = recipients.iter().filter(|(s, _)| s == "sent").count() as i64;
+    let sent = recipients.iter().filter(|(s, _)| s.as_deref() == Some("sent")).count() as i64;
     let delivered = recipients
         .iter()
         .filter(|(_, r)| {
-            r.as_ref()
-                .and_then(|v| v.get("status"))
-                .and_then(|s| s.as_str())
-                .map(|s| s == "delivered")
+            parse_response(r)
+                .and_then(|v| v.get("status").cloned())
+                .and_then(|s| s.as_str().map(|st| st == "delivered"))
                 .unwrap_or(false)
         })
         .count() as i64;
-    let failed = recipients.iter().filter(|(s, _)| s == "failed").count() as i64;
+    let failed = recipients.iter().filter(|(s, _)| s.as_deref() == Some("failed")).count() as i64;
     let read = recipients
         .iter()
         .filter(|(_, r)| {
-            r.as_ref()
-                .and_then(|v| v.get("status"))
-                .and_then(|s| s.as_str())
-                .map(|s| s == "read")
+            parse_response(r)
+                .and_then(|v| v.get("status").cloned())
+                .and_then(|s| s.as_str().map(|st| st == "read"))
                 .unwrap_or(false)
         })
         .count() as i64;
@@ -272,10 +277,10 @@ pub async fn handle_webhook_event(
 
                 diesel::update(marketing_recipients::table.filter(
                     marketing_recipients::response
-                        .eq(serde_json::json!({ "message_id": message_id })),
+                        .eq(Some(serde_json::json!({ "message_id": message_id }).to_string())),
                 ))
                 .set((
-                    marketing_recipients::status.eq(status_str),
+                    marketing_recipients::status.eq(Some(status_str)),
                     marketing_recipients::delivered_at.eq(delivered_at),
                 ))
                 .execute(&mut conn)

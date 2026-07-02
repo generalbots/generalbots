@@ -9,10 +9,11 @@ pub mod schema;
 pub mod ui;
 
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub type DbPool = r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (uuid::Uuid, String);
+pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> Uuid;
 
 pub struct AttendantConfig {
     pub pool: Arc<DbPool>,

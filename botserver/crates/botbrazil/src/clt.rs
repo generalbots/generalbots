@@ -257,7 +257,7 @@ pub fn weeks_between(start: NaiveDate, end: NaiveDate) -> i64 {
 pub fn months_between(start: NaiveDate, end: NaiveDate) -> i64 {
     let years = end.year() - start.year();
     let months = end.month() as i64 - start.month() as i64;
-    (years * 12 + months).max(0)
+    ((years as i64) * 12 + months).max(0)
 }
 
 /// Returns the number of days in the period.

@@ -95,9 +95,9 @@ async fn get_channel_breakdown(
     let mut breakdown = Vec::new();
 
     for channel in channels {
-        let recipients: Vec<String> = marketing_recipients::table
+        let recipients: Vec<Option<String>> = marketing_recipients::table
             .filter(marketing_recipients::campaign_id.eq_any(campaign_ids))
-            .filter(marketing_recipients::channel.eq(channel))
+            .filter(marketing_recipients::channel.eq(Some(channel)))
             .select(marketing_recipients::status)
             .load(conn)
             .unwrap_or_default();
@@ -107,8 +107,8 @@ async fn get_channel_breakdown(
         }
 
         let total = recipients.len() as i64;
-        let sent = recipients.iter().filter(|s| *s == "sent").count() as i64;
-        let delivered = recipients.iter().filter(|s| *s == "delivered" || *s == "read").count() as i64;
+        let sent = recipients.iter().filter(|s| s.as_deref() == Some("sent")).count() as i64;
+        let delivered = recipients.iter().filter(|s| s.as_deref() == Some("delivered") || s.as_deref() == Some("read")).count() as i64;
 
         let opened = if channel == "email" {
             email_tracking::table
@@ -149,44 +149,40 @@ async fn get_channel_breakdown(
 
 pub async fn get_aggregate_metrics(
     state: &Arc<AppState>,
-    org_id: Uuid,
-    bot_id: Uuid,
+    branch_id: Uuid,
 ) -> Result<AggregateMetrics, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let total_campaigns: i64 = marketing_campaigns::table
-        .filter(marketing_campaigns::org_id.eq(org_id))
-        .filter(marketing_campaigns::bot_id.eq(bot_id))
+        .filter(marketing_campaigns::branch_id.eq(branch_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let active_campaigns: i64 = marketing_campaigns::table
-        .filter(marketing_campaigns::org_id.eq(org_id))
-        .filter(marketing_campaigns::bot_id.eq(bot_id))
-        .filter(marketing_campaigns::status.eq("running"))
+        .filter(marketing_campaigns::branch_id.eq(branch_id))
+        .filter(marketing_campaigns::status.eq(Some("running")))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let campaigns: Vec<CrmCampaign> = marketing_campaigns::table
-        .filter(marketing_campaigns::org_id.eq(org_id))
-        .filter(marketing_campaigns::bot_id.eq(bot_id))
+        .filter(marketing_campaigns::branch_id.eq(branch_id))
         .select(marketing_campaigns::all_columns)
         .load(&mut conn)
         .unwrap_or_default();
 
     let campaign_ids: Vec<Uuid> = campaigns.iter().map(|c| c.id).collect();
 
-    let recipients: Vec<(String, String)> = marketing_recipients::table
+    let recipients: Vec<(Option<String>, Option<String>)> = marketing_recipients::table
         .filter(marketing_recipients::campaign_id.eq_any(campaign_ids.clone()))
         .select((marketing_recipients::channel, marketing_recipients::status))
         .load(&mut conn)
         .unwrap_or_default();
 
     let total_recipients = recipients.len() as i64;
-    let total_sent = recipients.iter().filter(|(_, s)| s == "sent").count() as i64;
-    let total_delivered = recipients.iter().filter(|(_, s)| s == "delivered" || s == "read").count() as i64;
+    let total_sent = recipients.iter().filter(|(_, s)| s.as_deref() == Some("sent")).count() as i64;
+    let total_delivered = recipients.iter().filter(|(_, s)| s.as_deref() == Some("delivered") || s.as_deref() == Some("read")).count() as i64;
 
     let total_opened: i64 = email_tracking::table
         .filter(email_tracking::campaign_id.eq_any(campaign_ids.clone()))
@@ -267,9 +263,9 @@ pub async fn get_campaign_timeseries_api(
 pub async fn get_aggregate_metrics_api(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<AggregateMetrics>, (StatusCode, String)> {
-    let (org_id, bot_id) = get_default_context(&state);
+    let (branch_id, _) = get_default_context(&state);
 
-    match get_aggregate_metrics(&state, org_id, bot_id).await {
+    match get_aggregate_metrics(&state, branch_id).await {
         Ok(metrics) => Ok(Json(metrics)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
     }

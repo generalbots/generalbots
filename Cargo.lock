@@ -1584,7 +1584,6 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
- "bigdecimal",
  "chrono",
  "csv",
  "diesel",
@@ -2297,6 +2296,7 @@ version = "6.3.0"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
+ "bigdecimal",
  "chrono",
  "diesel",
  "log",

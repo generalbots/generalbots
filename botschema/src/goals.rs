@@ -1,10 +1,9 @@
-use crate::core::{bots, branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     okr_objectives (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         owner_id -> Uuid,
         parent_id -> Nullable<Uuid>,
         title -> Varchar,
@@ -25,8 +24,7 @@ diesel::table! {
 diesel::table! {
     okr_key_results (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         objective_id -> Uuid,
         owner_id -> Uuid,
         title -> Varchar,
@@ -48,8 +46,7 @@ diesel::table! {
 diesel::table! {
     okr_checkins (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         key_result_id -> Uuid,
         user_id -> Uuid,
         previous_value -> Nullable<Numeric>,
@@ -64,8 +61,7 @@ diesel::table! {
 diesel::table! {
     okr_alignments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         child_objective_id -> Uuid,
         parent_objective_id -> Uuid,
         alignment_type -> Varchar,
@@ -77,8 +73,7 @@ diesel::table! {
 diesel::table! {
     okr_templates (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         category -> Nullable<Varchar>,
@@ -95,8 +90,7 @@ diesel::table! {
 diesel::table! {
     okr_comments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         objective_id -> Nullable<Uuid>,
         key_result_id -> Nullable<Uuid>,
         user_id -> Uuid,
@@ -110,8 +104,7 @@ diesel::table! {
 diesel::table! {
     okr_activity_log (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         objective_id -> Nullable<Uuid>,
         key_result_id -> Nullable<Uuid>,
         user_id -> Uuid,
@@ -124,19 +117,12 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(okr_objectives -> organizations (org_id));
 diesel::joinable!(okr_objectives -> branches (branch_id));
-diesel::joinable!(okr_key_results -> organizations (org_id));
 diesel::joinable!(okr_key_results -> branches (branch_id));
 diesel::joinable!(okr_key_results -> okr_objectives (objective_id));
-diesel::joinable!(okr_checkins -> organizations (org_id));
 diesel::joinable!(okr_checkins -> branches (branch_id));
 diesel::joinable!(okr_checkins -> okr_key_results (key_result_id));
-diesel::joinable!(okr_alignments -> organizations (org_id));
 diesel::joinable!(okr_alignments -> branches (branch_id));
-diesel::joinable!(okr_templates -> organizations (org_id));
 diesel::joinable!(okr_templates -> branches (branch_id));
-diesel::joinable!(okr_comments -> organizations (org_id));
 diesel::joinable!(okr_comments -> branches (branch_id));
-diesel::joinable!(okr_activity_log -> organizations (org_id));
 diesel::joinable!(okr_activity_log -> branches (branch_id));

@@ -185,7 +185,7 @@ pub async fn run_start_bas_on_connect(
     let bot_id_for_bas = bot_uuid;
     let _bot_name_owned = bot_name.to_string();
     let session_for_bas = botlib::models::UserSession {
-        id: session_id, user_id, bot_id: bot_id_for_bas,
+        id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_id_for_bas,
         title: String::new(),
         context_data: serde_json::Value::Null,
         current_tool: None,

@@ -28,8 +28,8 @@ async fn list_accounts_handler(
     State(state): State<Arc<crate::CrateState>>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let (org_id, _) = state.get_bot_context();
-    match service.list_accounts(org_id).await {
+    let branch_id = state.get_bot_context();
+    match service.list_accounts(branch_id).await {
         Ok(accounts) => Json(accounts).into_response(),
         Err(e) => e.into_response(),
     }
@@ -51,8 +51,8 @@ async fn connect_account_handler(
     Json(request): Json<ConnectAccountRequest>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let (org_id, user_id) = state.get_bot_context();
-    match service.connect_account(org_id, user_id, &request).await {
+    let branch_id = state.get_bot_context();
+    match service.connect_account(branch_id, Uuid::nil(), &request).await {
         Ok(account) => Json(account).into_response(),
         Err(e) => e.into_response(),
     }
@@ -63,8 +63,8 @@ async fn disconnect_account_handler(
     Path(account_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let (org_id, _) = state.get_bot_context();
-    match service.disconnect_account(org_id, account_id).await {
+    let branch_id = state.get_bot_context();
+    match service.disconnect_account(branch_id, account_id).await {
         Ok(()) => Json(serde_json::json!({"success": true})).into_response(),
         Err(e) => e.into_response(),
     }
@@ -76,8 +76,8 @@ async fn start_sync_handler(
     Json(request): Json<StartSyncRequest>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let (org_id, _) = state.get_bot_context();
-    match service.start_sync(org_id, account_id, &request, SyncTrigger::Manual).await {
+    let branch_id = state.get_bot_context();
+    match service.start_sync(branch_id, account_id, &request, SyncTrigger::Manual).await {
         Ok(history) => Json(history).into_response(),
         Err(e) => e.into_response(),
     }
@@ -111,8 +111,8 @@ async fn resolve_conflict_handler(
     Json(request): Json<ResolveConflictRequest>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let (org_id, _) = state.get_bot_context();
-    match service.resolve_conflict(org_id, mapping_id, &request).await {
+    let branch_id = state.get_bot_context();
+    match service.resolve_conflict(branch_id, mapping_id, &request).await {
         Ok(mapping) => Json(mapping).into_response(),
         Err(e) => e.into_response(),
     }

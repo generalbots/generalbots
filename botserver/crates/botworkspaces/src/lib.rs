@@ -19,8 +19,7 @@ pub type DbPool = Pool<ConnectionManager<diesel::PgConnection>>;
 diesel::table! {
     aiworkspaces (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         icon_type -> Nullable<Varchar>,
@@ -105,7 +104,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     aiworkspace_comments,
 );
 
-pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (Uuid, String);
+pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> Uuid;
 
 #[derive(Debug, Clone)]
 pub struct WorkspacesState {
@@ -113,21 +112,49 @@ pub struct WorkspacesState {
     pub get_default_bot: GetDefaultBotFn,
 }
 
-fn get_bot_context(state: &WorkspacesState) -> (Uuid, Uuid) {
+diesel::table! {
+    bots (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        slug -> Varchar,
+        org_id -> Uuid,
+        tenant_id -> Nullable<Uuid>,
+        is_default_for_branch -> Nullable<Bool>,
+        description -> Nullable<Text>,
+        is_public -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
+        avatar_url -> Nullable<Varchar>,
+        settings -> Nullable<Jsonb>,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        llm_provider -> Varchar,
+        llm_config -> Jsonb,
+        context_provider -> Varchar,
+        context_config -> Jsonb,
+        database_name -> Nullable<Varchar>,
+    }
+}
+
+fn get_bot_context(state: &WorkspacesState) -> Uuid {
     let Ok(mut conn) = state.pool.get() else {
-        return (Uuid::nil(), Uuid::nil());
+        return Uuid::nil();
     };
-    let (bot_id, _bot_name) = (state.get_default_bot)(&mut conn);
-    let org_id = Uuid::nil();
-    (org_id, bot_id)
+    let bid: Uuid = bots::table
+        .filter(bots::is_default_for_branch.eq(true))
+        .select(bots::branch_id)
+        .first(&mut conn)
+        .unwrap_or(Uuid::nil());
+    bid
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
 #[diesel(table_name = aiworkspaces)]
 pub struct DbWorkspace {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub icon_type: Option<String>,
@@ -206,7 +233,7 @@ pub struct DbWorkspaceComment {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Workspace {
     pub id: Uuid,
-    pub org_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub icon: Option<WorkspaceIcon>,
@@ -656,7 +683,7 @@ fn db_to_workspace(db: DbWorkspace, members: Vec<WorkspaceMember>, root_pages: V
 
     Workspace {
         id: db.id,
-        org_id: db.org_id,
+        branch_id: db.branch_id,
         name: db.name,
         description: db.description,
         icon,
@@ -768,16 +795,15 @@ async fn list_workspaces(
         .get()
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = aiworkspaces::table
-        .filter(aiworkspaces::org_id.eq(org_id))
-        .filter(aiworkspaces::bot_id.eq(bot_id))
+        .filter(aiworkspaces::branch_id.eq(branch_id))
         .into_boxed();
 
-    if let Some(search) = query.search {
+    if let Some(search) = &query.search {
         let pattern = format!("%{search}%");
         q = q.filter(
             aiworkspaces::name
@@ -833,7 +859,7 @@ async fn create_workspace(
         .get()
         .map_err(|e| WorkspacesError::DbError(e.to_string()))?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
     let user_id = Uuid::nil();
@@ -843,8 +869,7 @@ async fn create_workspace(
 
     let db_workspace = DbWorkspace {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
         description: req.description,
         icon_type: None,
@@ -3041,7 +3066,7 @@ pub struct UiPageListQuery {
     pub parent_id: Option<Uuid>,
 }
 
-fn ui_get_bot_context(state: &WorkspacesState) -> (Uuid, Uuid) {
+fn ui_get_bot_context(state: &WorkspacesState) -> Uuid {
     get_bot_context(state)
 }
 
@@ -3171,11 +3196,10 @@ pub async fn workspace_list(
         return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
     };
 
-    let (org_id, bot_id) = ui_get_bot_context(&state);
+    let branch_id = ui_get_bot_context(&state);
 
     let mut q = aiworkspaces::table
-        .filter(aiworkspaces::org_id.eq(org_id))
-        .filter(aiworkspaces::bot_id.eq(bot_id))
+        .filter(aiworkspaces::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(search) = &query.search {
@@ -3249,11 +3273,9 @@ pub async fn workspace_cards(
         return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
     };
 
-    let (org_id, bot_id) = ui_get_bot_context(&state);
+    let branch_id = ui_get_bot_context(&state);
 
     let mut q = aiworkspaces::table
-        .filter(aiworkspaces::org_id.eq(org_id))
-        .filter(aiworkspaces::bot_id.eq(bot_id))
         .into_boxed();
 
     if let Some(search) = &query.search {
@@ -3309,11 +3331,10 @@ pub async fn workspace_count(State(state): State<Arc<WorkspacesState>>) -> Html<
         return Html("0".to_string());
     };
 
-    let (org_id, bot_id) = ui_get_bot_context(&state);
+    let branch_id = ui_get_bot_context(&state);
 
     let count: i64 = aiworkspaces::table
-        .filter(aiworkspaces::org_id.eq(org_id))
-        .filter(aiworkspaces::bot_id.eq(bot_id))
+        .filter(aiworkspaces::branch_id.eq(branch_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
@@ -3776,10 +3797,9 @@ pub async fn search_results(
 
 fn resolve_current_workspace_id(state: &WorkspacesState) -> Uuid {
     let Ok(mut conn) = state.pool.get() else { return Uuid::nil(); };
-    let (org_id, bot_id) = ui_get_bot_context(state);
+    let branch_id = ui_get_bot_context(state);
     aiworkspaces::table
-        .filter(aiworkspaces::org_id.eq(org_id))
-        .filter(aiworkspaces::bot_id.eq(bot_id))
+        .filter(aiworkspaces::branch_id.eq(branch_id))
         .select(aiworkspaces::id)
         .first(&mut conn)
         .unwrap_or(Uuid::nil())

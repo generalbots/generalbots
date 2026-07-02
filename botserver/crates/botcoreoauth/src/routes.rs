@@ -382,23 +382,24 @@ async fn create_or_get_oauth_user(
 
 async fn create_user_session(state: &OAuthState_, user_id: Uuid) -> anyhow::Result<String> {
     let conn = state.conn.clone();
-    let bot_id = tokio::task::spawn_blocking(move || {
+    let (bot_id, branch_id) = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().ok()?;
         use diesel::prelude::*;
         use crate::schema::bots;
         bots::dsl::bots
             .filter(bots::dsl::is_active.eq(true))
-            .select(bots::dsl::id)
-            .first::<Uuid>(&mut db_conn)
+            .select((bots::dsl::id, bots::dsl::branch_id))
+            .first::<(Uuid, Uuid)>(&mut db_conn)
             .optional()
             .ok()?
     })
     .await
     .ok()
     .flatten()
-    .unwrap_or(Uuid::nil());
+    .unwrap_or((Uuid::nil(), Uuid::nil()));
 
     let session_id = Uuid::new_v4();
+    let now = chrono::Utc::now();
 
     let conn = state.conn.clone();
     tokio::task::spawn_blocking(move || {
@@ -407,10 +408,12 @@ async fn create_user_session(state: &OAuthState_, user_id: Uuid) -> anyhow::Resu
         diesel::insert_into(user_sessions::dsl::user_sessions)
             .values((
                 user_sessions::dsl::id.eq(session_id),
-                user_sessions::dsl::user_id.eq(user_id),
+                user_sessions::dsl::branch_id.eq(branch_id),
                 user_sessions::dsl::bot_id.eq(bot_id),
-                user_sessions::dsl::started_at.eq(chrono::Utc::now()),
-                user_sessions::dsl::is_active.eq(true),
+                user_sessions::dsl::session_id.eq(session_id.to_string()),
+                user_sessions::dsl::user_id.eq(user_id.to_string()),
+                user_sessions::dsl::created_at.eq(now),
+                user_sessions::dsl::updated_at.eq(now),
             ))
             .execute(&mut conn.get().map_err(|e| anyhow!("DB error: {}", e))?)
             .map_err(|e| anyhow!("Failed to create session: {}", e))?;

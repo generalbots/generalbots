@@ -81,11 +81,11 @@ async fn handle_dashboard_metrics(
         return Html("Error connecting to DB".to_string());
     };
 
-    let (branch_id, _) = crate::get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::get_bot_context(&state.pool, &state.get_default_bot);
 
     // 1. Current Period Spending (Sum of invoices total for branch_id)
     let total_spent = billing_invoices::table
-        .filter(billing_invoices::org_id.eq(branch_id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .select(diesel::dsl::sum(billing_invoices::total))
         .first::<Option<BigDecimal>>(&mut conn)
         .unwrap_or(None)
@@ -95,7 +95,7 @@ async fn handle_dashboard_metrics(
 
     // 2. Projected (Total spent + sum of monthly recurring subscriptions amount)
     let total_recurring = billing_recurring::table
-        .filter(billing_recurring::org_id.eq(branch_id))
+        .filter(billing_recurring::branch_id.eq(branch_id))
         .select(diesel::dsl::sum(billing_recurring::amount))
         .first::<Option<BigDecimal>>(&mut conn)
         .unwrap_or(None)
@@ -111,7 +111,7 @@ async fn handle_dashboard_metrics(
 
     // 4. Savings (Sum of discount_amount for branch_id)
     let total_savings = billing_invoices::table
-        .filter(billing_invoices::org_id.eq(branch_id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .select(diesel::dsl::sum(billing_invoices::discount_amount))
         .first::<Option<BigDecimal>>(&mut conn)
         .unwrap_or(None)
@@ -186,7 +186,7 @@ async fn handle_dashboard_quotas(
         return Html("Error connecting to DB".to_string());
     };
 
-    let (branch_id, _) = crate::get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::get_bot_context(&state.pool, &state.get_default_bot);
 
     // Dynamic counts
     let bot_count = diesel::sql_query(
@@ -300,13 +300,17 @@ async fn handle_invoices(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let branch_id = match get_default_bot {
+            Some(f) => {
+                let bid = f(&mut conn);
+                if bid == Uuid::nil() { return None; }
+                bid
+            }
             None => return None,
         };
 
         let mut db_query = billing_invoices::table
-            .filter(billing_invoices::bot_id.eq(bot_id))
+            .filter(billing_invoices::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(ref status) = query.status {
@@ -331,7 +335,7 @@ async fn handle_invoices(
                 billing_invoices::amount_due,
                 billing_invoices::currency,
             ))
-            .load::<(Uuid, String, String, Option<String>, String, NaiveDate, NaiveDate, BigDecimal, BigDecimal, String)>(&mut conn)
+            .load::<(Uuid, String, Option<String>, Option<String>, Option<String>, NaiveDate, Option<NaiveDate>, Option<BigDecimal>, BigDecimal, Option<String>)>(&mut conn)
             .ok()
     })
     .await
@@ -342,13 +346,13 @@ async fn handle_invoices(
         Some(invoices) if !invoices.is_empty() => {
             let mut html = String::new();
             for (id, number, customer_name, customer_email, status, issue_date, due_date, total, amount_due, currency) in invoices {
-                let name = customer_email.unwrap_or_else(|| customer_name.clone());
-                let total_str = format_currency(bd_to_f64(&total), &currency);
-                let due_str = format_currency(bd_to_f64(&amount_due), &currency);
+                let name = customer_email.or(customer_name).unwrap_or_else(|| "Unknown".to_string());
+                let total_str = format_currency(bd_to_f64(&total.unwrap_or_default()), &currency.as_deref().unwrap_or("USD"));
+                let due_str = format_currency(bd_to_f64(&amount_due), &currency.as_deref().unwrap_or("USD"));
                 let issue_str = issue_date.format("%Y-%m-%d").to_string();
-                let due_date_str = due_date.format("%Y-%m-%d").to_string();
+                let due_date_str = due_date.map(|d| d.format("%Y-%m-%d").to_string()).unwrap_or_else(|| "-".to_string());
 
-                let status_class = match status.as_str() {
+                let status_class = match status.as_deref().unwrap_or("draft") {
                     "paid" => "status-paid",
                     "sent" => "status-sent",
                     "overdue" => "status-overdue",
@@ -365,7 +369,7 @@ async fn handle_invoices(
                     total_str,
                     due_str,
                     status_class,
-                    html_escape(&status)
+                    html_escape(status.as_deref().unwrap_or(""))
                 ));
             }
             Html(html)
@@ -383,13 +387,17 @@ async fn handle_payments(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let branch_id = match get_default_bot {
+            Some(f) => {
+                let bid = f(&mut conn);
+                if bid == Uuid::nil() { return None; }
+                bid
+            }
             None => return None,
         };
 
         let mut db_query = billing_payments::table
-            .filter(billing_payments::bot_id.eq(bot_id))
+            .filter(billing_payments::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(ref status) = query.status {
@@ -413,7 +421,7 @@ async fn handle_payments(
                 billing_payments::status,
                 billing_payments::paid_at,
             ))
-            .load::<(Uuid, String, BigDecimal, String, String, Option<String>, Option<String>, String, DateTime<Utc>)>(&mut conn)
+            .load::<(Uuid, String, BigDecimal, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<DateTime<Utc>>)>(&mut conn)
             .ok()
     })
     .await
@@ -424,11 +432,11 @@ async fn handle_payments(
         Some(payments) if !payments.is_empty() => {
             let mut html = String::new();
             for (id, number, amount, currency, method, payer_name, payer_email, status, paid_at) in payments {
-                let amount_str = format_currency(bd_to_f64(&amount), &currency);
-                let payer = payer_name.unwrap_or_else(|| payer_email.unwrap_or_else(|| "Unknown".to_string()));
-                let date_str = paid_at.format("%Y-%m-%d %H:%M").to_string();
+                let amount_str = format_currency(bd_to_f64(&amount), currency.as_deref().unwrap_or("USD"));
+                let payer = payer_name.or(payer_email).unwrap_or_else(|| "Unknown".to_string());
+                let date_str = paid_at.map(|d| d.format("%Y-%m-%d %H:%M").to_string()).unwrap_or_else(|| "-".to_string());
 
-                let status_class = match status.as_str() {
+                let status_class = match status.as_deref().unwrap_or("draft") {
                     "completed" => "status-completed",
                     "pending" => "status-pending",
                     "refunded" => "status-refunded",
@@ -441,10 +449,10 @@ async fn handle_payments(
                     html_escape(&number),
                     html_escape(&payer),
                     amount_str,
-                    html_escape(&method),
+                    html_escape(method.as_deref().unwrap_or("")),
                     date_str,
                     status_class,
-                    html_escape(&status)
+                    html_escape(status.as_deref().unwrap_or(""))
                 ));
             }
             Html(html)
@@ -462,13 +470,17 @@ async fn handle_quotes(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let branch_id = match get_default_bot {
+            Some(f) => {
+                let bid = f(&mut conn);
+                if bid == Uuid::nil() { return None; }
+                bid
+            }
             None => return None,
         };
 
         let mut db_query = billing_quotes::table
-            .filter(billing_quotes::bot_id.eq(bot_id))
+            .filter(billing_quotes::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(ref status) = query.status {
@@ -492,7 +504,7 @@ async fn handle_quotes(
                 billing_quotes::total,
                 billing_quotes::currency,
             ))
-            .load::<(Uuid, String, String, Option<String>, String, NaiveDate, NaiveDate, BigDecimal, String)>(&mut conn)
+            .load::<(Uuid, String, Option<String>, Option<String>, Option<String>, NaiveDate, Option<NaiveDate>, Option<BigDecimal>, Option<String>)>(&mut conn)
             .ok()
     })
     .await
@@ -503,12 +515,12 @@ async fn handle_quotes(
         Some(quotes) if !quotes.is_empty() => {
             let mut html = String::new();
             for (id, number, customer_name, customer_email, status, issue_date, valid_until, total, currency) in quotes {
-                let name = customer_email.unwrap_or_else(|| customer_name.clone());
-                let total_str = format_currency(bd_to_f64(&total), &currency);
+                let name = customer_email.or(customer_name).unwrap_or_else(|| "Unknown".to_string());
+                let total_str = format_currency(bd_to_f64(&total.unwrap_or_default()), &currency.as_deref().unwrap_or("USD"));
                 let issue_str = issue_date.format("%Y-%m-%d").to_string();
-                let valid_str = valid_until.format("%Y-%m-%d").to_string();
+                let valid_str = valid_until.map(|d| d.format("%Y-%m-%d").to_string()).unwrap_or_else(|| "-".to_string());
 
-                let status_class = match status.as_str() {
+                let status_class = match status.as_deref().unwrap_or("draft") {
                     "accepted" => "status-accepted",
                     "sent" => "status-sent",
                     "rejected" => "status-rejected",
@@ -525,7 +537,7 @@ async fn handle_quotes(
                     valid_str,
                     total_str,
                     status_class,
-                    html_escape(&status)
+                    html_escape(status.as_deref().unwrap_or(""))
                 ));
             }
             Html(html)
@@ -540,13 +552,17 @@ async fn handle_stats_pending(State(state): State<Arc<BillingApiState>>) -> impl
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let branch_id = match get_default_bot {
+            Some(f) => {
+                let bid = f(&mut conn);
+                if bid == Uuid::nil() { return None; }
+                bid
+            }
             None => return None,
         };
 
         let totals: Vec<BigDecimal> = billing_invoices::table
-            .filter(billing_invoices::bot_id.eq(bot_id))
+            .filter(billing_invoices::branch_id.eq(branch_id))
             .filter(billing_invoices::status.eq_any(vec!["sent", "draft"]))
             .select(billing_invoices::amount_due)
             .load(&mut conn)
@@ -568,22 +584,26 @@ async fn handle_revenue_month(State(state): State<Arc<BillingApiState>>) -> impl
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let branch_id = match get_default_bot {
+            Some(f) => {
+                let bid = f(&mut conn);
+                if bid == Uuid::nil() { return None; }
+                bid
+            }
             None => return None,
         };
 
         let now = Utc::now();
         let month_start = now.date_naive().with_day(1)?.and_hms_opt(0, 0, 0)?;
 
-        let totals: Vec<BigDecimal> = billing_invoices::table
-            .filter(billing_invoices::bot_id.eq(bot_id))
+        let totals: Vec<Option<BigDecimal>> = billing_invoices::table
+            .filter(billing_invoices::branch_id.eq(branch_id))
             .filter(billing_invoices::created_at.ge(month_start))
             .select(billing_invoices::total)
             .load(&mut conn)
             .ok()?;
 
-        let sum: f64 = totals.iter().map(bd_to_f64).sum();
+        let sum: f64 = totals.iter().map(|t| t.as_ref().map_or(0.0, |v| bd_to_f64(v))).sum();
         Some(sum)
     })
     .await
@@ -599,8 +619,12 @@ async fn handle_paid_month(State(state): State<Arc<BillingApiState>>) -> impl In
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let branch_id = match get_default_bot {
+            Some(f) => {
+                let bid = f(&mut conn);
+                if bid == Uuid::nil() { return None; }
+                bid
+            }
             None => return None,
         };
 
@@ -608,7 +632,7 @@ async fn handle_paid_month(State(state): State<Arc<BillingApiState>>) -> impl In
         let month_start = now.date_naive().with_day(1)?.and_hms_opt(0, 0, 0)?;
 
         let totals: Vec<BigDecimal> = billing_payments::table
-            .filter(billing_payments::bot_id.eq(bot_id))
+            .filter(billing_payments::branch_id.eq(branch_id))
             .filter(billing_payments::status.eq("completed"))
             .filter(billing_payments::created_at.ge(month_start))
             .select(billing_payments::amount)
@@ -631,13 +655,17 @@ async fn handle_overdue(State(state): State<Arc<BillingApiState>>) -> impl IntoR
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
+        let branch_id = match get_default_bot {
+            Some(f) => {
+                let bid = f(&mut conn);
+                if bid == Uuid::nil() { return None; }
+                bid
+            }
             None => return None,
         };
 
         let totals: Vec<BigDecimal> = billing_invoices::table
-            .filter(billing_invoices::bot_id.eq(bot_id))
+            .filter(billing_invoices::branch_id.eq(branch_id))
             .filter(billing_invoices::status.eq("overdue"))
             .select(billing_invoices::amount_due)
             .load(&mut conn)
@@ -667,13 +695,17 @@ async fn handle_billing_search(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match state.get_default_bot {
-            Some(f) => f(&mut conn),
+        let branch_id = match state.get_default_bot {
+            Some(f) => {
+                let bid = f(&mut conn);
+                if bid == Uuid::nil() { return None; }
+                bid
+            }
             None => return None,
         };
 
         billing_invoices::table
-            .filter(billing_invoices::bot_id.eq(bot_id))
+            .filter(billing_invoices::branch_id.eq(branch_id))
             .filter(
                 billing_invoices::invoice_number.ilike(&search_term)
                     .or(billing_invoices::customer_name.ilike(&search_term))
@@ -689,7 +721,7 @@ async fn handle_billing_search(
                 billing_invoices::total,
                 billing_invoices::currency,
             ))
-            .load::<(Uuid, String, String, String, BigDecimal, String)>(&mut conn)
+            .load::<(Uuid, String, Option<String>, Option<String>, Option<BigDecimal>, Option<String>)>(&mut conn)
             .ok()
     })
     .await
@@ -700,13 +732,13 @@ async fn handle_billing_search(
         Some(items) if !items.is_empty() => {
             let mut html = String::new();
             for (id, number, customer, status, total, currency) in items {
-                let total_str = format_currency(bd_to_f64(&total), &currency);
+                let total_str = format_currency(bd_to_f64(&total.unwrap_or_default()), &currency.as_deref().unwrap_or("USD"));
 
                 html.push_str(&format!(
                     r##"<div class="search-result-item" hx-get="/api/billing/invoices/{id}" hx-target="#invoice-detail"><span class="result-number">{}</span><span class="result-customer">{}</span><span class="result-status">{}</span><span class="result-total">{}</span></div>"##,
                     html_escape(&number),
-                    html_escape(&customer),
-                    html_escape(&status),
+                    html_escape(customer.as_deref().unwrap_or("")),
+                    html_escape(status.as_deref().unwrap_or("")),
                     total_str
                 ));
             }

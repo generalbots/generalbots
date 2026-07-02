@@ -17,6 +17,12 @@ struct OrgRow {
     name: String,
 }
 
+#[derive(QueryableByName, Debug)]
+struct BranchIdRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+}
+
 use crate::{integration, notifier, CalculatorPayload, SaasConfig, SaasService};
 use botproviders::{ComputeProvider, MachineSpec};
 use botproviders::vast::VastAiProvider;
@@ -323,8 +329,7 @@ async fn handle_signup(
             diesel::insert_into(botbilling::schema::billing_invoices::table)
                 .values((
                     botbilling::schema::billing_invoices::id.eq(inv_id),
-                    botbilling::schema::billing_invoices::org_id.eq(branch_id),
-                    botbilling::schema::billing_invoices::bot_id.eq(new_bot_id),
+                    botbilling::schema::billing_invoices::branch_id.eq(branch_id),
                     botbilling::schema::billing_invoices::invoice_number.eq(&inv_number),
                     botbilling::schema::billing_invoices::customer_name.eq(&body.name),
                     botbilling::schema::billing_invoices::customer_email.eq(Some(&body.email)),
@@ -367,7 +372,7 @@ async fn handle_signup(
     #[cfg(feature = "saas")]
     {
         use botproducts::seed::seed_default_products;
-        seed_default_products(&mut conn, org_id, new_bot_id);
+        seed_default_products(&mut conn, Uuid::nil());
     }
 
     // 9. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal — outside tx)
@@ -470,13 +475,13 @@ async fn handle_checkout(
     let mut conn = billing.pool.get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
-    let (org_id, bot_id) = botbilling::get_bot_context(&billing.pool, &billing.get_default_bot);
+    let branch_id = botbilling::get_bot_context(&billing.pool, &billing.get_default_bot);
     let now = chrono::Utc::now();
 
-    let effective_org_id = if org_id == Uuid::nil() {
+    let effective_branch_id = if branch_id == Uuid::nil() {
         Uuid::nil()
     } else {
-        org_id
+        branch_id
     };
 
     let customer_email = body.email.clone();
@@ -486,25 +491,25 @@ async fn handle_checkout(
     let total_cents = (payload.total * 100.0) as u64;
     let total_value = total_cents as f64;
     let invoice_id = Uuid::new_v4();
-    let invoice_number = botbilling::api_models::generate_invoice_number(&mut conn, effective_org_id);
+    let invoice_number = botbilling::api_models::generate_invoice_number(&mut conn, effective_branch_id);
 
     let invoice = botbilling::api_models::BillingInvoice {
-        id: invoice_id, org_id: effective_org_id, bot_id, invoice_number,
+        id: invoice_id, branch_id: effective_branch_id, invoice_number,
         customer_id: None,
-        customer_name: customer_name.clone(),
+        customer_name: Some(customer_name.clone()),
         customer_email: Some(customer_email.clone()),
-        customer_address: None, status: "draft".to_string(),
+        customer_address: None, status: Some("draft".to_string()),
         issue_date: now.date_naive(),
-        due_date: (now + chrono::Duration::days(30)).date_naive(),
+        due_date: Some((now + chrono::Duration::days(30)).date_naive()),
         subtotal: botbilling::api_models::bd(total_value),
         tax_rate: botbilling::api_models::bd(0.0),
         tax_amount: botbilling::api_models::bd(0.0),
         discount_percent: botbilling::api_models::bd(0.0),
         discount_amount: botbilling::api_models::bd(0.0),
-        total: botbilling::api_models::bd(total_value),
+        total: Some(botbilling::api_models::bd(total_value)),
         amount_paid: botbilling::api_models::bd(0.0),
         amount_due: botbilling::api_models::bd(total_value),
-        currency: payload.currency.clone(),
+        currency: Some(payload.currency.clone()),
         notes: Some(format!("SaaS: plan={}, period={}, storage={}GB", payload.plan, payload.period, payload.storage)),
         terms: None, footer: None, paid_at: None, sent_at: None, voided_at: None,
         created_at: now, updated_at: now,
@@ -542,8 +547,8 @@ async fn handle_checkout(
     // --- CRM integration: creates contact and deal ---
     let contact_id = integration::create_crm_contact(
         service.pool(),
-        effective_org_id,
-        bot_id,
+        effective_branch_id,
+        effective_branch_id,
         &customer_name,
         &customer_email,
         None,  // checkout: no password set
@@ -555,8 +560,8 @@ async fn handle_checkout(
 
     let _deal_id = integration::create_crm_deal(
         service.pool(),
-        effective_org_id,
-        bot_id,
+        effective_branch_id,
+        effective_branch_id,
         contact_id.unwrap_or(Uuid::nil()),
         invoice_id,
         &format!("Assinatura {} - {}", payload.plan, customer_name),
@@ -662,13 +667,13 @@ async fn checkout_success(
                 .map_err(|_| (StatusCode::NOT_FOUND, "Invoice not found".to_string()))?
         };
 
-        let total = botbilling::api_models::bd_to_f64(&invoice.total);
+        let total = invoice.total.as_ref().map(|t| botbilling::api_models::bd_to_f64(t)).unwrap_or(0.0);
 
         // 1. CRM: marca deal como ganho
-        let deal_name = format!("Assinatura - {}", invoice.customer_name);
+        let deal_name = format!("Assinatura - {}", invoice.customer_name.as_deref().unwrap_or(""));
         let _ = integration::win_crm_deal(
             service.pool(),
-            invoice.org_id,
+            invoice.branch_id,
             &deal_name,
         ).map_err(|e| tracing::warn!("CRM win deal failed: {e}"));
 
@@ -677,7 +682,7 @@ async fn checkout_success(
             service.pool(),
             invoice_id,
             total,
-            &invoice.customer_name,
+            invoice.customer_name.as_deref().unwrap_or(""),
         ).map_err(|e| tracing::warn!("GL entry creation failed: {e}"));
 
         // 3. Subscription: cria registro de assinatura recorrente
@@ -690,24 +695,24 @@ async fn checkout_success(
 
         let _ = integration::create_billing_subscription(
             service.pool(),
-            invoice.org_id,
-            invoice.bot_id,
-            &invoice.customer_name,
+            invoice.branch_id,
+            invoice.branch_id,
+            invoice.customer_name.as_deref().unwrap_or(""),
             invoice.customer_email.as_deref().unwrap_or(""),
             &plan_label,
             total,
-            &invoice.currency,
+            invoice.currency.as_deref().unwrap_or(""),
             invoice_id,
             "monthly",
         ).map_err(|e| tracing::warn!("Subscription creation failed: {e}"));
 
         // --- Post-payment notifications ---
         let mut vars = notifier::EmailVars::new(
-            &invoice.customer_name,
+            invoice.customer_name.as_deref().unwrap_or(""),
             invoice.customer_email.as_deref().unwrap_or(""),
             &plan_label,
             total,
-            &invoice.currency,
+            invoice.currency.as_deref().unwrap_or(""),
         );
         vars.invoice_id = invoice_id.to_string();
         notifier::notify_payment_success(&vars);
@@ -957,10 +962,10 @@ pub fn get_branch_id_from_jwt(
             if let Ok(decoded) = base64_url_decode(parts[1]) {
                 if let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&decoded) {
                     if let Some(user_email) = payload.get("email").and_then(|v| v.as_str()) {
-                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, org_id};
+                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, branch_id};
                         let contact_branch: Option<Uuid> = crm_contacts
                             .filter(email.eq(user_email))
-                            .select(org_id)
+                            .select(branch_id)
                             .first(conn)
                             .optional()
                             .map_err(|e| format!("Query: {e}"))?;
@@ -1226,15 +1231,24 @@ async fn delete_organization(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
     // Remove workspace resources and workspaces for this org
-    use crate::schema_ext::workspace_resources::dsl as wr;
-    diesel::delete(wr::workspace_resources.filter(wr::org_id.eq(org_id)))
-        .execute(&mut conn)
-        .ok();
+    let branch_id: Option<Uuid> = diesel::sql_query("SELECT id FROM branches WHERE org_id = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Uuid, _>(org_id)
+        .get_result::<BranchIdRow>(&mut conn)
+        .optional()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?
+        .map(|r| r.id);
 
-    use crate::schema_ext::cloud_workspaces::dsl as cw;
-    diesel::delete(cw::cloud_workspaces.filter(cw::org_id.eq(org_id)))
-        .execute(&mut conn)
-        .ok();
+    if let Some(bid) = branch_id {
+        use crate::schema_ext::workspace_resources::dsl as wr;
+        diesel::delete(wr::workspace_resources.filter(wr::branch_id.eq(bid)))
+            .execute(&mut conn)
+            .ok();
+
+        use crate::schema_ext::cloud_workspaces::dsl as cw;
+        diesel::delete(cw::cloud_workspaces.filter(cw::branch_id.eq(bid)))
+            .execute(&mut conn)
+            .ok();
+    }
 
     // Remove organization record
     let affected = diesel::sql_query("DELETE FROM organizations WHERE org_id = $1")
@@ -1281,9 +1295,15 @@ async fn list_workspaces(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
+    let branch_id: Uuid = diesel::sql_query("SELECT id FROM branches WHERE org_id = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+        .get_result::<BranchIdRow>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
+        .id;
+
     use crate::schema_ext::cloud_workspaces::dsl as cw;
     let rows = cw::cloud_workspaces
-        .filter(cw::org_id.eq(org_id_param))
+        .filter(cw::branch_id.eq(branch_id))
         .order(cw::created_at.desc())
         .load::<(Uuid, Uuid, String, Option<String>, Option<String>, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
@@ -1313,6 +1333,12 @@ async fn create_workspace(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
+    let branch_id: Uuid = diesel::sql_query("SELECT id FROM branches WHERE org_id = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+        .get_result::<BranchIdRow>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
+        .id;
+
     let now = chrono::Utc::now();
     let ws_id = Uuid::new_v4();
 
@@ -1320,7 +1346,7 @@ async fn create_workspace(
     diesel::insert_into(cw::cloud_workspaces)
         .values((
             cw::id.eq(ws_id),
-            cw::org_id.eq(org_id_param),
+            cw::branch_id.eq(branch_id),
             cw::name.eq(body.name.trim()),
             cw::description.eq(body.description),
             cw::icon.eq(body.icon),
@@ -1346,8 +1372,14 @@ async fn update_workspace(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
+    let branch_id: Uuid = diesel::sql_query("SELECT id FROM branches WHERE org_id = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+        .get_result::<BranchIdRow>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
+        .id;
+
     use crate::schema_ext::cloud_workspaces::dsl as cw;
-    let filter = cw::id.eq(ws_id_param).and(cw::org_id.eq(org_id_param));
+    let filter = cw::id.eq(ws_id_param).and(cw::branch_id.eq(branch_id));
 
     if let Some(n) = &body.name {
         diesel::update(cw::cloud_workspaces).filter(filter).set(cw::name.eq(n.trim())).execute(&mut conn)
@@ -1373,6 +1405,12 @@ async fn delete_workspace(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
+    let branch_id: Uuid = diesel::sql_query("SELECT id FROM branches WHERE org_id = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+        .get_result::<BranchIdRow>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
+        .id;
+
     // Remove resources first
     use crate::schema_ext::workspace_resources::dsl as wr;
     diesel::delete(wr::workspace_resources.filter(wr::workspace_id.eq(ws_id_param)))
@@ -1380,7 +1418,7 @@ async fn delete_workspace(
         .ok();
 
     use crate::schema_ext::cloud_workspaces::dsl as cw;
-    let deleted = diesel::delete(cw::cloud_workspaces.filter(cw::id.eq(ws_id_param).and(cw::org_id.eq(org_id_param))))
+    let deleted = diesel::delete(cw::cloud_workspaces.filter(cw::id.eq(ws_id_param).and(cw::branch_id.eq(branch_id))))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete: {e}")))?;
 
@@ -1442,6 +1480,12 @@ async fn assign_resource(
         "other"
     };
 
+    let branch_id: Uuid = diesel::sql_query("SELECT id FROM branches WHERE org_id = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
+        .get_result::<BranchIdRow>(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
+        .id;
+
     let now = chrono::Utc::now();
     let res_id = Uuid::new_v4();
 
@@ -1450,7 +1494,7 @@ async fn assign_resource(
         .values((
             wr::id.eq(res_id),
             wr::workspace_id.eq(ws_id_param),
-            wr::org_id.eq(org_id_param),
+            wr::branch_id.eq(branch_id),
             wr::store_item_id.eq(&body.store_item_id),
             wr::name.eq(body.name.unwrap_or_else(|| body.store_item_id.clone())),
             wr::resource_type.eq(restype),
@@ -1795,7 +1839,7 @@ async fn list_services(
         .into_boxed();
 
     if let Some(bid) = user_branch_id {
-        query = query.filter(org_id.eq(bid));
+        query = query.filter(branch_id.eq(bid));
     }
 
     let subs = query
@@ -1850,13 +1894,13 @@ async fn list_invoices(
         .into_boxed();
 
     if let Some(bid) = user_branch_id {
-        query = query.filter(org_id.eq(bid));
+        query = query.filter(branch_id.eq(bid));
     }
 
     let invs = query
         .order(issue_date.desc())
         .limit(50)
-        .load::<(Uuid, String, String, bigdecimal::BigDecimal, String, chrono::NaiveDate, chrono::NaiveDate)>(&mut conn)
+        .load::<(Uuid, String, Option<String>, Option<bigdecimal::BigDecimal>, Option<String>, chrono::NaiveDate, Option<chrono::NaiveDate>)>(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
 
     let result: Vec<serde_json::Value> = invs.into_iter().map(|(iid, inum, cname, tot, stat, idate, ddate)| {
@@ -1864,10 +1908,10 @@ async fn list_invoices(
             "id": iid,
             "number": inum,
             "customer": cname,
-            "total": tot.to_string(),
+            "total": tot.map(|t| t.to_string()),
             "status": stat,
             "issue_date": idate.to_string(),
-            "due_date": ddate.to_string(),
+            "due_date": ddate.map(|d| d.to_string()),
         })
     }).collect();
 
@@ -2007,13 +2051,13 @@ async fn handle_store_purchase(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
-    let (org_id, bot_id) = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
-    let effective_org_id = body.org_id.unwrap_or(org_id);
+    let branch_id = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
+    let effective_branch_id = body.org_id.unwrap_or(branch_id);
     let now = chrono::Utc::now();
     let zero = bigdecimal::BigDecimal::from(0);
 
     let invoice_id = Uuid::new_v4();
-    let invoice_num = botbilling::api_models::generate_invoice_number(&mut conn, effective_org_id);
+    let invoice_num = botbilling::api_models::generate_invoice_number(&mut conn, effective_branch_id);
 
     use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, first_name, last_name};
     let contact_name = crm_contacts
@@ -2027,18 +2071,17 @@ async fn handle_store_purchase(
     diesel::insert_into(botbilling::schema::billing_invoices::table)
         .values((
             botbilling::schema::billing_invoices::id.eq(invoice_id),
-            botbilling::schema::billing_invoices::org_id.eq(effective_org_id),
-            botbilling::schema::billing_invoices::bot_id.eq(bot_id),
+            botbilling::schema::billing_invoices::branch_id.eq(effective_branch_id),
             botbilling::schema::billing_invoices::invoice_number.eq(&invoice_num),
-            botbilling::schema::billing_invoices::customer_name.eq(&contact_name),
+            botbilling::schema::billing_invoices::customer_name.eq(Some(&contact_name)),
             botbilling::schema::billing_invoices::customer_email.eq(Some(body.email)),
-            botbilling::schema::billing_invoices::status.eq("draft"),
+            botbilling::schema::billing_invoices::status.eq(Some("draft")),
             botbilling::schema::billing_invoices::issue_date.eq(now.date_naive()),
-            botbilling::schema::billing_invoices::due_date.eq((now + chrono::Duration::days(30)).date_naive()),
+            botbilling::schema::billing_invoices::due_date.eq(Some((now + chrono::Duration::days(30)).date_naive())),
             botbilling::schema::billing_invoices::subtotal.eq(&zero),
-            botbilling::schema::billing_invoices::total.eq(&zero),
+            botbilling::schema::billing_invoices::total.eq(Some(&zero)),
             botbilling::schema::billing_invoices::amount_due.eq(&zero),
-            botbilling::schema::billing_invoices::currency.eq("usd"),
+            botbilling::schema::billing_invoices::currency.eq(Some("usd")),
             botbilling::schema::billing_invoices::notes.eq(Some(format!("Store purchase: {}", body.item_id))),
             botbilling::schema::billing_invoices::created_at.eq(now),
             botbilling::schema::billing_invoices::updated_at.eq(now),
@@ -2092,8 +2135,8 @@ async fn handle_appstore_purchase(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB Connection: {e}")))?;
 
-    let (org_id, bot_id) = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
-    let effective_org_id = if org_id == Uuid::nil() { Uuid::nil() } else { org_id };
+    let branch_id = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
+    let effective_branch_id = if branch_id == Uuid::nil() { Uuid::nil() } else { branch_id };
     let now = chrono::Utc::now();
 
     use std::str::FromStr;
@@ -2122,8 +2165,8 @@ async fn handle_appstore_purchase(
     diesel::insert_into(botbilling::schema::billing_invoices::table)
         .values((
             botbilling::schema::billing_invoices::id.eq(invoice_id),
-            botbilling::schema::billing_invoices::org_id.eq(effective_org_id),
-            botbilling::schema::billing_invoices::bot_id.eq(bot_id),
+            botbilling::schema::billing_invoices::branch_id.eq(effective_branch_id),
+            botbilling::schema::billing_invoices::invoice_number.eq(&invoice_num),
             botbilling::schema::billing_invoices::invoice_number.eq(&invoice_num),
             botbilling::schema::billing_invoices::customer_name.eq(&contact_name),
             botbilling::schema::billing_invoices::customer_email.eq(Some(body.email.clone())),
@@ -2398,12 +2441,12 @@ async fn handle_topup(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB Connection: {e}")))?;
 
-    // Retrieve default bot_id
-    let (_, bot_id) = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
-    let target_bot_id = if bot_id == Uuid::nil() {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap()
+    // Retrieve default branch_id
+    let branch_id = botbilling::get_bot_context(&service.billing_state.pool, &service.billing_state.get_default_bot);
+    let effective_branch_id = if branch_id == Uuid::nil() {
+        Uuid::nil()
     } else {
-        bot_id
+        branch_id
     };
 
     use std::str::FromStr;
@@ -2435,23 +2478,22 @@ async fn handle_topup(
     diesel::insert_into(botbilling::schema::billing_invoices::table)
         .values((
             botbilling::schema::billing_invoices::id.eq(new_invoice_id),
-            botbilling::schema::billing_invoices::org_id.eq(body.org_id),
-            botbilling::schema::billing_invoices::bot_id.eq(target_bot_id),
+            botbilling::schema::billing_invoices::branch_id.eq(effective_branch_id),
             botbilling::schema::billing_invoices::invoice_number.eq(&invoice_num),
-            botbilling::schema::billing_invoices::customer_name.eq(&contact_name),
+            botbilling::schema::billing_invoices::customer_name.eq(Some(&contact_name)),
             botbilling::schema::billing_invoices::customer_email.eq(Some(body.email)),
-            botbilling::schema::billing_invoices::status.eq("paid"),
+            botbilling::schema::billing_invoices::status.eq(Some("paid")),
             botbilling::schema::billing_invoices::issue_date.eq(chrono::Local::now().date_naive()),
-            botbilling::schema::billing_invoices::due_date.eq(chrono::Local::now().date_naive()),
+            botbilling::schema::billing_invoices::due_date.eq(Some(chrono::Local::now().date_naive())),
             botbilling::schema::billing_invoices::subtotal.eq(&decimal_amount),
             botbilling::schema::billing_invoices::tax_rate.eq(&zero),
             botbilling::schema::billing_invoices::tax_amount.eq(&zero),
             botbilling::schema::billing_invoices::discount_percent.eq(&zero),
             botbilling::schema::billing_invoices::discount_amount.eq(&zero),
-            botbilling::schema::billing_invoices::total.eq(&decimal_amount),
+            botbilling::schema::billing_invoices::total.eq(Some(&decimal_amount)),
             botbilling::schema::billing_invoices::amount_paid.eq(&decimal_amount),
             botbilling::schema::billing_invoices::amount_due.eq(&zero),
-            botbilling::schema::billing_invoices::currency.eq("usd"),
+            botbilling::schema::billing_invoices::currency.eq(Some("usd")),
             botbilling::schema::billing_invoices::notes.eq(Some("Account balance top-up via Special Offers".to_string())),
             botbilling::schema::billing_invoices::paid_at.eq(Some(chrono::Utc::now())),
             botbilling::schema::billing_invoices::created_at.eq(chrono::Utc::now()),
@@ -2466,8 +2508,7 @@ async fn handle_topup(
     diesel::insert_into(botbilling::schema::billing_payments::table)
         .values((
             botbilling::schema::billing_payments::id.eq(payment_id),
-            botbilling::schema::billing_payments::org_id.eq(body.org_id),
-            botbilling::schema::billing_payments::bot_id.eq(target_bot_id),
+            botbilling::schema::billing_payments::branch_id.eq(effective_branch_id),
             botbilling::schema::billing_payments::invoice_id.eq(Some(new_invoice_id)),
             botbilling::schema::billing_payments::payment_number.eq(&payment_num),
             botbilling::schema::billing_payments::amount.eq(&decimal_amount),

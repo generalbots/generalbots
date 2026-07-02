@@ -163,11 +163,10 @@ async fn handle_tickets_list(
         return Html(render_empty_state("🎫", "No tickets", "Unable to load tickets"));
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let mut q = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(status) = query.status {
@@ -223,20 +222,18 @@ async fn handle_tickets_count(
         return Html("0".to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let count: i64 = if let Some(status) = query.status {
         if status == "all" {
             support_tickets::table
-                .filter(support_tickets::org_id.eq(org_id))
-                .filter(support_tickets::bot_id.eq(bot_id))
+                .filter(support_tickets::branch_id.eq(branch_id))
                 .count()
                 .get_result(&mut conn)
                 .unwrap_or(0)
         } else {
             support_tickets::table
-                .filter(support_tickets::org_id.eq(org_id))
-                .filter(support_tickets::bot_id.eq(bot_id))
+                .filter(support_tickets::branch_id.eq(branch_id))
                 .filter(support_tickets::status.eq(status))
                 .count()
                 .get_result(&mut conn)
@@ -244,8 +241,7 @@ async fn handle_tickets_count(
         }
     } else {
         support_tickets::table
-            .filter(support_tickets::org_id.eq(org_id))
-            .filter(support_tickets::bot_id.eq(bot_id))
+            .filter(support_tickets::branch_id.eq(branch_id))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0)
@@ -259,11 +255,10 @@ async fn handle_open_count(State(state): State<Arc<TicketsState>>) -> impl IntoR
         return Html("0".to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let count: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("open"))
         .count()
         .get_result(&mut conn)
@@ -277,12 +272,11 @@ async fn handle_overdue_count(State(state): State<Arc<TicketsState>>) -> impl In
         return Html("0".to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let now = ChronoUtc::now();
 
     let count: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.ne("closed"))
         .filter(support_tickets::status.ne("resolved"))
         .filter(support_tickets::due_date.lt(now))
@@ -301,11 +295,10 @@ async fn handle_tickets_cards(
         return Html(render_empty_state("🎫", "No tickets", "Unable to load tickets"));
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let mut q = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(status) = query.status {
@@ -345,7 +338,7 @@ async fn handle_tickets_search(
         return Html(render_empty_state("🔍", "Search error", "Unable to search tickets"));
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let search_term = query.q.unwrap_or_default();
     if search_term.is_empty() {
@@ -359,8 +352,7 @@ async fn handle_tickets_search(
     let pattern = format!("%{search_term}%");
 
     let tickets: Vec<SupportTicket> = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(
             support_tickets::subject
                 .ilike(pattern.clone())
@@ -580,35 +572,31 @@ async fn handle_stats_by_status(State(state): State<Arc<TicketsState>>) -> impl 
         return Html("<p>Unable to load stats</p>".to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let open: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("open"))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let pending: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("pending"))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let resolved: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("resolved"))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let closed: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("closed"))
         .count()
         .get_result(&mut conn)
@@ -644,11 +632,10 @@ async fn handle_stats_by_priority(State(state): State<Arc<TicketsState>>) -> imp
         return Html("<p>Unable to load stats</p>".to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let urgent: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::priority.eq("urgent"))
         .filter(support_tickets::status.ne("closed"))
         .count()
@@ -656,8 +643,7 @@ async fn handle_stats_by_priority(State(state): State<Arc<TicketsState>>) -> imp
         .unwrap_or(0);
 
     let high: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::priority.eq("high"))
         .filter(support_tickets::status.ne("closed"))
         .count()
@@ -665,8 +651,7 @@ async fn handle_stats_by_priority(State(state): State<Arc<TicketsState>>) -> imp
         .unwrap_or(0);
 
     let medium: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::priority.eq("medium"))
         .filter(support_tickets::status.ne("closed"))
         .count()
@@ -674,8 +659,7 @@ async fn handle_stats_by_priority(State(state): State<Arc<TicketsState>>) -> imp
         .unwrap_or(0);
 
     let low: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::priority.eq("low"))
         .filter(support_tickets::status.ne("closed"))
         .count()
@@ -709,11 +693,10 @@ async fn handle_avg_resolution(State(state): State<Arc<TicketsState>>) -> impl I
         return Html("-".to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let resolved_tickets: Vec<SupportTicket> = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::resolved_at.is_not_null())
         .limit(100)
         .load(&mut conn)

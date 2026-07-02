@@ -706,7 +706,7 @@ pub async fn handle_social_analytics(
 
     let stats = tokio::task::spawn_blocking(move || -> Result<SocialAnalytics, SocialError> {
         let mut conn = pool.get().map_err(|e| SocialError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let (bot_id, _) = get_default_bot(&mut conn);
         let org_id = Uuid::nil();
 
         let total_posts: i64 = social_posts::table
@@ -776,7 +776,7 @@ pub async fn handle_create_post(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| SocialError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let (bot_id, _) = get_default_bot(&mut conn);
         let org_id = Uuid::nil();
         let now = Utc::now();
 
@@ -969,7 +969,7 @@ pub async fn handle_create_community(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| SocialError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let (bot_id, _) = get_default_bot(&mut conn);
         let org_id = Uuid::nil();
         let now = Utc::now();
 
@@ -1272,7 +1272,7 @@ pub async fn handle_send_praise(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| SocialError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot(&mut conn);
+        let (bot_id, _) = get_default_bot(&mut conn);
         let org_id = Uuid::nil();
         let now = Utc::now();
 

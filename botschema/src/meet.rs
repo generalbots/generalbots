@@ -1,10 +1,9 @@
-use crate::core::{branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     meeting_rooms (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         room_code -> Varchar,
         name -> Varchar,
         description -> Nullable<Text>,
@@ -43,8 +42,7 @@ diesel::table! {
     meeting_recordings (id) {
         id -> Uuid,
         room_id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         recording_type -> Varchar,
         file_url -> Nullable<Text>,
         file_size -> Nullable<Int8>,
@@ -64,8 +62,7 @@ diesel::table! {
         id -> Uuid,
         room_id -> Uuid,
         recording_id -> Nullable<Uuid>,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         participant_id -> Nullable<Uuid>,
         speaker_name -> Nullable<Varchar>,
         content -> Text,
@@ -83,8 +80,7 @@ diesel::table! {
     meeting_whiteboards (id) {
         id -> Uuid,
         room_id -> Nullable<Uuid>,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         background_color -> Nullable<Varchar>,
         grid_enabled -> Bool,
@@ -120,8 +116,7 @@ diesel::table! {
     whiteboard_exports (id) {
         id -> Uuid,
         whiteboard_id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         export_format -> Varchar,
         file_url -> Nullable<Text>,
         file_size -> Nullable<Int8>,
@@ -151,8 +146,7 @@ diesel::table! {
 diesel::table! {
     scheduled_meetings (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         room_id -> Nullable<Uuid>,
         title -> Varchar,
         description -> Nullable<Text>,
@@ -171,24 +165,19 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(meeting_rooms -> organizations (org_id));
 diesel::joinable!(meeting_rooms -> branches (branch_id));
 diesel::joinable!(meeting_participants -> meeting_rooms (room_id));
 diesel::joinable!(meeting_recordings -> meeting_rooms (room_id));
-diesel::joinable!(meeting_recordings -> organizations (org_id));
 diesel::joinable!(meeting_recordings -> branches (branch_id));
 diesel::joinable!(meeting_transcriptions -> meeting_rooms (room_id));
 diesel::joinable!(meeting_transcriptions -> meeting_recordings (recording_id));
 diesel::joinable!(meeting_transcriptions -> meeting_participants (participant_id));
 diesel::joinable!(meeting_whiteboards -> meeting_rooms (room_id));
-diesel::joinable!(meeting_whiteboards -> organizations (org_id));
 diesel::joinable!(meeting_whiteboards -> branches (branch_id));
 diesel::joinable!(whiteboard_elements -> meeting_whiteboards (whiteboard_id));
 diesel::joinable!(whiteboard_exports -> meeting_whiteboards (whiteboard_id));
-diesel::joinable!(whiteboard_exports -> organizations (org_id));
 diesel::joinable!(whiteboard_exports -> branches (branch_id));
 diesel::joinable!(meeting_chat_messages -> meeting_rooms (room_id));
 diesel::joinable!(meeting_chat_messages -> meeting_participants (participant_id));
-diesel::joinable!(scheduled_meetings -> organizations (org_id));
 diesel::joinable!(scheduled_meetings -> branches (branch_id));
 diesel::joinable!(scheduled_meetings -> meeting_rooms (room_id));

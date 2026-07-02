@@ -20,10 +20,10 @@ pub async fn sessions_table(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let mut db_query = attendant_sessions::table
-            .filter(attendant_sessions::bot_id.eq(bot_id))
+            .filter(attendant_sessions::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(status) = query.status {
@@ -255,10 +255,10 @@ pub async fn queues_list(State(config): State<Arc<AttendantConfig>>) -> Html<Str
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         attendant_queues::table
-            .filter(attendant_queues::bot_id.eq(bot_id))
+            .filter(attendant_queues::branch_id.eq(branch_id))
             .filter(attendant_queues::is_active.eq(true))
             .order(attendant_queues::priority.desc())
             .select((
@@ -350,10 +350,10 @@ pub async fn agent_status_list(State(config): State<Arc<AttendantConfig>>) -> Ht
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         attendant_agent_status::table
-            .filter(attendant_agent_status::bot_id.eq(bot_id))
+            .filter(attendant_agent_status::branch_id.eq(branch_id))
             .order(attendant_agent_status::status.asc())
             .select((
                 attendant_agent_status::id,

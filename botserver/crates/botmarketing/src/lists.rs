@@ -16,15 +16,17 @@ use crate::state::AppState;
 #[diesel(table_name = marketing_lists)]
 pub struct MarketingList {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub list_type: String,
+    pub description: Option<String>,
     pub query_text: Option<String>,
+    pub member_count: Option<i32>,
     pub contact_count: Option<i32>,
-    pub last_sent_at: Option<DateTime<Utc>>,
+    pub is_dynamic: Option<bool>,
+    pub criteria: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,11 +50,10 @@ pub async fn list_lists(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let (branch_id, _) = state.get_bot_context();
 
     let lists: Vec<MarketingList> = marketing_lists::table
-        .filter(marketing_lists::org_id.eq(org_id))
-        .filter(marketing_lists::bot_id.eq(bot_id))
+        .filter(marketing_lists::branch_id.eq(branch_id))
         .order(marketing_lists::created_at.desc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
@@ -84,21 +85,23 @@ pub async fn create_list(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let (branch_id, _) = state.get_bot_context();
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let list = MarketingList {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
         list_type: req.list_type,
         query_text: req.query_text,
+        member_count: None,
+        is_dynamic: None,
+        criteria: None,
+        description: None,
         contact_count: Some(0),
-        last_sent_at: None,
         created_at: now,
-        updated_at: Some(now),
+        updated_at: now,
     };
 
     diesel::insert_into(marketing_lists::table)
@@ -128,7 +131,7 @@ pub async fn update_list(
     }
     if let Some(list_type) = req.list_type {
         diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-            .set(marketing_lists::list_type.eq(list_type))
+            .set(marketing_lists::name.eq(list_type))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
@@ -140,7 +143,7 @@ pub async fn update_list(
     }
 
     diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-        .set(marketing_lists::updated_at.eq(Some(now)))
+        .set(marketing_lists::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
@@ -177,7 +180,7 @@ pub async fn refresh_marketing_list(
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "List not found".to_string()))?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let (branch_id, _) = state.get_bot_context();
 
     let query_text = list.query_text.as_deref().unwrap_or("");
     let list_type = list.list_type.as_str();
@@ -193,8 +196,7 @@ pub async fn refresh_marketing_list(
                 .unwrap_or("active");
 
             crm_contacts::table
-                .filter(crm_contacts::org_id.eq(org_id))
-                .filter(crm_contacts::bot_id.eq(bot_id))
+                .filter(crm_contacts::branch_id.eq(branch_id))
                 .filter(crm_contacts::status.eq(status))
                 .count()
                 .get_result(&mut conn)
@@ -208,8 +210,7 @@ pub async fn refresh_marketing_list(
 
             if !company.is_empty() {
                 crm_contacts::table
-                    .filter(crm_contacts::org_id.eq(org_id))
-                    .filter(crm_contacts::bot_id.eq(bot_id))
+                    .filter(crm_contacts::branch_id.eq(branch_id))
                     .filter(crm_contacts::company.ilike(format!("%{company}%")))
                     .count()
                     .get_result(&mut conn)
@@ -220,8 +221,7 @@ pub async fn refresh_marketing_list(
         } else {
             let pattern = format!("%{query_text}%");
             crm_contacts::table
-                .filter(crm_contacts::org_id.eq(org_id))
-                .filter(crm_contacts::bot_id.eq(bot_id))
+                .filter(crm_contacts::branch_id.eq(branch_id))
                 .filter(
                     crm_contacts::first_name.ilike(pattern.clone())
                         .or(crm_contacts::last_name.ilike(pattern.clone()))
@@ -234,8 +234,7 @@ pub async fn refresh_marketing_list(
         }
     } else {
         crm_contacts::table
-            .filter(crm_contacts::org_id.eq(org_id))
-            .filter(crm_contacts::bot_id.eq(bot_id))
+            .filter(crm_contacts::branch_id.eq(branch_id))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0)
@@ -244,7 +243,7 @@ pub async fn refresh_marketing_list(
     diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
         .set((
             marketing_lists::contact_count.eq(Some(contact_count as i32)),
-            marketing_lists::updated_at.eq(Some(Utc::now())),
+            marketing_lists::updated_at.eq(Utc::now()),
         ))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;

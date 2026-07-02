@@ -21,13 +21,12 @@ pub async fn list_deals(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let branch_id = state.get_bot_context();
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = crm_deals::table
-        .filter(crm_deals::org_id.eq(org_id))
-        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(stage) = query.stage {
@@ -79,7 +78,7 @@ pub async fn create_deal(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let branch_id = state.get_bot_context();
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -91,21 +90,20 @@ pub async fn create_deal(
 
     let deal = CrmDeal {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         contact_id: req.contact_id,
         account_id: req.account_id,
         am_id: None,
         lead_id: None,
         owner_id: req.owner_id,
         title: req.title,
-        name: req.name,
+        name: req.name.unwrap_or_default(),
         description: req.description,
         value: req.value,
         currency: req.currency.or(Some("USD".to_string())),
         stage_id: None,
         stage: Some(stage.clone()),
-        probability,
+        probability: Some(probability),
         source: req.source,
         segment_id: None,
         department_id: req.department_id,
@@ -115,10 +113,10 @@ pub async fn create_deal(
         deal_date: None,
         lost_reason: None,
         won: if stage == "won" { Some(true) } else if stage == "lost" { Some(false) } else { None },
-        tags: req.tags.unwrap_or_default(),
+        tags: req.tags.map(|t| serde_json::to_string(&t).unwrap_or_else(|_| "[]".to_string())),
         custom_fields: serde_json::json!({}),
         created_at: now,
-        updated_at: Some(now),
+        updated_at: now,
         closed_at: if stage == "won" || stage == "lost" { Some(now) } else { None },
         notes: req.notes,
     };
@@ -242,8 +240,9 @@ pub async fn update_deal(
     }
 
     if let Some(tags) = req.tags {
+        let tags_str = serde_json::to_string(&tags).unwrap_or_else(|_| "[]".to_string());
         diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
-            .set(crm_deals::tags.eq(tags))
+            .set(crm_deals::tags.eq(Some(tags_str)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
@@ -274,7 +273,7 @@ pub async fn create_activity(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let branch_id = state.get_bot_context();
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -284,20 +283,22 @@ pub async fn create_activity(
 
     let activity = CrmActivity {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         contact_id: req.contact_id,
+        activity_type: req.activity_type,
+        subject: req.subject.unwrap_or_default(),
+        description: req.description,
+        due_date,
+        completed: None,
+        completed_at: None,
+        assigned_to: None,
+        created_at: now,
+        updated_at: now,
         lead_id: req.lead_id,
         opportunity_id: req.opportunity_id,
         account_id: req.account_id,
-        activity_type: req.activity_type,
-        subject: req.subject,
-        description: req.description,
-        due_date,
-        completed_at: None,
         outcome: None,
         owner_id: None,
-        created_at: now,
     };
 
     diesel::insert_into(crm_activities::table)
@@ -316,13 +317,12 @@ pub async fn list_activities(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let branch_id = state.get_bot_context();
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let activities: Vec<CrmActivity> = crm_activities::table
-        .filter(crm_activities::org_id.eq(org_id))
-        .filter(crm_activities::bot_id.eq(bot_id))
+        .filter(crm_activities::branch_id.eq(branch_id))
         .order(crm_activities::created_at.desc())
         .limit(limit)
         .offset(offset)
@@ -339,11 +339,10 @@ pub async fn get_pipeline_stages(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let branch_id = state.get_bot_context();
 
     let stages: Vec<CrmPipelineStage> = crm_pipeline_stages::table
-        .filter(crm_pipeline_stages::org_id.eq(org_id))
-        .filter(crm_pipeline_stages::bot_id.eq(bot_id))
+        .filter(crm_pipeline_stages::branch_id.eq(branch_id))
         .order(crm_pipeline_stages::stage_order.asc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
@@ -358,41 +357,36 @@ pub async fn get_crm_stats(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let branch_id = state.get_bot_context();
 
     let total_contacts: i64 = crm_contacts::table
-        .filter(crm_contacts::org_id.eq(org_id))
-        .filter(crm_contacts::bot_id.eq(bot_id))
+        .filter(crm_contacts::branch_id.eq(branch_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let total_accounts: i64 = crm_accounts::table
-        .filter(crm_accounts::org_id.eq(org_id))
-        .filter(crm_accounts::bot_id.eq(bot_id))
+        .filter(crm_accounts::branch_id.eq(branch_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let total_leads: i64 = crm_deals::table
-        .filter(crm_deals::org_id.eq(org_id))
-        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .filter(crm_deals::closed_at.is_null())
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let total_opportunities: i64 = crm_deals::table
-        .filter(crm_deals::org_id.eq(org_id))
-        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .filter(crm_deals::won.is_null())
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let won_this_month: i64 = crm_deals::table
-        .filter(crm_deals::org_id.eq(org_id))
-        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .filter(crm_deals::won.eq(Some(true)))
         .count()
         .get_result(&mut conn)

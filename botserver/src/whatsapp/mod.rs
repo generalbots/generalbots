@@ -14,7 +14,7 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
             Box::pin(async move { Ok(()) })
         }),
         get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| {
-            (uuid::Uuid::nil(), "default".to_string())
+            uuid::Uuid::nil()
         }),
         find_bot: Arc::new(|_phone: &str| (uuid::Uuid::nil(), "default".to_string())),
         get_config: Arc::new(|_key: &str| -> Result<String, String> {

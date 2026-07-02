@@ -72,6 +72,7 @@ impl From<UserSession> for botbasic_types::UserSession {
         Self {
             id: s.id,
             user_id: s.user_id,
+            branch_id: Uuid::nil(),
             bot_id: s.bot_id,
             title: s.title,
             context_data: s.context_data,

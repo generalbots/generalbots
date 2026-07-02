@@ -513,7 +513,7 @@ pub struct ComplianceReport {
 
 #[derive(Debug, Deserialize)]
 pub struct ListChecksQuery {
-    pub framework: Option<String>,
+    pub check_type: Option<String>,
     pub status: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
@@ -530,9 +530,9 @@ pub struct ListIssuesQuery {
 
 #[derive(Debug, Deserialize)]
 pub struct ListAuditLogsQuery {
-    pub event_type: Option<String>,
-    pub user_id: Option<Uuid>,
-    pub resource_type: Option<String>,
+    pub action: Option<String>,
+    pub actor_id: Option<Uuid>,
+    pub target_type: Option<String>,
     pub from_date: Option<DateTime<Utc>>,
     pub to_date: Option<DateTime<Utc>>,
     pub limit: Option<i64>,
@@ -572,8 +572,11 @@ pub struct UpdateIssueRequest {
 pub struct CreateAuditLogRequest {
     pub event_type: AuditEventType,
     pub user_id: Option<Uuid>,
+    pub actor_id: Option<Uuid>,
     pub resource_type: String,
+    pub target_type: String,
     pub resource_id: String,
+    pub target_id: Option<Uuid>,
     pub action: String,
     pub result: ActionResult,
     pub ip_address: Option<String>,

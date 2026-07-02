@@ -18,7 +18,7 @@ use crate::scheduler_exec;
 
 #[derive(Deserialize)]
 pub struct ListQuery {
-    pub bot_id: Option<String>,
+    pub branch_id: Option<String>,
 }
 
 pub async fn handle_list_tasks(
@@ -26,15 +26,15 @@ pub async fn handle_list_tasks(
     Query(query): Query<ListQuery>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    let _user_id = match get_user_id_from_headers(&state, &headers) {
+    let _session = match get_user_id_from_headers(&state, &headers) {
         Ok(id) => id,
         Err(e) => return Json(serde_json::json!({"error": e})).into_response(),
     };
 
     let engine = TaskEngine::new(state.clone());
-    let bot_id = query.bot_id.and_then(|s| s.parse::<Uuid>().ok());
+    let branch_id = query.branch_id.and_then(|s| s.parse::<Uuid>().ok());
 
-    match engine.list_tasks(bot_id) {
+    match engine.list_tasks(branch_id) {
         Ok(tasks) => Json(serde_json::json!({"tasks": tasks})).into_response(),
         Err(e) => Json(serde_json::json!({"error": e})).into_response(),
     }
@@ -42,12 +42,11 @@ pub async fn handle_list_tasks(
 
 pub async fn handle_create_task(
     State(state): State<Arc<TasksState>>,
-    headers: HeaderMap,
     Json(payload): Json<CreateTaskRequest>,
 ) -> impl IntoResponse {
-    let user_id = match get_user_id_from_headers(&state, &headers) {
-        Ok(id) => id,
-        Err(e) => return Json(serde_json::json!({"error": e})).into_response(),
+    let branch_id = match (state.get_config)("default_branch_id") {
+        Ok(id) => id.parse::<Uuid>().unwrap_or_default(),
+        Err(_) => Uuid::nil(),
     };
 
     let bot_id = match (state.get_config)("default_bot_id") {
@@ -57,7 +56,7 @@ pub async fn handle_create_task(
 
     let engine = TaskEngine::new(state.clone());
 
-    match engine.create_task(bot_id, &payload.title, payload.description.as_deref(), Some(user_id)) {
+    match engine.create_task(branch_id, &payload.title, payload.description.as_deref()) {
         Ok(task) => {
             let manifest = TaskManifest::new(&payload.title);
             let persistence = EnginePersistence::new(state.clone());
@@ -68,9 +67,9 @@ pub async fn handle_create_task(
             if let Some(ref schedule) = payload.schedule {
                 if let Err(e) = crate::scheduler::create_auto_task(
                     &state,
+                    branch_id,
                     bot_id,
                     &payload.title,
-                    payload.description.as_deref(),
                     Some(schedule),
                 ) {
                     log::error!("Failed to create auto task: {}", e);

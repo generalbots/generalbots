@@ -13,7 +13,7 @@ use crate::requests::*;
 use crate::schema::crm_accounts;
 use crate::CrateState;
 
-fn get_bot_context(state: &CrateState) -> (Uuid, Uuid) {
+fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
@@ -25,21 +25,29 @@ pub async fn create_account(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let account = CrmAccount {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
-        website: req.website,
         industry: req.industry,
-        employees_count: req.employees_count,
-        annual_revenue: None,
+        website: req.website,
         phone: req.phone,
         email: req.email,
+        address_street: None,
+        address_city: None,
+        address_state: None,
+        address_country: None,
+        address_zip: None,
+        notes: None,
+        owner_id: None,
+        created_at: now,
+        updated_at: now,
+        employees_count: req.employees_count,
+        annual_revenue: None,
         address_line1: None,
         address_line2: None,
         city: None,
@@ -47,11 +55,8 @@ pub async fn create_account(
         postal_code: None,
         country: None,
         description: req.description,
-        tags: vec![],
+        tags: "[]".to_string(),
         custom_fields: serde_json::json!({}),
-        owner_id: None,
-        created_at: now,
-        updated_at: now,
     };
 
     diesel::insert_into(crm_accounts::table)
@@ -70,13 +75,12 @@ pub async fn list_accounts(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = crm_accounts::table
-        .filter(crm_accounts::org_id.eq(org_id))
-        .filter(crm_accounts::bot_id.eq(bot_id))
+        .filter(crm_accounts::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(search) = query.search {

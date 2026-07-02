@@ -18,7 +18,7 @@ pub use types::*;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (uuid::Uuid, String);
+pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> uuid::Uuid;
 
 #[derive(Clone)]
 pub struct DashboardsState {

@@ -8,11 +8,12 @@ use uuid::Uuid;
 #[diesel(table_name = user_sessions)]
 pub struct UserSession {
     pub id: Uuid,
-    pub user_id: Uuid,
+    pub branch_id: Uuid,
     pub bot_id: Uuid,
-    pub title: String,
-    pub context_data: serde_json::Value,
-    pub current_tool: Option<String>,
+    pub session_id: String,
+    pub user_id: Option<String>,
+    pub data: Option<serde_json::Value>,
+    pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

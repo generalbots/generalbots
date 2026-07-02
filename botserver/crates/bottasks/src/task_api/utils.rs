@@ -8,19 +8,19 @@ pub fn get_user_id_from_headers(
     state: &TasksState,
     headers: &HeaderMap,
 ) -> Result<Uuid, String> {
-    let session_id = headers
+    let session_val = headers
         .get("x-session-id")
         .or_else(|| headers.get("cookie"))
         .and_then(|v| v.to_str().ok())
         .ok_or_else(|| "No session header found".to_string())?;
 
-    let session_id = session_id
+    let session_val = session_val
         .split(';')
         .find(|s| s.trim().starts_with("session_id="))
         .map(|s| s.trim().strip_prefix("session_id=").unwrap_or(s).trim())
-        .unwrap_or(session_id);
+        .unwrap_or(session_val);
 
-    let sid = session_id
+    let sid = session_val
         .parse::<Uuid>()
         .map_err(|_| "Invalid session ID format".to_string())?;
 
@@ -31,11 +31,16 @@ pub fn get_user_id_from_headers(
         .get()
         .map_err(|e| format!("Pool error: {}", e))?;
 
-    user_sessions
+    let user_id_str: Option<String> = user_sessions
         .find(sid)
         .select(user_id)
-        .first::<Uuid>(&mut conn)
-        .map_err(|e| format!("Session lookup error: {}", e))
+        .first::<Option<String>>(&mut conn)
+        .map_err(|e| format!("Session lookup error: {}", e))?;
+
+    user_id_str
+        .ok_or_else(|| "No user ID in session".to_string())?
+        .parse::<Uuid>()
+        .map_err(|_| "Invalid user ID format".to_string())
 }
 
 pub fn html_escape(s: &str) -> String {

@@ -14,7 +14,7 @@ use axum::{
 };
 
 use bigdecimal::{BigDecimal, ToPrimitive};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -28,19 +28,29 @@ use crate::schema::{
 
 pub type DbPool = r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (Uuid, String);
+pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> Uuid;
 
-pub fn get_bot_context(pool: &DbPool, get_default_bot: &Option<GetDefaultBotFn>) -> (Uuid, Uuid) {
+pub fn get_bot_context(pool: &DbPool, get_default_bot: &Option<GetDefaultBotFn>) -> Uuid {
     let Ok(mut conn) = pool.get() else {
-        return (Uuid::nil(), Uuid::nil());
+        return Uuid::nil();
     };
+    resolve_branch_id(&mut conn, get_default_bot)
+}
+
+pub(crate) fn resolve_branch_id(
+    conn: &mut diesel::PgConnection,
+    get_default_bot: &Option<GetDefaultBotFn>,
+) -> Uuid {
     match get_default_bot {
         Some(f) => {
-            let (bot_id, _) = f(&mut conn);
-            let org_id = Uuid::nil();
-            (org_id, bot_id)
+            let bid = f(conn);
+            if bid == Uuid::nil() {
+                Uuid::nil()
+            } else {
+                bid
+            }
         }
-        None => (Uuid::nil(), Uuid::nil()),
+        None => Uuid::nil(),
     }
 }
 
@@ -78,83 +88,87 @@ fn format_currency(amount: f64, currency: &str) -> String {
 #[diesel(table_name = products)]
 pub struct Product {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
-    pub sku: Option<String>,
+    pub branch_id: Uuid,
     pub name: String,
+    pub sku: String,
     pub description: Option<String>,
+    pub price: Option<BigDecimal>,
+    pub currency: Option<String>,
+    pub stock_quantity: Option<i32>,
+    pub category_id: Option<Uuid>,
+    pub attributes: Option<serde_json::Value>,
+    pub is_public: Option<bool>,
+    pub is_active: Option<bool>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub category: Option<String>,
     pub product_type: String,
-    pub price: BigDecimal,
     pub cost: Option<BigDecimal>,
-    pub currency: String,
     pub tax_rate: BigDecimal,
     pub unit: String,
-    pub stock_quantity: i32,
     pub low_stock_threshold: i32,
-    pub is_active: bool,
     pub images: serde_json::Value,
-    pub attributes: serde_json::Value,
     pub weight: Option<BigDecimal>,
     pub dimensions: Option<serde_json::Value>,
     pub barcode: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
 #[diesel(table_name = services)]
 pub struct Service {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
+    pub sku: String,
     pub description: Option<String>,
+    pub price: Option<BigDecimal>,
+    pub currency: Option<String>,
+    pub is_recurring: Option<bool>,
+    pub billing_cycle: Option<String>,
+    pub attributes: Option<serde_json::Value>,
+    pub is_active: Option<bool>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub category: Option<String>,
     pub service_type: String,
     pub hourly_rate: Option<BigDecimal>,
     pub fixed_price: Option<BigDecimal>,
-    pub currency: String,
     pub duration_minutes: Option<i32>,
-    pub is_active: bool,
-    pub attributes: serde_json::Value,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[diesel(table_name = product_categories)]
 pub struct ProductCategory {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
+    pub slug: String,
     pub description: Option<String>,
     pub parent_id: Option<Uuid>,
-    pub slug: Option<String>,
+    pub display_order: Option<i32>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub image_url: Option<String>,
     pub sort_order: i32,
     pub is_active: bool,
-    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
 #[diesel(table_name = price_lists)]
 pub struct PriceList {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
-    pub description: Option<String>,
-    pub currency: String,
-    pub is_default: bool,
-    pub valid_from: Option<chrono::NaiveDate>,
-    pub valid_until: Option<chrono::NaiveDate>,
-    pub customer_group: Option<String>,
-    pub discount_percent: BigDecimal,
-    pub is_active: bool,
+    pub currency: Option<String>,
+    pub is_active: Option<bool>,
+    pub valid_from: Option<NaiveDate>,
+    pub valid_until: Option<NaiveDate>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub description: Option<String>,
+    pub is_default: bool,
+    pub customer_group: Option<String>,
+    pub discount_percent: BigDecimal,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
@@ -173,16 +187,17 @@ pub struct PriceListItem {
 #[diesel(table_name = inventory_movements)]
 pub struct InventoryMovement {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub product_id: Uuid,
-    pub movement_type: String,
     pub quantity: i32,
+    pub movement_type: String,
+    pub reference: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub reference_type: Option<String>,
     pub reference_id: Option<Uuid>,
-    pub notes: Option<String>,
     pub created_by: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
@@ -343,35 +358,36 @@ pub async fn create_product(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let product = Product {
-        id,
-        org_id,
-        bot_id,
-        sku: req.sku,
-        name: req.name,
-        description: req.description,
-        category: req.category,
-        product_type: req.product_type.unwrap_or_else(|| "physical".to_string()),
-        price: bd(req.price),
-        cost: req.cost.map(bd),
-        currency: req.currency.unwrap_or_else(|| "USD".to_string()),
-        tax_rate: bd(req.tax_rate.unwrap_or(0.0)),
-        unit: req.unit.unwrap_or_else(|| "unit".to_string()),
-        stock_quantity: req.stock_quantity.unwrap_or(0),
-        low_stock_threshold: req.low_stock_threshold.unwrap_or(10),
-        is_active: true,
-        images: serde_json::json!(req.images.unwrap_or_default()),
-        attributes: serde_json::json!({}),
-        weight: req.weight.map(bd),
-        dimensions: None,
-        barcode: req.barcode,
-        created_at: now,
-        updated_at: now,
-    };
+    id: id,
+    branch_id: branch_id,
+    name: req.name,
+        sku: req.sku.unwrap_or_default(),
+    description: req.description,
+    price: Some(bd(req.price)),
+    currency: Some(req.currency.unwrap_or_else(|| "USD".to_string())),
+    stock_quantity: Some(req.stock_quantity.unwrap_or(0)),
+    category_id: None,
+    attributes: Some(serde_json::json!({})),
+    is_public: None,
+    is_active: Some(true),
+    created_at: now,
+    updated_at: now,
+    category: req.category,
+    product_type: req.product_type.unwrap_or_else(|| "physical".to_string()),
+    cost: req.cost.map(bd),
+    tax_rate: bd(req.tax_rate.unwrap_or(0.0)),
+    unit: req.unit.unwrap_or_else(|| "unit".to_string()),
+    low_stock_threshold: req.low_stock_threshold.unwrap_or(10),
+    images: serde_json::json!(req.images.unwrap_or_default()),
+    weight: req.weight.map(bd),
+    dimensions: None,
+    barcode: req.barcode,
+};
 
     diesel::insert_into(products::table)
         .values(&product)
@@ -389,13 +405,13 @@ pub async fn list_products(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = products::table
-        .filter(products::org_id.eq(org_id))
-        .filter(products::bot_id.eq(bot_id))
+        .filter(products::branch_id.eq(branch_id))
+        
         .into_boxed();
 
     if let Some(is_active) = query.is_active {
@@ -407,7 +423,7 @@ pub async fn list_products(
     }
 
     if let Some(true) = query.low_stock {
-        q = q.filter(products::stock_quantity.le(products::low_stock_threshold));
+        q = q.filter(products::stock_quantity.le(products::low_stock_threshold.nullable()));
     }
 
     if let Some(search) = query.search {
@@ -542,7 +558,7 @@ pub async fn adjust_stock(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let now = Utc::now();
 
     let product: Product = products::table
@@ -550,11 +566,12 @@ pub async fn adjust_stock(
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
 
+    let current_stock = product.stock_quantity.unwrap_or(0);
     let new_quantity = match req.movement_type.as_str() {
-        "in" | "purchase" | "return" | "adjustment_add" => product.stock_quantity + req.quantity,
-        "out" | "sale" | "adjustment_remove" | "damage" => product.stock_quantity - req.quantity,
+        "in" | "purchase" | "return" | "adjustment_add" => current_stock + req.quantity,
+        "out" | "sale" | "adjustment_remove" | "damage" => current_stock - req.quantity,
         "set" => req.quantity,
-        _ => product.stock_quantity + req.quantity,
+        _ => current_stock + req.quantity,
     };
 
     diesel::update(products::table.filter(products::id.eq(id)))
@@ -566,18 +583,19 @@ pub async fn adjust_stock(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     let movement = InventoryMovement {
-        id: Uuid::new_v4(),
-        org_id,
-        bot_id,
-        product_id: id,
-        movement_type: req.movement_type,
-        quantity: req.quantity,
-        reference_type: req.reference_type,
-        reference_id: req.reference_id,
-        notes: req.notes,
-        created_by: None,
-        created_at: now,
-    };
+    id: Uuid::new_v4(),
+    branch_id: branch_id,
+    product_id: id,
+    quantity: req.quantity,
+    movement_type: req.movement_type,
+    reference: None,
+    notes: req.notes,
+    created_at: now,
+    updated_at: chrono::Utc::now(),
+    reference_type: req.reference_type,
+    reference_id: req.reference_id,
+    created_by: None,
+};
 
     diesel::insert_into(inventory_movements::table)
         .values(&movement)
@@ -600,27 +618,30 @@ pub async fn create_service(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let service = Service {
-        id,
-        org_id,
-        bot_id,
-        name: req.name,
-        description: req.description,
-        category: req.category,
-        service_type: req.service_type.unwrap_or_else(|| "hourly".to_string()),
-        hourly_rate: req.hourly_rate.map(bd),
-        fixed_price: req.fixed_price.map(bd),
-        currency: req.currency.unwrap_or_else(|| "USD".to_string()),
-        duration_minutes: req.duration_minutes,
-        is_active: true,
-        attributes: serde_json::json!({}),
-        created_at: now,
-        updated_at: now,
-    };
+    id: id,
+    branch_id: branch_id,
+    name: req.name,
+    sku: String::new(),
+    description: req.description,
+    price: None,
+    currency: Some(req.currency.unwrap_or_else(|| "USD".to_string())),
+    is_recurring: None,
+    billing_cycle: None,
+    attributes: Some(serde_json::json!({})),
+    is_active: Some(true),
+    created_at: now,
+    updated_at: now,
+    category: req.category,
+    service_type: req.service_type.unwrap_or_else(|| "hourly".to_string()),
+    hourly_rate: req.hourly_rate.map(bd),
+    fixed_price: req.fixed_price.map(bd),
+    duration_minutes: req.duration_minutes,
+};
 
     diesel::insert_into(services::table)
         .values(&service)
@@ -638,13 +659,13 @@ pub async fn list_services(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = services::table
-        .filter(services::org_id.eq(org_id))
-        .filter(services::bot_id.eq(bot_id))
+        .filter(services::branch_id.eq(branch_id))
+        
         .into_boxed();
 
     if let Some(is_active) = query.is_active {
@@ -764,11 +785,11 @@ pub async fn list_categories(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let cats: Vec<ProductCategory> = product_categories::table
-        .filter(product_categories::org_id.eq(org_id))
-        .filter(product_categories::bot_id.eq(bot_id))
+        .filter(product_categories::branch_id.eq(branch_id))
+        
         .filter(product_categories::is_active.eq(true))
         .order(product_categories::sort_order.asc())
         .load(&mut conn)
@@ -785,30 +806,31 @@ pub async fn create_category(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let max_order: Option<i32> = product_categories::table
-        .filter(product_categories::org_id.eq(org_id))
-        .filter(product_categories::bot_id.eq(bot_id))
+        .filter(product_categories::branch_id.eq(branch_id))
+        
         .select(diesel::dsl::max(product_categories::sort_order))
         .first(&mut conn)
         .unwrap_or(None);
 
     let category = ProductCategory {
-        id,
-        org_id,
-        bot_id,
-        name: req.name,
-        description: req.description,
-        parent_id: req.parent_id,
-        slug: req.slug,
-        image_url: req.image_url,
-        sort_order: max_order.unwrap_or(0) + 1,
-        is_active: true,
-        created_at: now,
-    };
+    id: id,
+    branch_id: branch_id,
+    name: req.name,
+    slug: req.slug.unwrap_or_default(),
+    description: req.description,
+    parent_id: req.parent_id,
+    display_order: None,
+    created_at: now,
+    updated_at: chrono::Utc::now(),
+    image_url: req.image_url,
+    sort_order: max_order.unwrap_or(0) + 1,
+    is_active: true,
+};
 
     diesel::insert_into(product_categories::table)
         .values(&category)
@@ -825,11 +847,11 @@ pub async fn list_price_lists(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let lists: Vec<PriceList> = price_lists::table
-        .filter(price_lists::org_id.eq(org_id))
-        .filter(price_lists::bot_id.eq(bot_id))
+        .filter(price_lists::branch_id.eq(branch_id))
+        
         .filter(price_lists::is_active.eq(true))
         .order(price_lists::name.asc())
         .load(&mut conn)
@@ -846,7 +868,7 @@ pub async fn create_price_list(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -859,21 +881,20 @@ pub async fn create_price_list(
         .and_then(|d| chrono::NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok());
 
     let price_list = PriceList {
-        id,
-        org_id,
-        bot_id,
-        name: req.name,
-        description: req.description,
-        currency: req.currency.unwrap_or_else(|| "USD".to_string()),
-        is_default: false,
-        valid_from,
-        valid_until,
-        customer_group: req.customer_group,
-        discount_percent: bd(req.discount_percent.unwrap_or(0.0)),
-        is_active: true,
-        created_at: now,
-        updated_at: now,
-    };
+    id: id,
+    branch_id: branch_id,
+    name: req.name,
+    currency: Some(req.currency.unwrap_or_else(|| "USD".to_string())),
+    is_active: Some(true),
+    valid_from: valid_from,
+    valid_until: valid_until,
+    created_at: now,
+    updated_at: now,
+    description: req.description,
+    is_default: false,
+    customer_group: req.customer_group,
+    discount_percent: bd(req.discount_percent.unwrap_or(0.0)),
+};
 
     diesel::insert_into(price_lists::table)
         .values(&price_list)
@@ -908,73 +929,73 @@ pub async fn get_product_stats(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let total_products: i64 = products::table
-        .filter(products::org_id.eq(org_id))
-        .filter(products::bot_id.eq(bot_id))
+        .filter(products::branch_id.eq(branch_id))
+        
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let active_products: i64 = products::table
-        .filter(products::org_id.eq(org_id))
-        .filter(products::bot_id.eq(bot_id))
+        .filter(products::branch_id.eq(branch_id))
+        
         .filter(products::is_active.eq(true))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let total_services: i64 = services::table
-        .filter(services::org_id.eq(org_id))
-        .filter(services::bot_id.eq(bot_id))
+        .filter(services::branch_id.eq(branch_id))
+        
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let active_services: i64 = services::table
-        .filter(services::org_id.eq(org_id))
-        .filter(services::bot_id.eq(bot_id))
+        .filter(services::branch_id.eq(branch_id))
+        
         .filter(services::is_active.eq(true))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let low_stock_count: i64 = products::table
-        .filter(products::org_id.eq(org_id))
-        .filter(products::bot_id.eq(bot_id))
+        .filter(products::branch_id.eq(branch_id))
+        
         .filter(products::is_active.eq(true))
-        .filter(products::stock_quantity.le(products::low_stock_threshold))
+        .filter(products::stock_quantity.le(products::low_stock_threshold.nullable()))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let categories_count: i64 = product_categories::table
-        .filter(product_categories::org_id.eq(org_id))
-        .filter(product_categories::bot_id.eq(bot_id))
+        .filter(product_categories::branch_id.eq(branch_id))
+        
         .filter(product_categories::is_active.eq(true))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let price_lists_count: i64 = price_lists::table
-        .filter(price_lists::org_id.eq(org_id))
-        .filter(price_lists::bot_id.eq(bot_id))
+        .filter(price_lists::branch_id.eq(branch_id))
+        
         .filter(price_lists::is_active.eq(true))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let all_products: Vec<Product> = products::table
-        .filter(products::org_id.eq(org_id))
-        .filter(products::bot_id.eq(bot_id))
+        .filter(products::branch_id.eq(branch_id))
+        
         .filter(products::is_active.eq(true))
         .load(&mut conn)
         .unwrap_or_default();
 
     let total_stock_value: f64 = all_products
         .iter()
-        .map(|p| bd_to_f64(&p.price) * p.stock_quantity as f64)
+        .map(|p| bd_to_f64(p.price.as_ref().unwrap_or(&BigDecimal::from(0))) * p.stock_quantity.unwrap_or(0) as f64)
         .sum();
 
     let stats = ProductStats {
@@ -998,13 +1019,13 @@ pub async fn list_low_stock(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let prods: Vec<Product> = products::table
-        .filter(products::org_id.eq(org_id))
-        .filter(products::bot_id.eq(bot_id))
+        .filter(products::branch_id.eq(branch_id))
+        
         .filter(products::is_active.eq(true))
-        .filter(products::stock_quantity.le(products::low_stock_threshold))
+        .filter(products::stock_quantity.le(products::low_stock_threshold.nullable()))
         .order(products::stock_quantity.asc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
@@ -1031,21 +1052,13 @@ async fn handle_products_items(
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let get_default_bot = state.get_default_bot;
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (org_id, bot_id) = match get_default_bot {
-            Some(f) => {
-                let (id, _) = f(&mut conn);
-                (Uuid::nil(), id)
-            }
-            None => return None,
-        };
 
         let cat_map: std::collections::HashMap<String, String> = product_categories::table
-            .filter(product_categories::org_id.eq(org_id))
-            .filter(product_categories::bot_id.eq(bot_id))
+            .filter(product_categories::branch_id.eq(branch_id))
             .select((product_categories::id, product_categories::name))
             .load::<(Uuid, String)>(&mut conn)
             .ok()
@@ -1055,7 +1068,7 @@ async fn handle_products_items(
             .collect();
 
         let mut db_query = products::table
-            .filter(products::bot_id.eq(bot_id))
+            .filter(products::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(ref category) = query.category {
@@ -1084,7 +1097,7 @@ async fn handle_products_items(
                 products::stock_quantity,
                 products::is_active,
             ))
-            .load::<(Uuid, Option<String>, String, Option<String>, Option<String>, BigDecimal, String, i32, bool)>(&mut conn)
+            .load::<(Uuid, String, String, Option<String>, Option<String>, Option<BigDecimal>, Option<String>, Option<i32>, Option<bool>)>(&mut conn)
             .ok()?;
 
         if items.is_empty() {
@@ -1093,12 +1106,16 @@ async fn handle_products_items(
 
         let mut html = String::new();
         for (id, sku, name, desc, category, price, currency, stock, is_active) in items {
-            let sku_str = sku.unwrap_or_else(|| "-".to_string());
+            let sku_str = if sku.is_empty() { "-".to_string() } else { sku };
             let desc_str = desc.unwrap_or_default();
             let cat_id = category.unwrap_or_default();
             let cat_str = cat_map.get(&cat_id).cloned().unwrap_or_else(|| {
                 if cat_id.is_empty() { "Uncategorized".to_string() } else { cat_id }
             });
+            let price = price.unwrap_or_default();
+            let currency = currency.unwrap_or_default();
+            let stock = stock.unwrap_or(0);
+            let is_active = is_active.unwrap_or(true);
             let price_str = format_currency(bd_to_f64(&price), &currency);
             let stock_str = if stock == -1 { "Unlimited".to_string() } else { stock.to_string() };
             let status_class = if is_active { "status-active" } else { "status-inactive" };
@@ -1157,21 +1174,13 @@ async fn handle_products_services(
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let get_default_bot = state.get_default_bot;
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (org_id, bot_id) = match get_default_bot {
-            Some(f) => {
-                let (id, _) = f(&mut conn);
-                (Uuid::nil(), id)
-            }
-            None => return None,
-        };
 
         let cat_map: std::collections::HashMap<String, String> = product_categories::table
-            .filter(product_categories::org_id.eq(org_id))
-            .filter(product_categories::bot_id.eq(bot_id))
+            .filter(product_categories::branch_id.eq(branch_id))
             .select((product_categories::id, product_categories::name))
             .load::<(Uuid, String)>(&mut conn)
             .ok()
@@ -1181,7 +1190,7 @@ async fn handle_products_services(
             .collect();
 
         let mut db_query = services::table
-            .filter(services::bot_id.eq(bot_id))
+            .filter(services::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(ref category) = query.category {
@@ -1211,7 +1220,7 @@ async fn handle_products_services(
                 services::duration_minutes,
                 services::is_active,
             ))
-            .load::<(Uuid, String, Option<String>, Option<String>, String, Option<BigDecimal>, Option<BigDecimal>, String, Option<i32>, bool)>(&mut conn)
+            .load::<(Uuid, String, Option<String>, Option<String>, String, Option<BigDecimal>, Option<BigDecimal>, Option<String>, Option<i32>, Option<bool>)>(&mut conn)
             .ok()?;
 
         if items.is_empty() {
@@ -1225,16 +1234,18 @@ async fn handle_products_services(
                 if cat_id.is_empty() { "General".to_string() } else { cat_id }
             });
             let type_str = svc_type;
+            let cur = currency.as_deref().unwrap_or("USD");
             let price_str = if let Some(ref h) = hourly {
-                format!("{}/hr", format_currency(bd_to_f64(h), &currency))
+                format!("{}/hr", format_currency(bd_to_f64(h), cur))
             } else if let Some(ref f) = fixed {
-                format_currency(bd_to_f64(f), &currency)
+                format_currency(bd_to_f64(f), cur)
             } else {
                 "-".to_string()
             };
             let duration_str = duration.map(|d| format!("{} min", d)).unwrap_or_else(|| "-".to_string());
-            let status_class = if is_active { "status-active" } else { "status-inactive" };
-            let status_text = if is_active { "Active" } else { "Inactive" };
+            let active = is_active.unwrap_or(false);
+            let status_class = if active { "status-active" } else { "status-inactive" };
+            let status_text = if active { "Active" } else { "Inactive" };
 
             html.push_str(&format!(
                 "<tr class=\"service-row\" data-id=\"{id}\">\
@@ -1282,17 +1293,12 @@ async fn handle_products_pricelists(
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let get_default_bot = state.get_default_bot;
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
-            None => return None,
-        };
-
         let mut db_query = price_lists::table
-            .filter(price_lists::bot_id.eq(bot_id))
+            .filter(price_lists::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(ref status) = query.status {
@@ -1316,7 +1322,7 @@ async fn handle_products_pricelists(
                 price_lists::customer_group,
                 price_lists::is_active,
             ))
-            .load::<(Uuid, String, Option<String>, String, bool, BigDecimal, Option<String>, bool)>(&mut conn)
+            .load::<(Uuid, String, Option<String>, Option<String>, bool, BigDecimal, Option<String>, Option<bool>)>(&mut conn)
             .ok()
     })
     .await
@@ -1327,6 +1333,8 @@ async fn handle_products_pricelists(
         Some(items) if !items.is_empty() => {
             let mut html = String::new();
             for (id, name, _desc, currency, is_default, discount, customer_group, is_active) in items {
+                let currency = currency.unwrap_or_default();
+                let is_active = is_active.unwrap_or(true);
                 let discount_pct = bd_to_f64(&discount);
                 let discount_str = if discount_pct > 0.0 { format!("{:.1}%", discount_pct) } else { "-".to_string() };
                 let group_str = customer_group.unwrap_or_else(|| "All".to_string());
@@ -1370,17 +1378,13 @@ async fn handle_products_pricelists(
 
 async fn handle_total_products(State(state): State<Arc<ProductsState>>) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let get_default_bot = state.get_default_bot;
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
-            None => return None,
-        };
 
         products::table
-            .filter(products::bot_id.eq(bot_id))
+            .filter(products::branch_id.eq(branch_id))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()
@@ -1394,17 +1398,13 @@ async fn handle_total_products(State(state): State<Arc<ProductsState>>) -> impl 
 
 async fn handle_total_services(State(state): State<Arc<ProductsState>>) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let get_default_bot = state.get_default_bot;
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
-            None => return None,
-        };
 
         services::table
-            .filter(services::bot_id.eq(bot_id))
+            .filter(services::branch_id.eq(branch_id))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()
@@ -1418,17 +1418,13 @@ async fn handle_total_services(State(state): State<Arc<ProductsState>>) -> impl 
 
 async fn handle_total_pricelists(State(state): State<Arc<ProductsState>>) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let get_default_bot = state.get_default_bot;
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
-            None => return None,
-        };
 
         price_lists::table
-            .filter(price_lists::bot_id.eq(bot_id))
+            .filter(price_lists::branch_id.eq(branch_id))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()
@@ -1442,17 +1438,13 @@ async fn handle_total_pricelists(State(state): State<Arc<ProductsState>>) -> imp
 
 async fn handle_active_products(State(state): State<Arc<ProductsState>>) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let get_default_bot = state.get_default_bot;
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = match get_default_bot {
-            Some(f) => f(&mut conn),
-            None => return None,
-        };
 
         products::table
-            .filter(products::bot_id.eq(bot_id))
+            .filter(products::branch_id.eq(branch_id))
             .filter(products::is_active.eq(true))
             .count()
             .get_result::<i64>(&mut conn)
@@ -1475,22 +1467,14 @@ async fn handle_products_search(
     }
 
     let pool = state.pool.clone();
-    let get_default_bot = state.get_default_bot;
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let search_term = format!("%{}%", q);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (org_id, bot_id) = match get_default_bot {
-            Some(f) => {
-                let (id, _) = f(&mut conn);
-                (Uuid::nil(), id)
-            }
-            None => return None,
-        };
 
         let cat_map: std::collections::HashMap<String, String> = product_categories::table
-            .filter(product_categories::org_id.eq(org_id))
-            .filter(product_categories::bot_id.eq(bot_id))
+            .filter(product_categories::branch_id.eq(branch_id))
             .select((product_categories::id, product_categories::name))
             .load::<(Uuid, String)>(&mut conn)
             .ok()
@@ -1500,7 +1484,7 @@ async fn handle_products_search(
             .collect();
 
         let items = products::table
-            .filter(products::bot_id.eq(bot_id))
+            .filter(products::branch_id.eq(branch_id))
             .filter(
                 products::name.ilike(&search_term)
                     .or(products::sku.ilike(&search_term))
@@ -1516,7 +1500,7 @@ async fn handle_products_search(
                 products::price,
                 products::currency,
             ))
-            .load::<(Uuid, Option<String>, String, Option<String>, BigDecimal, String)>(&mut conn)
+            .load::<(Uuid, String, String, Option<String>, Option<BigDecimal>, Option<String>)>(&mut conn)
             .ok()?;
 
         if items.is_empty() {
@@ -1525,7 +1509,9 @@ async fn handle_products_search(
 
         let mut html = String::new();
         for (id, sku, name, category, price, currency) in items {
-            let sku_str = sku.unwrap_or_else(|| "-".to_string());
+            let price = price.unwrap_or_default();
+            let currency = currency.unwrap_or_default();
+            let sku_str = if sku.is_empty() { "-".to_string() } else { sku };
             let cat_id = category.unwrap_or_default();
             let cat_str = cat_map.get(&cat_id).cloned().unwrap_or_else(|| {
                 if cat_id.is_empty() { "Uncategorized".to_string() } else { cat_id }
@@ -1579,17 +1565,17 @@ async fn handle_product_detail_view(
         Err(_) => return Html("<div class=\"error\">Product not found</div>".to_string()),
     };
 
-    let price_str = format_currency(bd_to_f64(&product.price), &product.currency);
-    let cost_str = product.cost.as_ref().map(|c| format_currency(bd_to_f64(c), &product.currency)).unwrap_or_else(|| "-".to_string());
-    let stock_str = if product.stock_quantity == -1 { "Unlimited".to_string() } else { product.stock_quantity.to_string() };
-    let status_badge = if product.is_active {
+    let price_str = format_currency(bd_to_f64(product.price.as_ref().unwrap_or(&BigDecimal::from(0))), product.currency.as_deref().unwrap_or("USD"));
+    let cost_str = product.cost.as_ref().map(|c| format_currency(bd_to_f64(c), product.currency.as_deref().unwrap_or("USD"))).unwrap_or_else(|| "-".to_string());
+    let stock_str = if product.stock_quantity == Some(-1) { "Unlimited".to_string() } else { product.stock_quantity.map(|v| v.to_string()).unwrap_or_else(|| "-".to_string()) };
+    let status_badge = if product.is_active.unwrap_or(false) {
         "<span class=\"status-active\">Active</span>"
     } else {
         "<span class=\"status-inactive\">Inactive</span>"
     };
     let cat_str = product.category.as_deref().unwrap_or("Uncategorized");
     let desc_str = product.description.as_deref().unwrap_or("No description");
-    let sku_str = product.sku.as_deref().unwrap_or("-");
+    let sku_str = if product.sku.is_empty() { "-" } else { &product.sku };
     let tax_rate = bd_to_f64(&product.tax_rate);
     let created = product.created_at.format("%Y-%m-%d %H:%M UTC");
     let updated = product.updated_at.format("%Y-%m-%d %H:%M UTC");
@@ -1652,7 +1638,7 @@ async fn handle_product_edit_form(
         Err(_) => return Html("<div class=\"error\">Product not found</div>".to_string()),
     };
 
-    let price_str = product.price.to_string();
+    let price_str = product.price.as_ref().map(|p| p.to_string()).unwrap_or_else(|| "0".to_string());
     let cost_str = product.cost.as_ref().map(|c| c.to_string()).unwrap_or_default();
     let tax_rate_str = product.tax_rate.to_string();
     let active_sel = |v: bool, expected: bool| {
@@ -1732,7 +1718,7 @@ async fn handle_product_edit_form(
         </form>",
         id = id,
         name = html_escape(&product.name),
-        sku = html_escape(&product.sku.as_deref().unwrap_or("")),
+        sku = html_escape(&product.sku),
         desc = html_escape(&product.description.as_deref().unwrap_or("")),
         price = price_str,
         cost = cost_str,
@@ -1749,10 +1735,10 @@ async fn handle_product_edit_form(
         unit_h = unit_sel("hour"),
         unit_m = unit_sel("month"),
         unit_y = unit_sel("year"),
-        status_a = active_sel(product.is_active, true),
-        status_i = active_sel(product.is_active, false),
+        status_a = active_sel(product.is_active.unwrap_or(false), true),
+        status_i = active_sel(product.is_active.unwrap_or(false), false),
         tax_rate = tax_rate_str,
-        stock = product.stock_quantity.to_string(),
+        stock = product.stock_quantity.map(|v| v.to_string()).unwrap_or_else(|| "0".to_string()),
         barcode = html_escape(&product.barcode.as_deref().unwrap_or("")),
     ))
 }

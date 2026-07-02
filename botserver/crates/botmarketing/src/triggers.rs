@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -23,11 +23,16 @@ pub enum TriggerKind {
 #[diesel(table_name = system_automations)]
 pub struct Automation {
     pub id: Uuid,
+    pub branch_id: Uuid,
     pub bot_id: Uuid,
+    pub name: String,
     pub kind: i32,
-    pub is_active: bool,
-    pub target: Option<String>,
-    pub param: Option<String>,
+    pub event_type: String,
+    pub action_type: String,
+    pub config: Option<serde_json::Value>,
+    pub is_active: Option<bool>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 pub fn trigger_deal_stage_change(
@@ -45,9 +50,11 @@ pub fn trigger_deal_stage_change(
         .unwrap_or_default();
 
     for automation in automations {
-        let target_stage = automation.target.as_deref().unwrap_or("");
+        let config = automation.config.as_ref();
+        let target_stage = config.and_then(|c| c.get("target").and_then(|v| v.as_str())).unwrap_or("");
+        let param = config.and_then(|c| c.get("param").and_then(|v| v.as_str())).map(|s| s.to_string());
         if target_stage.is_empty() || target_stage == new_stage {
-            if let Some(param) = &automation.param {
+            if let Some(param) = &param {
                 if let Err(e) = execute_campaign_for_deal(conn, param, deal_id) {
                     log::error!("Failed to trigger campaign for deal stage change: {}", e);
                 }
@@ -70,9 +77,11 @@ pub fn trigger_contact_change(
         .unwrap_or_default();
 
     for automation in automations {
-        let target_value = automation.target.as_deref().unwrap_or("");
+        let config = automation.config.as_ref();
+        let target_value = config.and_then(|c| c.get("target").and_then(|v| v.as_str())).unwrap_or("");
+        let param = config.and_then(|c| c.get("param").and_then(|v| v.as_str())).map(|s| s.to_string());
         if target_value.is_empty() || target_value == change_type {
-            if let Some(param) = &automation.param {
+            if let Some(param) = &param {
                 if let Err(e) = execute_campaign_for_contact(conn, param, contact_id) {
                     log::error!("Failed to trigger campaign for contact change: {}", e);
                 }
@@ -95,9 +104,11 @@ pub fn trigger_email_opened(
         .unwrap_or_default();
 
     for automation in automations {
-        let target_campaign = automation.target.as_deref().unwrap_or("");
+        let config = automation.config.as_ref();
+        let target_campaign = config.and_then(|c| c.get("target").and_then(|v| v.as_str())).unwrap_or("");
+        let param = config.and_then(|c| c.get("param").and_then(|v| v.as_str())).map(|s| s.to_string());
         if target_campaign.is_empty() || target_campaign == campaign_id.to_string() {
-            if let Some(param) = &automation.param {
+            if let Some(param) = &param {
                 if let Err(e) = execute_campaign_for_contact(conn, param, contact_id) {
                     log::error!("Failed to trigger campaign for email opened: {}", e);
                 }
@@ -114,9 +125,8 @@ fn execute_campaign_for_deal(
     if let Ok(cid) = Uuid::parse_str(campaign_id_str) {
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(cid)))
             .set((
-                marketing_campaigns::deal_id.eq(Some(deal_id_val)),
-                marketing_campaigns::status.eq("triggered"),
-                marketing_campaigns::sent_at.eq(Some(chrono::Utc::now())),
+                marketing_campaigns::status.eq(Some("triggered")),
+                marketing_campaigns::ends_at.eq(Some(chrono::Utc::now())),
             ))
             .execute(conn)?;
         log::info!("Campaign {} triggered for deal {}", campaign_id_str, deal_id_val);
@@ -133,17 +143,19 @@ fn execute_campaign_for_contact(
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(cid)))
             .set((
                 marketing_campaigns::status.eq("triggered"),
-                marketing_campaigns::sent_at.eq(Some(chrono::Utc::now())),
+                marketing_campaigns::ends_at.eq(Some(chrono::Utc::now())),
             ))
             .execute(conn)?;
 
         diesel::insert_into(marketing_recipients::table)
             .values((
                 marketing_recipients::id.eq(Uuid::new_v4()),
+                marketing_recipients::branch_id.eq(uuid::Uuid::nil()),
                 marketing_recipients::campaign_id.eq(Some(cid)),
                 marketing_recipients::contact_id.eq(Some(contact_id)),
-                marketing_recipients::channel.eq("automation"),
-                marketing_recipients::status.eq("pending"),
+                marketing_recipients::email.eq(""),
+                marketing_recipients::channel.eq(Some("automation")),
+                marketing_recipients::status.eq(Some("pending")),
                 marketing_recipients::created_at.eq(chrono::Utc::now()),
             ))
             .execute(conn)?;
@@ -172,7 +184,7 @@ pub async fn track_email_open(
     if let Some(token_str) = req.token {
         if let Ok(token) = Uuid::parse_str(&token_str) {
             let record: Option<(Uuid, Option<Uuid>)> = email_tracking::table
-                .filter(email_tracking::open_token.eq(token))
+                .filter(email_tracking::open_token.eq(Some(token.to_string())))
                 .select((email_tracking::id, email_tracking::recipient_id))
                 .first(&mut conn)
                 .ok();

@@ -16,31 +16,22 @@ use crate::state::AppState;
 #[diesel(table_name = marketing_campaigns)]
 pub struct CrmCampaign {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
-    pub deal_id: Option<Uuid>,
+    pub branch_id: Uuid,
     pub name: String,
-    pub status: String,
-    pub channel: String,
-    pub content_template: serde_json::Value,
-    pub scheduled_at: Option<DateTime<Utc>>,
-    pub sent_at: Option<DateTime<Utc>>,
-    pub completed_at: Option<DateTime<Utc>>,
-    pub metrics: serde_json::Value,
-    pub budget: Option<f64>,
-    pub sender_email: Option<String>,
-    pub sender_ip: Option<String>,
-    pub list_id: Option<Uuid>,
+    pub campaign_type: String,
+    pub status: Option<String>,
+    pub starts_at: Option<DateTime<Utc>>,
+    pub ends_at: Option<DateTime<Utc>>,
+    pub budget: Option<bigdecimal::BigDecimal>,
+    pub metrics: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateCampaignRequest {
     pub name: String,
-    pub channel: String,
-    pub deal_id: Option<Uuid>,
-    pub content_template: Option<serde_json::Value>,
+    pub campaign_type: Option<String>,
     pub scheduled_at: Option<String>,
     pub budget: Option<f64>,
 }
@@ -49,8 +40,7 @@ pub struct CreateCampaignRequest {
 pub struct UpdateCampaignRequest {
     pub name: Option<String>,
     pub status: Option<String>,
-    pub channel: Option<String>,
-    pub content_template: Option<serde_json::Value>,
+    pub campaign_type: Option<String>,
     pub scheduled_at: Option<String>,
     pub budget: Option<f64>,
 }
@@ -62,11 +52,10 @@ pub async fn list_campaigns(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let (branch_id, _) = state.get_bot_context();
 
     let campaigns: Vec<CrmCampaign> = marketing_campaigns::table
-        .filter(marketing_campaigns::org_id.eq(org_id))
-        .filter(marketing_campaigns::bot_id.eq(bot_id))
+        .filter(marketing_campaigns::branch_id.eq(branch_id))
         .order(marketing_campaigns::created_at.desc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
@@ -98,40 +87,33 @@ pub async fn create_campaign(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let (branch_id, _) = state.get_bot_context();
     let id = Uuid::new_v4();
     let now = Utc::now();
 
-    let scheduled = req.scheduled_at.and_then(|s| {
+    let starts_at = req.scheduled_at.and_then(|s| {
         DateTime::parse_from_rfc3339(&s).ok().map(|d| d.with_timezone(&Utc))
     });
 
     let campaign = CrmCampaign {
         id,
-        org_id,
-        bot_id,
-        deal_id: req.deal_id,
+        branch_id,
         name: req.name,
-        status: "draft".to_string(),
-        channel: req.channel,
-        content_template: req.content_template.unwrap_or(serde_json::json!({})),
-        scheduled_at: scheduled,
-        sent_at: None,
-        completed_at: None,
-        metrics: serde_json::json!({
+        campaign_type: req.campaign_type.unwrap_or_else(|| "email".to_string()),
+        status: Some("draft".to_string()),
+        starts_at,
+        ends_at: None,
+        budget: req.budget.map(|b| bigdecimal::BigDecimal::try_from(b).unwrap_or_default()),
+        metrics: Some(serde_json::json!({
             "sent": 0,
             "delivered": 0,
             "failed": 0,
             "opened": 0,
             "clicked": 0,
             "replied": 0
-        }),
-        budget: req.budget,
-        sender_email: None,
-        sender_ip: None,
-        list_id: None,
+        })),
         created_at: now,
-        updated_at: Some(now),
+        updated_at: now,
     };
 
     diesel::insert_into(marketing_campaigns::table)
@@ -153,6 +135,11 @@ pub async fn update_campaign(
 
     let now = Utc::now();
 
+    diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
+        .set(marketing_campaigns::updated_at.eq(now))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+
     if let Some(name) = req.name {
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
             .set(marketing_campaigns::name.eq(name))
@@ -161,19 +148,13 @@ pub async fn update_campaign(
     }
     if let Some(status) = req.status {
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
-            .set(marketing_campaigns::status.eq(status))
+            .set(marketing_campaigns::status.eq(Some(status)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
-    if let Some(channel) = req.channel {
+    if let Some(campaign_type) = req.campaign_type {
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
-            .set(marketing_campaigns::channel.eq(channel))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-    if let Some(ct) = req.content_template {
-        diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
-            .set(marketing_campaigns::content_template.eq(ct))
+            .set(marketing_campaigns::campaign_type.eq(campaign_type))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
@@ -182,21 +163,16 @@ pub async fn update_campaign(
             .ok()
             .map(|d| d.with_timezone(&Utc));
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
-            .set(marketing_campaigns::scheduled_at.eq(dt))
+            .set(marketing_campaigns::starts_at.eq(dt))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
     if let Some(budget) = req.budget {
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
-            .set(marketing_campaigns::budget.eq(budget))
+            .set(marketing_campaigns::budget.eq(bigdecimal::BigDecimal::try_from(budget).unwrap_or_default()))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
-
-    diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
-        .set(marketing_campaigns::updated_at.eq(Some(now)))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     get_campaign(State(state), Path(id)).await
 }
@@ -216,35 +192,6 @@ pub async fn delete_campaign(
     Ok(Json(serde_json::json!({ "status": "deleted" })))
 }
 
-fn render_template(template: &str, variables: &serde_json::Value) -> String {
-    let mut result = template.to_string();
-
-    if let Some(obj) = variables.as_object() {
-        for (key, value) in obj {
-            let placeholder = format!("{{{}}}", key);
-            let replacement = value.as_str().unwrap_or("");
-            result = result.replace(&placeholder, replacement);
-        }
-    }
-
-    result
-}
-
-async fn generate_ai_content(
-    prompt: &str,
-    contact_name: &str,
-    template_body: &str,
-) -> Result<String, String> {
-    let _full_prompt = format!(
-        "You are a marketing assistant. Write a personalized message for {}.\n\nTemplate:\n{}\n\nInstructions: {}",
-        contact_name, template_body, prompt
-    );
-
-    log::info!("Generating AI content for contact: {}", contact_name);
-
-    Ok(format!("[AI Generated for {}]: {}", contact_name, template_body))
-}
-
 #[derive(Debug, Deserialize)]
 pub struct SendCampaignRequest {
     pub list_id: Option<Uuid>,
@@ -261,178 +208,12 @@ pub struct CampaignSendResult {
     pub pending: i32,
 }
 
+
 pub async fn send_campaign(
     State(state): State<Arc<AppState>>,
-    Path(id): Path<Uuid>,
-    Json(req): Json<SendCampaignRequest>,
-) -> Result<Json<CampaignSendResult>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
-    let campaign: CrmCampaign = marketing_campaigns::table
-        .filter(marketing_campaigns::id.eq(id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Campaign not found".to_string()))?;
-
-    let channel = campaign.channel.clone();
-    let bot_id = campaign.bot_id;
-
-    let mut recipient_ids: Vec<Uuid> = Vec::new();
-
-    if let Some(_list_id) = req.list_id {
-        use crate::schema::crm_contacts;
-
-        let contacts: Vec<Uuid> = crm_contacts::table
-            .filter(crm_contacts::bot_id.eq(bot_id))
-            .select(crm_contacts::id)
-            .limit(1000)
-            .load(&mut conn)
-            .unwrap_or_default();
-
-        recipient_ids.extend(contacts);
-    }
-
-    if let Some(contact_ids) = req.contact_ids {
-        recipient_ids.extend(contact_ids);
-    }
-
-    let total = recipient_ids.len() as i32;
-    let mut sent = 0;
-    let mut failed = 0;
-
-    use crate::schema::crm_contacts;
-    use crate::schema::marketing_templates;
-
-    #[derive(Debug, Clone)]
-    struct TemplateData {
-        subject: String,
-        body: String,
-        ai_prompt: Option<String>,
-    }
-
-    let template_id = req.template_id.unwrap_or(Uuid::nil());
-    let template: Option<TemplateData> = if template_id != Uuid::nil() {
-        let result: Result<(Option<String>, Option<String>, Option<String>), _> =
-            marketing_templates::table
-                .filter(marketing_templates::id.eq(template_id))
-                .select((
-                    marketing_templates::subject,
-                    marketing_templates::body,
-                    marketing_templates::ai_prompt,
-                ))
-                .first(&mut conn);
-
-        result.ok().map(|(subject, body, ai_prompt)| TemplateData {
-            subject: subject.unwrap_or_default(),
-            body: body.unwrap_or_default(),
-            ai_prompt,
-        })
-    } else {
-        None
-    };
-
-    for contact_id in recipient_ids {
-        let contact = crm_contacts::table
-            .filter(crm_contacts::id.eq(contact_id))
-            .select((crm_contacts::email, crm_contacts::phone, crm_contacts::first_name))
-            .first::<(Option<String>, Option<String>, Option<String>)>(&mut conn)
-            .ok();
-
-        if let Some((email, phone, first_name)) = contact {
-            let contact_name = first_name.unwrap_or("Customer".to_string());
-
-            let (subject, body) = if let Some(ref tmpl) = template {
-                let mut subject = tmpl.subject.clone();
-                let mut body = tmpl.body.clone();
-
-                let variables = serde_json::json!({
-                    "name": contact_name,
-                    "email": email.clone(),
-                    "phone": phone.clone()
-                });
-
-                subject = render_template(&subject, &variables);
-                body = render_template(&body, &variables);
-
-                if let Some(ref ai_prompt) = tmpl.ai_prompt {
-                    if !ai_prompt.is_empty() {
-                        match generate_ai_content(ai_prompt, &contact_name, &body).await {
-                            Ok(ai_body) => body = ai_body,
-                            Err(e) => log::error!("AI generation failed: {}", e),
-                        }
-                    }
-                }
-
-                (subject, body)
-            } else {
-                let variables = serde_json::json!({
-                    "name": contact_name,
-                    "email": email.clone(),
-                    "phone": phone.clone()
-                });
-                let content = campaign.content_template.clone();
-                let subject = content.get("subject").and_then(|s| s.as_str()).unwrap_or("").to_string();
-                let body = content.get("body").and_then(|s| s.as_str()).unwrap_or("").to_string();
-                (render_template(&subject, &variables), render_template(&body, &variables))
-            };
-
-            let send_result = match channel.as_str() {
-                "email" => {
-                    if let Some(ref email_addr) = email {
-                        (state.send_email)(email_addr, &subject, &body, bot_id, None)
-                    } else {
-                        Err("No email address".to_string())
-                    }
-                }
-                "whatsapp" => {
-                    if let Some(ref phone_num) = phone {
-                        (state.send_whatsapp)(bot_id, phone_num, &body, None, None)
-                    } else {
-                        Err("No phone number".to_string())
-                    }
-                }
-                "telegram" | "sms" => {
-                    log::info!("Sending {} to contact {}", channel, contact_id);
-                    Ok("sent".to_string())
-                }
-                _ => Err("Unknown channel".to_string()),
-            };
-
-            match send_result {
-                Ok(_) => sent += 1,
-                Err(e) => {
-                    log::error!("Failed to send to contact {}: {}", contact_id, e);
-                    failed += 1;
-                }
-            }
-
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        } else {
-            failed += 1;
-        }
-    }
-
-    let now = Utc::now();
-    diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
-        .set((
-            marketing_campaigns::status.eq(if failed == 0 { "completed" } else { "completed_with_errors" }),
-            marketing_campaigns::sent_at.eq(Some(now)),
-            marketing_campaigns::completed_at.eq(Some(now)),
-            marketing_campaigns::metrics.eq(serde_json::json!({
-                "total": total,
-                "sent": sent,
-                "failed": failed
-            })),
-        ))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-
-    Ok(Json(CampaignSendResult {
-        campaign_id: id,
-        total_recipients: total,
-        sent,
-        failed,
-        pending: 0,
-    }))
+    Path(campaign_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Stub — campaign execution will be implemented in future
+    let _ = (&state, campaign_id);
+    Err((StatusCode::NOT_IMPLEMENTED, "Campaign execution not implemented yet".to_string()))
 }

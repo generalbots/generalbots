@@ -13,7 +13,7 @@ use crate::requests::*;
 use crate::schema::crm_deals;
 use crate::CrateState;
 
-fn get_bot_context(state: &CrateState) -> (Uuid, Uuid) {
+fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
@@ -25,8 +25,8 @@ pub async fn create_lead_form(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
-    let effective_org_id = if org_id == Uuid::nil() { bot_id } else { org_id };
+    let branch_id = get_bot_context(&state);
+    let effective_branch_id = branch_id;
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -41,20 +41,19 @@ pub async fn create_lead_form(
 
     let lead = CrmDeal {
         id,
-        org_id: effective_org_id,
-        bot_id,
+        branch_id: effective_branch_id,
         contact_id: None,
         account_id: None,
         am_id: None,
         lead_id: None,
         title: Some(title),
-        name: None,
+        name: String::new(),
         description: req.description,
         value: req.value,
         currency: Some("USD".to_string()),
         stage_id: None,
         stage: Some("new".to_string()),
-        probability: 10,
+        probability: Some(10),
         source: req.source.clone(),
         segment_id: None,
         department_id: None,
@@ -65,10 +64,10 @@ pub async fn create_lead_form(
         owner_id: None,
         lost_reason: None,
         won: None,
-        tags: vec![],
+        tags: None,
         custom_fields: serde_json::json!({}),
         created_at: now,
-        updated_at: Some(now),
+        updated_at: now,
         closed_at: None,
         notes: None,
     };
@@ -89,7 +88,7 @@ pub async fn create_lead(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -98,20 +97,19 @@ pub async fn create_lead(
 
     let lead = CrmDeal {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         contact_id: req.contact_id,
         account_id: req.account_id,
         am_id: None,
         lead_id: None,
         title: Some(req.title),
-        name: None,
+        name: String::new(),
         description: req.description,
         value: req.value,
         currency: req.currency.or(Some("USD".to_string())),
         stage_id: None,
         stage: Some("new".to_string()),
-        probability: 10,
+    probability: Some(10),
         source: req.source,
         segment_id: None,
         department_id: None,
@@ -122,10 +120,10 @@ pub async fn create_lead(
         owner_id: None,
         lost_reason: None,
         won: None,
-        tags: vec![],
+        tags: None,
         custom_fields: serde_json::json!({}),
         created_at: now,
-        updated_at: Some(now),
+        updated_at: now,
         closed_at: None,
         notes: None,
     };
@@ -146,13 +144,12 @@ pub async fn list_leads(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = crm_deals::table
-        .filter(crm_deals::org_id.eq(org_id))
-        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(stage) = query.stage {
@@ -285,8 +282,8 @@ pub async fn update_lead_stage(
 
     if let Some(old) = old_stage_str {
         if old != stage {
-            let (_org_id, bot_id) = get_bot_context(&state);
-            (state.trigger_deal_stage_change)(&mut conn, id, &old, &stage, bot_id);
+            let branch_id = get_bot_context(&state);
+            (state.trigger_deal_stage_change)(&mut conn, id, &old, &stage, branch_id);
         }
     }
 
@@ -326,20 +323,19 @@ pub async fn convert_lead_to_opportunity(
 
     let opportunity = CrmDeal {
         id: opp_id,
-        org_id: lead.org_id,
-        bot_id: lead.bot_id,
+        branch_id: lead.branch_id,
         lead_id: Some(lead.id),
         account_id: lead.account_id,
         contact_id: lead.contact_id,
         am_id: None,
         title: lead.title.clone(),
-        name: lead.title.clone(),
+        name: lead.title.clone().unwrap_or_default(),
         description: lead.description.clone(),
         value: lead.value,
         currency: lead.currency.clone(),
         stage_id: None,
         stage: Some("qualification".to_string()),
-        probability: 25,
+        probability: Some(25),
         source: lead.source.clone(),
         segment_id: None,
         department_id: None,
@@ -355,7 +351,7 @@ pub async fn convert_lead_to_opportunity(
         tags: lead.tags.clone(),
         custom_fields: lead.custom_fields.clone(),
         created_at: now,
-        updated_at: Some(now),
+        updated_at: now,
     };
 
     diesel::insert_into(crm_deals::table)

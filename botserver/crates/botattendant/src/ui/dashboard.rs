@@ -12,34 +12,34 @@ pub async fn dashboard_stats(State(config): State<Arc<AttendantConfig>>) -> Html
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let today = Utc::now().date_naive();
         let today_start = today.and_hms_opt(0, 0, 0)?;
 
         let total_today: i64 = attendant_sessions::table
-            .filter(attendant_sessions::bot_id.eq(bot_id))
+            .filter(attendant_sessions::branch_id.eq(branch_id))
             .filter(attendant_sessions::created_at.ge(today_start))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let waiting: i64 = attendant_sessions::table
-            .filter(attendant_sessions::bot_id.eq(bot_id))
+            .filter(attendant_sessions::branch_id.eq(branch_id))
             .filter(attendant_sessions::status.eq("waiting"))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let active: i64 = attendant_sessions::table
-            .filter(attendant_sessions::bot_id.eq(bot_id))
+            .filter(attendant_sessions::branch_id.eq(branch_id))
             .filter(attendant_sessions::status.eq("active"))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let agents_online: i64 = attendant_agent_status::table
-            .filter(attendant_agent_status::bot_id.eq(bot_id))
+            .filter(attendant_agent_status::branch_id.eq(branch_id))
             .filter(attendant_agent_status::status.eq("online"))
             .count()
             .get_result(&mut conn)

@@ -1,38 +1,56 @@
-use diesel::table;
+// @generated automatically by script from migration SQL for issue #707.
+// Diesel table definitions for branch-scope cleanup.
 
-table! {
-    tasks (id) {
-        id -> Uuid,
-        bot_id -> Uuid,
-        title -> Text,
-        description -> Nullable<Text>,
-        status -> Text,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        user_id -> Nullable<Uuid>,
-    }
-}
-
-table! {
-    user_sessions (id) {
-        id -> Uuid,
-        user_id -> Uuid,
-        bot_id -> Nullable<Uuid>,
-        context_data -> Nullable<Jsonb>,
-        created_at -> Nullable<Timestamptz>,
-        updated_at -> Nullable<Timestamptz>,
-    }
-}
-
-table! {
+diesel::table! {
     auto_tasks (id) {
         id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
-        title -> Text,
-        description -> Nullable<Text>,
-        schedule -> Nullable<Text>,
-        enabled -> Bool,
+        name -> Varchar,
+        schedule -> Nullable<Varchar>,
+        task_type -> Varchar,
+        config -> Nullable<Jsonb>,
+        is_active -> Nullable<Bool>,
+        last_run_at -> Nullable<Timestamptz>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
 }
+
+diesel::table! {
+    user_sessions (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        bot_id -> Uuid,
+        session_id -> Varchar,
+        user_id -> Nullable<Varchar>,
+        data -> Nullable<Jsonb>,
+        expires_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    tasks (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        title -> Varchar,
+        description -> Nullable<Text>,
+        status -> Nullable<Varchar>,
+        priority -> Nullable<Int4>,
+        assignee_id -> Nullable<Uuid>,
+        due_date -> Nullable<Timestamptz>,
+        completed_at -> Nullable<Timestamptz>,
+        parent_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+
+diesel::allow_tables_to_appear_in_same_query!(
+    auto_tasks,
+    user_sessions,
+    tasks,
+);

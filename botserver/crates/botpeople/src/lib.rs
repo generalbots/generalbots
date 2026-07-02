@@ -21,7 +21,7 @@ use uuid::Uuid;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-pub type GetDefaultBotFn = Arc<dyn Fn(&mut diesel::PgConnection) -> (Uuid, String) + Send + Sync>;
+pub type GetDefaultBotFn = Arc<dyn Fn(&mut diesel::PgConnection) -> Uuid + Send + Sync>;
 
 #[derive(Clone)]
 pub struct PeopleState {
@@ -32,8 +32,7 @@ pub struct PeopleState {
 diesel::table! {
     people (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         user_id -> Nullable<Uuid>,
         first_name -> Varchar,
         last_name -> Nullable<Varchar>,
@@ -63,8 +62,7 @@ diesel::table! {
 diesel::table! {
     people_teams (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         leader_id -> Nullable<Uuid>,
@@ -91,8 +89,7 @@ diesel::table! {
 diesel::table! {
     people_org_chart (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         person_id -> Uuid,
         reports_to_id -> Nullable<Uuid>,
         position_title -> Nullable<Varchar>,
@@ -108,8 +105,7 @@ diesel::table! {
 diesel::table! {
     people_departments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         code -> Nullable<Varchar>,
@@ -125,8 +121,7 @@ diesel::table! {
 diesel::table! {
     people_skills (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         category -> Nullable<Varchar>,
         description -> Nullable<Text>,
@@ -151,8 +146,7 @@ diesel::table! {
 diesel::table! {
     people_time_off (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         person_id -> Uuid,
         time_off_type -> Varchar,
         status -> Varchar,
@@ -191,7 +185,7 @@ diesel::allow_tables_to_appear_in_same_query!(
 diesel::table! {
     hr_clock_entries (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         person_id -> Uuid,
         entry_type -> Varchar,
         timestamp -> Timestamptz,
@@ -208,7 +202,7 @@ diesel::table! {
 diesel::table! {
     hr_work_periods (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         person_id -> Uuid,
         period_start -> Date,
         period_end -> Date,
@@ -224,7 +218,7 @@ diesel::table! {
 diesel::table! {
     hr_overtime_rules (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         weekly_threshold_hours -> Numeric,
         daily_threshold_hours -> Nullable<Numeric>,
@@ -239,7 +233,7 @@ diesel::table! {
 diesel::table! {
     hr_schedules (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         person_id -> Uuid,
         weekday -> Integer,
         start_time -> Time,
@@ -254,7 +248,7 @@ diesel::table! {
 diesel::table! {
     hr_holidays (id) {
         id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         holiday_date -> Date,
         is_recurring -> Bool,
@@ -267,8 +261,7 @@ diesel::table! {
 #[diesel(table_name = people)]
 pub struct Person {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub user_id: Option<Uuid>,
     pub first_name: String,
     pub last_name: Option<String>,
@@ -298,8 +291,7 @@ pub struct Person {
 #[diesel(table_name = people_teams)]
 pub struct Team {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub leader_id: Option<Uuid>,
@@ -326,8 +318,7 @@ pub struct TeamMember {
 #[diesel(table_name = people_org_chart)]
 pub struct OrgChartEntry {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub person_id: Uuid,
     pub reports_to_id: Option<Uuid>,
     pub position_title: Option<String>,
@@ -343,8 +334,7 @@ pub struct OrgChartEntry {
 #[diesel(table_name = people_departments)]
 pub struct Department {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub code: Option<String>,
@@ -360,8 +350,7 @@ pub struct Department {
 #[diesel(table_name = people_skills)]
 pub struct Skill {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub category: Option<String>,
     pub description: Option<String>,
@@ -386,8 +375,7 @@ pub struct PersonSkill {
 #[diesel(table_name = people_time_off)]
 pub struct TimeOff {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub person_id: Uuid,
     pub time_off_type: String,
     pub status: String,
@@ -540,13 +528,11 @@ pub struct OrgChartNode {
     pub reports: Vec<OrgChartNode>,
 }
 
-fn get_bot_context(state: &PeopleState) -> (Uuid, Uuid) {
+fn get_bot_context(state: &PeopleState) -> Uuid {
     let Ok(mut conn) = state.pool.get() else {
-        return (Uuid::nil(), Uuid::nil());
+        return Uuid::nil();
     };
-    let (bot_id, _bot_name) = (state.get_default_bot)(&mut conn);
-    let org_id = Uuid::nil();
-    (org_id, bot_id)
+    (state.get_default_bot)(&mut conn)
 }
 
 fn bd(val: f64) -> BigDecimal {
@@ -562,7 +548,7 @@ pub async fn create_person(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -576,8 +562,7 @@ pub async fn create_person(
 
     let person = Person {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         user_id: None,
         first_name: req.first_name,
         last_name: req.last_name,
@@ -619,13 +604,12 @@ pub async fn list_people(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = people::table
-        .filter(people::org_id.eq(org_id))
-        .filter(people::bot_id.eq(bot_id))
+        .filter(people::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(is_active) = query.is_active {
@@ -850,14 +834,13 @@ pub async fn create_team(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let team = Team {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
         description: req.description,
         leader_id: req.leader_id,
@@ -884,11 +867,10 @@ pub async fn list_teams(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let teams: Vec<Team> = people_teams::table
-        .filter(people_teams::org_id.eq(org_id))
-        .filter(people_teams::bot_id.eq(bot_id))
+        .filter(people_teams::branch_id.eq(branch_id))
         .filter(people_teams::is_active.eq(true))
         .order(people_teams::name.asc())
         .load(&mut conn)
@@ -1012,14 +994,13 @@ pub async fn create_department(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let department = Department {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
         description: req.description,
         code: req.code,
@@ -1046,11 +1027,10 @@ pub async fn list_departments(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let depts: Vec<Department> = people_departments::table
-        .filter(people_departments::org_id.eq(org_id))
-        .filter(people_departments::bot_id.eq(bot_id))
+        .filter(people_departments::branch_id.eq(branch_id))
         .filter(people_departments::is_active.eq(true))
         .order(people_departments::name.asc())
         .load(&mut conn)
@@ -1066,11 +1046,10 @@ pub async fn list_skills(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let skills: Vec<Skill> = people_skills::table
-        .filter(people_skills::org_id.eq(org_id))
-        .filter(people_skills::bot_id.eq(bot_id))
+        .filter(people_skills::branch_id.eq(branch_id))
         .filter(people_skills::is_active.eq(true))
         .order(people_skills::name.asc())
         .load(&mut conn)
@@ -1087,14 +1066,13 @@ pub async fn create_skill(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let skill = Skill {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
         category: req.category,
         description: req.description,
@@ -1149,7 +1127,7 @@ pub async fn create_time_off(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -1161,8 +1139,7 @@ pub async fn create_time_off(
 
     let time_off = TimeOff {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         person_id: req.person_id,
         time_off_type: req.time_off_type,
         status: "pending".to_string(),
@@ -1193,13 +1170,12 @@ pub async fn list_time_off(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let time_offs: Vec<TimeOff> = people_time_off::table
-        .filter(people_time_off::org_id.eq(org_id))
-        .filter(people_time_off::bot_id.eq(bot_id))
+        .filter(people_time_off::branch_id.eq(branch_id))
         .order(people_time_off::start_date.desc())
         .limit(limit)
         .offset(offset)
@@ -1246,42 +1222,37 @@ pub async fn get_people_stats(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let total_people: i64 = people::table
-        .filter(people::org_id.eq(org_id))
-        .filter(people::bot_id.eq(bot_id))
+        .filter(people::branch_id.eq(branch_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let active_people: i64 = people::table
-        .filter(people::org_id.eq(org_id))
-        .filter(people::bot_id.eq(bot_id))
+        .filter(people::branch_id.eq(branch_id))
         .filter(people::is_active.eq(true))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let total_teams: i64 = people_teams::table
-        .filter(people_teams::org_id.eq(org_id))
-        .filter(people_teams::bot_id.eq(bot_id))
+        .filter(people_teams::branch_id.eq(branch_id))
         .filter(people_teams::is_active.eq(true))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let total_departments: i64 = people_departments::table
-        .filter(people_departments::org_id.eq(org_id))
-        .filter(people_departments::bot_id.eq(bot_id))
+        .filter(people_departments::branch_id.eq(branch_id))
         .filter(people_departments::is_active.eq(true))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let pending_time_off: i64 = people_time_off::table
-        .filter(people_time_off::org_id.eq(org_id))
-        .filter(people_time_off::bot_id.eq(bot_id))
+        .filter(people_time_off::branch_id.eq(branch_id))
         .filter(people_time_off::status.eq("pending"))
         .count()
         .get_result(&mut conn)
@@ -1292,8 +1263,7 @@ pub async fn get_people_stats(
         .unwrap_or(today);
 
     let new_hires_this_month: i64 = people::table
-        .filter(people::org_id.eq(org_id))
-        .filter(people::bot_id.eq(bot_id))
+        .filter(people::branch_id.eq(branch_id))
         .filter(people::hire_date.ge(month_start))
         .count()
         .get_result(&mut conn)

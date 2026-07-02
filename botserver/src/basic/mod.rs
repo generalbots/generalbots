@@ -291,6 +291,7 @@ impl BasicRuntime for AppStateBasicRuntime {
         let lib_user = botcore::shared::UserSession {
             id: user.id,
             user_id: user.user_id,
+            branch_id: user.branch_id,
             bot_id: user.bot_id,
             title: user.title.clone(),
             context_data: user.context_data.clone(),

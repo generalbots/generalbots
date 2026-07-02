@@ -14,13 +14,17 @@ use uuid::Uuid;
 #[diesel(table_name = crate::schema::user_sessions)]
 pub struct UserSession {
     pub id: Uuid,
-    pub user_id: Uuid,
+    pub branch_id: Uuid,
     pub bot_id: Uuid,
+    pub session_id: String,
+    pub user_id: Option<String>,
+    pub data: Option<serde_json::Value>,
+    pub expires_at: Option<chrono::DateTime<Utc>>,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
     pub title: String,
     pub context_data: serde_json::Value,
     pub current_tool: Option<String>,
-    pub created_at: chrono::DateTime<Utc>,
-    pub updated_at: chrono::DateTime<Utc>,
 }
 
 pub fn find_or_create_session(
@@ -33,8 +37,10 @@ pub fn find_or_create_session(
     let teams_user_uuid =
         Uuid::new_v5(&Uuid::NAMESPACE_OID, format!("teams:{}", conversation_id).as_bytes());
 
+    let teams_user_id = teams_user_uuid.to_string();
+
     let existing: Option<UserSession> = user_sessions
-        .filter(user_id.eq(teams_user_uuid))
+        .filter(user_id.eq(&teams_user_id))
         .order(crate::schema::user_sessions::updated_at.desc())
         .first(&mut conn)
         .optional()?;
@@ -60,13 +66,18 @@ pub fn find_or_create_session(
     diesel::insert_into(user_sessions)
         .values((
             crate::schema::user_sessions::id.eq(session_uuid),
-            user_id.eq(teams_user_uuid),
-            bot_id.eq(bot_uuid),
-            title.eq(format!("Teams: {}", user_name)),
-            context_data.eq(&context),
+            crate::schema::user_sessions::branch_id.eq(Uuid::nil()),
+            crate::schema::user_sessions::bot_id.eq(bot_uuid),
+            crate::schema::user_sessions::session_id.eq(session_uuid.to_string()),
+            crate::schema::user_sessions::user_id.eq(Some(&teams_user_id)),
+            crate::schema::user_sessions::data.eq(None::<serde_json::Value>),
+            crate::schema::user_sessions::expires_at.eq(None::<chrono::DateTime<Utc>>),
             crate::schema::user_sessions::created_at.eq(now),
             crate::schema::user_sessions::updated_at.eq(now),
-        ))
+            crate::schema::user_sessions::title.eq(format!("Teams: {}", user_name)),
+            crate::schema::user_sessions::context_data.eq(&context),
+            crate::schema::user_sessions::current_tool.eq(None::<String>),
+        ))        
         .execute(&mut conn)?;
 
     info!(

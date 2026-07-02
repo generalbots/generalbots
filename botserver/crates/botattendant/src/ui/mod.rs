@@ -29,10 +29,10 @@ pub async fn sessions_count(State(config): State<Arc<AttendantConfig>>) -> Html<
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         attendant_sessions::table
-            .filter(attendant_sessions::bot_id.eq(bot_id))
+            .filter(attendant_sessions::branch_id.eq(branch_id))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()
@@ -50,10 +50,10 @@ pub async fn waiting_count(State(config): State<Arc<AttendantConfig>>) -> Html<S
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         attendant_sessions::table
-            .filter(attendant_sessions::bot_id.eq(bot_id))
+            .filter(attendant_sessions::branch_id.eq(branch_id))
             .filter(attendant_sessions::status.eq("waiting"))
             .count()
             .get_result::<i64>(&mut conn)
@@ -72,10 +72,10 @@ pub async fn active_count(State(config): State<Arc<AttendantConfig>>) -> Html<St
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         attendant_sessions::table
-            .filter(attendant_sessions::bot_id.eq(bot_id))
+            .filter(attendant_sessions::branch_id.eq(branch_id))
             .filter(attendant_sessions::status.eq("active"))
             .count()
             .get_result::<i64>(&mut conn)
@@ -94,10 +94,10 @@ pub async fn agents_online_count(State(config): State<Arc<AttendantConfig>>) -> 
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         attendant_agent_status::table
-            .filter(attendant_agent_status::bot_id.eq(bot_id))
+            .filter(attendant_agent_status::branch_id.eq(branch_id))
             .filter(attendant_agent_status::status.eq("online"))
             .count()
             .get_result::<i64>(&mut conn)

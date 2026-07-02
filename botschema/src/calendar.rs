@@ -1,10 +1,9 @@
-use crate::core::{branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     calendars (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         owner_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
@@ -21,8 +20,7 @@ diesel::table! {
 diesel::table! {
     calendar_events (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         calendar_id -> Uuid,
         owner_id -> Uuid,
         title -> Varchar,
@@ -83,9 +81,7 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(calendars -> organizations (org_id));
 diesel::joinable!(calendars -> branches (branch_id));
-diesel::joinable!(calendar_events -> organizations (org_id));
 diesel::joinable!(calendar_events -> branches (branch_id));
 diesel::joinable!(calendar_events -> calendars (calendar_id));
 diesel::joinable!(calendar_event_attendees -> calendar_events (event_id));

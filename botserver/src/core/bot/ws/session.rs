@@ -187,7 +187,7 @@ async fn handle_text_message(
                 let state_for_tool = state.clone();
                 let tool_name_clone = tool_name.clone();
                 let session_for_tool = botlib::models::UserSession {
-                    id: session_id, user_id, bot_id: bot_uuid,
+                    id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_uuid,
                     title: String::new(),
                     context_data: serde_json::Value::Null,
                     current_tool: None,

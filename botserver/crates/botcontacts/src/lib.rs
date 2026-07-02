@@ -7,7 +7,7 @@ pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 pub type AppState = Arc<DbPool>;
 
-pub type GetDefaultBotFn = Arc<dyn Fn(&mut PgConnection) -> (Uuid, String) + Send + Sync>;
+pub type GetDefaultBotFn = Arc<dyn Fn(&mut PgConnection) -> Uuid + Send + Sync>;
 
 pub type TriggerContactChangeFn = Arc<dyn Fn(&mut PgConnection, Uuid, &str, Uuid) + Send + Sync>;
 
@@ -36,22 +36,18 @@ impl CrateState {
         }
     }
 
-    pub fn get_bot_context(&self) -> (Uuid, Uuid) {
+    pub fn get_bot_context(&self) -> Uuid {
         use diesel::prelude::*;
-        use crate::schema::bots;
+        use crate::schema::bots::dsl::{bots, branch_id, is_default_for_branch};
 
         let Ok(mut conn) = self.db_pool.get() else {
-            return (Uuid::nil(), Uuid::nil());
+            return Uuid::nil();
         };
-        let (bot_id, _bot_name) = (self.get_default_bot)(&mut conn);
-
-        let branch_id = bots::table
-            .filter(bots::id.eq(bot_id))
-            .select(bots::branch_id)
+        bots
+            .filter(is_default_for_branch.eq(true))
+            .select(branch_id)
             .first::<Uuid>(&mut conn)
-            .unwrap_or_else(|_| Uuid::nil());
-
-        (branch_id, bot_id)
+            .unwrap_or(Uuid::nil())
     }
 }
 

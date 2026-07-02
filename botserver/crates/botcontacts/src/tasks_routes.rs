@@ -28,8 +28,8 @@ async fn get_task_contacts_handler(
     Query(query): Query<TaskContactsQuery>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, _) = state.get_bot_context();
-    match service.get_task_contacts(org_id, task_id, &query).await {
+    let branch_id = state.get_bot_context();
+    match service.get_task_contacts(branch_id, task_id, &query).await {
         Ok(contacts) => Json(contacts).into_response(),
         Err(e) => e.into_response(),
     }
@@ -41,8 +41,8 @@ async fn assign_contact_handler(
     Json(request): Json<AssignContactRequest>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, user_id) = state.get_bot_context();
-    match service.assign_contact_to_task(org_id, task_id, &request, user_id).await {
+    let branch_id = state.get_bot_context();
+    match service.assign_contact_to_task(branch_id, task_id, &request, Uuid::nil()).await {
         Ok(tc) => Json(tc).into_response(),
         Err(e) => e.into_response(),
     }
@@ -54,8 +54,8 @@ async fn bulk_assign_contacts_handler(
     Json(request): Json<BulkAssignContactsRequest>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, user_id) = state.get_bot_context();
-    match service.bulk_assign_contacts(org_id, task_id, &request, user_id).await {
+    let branch_id = state.get_bot_context();
+    match service.bulk_assign_contacts(branch_id, task_id, &request, Uuid::nil()).await {
         Ok(results) => Json(results).into_response(),
         Err(e) => e.into_response(),
     }
@@ -66,8 +66,8 @@ async fn unassign_contact_handler(
     Path((task_id, contact_id)): Path<(Uuid, Uuid)>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, _) = state.get_bot_context();
-    match service.unassign_contact_from_task(org_id, task_id, contact_id).await {
+    let branch_id = state.get_bot_context();
+    match service.unassign_contact_from_task(branch_id, task_id, contact_id).await {
         Ok(()) => Json(serde_json::json!({"success": true})).into_response(),
         Err(e) => e.into_response(),
     }
@@ -79,8 +79,8 @@ async fn update_task_contact_handler(
     Json(request): Json<UpdateTaskContactRequest>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, _) = state.get_bot_context();
-    match service.update_task_contact(org_id, task_id, contact_id, &request).await {
+    let branch_id = state.get_bot_context();
+    match service.update_task_contact(branch_id, task_id, contact_id, &request).await {
         Ok(tc) => Json(tc).into_response(),
         Err(e) => e.into_response(),
     }
@@ -91,8 +91,8 @@ async fn get_task_suggestions_handler(
     Path(task_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, _) = state.get_bot_context();
-    match service.get_suggested_contacts(org_id, task_id, None).await {
+    let branch_id = state.get_bot_context();
+    match service.get_suggested_contacts(branch_id, task_id, None).await {
         Ok(suggestions) => Json(suggestions).into_response(),
         Err(e) => e.into_response(),
     }
@@ -104,8 +104,8 @@ async fn get_contact_tasks_handler(
     Query(query): Query<ContactTasksQuery>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, _) = state.get_bot_context();
-    match service.get_contact_tasks(org_id, contact_id, &query).await {
+    let branch_id = state.get_bot_context();
+    match service.get_contact_tasks(branch_id, contact_id, &query).await {
         Ok(resp) => Json(resp).into_response(),
         Err(e) => e.into_response(),
     }
@@ -116,8 +116,8 @@ async fn get_contact_task_stats_handler(
     Path(contact_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, _) = state.get_bot_context();
-    match service.get_contact_task_stats(org_id, contact_id).await {
+    let branch_id = state.get_bot_context();
+    match service.get_contact_task_stats(branch_id, contact_id).await {
         Ok(stats) => Json(stats).into_response(),
         Err(e) => e.into_response(),
     }
@@ -128,8 +128,8 @@ async fn get_contact_workload_handler(
     Path(contact_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, _) = state.get_bot_context();
-    match service.get_contact_workload(org_id, contact_id).await {
+    let branch_id = state.get_bot_context();
+    match service.get_contact_workload(branch_id, contact_id).await {
         Ok(workload) => Json(workload).into_response(),
         Err(e) => e.into_response(),
     }
@@ -141,8 +141,8 @@ async fn create_task_for_contact_handler(
     Json(request): Json<CreateTaskForContactRequest>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let (org_id, user_id) = state.get_bot_context();
-    match service.create_task_for_contact(org_id, contact_id, &request, user_id).await {
+    let branch_id = state.get_bot_context();
+    match service.create_task_for_contact(branch_id, contact_id, &request, Uuid::nil()).await {
         Ok(result) => Json(result).into_response(),
         Err(e) => e.into_response(),
     }

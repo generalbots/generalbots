@@ -16,19 +16,19 @@ use crate::state::AppState;
 #[diesel(table_name = marketing_templates)]
 pub struct MarketingTemplate {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
+    pub template_type: String,
     pub channel: String,
     pub subject: Option<String>,
     pub body: Option<String>,
+    pub variables: Option<serde_json::Value>,
     pub media_url: Option<String>,
     pub ai_prompt: Option<String>,
-    pub variables: serde_json::Value,
     pub approved: Option<bool>,
     pub meta_template_id: Option<String>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,11 +61,10 @@ pub async fn list_templates(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let (branch_id, _) = state.get_bot_context();
 
     let templates: Vec<MarketingTemplate> = marketing_templates::table
-        .filter(marketing_templates::org_id.eq(org_id))
-        .filter(marketing_templates::bot_id.eq(bot_id))
+        .filter(marketing_templates::branch_id.eq(branch_id))
         .order(marketing_templates::created_at.desc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
@@ -97,25 +96,25 @@ pub async fn create_template(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let (branch_id, _) = state.get_bot_context();
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let template = MarketingTemplate {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
+        template_type: req.channel.clone(),
         channel: req.channel,
         subject: req.subject,
         body: req.body,
         media_url: req.media_url,
         ai_prompt: req.ai_prompt,
-        variables: req.variables.unwrap_or(serde_json::json!({})),
+        variables: req.variables,
         approved: Some(false),
         meta_template_id: None,
         created_at: now,
-        updated_at: Some(now),
+        updated_at: now,
     };
 
     diesel::insert_into(marketing_templates::table)
@@ -143,9 +142,9 @@ pub async fn update_template(
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
-    if let Some(channel) = req.channel {
+    if let Some(template_type) = req.channel {
         diesel::update(marketing_templates::table.filter(marketing_templates::id.eq(id)))
-            .set(marketing_templates::channel.eq(channel))
+            .set(marketing_templates::template_type.eq(template_type))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
@@ -187,7 +186,7 @@ pub async fn update_template(
     }
 
     diesel::update(marketing_templates::table.filter(marketing_templates::id.eq(id)))
-        .set(marketing_templates::updated_at.eq(Some(now)))
+        .set(marketing_templates::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 

@@ -8,12 +8,12 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::schema::{
-    compliance_audit_log, compliance_checks, compliance_issues, compliance_risks,
+    compliance_audit_log, compliance_checks, compliance_issues, compliance_risk_assessments,
     compliance_training_records,
 };
 use crate::storage::{
-    db_audit_to_entry, db_check_to_result, db_issue_to_result, DbAuditLog, DbComplianceCheck,
-    DbComplianceIssue, DbRisk, DbTrainingRecord,
+    db_audit_to_entry, db_check_to_result, db_issue_to_result, db_risk_assessment_to_json,
+    DbAuditLog, DbComplianceCheck, DbComplianceIssue, DbRiskAssessment, DbTrainingRecord,
 };
 use crate::types::{
     AuditLogEntry, ComplianceCheckResult, ComplianceFramework, ComplianceIssueResult,
@@ -22,6 +22,8 @@ use crate::types::{
     TrainingType, UpdateIssueRequest,
 };
 use crate::ComplianceError;
+
+const BRANCH_ID_PLACEHOLDER: Uuid = Uuid::nil();
 
 pub async fn handle_list_checks(
     State(pool): State<Arc<crate::DbPool>>,
@@ -34,20 +36,22 @@ pub async fn handle_list_checks(
 
         let limit = query.limit.unwrap_or(50);
         let offset = query.offset.unwrap_or(0);
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
         let mut db_query = compliance_checks::table
+            .filter(compliance_checks::branch_id.eq(branch_id))
             .into_boxed();
 
-        if let Some(framework) = query.framework {
-            db_query = db_query.filter(compliance_checks::framework.eq(framework));
+        if let Some(check_type) = query.check_type {
+            db_query = db_query.filter(compliance_checks::check_type.eq(check_type));
         }
 
         if let Some(status) = query.status {
-            db_query = db_query.filter(compliance_checks::status.eq(status));
+            db_query = db_query.filter(compliance_checks::status.eq(Some(status)));
         }
 
         let db_checks: Vec<DbComplianceCheck> = db_query
-            .order(compliance_checks::checked_at.desc())
+            .order(compliance_checks::updated_at.desc())
             .offset(offset)
             .limit(limit)
             .load(&mut conn)
@@ -55,14 +59,7 @@ pub async fn handle_list_checks(
 
         let mut results = Vec::new();
         for check in db_checks {
-            let check_id = check.id;
-            let db_issues: Vec<DbComplianceIssue> = compliance_issues::table
-                .filter(compliance_issues::check_id.eq(check_id))
-                .load(&mut conn)
-                .unwrap_or_default();
-            let issues: Vec<ComplianceIssueResult> =
-                db_issues.into_iter().map(db_issue_to_result).collect();
-            results.push(db_check_to_result(check, issues));
+            results.push(db_check_to_result(check, vec![]));
         }
 
         Ok::<_, ComplianceError>(results)
@@ -82,6 +79,7 @@ pub async fn handle_run_check(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
         let controls = match req.framework {
             ComplianceFramework::Gdpr => vec![
@@ -99,17 +97,18 @@ pub async fn handle_run_check(
         for (control_id, control_name, score) in controls {
             let db_check = DbComplianceCheck {
                 id: Uuid::new_v4(),
-                org_id: Uuid::nil(),
-                bot_id: Uuid::nil(),
-                framework: req.framework.to_string(),
-                control_id: control_id.to_string(),
-                control_name: control_name.to_string(),
-                status: "compliant".to_string(),
-                score: bigdecimal::BigDecimal::try_from(score).unwrap_or_default(),
-                checked_at: now,
+                branch_id,
+                check_type: req.framework.to_string(),
+                status: Some("compliant".to_string()),
+                target_type: Some("control".to_string()),
+                target_id: None,
+                result: Some(serde_json::json!({
+                    "control_id": control_id,
+                    "control_name": control_name,
+                    "score": score,
+                })),
+                checked_at: Some(now),
                 checked_by: None,
-                evidence: serde_json::json!(["Automated check completed"]),
-                notes: None,
                 created_at: now,
                 updated_at: now,
             };
@@ -147,13 +146,7 @@ pub async fn handle_get_check(
 
         match db_check {
             Some(check) => {
-                let db_issues: Vec<DbComplianceIssue> = compliance_issues::table
-                    .filter(compliance_issues::check_id.eq(check_id))
-                    .load(&mut conn)
-                    .unwrap_or_default();
-                let issues: Vec<ComplianceIssueResult> =
-                    db_issues.into_iter().map(db_issue_to_result).collect();
-                Ok::<_, ComplianceError>(Some(db_check_to_result(check, issues)))
+                Ok::<_, ComplianceError>(Some(db_check_to_result(check, vec![])))
             }
             None => Ok(None),
         }
@@ -175,15 +168,18 @@ pub async fn handle_list_issues(
 
         let limit = query.limit.unwrap_or(50);
         let offset = query.offset.unwrap_or(0);
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
-        let mut db_query = compliance_issues::table.into_boxed();
+        let mut db_query = compliance_issues::table
+            .filter(compliance_issues::branch_id.eq(branch_id))
+            .into_boxed();
 
         if let Some(severity) = query.severity {
             db_query = db_query.filter(compliance_issues::severity.eq(severity));
         }
 
         if let Some(status) = query.status {
-            db_query = db_query.filter(compliance_issues::status.eq(status));
+            db_query = db_query.filter(compliance_issues::status.eq(Some(status)));
         }
 
         if let Some(assigned_to) = query.assigned_to {
@@ -216,22 +212,19 @@ pub async fn handle_create_issue(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
         let db_issue = DbComplianceIssue {
             id: Uuid::new_v4(),
-            org_id: Uuid::nil(),
-            bot_id: Uuid::nil(),
-            check_id: req.check_id,
-            severity: req.severity.to_string(),
+            branch_id,
             title: req.title,
-            description: req.description,
-            remediation: req.remediation,
-            due_date: req.due_date,
+            severity: req.severity.to_string(),
+            status: Some("open".to_string()),
+            description: Some(req.description),
             assigned_to: req.assigned_to,
-            status: "open".to_string(),
+            remediation: req.remediation,
+            due_date: req.due_date.map(|dt| dt.date_naive()),
             resolved_at: None,
-            resolved_by: None,
-            resolution_notes: None,
             created_at: now,
             updated_at: now,
         };
@@ -272,25 +265,22 @@ pub async fn handle_update_issue(
             db_issue.title = title;
         }
         if let Some(description) = req.description {
-            db_issue.description = description;
+            db_issue.description = Some(description);
         }
         if let Some(remediation) = req.remediation {
             db_issue.remediation = Some(remediation);
         }
         if let Some(due_date) = req.due_date {
-            db_issue.due_date = Some(due_date);
+            db_issue.due_date = Some(due_date.date_naive());
         }
         if let Some(assigned_to) = req.assigned_to {
             db_issue.assigned_to = Some(assigned_to);
         }
         if let Some(status) = req.status {
-            db_issue.status = status.clone();
-            if status == "resolved" {
+            db_issue.status = Some(status);
+            if db_issue.status.as_deref() == Some("resolved") {
                 db_issue.resolved_at = Some(now);
             }
-        }
-        if let Some(resolution_notes) = req.resolution_notes {
-            db_issue.resolution_notes = Some(resolution_notes);
         }
         db_issue.updated_at = now;
 
@@ -318,19 +308,22 @@ pub async fn handle_list_audit_logs(
 
         let limit = query.limit.unwrap_or(100);
         let offset = query.offset.unwrap_or(0);
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
-        let mut db_query = compliance_audit_log::table.into_boxed();
+        let mut db_query = compliance_audit_log::table
+            .filter(compliance_audit_log::branch_id.eq(branch_id))
+            .into_boxed();
 
-        if let Some(event_type) = query.event_type {
-            db_query = db_query.filter(compliance_audit_log::event_type.eq(event_type));
+        if let Some(action) = query.action {
+            db_query = db_query.filter(compliance_audit_log::action.eq(action));
         }
 
-        if let Some(user_id) = query.user_id {
-            db_query = db_query.filter(compliance_audit_log::user_id.eq(user_id));
+        if let Some(actor_id) = query.actor_id {
+            db_query = db_query.filter(compliance_audit_log::actor_id.eq(actor_id));
         }
 
-        if let Some(resource_type) = query.resource_type {
-            db_query = db_query.filter(compliance_audit_log::resource_type.eq(resource_type));
+        if let Some(target_type) = query.target_type {
+            db_query = db_query.filter(compliance_audit_log::target_type.eq(target_type));
         }
 
         if let Some(from_date) = query.from_date {
@@ -366,23 +359,24 @@ pub async fn handle_create_audit_log(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
-        let metadata = req.metadata.unwrap_or_default();
+        let details = req.metadata.unwrap_or_default();
 
         let db_log = DbAuditLog {
             id: Uuid::new_v4(),
-            org_id: Uuid::nil(),
-            bot_id: Uuid::nil(),
-            event_type: req.event_type.to_string(),
-            user_id: req.user_id,
-            resource_type: req.resource_type,
-            resource_id: req.resource_id,
-            action: req.action,
-            result: req.result.to_string(),
+            branch_id,
+            action: req.event_type.to_string(),
+            actor_id: req.actor_id.or(req.user_id),
+            target_type: Some(req.target_type),
+            target_id: req.target_id.or_else(|| {
+                let s = req.resource_id.as_str();
+                Uuid::parse_str(s).ok()
+            }),
+            details: Some(serde_json::to_value(&details).unwrap_or_default()),
             ip_address: req.ip_address,
-            user_agent: req.user_agent,
-            metadata: serde_json::to_value(&metadata).unwrap_or_default(),
             created_at: now,
+            updated_at: now,
         };
 
         diesel::insert_into(compliance_audit_log::table)
@@ -407,22 +401,18 @@ pub async fn handle_create_training(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
         let db_training = DbTrainingRecord {
             id: Uuid::new_v4(),
-            org_id: Uuid::nil(),
-            bot_id: Uuid::nil(),
-            user_id: req.user_id,
-            training_type: req.training_type.to_string(),
-            training_name: req.training_name.clone(),
-            provider: req.provider.clone(),
-            score: req.score,
-            passed: req.passed,
-            completion_date: now,
-            valid_until: req.valid_until,
-            certificate_url: req.certificate_url.clone(),
-            metadata: serde_json::json!({}),
+            branch_id,
+            person_id: Some(req.user_id),
+            course_name: req.training_name.clone(),
+            completed: Some(req.passed),
+            completed_at: Some(now),
+            expires_at: req.valid_until,
             created_at: now,
+            updated_at: now,
         };
 
         diesel::insert_into(compliance_training_records::table)
@@ -432,13 +422,13 @@ pub async fn handle_create_training(
 
         Ok::<_, ComplianceError>(TrainingRecord {
             id: db_training.id,
-            user_id: db_training.user_id,
+            user_id: req.user_id,
             training_type: req.training_type,
             training_name: req.training_name,
             provider: req.provider,
             score: req.score,
             passed: req.passed,
-            completion_date: db_training.completion_date,
+            completion_date: now,
             valid_until: req.valid_until,
             certificate_url: req.certificate_url,
         })
@@ -456,9 +446,11 @@ pub async fn handle_list_training(
         let mut conn = pool
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
         let db_records: Vec<DbTrainingRecord> = compliance_training_records::table
-            .order(compliance_training_records::completion_date.desc())
+            .filter(compliance_training_records::branch_id.eq(branch_id))
+            .order(compliance_training_records::completed_at.desc())
             .load(&mut conn)
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
 
@@ -466,15 +458,15 @@ pub async fn handle_list_training(
             .into_iter()
             .map(|r| TrainingRecord {
                 id: r.id,
-                user_id: r.user_id,
-                training_type: r.training_type.parse().unwrap_or(TrainingType::SecurityAwareness),
-                training_name: r.training_name,
-                provider: r.provider,
-                score: r.score,
-                passed: r.passed,
-                completion_date: r.completion_date,
-                valid_until: r.valid_until,
-                certificate_url: r.certificate_url,
+                user_id: r.person_id.unwrap_or_default(),
+                training_type: TrainingType::SecurityAwareness,
+                training_name: r.course_name,
+                provider: None,
+                score: None,
+                passed: r.completed.unwrap_or(false),
+                completion_date: r.completed_at.unwrap_or(r.created_at),
+                valid_until: r.expires_at,
+                certificate_url: None,
             })
             .collect();
 
@@ -493,32 +485,18 @@ pub async fn handle_list_risks(
         let mut conn = pool
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
-        let db_risks: Vec<DbRisk> = compliance_risks::table
-            .order(compliance_risks::created_at.desc())
+        let items: Vec<DbRiskAssessment> = compliance_risk_assessments::table
+            .filter(compliance_risk_assessments::branch_id.eq(branch_id))
+            .order(compliance_risk_assessments::created_at.desc())
             .load(&mut conn)
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
 
-        let items: Vec<serde_json::Value> = db_risks
-            .into_iter()
-            .map(|r| {
-                serde_json::json!({
-                    "id": r.id,
-                    "title": r.title,
-                    "description": r.description,
-                    "category": r.category,
-                    "likelihood_score": r.likelihood_score,
-                    "impact_score": r.impact_score,
-                    "risk_score": r.risk_score,
-                    "risk_level": r.risk_level,
-                    "status": r.status,
-                    "owner_id": r.owner_id,
-                    "due_date": r.due_date,
-                })
-            })
-            .collect();
+        let json_items: Vec<serde_json::Value> =
+            items.into_iter().map(db_risk_assessment_to_json).collect();
 
-        Ok::<_, ComplianceError>(items)
+        Ok::<_, ComplianceError>(json_items)
     })
     .await
     .map_err(|e| ComplianceError::Internal(e.to_string()))??;
@@ -541,22 +519,15 @@ pub async fn handle_run_check_by_id(
             .first(&mut conn)
             .map_err(|_| ComplianceError::NotFound("Check not found".to_string()))?;
 
-        db_check.checked_at = now;
-        db_check.status = "in_progress".to_string();
+        db_check.checked_at = Some(now);
+        db_check.status = Some("in_progress".to_string());
 
         diesel::update(compliance_checks::table.find(check_id))
             .set(&db_check)
             .execute(&mut conn)
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
 
-        let db_issues: Vec<DbComplianceIssue> = compliance_issues::table
-            .filter(compliance_issues::check_id.eq(check_id))
-            .load(&mut conn)
-            .unwrap_or_default();
-        let issues: Vec<ComplianceIssueResult> =
-            db_issues.into_iter().map(db_issue_to_result).collect();
-
-        Ok::<_, ComplianceError>(db_check_to_result(db_check, issues))
+        Ok::<_, ComplianceError>(db_check_to_result(db_check, vec![]))
     })
     .await
     .map_err(|e| ComplianceError::Internal(e.to_string()))??;
@@ -573,15 +544,18 @@ pub async fn handle_get_report(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = BRANCH_ID_PLACEHOLDER;
 
-        let mut db_query = compliance_checks::table.into_boxed();
+        let mut db_query = compliance_checks::table
+            .filter(compliance_checks::branch_id.eq(branch_id))
+            .into_boxed();
 
-        if let Some(framework) = query.framework {
-            db_query = db_query.filter(compliance_checks::framework.eq(framework));
+        if let Some(check_type) = query.check_type {
+            db_query = db_query.filter(compliance_checks::check_type.eq(check_type));
         }
 
         let db_checks: Vec<DbComplianceCheck> = db_query
-            .order(compliance_checks::checked_at.desc())
+            .order(compliance_checks::updated_at.desc())
             .limit(100)
             .load(&mut conn)
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
@@ -591,21 +565,18 @@ pub async fn handle_get_report(
         let mut compliant_count = 0;
 
         for check in db_checks {
-            let check_id = check.id;
-            let score: f64 = check.score.to_string().parse().unwrap_or(0.0);
+            let score: f64 = check
+                .result
+                .as_ref()
+                .and_then(|r| r.get("score").and_then(|v| v.as_f64()))
+                .unwrap_or(0.0);
             total_score += score;
 
-            if check.status == "compliant" {
+            if check.status.as_deref() == Some("compliant") {
                 compliant_count += 1;
             }
 
-            let db_issues: Vec<DbComplianceIssue> = compliance_issues::table
-                .filter(compliance_issues::check_id.eq(check_id))
-                .load(&mut conn)
-                .unwrap_or_default();
-            let issues: Vec<ComplianceIssueResult> =
-                db_issues.into_iter().map(db_issue_to_result).collect();
-            results.push(db_check_to_result(check, issues));
+            results.push(db_check_to_result(check, vec![]));
         }
 
         let total_controls = results.len();
@@ -616,7 +587,7 @@ pub async fn handle_get_report(
         };
 
         let all_issues: Vec<DbComplianceIssue> = compliance_issues::table
-            .filter(compliance_issues::status.ne("resolved"))
+            .filter(compliance_issues::branch_id.eq(branch_id))
             .load(&mut conn)
             .unwrap_or_default();
 

@@ -9,8 +9,7 @@ use crate::schema::*;
 #[diesel(table_name = attendant_queues)]
 pub struct AttendantQueue {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub priority: i32,
@@ -26,8 +25,7 @@ pub struct AttendantQueue {
 #[diesel(table_name = attendant_sessions)]
 pub struct AttendantSession {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub session_number: String,
     pub channel: String,
     pub customer_id: Option<Uuid>,
@@ -87,8 +85,7 @@ pub struct QueueAgent {
 #[diesel(table_name = attendant_agent_status)]
 pub struct AgentStatus {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub agent_id: Uuid,
     pub status: String,
     pub status_message: Option<String>,
@@ -119,8 +116,7 @@ pub struct SessionTransfer {
 #[diesel(table_name = attendant_canned_responses)]
 pub struct CannedResponse {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub title: String,
     pub content: String,
     pub shortcut: Option<String>,
@@ -137,8 +133,7 @@ pub struct CannedResponse {
 #[diesel(table_name = attendant_tags)]
 pub struct AttendantTag {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub color: Option<String>,
     pub description: Option<String>,
@@ -150,8 +145,7 @@ pub struct AttendantTag {
 #[diesel(table_name = attendant_wrap_up_codes)]
 pub struct WrapUpCode {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub code: String,
     pub name: String,
     pub description: Option<String>,

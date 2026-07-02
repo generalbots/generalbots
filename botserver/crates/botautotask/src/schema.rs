@@ -1,10 +1,16 @@
 pub mod safety_constraints {
     diesel::table! {
         safety_constraints (id) {
-            id -> Text,
-            bot_id -> Text,
+            id -> Uuid,
+            branch_id -> Uuid,
+            bot_id -> Uuid,
+            constraint_type -> Varchar,
+            pattern -> Text,
+            action -> Varchar,
+            is_active -> Nullable<Bool>,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
             name -> Text,
-            constraint_type -> Text,
             description -> Nullable<Text>,
             expression -> Nullable<Text>,
             threshold -> Nullable<Text>,
@@ -41,13 +47,18 @@ pub mod intent_classifications {
     diesel::table! {
         intent_classifications (id) {
             id -> Uuid,
+            branch_id -> Uuid,
             bot_id -> Uuid,
+            intent_id -> Uuid,
+            input -> Text,
+            confidence -> Nullable<Float4>,
+            classified_at -> Timestamptz,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
             session_id -> Uuid,
             original_text -> Text,
             intent_type -> Text,
-            confidence -> Float8,
             entities -> Text,
-            created_at -> Timestamptz,
         }
     }
 }
@@ -55,8 +66,15 @@ pub mod intent_classifications {
 pub mod compiled_intents {
     diesel::table! {
         compiled_intents (id) {
-            id -> Text,
-            bot_id -> Text,
+            id -> Uuid,
+            branch_id -> Uuid,
+            bot_id -> Uuid,
+            name -> Varchar,
+            patterns -> Jsonb,
+            response -> Nullable<Text>,
+            is_active -> Nullable<Bool>,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
             session_id -> Text,
             original_intent -> Text,
             basic_program -> Text,
@@ -71,11 +89,24 @@ pub mod tasks {
     diesel::table! {
         tasks (id) {
             id -> Uuid,
-            title -> Text,
-            description -> Text,
-            status -> Text,
-            priority -> Text,
+            branch_id -> Uuid,
+            title -> Varchar,
+            description -> Nullable<Text>,
+            status -> Nullable<Varchar>,
+            priority -> Nullable<Int4>,
+            assignee_id -> Nullable<Uuid>,
+            due_date -> Nullable<Timestamptz>,
+            completed_at -> Nullable<Timestamptz>,
+            parent_id -> Nullable<Uuid>,
             created_at -> Timestamptz,
+            updated_at -> Timestamptz,
+            reporter_id -> Nullable<Uuid>,
+            project_id -> Nullable<Uuid>,
+            tags -> Text,
+            dependencies -> Text,
+            estimated_hours -> Nullable<Float8>,
+            actual_hours -> Nullable<Float8>,
+            progress -> Int4,
         }
     }
 }
@@ -84,13 +115,19 @@ pub mod designer_changes {
     diesel::table! {
         designer_changes (id) {
             id -> Uuid,
+            branch_id -> Uuid,
             bot_id -> Uuid,
-            change_type -> Text,
+            change_type -> Varchar,
+            target_type -> Varchar,
+            target_id -> Nullable<Uuid>,
+            payload -> Jsonb,
+            applied -> Nullable<Bool>,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
             description -> Text,
             file_path -> Text,
             original_content -> Text,
             new_content -> Text,
-            created_at -> Timestamptz,
         }
     }
 }

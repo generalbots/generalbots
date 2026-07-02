@@ -282,7 +282,7 @@ pub async fn process_llm_response(
                             info!("Tool '{}' context_data: {:?}", tool_name, context_data);
 
                             let session_for_tool = botlib::models::UserSession {
-                                id: session_id, user_id, bot_id: bot_uuid,
+                                id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_uuid,
                                 title: String::new(),
                                 context_data,
                                 current_tool: None,

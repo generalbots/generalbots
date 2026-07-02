@@ -62,7 +62,7 @@ pub async fn start_scheduler(state: Arc<TasksState>, config: SchedulerConfig) {
         match get_due_tasks(&state) {
             Ok(tasks) => {
                 for task in tasks {
-                    info!("Executing scheduled task: {} ({})", task.title, task.id);
+                    info!("Executing scheduled task: {} ({})", task.name, task.id);
                     if let Err(e) = execute_scheduled_task(&state, &task).await {
                         log::error!("Scheduled task {} failed: {}", task.id, e);
                     }
@@ -82,7 +82,7 @@ fn get_due_tasks(state: &Arc<TasksState>) -> Result<Vec<AutoTask>, String> {
         .map_err(|e| format!("Pool error: {}", e))?;
 
     auto_tasks::table
-        .filter(auto_tasks::enabled.eq(true))
+        .filter(auto_tasks::is_active.eq(true))
         .load::<AutoTask>(&mut conn)
         .map_err(|e| format!("Query error: {}", e))
 }
@@ -128,9 +128,9 @@ fn should_run_now(schedule_expr: &str) -> bool {
 
 pub fn create_auto_task(
     state: &Arc<TasksState>,
+    branch_id: Uuid,
     bot_id: Uuid,
-    title: &str,
-    description: Option<&str>,
+    name: &str,
     schedule: Option<&str>,
 ) -> Result<AutoTask, String> {
     let mut conn = state
@@ -140,11 +140,13 @@ pub fn create_auto_task(
 
     let new_task = NewAutoTask {
         id: Uuid::new_v4(),
+        branch_id,
         bot_id,
-        title: title.to_string(),
-        description: description.map(|s| s.to_string()),
+        name: name.to_string(),
         schedule: schedule.map(|s| s.to_string()),
-        enabled: true,
+        task_type: "scheduled".to_string(),
+        config: None,
+        is_active: Some(true),
     };
 
     diesel::insert_into(auto_tasks::table)
@@ -169,7 +171,7 @@ pub fn update_auto_task_enabled(
         .map_err(|e| format!("Pool error: {}", e))?;
 
     diesel::update(auto_tasks::table.find(task_id))
-        .set(auto_tasks::enabled.eq(enabled))
+        .set(auto_tasks::is_active.eq(Some(enabled)))
         .execute(&mut conn)
         .map_err(|e| format!("Update error: {}", e))?;
 

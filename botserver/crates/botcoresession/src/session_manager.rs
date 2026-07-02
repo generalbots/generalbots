@@ -18,6 +18,7 @@ pub struct SessionManager {
     master_key: Vec<u8>,
     sessions: HashMap<Uuid, SessionData>,
     waiting_for_input: HashSet<Uuid>,
+    branch_id: Uuid,
     #[cfg(feature = "cache")]
     redis: Option<Arc<Client>>,
 }
@@ -45,6 +46,7 @@ impl SessionManager {
             master_key,
             sessions: HashMap::new(),
             waiting_for_input: HashSet::new(),
+            branch_id: Uuid::nil(),
             #[cfg(feature = "cache")]
             redis: redis_client,
         }
@@ -61,6 +63,7 @@ impl SessionManager {
             master_key,
             sessions: HashMap::new(),
             waiting_for_input: HashSet::new(),
+            branch_id: Uuid::nil(),
             #[cfg(feature = "cache")]
             redis: redis_client,
         }
@@ -111,7 +114,7 @@ impl SessionManager {
     ) -> Result<Option<UserSession>, Box<dyn Error + Send + Sync>> {
         let mut conn = self.pool.get()?;
         let result = user_sessions::table
-            .filter(user_sessions::user_id.eq(uid))
+            .filter(user_sessions::user_id.eq(uid.to_string()))
             .filter(user_sessions::bot_id.eq(bid))
             .order(user_sessions::created_at.desc())
             .first::<UserSession>(&mut conn)
@@ -176,7 +179,7 @@ impl SessionManager {
         session_id: Uuid,
         uid: Uuid,
         bid: Uuid,
-        session_title: &str,
+        _session_title: &str,
     ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
         let verified_uid = self.get_or_create_anonymous_user(Some(uid))?;
         let mut conn = self.pool.get()?;
@@ -184,11 +187,10 @@ impl SessionManager {
         let inserted: UserSession = diesel::insert_into(user_sessions::table)
             .values((
                 user_sessions::id.eq(session_id),
-                user_sessions::user_id.eq(verified_uid),
+                user_sessions::branch_id.eq(self.branch_id),
                 user_sessions::bot_id.eq(bid),
-                user_sessions::title.eq(session_title),
-                user_sessions::context_data.eq(serde_json::json!({})),
-                user_sessions::current_tool.eq(None::<String>),
+                user_sessions::session_id.eq(session_id.to_string()),
+                user_sessions::user_id.eq(verified_uid.to_string()),
                 user_sessions::created_at.eq(now),
                 user_sessions::updated_at.eq(now),
             ))
@@ -384,7 +386,7 @@ impl SessionManager {
                 .unwrap_or_else(|_| Vec::new())
         } else {
             user_sessions::table
-                .filter(user_sessions::user_id.eq(uid))
+                .filter(user_sessions::user_id.eq(uid.to_string()))
                 .order(user_sessions::created_at.desc())
                 .load::<UserSession>(&mut conn)
                 .unwrap_or_else(|_| Vec::new())
@@ -399,7 +401,7 @@ impl SessionManager {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut conn = self.pool.get()?;
         let updated_count = diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
-            .set((user_sessions::user_id.eq(new_user_id), user_sessions::updated_at.eq(chrono::Utc::now())))
+            .set((user_sessions::user_id.eq(new_user_id.to_string()), user_sessions::updated_at.eq(chrono::Utc::now())))
             .execute(&mut conn)?;
         if updated_count == 0 {
             warn!("No session found with ID: {}", session_id);

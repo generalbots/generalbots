@@ -26,10 +26,10 @@ pub async fn handle_list_data_sources(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let db_sources: Vec<DbDataSource> = dashboard_data_sources::table
-            .filter(dashboard_data_sources::bot_id.eq(bot_id))
+            .filter(dashboard_data_sources::branch_id.eq(branch_id))
             .order(dashboard_data_sources::created_at.desc())
             .load(&mut conn)
             .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
@@ -57,19 +57,17 @@ pub async fn handle_create_data_source(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot(&mut conn);
-        let org_id = Uuid::nil();
+        let branch_id = get_default_bot(&mut conn);
         let now = Utc::now();
 
         let db_source = DbDataSource {
             id: Uuid::new_v4(),
-            org_id,
-            bot_id,
+            branch_id,
             name: req.name,
-            description: req.description,
             source_type: req.source_type.to_string(),
-            connection: serde_json::to_value(&req.connection).unwrap_or_default(),
-            schema_definition: serde_json::json!({}),
+            config: Some(serde_json::to_value(&req.connection).unwrap_or_default()),
+            description: req.description,
+            schema_definition: None,
             refresh_schedule: None,
             last_sync: None,
             status: "active".to_string(),
@@ -210,20 +208,21 @@ pub async fn handle_conversational_query(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot(&mut conn);
-        let org_id = Uuid::nil();
+        let branch_id = get_default_bot(&mut conn);
         let now = Utc::now();
 
         let db_query = DbConversationalQuery {
             id: Uuid::new_v4(),
-            org_id,
-            bot_id,
+            branch_id,
             dashboard_id: None,
             user_id: Uuid::nil(),
-            natural_language: query_text.clone(),
+            query_text: query_text.clone(),
+            result: None,
             generated_query: None,
-            result_widget_config: None,
+            executed_at: now,
+            execution_ms: None,
             created_at: now,
+            updated_at: now,
         };
 
         diesel::insert_into(conversational_queries::table)
@@ -237,7 +236,7 @@ pub async fn handle_conversational_query(
             id: db_query.id,
             dashboard_id: None,
             user_id: db_query.user_id,
-            natural_language: db_query.natural_language,
+            natural_language: db_query.query_text,
             generated_query: None,
             result_widget: None,
             created_at: db_query.created_at,

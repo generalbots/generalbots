@@ -18,15 +18,14 @@ pub async fn create_session(
 ) -> Result<Json<AttendantSession>, (StatusCode, String)> {
     let mut conn = db_conn!(config);
 
-    let (org_id, bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let session_number = generate_session_number(&mut conn, org_id);
+    let session_number = generate_session_number(&mut conn, branch_id);
 
     let session = AttendantSession {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         session_number,
         channel: req.channel,
         customer_id: req.customer_id,
@@ -68,13 +67,12 @@ pub async fn list_sessions(
 ) -> Result<Json<Vec<AttendantSession>>, (StatusCode, String)> {
     let mut conn = db_conn!(config);
 
-    let (org_id, bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = attendant_sessions::table
-        .filter(attendant_sessions::org_id.eq(org_id))
-        .filter(attendant_sessions::bot_id.eq(bot_id))
+        .filter(attendant_sessions::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(status) = query.status {

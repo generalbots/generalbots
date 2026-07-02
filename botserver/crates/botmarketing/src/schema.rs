@@ -1,123 +1,242 @@
-use diesel::table;
+// @generated automatically from migration SQL for issue #707.
+// Diesel table definitions for branch-scope cleanup.
 
-table! {
+diesel::table! {
+    bots (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        slug -> Varchar,
+        org_id -> Uuid,
+        tenant_id -> Nullable<Uuid>,
+        is_default_for_branch -> Nullable<Bool>,
+        description -> Nullable<Text>,
+        is_public -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
+        avatar_url -> Nullable<Varchar>,
+        settings -> Nullable<Jsonb>,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    system_automations (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        kind -> Int4,
+        event_type -> Varchar,
+        action_type -> Varchar,
+        config -> Nullable<Jsonb>,
+        is_active -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    crm_contacts (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        first_name -> Varchar,
+        last_name -> Nullable<Varchar>,
+        email -> Nullable<Varchar>,
+        phone -> Nullable<Varchar>,
+        mobile -> Nullable<Varchar>,
+        company -> Nullable<Varchar>,
+        job_title -> Nullable<Varchar>,
+        source -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        tags -> Array<Text>,
+        custom_fields -> Nullable<Jsonb>,
+        address_street -> Nullable<Varchar>,
+        address_city -> Nullable<Varchar>,
+        address_state -> Nullable<Varchar>,
+        address_country -> Nullable<Varchar>,
+        address_zip -> Nullable<Varchar>,
+        notes -> Nullable<Text>,
+        owner_id -> Nullable<Uuid>,
+        pass_hash -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     marketing_campaigns (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        deal_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
-        status -> Varchar,
-        channel -> Varchar,
-        content_template -> Json,
-        scheduled_at -> Nullable<Timestamptz>,
-        sent_at -> Nullable<Timestamptz>,
-        completed_at -> Nullable<Timestamptz>,
-        metrics -> Json,
-        budget -> Nullable<Float8>,
-        sender_email -> Nullable<Varchar>,
-        sender_ip -> Nullable<Varchar>,
-        list_id -> Nullable<Uuid>,
+        campaign_type -> Varchar,
+        status -> Nullable<Varchar>,
+        starts_at -> Nullable<Timestamptz>,
+        ends_at -> Nullable<Timestamptz>,
+        budget -> Nullable<Numeric>,
+        metrics -> Nullable<Jsonb>,
         created_at -> Timestamptz,
-        updated_at -> Nullable<Timestamptz>,
+        updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     marketing_lists (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         list_type -> Varchar,
-        query_text -> Nullable<Varchar>,
+        description -> Nullable<Text>,
+        query_text -> Nullable<Text>,
+        member_count -> Nullable<Int4>,
         contact_count -> Nullable<Int4>,
-        last_sent_at -> Nullable<Timestamptz>,
+        is_dynamic -> Nullable<Bool>,
+        criteria -> Nullable<Jsonb>,
         created_at -> Timestamptz,
-        updated_at -> Nullable<Timestamptz>,
+        updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     marketing_templates (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
+        template_type -> Varchar,
         channel -> Varchar,
         subject -> Nullable<Varchar>,
-        body -> Nullable<Varchar>,
+        body -> Nullable<Text>,
+        variables -> Nullable<Jsonb>,
         media_url -> Nullable<Varchar>,
-        ai_prompt -> Nullable<Varchar>,
-        variables -> Json,
+        ai_prompt -> Nullable<Text>,
         approved -> Nullable<Bool>,
         meta_template_id -> Nullable<Varchar>,
         created_at -> Timestamptz,
-        updated_at -> Nullable<Timestamptz>,
+        updated_at -> Timestamptz,
     }
 }
 
-table! {
-    marketing_recipients (id) {
+diesel::table! {
+    marketing_contacts (id) {
         id -> Uuid,
-        campaign_id -> Nullable<Uuid>,
-        contact_id -> Nullable<Uuid>,
-        channel -> Varchar,
-        status -> Varchar,
-        sent_at -> Nullable<Timestamptz>,
-        delivered_at -> Nullable<Timestamptz>,
-        failed_at -> Nullable<Timestamptz>,
-        error_message -> Nullable<Varchar>,
-        response -> Nullable<Json>,
+        branch_id -> Uuid,
+        list_id -> Nullable<Uuid>,
+        email -> Varchar,
+        name -> Nullable<Varchar>,
+        phone -> Nullable<Varchar>,
+        metadata -> Nullable<Jsonb>,
+        subscribed -> Nullable<Bool>,
         created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     email_tracking (id) {
         id -> Uuid,
-        recipient_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         campaign_id -> Nullable<Uuid>,
+        recipient_id -> Nullable<Uuid>,
+        email -> Varchar,
+        event_type -> Varchar,
+        open_token -> Nullable<Varchar>,
+        open_tracking_enabled -> Nullable<Bool>,
+        opened -> Nullable<Bool>,
+        clicked -> Nullable<Bool>,
         message_id -> Nullable<Varchar>,
-        open_token -> Nullable<Uuid>,
-        open_tracking_enabled -> Bool,
-        opened -> Bool,
         opened_at -> Nullable<Timestamptz>,
-        clicked -> Bool,
         clicked_at -> Nullable<Timestamptz>,
+        metadata -> Nullable<Jsonb>,
         ip_address -> Nullable<Varchar>,
+        user_agent -> Nullable<Text>,
         created_at -> Timestamptz,
     }
 }
 
-table! {
-    campaign_metrics (campaign_id) {
-        campaign_id -> Uuid,
-        sent_count -> Int8,
-        delivered_count -> Int8,
-        bounce_count -> Int8,
-        open_count -> Int8,
-        click_count -> Int8,
-        complaint_count -> Int8,
-        unsubscribe_count -> Int8,
-        reply_count -> Int8,
+diesel::table! {
+    marketing_recipients (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        campaign_id -> Nullable<Uuid>,
+        list_id -> Nullable<Uuid>,
+        contact_id -> Nullable<Uuid>,
+        email -> Varchar,
+        name -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        channel -> Nullable<Varchar>,
+        sent_at -> Nullable<Timestamptz>,
+        failed_at -> Nullable<Timestamptz>,
+        delivered_at -> Nullable<Timestamptz>,
+        opened_at -> Nullable<Timestamptz>,
+        clicked_at -> Nullable<Timestamptz>,
+        error_message -> Nullable<Text>,
+        response -> Nullable<Text>,
+        created_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     advisor_recommendations (id) {
         id -> Uuid,
-        campaign_id -> Uuid,
+        branch_id -> Uuid,
+        campaign_id -> Nullable<Uuid>,
+        recommendation -> Text,
+        reason -> Nullable<Text>,
         check_name -> Varchar,
         severity -> Varchar,
-        message -> Varchar,
+        message -> Text,
         details -> Nullable<Text>,
-        dismissed -> Bool,
+        dismissed -> Nullable<Bool>,
         created_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
+    campaign_metrics (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        campaign_id -> Nullable<Uuid>,
+        metric_type -> Varchar,
+        metric_value -> Numeric,
+        recorded_at -> Timestamptz,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    warmup_schedules (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        org_id -> Uuid,
+        email -> Varchar,
+        ip -> Varchar,
+        daily_limit -> Nullable<Int4>,
+        current_count -> Nullable<Int4>,
+        current_day -> Nullable<Int4>,
+        started_at -> Nullable<Timestamptz>,
+        status -> Nullable<Varchar>,
+        paused_reason -> Nullable<Text>,
+        is_active -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    marketing_email_opens (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        campaign_id -> Nullable<Uuid>,
+        email -> Varchar,
+        opened_at -> Timestamptz,
+        ip_address -> Nullable<Varchar>,
+        user_agent -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
     ip_reputation (id) {
         id -> Uuid,
         org_id -> Uuid,
@@ -131,101 +250,47 @@ table! {
     }
 }
 
-table! {
-    ip_rotations (ip_address) {
-        ip_address -> Varchar,
+diesel::table! {
+    ip_rotations (id) {
+        id -> Uuid,
         org_id -> Uuid,
-        last_used -> Timestamptz,
+        ip_address -> Varchar,
+        strategy -> Nullable<Varchar>,
+        current_index -> Nullable<Int4>,
+        last_used -> Nullable<Timestamptz>,
+        is_active -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     org_ips (id) {
         id -> Uuid,
         org_id -> Uuid,
         ip_address -> Varchar,
-        is_active -> Bool,
-    }
-}
-
-table! {
-    warmup_schedules (id) {
-        id -> Uuid,
-        org_id -> Uuid,
-        ip -> Varchar,
-        started_at -> Timestamptz,
-        current_day -> Int4,
-        daily_limit -> Int4,
-        status -> Varchar,
-        paused_reason -> Nullable<Varchar>,
+        provider -> Nullable<Varchar>,
+        is_active -> Nullable<Bool>,
         created_at -> Timestamptz,
-        updated_at -> Nullable<Timestamptz>,
-    }
-}
-
-table! {
-    crm_contacts (id) {
-        id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        first_name -> Nullable<Varchar>,
-        last_name -> Nullable<Varchar>,
-        email -> Nullable<Varchar>,
-        phone -> Nullable<Varchar>,
-        company -> Nullable<Varchar>,
-        status -> Nullable<Varchar>,
-    }
-}
-
-table! {
-    bots (id) {
-        id -> Uuid,
-        org_id -> Nullable<Uuid>,
-        name -> Varchar,
-    }
-}
-
-table! {
-    system_automations (id) {
-        id -> Uuid,
-        bot_id -> Uuid,
-        kind -> Int4,
-        is_active -> Bool,
-        target -> Nullable<Varchar>,
-        param -> Nullable<Varchar>,
-    }
-}
-
-table! {
-    marketing_contacts (email) {
-        email -> Varchar,
-        list_id -> Uuid,
-    }
-}
-
-table! {
-    marketing_email_opens (id) {
-        id -> Uuid,
-        email -> Varchar,
-        opened_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
 diesel::allow_tables_to_appear_in_same_query!(
+    bots,
+    system_automations,
+    crm_contacts,
     marketing_campaigns,
     marketing_lists,
     marketing_templates,
-    marketing_recipients,
+    marketing_contacts,
     email_tracking,
-    campaign_metrics,
+    marketing_recipients,
     advisor_recommendations,
+    campaign_metrics,
+    warmup_schedules,
+    marketing_email_opens,
     ip_reputation,
     ip_rotations,
     org_ips,
-    warmup_schedules,
-    crm_contacts,
-    bots,
-    system_automations,
-    marketing_contacts,
-    marketing_email_opens,
 );

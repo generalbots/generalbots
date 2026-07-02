@@ -52,6 +52,7 @@ pub async fn run_evaluation<T: LlmTarget + ?Sized>(
     for entry in &dataset.entries {
         let response = target
             .complete(entry.system_prompt.as_deref(), &entry.prompt)
+            .await
             .unwrap_or_default();
         let results = validate_response(&entry.contract, &response);
         let score = Score::from_results(&results);

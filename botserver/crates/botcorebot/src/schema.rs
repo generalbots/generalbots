@@ -1,31 +1,43 @@
 diesel::table! {
     bots (id) {
         id -> Uuid,
-        name -> Text,
+        branch_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        slug -> Varchar,
+        org_id -> Uuid,
+        tenant_id -> Nullable<Uuid>,
+        is_default_for_branch -> Nullable<Bool>,
         description -> Nullable<Text>,
-        llm_provider -> Text,
-        llm_config -> Jsonb,
-        context_provider -> Text,
-        context_config -> Jsonb,
+        is_public -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
+        avatar_url -> Nullable<Varchar>,
+        settings -> Nullable<Jsonb>,
+        metadata -> Nullable<Jsonb>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
-        is_active -> Nullable<Bool>,
-        org_id -> Nullable<Uuid>,
-        database_name -> Nullable<Text>,
-        is_public -> Bool,
+        llm_provider -> Varchar,
+        llm_config -> Jsonb,
+        context_provider -> Varchar,
+        context_config -> Jsonb,
+        database_name -> Nullable<Varchar>,
     }
 }
 
 diesel::table! {
     user_sessions (id) {
         id -> Uuid,
-        user_id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
+        session_id -> Varchar,
+        user_id -> Nullable<Varchar>,
+        data -> Nullable<Jsonb>,
+        expires_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         title -> Text,
         context_data -> Jsonb,
         current_tool -> Nullable<Text>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
@@ -58,9 +70,12 @@ diesel::table! {
 diesel::table! {
     bot_memories (id) {
         id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
-        key -> Text,
+        key -> Varchar,
         value -> Text,
+        #[sql_name = "type"]
+        memory_type -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -79,8 +94,16 @@ diesel::table! {
 
 diesel::table! {
     basic_tools (id) {
-        id -> Text,
-        bot_id -> Text,
+        id -> Uuid,
+        branch_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        source -> Nullable<Text>,
+        compiled -> Nullable<Text>,
+        version -> Int4,
+        is_active -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         tool_name -> Text,
         file_path -> Text,
         ast_path -> Text,
@@ -88,9 +111,6 @@ diesel::table! {
         mcp_json -> Nullable<Text>,
         tool_json -> Nullable<Text>,
         compiled_at -> Text,
-        is_active -> Integer,
-        created_at -> Text,
-        updated_at -> Text,
     }
 }
 
@@ -106,25 +126,33 @@ diesel::table! {
 diesel::table! {
     bot_configuration (id) {
         id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
-        config_key -> Text,
+        config_key -> Varchar,
         config_value -> Text,
-        is_encrypted -> Bool,
-        config_type -> Text,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        is_encrypted -> Bool,
+        config_type -> Text,
     }
 }
 
 diesel::table! {
     system_automations (id) {
         id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
+        name -> Varchar,
+        event_type -> Varchar,
+        action_type -> Varchar,
+        config -> Nullable<Jsonb>,
+        is_active -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         kind -> Int4,
         target -> Nullable<Text>,
         schedule -> Nullable<Text>,
         param -> Text,
-        is_active -> Bool,
         last_triggered -> Nullable<Timestamptz>,
     }
 }
@@ -132,13 +160,20 @@ diesel::table! {
 diesel::table! {
     workflow_executions (id) {
         id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
-        workflow_name -> Text,
-        current_step -> Int4,
-        state_json -> Text,
-        status -> Text,
+        workflow_id -> Uuid,
+        status -> Varchar,
+        input -> Nullable<Jsonb>,
+        output -> Nullable<Jsonb>,
+        started_at -> Nullable<Timestamptz>,
+        completed_at -> Nullable<Timestamptz>,
+        error -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        workflow_name -> Text,
+        current_step -> Nullable<Int4>,
+        state_json -> Nullable<Jsonb>,
     }
 }
 
@@ -238,8 +273,15 @@ diesel::table! {
 diesel::table! {
     website_crawls (id) {
         id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
         url -> Text,
+        status -> Nullable<Varchar>,
+        depth -> Nullable<Int4>,
+        content -> Nullable<Text>,
+        error -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         last_crawled -> Nullable<Timestamptz>,
         next_crawl -> Nullable<Timestamptz>,
         expires_policy -> Varchar,
@@ -248,16 +290,9 @@ diesel::table! {
         crawl_status -> Nullable<Int2>,
         pages_crawled -> Nullable<Int4>,
         error_message -> Nullable<Text>,
-        created_at -> Nullable<Timestamptz>,
-        updated_at -> Nullable<Timestamptz>,
         refresh_policy -> Nullable<Varchar>,
     }
 }
-
-diesel::joinable!(user_organizations -> users (user_id));
-diesel::joinable!(user_organizations -> organizations (org_id));
-diesel::joinable!(website_crawls -> bots (bot_id));
-diesel::joinable!(organization_invitations -> organizations (org_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     bots,

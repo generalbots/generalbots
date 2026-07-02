@@ -1,8 +1,7 @@
 diesel::table! {
     crm_contacts (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         first_name -> Nullable<Varchar>,
         last_name -> Nullable<Varchar>,
         email -> Varchar,
@@ -16,8 +15,7 @@ diesel::table! {
 diesel::table! {
     billing_subscriptions (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         customer_name -> Varchar,
         customer_email -> Nullable<Varchar>,
         plan_id -> Varchar,
@@ -33,8 +31,7 @@ diesel::table! {
 diesel::table! {
     billing_recurring (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         customer_id -> Nullable<Uuid>,
         customer_name -> Varchar,
         customer_email -> Nullable<Varchar>,
@@ -58,8 +55,7 @@ diesel::table! {
 diesel::table! {
     billing_payments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         invoice_id -> Nullable<Uuid>,
         payment_number -> Varchar,
         amount -> Numeric,
@@ -75,7 +71,7 @@ diesel::table! {
 diesel::table! {
     cloud_workspaces (id) {
         id -> Uuid,
-        org_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         icon -> Nullable<Varchar>,
@@ -88,7 +84,7 @@ diesel::table! {
     workspace_resources (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        org_id -> Uuid,
+        branch_id -> Uuid,
         store_item_id -> Varchar,
         name -> Varchar,
         resource_type -> Varchar,

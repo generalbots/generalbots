@@ -28,7 +28,7 @@ pub async fn objectives_list(
 ) -> Html<String> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let mut db_query = okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -132,7 +132,7 @@ pub async fn objectives_count(
 ) -> Html<String> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -152,7 +152,7 @@ pub async fn active_objectives_count(
 ) -> Html<String> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -173,7 +173,7 @@ pub async fn at_risk_count(
 ) -> Html<String> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -194,7 +194,7 @@ pub async fn average_progress(
 ) -> Html<String> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let objectives = okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -225,7 +225,7 @@ pub async fn dashboard_stats(
 ) -> Html<String> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let total: i64 = okr_objectives::table
             .filter(okr_objectives::bot_id.eq(bot_id))
@@ -368,7 +368,7 @@ pub async fn recent_checkins(
 ) -> Html<String> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         okr_checkins::table
             .filter(okr_checkins::bot_id.eq(bot_id))
