@@ -55,7 +55,7 @@ pub fn build_access_key(
         return Err(TaxError::InvalidCnpj(cnpj.to_string()));
     }
     let key = format!(
-        "{}{:02}{}{}{}{:09}{:03}{}",
+        "{}{:02}{}{}{}{:09}{:03}{}{}",
         state,
         issue_year % 100,
         issue_month,

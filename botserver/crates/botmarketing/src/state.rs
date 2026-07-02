@@ -55,8 +55,7 @@ impl AppState {
         let org_id = bots::table
             .filter(bots::id.eq(bot_id))
             .select(bots::org_id)
-            .first::<Option<uuid::Uuid>>(&mut conn)
-            .unwrap_or(None)
+            .first::<uuid::Uuid>(&mut conn)
             .unwrap_or(uuid::Uuid::nil());
 
         (org_id, bot_id)

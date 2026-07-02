@@ -41,20 +41,22 @@ pub async fn list_queue(
                 .map_err(|e| format!("Failed to load sessions: {}", e))?;
             let mut queue_items = Vec::new();
             for session_data in sessions_data {
+                let user_uuid = session_data.user_id.as_deref().and_then(|s| Uuid::parse_str(s).ok()).unwrap_or(Uuid::nil());
                 let user_info: Option<(String, String)> = users::table
-                    .filter(users::id.eq(session_data.user_id))
+                    .filter(users::id.eq(user_uuid))
                     .select((users::username, users::email))
                     .first(&mut db_conn)
                     .optional()
                     .map_err(|e| format!("Failed to load user: {}", e))?;
                 let (uname, uemail) = user_info.unwrap_or_else(|| {
-                    (format!("user_{}", session_data.user_id), format!("{}@unknown.local", session_data.user_id))
+                    let uid = session_data.user_id.as_deref().unwrap_or("unknown");
+                    (format!("user_{}", uid), format!("{}@unknown.local", uid))
                 });
                 let channel = session_data.context_data.get("channel").and_then(|c| c.as_str()).unwrap_or("web").to_string();
                 let waiting_time = (Utc::now() - session_data.updated_at).num_seconds();
                 queue_items.push(QueueItem {
                     session_id: session_data.id,
-                    user_id: session_data.user_id,
+                    user_id: session_data.user_id.and_then(|u| Uuid::parse_str(&u).ok()).unwrap_or(Uuid::nil()),
                     bot_id: session_data.bot_id,
                     channel,
                     user_name: uname,
@@ -420,8 +422,8 @@ pub async fn get_kanban(
     tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
         let resolved_bot_id = query.bot_id.unwrap_or_else(|| {
-            let (default_id, _) = get_default_bot(&mut conn);
-            default_id
+            let branch_id = get_default_bot(&mut conn);
+            branch_id
         });
         let sessions: Vec<UserSession> = user_sessions::table
             .filter(user_sessions::bot_id.eq(resolved_bot_id))
@@ -435,7 +437,7 @@ pub async fn get_kanban(
         let mut resolved_items = Vec::new();
         for session in sessions {
             let status = session.context_data.get("status").and_then(|v| v.as_str()).unwrap_or("new").to_string();
-            let assigned_to = session.attendant_id;
+            let assigned_to = session.context_data.get("attendant_id").and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok());
             let assigned_to_name = session.context_data.get("attendant_name").and_then(|v| v.as_str()).map(String::from);
             let last_message = session.context_data.get("last_message").and_then(|v| v.as_str()).unwrap_or("").to_string();
             let last_message_time = session.context_data.get("last_message_time").and_then(|v| v.as_str()).map(String::from).unwrap_or_else(|| session.created_at.to_rfc3339());
@@ -445,7 +447,7 @@ pub async fn get_kanban(
             let user_name = session.context_data.get("user_name").and_then(|v| v.as_str()).unwrap_or("Anonymous").to_string();
             let user_email = session.context_data.get("user_email").and_then(|v| v.as_str()).map(String::from);
             let item = QueueItem {
-                session_id: session.id, user_id: session.user_id, bot_id: session.bot_id,
+                session_id: session.id, user_id: session.user_id.and_then(|u| Uuid::parse_str(&u).ok()).unwrap_or(Uuid::nil()), bot_id: session.bot_id,
                 channel, user_name, user_email, last_message, last_message_time,
                 waiting_time_seconds: waiting_time, priority,
                 status: match status.as_str() {

@@ -118,8 +118,8 @@ pub(super) fn make_designer_router(app_state: &Arc<AppState>) -> Router<()> {
 
 #[cfg(feature = "dashboards")]
 pub(super) fn make_dashboards_router(app_state: &Arc<AppState>) -> Router<()> {
-    fn default_bot_fn(_conn: &mut diesel::PgConnection) -> (uuid::Uuid, String) {
-        (uuid::Uuid::nil(), "default".to_string())
+    fn default_bot_fn(_conn: &mut diesel::PgConnection) -> uuid::Uuid {
+        uuid::Uuid::nil()
     }
     Router::new()
         .merge(crate::dashboards::configure_dashboards_routes(Arc::new(botdashboards::DashboardsState {
@@ -159,7 +159,7 @@ pub(super) fn make_social_router(app_state: &Arc<AppState>) -> Router<()> {
 pub(super) fn make_billing_router(app_state: &Arc<AppState>) -> Router<()> {
     let make_state = || Arc::new(botbilling::api::BillingApiState {
         pool: Arc::new(app_state.conn.clone()),
-        get_default_bot: Some((|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
+        get_default_bot: Some((|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid),
     });
     Router::new()
         .merge(crate::billing::billing_ui::configure_billing_routes().with_state(make_state()))
@@ -224,7 +224,7 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     let saas_service = Arc::new(SaasService::new(
         Arc::new(botbilling::api::BillingApiState {
             pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: Some(botbilling::query_first_bot as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String)),
+            get_default_bot: Some(botbilling::query_first_bot as fn(&mut diesel::PgConnection) -> uuid::Uuid),
         }),
         stripe,
         saas_config,
@@ -290,7 +290,7 @@ pub(super) fn make_attendant_router(app_state: &Arc<AppState>) -> Router<()> {
         .merge(crate::attendance::routes::configure_attendance_routes().with_state(Arc::new(botattendance::AttendanceConfig {
             pool: Arc::new(app_state.conn.clone()),
             master_key: botsecurity_crypto::encryption::load_master_encryption_key(),
-            get_default_bot: Arc::new(|_conn: &mut _| (uuid::Uuid::nil(), "default".to_string())),
+            get_default_bot: Arc::new(|_conn: &mut _| uuid::Uuid::nil()),
             llm_generate: Arc::new(|_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, Box<dyn std::error::Error + Send + Sync>> { Ok(String::new()) }),
             process_content: Arc::new(|_: &str, _: &str| -> String { String::new() }),
             config_get: Arc::new(|_: &uuid::Uuid, _: &str| -> String { String::new() }),
@@ -300,10 +300,10 @@ pub(super) fn make_attendant_router(app_state: &Arc<AppState>) -> Router<()> {
         })))
         .merge(crate::attendant::configure_attendant_routes().with_state(Arc::new(botattendant::AttendantConfig {
             pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String),
+            get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
         })))
         .merge(crate::attendant::configure_attendant_ui_routes().with_state(Arc::new(botattendant::AttendantConfig {
             pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: (|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())) as fn(&mut diesel::PgConnection) -> (uuid::Uuid, String),
+            get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
         })))
 }

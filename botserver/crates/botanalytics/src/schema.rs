@@ -1,18 +1,26 @@
 diesel::table! {
     bots (id) {
         id -> Uuid,
-        org_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
+        bot_id -> Uuid,
         name -> Varchar,
+        slug -> Varchar,
+        org_id -> Uuid,
+        tenant_id -> Nullable<Uuid>,
+        is_default_for_branch -> Nullable<Bool>,
         description -> Nullable<Text>,
+        is_public -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
+        avatar_url -> Nullable<Varchar>,
+        settings -> Nullable<Jsonb>,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         llm_provider -> Varchar,
         llm_config -> Jsonb,
         context_provider -> Varchar,
         context_config -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        is_active -> Nullable<Bool>,
         database_name -> Nullable<Varchar>,
-        is_public -> Bool,
     }
 }
 
@@ -42,97 +50,101 @@ diesel::table! {
 diesel::table! {
     okr_objectives (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        owner_id -> Uuid,
-        parent_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         title -> Varchar,
         description -> Nullable<Text>,
+        owner_id -> Nullable<Uuid>,
+        cycle -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        progress -> Nullable<Int4>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        parent_id -> Nullable<Uuid>,
         period -> Varchar,
         period_start -> Nullable<Date>,
         period_end -> Nullable<Date>,
-        status -> Varchar,
-        progress -> Numeric,
         visibility -> Varchar,
         weight -> Numeric,
-        tags -> Array<Nullable<Text>>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        tags -> Text,
     }
 }
 
 diesel::table! {
     okr_key_results (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         objective_id -> Uuid,
-        owner_id -> Uuid,
         title -> Varchar,
+        start_value -> Nullable<Numeric>,
+        target_value -> Numeric,
+        current_value -> Nullable<Numeric>,
+        unit -> Nullable<Varchar>,
+        owner_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         description -> Nullable<Text>,
         metric_type -> Varchar,
-        start_value -> Numeric,
-        target_value -> Numeric,
-        current_value -> Numeric,
-        unit -> Nullable<Varchar>,
         weight -> Numeric,
         status -> Varchar,
         due_date -> Nullable<Date>,
         scoring_type -> Varchar,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     okr_checkins (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         key_result_id -> Uuid,
+        value -> Numeric,
+        confidence -> Nullable<Int4>,
+        notes -> Nullable<Text>,
+        checked_in_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         user_id -> Uuid,
         previous_value -> Nullable<Numeric>,
         new_value -> Numeric,
         note -> Nullable<Text>,
-        confidence -> Nullable<Varchar>,
         blockers -> Nullable<Text>,
-        created_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     okr_templates (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
+        structure -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         category -> Nullable<Varchar>,
         objective_template -> Jsonb,
         key_result_templates -> Jsonb,
         is_system -> Bool,
         usage_count -> Int4,
         created_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     dashboards (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        owner_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
+        slug -> Varchar,
         description -> Nullable<Text>,
+        config -> Nullable<Jsonb>,
+        is_default -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        owner_id -> Uuid,
         layout -> Jsonb,
         refresh_interval -> Nullable<Int4>,
         is_public -> Bool,
         is_template -> Bool,
-        tags -> Array<Text>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        tags -> Text,
     }
 }
 
@@ -157,18 +169,18 @@ diesel::table! {
 diesel::table! {
     dashboard_data_sources (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
-        description -> Nullable<Text>,
         source_type -> Varchar,
+        config -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        description -> Nullable<Text>,
         connection -> Jsonb,
         schema_definition -> Jsonb,
         refresh_schedule -> Nullable<Varchar>,
         last_sync -> Nullable<Timestamptz>,
         status -> Varchar,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
@@ -185,24 +197,6 @@ diesel::table! {
         created_at -> Timestamptz,
     }
 }
-
-diesel::joinable!(bots -> organizations (org_id));
-diesel::joinable!(okr_objectives -> organizations (org_id));
-diesel::joinable!(okr_objectives -> bots (bot_id));
-diesel::joinable!(okr_key_results -> organizations (org_id));
-diesel::joinable!(okr_key_results -> bots (bot_id));
-diesel::joinable!(okr_key_results -> okr_objectives (objective_id));
-diesel::joinable!(okr_checkins -> organizations (org_id));
-diesel::joinable!(okr_checkins -> bots (bot_id));
-diesel::joinable!(okr_checkins -> okr_key_results (key_result_id));
-diesel::joinable!(okr_templates -> organizations (org_id));
-diesel::joinable!(okr_templates -> bots (bot_id));
-diesel::joinable!(dashboards -> organizations (org_id));
-diesel::joinable!(dashboards -> bots (bot_id));
-diesel::joinable!(dashboard_widgets -> dashboards (dashboard_id));
-diesel::joinable!(dashboard_data_sources -> organizations (org_id));
-diesel::joinable!(dashboard_data_sources -> bots (bot_id));
-diesel::joinable!(dashboard_filters -> dashboards (dashboard_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     bots,

@@ -209,7 +209,7 @@ impl DesktopApp {
     }
 
     pub fn screenshot(&self) -> Result<Screenshot> {
-        let _ = (&self.platform);
+        let _ = &self.platform;
         anyhow::bail!("Screenshot functionality not yet implemented")
     }
 }
@@ -304,27 +304,27 @@ pub struct Element {
 
 impl Element {
     pub fn click(&self) -> Result<()> {
-        let _ = (&self.locator);
+        let _ = &self.locator;
         anyhow::bail!("Element click not yet implemented")
     }
 
     pub fn double_click(&self) -> Result<()> {
-        let _ = (&self.locator);
+        let _ = &self.locator;
         anyhow::bail!("Element double-click not yet implemented")
     }
 
     pub fn right_click(&self) -> Result<()> {
-        let _ = (&self.locator);
+        let _ = &self.locator;
         anyhow::bail!("Element right-click not yet implemented")
     }
 
     pub fn type_text(&self, _text: &str) -> Result<()> {
-        let _ = (&self.locator);
+        let _ = &self.locator;
         anyhow::bail!("Element type_text not yet implemented")
     }
 
     pub fn clear(&self) -> Result<()> {
-        let _ = (&self.locator);
+        let _ = &self.locator;
         anyhow::bail!("Element clear not yet implemented")
     }
 
@@ -339,7 +339,7 @@ impl Element {
     }
 
     pub fn focus(&self) -> Result<()> {
-        let _ = (&self.locator);
+        let _ = &self.locator;
         anyhow::bail!("Element focus not yet implemented")
     }
 }

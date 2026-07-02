@@ -1,8 +1,7 @@
 diesel::table! {
     attendant_queues (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         priority -> Int4,
@@ -18,8 +17,7 @@ diesel::table! {
 diesel::table! {
     attendant_sessions (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         session_number -> Varchar,
         channel -> Varchar,
         customer_id -> Nullable<Uuid>,
@@ -79,8 +77,7 @@ diesel::table! {
 diesel::table! {
     attendant_agent_status (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         agent_id -> Uuid,
         status -> Varchar,
         status_message -> Nullable<Varchar>,
@@ -111,8 +108,7 @@ diesel::table! {
 diesel::table! {
     attendant_canned_responses (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         title -> Varchar,
         content -> Text,
         shortcut -> Nullable<Varchar>,
@@ -129,8 +125,7 @@ diesel::table! {
 diesel::table! {
     attendant_tags (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         color -> Nullable<Varchar>,
         description -> Nullable<Text>,
@@ -142,8 +137,7 @@ diesel::table! {
 diesel::table! {
     attendant_wrap_up_codes (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         code -> Varchar,
         name -> Varchar,
         description -> Nullable<Text>,
@@ -156,31 +150,33 @@ diesel::table! {
 diesel::table! {
     attendance_webhooks (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        webhook_url -> Varchar,
-        events -> Array<Text>,
-        is_active -> Bool,
-        secret_key -> Nullable<Varchar>,
+        branch_id -> Uuid,
+        url -> Text,
+        event_types -> Nullable<Text>,
+        is_active -> Nullable<Bool>,
         created_at -> Timestamptz,
-        updated_at -> Nullable<Timestamptz>,
+        updated_at -> Timestamptz,
+        webhook_url -> Varchar,
+        events -> Nullable<Text>,
+        secret_key -> Nullable<Text>,
     }
 }
 
 diesel::table! {
     attendance_sla_policies (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
-        channel -> Nullable<Varchar>,
-        priority -> Nullable<Varchar>,
-        first_response_minutes -> Int4,
-        resolution_minutes -> Int4,
-        escalate_on_breach -> Bool,
-        is_active -> Bool,
+        response_time_minutes -> Int4,
+        resolution_time_minutes -> Nullable<Int4>,
+        priority -> Nullable<Int4>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        channel -> Nullable<Varchar>,
+        first_response_minutes -> Nullable<Int4>,
+        resolution_minutes -> Nullable<Int4>,
+        escalate_on_breach -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
     }
 }
 

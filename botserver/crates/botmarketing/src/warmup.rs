@@ -70,15 +70,19 @@ impl PausedReason {
 #[diesel(table_name = warmup_schedules)]
 pub struct WarmupSchedule {
     pub id: Uuid,
+    pub branch_id: Uuid,
     pub org_id: Uuid,
+    pub email: String,
     pub ip: String,
-    pub started_at: DateTime<Utc>,
-    pub current_day: i32,
-    pub daily_limit: i32,
-    pub status: String,
+    pub daily_limit: Option<i32>,
+    pub current_count: Option<i32>,
+    pub current_day: Option<i32>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub status: Option<String>,
     pub paused_reason: Option<String>,
+    pub is_active: Option<bool>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
 }
 
 pub struct WarmupEngine;
@@ -119,7 +123,7 @@ impl WarmupEngine {
 
         match schedule {
             Some(sched) => {
-                let current_day = Self::calculate_current_day(sched.started_at);
+                let current_day = Self::calculate_current_day(sched.started_at.unwrap_or(Utc::now()));
                 Ok(Self::get_daily_limit(current_day))
             }
             None => Ok(u32::MAX),
@@ -142,12 +146,12 @@ impl WarmupEngine {
             .map_err(|e| format!("Query error: {e}"))?;
 
         if let Some(mut sched) = existing {
-            sched.started_at = now;
-            sched.current_day = 1;
-            sched.daily_limit = Self::get_daily_limit(1) as i32;
-            sched.status = WarmupStatus::Active.as_str().to_string();
+            sched.started_at = Some(now);
+            sched.current_day = Some(1);
+            sched.daily_limit = Some(Self::get_daily_limit(1) as i32);
+            sched.status = Some(WarmupStatus::Active.as_str().to_string());
             sched.paused_reason = None;
-            sched.updated_at = Some(now);
+            sched.updated_at = now;
 
             diesel::update(warmup_schedules::table.filter(warmup_schedules::id.eq(sched.id)))
                 .set(&sched)
@@ -159,15 +163,19 @@ impl WarmupEngine {
 
         let new_schedule = WarmupSchedule {
             id: Uuid::new_v4(),
+            branch_id: org_id_val,
             org_id: org_id_val,
+            email: String::new(),
             ip: ip_str,
-            started_at: now,
-            current_day: 1,
-            daily_limit: Self::get_daily_limit(1) as i32,
-            status: WarmupStatus::Active.as_str().to_string(),
+            started_at: Some(now),
+            current_day: Some(1),
+            daily_limit: Some(Self::get_daily_limit(1) as i32),
+            current_count: Some(0),
+            status: Some(WarmupStatus::Active.as_str().to_string()),
             paused_reason: None,
+            is_active: Some(true),
             created_at: now,
-            updated_at: None,
+            updated_at: now,
         };
 
         diesel::insert_into(warmup_schedules::table)
@@ -189,9 +197,9 @@ impl WarmupEngine {
 
         diesel::update(warmup_schedules::table.filter(warmup_schedules::ip.eq(&ip_str)))
             .set((
-                warmup_schedules::status.eq(WarmupStatus::Paused.as_str()),
+                warmup_schedules::status.eq(Some(WarmupStatus::Paused.as_str())),
                 warmup_schedules::paused_reason.eq(Some(reason.as_str())),
-                warmup_schedules::updated_at.eq(Some(now)),
+                warmup_schedules::updated_at.eq(now),
             ))
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {e}"))?;
@@ -209,9 +217,9 @@ impl WarmupEngine {
 
         diesel::update(warmup_schedules::table.filter(warmup_schedules::ip.eq(&ip_str)))
             .set((
-                warmup_schedules::status.eq(WarmupStatus::Active.as_str()),
+                warmup_schedules::status.eq(Some(WarmupStatus::Active.as_str())),
                 warmup_schedules::paused_reason.eq(None::<String>),
-                warmup_schedules::updated_at.eq(Some(now)),
+                warmup_schedules::updated_at.eq(now),
             ))
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {e}"))?;
@@ -272,14 +280,15 @@ pub struct WarmupStatusResponse {
 
 impl From<WarmupSchedule> for WarmupStatusResponse {
     fn from(schedule: WarmupSchedule) -> Self {
-        let current_day = WarmupEngine::calculate_current_day(schedule.started_at);
+        let started_at = schedule.started_at.unwrap_or(Utc::now());
+        let current_day = WarmupEngine::calculate_current_day(started_at);
         Self {
             ip: schedule.ip,
             day: current_day,
-            daily_limit: schedule.daily_limit as u32,
-            status: schedule.status,
+            daily_limit: schedule.daily_limit.unwrap_or(0) as u32,
+            status: schedule.status.unwrap_or_else(|| "unknown".to_string()),
             paused_reason: schedule.paused_reason,
-            started_at: schedule.started_at,
+            started_at,
         }
     }
 }

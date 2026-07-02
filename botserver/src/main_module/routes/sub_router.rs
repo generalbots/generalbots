@@ -317,7 +317,7 @@ fn inner_build_sub_router(
         let pb = app_state.conn.clone();
         let email_state = Arc::new(crate::email::models::AppState {
             pool: Arc::new(pb),
-            get_default_bot: Arc::new(|_c: &mut PgConnection| (uuid::Uuid::nil(), "default".to_string())),
+            get_default_bot: Arc::new(|_c: &mut PgConnection| uuid::Uuid::nil()),
             secrets_provider: Arc::new(|_key: &str| Ok(String::new())),
         });
         sub_router = sub_router.merge(crate::email::routes::configure(email_state));

@@ -9,35 +9,46 @@ use crate::schema::{auto_tasks, tasks};
 #[diesel(table_name = tasks)]
 pub struct Task {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub title: String,
     pub description: Option<String>,
-    pub status: String,
+    pub status: Option<String>,
+    pub priority: Option<i32>,
+    pub assignee_id: Option<Uuid>,
+    pub due_date: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub parent_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub user_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Insertable)]
 #[diesel(table_name = tasks)]
 pub struct NewTask {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub title: String,
     pub description: Option<String>,
-    pub status: String,
-    pub user_id: Option<Uuid>,
+    pub status: Option<String>,
+    pub priority: Option<i32>,
+    pub assignee_id: Option<Uuid>,
+    pub due_date: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub parent_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = auto_tasks)]
 pub struct AutoTask {
     pub id: Uuid,
+    pub branch_id: Uuid,
     pub bot_id: Uuid,
-    pub title: String,
-    pub description: Option<String>,
+    pub name: String,
     pub schedule: Option<String>,
-    pub enabled: bool,
+    pub task_type: String,
+    pub config: Option<serde_json::Value>,
+    pub is_active: Option<bool>,
+    pub last_run_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -46,11 +57,13 @@ pub struct AutoTask {
 #[diesel(table_name = auto_tasks)]
 pub struct NewAutoTask {
     pub id: Uuid,
+    pub branch_id: Uuid,
     pub bot_id: Uuid,
-    pub title: String,
-    pub description: Option<String>,
+    pub name: String,
     pub schedule: Option<String>,
-    pub enabled: bool,
+    pub task_type: String,
+    pub config: Option<serde_json::Value>,
+    pub is_active: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

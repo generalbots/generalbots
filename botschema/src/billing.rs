@@ -1,10 +1,9 @@
-use crate::core::{bots, branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     billing_invoices (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         invoice_number -> Varchar,
         customer_id -> Nullable<Uuid>,
         customer_name -> Varchar,
@@ -52,8 +51,7 @@ diesel::table! {
 diesel::table! {
     billing_payments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         invoice_id -> Nullable<Uuid>,
         payment_number -> Varchar,
         amount -> Numeric,
@@ -74,8 +72,7 @@ diesel::table! {
 diesel::table! {
     billing_quotes (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         quote_number -> Varchar,
         customer_id -> Nullable<Uuid>,
         customer_name -> Varchar,
@@ -121,8 +118,7 @@ diesel::table! {
 diesel::table! {
     billing_recurring (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         customer_id -> Nullable<Uuid>,
         customer_name -> Varchar,
         customer_email -> Nullable<Varchar>,
@@ -146,8 +142,7 @@ diesel::table! {
 diesel::table! {
     billing_tax_rates (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         rate -> Numeric,
         description -> Nullable<Text>,
@@ -161,8 +156,7 @@ diesel::table! {
 diesel::table! {
     products (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         sku -> Nullable<Varchar>,
         name -> Varchar,
         description -> Nullable<Text>,
@@ -189,8 +183,7 @@ diesel::table! {
 diesel::table! {
     services (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         category -> Nullable<Varchar>,
@@ -209,8 +202,7 @@ diesel::table! {
 diesel::table! {
     product_categories (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         parent_id -> Nullable<Uuid>,
@@ -225,8 +217,7 @@ diesel::table! {
 diesel::table! {
     price_lists (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         currency -> Varchar,
@@ -256,8 +247,7 @@ diesel::table! {
 diesel::table! {
     inventory_movements (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         product_id -> Uuid,
         movement_type -> Varchar,
         quantity -> Int4,
@@ -295,8 +285,7 @@ diesel::table! {
 diesel::table! {
     billing_usage_alerts (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         metric -> Varchar,
         severity -> Varchar,
         current_usage -> Int8,
@@ -316,8 +305,7 @@ diesel::table! {
 diesel::table! {
     billing_alert_history (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         alert_id -> Uuid,
         metric -> Varchar,
         severity -> Varchar,
@@ -336,8 +324,7 @@ diesel::table! {
 diesel::table! {
     billing_notification_preferences (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         enabled -> Bool,
         channels -> Jsonb,
         email_recipients -> Jsonb,
@@ -360,8 +347,7 @@ diesel::table! {
 diesel::table! {
     billing_grace_periods (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         metric -> Varchar,
         started_at -> Timestamptz,
         expires_at -> Timestamptz,
@@ -376,41 +362,27 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(products -> organizations (org_id));
 diesel::joinable!(products -> branches (branch_id));
-diesel::joinable!(services -> organizations (org_id));
 diesel::joinable!(services -> branches (branch_id));
-diesel::joinable!(product_categories -> organizations (org_id));
 diesel::joinable!(product_categories -> branches (branch_id));
-diesel::joinable!(price_lists -> organizations (org_id));
 diesel::joinable!(price_lists -> branches (branch_id));
 diesel::joinable!(price_list_items -> price_lists (price_list_id));
 diesel::joinable!(price_list_items -> products (product_id));
 diesel::joinable!(price_list_items -> services (service_id));
-diesel::joinable!(inventory_movements -> organizations (org_id));
 diesel::joinable!(inventory_movements -> branches (branch_id));
 diesel::joinable!(inventory_movements -> products (product_id));
 diesel::joinable!(product_variants -> products (product_id));
 
-diesel::joinable!(billing_invoices -> organizations (org_id));
 diesel::joinable!(billing_invoices -> branches (branch_id));
 diesel::joinable!(billing_invoice_items -> billing_invoices (invoice_id));
-diesel::joinable!(billing_payments -> organizations (org_id));
 diesel::joinable!(billing_payments -> branches (branch_id));
 diesel::joinable!(billing_payments -> billing_invoices (invoice_id));
-diesel::joinable!(billing_quotes -> organizations (org_id));
 diesel::joinable!(billing_quotes -> branches (branch_id));
 diesel::joinable!(billing_quote_items -> billing_quotes (quote_id));
-diesel::joinable!(billing_recurring -> organizations (org_id));
 diesel::joinable!(billing_recurring -> branches (branch_id));
-diesel::joinable!(billing_tax_rates -> organizations (org_id));
 diesel::joinable!(billing_tax_rates -> branches (branch_id));
 
-diesel::joinable!(billing_usage_alerts -> organizations (org_id));
 diesel::joinable!(billing_usage_alerts -> branches (branch_id));
-diesel::joinable!(billing_alert_history -> organizations (org_id));
 diesel::joinable!(billing_alert_history -> branches (branch_id));
-diesel::joinable!(billing_notification_preferences -> organizations (org_id));
 diesel::joinable!(billing_notification_preferences -> branches (branch_id));
-diesel::joinable!(billing_grace_periods -> organizations (org_id));
 diesel::joinable!(billing_grace_periods -> branches (branch_id));

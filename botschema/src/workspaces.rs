@@ -1,10 +1,9 @@
-use crate::core::{bots, branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     workspaces (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         icon_type -> Nullable<Varchar>,
@@ -105,8 +104,7 @@ diesel::table! {
 diesel::table! {
     workspace_templates (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         category -> Nullable<Varchar>,
@@ -122,7 +120,6 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(workspaces -> organizations (org_id));
 diesel::joinable!(workspaces -> branches (branch_id));
 diesel::joinable!(workspace_members -> workspaces (workspace_id));
 diesel::joinable!(workspace_pages -> workspaces (workspace_id));
@@ -131,7 +128,6 @@ diesel::joinable!(workspace_page_permissions -> workspace_pages (page_id));
 diesel::joinable!(workspace_comments -> workspaces (workspace_id));
 diesel::joinable!(workspace_comments -> workspace_pages (page_id));
 diesel::joinable!(workspace_comment_reactions -> workspace_comments (comment_id));
-diesel::joinable!(workspace_templates -> organizations (org_id));
 diesel::joinable!(workspace_templates -> branches (branch_id));
 
 diesel::allow_tables_to_appear_in_same_query!(

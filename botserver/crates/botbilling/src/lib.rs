@@ -416,74 +416,50 @@ pub fn default_product_config() -> ProductConfig {
     }
 }
 
-pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (Uuid, String);
+pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> Uuid;
 
-/// Queries the database for the first active bot, falling back to Uuid::nil() if none exists.
-/// Returns (bot_id, bot_name).
-pub fn query_first_bot(conn: &mut diesel::PgConnection) -> (Uuid, String) {
+/// Queries the database for the first active bot's branch_id, falling back to Uuid::nil() if none exists.
+pub fn query_first_bot(conn: &mut diesel::PgConnection) -> Uuid {
     use diesel::prelude::*;
-    use diesel::sql_types::{Uuid as SqlUuid, Nullable, Text};
+    use diesel::sql_types::Uuid as SqlUuid;
 
     #[derive(diesel::QueryableByName, Debug)]
     struct BotRow {
         #[diesel(sql_type = SqlUuid)]
-        id: Uuid,
-        #[diesel(sql_type = Nullable<Text>)]
-        name: Option<String>,
+        branch_id: Uuid,
     }
 
     let result = diesel::sql_query(
-        "SELECT id, name FROM bots WHERE is_active = true ORDER BY created_at LIMIT 1"
+        "SELECT branch_id FROM bots WHERE is_active = true ORDER BY created_at LIMIT 1"
     )
     .load::<BotRow>(conn);
     match result {
-        Ok(rows) if !rows.is_empty() => {
-            let name = rows[0].name.clone().unwrap_or_else(|| "default".to_string());
-            (rows[0].id, name)
-        }
-        _ => (Uuid::nil(), "default".to_string()),
+        Ok(rows) if !rows.is_empty() => rows[0].branch_id,
+        _ => Uuid::nil(),
     }
 }
 
-pub fn get_bot_context(pool: &DbPool, get_default_bot: &Option<GetDefaultBotFn>) -> (Uuid, Uuid) {
-    use diesel::prelude::*;
-    use crate::schema::bots;
-
+pub fn get_bot_context(pool: &DbPool, get_default_bot: &Option<GetDefaultBotFn>) -> Uuid {
     let Ok(mut conn) = pool.get() else {
-        return (Uuid::nil(), Uuid::nil());
+        return Uuid::nil();
     };
+    resolve_branch_id(&mut conn, get_default_bot)
+}
 
-    let (bot_id, branch_id) = match get_default_bot {
+pub(crate) fn resolve_branch_id(
+    conn: &mut diesel::PgConnection,
+    get_default_bot: &Option<GetDefaultBotFn>,
+) -> Uuid {
+    match get_default_bot {
         Some(f) => {
-            let (bot_id, _) = f(&mut conn);
-            if bot_id == Uuid::nil() {
-                (Uuid::nil(), Uuid::nil())
+            let bid = f(conn);
+            if bid == Uuid::nil() {
+                Uuid::nil()
             } else {
-                let branch_id = bots::table
-                    .filter(bots::id.eq(bot_id))
-                    .select(bots::branch_id)
-                    .first::<Uuid>(&mut conn)
-                    .unwrap_or_else(|_| Uuid::nil());
-                (bot_id, branch_id)
+                bid
             }
         }
-        None => (Uuid::nil(), Uuid::nil()),
-    };
-
-    if bot_id != Uuid::nil() {
-        return (branch_id, bot_id);
-    }
-
-    // Fallback: pick the first bot from the database
-    let fallback = bots::table
-        .select((bots::id, bots::branch_id))
-        .first::<(Uuid, Uuid)>(&mut conn)
-        .optional()
-        .ok()
-        .flatten();
-    match fallback {
-        Some((bid, brid)) => (brid, bid),
-        None => (Uuid::nil(), Uuid::nil()),
+        None => Uuid::nil(),
     }
 }
 

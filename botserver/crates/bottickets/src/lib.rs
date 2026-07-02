@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 pub type DbPool = Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (Uuid, String);
+pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> Uuid;
 
 pub struct TicketsState {
     pub pool: Arc<DbPool>,
@@ -26,8 +26,7 @@ pub struct TicketsState {
 diesel::table! {
     support_tickets (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         ticket_number -> Varchar,
         subject -> Varchar,
         description -> Nullable<Text>,
@@ -69,8 +68,7 @@ diesel::table! {
 diesel::table! {
     ticket_sla_policies (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         priority -> Varchar,
         first_response_hours -> Int4,
@@ -85,8 +83,7 @@ diesel::table! {
 diesel::table! {
     ticket_canned_responses (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         title -> Varchar,
         content -> Text,
         category -> Nullable<Varchar>,
@@ -101,8 +98,7 @@ diesel::table! {
 diesel::table! {
     ticket_categories (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         parent_id -> Nullable<Uuid>,
@@ -117,8 +113,7 @@ diesel::table! {
 diesel::table! {
     ticket_tags (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         color -> Nullable<Varchar>,
         created_at -> Timestamptz,
@@ -129,8 +124,7 @@ diesel::table! {
 #[diesel(table_name = support_tickets)]
 pub struct SupportTicket {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub ticket_number: String,
     pub subject: String,
     pub description: Option<String>,
@@ -172,8 +166,7 @@ pub struct TicketComment {
 #[diesel(table_name = ticket_sla_policies)]
 pub struct TicketSlaPolicy {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub priority: String,
     pub first_response_hours: i32,
@@ -188,8 +181,7 @@ pub struct TicketSlaPolicy {
 #[diesel(table_name = ticket_canned_responses)]
 pub struct TicketCannedResponse {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub title: String,
     pub content: String,
     pub category: Option<String>,
@@ -204,8 +196,7 @@ pub struct TicketCannedResponse {
 #[diesel(table_name = ticket_categories)]
 pub struct TicketCategory {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub parent_id: Option<Uuid>,
@@ -220,8 +211,7 @@ pub struct TicketCategory {
 #[diesel(table_name = ticket_tags)]
 pub struct TicketTag {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub color: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -318,18 +308,47 @@ pub struct TicketWithComments {
     pub comments: Vec<TicketComment>,
 }
 
-fn get_bot_context(state: &Arc<TicketsState>) -> (Uuid, Uuid) {
-    let Ok(mut conn) = state.pool.get() else {
-        return (Uuid::nil(), Uuid::nil());
-    };
-    let (bot_id, _bot_name) = (state.get_default_bot)(&mut conn);
-    let org_id = Uuid::nil();
-    (org_id, bot_id)
+diesel::table! {
+    bots (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        slug -> Varchar,
+        org_id -> Uuid,
+        tenant_id -> Nullable<Uuid>,
+        is_default_for_branch -> Nullable<Bool>,
+        description -> Nullable<Text>,
+        is_public -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
+        avatar_url -> Nullable<Varchar>,
+        settings -> Nullable<Jsonb>,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        llm_provider -> Varchar,
+        llm_config -> Jsonb,
+        context_provider -> Varchar,
+        context_config -> Jsonb,
+        database_name -> Nullable<Varchar>,
+    }
 }
 
-fn generate_ticket_number(conn: &mut diesel::PgConnection, org_id: Uuid) -> String {
+fn get_bot_context(state: &Arc<TicketsState>) -> Uuid {
+    let Ok(mut conn) = state.pool.get() else {
+        return Uuid::nil();
+    };
+    let bid: Uuid = bots::table
+        .filter(bots::is_default_for_branch.eq(true))
+        .select(bots::branch_id)
+        .first(&mut conn)
+        .unwrap_or(Uuid::nil());
+    bid
+}
+
+fn generate_ticket_number(conn: &mut diesel::PgConnection, branch_id: Uuid) -> String {
     let count: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .count()
         .get_result(conn)
         .unwrap_or(0);
@@ -344,10 +363,10 @@ pub async fn create_ticket(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let ticket_number = generate_ticket_number(&mut conn, org_id);
+    let ticket_number = generate_ticket_number(&mut conn, branch_id);
 
     let due_date = req
         .due_date
@@ -356,8 +375,7 @@ pub async fn create_ticket(
 
     let ticket = SupportTicket {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         ticket_number,
         subject: req.subject,
         description: req.description,
@@ -397,13 +415,12 @@ pub async fn list_tickets(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(status) = query.status {
@@ -740,42 +757,37 @@ pub async fn get_ticket_stats(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let total_tickets: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let open_tickets: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("open"))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let pending_tickets: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("pending"))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let resolved_tickets: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("resolved"))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
 
     let closed_tickets: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.eq("closed"))
         .count()
         .get_result(&mut conn)
@@ -783,8 +795,7 @@ pub async fn get_ticket_stats(
 
     let now = Utc::now();
     let overdue_tickets: i64 = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.ne("closed"))
         .filter(support_tickets::status.ne("resolved"))
         .filter(support_tickets::due_date.lt(now))
@@ -812,12 +823,11 @@ pub async fn list_overdue_tickets(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let now = Utc::now();
 
     let tickets: Vec<SupportTicket> = support_tickets::table
-        .filter(support_tickets::org_id.eq(org_id))
-        .filter(support_tickets::bot_id.eq(bot_id))
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::status.ne("closed"))
         .filter(support_tickets::status.ne("resolved"))
         .filter(support_tickets::due_date.lt(now))
@@ -835,11 +845,9 @@ pub async fn list_canned_responses(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let responses: Vec<TicketCannedResponse> = ticket_canned_responses::table
-        .filter(ticket_canned_responses::org_id.eq(org_id))
-        .filter(ticket_canned_responses::bot_id.eq(bot_id))
         .filter(ticket_canned_responses::is_active.eq(true))
         .order(ticket_canned_responses::title.asc())
         .load(&mut conn)
@@ -856,14 +864,13 @@ pub async fn create_canned_response(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let response = TicketCannedResponse {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         title: req.title,
         content: req.content,
         category: req.category,
@@ -889,11 +896,9 @@ pub async fn list_categories(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let categories: Vec<TicketCategory> = ticket_categories::table
-        .filter(ticket_categories::org_id.eq(org_id))
-        .filter(ticket_categories::bot_id.eq(bot_id))
         .filter(ticket_categories::is_active.eq(true))
         .order(ticket_categories::sort_order.asc())
         .load(&mut conn)
@@ -910,21 +915,18 @@ pub async fn create_category(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let max_order: Option<i32> = ticket_categories::table
-        .filter(ticket_categories::org_id.eq(org_id))
-        .filter(ticket_categories::bot_id.eq(bot_id))
         .select(diesel::dsl::max(ticket_categories::sort_order))
         .first(&mut conn)
         .unwrap_or(None);
 
     let category = TicketCategory {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
         description: req.description,
         parent_id: req.parent_id,
@@ -950,11 +952,9 @@ pub async fn list_sla_policies(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let policies: Vec<TicketSlaPolicy> = ticket_sla_policies::table
-        .filter(ticket_sla_policies::org_id.eq(org_id))
-        .filter(ticket_sla_policies::bot_id.eq(bot_id))
         .filter(ticket_sla_policies::is_active.eq(true))
         .order(ticket_sla_policies::priority.asc())
         .load(&mut conn)
@@ -970,11 +970,9 @@ pub async fn list_tags(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let tags: Vec<TicketTag> = ticket_tags::table
-        .filter(ticket_tags::org_id.eq(org_id))
-        .filter(ticket_tags::bot_id.eq(bot_id))
         .order(ticket_tags::name.asc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;

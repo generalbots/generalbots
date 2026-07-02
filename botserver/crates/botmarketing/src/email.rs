@@ -86,13 +86,17 @@ pub async fn send_campaign_email(
         .map(|html| inject_tracking_pixel(&html, open_token, &base_url));
 
     let mut conn = state.conn.get().map_err(|e| format!("DB connection failed: {}", e))?;
+    let (branch_id, _) = state.get_bot_context();
 
     diesel::insert_into(email_tracking::table)
         .values((
             email_tracking::id.eq(tracking_id),
+            email_tracking::branch_id.eq(branch_id),
+            email_tracking::email.eq(&payload.to),
+            email_tracking::event_type.eq("campaign"),
             email_tracking::recipient_id.eq(payload.recipient_id),
             email_tracking::campaign_id.eq(payload.campaign_id),
-            email_tracking::open_token.eq(Some(open_token)),
+            email_tracking::open_token.eq(Some(open_token.to_string())),
             email_tracking::open_tracking_enabled.eq(true),
             email_tracking::opened.eq(false),
             email_tracking::clicked.eq(false),
@@ -155,25 +159,25 @@ pub async fn get_campaign_email_metrics(
 ) -> Result<CampaignMetrics, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-    let results: Vec<(bool, bool)> = email_tracking::table
+    let results: Vec<(Option<bool>, Option<bool>)> = email_tracking::table
         .filter(email_tracking::campaign_id.eq(campaign_id))
         .select((email_tracking::opened, email_tracking::clicked))
         .load(&mut conn)
         .map_err(|e| format!("Query error: {}", e))?;
 
     let total = results.len() as i64;
-    let opened = results.iter().filter(|pair| pair.0).count() as i64;
-    let clicked = results.iter().filter(|pair| pair.1).count() as i64;
+    let opened = results.iter().filter(|pair| pair.0.unwrap_or(false)).count() as i64;
+    let clicked = results.iter().filter(|pair| pair.1.unwrap_or(false)).count() as i64;
 
-    let recipients: Vec<(String, Option<DateTime<Utc>>)> = marketing_recipients::table
+    let recipients: Vec<(Option<String>, Option<DateTime<Utc>>)> = marketing_recipients::table
         .filter(marketing_recipients::campaign_id.eq(campaign_id))
-        .filter(marketing_recipients::channel.eq("email"))
+        .filter(marketing_recipients::channel.eq(Some("email")))
         .select((marketing_recipients::status, marketing_recipients::sent_at))
         .load(&mut conn)
         .map_err(|e| format!("Query error: {}", e))?;
 
-    let sent = recipients.iter().filter(|(s, _)| s == "sent").count() as i64;
-    let failed = recipients.iter().filter(|(s, _)| s == "failed").count() as i64;
+    let sent = recipients.iter().filter(|(s, _)| s.as_deref() == Some("sent")).count() as i64;
+    let failed = recipients.iter().filter(|(s, _)| s.as_deref() == Some("failed")).count() as i64;
     let delivered = sent;
 
     Ok(CampaignMetrics {
@@ -196,20 +200,22 @@ pub async fn send_bulk_campaign_emails(
     let mut sent = 0;
     let mut failed = 0;
 
+    let (bot_id, _) = state.get_bot_context();
+
     let campaign: CrmCampaign = marketing_campaigns::table
         .filter(marketing_campaigns::id.eq(campaign_id))
         .first(&mut *state.conn.get().map_err(|e| format!("DB error: {}", e))?)
         .map_err(|_| "Campaign not found")?;
 
-    let subject = campaign
-        .content_template
+    let default_metrics = serde_json::json!({});
+    let template_data = campaign.metrics.as_ref().unwrap_or(&default_metrics);
+    let subject = template_data
         .get("subject")
         .and_then(|s| s.as_str())
         .unwrap_or("Newsletter")
         .to_string();
 
-    let body_html = campaign
-        .content_template
+    let body_html = template_data
         .get("body")
         .and_then(|b| b.as_str())
         .map(String::from);
@@ -229,7 +235,7 @@ pub async fn send_bulk_campaign_emails(
             recipient_id: Some(contact_id),
         };
 
-        match send_campaign_email(state, campaign.bot_id, payload).await {
+        match send_campaign_email(state, bot_id, payload).await {
             Ok(result) => {
                 if result.success {
                     sent += 1;

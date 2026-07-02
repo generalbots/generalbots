@@ -18,14 +18,13 @@ pub async fn create_queue(
 ) -> Result<Json<AttendantQueue>, (StatusCode, String)> {
     let mut conn = db_conn!(config);
 
-    let (org_id, bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let queue = AttendantQueue {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         name: req.name,
         description: req.description,
         priority: req.priority.unwrap_or(0),
@@ -50,11 +49,10 @@ pub async fn list_queues(
 ) -> Result<Json<Vec<AttendantQueue>>, (StatusCode, String)> {
     let mut conn = db_conn!(config);
 
-    let (org_id, bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
 
     let queues: Vec<AttendantQueue> = attendant_queues::table
-        .filter(attendant_queues::org_id.eq(org_id))
-        .filter(attendant_queues::bot_id.eq(bot_id))
+        .filter(attendant_queues::branch_id.eq(branch_id))
         .filter(attendant_queues::is_active.eq(true))
         .order(attendant_queues::priority.desc())
         .load(&mut conn)
@@ -167,11 +165,10 @@ pub async fn list_canned_responses(
 ) -> Result<Json<Vec<CannedResponse>>, (StatusCode, String)> {
     let mut conn = db_conn!(config);
 
-    let (org_id, bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
 
     let responses: Vec<CannedResponse> = attendant_canned_responses::table
-        .filter(attendant_canned_responses::org_id.eq(org_id))
-        .filter(attendant_canned_responses::bot_id.eq(bot_id))
+        .filter(attendant_canned_responses::branch_id.eq(branch_id))
         .filter(attendant_canned_responses::is_active.eq(true))
         .order(attendant_canned_responses::title.asc())
         .load(&mut conn)
@@ -186,14 +183,13 @@ pub async fn create_canned_response(
 ) -> Result<Json<CannedResponse>, (StatusCode, String)> {
     let mut conn = db_conn!(config);
 
-    let (org_id, bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let response = CannedResponse {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         title: req.title,
         content: req.content,
         shortcut: req.shortcut,
@@ -219,11 +215,10 @@ pub async fn list_tags(
 ) -> Result<Json<Vec<AttendantTag>>, (StatusCode, String)> {
     let mut conn = db_conn!(config);
 
-    let (org_id, bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
 
     let tags: Vec<AttendantTag> = attendant_tags::table
-        .filter(attendant_tags::org_id.eq(org_id))
-        .filter(attendant_tags::bot_id.eq(bot_id))
+        .filter(attendant_tags::branch_id.eq(branch_id))
         .filter(attendant_tags::is_active.eq(true))
         .order(attendant_tags::name.asc())
         .load(&mut conn)
@@ -237,11 +232,10 @@ pub async fn list_wrap_up_codes(
 ) -> Result<Json<Vec<WrapUpCode>>, (StatusCode, String)> {
     let mut conn = db_conn!(config);
 
-    let (org_id, bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
 
     let codes: Vec<WrapUpCode> = attendant_wrap_up_codes::table
-        .filter(attendant_wrap_up_codes::org_id.eq(org_id))
-        .filter(attendant_wrap_up_codes::bot_id.eq(bot_id))
+        .filter(attendant_wrap_up_codes::branch_id.eq(branch_id))
         .filter(attendant_wrap_up_codes::is_active.eq(true))
         .order(attendant_wrap_up_codes::name.asc())
         .load(&mut conn)

@@ -1,33 +1,32 @@
 diesel::table! {
     billing_invoices (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         invoice_number -> Varchar,
-        customer_id -> Nullable<Uuid>,
-        customer_name -> Varchar,
+        customer_name -> Nullable<Varchar>,
         customer_email -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        total -> Nullable<Numeric>,
+        currency -> Nullable<Varchar>,
+        due_date -> Nullable<Date>,
+        paid_at -> Nullable<Timestamptz>,
+        notes -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        customer_id -> Nullable<Uuid>,
         customer_address -> Nullable<Text>,
-        status -> Varchar,
         issue_date -> Date,
-        due_date -> Date,
         subtotal -> Numeric,
         tax_rate -> Numeric,
         tax_amount -> Numeric,
         discount_percent -> Numeric,
         discount_amount -> Numeric,
-        total -> Numeric,
         amount_paid -> Numeric,
         amount_due -> Numeric,
-        currency -> Varchar,
-        notes -> Nullable<Text>,
         terms -> Nullable<Text>,
         footer -> Nullable<Text>,
-        paid_at -> Nullable<Timestamptz>,
         sent_at -> Nullable<Timestamptz>,
         voided_at -> Nullable<Timestamptz>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
@@ -50,53 +49,54 @@ diesel::table! {
 diesel::table! {
     billing_payments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         invoice_id -> Nullable<Uuid>,
-        payment_number -> Varchar,
         amount -> Numeric,
-        currency -> Varchar,
-        payment_method -> Varchar,
+        currency -> Nullable<Varchar>,
+        payment_method -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        paid_at -> Nullable<Timestamptz>,
+        gateway_response -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        payment_number -> Varchar,
         payment_reference -> Nullable<Varchar>,
-        status -> Varchar,
         payer_name -> Nullable<Varchar>,
         payer_email -> Nullable<Varchar>,
         notes -> Nullable<Text>,
-        paid_at -> Timestamptz,
         refunded_at -> Nullable<Timestamptz>,
         refund_amount -> Nullable<Numeric>,
-        created_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     billing_quotes (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         quote_number -> Varchar,
-        customer_id -> Nullable<Uuid>,
-        customer_name -> Varchar,
+        customer_name -> Nullable<Varchar>,
         customer_email -> Nullable<Varchar>,
+        items -> Nullable<Jsonb>,
+        total -> Nullable<Numeric>,
+        currency -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        valid_until -> Nullable<Date>,
+        notes -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        customer_id -> Nullable<Uuid>,
         customer_address -> Nullable<Text>,
-        status -> Varchar,
         issue_date -> Date,
-        valid_until -> Date,
         subtotal -> Numeric,
         tax_rate -> Numeric,
         tax_amount -> Numeric,
         discount_percent -> Numeric,
         discount_amount -> Numeric,
-        total -> Numeric,
-        currency -> Varchar,
-        notes -> Nullable<Text>,
         terms -> Nullable<Text>,
         accepted_at -> Nullable<Timestamptz>,
         rejected_at -> Nullable<Timestamptz>,
         converted_invoice_id -> Nullable<Uuid>,
         sent_at -> Nullable<Timestamptz>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
@@ -119,16 +119,22 @@ diesel::table! {
 diesel::table! {
     billing_recurring (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
+        plan_name -> Varchar,
+        amount -> Nullable<Numeric>,
+        currency -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        trial_end -> Nullable<Timestamptz>,
+        current_period_start -> Nullable<Timestamptz>,
+        current_period_end -> Nullable<Timestamptz>,
+        cancelled_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         customer_id -> Nullable<Uuid>,
         customer_name -> Varchar,
         customer_email -> Nullable<Varchar>,
-        status -> Varchar,
         frequency -> Varchar,
         interval_count -> Int4,
-        amount -> Numeric,
-        currency -> Varchar,
         description -> Nullable<Text>,
         next_invoice_date -> Date,
         last_invoice_date -> Nullable<Date>,
@@ -136,106 +142,109 @@ diesel::table! {
         start_date -> Date,
         end_date -> Nullable<Date>,
         invoices_generated -> Int4,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     billing_tax_rates (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
         rate -> Numeric,
-        description -> Nullable<Text>,
+        country -> Nullable<Varchar>,
         region -> Nullable<Varchar>,
-        is_default -> Bool,
-        is_active -> Bool,
+        is_default -> Nullable<Bool>,
         created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        description -> Nullable<Text>,
+        is_active -> Bool,
     }
 }
 
 diesel::table! {
     products (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        sku -> Nullable<Varchar>,
+        branch_id -> Uuid,
         name -> Varchar,
+        sku -> Varchar,
         description -> Nullable<Text>,
+        price -> Nullable<Numeric>,
+        currency -> Nullable<Varchar>,
+        stock_quantity -> Nullable<Int4>,
+        category_id -> Nullable<Uuid>,
+        attributes -> Nullable<Jsonb>,
+        is_public -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         category -> Nullable<Varchar>,
         product_type -> Varchar,
-        price -> Numeric,
         cost -> Nullable<Numeric>,
-        currency -> Varchar,
         tax_rate -> Numeric,
         unit -> Varchar,
-        stock_quantity -> Int4,
         low_stock_threshold -> Int4,
-        is_active -> Bool,
         images -> Jsonb,
-        attributes -> Jsonb,
         weight -> Nullable<Numeric>,
         dimensions -> Nullable<Jsonb>,
         barcode -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     services (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
+        sku -> Varchar,
         description -> Nullable<Text>,
+        price -> Nullable<Numeric>,
+        currency -> Nullable<Varchar>,
+        is_recurring -> Nullable<Bool>,
+        billing_cycle -> Nullable<Varchar>,
+        attributes -> Nullable<Jsonb>,
+        is_active -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         category -> Nullable<Varchar>,
         service_type -> Varchar,
         hourly_rate -> Nullable<Numeric>,
         fixed_price -> Nullable<Numeric>,
-        currency -> Varchar,
         duration_minutes -> Nullable<Int4>,
-        is_active -> Bool,
-        attributes -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     product_categories (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
+        slug -> Varchar,
         description -> Nullable<Text>,
         parent_id -> Nullable<Uuid>,
-        slug -> Nullable<Varchar>,
+        display_order -> Nullable<Int4>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         image_url -> Nullable<Text>,
         sort_order -> Int4,
         is_active -> Bool,
-        created_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     price_lists (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         name -> Varchar,
-        description -> Nullable<Text>,
-        currency -> Varchar,
-        is_default -> Bool,
+        currency -> Nullable<Varchar>,
+        is_active -> Nullable<Bool>,
         valid_from -> Nullable<Date>,
         valid_until -> Nullable<Date>,
-        customer_group -> Nullable<Varchar>,
-        discount_percent -> Numeric,
-        is_active -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        description -> Nullable<Text>,
+        is_default -> Bool,
+        customer_group -> Nullable<Varchar>,
+        discount_percent -> Numeric,
     }
 }
 
@@ -254,16 +263,17 @@ diesel::table! {
 diesel::table! {
     inventory_movements (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         product_id -> Uuid,
-        movement_type -> Varchar,
         quantity -> Int4,
+        movement_type -> Varchar,
+        reference -> Nullable<Varchar>,
+        notes -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         reference_type -> Nullable<Varchar>,
         reference_id -> Nullable<Uuid>,
-        notes -> Nullable<Text>,
         created_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
     }
 }
 
@@ -293,31 +303,36 @@ diesel::table! {
 diesel::table! {
     billing_usage_alerts (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
+        threshold -> Numeric,
         metric -> Varchar,
+        recipients -> Text,
+        is_active -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         severity -> Varchar,
         current_usage -> Int8,
         usage_limit -> Int8,
         percentage -> Numeric,
-        threshold -> Numeric,
         message -> Text,
         acknowledged_at -> Nullable<Timestamptz>,
         acknowledged_by -> Nullable<Uuid>,
         notification_sent -> Bool,
         notification_channels -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     billing_alert_history (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        alert_id -> Uuid,
+        branch_id -> Uuid,
+        alert_id -> Nullable<Uuid>,
         metric -> Varchar,
+        value -> Numeric,
+        threshold -> Numeric,
+        sent_at -> Timestamptz,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         severity -> Varchar,
         current_usage -> Int8,
         usage_limit -> Int8,
@@ -327,16 +342,18 @@ diesel::table! {
         acknowledged_by -> Nullable<Uuid>,
         resolved_at -> Nullable<Timestamptz>,
         resolution_type -> Nullable<Varchar>,
-        created_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     billing_notification_preferences (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        enabled -> Bool,
+        branch_id -> Uuid,
+        event_type -> Varchar,
+        channel -> Varchar,
+        enabled -> Nullable<Bool>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         channels -> Jsonb,
         email_recipients -> Jsonb,
         webhook_url -> Nullable<Text>,
@@ -350,16 +367,19 @@ diesel::table! {
         quiet_hours_timezone -> Nullable<Varchar>,
         quiet_hours_days -> Nullable<Jsonb>,
         metric_overrides -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     billing_grace_periods (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
+        subscription_id -> Nullable<Uuid>,
+        starts_at -> Timestamptz,
+        ends_at -> Timestamptz,
+        reason -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
         metric -> Varchar,
         started_at -> Timestamptz,
         expires_at -> Timestamptz,
@@ -369,47 +389,8 @@ diesel::table! {
         is_active -> Bool,
         ended_at -> Nullable<Timestamptz>,
         end_reason -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
     }
 }
-
-diesel::joinable!(billing_invoices -> organizations (org_id));
-diesel::joinable!(billing_invoices -> bots (bot_id));
-diesel::joinable!(billing_invoice_items -> billing_invoices (invoice_id));
-diesel::joinable!(billing_payments -> organizations (org_id));
-diesel::joinable!(billing_payments -> bots (bot_id));
-diesel::joinable!(billing_payments -> billing_invoices (invoice_id));
-diesel::joinable!(billing_quotes -> organizations (org_id));
-diesel::joinable!(billing_quotes -> bots (bot_id));
-diesel::joinable!(billing_quote_items -> billing_quotes (quote_id));
-diesel::joinable!(billing_recurring -> organizations (org_id));
-diesel::joinable!(billing_recurring -> bots (bot_id));
-diesel::joinable!(billing_tax_rates -> organizations (org_id));
-diesel::joinable!(billing_tax_rates -> bots (bot_id));
-diesel::joinable!(products -> organizations (org_id));
-diesel::joinable!(products -> bots (bot_id));
-diesel::joinable!(services -> organizations (org_id));
-diesel::joinable!(services -> bots (bot_id));
-diesel::joinable!(product_categories -> organizations (org_id));
-diesel::joinable!(product_categories -> bots (bot_id));
-diesel::joinable!(price_lists -> organizations (org_id));
-diesel::joinable!(price_lists -> bots (bot_id));
-diesel::joinable!(price_list_items -> price_lists (price_list_id));
-diesel::joinable!(price_list_items -> products (product_id));
-diesel::joinable!(price_list_items -> services (service_id));
-diesel::joinable!(inventory_movements -> organizations (org_id));
-diesel::joinable!(inventory_movements -> bots (bot_id));
-diesel::joinable!(inventory_movements -> products (product_id));
-diesel::joinable!(product_variants -> products (product_id));
-diesel::joinable!(billing_usage_alerts -> organizations (org_id));
-diesel::joinable!(billing_usage_alerts -> bots (bot_id));
-diesel::joinable!(billing_alert_history -> organizations (org_id));
-diesel::joinable!(billing_alert_history -> bots (bot_id));
-diesel::joinable!(billing_notification_preferences -> organizations (org_id));
-diesel::joinable!(billing_notification_preferences -> bots (bot_id));
-diesel::joinable!(billing_grace_periods -> organizations (org_id));
-diesel::joinable!(billing_grace_periods -> bots (bot_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     billing_invoices,
@@ -442,5 +423,24 @@ diesel::table! {
     bots (id) {
         id -> Uuid,
         branch_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        slug -> Varchar,
+        org_id -> Uuid,
+        tenant_id -> Nullable<Uuid>,
+        is_default_for_branch -> Nullable<Bool>,
+        description -> Nullable<Text>,
+        is_public -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
+        avatar_url -> Nullable<Varchar>,
+        settings -> Nullable<Jsonb>,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        llm_provider -> Varchar,
+        llm_config -> Jsonb,
+        context_provider -> Varchar,
+        context_config -> Jsonb,
+        database_name -> Nullable<Varchar>,
     }
 }

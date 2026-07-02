@@ -174,12 +174,12 @@ async fn process_checkout_completed(
             .map_err(|e| format!("invoice not found: {e}"))?
     };
 
-    let total = botbilling::api_models::bd_to_f64(&invoice.total);
+    let total = invoice.total.as_ref().map(|t| botbilling::api_models::bd_to_f64(t)).unwrap_or(0.0);
     let plan_label = metadata.get("plan").cloned().unwrap_or_else(|| "unknown".to_string());
 
     // 2. CRM: mark deal as won
-    let deal_name = format!("Subscription {} - {}", plan_label, invoice.customer_name);
-    let _ = integration::win_crm_deal(service.pool(), invoice.org_id, &deal_name)
+    let deal_name = format!("Subscription {} - {}", plan_label, invoice.customer_name.as_deref().unwrap_or(""));
+    let _ = integration::win_crm_deal(service.pool(), invoice.branch_id, &deal_name)
         .map_err(|e| tracing::warn!("CRM win deal failed: {e}"));
 
     // 3. ERP (GL): posts accounting entry
@@ -187,7 +187,7 @@ async fn process_checkout_completed(
         service.pool(),
         invoice_id,
         total,
-        &invoice.customer_name,
+        invoice.customer_name.as_deref().unwrap_or(""),
     )
     .map_err(|e| tracing::warn!("GL entry failed: {e}"));
 
@@ -195,13 +195,13 @@ async fn process_checkout_completed(
     let email_ref = invoice.customer_email.clone().unwrap_or_default();
     let _ = integration::create_billing_subscription(
         service.pool(),
-        invoice.org_id,
-        invoice.bot_id,
-        &invoice.customer_name,
+        invoice.branch_id,
+        invoice.branch_id,
+        invoice.customer_name.as_deref().unwrap_or(""),
         &email_ref,
         &plan_label,
         total,
-        &invoice.currency,
+        invoice.currency.as_deref().unwrap_or(""),
         invoice_id,
         "monthly",
     )
@@ -209,11 +209,11 @@ async fn process_checkout_completed(
 
     // --- Notifications ---
     let mut vars = notifier::EmailVars::new(
-        &invoice.customer_name,
+        invoice.customer_name.as_deref().unwrap_or(""),
         invoice.customer_email.as_deref().unwrap_or(""),
         &plan_label,
         total,
-        &invoice.currency,
+        invoice.currency.as_deref().unwrap_or(""),
     );
     vars.invoice_id = invoice_id.to_string();
     notifier::notify_payment_success(&vars);
@@ -253,32 +253,31 @@ async fn process_invoice_paid(
         .first::<botbilling::api_models::BillingRecurring>(&mut conn)
         .map_err(|_| format!("billing_recurring not found for email {customer_email}"))?;
 
-    let total = botbilling::api_models::bd_to_f64(&recurring.amount);
+    let total = recurring.amount.as_ref().map(|t| botbilling::api_models::bd_to_f64(t)).unwrap_or(0.0);
 
     // Generate new invoice for the period
     let new_invoice_id = Uuid::new_v4();
     let invoice_number =
-        botbilling::api_models::generate_invoice_number(&mut conn, recurring.org_id);
+        botbilling::api_models::generate_invoice_number(&mut conn, recurring.branch_id);
 
     let new_invoice = botbilling::api_models::BillingInvoice {
         id: new_invoice_id,
-        org_id: recurring.org_id,
-        bot_id: recurring.bot_id,
+        branch_id: recurring.branch_id,
         invoice_number,
         customer_id: None,
-        customer_name: recurring.customer_name.clone(),
+        customer_name: Some(recurring.customer_name.clone()),
         customer_email: recurring.customer_email.clone(),
         customer_address: None,
-        status: "paid".to_string(),
+        status: Some("paid".to_string()),
         issue_date: now.date_naive(),
-        due_date: (now + chrono::Duration::days(30)).date_naive(),
-        subtotal: recurring.amount.clone(),
+        due_date: Some((now + chrono::Duration::days(30)).date_naive()),
+        subtotal: recurring.amount.clone().unwrap_or_else(|| botbilling::api_models::bd(0.0)),
         tax_rate: botbilling::api_models::bd(0.0),
         tax_amount: botbilling::api_models::bd(0.0),
         discount_percent: botbilling::api_models::bd(0.0),
         discount_amount: botbilling::api_models::bd(0.0),
         total: recurring.amount.clone(),
-        amount_paid: recurring.amount.clone(),
+        amount_paid: recurring.amount.clone().unwrap_or_else(|| botbilling::api_models::bd(0.0)),
         amount_due: botbilling::api_models::bd(0.0),
         currency: recurring.currency.clone(),
         notes: Some(format!("Recurring charge - {}", recurring.description.as_deref().unwrap_or("subscription"))),
@@ -302,10 +301,10 @@ async fn process_invoice_paid(
         product_id: None,
         description: recurring.description.clone().unwrap_or_else(|| "Subscription".to_string()),
         quantity: botbilling::api_models::bd(1.0),
-        unit_price: recurring.amount.clone(),
+        unit_price: recurring.amount.clone().unwrap_or_else(|| botbilling::api_models::bd(0.0)),
         discount_percent: botbilling::api_models::bd(0.0),
         tax_rate: botbilling::api_models::bd(0.0),
-        amount: recurring.amount.clone(),
+        amount: recurring.amount.clone().unwrap_or_else(|| botbilling::api_models::bd(0.0)),
         sort_order: 0,
         created_at: now,
     };
@@ -352,7 +351,7 @@ async fn process_invoice_paid(
         recurring.customer_email.as_deref().unwrap_or(""),
         &recurring.description.clone().unwrap_or_else(|| "subscription".to_string()),
         total,
-        &recurring.currency,
+        recurring.currency.as_deref().unwrap_or(""),
     );
     vars.invoice_id = new_invoice_id.to_string();
     notifier::notify_recurring_charge(&vars);
@@ -415,12 +414,13 @@ async fn process_invoice_payment_failed(
     ))
     .execute(&mut conn);
 
+    let amount_f64 = recurring.amount.as_ref().map(|a| botbilling::api_models::bd_to_f64(a)).unwrap_or(0.0);
     let mut vars = notifier::EmailVars::new(
         &recurring.customer_name,
         recurring.customer_email.as_deref().unwrap_or(""),
         &recurring.description.clone().unwrap_or_else(|| "subscription".to_string()),
-        botbilling::api_models::bd_to_f64(&recurring.amount),
-        &recurring.currency,
+        amount_f64,
+        recurring.currency.as_deref().unwrap_or(""),
     );
     vars.invoice_id = recurring.last_invoice_id.unwrap_or(Uuid::nil()).to_string();
     notifier::notify_payment_failed(&vars);

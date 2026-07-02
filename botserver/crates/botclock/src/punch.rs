@@ -47,6 +47,7 @@ pub enum PunchChannel {
 /// A single recorded punch.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Punch {
+    /// Punch unique identifier.
     pub id: Uuid,
     /// Employee user ID.
     pub employee_id: String,

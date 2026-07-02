@@ -3,8 +3,6 @@ use diesel::prelude::*;
 table! {
     dashboards (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
         owner_id -> Uuid,
         name -> Text,
         description -> Nullable<Text>,
@@ -39,8 +37,6 @@ table! {
 table! {
     dashboard_data_sources (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
         name -> Text,
         description -> Nullable<Text>,
         source_type -> Text,
@@ -71,8 +67,6 @@ table! {
 table! {
     conversational_queries (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
         dashboard_id -> Nullable<Uuid>,
         user_id -> Uuid,
         natural_language -> Text,

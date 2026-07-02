@@ -21,7 +21,7 @@ pub async fn create_opportunity(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let branch_id = state.get_bot_context();
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -33,20 +33,19 @@ pub async fn create_opportunity(
 
     let opportunity = CrmDeal {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         lead_id: req.lead_id,
         account_id: req.account_id,
         contact_id: req.contact_id,
         am_id: None,
         title: None,
-        name: Some(req.name),
+        name: req.name,
         description: req.description,
         value: req.value,
         currency: req.currency.or(Some("USD".to_string())),
         stage_id: None,
         stage: Some(stage),
-        probability,
+        probability: Some(probability),
         source: None,
         segment_id: None,
         department_id: None,
@@ -59,10 +58,10 @@ pub async fn create_opportunity(
         lost_reason: None,
         closed_at: None,
         notes: None,
-        tags: vec![],
+        tags: None,
         custom_fields: serde_json::json!({}),
         created_at: now,
-        updated_at: Some(now),
+        updated_at: now,
     };
 
     diesel::insert_into(crm_deals::table)
@@ -81,13 +80,12 @@ pub async fn list_opportunities(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = state.get_bot_context();
+    let branch_id = state.get_bot_context();
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = crm_deals::table
-        .filter(crm_deals::org_id.eq(org_id))
-        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(stage) = query.stage {

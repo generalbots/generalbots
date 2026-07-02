@@ -1,170 +1,96 @@
-use diesel::prelude::*;
+// @generated automatically by script from migration SQL for issue #707.
+// Diesel table definitions for branch-scope cleanup.
 
-table! {
-    knowledge_sources (id) {
-        id -> Text,
-        name -> Text,
-        source_type -> Text,
-        file_path -> Nullable<Text>,
-        url -> Nullable<Text>,
-        content_hash -> Text,
-        chunk_count -> Integer,
-        status -> Text,
-        collection -> Nullable<Text>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        indexed_at -> Nullable<Timestamptz>,
-    }
-}
-
-table! {
-    knowledge_chunks (id) {
-        id -> Text,
-        source_id -> Text,
-        chunk_index -> Integer,
-        content -> Text,
-        token_count -> Integer,
-        created_at -> Timestamptz,
-    }
-}
-
-table! {
+diesel::table! {
     bot_configuration (id) {
         id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
-        config_key -> Text,
+        config_key -> Varchar,
         config_value -> Text,
-        config_type -> Text,
-        is_encrypted -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     connectors (id) {
         id -> Uuid,
-        bot_id -> Uuid,
-        name -> Text,
-        connector_type -> Text,
-        description -> Nullable<Text>,
-        auth_config -> Jsonb,
-        schedule -> Nullable<Text>,
-        is_active -> Bool,
-        last_sync_at -> Nullable<Timestamptz>,
-        last_sync_status -> Nullable<Text>,
-        error_log -> Nullable<Text>,
+        branch_id -> Uuid,
+        name -> Varchar,
+        connector_type -> Varchar,
+        config -> Nullable<Jsonb>,
+        is_active -> Nullable<Bool>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
 }
 
-table! {
-    connector_endpoints (id) {
-        id -> Uuid,
-        connector_id -> Uuid,
-        name -> Text,
-        method -> Text,
-        url -> Text,
-        headers -> Nullable<Jsonb>,
-        sync_direction -> Text,
-        field_mapping -> Jsonb,
-        schedule -> Nullable<Text>,
-        pagination -> Nullable<Jsonb>,
-        last_sync_at -> Nullable<Timestamptz>,
-        created_at -> Timestamptz,
-    }
-}
-
-table! {
-    connector_sync_logs (id) {
-        id -> Uuid,
-        connector_id -> Uuid,
-        endpoint_id -> Nullable<Uuid>,
-        status -> Text,
-        records_synced -> BigInt,
-        records_failed -> BigInt,
-        duration_ms -> BigInt,
-        error_message -> Nullable<Text>,
-        started_at -> Timestamptz,
-        completed_at -> Nullable<Timestamptz>,
-    }
-}
-
-table! {
+diesel::table! {
     delivery_transactions (id) {
         id -> Uuid,
-        bot_id -> Uuid,
-        platform -> Text,
-        platform_order_id -> Text,
-        order_date -> Date,
-        customer_name -> Nullable<Text>,
-        items -> Nullable<Jsonb>,
-        subtotal -> Numeric,
-        delivery_fee -> Numeric,
-        platform_commission -> Numeric,
-        net_value -> Numeric,
-        payment_method -> Nullable<Text>,
-        status -> Text,
-        reconciled -> Bool,
-        reconciled_at -> Nullable<Timestamptz>,
+        branch_id -> Uuid,
+        transaction_id -> Varchar,
+        amount -> Unknown(DECIMAL(15,2)),
+        currency -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        source -> Nullable<Varchar>,
+        destination -> Nullable<Varchar>,
+        metadata -> Nullable<Jsonb>,
         created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     bank_transactions (id) {
         id -> Uuid,
-        bot_id -> Uuid,
-        bank -> Nullable<Text>,
-        account -> Nullable<Text>,
+        branch_id -> Uuid,
+        external_id -> Nullable<Varchar>,
+        description -> Nullable<Text>,
+        amount -> Unknown(DECIMAL(15,2)),
+        currency -> Nullable<Varchar>,
         transaction_date -> Date,
-        description -> Text,
-        amount -> Numeric,
-        balance -> Nullable<Numeric>,
-        category -> Nullable<Text>,
-        reconciled -> Bool,
-        reconciled_at -> Nullable<Timestamptz>,
-        matched_delivery_id -> Nullable<Uuid>,
+        category -> Nullable<Varchar>,
+        reconciled -> Nullable<Bool>,
         created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     reconciliation_rules (id) {
         id -> Uuid,
-        bot_id -> Uuid,
-        name -> Text,
-        match_field -> Text,
-        match_operator -> Text,
-        match_value -> Text,
-        category -> Nullable<Text>,
-        auto_reconcile -> Bool,
-        is_active -> Bool,
+        branch_id -> Uuid,
+        name -> Varchar,
+        rule_type -> Varchar,
+        conditions -> Jsonb,
+        action -> Varchar,
+        is_active -> Nullable<Bool>,
         created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
     reconciliation_runs (id) {
         id -> Uuid,
-        bot_id -> Uuid,
-        status -> Text,
-        matched_count -> Integer,
-        unmatched_count -> Integer,
-        total_amount_matched -> Numeric,
-        started_at -> Timestamptz,
+        branch_id -> Uuid,
+        run_date -> Date,
+        status -> Nullable<Varchar>,
+        total_matched -> Nullable<Int4>,
+        total_unmatched -> Nullable<Int4>,
+        started_at -> Nullable<Timestamptz>,
         completed_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
-allow_tables_to_appear_in_same_query!(
-    knowledge_sources,
-    knowledge_chunks,
+
+diesel::allow_tables_to_appear_in_same_query!(
     bot_configuration,
     connectors,
-    connector_endpoints,
-    connector_sync_logs,
     delivery_transactions,
     bank_transactions,
     reconciliation_rules,

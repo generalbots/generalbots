@@ -1,10 +1,9 @@
-use crate::core::{bots, branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     legal_documents (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         slug -> Varchar,
         title -> Varchar,
         content -> Text,
@@ -35,8 +34,7 @@ diesel::table! {
 diesel::table! {
     cookie_consents (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         user_id -> Nullable<Uuid>,
         session_id -> Nullable<Varchar>,
         ip_address -> Nullable<Varchar>,
@@ -71,8 +69,7 @@ diesel::table! {
 diesel::table! {
     legal_acceptances (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         user_id -> Uuid,
         document_id -> Uuid,
         document_version -> Varchar,
@@ -85,8 +82,7 @@ diesel::table! {
 diesel::table! {
     data_deletion_requests (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         user_id -> Uuid,
         request_type -> Varchar,
         status -> Varchar,
@@ -106,8 +102,7 @@ diesel::table! {
 diesel::table! {
     data_export_requests (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         user_id -> Uuid,
         status -> Varchar,
         format -> Varchar,
@@ -126,8 +121,7 @@ diesel::table! {
 diesel::table! {
     compliance_checks (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         framework -> Varchar,
         control_id -> Varchar,
         control_name -> Varchar,
@@ -145,8 +139,7 @@ diesel::table! {
 diesel::table! {
     compliance_issues (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         check_id -> Nullable<Uuid>,
         severity -> Varchar,
         title -> Varchar,
@@ -166,8 +159,7 @@ diesel::table! {
 diesel::table! {
     compliance_audit_log (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         event_type -> Varchar,
         user_id -> Nullable<Uuid>,
         resource_type -> Varchar,
@@ -184,8 +176,7 @@ diesel::table! {
 diesel::table! {
     compliance_evidence (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         check_id -> Nullable<Uuid>,
         issue_id -> Nullable<Uuid>,
         evidence_type -> Varchar,
@@ -205,8 +196,7 @@ diesel::table! {
 diesel::table! {
     compliance_risk_assessments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         title -> Varchar,
         assessor_id -> Uuid,
         methodology -> Varchar,
@@ -245,8 +235,7 @@ diesel::table! {
 diesel::table! {
     compliance_training_records (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         user_id -> Uuid,
         training_type -> Varchar,
         training_name -> Varchar,
@@ -264,8 +253,7 @@ diesel::table! {
 diesel::table! {
     compliance_access_reviews (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         user_id -> Uuid,
         reviewer_id -> Uuid,
         review_date -> Timestamptz,
@@ -280,33 +268,21 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(legal_documents -> organizations (org_id));
 diesel::joinable!(legal_documents -> branches (branch_id));
 diesel::joinable!(legal_document_versions -> legal_documents (document_id));
-diesel::joinable!(cookie_consents -> organizations (org_id));
 diesel::joinable!(cookie_consents -> branches (branch_id));
 diesel::joinable!(consent_history -> cookie_consents (consent_id));
-diesel::joinable!(legal_acceptances -> organizations (org_id));
 diesel::joinable!(legal_acceptances -> branches (branch_id));
 diesel::joinable!(legal_acceptances -> legal_documents (document_id));
-diesel::joinable!(data_deletion_requests -> organizations (org_id));
 diesel::joinable!(data_deletion_requests -> branches (branch_id));
-diesel::joinable!(data_export_requests -> organizations (org_id));
 diesel::joinable!(data_export_requests -> branches (branch_id));
 
-diesel::joinable!(compliance_checks -> organizations (org_id));
 diesel::joinable!(compliance_checks -> branches (branch_id));
-diesel::joinable!(compliance_issues -> organizations (org_id));
 diesel::joinable!(compliance_issues -> branches (branch_id));
 diesel::joinable!(compliance_issues -> compliance_checks (check_id));
-diesel::joinable!(compliance_audit_log -> organizations (org_id));
 diesel::joinable!(compliance_audit_log -> branches (branch_id));
-diesel::joinable!(compliance_evidence -> organizations (org_id));
 diesel::joinable!(compliance_evidence -> branches (branch_id));
-diesel::joinable!(compliance_risk_assessments -> organizations (org_id));
 diesel::joinable!(compliance_risk_assessments -> branches (branch_id));
 diesel::joinable!(compliance_risks -> compliance_risk_assessments (assessment_id));
-diesel::joinable!(compliance_training_records -> organizations (org_id));
 diesel::joinable!(compliance_training_records -> branches (branch_id));
-diesel::joinable!(compliance_access_reviews -> organizations (org_id));
 diesel::joinable!(compliance_access_reviews -> branches (branch_id));

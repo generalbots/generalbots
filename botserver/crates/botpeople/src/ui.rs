@@ -109,10 +109,10 @@ async fn handle_people_list(
 
     let result: Option<Vec<PersonListRow>> = tokio::task::spawn_blocking(move || -> Option<Vec<PersonListRow>> {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let mut db_query = people::table
-            .filter(people::bot_id.eq(bot_id))
+            .filter(people::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(ref dept) = query.department {
@@ -234,10 +234,10 @@ async fn handle_people_cards(
 
     let result: Option<Vec<PersonCardRow>> = tokio::task::spawn_blocking(move || -> Option<Vec<PersonCardRow>> {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let mut db_query = people::table
-            .filter(people::bot_id.eq(bot_id))
+            .filter(people::branch_id.eq(branch_id))
             .filter(people::is_active.eq(true))
             .into_boxed();
 
@@ -325,10 +325,10 @@ async fn handle_people_count(State(state): State<Arc<PeopleState>>) -> Html<Stri
 
     let result: Option<i64> = tokio::task::spawn_blocking(move || -> Option<i64> {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         people::table
-            .filter(people::bot_id.eq(bot_id))
+            .filter(people::branch_id.eq(branch_id))
             .count()
             .get_result::<i64>(&mut conn)
             .ok()
@@ -346,10 +346,10 @@ async fn handle_active_count(State(state): State<Arc<PeopleState>>) -> Html<Stri
 
     let result: Option<i64> = tokio::task::spawn_blocking(move || -> Option<i64> {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         people::table
-            .filter(people::bot_id.eq(bot_id))
+            .filter(people::branch_id.eq(branch_id))
             .filter(people::is_active.eq(true))
             .count()
             .get_result::<i64>(&mut conn)
@@ -507,10 +507,10 @@ async fn handle_departments_list(State(state): State<Arc<PeopleState>>) -> Html<
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         people_departments::table
-            .filter(people_departments::bot_id.eq(bot_id))
+            .filter(people_departments::branch_id.eq(branch_id))
             .filter(people_departments::is_active.eq(true))
             .order(people_departments::name.asc())
             .select((
@@ -568,10 +568,10 @@ async fn handle_teams_list(State(state): State<Arc<PeopleState>>) -> Html<String
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         people_teams::table
-            .filter(people_teams::bot_id.eq(bot_id))
+            .filter(people_teams::branch_id.eq(branch_id))
             .filter(people_teams::is_active.eq(true))
             .order(people_teams::name.asc())
             .select((
@@ -627,10 +627,10 @@ async fn handle_time_off_list(State(state): State<Arc<PeopleState>>) -> Html<Str
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         people_time_off::table
-            .filter(people_time_off::bot_id.eq(bot_id))
+            .filter(people_time_off::branch_id.eq(branch_id))
             .filter(people_time_off::status.eq("pending"))
             .order(people_time_off::created_at.desc())
             .limit(20)
@@ -710,10 +710,10 @@ async fn handle_people_search(
 
     let result: Option<Vec<PersonSearchRow>> = tokio::task::spawn_blocking(move || -> Option<Vec<PersonSearchRow>> {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         people::table
-            .filter(people::bot_id.eq(bot_id))
+            .filter(people::branch_id.eq(branch_id))
             .filter(
                 people::first_name.ilike(&search_term)
                     .or(people::last_name.ilike(&search_term))
@@ -782,37 +782,37 @@ async fn handle_people_stats(State(state): State<Arc<PeopleState>>) -> Html<Stri
 
     let result = tokio::task::spawn_blocking(move || -> Option<(i64, i64, i64, i64, i64)> {
         let mut conn = pool.get().ok()?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let total: i64 = people::table
-            .filter(people::bot_id.eq(bot_id))
+            .filter(people::branch_id.eq(branch_id))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let active: i64 = people::table
-            .filter(people::bot_id.eq(bot_id))
+            .filter(people::branch_id.eq(branch_id))
             .filter(people::is_active.eq(true))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let departments: i64 = people_departments::table
-            .filter(people_departments::bot_id.eq(bot_id))
+            .filter(people_departments::branch_id.eq(branch_id))
             .filter(people_departments::is_active.eq(true))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let teams: i64 = people_teams::table
-            .filter(people_teams::bot_id.eq(bot_id))
+            .filter(people_teams::branch_id.eq(branch_id))
             .filter(people_teams::is_active.eq(true))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let pending_time_off: i64 = people_time_off::table
-            .filter(people_time_off::bot_id.eq(bot_id))
+            .filter(people_time_off::branch_id.eq(branch_id))
             .filter(people_time_off::status.eq("pending"))
             .count()
             .get_result(&mut conn)

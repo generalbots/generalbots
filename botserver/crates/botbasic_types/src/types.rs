@@ -8,6 +8,7 @@ use uuid::Uuid;
 pub struct UserSession {
     pub id: Uuid,
     pub user_id: Uuid,
+    pub branch_id: Uuid,
     pub bot_id: Uuid,
     pub title: String,
     pub context_data: serde_json::Value,
@@ -79,6 +80,6 @@ pub type DbPool = botlib::db_pool::DbPool;
 
 impl From<botlib::models::UserSession> for UserSession {
     fn from(u: botlib::models::UserSession) -> Self {
-        Self { id: u.id, user_id: u.user_id, bot_id: u.bot_id, title: u.title, context_data: u.context_data, current_tool: u.current_tool, created_at: u.created_at, updated_at: u.updated_at }
+        Self { id: u.id, user_id: u.user_id, branch_id: u.branch_id, bot_id: u.bot_id, title: u.title, context_data: u.context_data, current_tool: u.current_tool, created_at: u.created_at, updated_at: u.updated_at }
     }
 }

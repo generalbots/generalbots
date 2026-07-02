@@ -260,7 +260,7 @@ async fn handle_plan_connection(
         }
     });
 
-    let _ = (tokio::join!(receive, send));
+    let _ = tokio::join!(receive, send);
 
     {
         let mut presence = get_plan_presence().write().await;

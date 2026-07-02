@@ -36,10 +36,10 @@ pub async fn create_invoice(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let invoice_number = generate_invoice_number(&mut conn, org_id);
+    let invoice_number = generate_invoice_number(&mut conn, branch_id);
 
     let issue_date = req
         .issue_date
@@ -67,35 +67,34 @@ pub async fn create_invoice(
     let tax_amount = &taxable * &tax_rate / bd(100.0);
     let total = &taxable + &tax_amount;
 
-    let invoice = BillingInvoice {
+        let invoice = BillingInvoice {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         invoice_number,
+        customer_name: req.customer_name.clone(),
+        customer_email: req.customer_email.clone(),
+        status: Some("draft".to_string()),
+        total: Some(total.clone()),
+        currency: Some(req.currency.clone().unwrap_or_else(|| "USD".to_string())),
+        due_date: Some(due_date),
+        paid_at: None,
+        notes: req.notes.clone(),
+        created_at: now,
+        updated_at: now,
         customer_id: req.customer_id,
-        customer_name: req.customer_name,
-        customer_email: req.customer_email,
-        customer_address: req.customer_address,
-        status: "draft".to_string(),
+        customer_address: req.customer_address.clone(),
         issue_date,
-        due_date,
         subtotal: subtotal.clone(),
         tax_rate,
         tax_amount,
         discount_percent,
         discount_amount,
-        total: total.clone(),
         amount_paid: bd(0.0),
         amount_due: total,
-        currency: req.currency.unwrap_or_else(|| "USD".to_string()),
-        notes: req.notes,
-        terms: req.terms,
+        terms: req.terms.clone(),
         footer: None,
-        paid_at: None,
         sent_at: None,
         voided_at: None,
-        created_at: now,
-        updated_at: now,
     };
 
     diesel::insert_into(billing_invoices::table)
@@ -139,13 +138,12 @@ pub async fn list_invoices(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = billing_invoices::table
-        .filter(billing_invoices::org_id.eq(org_id))
-        .filter(billing_invoices::bot_id.eq(bot_id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(status) = query.status {
@@ -321,29 +319,30 @@ pub async fn record_payment(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let payment_number = generate_payment_number(&mut conn, org_id);
+    let payment_number = generate_payment_number(&mut conn, branch_id);
 
     let payment = BillingPayment {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         invoice_id: req.invoice_id,
-        payment_number,
         amount: bd(req.amount),
-        currency: "USD".to_string(),
-        payment_method: req.payment_method.unwrap_or_else(|| "other".to_string()),
-        payment_reference: req.payment_reference,
-        status: "completed".to_string(),
-        payer_name: req.payer_name,
-        payer_email: req.payer_email,
-        notes: req.notes,
-        paid_at: now,
+        currency: Some("USD".to_string()),
+        payment_method: Some(req.payment_method.clone().unwrap_or_else(|| "other".to_string())),
+        status: Some("completed".to_string()),
+        paid_at: Some(now),
+        gateway_response: None,
+        created_at: now,
+        updated_at: now,
+        payment_number,
+        payment_reference: req.payment_reference.clone(),
+        payer_name: req.payer_name.clone(),
+        payer_email: req.payer_email.clone(),
+        notes: req.notes.clone(),
         refunded_at: None,
         refund_amount: None,
-        created_at: now,
     };
 
     diesel::insert_into(billing_payments::table)
@@ -358,14 +357,15 @@ pub async fn record_payment(
             .map_err(|_| (StatusCode::NOT_FOUND, "Invoice not found".to_string()))?;
 
         let new_paid = &invoice.amount_paid + bd(req.amount);
-        let new_due = &invoice.total - &new_paid;
+        let total_val = invoice.total.unwrap_or_else(|| bd(0.0));
+        let new_due = &total_val - &new_paid;
 
         let new_status = if bd_to_f64(&new_due) <= 0.0 {
             "paid"
         } else if bd_to_f64(&new_paid) > 0.0 {
             "partial"
         } else {
-            &invoice.status
+            invoice.status.as_deref().unwrap_or("")
         };
 
         let paid_at = if new_status == "paid" { Some(now) } else { invoice.paid_at };
@@ -393,13 +393,12 @@ pub async fn list_payments(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = billing_payments::table
-        .filter(billing_payments::org_id.eq(org_id))
-        .filter(billing_payments::bot_id.eq(bot_id))
+        .filter(billing_payments::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(status) = query.status {
@@ -442,10 +441,10 @@ pub async fn create_quote(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let quote_number = generate_quote_number(&mut conn, org_id);
+    let quote_number = generate_quote_number(&mut conn, branch_id);
 
     let issue_date = req
         .issue_date
@@ -475,31 +474,31 @@ pub async fn create_quote(
 
     let quote = BillingQuote {
         id,
-        org_id,
-        bot_id,
+        branch_id,
         quote_number,
+        customer_name: req.customer_name.clone(),
+        customer_email: req.customer_email.clone(),
+        items: None,
+        total: Some(total),
+        currency: Some(req.currency.clone().unwrap_or_else(|| "USD".to_string())),
+        status: Some("draft".to_string()),
+        valid_until: Some(valid_until),
+        notes: req.notes.clone(),
+        created_at: now,
+        updated_at: now,
         customer_id: req.customer_id,
-        customer_name: req.customer_name,
-        customer_email: req.customer_email,
-        customer_address: req.customer_address,
-        status: "draft".to_string(),
+        customer_address: req.customer_address.clone(),
         issue_date,
-        valid_until,
         subtotal,
         tax_rate,
         tax_amount,
         discount_percent,
         discount_amount,
-        total,
-        currency: req.currency.unwrap_or_else(|| "USD".to_string()),
-        notes: req.notes,
-        terms: req.terms,
+        terms: req.terms.clone(),
         accepted_at: None,
         rejected_at: None,
         converted_invoice_id: None,
         sent_at: None,
-        created_at: now,
-        updated_at: now,
     };
 
     diesel::insert_into(billing_quotes::table)
@@ -543,13 +542,12 @@ pub async fn list_quotes(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = billing_quotes::table
-        .filter(billing_quotes::org_id.eq(org_id))
-        .filter(billing_quotes::bot_id.eq(bot_id))
+        .filter(billing_quotes::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(status) = query.status {
@@ -675,12 +673,11 @@ pub async fn get_billing_stats(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let today = Utc::now().date_naive();
 
     let invoices: Vec<BillingInvoice> = billing_invoices::table
-        .filter(billing_invoices::org_id.eq(org_id))
-        .filter(billing_invoices::bot_id.eq(bot_id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .load(&mut conn)
         .unwrap_or_default();
 
@@ -690,12 +687,12 @@ pub async fn get_billing_stats(
     let mut overdue_count = 0i64;
 
     for inv in &invoices {
-        if inv.status == "paid" {
-            total_revenue += bd_to_f64(&inv.total);
+        if inv.status.as_deref() == Some("paid") {
+            total_revenue += inv.total.as_ref().map_or(0.0, |t| bd_to_f64(t));
         }
-        if inv.status != "paid" && inv.status != "voided" {
+        if inv.status.as_deref() != Some("paid") && inv.status.as_deref() != Some("voided") {
             pending_amount += bd_to_f64(&inv.amount_due);
-            if inv.due_date < today {
+            if inv.due_date.unwrap_or(NaiveDate::MAX) < today {
                 overdue_amount += bd_to_f64(&inv.amount_due);
                 overdue_count += 1;
             }
@@ -703,22 +700,21 @@ pub async fn get_billing_stats(
     }
 
     let payments: Vec<BillingPayment> = billing_payments::table
-        .filter(billing_payments::org_id.eq(org_id))
-        .filter(billing_payments::bot_id.eq(bot_id))
+        .filter(billing_payments::branch_id.eq(branch_id))
         .filter(billing_payments::status.eq("completed"))
         .load(&mut conn)
         .unwrap_or_default();
 
     let paid_this_month: f64 = payments
         .iter()
-        .filter(|p| p.paid_at.date_naive().month() == today.month() && p.paid_at.date_naive().year() == today.year())
+        .filter(|p| p.paid_at.map(|d| d.date_naive().month() == today.month() && d.date_naive().year() == today.year()).unwrap_or(false))
         .map(|p| bd_to_f64(&p.amount))
         .sum();
 
     let revenue_this_month: f64 = invoices
         .iter()
-        .filter(|i| i.status == "paid" && i.paid_at.map(|d| d.date_naive().month() == today.month() && d.date_naive().year() == today.year()).unwrap_or(false))
-        .map(|i| bd_to_f64(&i.total))
+        .filter(|i| i.status.as_deref() == Some("paid") && i.paid_at.map(|d| d.date_naive().month() == today.month() && d.date_naive().year() == today.year()).unwrap_or(false))
+        .map(|i| i.total.as_ref().map_or(0.0, |t| bd_to_f64(t)))
         .sum();
 
     let stats = BillingStats {
@@ -742,12 +738,11 @@ pub async fn list_overdue_invoices(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
     let today = Utc::now().date_naive();
 
     let invoices: Vec<BillingInvoice> = billing_invoices::table
-        .filter(billing_invoices::org_id.eq(org_id))
-        .filter(billing_invoices::bot_id.eq(bot_id))
+        .filter(billing_invoices::branch_id.eq(branch_id))
         .filter(billing_invoices::status.ne("paid"))
         .filter(billing_invoices::status.ne("voided"))
         .filter(billing_invoices::due_date.lt(today))
@@ -765,11 +760,10 @@ pub async fn list_tax_rates(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let rates: Vec<BillingTaxRate> = billing_tax_rates::table
-        .filter(billing_tax_rates::org_id.eq(org_id))
-        .filter(billing_tax_rates::bot_id.eq(bot_id))
+        .filter(billing_tax_rates::branch_id.eq(branch_id))
         .filter(billing_tax_rates::is_active.eq(true))
         .order(billing_tax_rates::name.asc())
         .load(&mut conn)
@@ -785,11 +779,10 @@ pub async fn list_recurring(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (org_id, bot_id) = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
 
     let recurring: Vec<BillingRecurring> = billing_recurring::table
-        .filter(billing_recurring::org_id.eq(org_id))
-        .filter(billing_recurring::bot_id.eq(bot_id))
+        .filter(billing_recurring::branch_id.eq(branch_id))
         .filter(billing_recurring::status.eq("active"))
         .order(billing_recurring::next_invoice_date.asc())
         .load(&mut conn)

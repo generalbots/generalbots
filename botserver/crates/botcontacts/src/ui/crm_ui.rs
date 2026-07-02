@@ -21,7 +21,7 @@ pub struct SearchQuery {
     pub q: Option<String>,
 }
 
-fn get_bot_context(state: &CrateState) -> (Uuid, Uuid) {
+fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
@@ -33,20 +33,18 @@ pub async fn handle_crm_count(
         return Html("0".to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let stage = query.stage.unwrap_or_else(|| "all".to_string());
 
     let count: i64 = if stage == "all" || stage.is_empty() {
         crm_deals::table
-            .filter(crm_deals::org_id.eq(org_id))
-            .filter(crm_deals::bot_id.eq(bot_id))
+            .filter(crm_deals::branch_id.eq(branch_id))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0)
     } else {
         crm_deals::table
-            .filter(crm_deals::org_id.eq(org_id))
-            .filter(crm_deals::bot_id.eq(bot_id))
+            .filter(crm_deals::branch_id.eq(branch_id))
             .filter(crm_deals::stage.eq(&stage))
             .count()
             .get_result(&mut conn)
@@ -64,12 +62,11 @@ pub async fn handle_crm_pipeline(
         return Html(r#"<div class="pipeline-empty"><p>No items yet</p></div>"#.to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
     let stage = query.stage.unwrap_or_else(|| "new".to_string());
 
     let leads: Vec<CrmDeal> = crm_deals::table
-        .filter(crm_deals::org_id.eq(org_id))
-        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .filter(crm_deals::stage.eq(&stage))
         .order(crm_deals::created_at.desc())
         .limit(20)
@@ -108,7 +105,7 @@ pub async fn handle_crm_pipeline(
             html_escape(lead.title.as_deref().unwrap_or("")),
             value_str,
             contact_name,
-            lead.probability,
+            lead.probability.unwrap_or(0),
             lead.id,
             lead.id,
             lead.id
@@ -126,11 +123,10 @@ pub async fn handle_crm_contacts(
         return Html(r#"<div class="contacts-empty"><p>No contacts yet</p></div>"#.to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let contacts: Vec<crate::models::CrmContact> = crm_contacts::table
-        .filter(crm_contacts::org_id.eq(org_id))
-        .filter(crm_contacts::bot_id.eq(bot_id))
+        .filter(crm_contacts::branch_id.eq(branch_id))
         .order(crm_contacts::created_at.desc())
         .limit(20)
         .load(&mut conn)
@@ -144,7 +140,7 @@ pub async fn handle_crm_contacts(
     for contact in contacts {
         let name = format!(
             "{} {}",
-            contact.first_name.as_deref().unwrap_or(""),
+            contact.first_name.as_str(),
             contact.last_name.as_deref().unwrap_or("")
         ).trim().to_string();
         let email = contact.email.as_deref().unwrap_or("-");
@@ -166,11 +162,10 @@ pub async fn handle_crm_accounts(
         return Html(r#"<div class="accounts-empty"><p>No accounts yet</p></div>"#.to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let accounts: Vec<crate::models::CrmAccount> = crm_accounts::table
-        .filter(crm_accounts::org_id.eq(org_id))
-        .filter(crm_accounts::bot_id.eq(bot_id))
+        .filter(crm_accounts::branch_id.eq(branch_id))
         .order(crm_accounts::created_at.desc())
         .limit(20)
         .load(&mut conn)
@@ -200,11 +195,10 @@ pub async fn handle_crm_deals(
         return Html(r#"<div class="deals-empty"><p>No deals yet</p></div>"#.to_string());
     };
 
-    let (org_id, bot_id) = get_bot_context(&state);
+    let branch_id = get_bot_context(&state);
 
     let deals: Vec<CrmDeal> = crm_deals::table
-        .filter(crm_deals::org_id.eq(org_id))
-        .filter(crm_deals::bot_id.eq(bot_id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .order(crm_deals::created_at.desc())
         .limit(20)
         .load(&mut conn)
@@ -216,7 +210,7 @@ pub async fn handle_crm_deals(
 
     let mut html = String::new();
     for deal in deals {
-        let title = deal.title.as_deref().or(deal.name.as_deref()).unwrap_or("Untitled");
+        let title = deal.title.as_deref().or(Some(deal.name.as_str())).unwrap_or("Untitled");
         let value_str = deal.value.map(|v| format!("${v}")).unwrap_or_else(|| "-".to_string());
         let stage = deal.stage.as_deref().unwrap_or("-");
         html.push_str(&format!(

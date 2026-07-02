@@ -1,29 +1,49 @@
-use diesel::prelude::*;
+// @generated automatically by script from migration SQL for issue #707.
+// Diesel table definitions for branch-scope cleanup.
 
-table! {
+diesel::table! {
     dashboards (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        owner_id -> Uuid,
-        name -> Text,
+        branch_id -> Uuid,
+        name -> Varchar,
+        slug -> Varchar,
         description -> Nullable<Text>,
+        config -> Nullable<Jsonb>,
+        is_default -> Nullable<Bool>,
+        owner_id -> Uuid,
         layout -> Jsonb,
         refresh_interval -> Nullable<Int4>,
         is_public -> Bool,
         is_template -> Bool,
-        tags -> Array<Text>,
+        tags -> Jsonb,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
 }
 
-table! {
+diesel::table! {
+    dashboard_data_sources (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        name -> Varchar,
+        source_type -> Varchar,
+        config -> Nullable<Jsonb>,
+        description -> Nullable<Text>,
+        schema_definition -> Nullable<Jsonb>,
+        refresh_schedule -> Nullable<Varchar>,
+        last_sync -> Nullable<Timestamptz>,
+        status -> Varchar,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     dashboard_widgets (id) {
         id -> Uuid,
         dashboard_id -> Uuid,
-        widget_type -> Text,
-        title -> Text,
+        widget_type -> Varchar,
+        title -> Varchar,
         position_x -> Int4,
         position_y -> Int4,
         width -> Int4,
@@ -36,31 +56,13 @@ table! {
     }
 }
 
-table! {
-    dashboard_data_sources (id) {
-        id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        name -> Text,
-        description -> Nullable<Text>,
-        source_type -> Text,
-        connection -> Jsonb,
-        schema_definition -> Jsonb,
-        refresh_schedule -> Nullable<Text>,
-        last_sync -> Nullable<Timestamptz>,
-        status -> Text,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-table! {
+diesel::table! {
     dashboard_filters (id) {
         id -> Uuid,
         dashboard_id -> Uuid,
-        name -> Text,
-        field -> Text,
-        filter_type -> Text,
+        name -> Varchar,
+        field -> Varchar,
+        filter_type -> Varchar,
         default_value -> Nullable<Jsonb>,
         options -> Jsonb,
         linked_widgets -> Jsonb,
@@ -68,28 +70,26 @@ table! {
     }
 }
 
-table! {
+diesel::table! {
     conversational_queries (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         dashboard_id -> Nullable<Uuid>,
         user_id -> Uuid,
-        natural_language -> Text,
+        query_text -> Text,
+        result -> Nullable<Jsonb>,
         generated_query -> Nullable<Text>,
-        result_widget_config -> Nullable<Jsonb>,
+        executed_at -> Timestamptz,
+        execution_ms -> Nullable<Int4>,
         created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
-joinable!(dashboard_widgets -> dashboards (dashboard_id));
-joinable!(dashboard_filters -> dashboards (dashboard_id));
-joinable!(conversational_queries -> dashboards (dashboard_id));
-
-allow_tables_to_appear_in_same_query!(
+diesel::allow_tables_to_appear_in_same_query!(
     dashboards,
-    dashboard_widgets,
     dashboard_data_sources,
+    dashboard_widgets,
     dashboard_filters,
     conversational_queries,
 );

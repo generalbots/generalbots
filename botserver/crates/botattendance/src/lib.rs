@@ -25,7 +25,7 @@ use std::sync::Arc;
 
 pub type DbPool = r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-pub type GetDefaultBotFn = Arc<dyn Fn(&mut diesel::PgConnection) -> (uuid::Uuid, String) + Send + Sync>;
+pub type GetDefaultBotFn = Arc<dyn Fn(&mut diesel::PgConnection) -> uuid::Uuid + Send + Sync>;
 
 pub type LlmGenerateFn = Arc<dyn Fn(&str, &serde_json::Value, &str, &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> + Send + Sync>;
 

@@ -12,31 +12,31 @@ fn bd(val: f64) -> BigDecimal {
     BigDecimal::from_str(&val.to_string()).unwrap_or_else(|_| BigDecimal::from(0))
 }
 
-pub fn seed_default_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid) {
+pub fn seed_default_products(conn: &mut PgConnection, branch_id: Uuid) {
     use diesel::dsl::exists;
     use diesel::select;
 
     let has_products: bool = select(exists(
-        products::table.filter(products::org_id.eq(org_id))
+        products::table.filter(products::branch_id.eq(branch_id))
     ))
     .get_result(conn)
     .unwrap_or(false);
 
     if has_products {
-        log::info!("Products already seeded for org {org_id}, skipping");
+        log::info!("Products already seeded for branch {branch_id}, skipping");
         return;
     }
 
-    let categories = seed_categories(conn, org_id, bot_id);
-    seed_plan_products(conn, org_id, bot_id, &categories);
-    seed_infra_products(conn, org_id, bot_id, &categories);
-    seed_comms_products(conn, org_id, bot_id, &categories);
-    seed_llm_products(conn, org_id, bot_id, &categories);
+    let categories = seed_categories(conn, branch_id);
+    seed_plan_products(conn, branch_id, &categories);
+    seed_infra_products(conn, branch_id, &categories);
+    seed_comms_products(conn, branch_id, &categories);
+    seed_llm_products(conn, branch_id, &categories);
 
-    log::info!("Seeded default cloud catalog products for org {org_id}");
+    log::info!("Seeded default cloud catalog products for branch {branch_id}");
 }
 
-fn seed_categories(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid) -> Vec<ProductCategory> {
+fn seed_categories(conn: &mut PgConnection, branch_id: Uuid) -> Vec<ProductCategory> {
     let cats = vec![
         ("Plans", "Subscription plans for the SaaS platform", "plans", 1),
         ("VMs", "Virtual machines and compute instances", "vms", 2),
@@ -50,18 +50,19 @@ fn seed_categories(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid) -> Vec<P
     let mut inserted = Vec::new();
     for (name, description, slug, sort_order) in cats {
         let cat = ProductCategory {
-            id: Uuid::new_v4(),
-            org_id,
-            bot_id,
-            name: name.to_string(),
-            description: Some(description.to_string()),
-            parent_id: None,
-            slug: Some(slug.to_string()),
-            image_url: None,
-            sort_order,
-            is_active: true,
-            created_at: chrono::Utc::now(),
-        };
+    id: Uuid::new_v4(),
+    branch_id: branch_id,
+    name: name.to_string(),
+    slug: slug.to_string(),
+    description: Some(description.to_string()),
+    parent_id: None,
+    display_order: None,
+    created_at: chrono::Utc::now(),
+    updated_at: chrono::Utc::now(),
+    image_url: None,
+    sort_order: sort_order,
+    is_active: true,
+};
         match diesel::insert_into(product_categories::table)
             .values(&cat)
             .execute(conn)
@@ -74,10 +75,10 @@ fn seed_categories(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid) -> Vec<P
 }
 
 fn find_category_id(categories: &[ProductCategory], slug: &str) -> Option<Uuid> {
-    categories.iter().find(|c| c.slug.as_deref() == Some(slug)).map(|c| c.id)
+    categories.iter().find(|c| c.slug.as_str() == slug).map(|c| c.id)
 }
 
-fn seed_plan_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid, categories: &[ProductCategory]) {
+fn seed_plan_products(conn: &mut PgConnection, branch_id: Uuid, categories: &[ProductCategory]) {
     let cat_id = find_category_id(categories, "plans");
     let now = chrono::Utc::now();
     let plans = vec![
@@ -91,37 +92,38 @@ fn seed_plan_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid, categ
 
     for (sku, name, desc, price, cost, unit, attrs) in plans {
         let product = crate::Product {
-            id: Uuid::new_v4(),
-            org_id,
-            bot_id,
-            sku: Some(sku.to_string()),
-            name: name.to_string(),
-            description: Some(desc.to_string()),
-            category: cat_id.map(|id| id.to_string()),
-            product_type: "plan".to_string(),
-            price,
-            cost: Some(cost),
-            currency: "USD".to_string(),
-            tax_rate: bd(0.0),
-            unit: unit.to_string(),
-            stock_quantity: -1,
-            low_stock_threshold: 0,
-            is_active: true,
-            images: json!([]),
-            attributes: attrs,
-            weight: None,
-            dimensions: None,
-            barcode: None,
-            created_at: now,
-            updated_at: now,
-        };
+    id: Uuid::new_v4(),
+    branch_id: branch_id,
+    name: name.to_string(),
+    sku: sku.to_string(),
+    description: Some(desc.to_string()),
+    price: Some(price),
+    currency: Some("USD".to_string()),
+    stock_quantity: Some(-1),
+    category_id: None,
+    attributes: Some(attrs),
+    is_public: None,
+    is_active: Some(true),
+    created_at: now,
+    updated_at: now,
+    category: cat_id.map(|id| id.to_string()),
+    product_type: "plan".to_string(),
+    cost: Some(cost),
+    tax_rate: bd(0.0),
+    unit: unit.to_string(),
+    low_stock_threshold: 0,
+    images: json!([]),
+    weight: None,
+    dimensions: None,
+    barcode: None,
+};
         if let Err(e) = diesel::insert_into(products::table).values(&product).execute(conn) {
             log::warn!("Failed to seed product {name}: {e}");
         }
     }
 }
 
-fn seed_infra_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid, categories: &[ProductCategory]) {
+fn seed_infra_products(conn: &mut PgConnection, branch_id: Uuid, categories: &[ProductCategory]) {
     let now = chrono::Utc::now();
     let items = vec![
         ("vps-small", "VPS Small", "1 vCPU, 2 GB RAM, 50 GB SSD", "vms", 9.99, 3.50, "month",
@@ -145,33 +147,38 @@ fn seed_infra_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid, cate
     for (sku, name, desc, cat_slug, price, cost, unit, attrs) in items {
         let cat_id = find_category_id(categories, cat_slug);
         let product = crate::Product {
-            id: Uuid::new_v4(),
-            org_id, bot_id,
-            sku: Some(sku.to_string()),
-            name: name.to_string(),
-            description: Some(desc.to_string()),
-            category: cat_id.map(|id| id.to_string()),
-            product_type: "infrastructure".to_string(),
-            price: bd(price),
-            cost: Some(bd(cost)),
-            currency: "USD".to_string(),
-            tax_rate: bd(0.0),
-            unit: unit.to_string(),
-            stock_quantity: -1,
-            low_stock_threshold: 0,
-            is_active: true,
-            images: json!([]),
-            attributes: attrs,
-            weight: None, dimensions: None, barcode: None,
-            created_at: now, updated_at: now,
-        };
+    id: Uuid::new_v4(),
+    branch_id: branch_id,
+    name: name.to_string(),
+    sku: sku.to_string(),
+    description: Some(desc.to_string()),
+    price: Some(bd(price)),
+    currency: Some("USD".to_string()),
+    stock_quantity: Some(-1),
+    category_id: None,
+    attributes: Some(attrs),
+    is_public: None,
+    is_active: Some(true),
+    created_at: now,
+    updated_at: now,
+    category: cat_id.map(|id| id.to_string()),
+    product_type: "infrastructure".to_string(),
+    cost: Some(bd(cost)),
+    tax_rate: bd(0.0),
+    unit: unit.to_string(),
+    low_stock_threshold: 0,
+    images: json!([]),
+    weight: None,
+    dimensions: None,
+    barcode: None,
+};
         if let Err(e) = diesel::insert_into(products::table).values(&product).execute(conn) {
             log::warn!("Failed to seed product {name}: {e}");
         }
     }
 }
 
-fn seed_comms_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid, categories: &[ProductCategory]) {
+fn seed_comms_products(conn: &mut PgConnection, branch_id: Uuid, categories: &[ProductCategory]) {
     let now = chrono::Utc::now();
     let items = vec![
         ("number-local", "Local Phone Number", "Local phone number in your area code", "numbers", 5.99, 2.00, "month",
@@ -187,33 +194,38 @@ fn seed_comms_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid, cate
     for (sku, name, desc, cat_slug, price, cost, unit, attrs) in items {
         let cat_id = find_category_id(categories, cat_slug);
         let product = crate::Product {
-            id: Uuid::new_v4(),
-            org_id, bot_id,
-            sku: Some(sku.to_string()),
-            name: name.to_string(),
-            description: Some(desc.to_string()),
-            category: cat_id.map(|id| id.to_string()),
-            product_type: "communication".to_string(),
-            price: bd(price),
-            cost: Some(bd(cost)),
-            currency: "USD".to_string(),
-            tax_rate: bd(0.0),
-            unit: unit.to_string(),
-            stock_quantity: -1,
-            low_stock_threshold: 0,
-            is_active: true,
-            images: json!([]),
-            attributes: attrs,
-            weight: None, dimensions: None, barcode: None,
-            created_at: now, updated_at: now,
-        };
+    id: Uuid::new_v4(),
+    branch_id: branch_id,
+    name: name.to_string(),
+    sku: sku.to_string(),
+    description: Some(desc.to_string()),
+    price: Some(bd(price)),
+    currency: Some("USD".to_string()),
+    stock_quantity: Some(-1),
+    category_id: None,
+    attributes: Some(attrs),
+    is_public: None,
+    is_active: Some(true),
+    created_at: now,
+    updated_at: now,
+    category: cat_id.map(|id| id.to_string()),
+    product_type: "communication".to_string(),
+    cost: Some(bd(cost)),
+    tax_rate: bd(0.0),
+    unit: unit.to_string(),
+    low_stock_threshold: 0,
+    images: json!([]),
+    weight: None,
+    dimensions: None,
+    barcode: None,
+};
         if let Err(e) = diesel::insert_into(products::table).values(&product).execute(conn) {
             log::warn!("Failed to seed product {name}: {e}");
         }
     }
 }
 
-fn seed_llm_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid, categories: &[ProductCategory]) {
+fn seed_llm_products(conn: &mut PgConnection, branch_id: Uuid, categories: &[ProductCategory]) {
     let now = chrono::Utc::now();
     let items = vec![
         ("llm-tokens-1m", "1M LLM Tokens", "1 million language model tokens", "llm-tokens", 9.99, 2.00, "one-time",
@@ -225,26 +237,31 @@ fn seed_llm_products(conn: &mut PgConnection, org_id: Uuid, bot_id: Uuid, catego
     for (sku, name, desc, cat_slug, price, cost, unit, attrs) in items {
         let cat_id = find_category_id(categories, cat_slug);
         let product = crate::Product {
-            id: Uuid::new_v4(),
-            org_id, bot_id,
-            sku: Some(sku.to_string()),
-            name: name.to_string(),
-            description: Some(desc.to_string()),
-            category: cat_id.map(|id| id.to_string()),
-            product_type: "llm-tokens".to_string(),
-            price: bd(price),
-            cost: Some(bd(cost)),
-            currency: "USD".to_string(),
-            tax_rate: bd(0.0),
-            unit: unit.to_string(),
-            stock_quantity: -1,
-            low_stock_threshold: 0,
-            is_active: true,
-            images: json!([]),
-            attributes: attrs,
-            weight: None, dimensions: None, barcode: None,
-            created_at: now, updated_at: now,
-        };
+    id: Uuid::new_v4(),
+    branch_id: branch_id,
+    name: name.to_string(),
+    sku: sku.to_string(),
+    description: Some(desc.to_string()),
+    price: Some(bd(price)),
+    currency: Some("USD".to_string()),
+    stock_quantity: Some(-1),
+    category_id: None,
+    attributes: Some(attrs),
+    is_public: None,
+    is_active: Some(true),
+    created_at: now,
+    updated_at: now,
+    category: cat_id.map(|id| id.to_string()),
+    product_type: "llm-tokens".to_string(),
+    cost: Some(bd(cost)),
+    tax_rate: bd(0.0),
+    unit: unit.to_string(),
+    low_stock_threshold: 0,
+    images: json!([]),
+    weight: None,
+    dimensions: None,
+    barcode: None,
+};
         if let Err(e) = diesel::insert_into(products::table).values(&product).execute(conn) {
             log::warn!("Failed to seed product {name}: {e}");
         }

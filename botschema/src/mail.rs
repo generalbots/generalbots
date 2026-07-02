@@ -1,4 +1,4 @@
-// use crate::core::{bots, branches, organizations};
+// use crate::core::{branches};
 
 diesel::table! {
     global_email_signatures (id) {

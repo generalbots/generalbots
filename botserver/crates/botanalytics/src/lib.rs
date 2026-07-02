@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 pub type DbPool = r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-pub type GetDefaultBotFn = Arc<dyn Fn(&mut diesel::PgConnection) -> (Uuid, String) + Send + Sync>;
+pub type GetDefaultBotFn = Arc<dyn Fn(&mut diesel::PgConnection) -> Uuid + Send + Sync>;
 
 pub type GetBotContextFn = Arc<dyn Fn() -> (Uuid, Uuid) + Send + Sync>;
 

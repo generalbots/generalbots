@@ -1,9 +1,8 @@
-use crate::core::{bots, branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     kb_documents (id) {
         id -> Uuid,
-        bot_id -> Nullable<Uuid>,
         collection_name -> Text,
         file_path -> Text,
         file_size -> Int8,
@@ -35,8 +34,7 @@ diesel::table! {
 diesel::table! {
     research_projects (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         status -> Varchar,
@@ -137,7 +135,6 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(research_projects -> organizations (org_id));
 diesel::joinable!(research_projects -> branches (branch_id));
 diesel::joinable!(research_sources -> research_projects (project_id));
 diesel::joinable!(research_notes -> research_projects (project_id));

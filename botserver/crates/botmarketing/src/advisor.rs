@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -76,12 +77,15 @@ pub struct Recommendation {
 #[diesel(table_name = advisor_recommendations)]
 pub struct AdvisorRecommendation {
     pub id: Uuid,
-    pub campaign_id: Uuid,
+    pub branch_id: Uuid,
+    pub campaign_id: Option<Uuid>,
+    pub recommendation: String,
+    pub reason: Option<String>,
     pub check_name: String,
     pub severity: String,
     pub message: String,
     pub details: Option<String>,
-    pub dismissed: bool,
+    pub dismissed: Option<bool>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -125,11 +129,8 @@ impl From<&[Recommendation]> for AdvisorSummary {
     }
 }
 
-#[derive(Debug, Clone, Queryable)]
-#[diesel(table_name = crate::schema::campaign_metrics)]
-#[allow(dead_code)]
+#[derive(Debug, Clone)]
 struct DbMetricsRow {
-    campaign_id: Uuid,
     sent_count: i64,
     delivered_count: i64,
     bounce_count: i64,
@@ -149,7 +150,8 @@ impl AdvisorEngine {
     ) -> Result<Vec<Recommendation>, String> {
         let mut recommendations = Vec::new();
 
-        let _campaign = Self::get_campaign(state, campaign_id).await?;
+        let campaign = Self::get_campaign(state, campaign_id).await?;
+        let branch_id = campaign.branch_id;
         let metrics = Self::get_campaign_metrics(state, campaign_id).await?;
 
         recommendations.extend(Self::check_bounce_rate(&metrics));
@@ -159,7 +161,7 @@ impl AdvisorEngine {
         recommendations.extend(Self::check_delivery_rate(&metrics));
         recommendations.extend(Self::check_engagement_trend(&metrics));
 
-        Self::store_recommendations(state, campaign_id, &recommendations).await?;
+        Self::store_recommendations(state, branch_id, campaign_id, &recommendations).await?;
 
         Ok(recommendations)
     }
@@ -182,18 +184,45 @@ impl AdvisorEngine {
     ) -> Result<DbMetricsRow, String> {
         use crate::schema::campaign_metrics::dsl::*;
         let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
-        campaign_metrics
+        let rows: Vec<(String, BigDecimal)> = campaign_metrics
             .filter(campaign_id.eq(campaign_id_val))
-            .first(&mut conn)
-            .map_err(|e| format!("Metrics not found: {e}"))
+            .select((metric_type, metric_value))
+            .load(&mut conn)
+            .unwrap_or_default();
+        let mut m = DbMetricsRow {
+            sent_count: 0,
+            delivered_count: 0,
+            bounce_count: 0,
+            open_count: 0,
+            click_count: 0,
+            complaint_count: 0,
+            unsubscribe_count: 0,
+            reply_count: 0,
+        };
+        for (mtype, mvalue) in rows {
+            let val: i64 = mvalue.to_string().parse().unwrap_or(0);
+            match mtype.as_str() {
+                "sent" => m.sent_count = val,
+                "delivered" => m.delivered_count = val,
+                "bounce" => m.bounce_count = val,
+                "open" => m.open_count = val,
+                "click" => m.click_count = val,
+                "complaint" => m.complaint_count = val,
+                "unsubscribe" => m.unsubscribe_count = val,
+                "reply" => m.reply_count = val,
+                _ => {}
+            }
+        }
+        Ok(m)
     }
 
     async fn store_recommendations(
         state: &AppState,
+        branch_id_val: Uuid,
         campaign_id_val: Uuid,
         recommendations: &[Recommendation],
     ) -> Result<(), String> {
-        use crate::schema::advisor_recommendations::dsl::*;
+        use crate::schema::advisor_recommendations::dsl::{advisor_recommendations, campaign_id, dismissed};
         let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         let now = Utc::now();
 
@@ -205,14 +234,22 @@ impl AdvisorEngine {
         .map_err(|e| format!("Delete error: {e}"))?;
 
         for rec in recommendations {
+            let severity_str = match rec.severity {
+                RecommendationSeverity::Critical => "critical",
+                RecommendationSeverity::Warning => "warning",
+                RecommendationSeverity::Info => "info",
+            };
             let new_rec = AdvisorRecommendation {
                 id: Uuid::new_v4(),
-                campaign_id: campaign_id_val,
+                branch_id: branch_id_val,
+                campaign_id: Some(campaign_id_val),
+                recommendation: rec.check_name.clone(),
+                reason: Some(rec.message.clone()),
                 check_name: rec.check_name.clone(),
-                severity: rec.severity.as_str().to_string(),
+                severity: severity_str.to_string(),
                 message: rec.message.clone(),
                 details: rec.details.clone(),
-                dismissed: false,
+                dismissed: Some(false),
                 created_at: now,
             };
 
@@ -422,7 +459,7 @@ impl AdvisorEngine {
         advisor_recommendations
             .filter(campaign_id.eq(campaign_id_val))
             .filter(dismissed.eq(false))
-            .order_by(created_at.desc())
+            .order(created_at.desc())
             .load(&mut conn)
             .map_err(|e| format!("Query error: {e}"))
     }
@@ -431,10 +468,12 @@ impl AdvisorEngine {
         state: &AppState,
         recommendation_id: Uuid,
     ) -> Result<(), String> {
-        use crate::schema::advisor_recommendations::dsl::*;
         let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
-        diesel::update(advisor_recommendations.filter(id.eq(recommendation_id)))
-            .set(dismissed.eq(true))
+        diesel::update(
+            crate::schema::advisor_recommendations::table
+                .filter(crate::schema::advisor_recommendations::id.eq(recommendation_id))
+        )
+            .set(crate::schema::advisor_recommendations::dismissed.eq(true))
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {e}"))?;
         Ok(())

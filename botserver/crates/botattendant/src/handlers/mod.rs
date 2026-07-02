@@ -7,18 +7,16 @@ use uuid::Uuid;
 
 use crate::schema::*;
 
-pub(crate) fn get_bot_context(config: &crate::AttendantConfig) -> (Uuid, Uuid) {
+pub(crate) fn get_bot_context(config: &crate::AttendantConfig) -> Uuid {
     let Ok(mut conn) = config.pool.get() else {
-        return (Uuid::nil(), Uuid::nil());
+        return Uuid::nil();
     };
-    let (bot_id, _bot_name) = (config.get_default_bot)(&mut conn);
-    let org_id = Uuid::nil();
-    (org_id, bot_id)
+    (config.get_default_bot)(&mut conn)
 }
 
-pub(crate) fn generate_session_number(conn: &mut diesel::PgConnection, org_id: Uuid) -> String {
+pub(crate) fn generate_session_number(conn: &mut diesel::PgConnection, branch_id: Uuid) -> String {
     let count: i64 = attendant_sessions::table
-        .filter(attendant_sessions::org_id.eq(org_id))
+        .filter(attendant_sessions::branch_id.eq(branch_id))
         .count()
         .get_result(conn)
         .unwrap_or(0);

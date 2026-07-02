@@ -17,10 +17,9 @@ impl TaskEngine {
 
     pub fn create_task(
         &self,
-        task_bot_id: Uuid,
+        task_branch_id: Uuid,
         task_title: &str,
         task_description: Option<&str>,
-        task_user_id: Option<Uuid>,
     ) -> Result<Task, String> {
         use crate::schema::tasks::dsl::*;
 
@@ -32,11 +31,15 @@ impl TaskEngine {
 
         let new_task = NewTask {
             id: Uuid::new_v4(),
-            bot_id: task_bot_id,
+            branch_id: task_branch_id,
             title: task_title.to_string(),
             description: task_description.map(|s| s.to_string()),
-            status: "pending".to_string(),
-            user_id: task_user_id,
+            status: Some("pending".to_string()),
+            priority: None,
+            assignee_id: None,
+            due_date: None,
+            completed_at: None,
+            parent_id: None,
         };
 
         diesel::insert_into(tasks)
@@ -50,7 +53,7 @@ impl TaskEngine {
             .map_err(|e| format!("Fetch error: {}", e))
     }
 
-    pub fn list_tasks(&self, filter_bot_id: Option<Uuid>) -> Result<Vec<Task>, String> {
+    pub fn list_tasks(&self, filter_branch_id: Option<Uuid>) -> Result<Vec<Task>, String> {
         use crate::schema::tasks::dsl::*;
 
         let mut conn = self
@@ -60,9 +63,9 @@ impl TaskEngine {
             .map_err(|e| format!("Pool error: {}", e))?;
 
         let query = tasks.into_boxed();
-        match filter_bot_id {
+        match filter_branch_id {
             Some(bid) => query
-                .filter(bot_id.eq(bid))
+                .filter(branch_id.eq(bid))
                 .load::<Task>(&mut conn)
                 .map_err(|e| format!("Query error: {}", e)),
             None => query
@@ -96,7 +99,7 @@ impl TaskEngine {
             .map_err(|e| format!("Pool error: {}", e))?;
 
         diesel::update(tasks.find(task_id))
-            .set(status.eq(new_status))
+            .set(status.eq(Some(new_status.to_string())))
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {}", e))?;
 
@@ -119,8 +122,8 @@ impl TaskEngine {
         Ok(())
     }
 
-    pub fn get_bot_id_for_task(&self, task_id: Uuid) -> Result<Uuid, String> {
+    pub fn get_branch_id_for_task(&self, task_id: Uuid) -> Result<Uuid, String> {
         let task = self.get_task(task_id)?;
-        Ok(task.bot_id)
+        Ok(task.branch_id)
     }
 }

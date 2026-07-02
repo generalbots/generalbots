@@ -239,7 +239,7 @@ pub async fn init_database(
             #[cfg(feature = "saas")]
             {
                 if let Ok(mut conn) = pool.get() {
-                    botproducts::seed::seed_default_products(&mut conn, uuid::Uuid::nil(), uuid::Uuid::nil());
+                    botproducts::seed::seed_default_products(&mut conn, uuid::Uuid::nil());
                 }
             }
 

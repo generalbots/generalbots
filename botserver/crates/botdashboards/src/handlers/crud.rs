@@ -27,13 +27,13 @@ pub async fn handle_list_dashboards(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let limit = query.limit.unwrap_or(50);
         let offset = query.offset.unwrap_or(0);
 
         let mut db_query = dashboards::table
-            .filter(dashboards::bot_id.eq(bot_id))
+            .filter(dashboards::branch_id.eq(&branch_id))
             .into_boxed();
 
         if let Some(owner_id) = query.owner_id {
@@ -94,25 +94,27 @@ pub async fn handle_create_dashboard(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot(&mut conn);
-        let org_id = Uuid::nil();
+        let branch_id = get_default_bot(&mut conn);
         let now = Utc::now();
 
         let layout = req.layout.unwrap_or_default();
         let layout_json = serde_json::to_value(&layout).unwrap_or_default();
+        let tags_json = serde_json::to_value(req.tags.unwrap_or_default()).unwrap_or_default();
 
         let db_dashboard = DbDashboard {
             id: Uuid::new_v4(),
-            org_id,
-            bot_id,
-            owner_id: Uuid::nil(),
+            branch_id,
             name: req.name,
-            description: req.description,
+            slug: Uuid::new_v4().to_string(),
+            description: None,
+            config: None,
+            is_default: None,
+            owner_id: Uuid::nil(),
             layout: layout_json,
             refresh_interval: None,
             is_public: req.is_public.unwrap_or(false),
             is_template: false,
-            tags: req.tags.unwrap_or_default(),
+            tags: tags_json,
             created_at: now,
             updated_at: now,
         };
@@ -206,7 +208,7 @@ pub async fn handle_update_dashboard(
             db_dash.refresh_interval = Some(refresh_interval);
         }
         if let Some(tags) = req.tags {
-            db_dash.tags = tags;
+            db_dash.tags = serde_json::to_value(tags).unwrap_or_default();
         }
         db_dash.updated_at = Utc::now();
 
@@ -273,10 +275,10 @@ pub async fn handle_get_templates(
         let mut conn = pool
             .get()
             .map_err(|e| DashboardsError::Database(e.to_string()))?;
-        let (bot_id, _) = get_default_bot(&mut conn);
+        let branch_id = get_default_bot(&mut conn);
 
         let db_dashboards: Vec<DbDashboard> = dashboards::table
-            .filter(dashboards::bot_id.eq(bot_id))
+            .filter(dashboards::branch_id.eq(&branch_id))
             .filter(dashboards::is_template.eq(true))
             .order(dashboards::created_at.desc())
             .load(&mut conn)

@@ -1,10 +1,9 @@
-use crate::core::{bots, branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     attendant_queues (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         priority -> Int4,
@@ -20,8 +19,7 @@ diesel::table! {
 diesel::table! {
     attendant_sessions (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         session_number -> Varchar,
         channel -> Varchar,
         customer_id -> Nullable<Uuid>,
@@ -81,8 +79,7 @@ diesel::table! {
 diesel::table! {
     attendant_agent_status (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         agent_id -> Uuid,
         status -> Varchar,
         status_message -> Nullable<Varchar>,
@@ -113,8 +110,7 @@ diesel::table! {
 diesel::table! {
     attendant_canned_responses (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         title -> Varchar,
         content -> Text,
         shortcut -> Nullable<Varchar>,
@@ -131,8 +127,7 @@ diesel::table! {
 diesel::table! {
     attendant_tags (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         color -> Nullable<Varchar>,
         description -> Nullable<Text>,
@@ -144,8 +139,7 @@ diesel::table! {
 diesel::table! {
     attendant_wrap_up_codes (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         code -> Varchar,
         name -> Varchar,
         description -> Nullable<Text>,
@@ -168,21 +162,15 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(attendant_queues -> organizations (org_id));
 diesel::joinable!(attendant_queues -> branches (branch_id));
-diesel::joinable!(attendant_sessions -> organizations (org_id));
 diesel::joinable!(attendant_sessions -> branches (branch_id));
 diesel::joinable!(attendant_sessions -> attendant_queues (queue_id));
 diesel::joinable!(attendant_session_messages -> attendant_sessions (session_id));
 diesel::joinable!(attendant_queue_agents -> attendant_queues (queue_id));
-diesel::joinable!(attendant_agent_status -> organizations (org_id));
 diesel::joinable!(attendant_agent_status -> branches (branch_id));
 diesel::joinable!(attendant_transfers -> attendant_sessions (session_id));
-diesel::joinable!(attendant_canned_responses -> organizations (org_id));
 diesel::joinable!(attendant_canned_responses -> branches (branch_id));
-diesel::joinable!(attendant_tags -> organizations (org_id));
 diesel::joinable!(attendant_tags -> branches (branch_id));
-diesel::joinable!(attendant_wrap_up_codes -> organizations (org_id));
 diesel::joinable!(attendant_wrap_up_codes -> branches (branch_id));
 diesel::joinable!(attendant_session_wrap_up -> attendant_sessions (session_id));
 diesel::joinable!(attendant_session_wrap_up -> attendant_wrap_up_codes (wrap_up_code_id));

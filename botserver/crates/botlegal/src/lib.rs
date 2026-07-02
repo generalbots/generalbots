@@ -592,7 +592,7 @@ fn get_default_cookie_policy() -> CookiePolicy {
     }
 }
 
-pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> (Uuid, String);
+pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> Uuid;
 
 pub async fn handle_record_consent(
     State(pool): State<Arc<DbPool>>,

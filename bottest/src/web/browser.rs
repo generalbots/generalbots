@@ -759,7 +759,7 @@ impl Browser {
     }
 
     pub fn close(self) -> Result<()> {
-        let _ = (self.cdp);
+        let _ = self.cdp;
         Ok(())
     }
 
@@ -816,32 +816,32 @@ impl Browser {
     }
 
     pub fn switch_to_frame(&self, _locator: Locator) -> Result<()> {
-        let _ = (&self.page);
+        let _ = &self.page;
         Ok(())
     }
 
     pub fn switch_to_frame_by_index(&self, _index: u16) -> Result<()> {
-        let _ = (&self.page);
+        let _ = &self.page;
         Ok(())
     }
 
     pub fn switch_to_parent_frame(&self) -> Result<()> {
-        let _ = (&self.page);
+        let _ = &self.page;
         Ok(())
     }
 
     pub fn switch_to_default_content(&self) -> Result<()> {
-        let _ = (&self.page);
+        let _ = &self.page;
         Ok(())
     }
 
     pub fn current_window_handle(&self) -> Result<String> {
-        let _ = (&self.page);
+        let _ = &self.page;
         Ok("main".to_string())
     }
 
     pub fn window_handles(&self) -> Result<Vec<String>> {
-        let _ = (&self.page);
+        let _ = &self.page;
         Ok(vec!["main".to_string()])
     }
 }
@@ -909,7 +909,7 @@ impl Element {
     }
 
     pub fn css_value(&self, _name: &str) -> Result<String> {
-        let _ = (&self.inner);
+        let _ = &self.inner;
         Ok(String::new())
     }
 
@@ -928,7 +928,7 @@ impl Element {
     }
 
     pub fn tag_name(&self) -> Result<String> {
-        let _ = (&self.inner);
+        let _ = &self.inner;
         Ok("element".to_string())
     }
 
@@ -938,7 +938,7 @@ impl Element {
     }
 
     pub fn size(&self) -> Result<(u64, u64)> {
-        let _ = (&self.inner);
+        let _ = &self.inner;
         Ok((100, 20))
     }
 

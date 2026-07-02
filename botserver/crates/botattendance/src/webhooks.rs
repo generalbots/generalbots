@@ -1,5 +1,4 @@
 use crate::schema::attendance_webhooks;
-use crate::schema::bots;
 use crate::AttendanceConfig;
 use axum::{extract::{Path, State}, http::StatusCode, Json};
 use chrono::Utc;
@@ -16,14 +15,15 @@ type HmacSha256 = Hmac<Sha256>;
 #[diesel(table_name = attendance_webhooks)]
 pub struct AttendanceWebhook {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
-    pub webhook_url: String,
-    pub events: Vec<String>,
-    pub is_active: bool,
-    pub secret_key: Option<String>,
+    pub branch_id: Uuid,
+    pub url: String,
+    pub event_types: Option<String>,
+    pub is_active: Option<bool>,
     pub created_at: chrono::DateTime<Utc>,
-    pub updated_at: Option<chrono::DateTime<Utc>>,
+    pub updated_at: chrono::DateTime<Utc>,
+    pub webhook_url: String,
+    pub events: Option<String>,
+    pub secret_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,16 +62,27 @@ pub fn emit_webhook_event(
     event: &str,
     data: serde_json::Value,
 ) {
+    let branch_id = {
+        use crate::schema::bots;
+        bots::table
+            .filter(bots::id.eq(bot_id))
+            .select(bots::branch_id)
+            .first::<Uuid>(conn)
+            .unwrap_or(Uuid::nil())
+    };
     let webhooks: Vec<AttendanceWebhook> = attendance_webhooks::table
-        .filter(attendance_webhooks::bot_id.eq(bot_id))
+        .filter(attendance_webhooks::branch_id.eq(branch_id))
         .filter(attendance_webhooks::is_active.eq(true))
         .load(conn)
         .unwrap_or_default();
 
     for webhook in webhooks {
         let event_str = event.to_string();
-        if !webhook.events.contains(&event_str) {
-            continue;
+        if let Some(ref events_str) = webhook.events {
+            let events_list: Vec<&str> = events_str.split(',').map(|s| s.trim()).collect();
+            if !events_list.contains(&event_str.as_str()) {
+                continue;
+            }
         }
         let payload = WebhookPayload {
             event: event_str,
@@ -101,28 +112,21 @@ pub fn emit_webhook_event(
     }
 }
 
-fn get_bot_context(config: &AttendanceConfig) -> (Uuid, Uuid) {
+fn get_bot_context(config: &AttendanceConfig) -> Uuid {
     let Ok(mut conn) = config.pool.get() else {
-        return (Uuid::nil(), Uuid::nil());
+        return Uuid::nil();
     };
-    let (default_bot_id, _bot_name) = (config.get_default_bot)(&mut conn);
-    let org_id = bots::table
-        .filter(bots::id.eq(default_bot_id))
-        .select(bots::org_id)
-        .first::<Option<Uuid>>(&mut conn)
-        .unwrap_or(None)
-        .unwrap_or(Uuid::nil());
-    (org_id, default_bot_id)
+    let branch_id = (config.get_default_bot)(&mut conn);
+    branch_id
 }
 
 pub async fn list_webhooks(
     State(config): State<Arc<AttendanceConfig>>,
 ) -> Result<Json<Vec<AttendanceWebhook>>, (StatusCode, String)> {
     let mut conn = config.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
-    let (org_id, default_bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
     let webhooks: Vec<AttendanceWebhook> = attendance_webhooks::table
-        .filter(attendance_webhooks::org_id.eq(org_id))
-        .filter(attendance_webhooks::bot_id.eq(default_bot_id))
+        .filter(attendance_webhooks::branch_id.eq(branch_id))
         .order(attendance_webhooks::created_at.desc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
@@ -134,12 +138,20 @@ pub async fn create_webhook(
     Json(req): Json<CreateWebhookRequest>,
 ) -> Result<Json<AttendanceWebhook>, (StatusCode, String)> {
     let mut conn = config.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
-    let (org_id, default_bot_id) = get_bot_context(&config);
+    let branch_id = get_bot_context(&config);
     let id = Uuid::new_v4();
     let now = Utc::now();
     let webhook = AttendanceWebhook {
-        id, org_id, bot_id: default_bot_id, webhook_url: req.webhook_url, events: req.events,
-        is_active: true, secret_key: req.secret_key, created_at: now, updated_at: Some(now),
+        id,
+        branch_id,
+        url: req.webhook_url.clone(),
+        event_types: None,
+        is_active: Some(true),
+        created_at: now,
+        updated_at: now,
+        webhook_url: req.webhook_url,
+        events: Some(req.events.join(",")),
+        secret_key: req.secret_key,
     };
     diesel::insert_into(attendance_webhooks::table)
         .values(&webhook)
@@ -173,13 +185,14 @@ pub async fn update_webhook(
             .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
     if let Some(new_events) = req.events {
+        let events_str = new_events.join(",");
         diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
-            .set(attendance_webhooks::events.eq(new_events))
+            .set(attendance_webhooks::events.eq(Some(events_str)))
             .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
     if let Some(active) = req.is_active {
         diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
-            .set(attendance_webhooks::is_active.eq(active))
+            .set(attendance_webhooks::is_active.eq(Some(active)))
             .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
     if let Some(new_secret) = req.secret_key {
@@ -188,7 +201,7 @@ pub async fn update_webhook(
             .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
     diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
-        .set(attendance_webhooks::updated_at.eq(Some(now)))
+        .set(attendance_webhooks::updated_at.eq(now))
         .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     let webhook: AttendanceWebhook = attendance_webhooks::table
         .filter(attendance_webhooks::id.eq(id))
@@ -217,7 +230,7 @@ pub async fn test_webhook(
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Webhook not found".to_string()))?;
     let payload = WebhookPayload {
-        event: "test".to_string(), timestamp: Utc::now().to_rfc3339(), bot_id: webhook.bot_id,
+        event: "test".to_string(), timestamp: Utc::now().to_rfc3339(), bot_id: webhook.branch_id,
         data: serde_json::json!({ "message": "This is a test webhook" }),
     };
     let payload_json = serde_json::to_string(&payload)

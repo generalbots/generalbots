@@ -29,7 +29,7 @@ pub use code_scanner::{
 };
 
 pub use storage::{
-    DbAccessReview, DbAuditLog, DbComplianceCheck, DbComplianceIssue, DbEvidence, DbRisk,
+    DbAccessReview, DbAuditLog, DbComplianceCheck, DbComplianceIssue, DbEvidence,
     DbRiskAssessment, DbTrainingRecord,
 };
 

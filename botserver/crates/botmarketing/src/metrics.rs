@@ -88,40 +88,41 @@ pub async fn get_campaign_metrics(
         .first(&mut conn)
         .map_err(|_| "Campaign not found")?;
 
-    let recipients: Vec<(String, Option<serde_json::Value>)> = marketing_recipients::table
+    let recipients: Vec<(Option<String>, Option<String>)> = marketing_recipients::table
         .filter(marketing_recipients::campaign_id.eq(campaign_id))
         .select((marketing_recipients::status, marketing_recipients::response))
         .load(&mut conn)
         .map_err(|e| format!("Query error: {}", e))?;
 
+    let parse_response = |r: &Option<String>| -> Option<serde_json::Value> {
+        r.as_ref().and_then(|s| serde_json::from_str(s).ok())
+    };
+
     let total = recipients.len() as i64;
-    let sent = recipients.iter().filter(|(s, _)| s == "sent").count() as i64;
+    let sent = recipients.iter().filter(|(s, _)| s.as_deref() == Some("sent")).count() as i64;
     let delivered = recipients
         .iter()
         .filter(|(s, r)| {
-            let is_delivered = s == "delivered" || s == "sent";
-            let has_delivery_status = r
-                .as_ref()
-                .and_then(|v| v.get("status"))
-                .and_then(|s| s.as_str())
-                .map(|st| st == "delivered" || st == "read")
+            let is_delivered = s.as_deref() == Some("delivered") || s.as_deref() == Some("sent");
+            let has_delivery_status = parse_response(r)
+                .and_then(|v| v.get("status").cloned())
+                .and_then(|s| s.as_str().map(|st| st == "delivered" || st == "read"))
                 .unwrap_or(false);
             is_delivered || has_delivery_status
         })
         .count() as i64;
-    let failed = recipients.iter().filter(|(s, _)| s == "failed").count() as i64;
+    let failed = recipients.iter().filter(|(s, _)| s.as_deref() == Some("failed")).count() as i64;
     let replied = recipients
         .iter()
         .filter(|(_, r)| {
-            r.as_ref()
-                .and_then(|v| v.get("type"))
-                .and_then(|t| t.as_str())
-                .map(|t| t == "reply")
+            parse_response(r)
+                .and_then(|v| v.get("type").cloned())
+                .and_then(|t| t.as_str().map(|t| t == "reply"))
                 .unwrap_or(false)
         })
         .count() as i64;
 
-    let email_opens = if campaign.channel == "email" || campaign.channel == "multi" {
+    let email_opens = if campaign.campaign_type == "email" || campaign.campaign_type == "multi" {
         email_tracking::table
             .filter(email_tracking::campaign_id.eq(campaign_id))
             .filter(email_tracking::opened.eq(true))
@@ -132,7 +133,7 @@ pub async fn get_campaign_metrics(
         0
     };
 
-    let email_clicks = if campaign.channel == "email" || campaign.channel == "multi" {
+    let email_clicks = if campaign.campaign_type == "email" || campaign.campaign_type == "multi" {
         email_tracking::table
             .filter(email_tracking::campaign_id.eq(campaign_id))
             .filter(email_tracking::clicked.eq(true))
@@ -151,12 +152,12 @@ pub async fn get_campaign_metrics(
         0.0
     };
 
-    let budget = campaign.budget.unwrap_or(0.0);
+    let budget: f64 = campaign.budget.as_ref().and_then(|b| b.to_string().parse::<f64>().ok()).unwrap_or(0.0);
     let cost_per_result = if sent > 0 { budget / sent as f64 } else { 0.0 };
 
     Ok(CampaignMetrics {
         campaign_id,
-        channel: campaign.channel,
+        channel: campaign.campaign_type,
         total_recipients: total,
         sent,
         delivered,
@@ -182,9 +183,9 @@ pub async fn get_campaign_metrics_by_channel(
     let mut breakdown = Vec::new();
 
     for channel in channels {
-        let recipients: Vec<String> = marketing_recipients::table
+        let recipients: Vec<Option<String>> = marketing_recipients::table
             .filter(marketing_recipients::campaign_id.eq(campaign_id))
-            .filter(marketing_recipients::channel.eq(channel))
+            .filter(marketing_recipients::channel.eq(Some(channel)))
             .select(marketing_recipients::status)
             .load(&mut conn)
             .unwrap_or_default();
@@ -194,8 +195,8 @@ pub async fn get_campaign_metrics_by_channel(
         }
 
         let total = recipients.len() as i64;
-        let sent = recipients.iter().filter(|s| *s == "sent").count() as i64;
-        let delivered = recipients.iter().filter(|s| *s == "delivered" || *s == "read").count() as i64;
+        let sent = recipients.iter().filter(|s| s.as_deref() == Some("sent")).count() as i64;
+        let delivered = recipients.iter().filter(|s| s.as_deref() == Some("delivered") || s.as_deref() == Some("read")).count() as i64;
         let opened = if channel == "email" {
             email_tracking::table
                 .filter(email_tracking::campaign_id.eq(campaign_id))

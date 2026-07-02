@@ -1,10 +1,9 @@
-use crate::core::{bots, branches, organizations};
+use crate::core::{branches};
 
 diesel::table! {
     crm_contacts (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         first_name -> Nullable<Varchar>,
         last_name -> Nullable<Varchar>,
         email -> Nullable<Varchar>,
@@ -32,8 +31,7 @@ diesel::table! {
 diesel::table! {
     crm_accounts (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         website -> Nullable<Varchar>,
         industry -> Nullable<Varchar>,
@@ -59,8 +57,7 @@ diesel::table! {
 diesel::table! {
     crm_pipeline_stages (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         stage_order -> Int4,
         probability -> Int4,
@@ -74,8 +71,7 @@ diesel::table! {
 diesel::table! {
     crm_leads (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         contact_id -> Nullable<Uuid>,
         account_id -> Nullable<Uuid>,
         title -> Varchar,
@@ -100,8 +96,7 @@ diesel::table! {
 diesel::table! {
     crm_opportunities (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         lead_id -> Nullable<Uuid>,
         account_id -> Nullable<Uuid>,
         contact_id -> Nullable<Uuid>,
@@ -127,8 +122,7 @@ diesel::table! {
 diesel::table! {
     crm_activities (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         contact_id -> Nullable<Uuid>,
         lead_id -> Nullable<Uuid>,
         opportunity_id -> Nullable<Uuid>,
@@ -147,8 +141,7 @@ diesel::table! {
 diesel::table! {
     crm_notes (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         contact_id -> Nullable<Uuid>,
         lead_id -> Nullable<Uuid>,
         opportunity_id -> Nullable<Uuid>,
@@ -163,8 +156,7 @@ diesel::table! {
 diesel::table! {
     people (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         user_id -> Nullable<Uuid>,
         first_name -> Varchar,
         last_name -> Nullable<Varchar>,
@@ -194,8 +186,7 @@ diesel::table! {
 diesel::table! {
     people_teams (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         leader_id -> Nullable<Uuid>,
@@ -222,8 +213,7 @@ diesel::table! {
 diesel::table! {
     people_org_chart (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         person_id -> Uuid,
         reports_to_id -> Nullable<Uuid>,
         position_title -> Nullable<Varchar>,
@@ -239,8 +229,7 @@ diesel::table! {
 diesel::table! {
     people_departments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
         code -> Nullable<Varchar>,
@@ -256,8 +245,7 @@ diesel::table! {
 diesel::table! {
     people_skills (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         category -> Nullable<Varchar>,
         description -> Nullable<Text>,
@@ -282,8 +270,7 @@ diesel::table! {
 diesel::table! {
     people_time_off (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         person_id -> Uuid,
         time_off_type -> Varchar,
         status -> Varchar,
@@ -299,21 +286,15 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(people -> organizations (org_id));
 diesel::joinable!(people -> branches (branch_id));
-diesel::joinable!(people_teams -> organizations (org_id));
 diesel::joinable!(people_teams -> branches (branch_id));
 diesel::joinable!(people_team_members -> people_teams (team_id));
 diesel::joinable!(people_team_members -> people (person_id));
-diesel::joinable!(people_org_chart -> organizations (org_id));
 diesel::joinable!(people_org_chart -> branches (branch_id));
-diesel::joinable!(people_departments -> organizations (org_id));
 diesel::joinable!(people_departments -> branches (branch_id));
-diesel::joinable!(people_skills -> organizations (org_id));
 diesel::joinable!(people_skills -> branches (branch_id));
 diesel::joinable!(people_person_skills -> people (person_id));
 diesel::joinable!(people_person_skills -> people_skills (skill_id));
-diesel::joinable!(people_time_off -> organizations (org_id));
 diesel::joinable!(people_time_off -> branches (branch_id));
 diesel::joinable!(crm_deals -> people_departments (department_id));
 diesel::joinable!(attendance_sla_events -> attendance_sla_policies (sla_policy_id));
@@ -321,8 +302,7 @@ diesel::joinable!(attendance_sla_events -> attendance_sla_policies (sla_policy_i
 diesel::table! {
     crm_deals (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         contact_id -> Nullable<Uuid>,
         account_id -> Nullable<Uuid>,
         am_id -> Nullable<Uuid>,
@@ -357,8 +337,7 @@ diesel::table! {
 diesel::table! {
     crm_deal_segments (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Varchar>,
         created_at -> Timestamptz,
@@ -368,8 +347,7 @@ diesel::table! {
 diesel::table! {
     marketing_campaigns (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         deal_id -> Nullable<Uuid>,
         name -> Varchar,
         status -> Varchar,
@@ -388,8 +366,7 @@ diesel::table! {
 diesel::table! {
     marketing_lists (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         list_type -> Varchar,
         query_text -> Nullable<Text>,
@@ -427,8 +404,7 @@ diesel::table! {
 diesel::table! {
     marketing_templates (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         channel -> Varchar,
         subject -> Nullable<Varchar>,
@@ -476,8 +452,7 @@ diesel::table! {
 diesel::table! {
     attendance_sla_policies (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         name -> Varchar,
         channel -> Nullable<Varchar>,
         priority -> Nullable<Varchar>,
@@ -506,8 +481,7 @@ diesel::table! {
 diesel::table! {
     attendance_webhooks (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        branch_id -> Nullable<Uuid>,
+        branch_id -> Uuid,
         webhook_url -> Varchar,
         events -> Nullable<Array<Text>>,
         is_active -> Nullable<Bool>,

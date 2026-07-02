@@ -56,6 +56,7 @@ diesel::table! {
     user_sessions (id) {
         id -> Uuid,
         user_id -> Uuid,
+        branch_id -> Uuid,
         bot_id -> Uuid,
         title -> Varchar,
         context_data -> Jsonb,
@@ -71,6 +72,7 @@ diesel::table! {
 pub struct UserSession {
     pub id: Uuid,
     pub user_id: Uuid,
+    pub branch_id: Uuid,
     pub bot_id: Uuid,
     pub title: String,
     pub context_data: serde_json::Value,
@@ -86,6 +88,7 @@ impl UserSession {
         Self {
             id: Uuid::new_v4(),
             user_id,
+            branch_id: Uuid::nil(),
             bot_id,
             title: title.into(),
             context_data: serde_json::json!({}),

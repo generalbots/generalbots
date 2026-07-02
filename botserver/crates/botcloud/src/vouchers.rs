@@ -195,10 +195,10 @@ pub async fn redeem_voucher(
             if let Ok(decoded_bytes) = base64_url_decode(parts[1]) {
                 if let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&decoded_bytes) {
                     if let Some(user_email) = payload.get("email").and_then(|v| v.as_str()) {
-                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts as cc_tbl, email as ce, id as cid, org_id as c_org_id, first_name as cfn, last_name as cln};
+                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts as cc_tbl, email as ce, id as cid, branch_id as c_branch_id, first_name as cfn, last_name as cln};
                         let c: (Uuid, Uuid, Option<String>, Option<String>, String) = cc_tbl
                             .filter(ce.eq(user_email))
-                            .select((cid, c_org_id, cfn, cln, ce))
+                            .select((cid, c_branch_id, cfn, cln, ce))
                             .first(&mut conn)
                             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Lookup user contact: {e}")))?;
 
