@@ -45,7 +45,7 @@ async fn list_rules(
 ) -> Result<Json<Vec<FraudRule>>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rules = diesel::sql_query(
-        "SELECT id, bot_id, name, description, rule_type, condition_json, \
+        "SELECT id, branch_id, name, description, rule_type, condition_json, \
          action, severity, is_active, created_at \
          FROM fraud_rules ORDER BY severity DESC, name",
     )
@@ -54,7 +54,7 @@ async fn list_rules(
     .into_iter()
     .map(|r| FraudRule {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         name: r.name,
         description: r.description,
         rule_type: r.rule_type,
@@ -76,7 +76,7 @@ async fn create_rule(
     let id = Uuid::new_v4();
 
     diesel::sql_query(
-        "INSERT INTO fraud_rules (id, bot_id, name, description, rule_type, condition_json, action, severity, is_active) \
+        "INSERT INTO fraud_rules (id, branch_id, name, description, rule_type, condition_json, action, severity, is_active) \
          VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, $6, $7, true)",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -113,7 +113,7 @@ async fn list_events(
 ) -> Result<Json<Vec<FraudEvent>>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let events = diesel::sql_query(
-        "SELECT id, bot_id, event_type, entity_type, entity_id, risk_score, risk_level, \
+        "SELECT id, branch_id, event_type, entity_type, entity_id, risk_score, risk_level, \
          triggered_rules, ml_score, action_taken, details, reviewed_by, reviewed_at, created_at \
          FROM fraud_events ORDER BY created_at DESC LIMIT 100",
     )
@@ -122,7 +122,7 @@ async fn list_events(
     .into_iter()
     .map(|r| FraudEvent {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         event_type: r.event_type,
         entity_type: r.entity_type,
         entity_id: r.entity_id,
@@ -143,7 +143,7 @@ async fn list_blocklist(
 ) -> Result<Json<Vec<FraudBlocklistEntry>>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let entries = diesel::sql_query(
-        "SELECT id, bot_id, block_type, block_value, reason, expires_at, created_at \
+        "SELECT id, branch_id, block_type, block_value, reason, expires_at, created_at \
          FROM fraud_blocklist ORDER BY created_at DESC",
     )
     .load::<BlocklistRow>(&mut conn)
@@ -151,7 +151,7 @@ async fn list_blocklist(
     .into_iter()
     .map(|r| FraudBlocklistEntry {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         block_type: r.block_type,
         block_value: r.block_value,
         reason: r.reason,
@@ -171,7 +171,7 @@ async fn add_blocklist(
     let expires = payload.expires_in_hours.map(|h| chrono::Utc::now() + chrono::Duration::hours(h));
 
     diesel::sql_query(
-        "INSERT INTO fraud_blocklist (id, bot_id, block_type, block_value, reason, expires_at) \
+        "INSERT INTO fraud_blocklist (id, branch_id, block_type, block_value, reason, expires_at) \
          VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5)",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -240,7 +240,7 @@ struct RuleRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: Uuid,
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     name: String,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
@@ -265,7 +265,7 @@ struct EventRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: Uuid,
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     event_type: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -298,7 +298,7 @@ struct BlocklistRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: Uuid,
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     block_type: String,
     #[diesel(sql_type = diesel::sql_types::Text)]

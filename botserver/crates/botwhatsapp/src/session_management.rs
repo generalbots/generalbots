@@ -20,8 +20,9 @@ pub async fn find_or_create_session(
         .get()
         .map_err(|e| format!("Pool error: {}", e))?;
 
+    let user_id_str = user_id.to_string();
     let existing_session: Option<Uuid> = user_sessions::table
-        .filter(user_sessions::user_id.eq(user_id))
+        .filter(user_sessions::user_id.eq(Some(&user_id_str)))
         .filter(user_sessions::bot_id.eq(*bot_id))
         .order(user_sessions::id.desc())
         .select(user_sessions::id)
@@ -33,11 +34,16 @@ pub async fn find_or_create_session(
     }
 
     let new_session_id = Uuid::new_v4();
+    let now = chrono::Utc::now();
     diesel::insert_into(user_sessions::table)
         .values((
             user_sessions::id.eq(new_session_id),
-            user_sessions::user_id.eq(user_id),
+            user_sessions::branch_id.eq(Uuid::nil()),
             user_sessions::bot_id.eq(*bot_id),
+            user_sessions::session_id.eq(new_session_id.to_string()),
+            user_sessions::user_id.eq(Some(&user_id_str)),
+            user_sessions::created_at.eq(now),
+            user_sessions::updated_at.eq(now),
         ))
         .execute(&mut conn)
         .map_err(|e| format!("Insert session error: {}", e))?;

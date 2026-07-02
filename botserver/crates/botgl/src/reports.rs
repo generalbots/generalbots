@@ -1,5 +1,3 @@
-use crate::types::{BalanceSheetRow, IncomeStatementRow};
-
 pub fn format_currency(value: &rust_decimal::Decimal) -> String {
     format!("{:.2}", value)
 }

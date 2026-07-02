@@ -52,16 +52,20 @@ pub struct NewMessage {
     pub direction: String,
     pub content: String,
     pub message_type: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
 pub struct UserSession {
     pub id: Uuid,
-    pub user_id: Uuid,
-    pub bot_id: Option<Uuid>,
-    pub context_data: Option<serde_json::Value>,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub branch_id: Uuid,
+    pub bot_id: Uuid,
+    pub session_id: String,
+    pub user_id: Option<String>,
+    pub data: Option<serde_json::Value>,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Queryable, Serialize, Deserialize)]

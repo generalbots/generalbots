@@ -19,14 +19,14 @@ pub async fn list_objectives(
     Query(query): Query<ListObjectivesQuery>,
 ) -> Result<Json<Vec<Objective>>, GoalsError> {
     let (pool, get_bot_context) = state;
-    let (org_id, bot_id) = get_bot_context();
+    let (org_id, branch_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
 
         let mut db_query = okr_objectives::table
             .filter(okr_objectives::org_id.eq(org_id))
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(owner_id) = query.owner_id {
@@ -68,7 +68,7 @@ pub async fn create_objective(
     Json(req): Json<CreateObjectiveRequest>,
 ) -> Result<Json<Objective>, GoalsError> {
     let (pool, get_bot_context) = state;
-    let (org_id, bot_id) = get_bot_context();
+    let (org_id, branch_id) = get_bot_context();
     let owner_id = req.owner_id.unwrap_or(user.user_id);
     let owner_name = Some(user.username.clone());
     let now = Utc::now();
@@ -78,7 +78,7 @@ pub async fn create_objective(
     let new_objective = ObjectiveRecord {
         id: Uuid::new_v4(),
         org_id,
-        bot_id,
+        branch_id,
         owner_id,
         parent_id: req.parent_id,
         title: req.title.clone(),
@@ -244,7 +244,7 @@ pub async fn create_key_result(
     Json(req): Json<CreateKeyResultRequest>,
 ) -> Result<Json<KeyResult>, GoalsError> {
     let (pool, get_bot_context) = state;
-    let (org_id, bot_id) = get_bot_context();
+    let (org_id, branch_id) = get_bot_context();
     let owner_id = user.user_id;
     let now = Utc::now();
 
@@ -253,7 +253,7 @@ pub async fn create_key_result(
     let new_kr = KeyResultRecord {
         id: Uuid::new_v4(),
         org_id,
-        bot_id,
+        branch_id,
         objective_id,
         owner_id,
         title: req.title.clone(),
@@ -374,7 +374,7 @@ pub async fn create_check_in(
     Json(req): Json<CreateCheckInRequest>,
 ) -> Result<Json<CheckIn>, GoalsError> {
     let (pool, get_bot_context) = state;
-    let (org_id, bot_id) = get_bot_context();
+    let (org_id, branch_id) = get_bot_context();
     let user_id = user.user_id;
     let now = Utc::now();
 
@@ -394,7 +394,7 @@ pub async fn create_check_in(
     let new_checkin = CheckInRecord {
         id: Uuid::new_v4(),
         org_id,
-        bot_id,
+        branch_id,
         key_result_id,
         user_id,
         previous_value,
@@ -458,21 +458,21 @@ pub async fn get_dashboard(
     State(state): State<(Arc<DbPool>, GetBotContextFn)>,
 ) -> Result<Json<GoalsDashboard>, GoalsError> {
     let (pool, get_bot_context) = state;
-    let (org_id, bot_id) = get_bot_context();
+    let (org_id, branch_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
 
         let total: i64 = okr_objectives::table
             .filter(okr_objectives::org_id.eq(org_id))
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .count()
             .get_result(&mut conn)
             .unwrap_or(0);
 
         let completed: i64 = okr_objectives::table
             .filter(okr_objectives::org_id.eq(org_id))
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::status.eq("completed"))
             .count()
             .get_result(&mut conn)
@@ -480,7 +480,7 @@ pub async fn get_dashboard(
 
         let at_risk: i64 = okr_objectives::table
             .filter(okr_objectives::org_id.eq(org_id))
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::status.eq("at_risk"))
             .count()
             .get_result(&mut conn)
@@ -488,7 +488,7 @@ pub async fn get_dashboard(
 
         let objectives = okr_objectives::table
             .filter(okr_objectives::org_id.eq(org_id))
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .select(okr_objectives::progress)
             .load::<BigDecimal>(&mut conn)
             .unwrap_or_default();
@@ -502,7 +502,7 @@ pub async fn get_dashboard(
 
         let upcoming_krs = okr_key_results::table
             .filter(okr_key_results::org_id.eq(org_id))
-            .filter(okr_key_results::bot_id.eq(bot_id))
+            .filter(okr_key_results::branch_id.eq(branch_id))
             .filter(okr_key_results::due_date.is_not_null())
             .order(okr_key_results::due_date.asc())
             .limit(5)
@@ -537,14 +537,14 @@ pub async fn get_alignment(
     State(state): State<(Arc<DbPool>, GetBotContextFn)>,
 ) -> Result<Json<Vec<AlignmentNode>>, GoalsError> {
     let (pool, get_bot_context) = state;
-    let (org_id, bot_id) = get_bot_context();
+    let (org_id, branch_id) = get_bot_context();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| GoalsError::Database(e.to_string()))?;
 
         let objectives = okr_objectives::table
             .filter(okr_objectives::org_id.eq(org_id))
-            .filter(okr_objectives::bot_id.eq(bot_id))
+            .filter(okr_objectives::branch_id.eq(branch_id))
             .filter(okr_objectives::parent_id.is_null())
             .load::<ObjectiveRecord>(&mut conn)
             .map_err(|e| GoalsError::Database(e.to_string()))?;
@@ -665,7 +665,7 @@ mod tests {
         let objective = ObjectiveRecord {
             id: Uuid::new_v4(),
             org_id: Uuid::new_v4(),
-            bot_id: Uuid::new_v4(),
+            branch_id: Uuid::new_v4(),
             owner_id: Uuid::new_v4(),
             parent_id: None,
             title: "Test Objective".to_string(),
@@ -693,7 +693,7 @@ mod tests {
         let key_result = KeyResultRecord {
             id: Uuid::new_v4(),
             org_id: Uuid::new_v4(),
-            bot_id: Uuid::new_v4(),
+            branch_id: Uuid::new_v4(),
             objective_id: Uuid::new_v4(),
             owner_id: Uuid::new_v4(),
             title: "Test Key Result".to_string(),
@@ -723,7 +723,7 @@ mod tests {
         let check_in = CheckInRecord {
             id: Uuid::new_v4(),
             org_id: Uuid::new_v4(),
-            bot_id: Uuid::new_v4(),
+            branch_id: Uuid::new_v4(),
             key_result_id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
             previous_value: Some(BigDecimal::from(0)),

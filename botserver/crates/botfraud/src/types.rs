@@ -5,7 +5,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FraudRule {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub rule_type: String,
@@ -19,7 +19,7 @@ pub struct FraudRule {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FraudEvent {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub event_type: String,
     pub entity_type: String,
     pub entity_id: Uuid,
@@ -35,7 +35,7 @@ pub struct FraudEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FraudBlocklistEntry {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub block_type: String,
     pub block_value: String,
     pub reason: Option<String>,

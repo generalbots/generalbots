@@ -27,8 +27,7 @@ use crate::{DbPool, SaasConfig};
 /// Creates a contact in CRM (`crm_contacts`) and returns the generated ID.
 pub fn create_crm_contact(
     pool: &DbPool,
-    org_id: Uuid,
-    bot_id: Uuid,
+    branch_id: Uuid,
     name: &str,
     email: &str,
     pass_hash: Option<&str>,
@@ -40,12 +39,11 @@ pub fn create_crm_contact(
     let last_name = parts.get(1);
 
     diesel::sql_query(
-        r#"INSERT INTO crm_contacts (id, org_id, bot_id, first_name, last_name, email, pass_hash, status, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', NOW(), NOW())"#,
+        r#"INSERT INTO crm_contacts (id, branch_id, first_name, last_name, email, pass_hash, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, 'active', NOW(), NOW())"#,
     )
     .bind::<DieselUuid, _>(id)
-    .bind::<DieselUuid, _>(org_id)
-    .bind::<DieselUuid, _>(bot_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(first_name)
     .bind::<Nullable<Text>, _>(last_name.map(|s| s.to_string()))
     .bind::<Text, _>(email)
@@ -59,8 +57,7 @@ pub fn create_crm_contact(
 /// Creates a deal (opportunity) in CRM (`crm_deals`) linked to contact and invoice.
 pub fn create_crm_deal(
     pool: &DbPool,
-    org_id: Uuid,
-    bot_id: Uuid,
+    branch_id: Uuid,
     contact_id: Uuid,
     _invoice_id: Uuid,
     deal_name: &str,
@@ -72,12 +69,11 @@ pub fn create_crm_deal(
     let now = Utc::now();
 
     diesel::sql_query(
-        r#"INSERT INTO crm_deals (id, org_id, bot_id, contact_id, name, title, value, currency, stage, probability, owner_id, created_at, updated_at, deal_date)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'qualification', 10, $9, $10, $10, $10::date)"#,
+        r#"INSERT INTO crm_deals (id, branch_id, contact_id, name, title, value, currency, stage, probability, owner_id, created_at, updated_at, deal_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'qualification', 10, $8, $9, $9, $9::date)"#,
     )
     .bind::<DieselUuid, _>(id)
-    .bind::<DieselUuid, _>(org_id)
-    .bind::<DieselUuid, _>(bot_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<DieselUuid, _>(contact_id)
     .bind::<Text, _>(deal_name)
     .bind::<Text, _>(deal_name)
@@ -94,7 +90,7 @@ pub fn create_crm_deal(
 /// Marks a deal as won and records the closing date.
 pub fn win_crm_deal(
     pool: &DbPool,
-    org_id: Uuid,
+    branch_id: Uuid,
     deal_name: &str,
 ) -> Result<(), String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
@@ -103,10 +99,10 @@ pub fn win_crm_deal(
     diesel::sql_query(
         r#"UPDATE crm_deals SET stage = 'won', won = true, probability = 100,
            actual_close_date = $1::date, closed_at = $1, updated_at = $1
-           WHERE org_id = $2 AND name = $3 AND (won IS NULL OR won = false) AND stage <> 'lost'"#,
+           WHERE branch_id = $2 AND name = $3 AND (won IS NULL OR won = false) AND stage <> 'lost'"#,
     )
     .bind::<Timestamptz, _>(now)
-    .bind::<DieselUuid, _>(org_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(deal_name)
     .execute(&mut conn)
     .map_err(|e| format!("Win crm_deal: {e}"))?;
@@ -237,8 +233,7 @@ fn get_or_create_gl_account(
 /// Creates a recurring subscription record (`billing_recurring`) for the bot.
 pub fn create_billing_subscription(
     pool: &DbPool,
-    org_id: Uuid,
-    bot_id: Uuid,
+    branch_id: Uuid,
     customer_name: &str,
     customer_email: &str,
     plan: &str,
@@ -261,14 +256,13 @@ pub fn create_billing_subscription(
 
     diesel::sql_query(
         r#"INSERT INTO billing_recurring
-           (id, org_id, bot_id, customer_name, customer_email, status, frequency, interval_count,
+           (id, branch_id, customer_name, customer_email, status, frequency, interval_count,
             amount, currency, description, next_invoice_date, start_date, last_invoice_id,
             invoices_generated, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, 'active', $6, $7, $8, $9, $10, $11, $12, $13, 1, $14, $14)"#,
+           VALUES ($1, $2, $3, $4, 'active', $5, $6, $7, $8, $9, $10, $11, $12, 1, $13, $13)"#,
     )
     .bind::<DieselUuid, _>(id)
-    .bind::<DieselUuid, _>(org_id)
-    .bind::<DieselUuid, _>(bot_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(customer_name)
     .bind::<Nullable<Text>, _>(Some(customer_email.to_string()))
     .bind::<Text, _>(frequency)
@@ -486,8 +480,7 @@ pub fn create_bot_inner(conn: &mut PgConnection, org_id: Uuid, branch_id: Uuid, 
 
 pub fn create_crm_contact_inner(
     conn: &mut PgConnection,
-    org_id: Uuid,
-    bot_id: Uuid,
+    branch_id: Uuid,
     name: &str,
     email: &str,
     pass_hash: Option<&str>,
@@ -498,12 +491,11 @@ pub fn create_crm_contact_inner(
     let last_name = parts.get(1);
 
     diesel::sql_query(
-        r#"INSERT INTO crm_contacts (id, org_id, bot_id, first_name, last_name, email, pass_hash, status, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', NOW(), NOW())"#,
+        r#"INSERT INTO crm_contacts (id, branch_id, first_name, last_name, email, pass_hash, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, 'active', NOW(), NOW())"#,
     )
     .bind::<DieselUuid, _>(id)
-    .bind::<DieselUuid, _>(org_id)
-    .bind::<DieselUuid, _>(bot_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(first_name)
     .bind::<Nullable<Text>, _>(last_name.map(|s| s.to_string()))
     .bind::<Text, _>(email)
@@ -516,8 +508,7 @@ pub fn create_crm_contact_inner(
 
 pub fn create_free_subscription_inner(
     conn: &mut PgConnection,
-    org_id: Uuid,
-    bot_id: Uuid,
+    branch_id: Uuid,
     customer_name: &str,
     customer_email: &str,
 ) -> Result<Uuid, String> {
@@ -526,15 +517,14 @@ pub fn create_free_subscription_inner(
 
     diesel::sql_query(
         r#"INSERT INTO billing_recurring
-           (id, org_id, bot_id, customer_name, customer_email, status, frequency, interval_count,
+           (id, branch_id, customer_name, customer_email, status, frequency, interval_count,
             amount, currency, description, next_invoice_date, start_date, last_invoice_id,
             invoices_generated, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, 'active', 'monthly', 1, 0.0, 'USD',
-                   'Free Plan', $8, $6, NULL, 0, $7, $7)"#,
+           VALUES ($1, $2, $3, $4, 'active', 'monthly', 1, 0.0, 'USD',
+                   'Free Plan', $7, $5, NULL, 0, $6, $6)"#,
     )
     .bind::<DieselUuid, _>(sub_id)
-    .bind::<DieselUuid, _>(org_id)
-    .bind::<DieselUuid, _>(bot_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(customer_name)
     .bind::<Nullable<Text>, _>(Some(customer_email.to_string()))
     .bind::<Date, _>(now.date_naive())
@@ -548,8 +538,7 @@ pub fn create_free_subscription_inner(
 
 pub fn create_trial_subscription_inner(
     conn: &mut PgConnection,
-    org_id: Uuid,
-    bot_id: Uuid,
+    branch_id: Uuid,
     customer_name: &str,
     customer_email: &str,
     plan: &str,
@@ -561,15 +550,14 @@ pub fn create_trial_subscription_inner(
 
     diesel::sql_query(
         r#"INSERT INTO billing_recurring
-           (id, org_id, bot_id, customer_name, customer_email, status, frequency, interval_count,
+           (id, branch_id, customer_name, customer_email, status, frequency, interval_count,
             amount, currency, description, next_invoice_date, start_date, last_invoice_id,
             invoices_generated, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, 'trialing', 'monthly', 1, 0.0, 'USD',
-                   $6, $7, $8, NULL, 0, $9, $9)"#,
+           VALUES ($1, $2, $3, $4, 'trialing', 'monthly', 1, 0.0, 'USD',
+                   $5, $6, $7, NULL, 0, $8, $8)"#,
     )
     .bind::<DieselUuid, _>(sub_id)
-    .bind::<DieselUuid, _>(org_id)
-    .bind::<DieselUuid, _>(bot_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(customer_name)
     .bind::<Nullable<Text>, _>(Some(customer_email.to_string()))
     .bind::<Nullable<Text>, _>(Some(format!("{plan} - {trial_days} Day Trial")))
@@ -582,16 +570,16 @@ pub fn create_trial_subscription_inner(
     Ok(sub_id)
 }
 
-pub fn create_cloud_workspace_inner(conn: &mut PgConnection, org_id: Uuid, name: &str) -> Result<Uuid, String> {
+pub fn create_cloud_workspace_inner(conn: &mut PgConnection, branch_id: Uuid, name: &str) -> Result<Uuid, String> {
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     diesel::sql_query(
-        r#"INSERT INTO cloud_workspaces (id, org_id, name, description, icon, created_at, updated_at)
+        r#"INSERT INTO cloud_workspaces (id, branch_id, name, description, icon, created_at, updated_at)
            VALUES ($1, $2, $3, $4, 'default', $5, $5)"#,
     )
     .bind::<DieselUuid, _>(id)
-    .bind::<DieselUuid, _>(org_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(name)
     .bind::<Nullable<Text>, _>(Some(format!("Default workspace for {}", name)))
     .bind::<Timestamptz, _>(now)
@@ -652,9 +640,7 @@ pub fn create_bot_bucket(config: &SaasConfig, org_slug: &str, bot_slug: &str, bo
 /// Creates a trial subscription in billing_recurring for the given plan and trial days.
 pub fn create_trial_subscription(
     pool: &DbPool,
-    org_id: Uuid,
-    bot_id: Uuid,
-    _branch_id: Uuid,
+    branch_id: Uuid,
     customer_name: &str,
     customer_email: &str,
     plan: &str,
@@ -667,15 +653,14 @@ pub fn create_trial_subscription(
 
     diesel::sql_query(
         r#"INSERT INTO billing_recurring
-           (id, org_id, bot_id, customer_name, customer_email, status, frequency, interval_count,
+           (id, branch_id, customer_name, customer_email, status, frequency, interval_count,
             amount, currency, description, next_invoice_date, start_date, last_invoice_id,
             invoices_generated, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, 'trialing', 'monthly', 1, 0.0, 'USD',
-                   $6, $7, $8, NULL, 0, $9, $9)"#,
+           VALUES ($1, $2, $3, $4, 'trialing', 'monthly', 1, 0.0, 'USD',
+                   $5, $6, $7, NULL, 0, $8, $8)"#,
     )
     .bind::<DieselUuid, _>(sub_id)
-    .bind::<DieselUuid, _>(org_id)
-    .bind::<DieselUuid, _>(bot_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(customer_name)
     .bind::<Nullable<Text>, _>(Some(customer_email.to_string()))
     .bind::<Nullable<Text>, _>(Some(format!("{plan} - {trial_days} Day Trial")))
@@ -692,9 +677,7 @@ pub fn create_trial_subscription(
 /// No trial, no amount — starts immediately as 'active' with $0.00.
 pub fn create_free_subscription(
     pool: &DbPool,
-    org_id: Uuid,
-    bot_id: Uuid,
-    _branch_id: Uuid,
+    branch_id: Uuid,
     customer_name: &str,
     customer_email: &str,
 ) -> Result<Uuid, String> {
@@ -704,15 +687,14 @@ pub fn create_free_subscription(
 
     diesel::sql_query(
         r#"INSERT INTO billing_recurring
-           (id, org_id, bot_id, customer_name, customer_email, status, frequency, interval_count,
+           (id, branch_id, customer_name, customer_email, status, frequency, interval_count,
             amount, currency, description, next_invoice_date, start_date, last_invoice_id,
             invoices_generated, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, 'active', 'monthly', 1, 0.0, 'USD',
-                   'Free Plan', $8, $6, NULL, 0, $7, $7)"#,
+           VALUES ($1, $2, $3, $4, 'active', 'monthly', 1, 0.0, 'USD',
+                   'Free Plan', $7, $5, NULL, 0, $6, $6)"#,
     )
     .bind::<DieselUuid, _>(sub_id)
-    .bind::<DieselUuid, _>(org_id)
-    .bind::<DieselUuid, _>(bot_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(customer_name)
     .bind::<Nullable<Text>, _>(Some(customer_email.to_string()))
     .bind::<Date, _>(now.date_naive())
@@ -725,17 +707,17 @@ pub fn create_free_subscription(
 }
 
 /// Creates a default cloud workspace for the organization.
-pub fn create_cloud_workspace(pool: &DbPool, org_id: Uuid, name: &str) -> Result<Uuid, String> {
+pub fn create_cloud_workspace(pool: &DbPool, branch_id: Uuid, name: &str) -> Result<Uuid, String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     diesel::sql_query(
-        r#"INSERT INTO cloud_workspaces (id, org_id, name, description, icon, created_at, updated_at)
+        r#"INSERT INTO cloud_workspaces (id, branch_id, name, description, icon, created_at, updated_at)
            VALUES ($1, $2, $3, $4, 'default', $5, $5)"#,
     )
     .bind::<DieselUuid, _>(id)
-    .bind::<DieselUuid, _>(org_id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(name)
     .bind::<Nullable<Text>, _>(Some(format!("Default workspace for {}", name)))
     .bind::<Timestamptz, _>(now)

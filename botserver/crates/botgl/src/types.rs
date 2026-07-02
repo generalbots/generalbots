@@ -5,7 +5,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlAccount {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub code: String,
     pub name: String,
     pub account_type: String,
@@ -17,7 +17,7 @@ pub struct GlAccount {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlJournalEntry {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub entry_date: NaiveDate,
     pub description: String,
     pub reference_type: Option<String>,

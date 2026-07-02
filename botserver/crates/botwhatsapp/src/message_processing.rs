@@ -81,6 +81,7 @@ fn save_incoming_message(
         direction: "inbound".to_string(),
         content: msg_content.to_string(),
         message_type: Some("text".to_string()),
+        created_at: chrono::Utc::now(),
     };
 
     diesel::insert_into(crate::schema::message_history::table)
@@ -114,6 +115,7 @@ pub fn process_outbound_message(
         direction: "outbound".to_string(),
         content: msg_content.to_string(),
         message_type: Some("text".to_string()),
+        created_at: chrono::Utc::now(),
     };
 
     diesel::insert_into(crate::schema::message_history::table)

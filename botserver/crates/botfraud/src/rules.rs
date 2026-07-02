@@ -3,7 +3,7 @@ use diesel::prelude::*;
 
 pub fn load_active_rules(conn: &mut PgConnection) -> Vec<FraudRule> {
     diesel::sql_query(
-        "SELECT id, bot_id, name, description, rule_type, condition_json, \
+        "SELECT id, branch_id, name, description, rule_type, condition_json, \
          action, severity, is_active, created_at \
          FROM fraud_rules WHERE is_active = true ORDER BY severity DESC",
     )
@@ -12,7 +12,7 @@ pub fn load_active_rules(conn: &mut PgConnection) -> Vec<FraudRule> {
     .into_iter()
     .map(|r| FraudRule {
         id: r.id,
-        bot_id: r.bot_id,
+        branch_id: r.branch_id,
         name: r.name,
         description: r.description,
         rule_type: r.rule_type,
@@ -86,7 +86,7 @@ struct RuleDbRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: uuid::Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    bot_id: uuid::Uuid,
+    branch_id: uuid::Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     name: String,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]

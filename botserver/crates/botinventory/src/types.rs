@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InventoryItem {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub product_id: Option<Uuid>,
     pub sku: String,
     pub name: String,
@@ -26,7 +26,7 @@ pub struct InventoryItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InventoryMovement {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub item_id: Uuid,
     pub movement_type: String,
     pub quantity: rust_decimal::Decimal,
@@ -40,7 +40,7 @@ pub struct InventoryMovement {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PurchaseOrder {
     pub id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub po_number: String,
     pub vendor_name: String,
     pub status: String,

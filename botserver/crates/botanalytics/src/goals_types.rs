@@ -11,7 +11,7 @@ use crate::schema::{okr_checkins, okr_key_results, okr_objectives, okr_templates
 pub struct ObjectiveRecord {
     pub id: Uuid,
     pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub owner_id: Uuid,
     pub parent_id: Option<Uuid>,
     pub title: String,
@@ -33,7 +33,7 @@ pub struct ObjectiveRecord {
 pub struct KeyResultRecord {
     pub id: Uuid,
     pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub objective_id: Uuid,
     pub owner_id: Uuid,
     pub title: String,
@@ -56,7 +56,7 @@ pub struct KeyResultRecord {
 pub struct CheckInRecord {
     pub id: Uuid,
     pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub key_result_id: Uuid,
     pub user_id: Uuid,
     pub previous_value: Option<BigDecimal>,
@@ -72,7 +72,7 @@ pub struct CheckInRecord {
 pub struct TemplateRecord {
     pub id: Uuid,
     pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub category: Option<String>,
