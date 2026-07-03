@@ -144,16 +144,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const signupBtn = document.getElementById('sidebar-signup');
     if (signupBtn) signupBtn.style.display = '';
 
-    // CTA banner on all pages for anonymous users
-    const main = document.querySelector('.mgmt-main');
-    if (main && !main.querySelector('.anon-cta-banner')) {
-      const banner = document.createElement('div');
-      banner.className = 'anon-cta-banner';
-      banner.innerHTML = '<div class="anon-cta-content">' +
-        '<span>Explore the cloud — <strong>Create your free account</strong> to deploy bots, manage services, and scale.</span>' +
-        '<a href="/signup" class="anon-cta-btn">Create Free Account</a>' +
-        '</div>';
-      main.insertBefore(banner, main.firstChild);
+    // Anonymous: show subtle sign-up prompt only on account pages
+    const isAccountPage = location.pathname.match(/^\/(dashboard|invoices|services|profile|settings|payment|organizations)/);
+    if (isAccountPage) {
+      const main = document.querySelector('.mgmt-main');
+      if (main && !main.querySelector('.anon-cta-banner')) {
+        const banner = document.createElement('div');
+        banner.className = 'anon-cta-banner';
+        banner.innerHTML = '<div class="anon-cta-content">' +
+          '<span>Sign in to access your account.</span>' +
+          '<a href="' + (window.GB_LOGIN_URL || '/login') + '" class="anon-cta-btn">Sign In</a>' +
+          '</div>';
+        main.insertBefore(banner, main.firstChild);
+      }
     }
   }
 });
@@ -213,15 +216,20 @@ async function loadDashboardPlans(token) {
 function renderDashboardPlans(plans) {
   const grid = document.getElementById('plans-grid');
   if (!grid || !plans) return;
-  grid.innerHTML = Object.entries(plans).map(([id, plan]) => `
+  grid.innerHTML = Object.entries(plans).map(([id, plan]) => {
+    const isFree = plan.price.type === 'free';
+    const isCustom = plan.price.type === 'custom';
+    const monthlyAmount = isFree ? 0 : (plan.price.amount || 0) / 100;
+    const periodLabel = plan.price.period || 'mo';
+    return `
     <div class="saas-plan-card">
       <h3>${escapeHtml(plan.name)}</h3>
-      <div class="price">${plan.price.type === 'free' ? 'Free' : '$' + (plan.price.amount / 100).toFixed(2) + '/' + plan.price.period}</div>
+      <div class="price">${isFree ? 'Free' : isCustom ? 'Custom' : '$' + monthlyAmount.toFixed(2) + '/' + periodLabel}</div>
       <ul>
         ${(plan.features || []).map(f => `<li>${escapeHtml(f)}</li>`).join('')}
       </ul>
     </div>
-  `).join('');
+  `}).join('');
 
   const select = document.getElementById('org-plan');
   if (select) {
@@ -280,16 +288,15 @@ function isAuthenticated() {
 function requireAuth() {
   let t = getToken();
   if (!t) {
+    // Anonymous browsing allowed — return null instead of redirecting.
+    // On localhost, devAutoLogin runs in background to get a real token
+    // for subsequent page navigations. No reload needed — the token
+    // persists in localStorage and is picked up on next page load.
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      if (sessionStorage.getItem('gb-signed-out') === 'true') {
-        return null;
+      if (sessionStorage.getItem('gb-signed-out') !== 'true') {
+        devAutoLogin();
       }
-      localStorage.setItem('management_token', 'dev-token');
-      localStorage.setItem('management_email', 'admin@localhost');
-      devAutoLogin();
-      t = 'dev-token';
     }
-    // Anonymous browsing allowed — return null instead of redirecting
   }
   return t;
 }

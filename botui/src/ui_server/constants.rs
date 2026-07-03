@@ -17,7 +17,6 @@ pub const SUITE_DIRS: &[&str] = &[
     "partials",
     // Core & Support
     "settings",
-    "auth",
     "about",
     // Core Apps (feature-gated to match botui Cargo.toml features)
     #[cfg(feature = "drive")]

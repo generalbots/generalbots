@@ -148,7 +148,7 @@ function selectPlan(planId) {
   }
   const isFree = plan.price.type === 'free';
   if (isFree) {
-    window.location.href = '/signup?plan=free';
+    window.location.href = (window.GB_LOGIN_URL || '/login') + '/signup?plan=free';
     return;
   }
   const payload = encodeURIComponent(JSON.stringify({

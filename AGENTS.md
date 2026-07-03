@@ -9,6 +9,7 @@
 8080 é a porta do servidor (botserver). Suite na **3000**, cloud na **4000**, login na **5000**.
 if you are in trouble with some tool, please go to the official website to get proper install or instructions
 To test suite: http://localhost:3000 | To test cloud: http://localhost:4000 | To test login: http://localhost:5000
+> **Login/Signup exclusivo:** `login.pragmatismo.com.br` (porta 5000) é o **único** domínio que serve páginas de login e signup. A porta 4000 (cloud) **não** serve login ou signup — qualquer acesso a `/login` ou `/signup` na porta 4000 redireciona para a porta 5000.
 Use apenas a língua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
 
 Pare de fazer perguntas. Seja autônomo e execute as tarefas diretamente, sem pedir confirmação ou permissão a cada passo. Apenas faça.
@@ -46,23 +47,26 @@ See botserver/src/main_module/drive_monitors.rs to see how bots are loaded from 
 
 ### Three Listeners (Ports)
 
-| Listener | Crate | Purpose | Port | Serves |
-|----------|-------|---------|------|--------|
-| **botui** | `botui` | Web UI server (dev) + proxy | **3000** | Static HTMX pages (`ui/suite/`), reverse proxy to botserver |
-| **botui** | `botui` | Cloud management server | **4000** | Static HTMX pages (`ui/cloud/`), URL rewriting (`/cloud/dashboard` → `dashboard.html`) |
-| **botui** | `botui` | Login server | **5000** | Auth pages (`ui/login/`) |
-| **botserver** | `botserver` | Main API + fragments | **8080** | API endpoints (`/api/*`), HTMX fragments (`/cloud/partials/*`), bot WebSocket |
-| **botapp** | `botapp` | Desktop app wrapper | - | Tauri 2 desktop shell |
+| Port | Serviço | Domínio | Conteúdo | Autenticação | Roteamento |
+|------|---------|---------|----------|--------------|------------|
+| **3000** | Suite (botui) | `localhost:3000` | `ui/suite/*.html` — HTMX apps, chat, desktop | ✅ GB_LOGIN_URL injetado | Reverse proxy → botserver `/api/*`, `/ws` |
+| **4000** | Cloud (botui) | `localhost:4000` | `ui/cloud/*.html` — store, dashboard, plans, offers | ❌ **Sem login/signup** — redireciona → 5000 | URL rewriting (`/store` → `store.html`), GB_LOGIN_URL injetado |
+| **5000** | Login (botui) | `login.pragmatismo.com.br` | `ui/login/*.html` — login, signup | ✅ **Único domínio com auth** | Serve CSS/JS/images do cloud via proxy |
+| **8080** | API (botserver) | `localhost:8080` | API endpoints + fragments | ✅ Bearer token | `/api/*`, `/cloud/partials/*`, `/ws` |
+| **—** | Desktop (botapp) | Tauri 2 | Shell wrapper | N/A | N/A |
 
-### Cloud UI Architecture
+### Cloud UI Architecture — Quem Serve o Quê
 
-| Layer | Port | Responsibility | Content |
-|-------|------|---------------|---------|
-| **botui** | 3000 | Serves suite static files | `ui/suite/*.html`, `ui/suite/css/*`, `ui/suite/js/*` |
-| **botui** | 4000 | Serves cloud static files | `ui/cloud/*.html`, `ui/cloud/css/*`, `ui/cloud/js/*` (full pages with URL rewriting: `/cloud/dashboard` → `dashboard.html`) |
-| **botserver** | 8080 | Serves cloud API + fragments | `/api/cloud/*` (data endpoints), `/cloud/partials/sidebar.html` (HTMX fragment) |
+| Porta | Serve | Não Serve |
+|-------|-------|-----------|
+| **3000** (suite) | `ui/suite/*` — chat, apps, desktop | ❌ `/cloud/*` (404 explícito) |
+| **4000** (cloud) | `ui/cloud/*.html` — store, dashboard, plans, offers | ❌ `/login`, `/signup` (redireciona 307 → 5000) |
+| **5000** (login) | `ui/login/*.html` — login, signup | Somente auth |
+| **8080** (botserver) | API (`/api/cloud/*`), fragments (`/cloud/partials/*`), WebSocket | ❌ Páginas HTML completas |
 
-**Rule:** botserver NEVER serves full HTMX pages — only API endpoints and fragments. Full cloud pages are served statically by botui from `ui/cloud/`.
+**Regra:** botserver NUNCA serve páginas HTMX completas — apenas endpoints API e fragments HTML. Páginas cloud completas são servidas estaticamente pelo botui a partir de `ui/cloud/`.
+
+**Injeção de `GB_LOGIN_URL`:** Tanto a porta 3000 (suite) quanto a 4000 (cloud) injetam `<script>window.GB_LOGIN_URL = "http://localhost:5000";</script>` no `<head>` de páginas HTML, permitindo que o frontend redirecione para a porta 5000 sem hardcode. A variável de ambiente `LOGIN_URL` (default `http://localhost:5000`) controla o valor.
 
 ### Key Paths
 - **Binary:** `target/debug/botserver`
@@ -1253,7 +1257,7 @@ Implementation at `botproducts/src/lib.rs:33-45` (`get_bot_context()`).
 | Plans | `botui/ui/cloud/plans.html` | Plan grid from API |
 | Offers | `botui/ui/cloud/offers.html` | Bundles |
 | Dashboard | `botui/ui/cloud/dashboard.html` | Current plan + usage |
-| Signup | `botui/ui/cloud/signup.html` | Plan selector |
+| Signup | `botui/ui/login/signup.html` (porta 5000) | Plan selector |
 
 ### ⚠️ Important LLM Rules
 
@@ -1269,13 +1273,13 @@ Implementation at `botproducts/src/lib.rs:33-45` (`get_bot_context()`).
 ### Portas
 | Serviço | Porta | Descrição |
 |---------|-------|-----------|
-| Cloud UI (botui) | **4000** | Páginas de signup, login, dashboard, store, offers |
+| Cloud UI (botui) | **4000** | Páginas de dashboard, store, offers, plans (**sem** login/signup) |
 | Cloud API (botserver) | **8080** | `/api/cloud/auth/signup`, `/api/cloud/auth/login`, etc. |
-| Login UI (botui) | **5000** | Páginas de login e registro (`/login`, `/signup`) |
+| Login UI (botui) | **5000** | Páginas de login e registro (`/login`, `/signup`) — **único** serviço com auth |
 
 ### Fluxo de Teste dos Planos (Free, Shared, Private Cloud)
 
-Usar Playwright conectado via CDP ao Chrome existente na porta 9222:
+Usar Playwright conectado via CDP ao Chrome existente na porta 9222. O signup é feito exclusivamente na porta 5000 (`login.pragmatismo.com.br`), que redireciona os formulários para a API cloud (porta 8080):
 
 ```python
 from playwright.async_api import async_playwright
@@ -1286,9 +1290,9 @@ async def test_cloud_plans():
         ctx = browser.contexts[0]  # usa o contexto default do Chrome
 
         plans = [
-            ('free', 'http://localhost:4000/cloud/signup'),
-            ('shared', 'http://localhost:4000/cloud/signup?plan=shared'),
-            ('private-cloud', 'http://localhost:4000/cloud/signup?plan=private-cloud'),
+            ('free', 'http://localhost:5000/signup'),
+            ('shared', 'http://localhost:5000/signup?plan=shared'),
+            ('private-cloud', 'http://localhost:5000/signup?plan=private-cloud'),
         ]
 
         for plan_id, url in plans:

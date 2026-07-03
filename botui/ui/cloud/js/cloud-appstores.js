@@ -4,7 +4,7 @@ const API_BASE = '/api/cloud';
 function requireAuth() {
   const token = localStorage.getItem('management_token');
   if (!token) {
-    window.location.href = '/login';
+    window.location.href = (window.GB_LOGIN_URL || '/login');
   }
   return token;
 }
