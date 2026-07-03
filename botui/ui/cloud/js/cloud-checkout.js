@@ -91,14 +91,24 @@ async function doCheckout(e) {
   btn.textContent = 'Processing...';
   btn.disabled = true;
 
-  const email = document.getElementById('email').value;
-  const orgName = document.getElementById('org-name').value;
-
   const params = new URLSearchParams(window.location.search);
   const raw = params.get('payload');
   const payload = JSON.parse(decodeURIComponent(raw));
 
   const token = getToken();
+  var email = '';
+  var orgName = '';
+  if (token) {
+    try {
+      var parts = token.split('.');
+      if (parts.length === 3) {
+        var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        var claims = JSON.parse(atob(b64));
+        email = claims.email || claims.sub || '';
+        orgName = claims.org_name || claims.org || '';
+      }
+    } catch (_) {}
+  }
 
   try {
     const res = await fetch(`${API_BASE}/checkout`, {

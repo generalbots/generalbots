@@ -851,7 +851,7 @@
 
             <div class="setup-step-content" id="setupStep3">
               <h3>Configure your Bot</h3>
-              <p>Give your bot a name and describe its purpose</p>
+              <p>Give your bot a name, purpose, and optional template</p>
               <div class="setup-form">
                 <div class="setup-form-group">
                   <label for="wizardBotName">Bot Name</label>
@@ -859,7 +859,89 @@
                 </div>
                 <div class="setup-form-group">
                   <label for="setupBotPurpose">Bot Purpose</label>
-                  <textarea id="setupBotPurpose" rows="3" placeholder="Describe what your bot should do..." class="setup-input"></textarea>
+                  <textarea id="setupBotPurpose" rows="2" placeholder="Describe what your bot should do..." class="setup-input"></textarea>
+                </div>
+                <div class="setup-form-group">
+                  <label for="wizardBotTemplate">Bot Template <span style="font-weight:400;text-transform:none;color:var(--muted, #888);font-size:.65rem">(optional)</span></label>
+                  <select id="wizardBotTemplate" class="setup-input" style="appearance:auto">
+                    <option value="">— Start from scratch —</option>
+                    <optgroup label="Recommended">
+                      <option value="core/default.gbai">Default — starter with greeting &amp; basic tools</option>
+                      <option value="sales/attendance-crm.gbai">Attendance CRM — customer support with routing</option>
+                      <option value="sales/helpdesk.gbai">Helpdesk — ticket creation and resolution</option>
+                      <option value="education/edu.gbai">Education — semantic learning assistant</option>
+                    </optgroup>
+                    <optgroup label="ai">
+                      <option value="ai/content-moderation.gbai">Content Moderation</option>
+                      <option value="ai/customer-support-workflow.gbai">Customer Support Workflow</option>
+                      <option value="ai/llm-server.gbai">LLM Server</option>
+                      <option value="ai/llm-tools.gbai">LLM Tools</option>
+                      <option value="ai/marketing-campaign.gbai">Marketing Campaign</option>
+                      <option value="ai/order-processing.gbai">Order Processing</option>
+                    </optgroup>
+                    <optgroup label="communications">
+                      <option value="communications/announcements.gbai">Announcements</option>
+                      <option value="communications/broadcast.gbai">Broadcast</option>
+                      <option value="communications/office.gbai">Office</option>
+                      <option value="communications/quick-broadcast.gbai">Quick Broadcast</option>
+                      <option value="communications/reminder.gbai">Reminder</option>
+                      <option value="communications/whatsapp.gbai">WhatsApp</option>
+                    </optgroup>
+                    <optgroup label="core">
+                      <option value="core/ai-search.gbai">AI Search</option>
+                      <option value="core/analytics.gbai">Analytics</option>
+                      <option value="core/analytics-dashboard.gbai">Analytics Dashboard</option>
+                      <option value="core/api-client.gbai">API Client</option>
+                      <option value="core/backup.gbai">Backup</option>
+                      <option value="core/bi.gbai">BI</option>
+                      <option value="core/bling.gbai">Bling ERP</option>
+                      <option value="core/crawler.gbai">Crawler</option>
+                      <option value="core/default.gbai">Default</option>
+                      <option value="core/hybrid.gbai">Hybrid</option>
+                      <option value="core/public-apis.gbai">Public APIs</option>
+                      <option value="core/store-server.gbai">Store Server</option>
+                      <option value="core/talk-to-data.gbai">Talk to Data</option>
+                      <option value="core/template.gbai">Meta-template</option>
+                      <option value="core/vectordb-statistics.gbai">VectorDB Statistics</option>
+                    </optgroup>
+                    <optgroup label="delivery">
+                      <option value="delivery/delivery.gbai">Delivery</option>
+                      <option value="delivery/taxi.gbai">Taxi</option>
+                    </optgroup>
+                    <optgroup label="health">
+                      <option value="health/doctor.gbai">Doctor</option>
+                      <option value="health/fitness.gbai">Fitness</option>
+                      <option value="health/food.gbai">Food</option>
+                    </optgroup>
+                    <optgroup label="hr">
+                      <option value="hr/bank.gbai">Bank</option>
+                      <option value="hr/employee-engage.gbai">Employee Engage</option>
+                      <option value="hr/employees.gbai">Employees</option>
+                      <option value="hr/team-feedback.gbai">Team Feedback</option>
+                    </optgroup>
+                    <optgroup label="legal">
+                      <option value="legal/hipaa-medical.gbai">HIPAA Medical</option>
+                      <option value="legal/law.gbai">Law</option>
+                      <option value="legal/privacy.gbai">Privacy</option>
+                    </optgroup>
+                    <optgroup label="sales">
+                      <option value="sales/attendance.gbai">Attendance</option>
+                      <option value="sales/attendance-crm.gbai">Attendance CRM</option>
+                      <option value="sales/campaign-manager.gbai">Campaign Manager</option>
+                      <option value="sales/contacts.gbai">Contacts</option>
+                      <option value="sales/crm.gbai">CRM</option>
+                      <option value="sales/dating.gbai">Dating</option>
+                      <option value="sales/erp.gbai">ERP</option>
+                      <option value="sales/helpdesk.gbai">Helpdesk</option>
+                      <option value="sales/marketing.gbai">Marketing</option>
+                      <option value="sales/music.gbai">Music</option>
+                      <option value="sales/sales-deals.gbai">Sales Deals</option>
+                      <option value="sales/sales-pipeline.gbai">Sales Pipeline</option>
+                      <option value="sales/shop.gbai">Shop</option>
+                      <option value="sales/store.gbai">Store</option>
+                      <option value="sales/travel.gbai">Travel</option>
+                    </optgroup>
+                  </select>
                 </div>
               </div>
             </div>

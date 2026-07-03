@@ -24,7 +24,7 @@ impl FeatureFlags {
         flags.insert("desktop1_container".to_string(), false);
         flags.insert("ext4_luks".to_string(), false);
         flags.insert("skills_library".to_string(), false);
-        flags.insert("setup_wizard".to_string(), false);
+        flags.insert("setup_wizard".to_string(), true);
         flags.insert("version_dashboard".to_string(), false);
         flags.insert("huge_file_streaming".to_string(), false);
         flags.insert("log_rotation".to_string(), false);

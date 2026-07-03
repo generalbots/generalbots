@@ -115,6 +115,8 @@ pub fn configure_cloud_router() -> Router {
         .route("/cloud/", get(redirect_to_store))
         .route("/cloud/login", get(redirect_to_login))
         .route("/cloud/login/", get(redirect_to_login))
+        .route("/cloud/signup", get(redirect_to_signup))
+        .route("/cloud/signup/", get(redirect_to_signup))
         .route("/cloud/*path", get(serve_cloud))
         // API, UI, WS nests
         .nest("/api", create_api_router())
