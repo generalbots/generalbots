@@ -16,3 +16,4 @@ start-and-unseal.sh
 .DS_Store
 *.swp
 *.swo
+a.tmp
