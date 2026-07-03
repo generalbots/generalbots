@@ -36,6 +36,7 @@ pub struct SaasConfig {
     pub jwt_secret: String,
     pub mc_path: String,
     pub mc_alias: String,
+    pub templates_dir: String,
     pub directory_api_url: Option<String>,
     pub directory_service_token: Option<String>,
 }

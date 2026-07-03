@@ -51,6 +51,8 @@ async function handleSignup(e) {
   const password = document.getElementById('signup-password').value;
   const botName = document.getElementById('signup-botname').value.trim();
   const plan = document.querySelector('input[name="plan"]:checked')?.value || 'free';
+  const templateSelect = document.getElementById('bot-template');
+  const template = templateSelect ? templateSelect.value : '';
 
   btn.textContent = 'Creating account…';
   btn.disabled = true;
@@ -60,7 +62,7 @@ async function handleSignup(e) {
     const res = await fetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, bot_name: botName, password, plan }),
+      body: JSON.stringify({ email, name, bot_name: botName, password, plan, template }),
     });
     const data = await res.json();
     if (!res.ok) {

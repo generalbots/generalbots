@@ -13,6 +13,7 @@ use diesel::RunQueryDsl;
 use diesel::PgConnection;
 use botsecurity::command_guard::SafeCommand;
 use std::io::Write;
+use std::path::Path;
 use uuid::Uuid;
 
 /// Helper struct to read Uuid from raw SQL queries.
@@ -589,10 +590,34 @@ pub fn create_cloud_workspace_inner(conn: &mut PgConnection, branch_id: Uuid, na
     Ok(id)
 }
 
-/// Creates MinIO `.gborg` bucket for the org and uploads default start.bas inside.
-/// Structure: {org_slug}.gborg / {bot_slug}.gbai / {bot_slug}.gbdialog / start.bas
+/// Recursively copy a directory from src to dst using std::fs.
+fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir_all(&src_path, &dst_path)?;
+        } else {
+            std::fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
+/// Creates MinIO `.gborg` bucket for the org and uploads bot files.
+/// If a `template` path is provided (e.g. "core/default.gbai"), copies the
+/// corresponding directory from `config.templates_dir` into the bucket and
+/// renames internal directories to match the new bot name.
+/// Otherwise creates a generic `start.bas` with the bot name.
+/// Structure: {org_slug}.gborg / {bot_slug}.gbai / {bot_slug}.gbdialog / ...
 /// Requires mc alias to be pre-configured (e.g., via Vault credentials).
-pub fn create_bot_bucket(config: &SaasConfig, org_slug: &str, bot_slug: &str, bot_name: &str) -> Result<(), String> {
+pub fn create_bot_bucket(
+    config: &SaasConfig, org_slug: &str, bot_slug: &str, bot_name: &str,
+    template: Option<&str>,
+) -> Result<(), String> {
     let alias = &config.mc_alias;
     let org_bucket = format!("{alias}/{org_slug}.gborg");
 
@@ -609,6 +634,50 @@ pub fn create_bot_bucket(config: &SaasConfig, org_slug: &str, bot_slug: &str, bo
         return Err(format!("Failed to create bucket {org_bucket}: {stderr}"));
     }
 
+    if let Some(template_path) = template {
+        let templates_dir = &config.templates_dir;
+        let src = Path::new(templates_dir).join(template_path);
+        if src.is_dir() {
+            let tmpdir = format!("/tmp/gbtemplate_{bot_slug}");
+            let _ = std::fs::remove_dir_all(&tmpdir);
+            if let Err(e) = copy_dir_all(&src, Path::new(&tmpdir)) {
+                tracing::warn!("Failed to copy template {template_path}: {e}");
+            } else {
+                // Rename internal directories from original name to bot_slug
+                let template_name = template_path
+                    .split('/')
+                    .last()
+                    .and_then(|s| s.strip_suffix(".gbai"))
+                    .unwrap_or("default");
+                for ext in &["gbdialog", "gbot", "gbkb"] {
+                    let old = format!("{tmpdir}/{template_name}.{ext}");
+                    let new = format!("{tmpdir}/{bot_slug}.{ext}");
+                    if Path::new(&old).exists() {
+                        let _ = std::fs::rename(&old, &new);
+                    }
+                }
+                // Upload recursively via mc cp
+                let cp = SafeCommand::new("mc")
+                    .and_then(|c| c.arg("cp"))
+                    .and_then(|c| c.arg("--recursive"))
+                    .and_then(|c| c.arg(&tmpdir))
+                    .and_then(|c| c.arg(format!("{org_bucket}/{bot_slug}.gbai/")))
+                    .map_err(|e| format!("mc cp guard: {e}"))?
+                    .execute()
+                    .map_err(|e| format!("mc cp failed: {e}"))?;
+                let _ = std::fs::remove_dir_all(&tmpdir);
+                if cp.status.success() {
+                    return Ok(());
+                }
+                let stderr = String::from_utf8_lossy(&cp.stderr);
+                tracing::warn!("mc cp template failed, falling back to generic: {stderr}");
+            }
+        } else {
+            tracing::warn!("Template {template_path} not found at {templates_dir}, using generic");
+        }
+    }
+
+    // Fallback: create generic start.bas
     let start_bas_content = format!("TALK \"Olá! Sou o {bot_name}. Como posso ajudar?\"");
     let remote_path = format!("{org_bucket}/{bot_slug}.gbai/{bot_slug}.gbdialog/start.bas");
 

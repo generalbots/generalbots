@@ -212,11 +212,16 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
             generated
         }
     };
+    // Bot templates are sourced from github.com/generalbots/templates.
+    // Clone the repo into a local dir and set BOT_TEMPLATES_DIR to its bots/ subdir.
+    let templates_dir = std::env::var("BOT_TEMPLATES_DIR")
+        .unwrap_or_else(|_| "work/templates/bots".to_string());
     let saas_config = SaasConfig {
         base_url,
         jwt_secret,
         mc_path,
         mc_alias,
+        templates_dir,
         directory_api_url: std::env::var("ZITADEL_API_URL").ok(),
         directory_service_token: std::env::var("ZITADEL_SERVICE_TOKEN").ok(),
     };
