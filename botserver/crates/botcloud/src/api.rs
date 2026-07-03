@@ -115,6 +115,7 @@ pub struct SignupBody {
     pub bot_name: Option<String>,
     pub password: Option<String>,
     pub plan: Option<String>,
+    pub template: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -376,7 +377,9 @@ async fn handle_signup(
     }
 
     // 9. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal — outside tx)
-    if let Err(e) = integration::create_bot_bucket(&service.config, &org_slug, &bot_name, &bot_name) {
+    if let Err(e) = integration::create_bot_bucket(
+        &service.config, &org_slug, &bot_name, &bot_name, body.template.as_deref(),
+    ) {
         tracing::warn!("MinIO bucket creation skipped (non-fatal): {e}");
     }
 

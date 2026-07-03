@@ -7,6 +7,8 @@ use crate::core::package_manager::InstallMode;
 use log::{error, info, trace, warn};
 use super::BootstrapProgress;
 use super::migrations::run_diesel_migrations;
+use std::path::Path;
+use std::process::Command;
 
 pub fn init_logging_and_i18n(no_console: bool, no_ui: bool) {
 
@@ -169,6 +171,9 @@ pub async fn run_bootstrap(
             }
         };
 
+        trace!("Ensuring bot templates repository is up to date...");
+        ensure_templates_repo().await;
+
         trace!("Config loaded, syncing templates to database...");
         progress_tx_clone
             .send(BootstrapProgress::UploadingTemplates)
@@ -283,4 +288,53 @@ pub async fn load_config(
     );
 
     Ok(refreshed_cfg)
+}
+
+/// Ensures the bot templates repository is cloned to `work/templates/`
+/// and pulls latest changes (never rebase).
+/// Falls back to default templates directory if git fails.
+async fn ensure_templates_repo() {
+    let repo_url = std::env::var("BOT_TEMPLATES_REPO")
+        .unwrap_or_else(|_| "https://github.com/generalbots/templates.git".to_string());
+    let work_dir = Path::new("work/templates");
+
+    if work_dir.exists() {
+        // git pull — never rebase
+        let pull = Command::new("git")
+            .args(["-C", "work/templates", "pull", "--ff-only"])
+            .output();
+        match pull {
+            Ok(out) if out.status.success() => {
+                info!("Templates repo updated via git pull");
+            }
+            Ok(out) => {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                warn!("git pull failed (non-blocking): {}", stderr);
+            }
+            Err(e) => {
+                warn!("git pull could not run (non-blocking): {}", e);
+            }
+        }
+    } else {
+        // Clone fresh
+        if let Some(parent) = work_dir.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let clone = Command::new("git")
+            .args(["clone", &repo_url, "work/templates"])
+            .output();
+        match clone {
+            Ok(out) if out.status.success() => {
+                info!("Templates repo cloned to work/templates");
+            }
+            Ok(out) => {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                warn!("git clone failed (non-blocking): {}", stderr);
+                let _ = std::fs::remove_dir_all("work/templates");
+            }
+            Err(e) => {
+                warn!("git clone could not run (non-blocking): {}", e);
+            }
+        }
+    }
 }

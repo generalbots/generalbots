@@ -146,6 +146,94 @@
         </label>
       </div>
 
+      <div class="form-group" style="width:100%;margin-bottom:8px">
+        <label class="form-label" for="bot-template">Bot Template</label>
+        <select id="bot-template" class="form-input" name="template">
+          <optgroup label="— Recommended —">
+            <option value="core/default.gbai" selected>Defaults</option>
+            <option value="sales/attendance-crm.gbai">Attendance CRM — customer support with routing</option>
+            <option value="sales/helpdesk.gbai">Helpdesk — ticket tracking and resolution</option>
+            <option value="education/edu.gbai">Education — semantic learning assistant</option>
+          </optgroup>
+          <optgroup label="ai">
+            <option value="ai/content-moderation.gbai">Content Moderation</option>
+            <option value="ai/customer-support-workflow.gbai">Customer Support Workflow</option>
+            <option value="ai/llm-server.gbai">LLM Server</option>
+            <option value="ai/llm-tools.gbai">LLM Tools</option>
+            <option value="ai/marketing-campaign.gbai">Marketing Campaign</option>
+            <option value="ai/order-processing.gbai">Order Processing</option>
+          </optgroup>
+          <optgroup label="appointment">
+            <option value="appointment/appointment.gbai">Appointment</option>
+          </optgroup>
+          <optgroup label="communications">
+            <option value="communications/announcements.gbai">Announcements</option>
+            <option value="communications/broadcast.gbai">Broadcast</option>
+            <option value="communications/office.gbai">Office</option>
+            <option value="communications/quick-broadcast.gbai">Quick Broadcast</option>
+            <option value="communications/reminder.gbai">Reminder</option>
+            <option value="communications/whatsapp.gbai">WhatsApp</option>
+          </optgroup>
+          <optgroup label="core">
+            <option value="core/ai-search.gbai">AI Search</option>
+            <option value="core/analytics.gbai">Analytics</option>
+            <option value="core/analytics-dashboard.gbai">Analytics Dashboard</option>
+            <option value="core/api-client.gbai">API Client</option>
+            <option value="core/backup.gbai">Backup</option>
+            <option value="core/bi.gbai">BI</option>
+            <option value="core/bling.gbai">Bling ERP</option>
+            <option value="core/crawler.gbai">Crawler</option>
+            <option value="core/default.gbai">Default</option>
+            <option value="core/hybrid.gbai">Hybrid</option>
+            <option value="core/public-apis.gbai">Public APIs</option>
+            <option value="core/store-server.gbai">Store Server</option>
+            <option value="core/talk-to-data.gbai">Talk to Data</option>
+            <option value="core/template.gbai">Meta-template</option>
+            <option value="core/vectordb-statistics.gbai">VectorDB Statistics</option>
+          </optgroup>
+          <optgroup label="delivery">
+            <option value="delivery/delivery.gbai">Delivery</option>
+            <option value="delivery/taxi.gbai">Taxi</option>
+          </optgroup>
+          <optgroup label="education">
+            <option value="education/edu.gbai">Education</option>
+          </optgroup>
+          <optgroup label="health">
+            <option value="health/doctor.gbai">Doctor</option>
+            <option value="health/fitness.gbai">Fitness</option>
+            <option value="health/food.gbai">Food</option>
+          </optgroup>
+          <optgroup label="hr">
+            <option value="hr/bank.gbai">Bank</option>
+            <option value="hr/employee-engage.gbai">Employee Engage</option>
+            <option value="hr/employees.gbai">Employees</option>
+            <option value="hr/team-feedback.gbai">Team Feedback</option>
+          </optgroup>
+          <optgroup label="legal">
+            <option value="legal/hipaa-medical.gbai">HIPAA Medical</option>
+            <option value="legal/law.gbai">Law</option>
+            <option value="legal/privacy.gbai">Privacy (GDPR/LGPD)</option>
+          </optgroup>
+          <optgroup label="sales">
+            <option value="sales/attendance-crm.gbai">Attendance CRM</option>
+            <option value="sales/attendance.gbai">Attendance</option>
+            <option value="sales/campaign-manager.gbai">Campaign Manager</option>
+            <option value="sales/contacts.gbai">Contacts</option>
+            <option value="sales/crm.gbai">CRM</option>
+            <option value="sales/dating.gbai">Dating</option>
+            <option value="sales/erp.gbai">ERP</option>
+            <option value="sales/helpdesk.gbai">Helpdesk</option>
+            <option value="sales/marketing.gbai">Marketing</option>
+            <option value="sales/music.gbai">Music</option>
+            <option value="sales/sales-deals.gbai">Sales Deals</option>
+            <option value="sales/sales-pipeline.gbai">Sales Pipeline</option>
+            <option value="sales/shop.gbai">Shop</option>
+            <option value="sales/store.gbai">Store</option>
+            <option value="sales/travel.gbai">Travel</option>
+          </optgroup>
+        </select>
+      </div>
+
       <button type="submit" id="signup-btn" class="btn">Create Free Account</button>
       <div id="private-server-info" class="info-box" style="display:none">
         You are signing up for a <strong>Private Server</strong> environment.
@@ -175,6 +263,10 @@ var s=localStorage.getItem(k);if(s)apply(s);
 window.toggleTheme=function(){var n=r.getAttribute('data-theme')==='dark'?'light':'dark';apply(n)};})();
 
 (function(){
+var params=new URLSearchParams(window.location.search);
+var presetTemplate=params.get('template');
+if(presetTemplate){var sel=document.getElementById('bot-template');if(sel){var opt=sel.querySelector('option[value="'+presetTemplate.replace(/"/g,'\\"')+'"]');if(opt)opt.selected=true;}}
+
 var chooser=document.getElementById('plan-chooser');
 var btn=document.getElementById('signup-btn');
 var info=document.getElementById('private-server-info');

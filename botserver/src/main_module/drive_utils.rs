@@ -36,9 +36,8 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
 
     // Tenta localizar o diretorio de templates em varios locais relativos
     let candidate_paths = [
-        Path::new("../bottemplates/bots/core/default.gbai"),
-        Path::new("./bottemplates/bots/core/default.gbai"),
-        Path::new("bottemplates/bots/core/default.gbai"),
+        Path::new("work/templates/bots/core/default.gbai"),
+        Path::new("../work/templates/bots/core/default.gbai"),
         Path::new("/opt/gbo/data/default.gbai"),
     ];
     let source_dir = candidate_paths.iter().find(|p| p.exists());
