@@ -27,12 +27,16 @@ var SetupWizardState = {
     llm_provider: null,
     user_profile: null,
     bot_name: "",
-    bot_purpose: ""
+    bot_purpose: "",
+    bot_template: ""
   },
   trainingFiles: []
 };
 
 function checkSetupStatus() {
+  if (localStorage.getItem("gb_setup_wizard_done") === "true") {
+    return;
+  }
   fetch("/api/setup/status")
     .then(function(response) { return response.json(); })
     .then(function(data) {
@@ -134,15 +138,18 @@ function getStepData(step) {
     case 3:
       var botNameEl = document.getElementById("setupBotName");
       var botPurposeEl = document.getElementById("setupBotPurpose");
+      var botTemplateEl = document.getElementById("wizardBotTemplate");
       if (!botNameEl || !botNameEl.value.trim()) {
         notify("Please enter a bot name", "warning");
         return null;
       }
       SetupWizardState.selections.bot_name = botNameEl.value.trim();
       SetupWizardState.selections.bot_purpose = botPurposeEl ? botPurposeEl.value.trim() : "";
+      SetupWizardState.selections.bot_template = botTemplateEl ? botTemplateEl.value : "";
       return {
         bot_name: SetupWizardState.selections.bot_name,
-        bot_purpose: SetupWizardState.selections.bot_purpose
+        bot_purpose: SetupWizardState.selections.bot_purpose,
+        bot_template: SetupWizardState.selections.bot_template
       };
     default:
       return null;
@@ -295,6 +302,7 @@ function setupWizardFinish() {
           user_profile: SetupWizardState.selections.user_profile,
           bot_name: botName,
           bot_purpose: SetupWizardState.selections.bot_purpose,
+          bot_template: SetupWizardState.selections.bot_template,
           training_files: SetupWizardState.trainingFiles.map(function(f) { return f.name; })
         }
       };
@@ -307,6 +315,7 @@ function setupWizardFinish() {
         .then(function(r) { return r.json(); })
         .then(function(result) {
           if (result.success) {
+            localStorage.setItem("gb_setup_wizard_done", "true");
             hideSetupWizard();
             notify("Setup complete! Welcome to General Bots.", "success");
           } else {
@@ -327,6 +336,7 @@ function setupWizardFinish() {
 }
 
 function setupWizardSkip() {
+  localStorage.setItem("gb_setup_wizard_done", "true");
   hideSetupWizard();
   notify("You can complete setup later from Settings.", "info");
 }

@@ -17,6 +17,10 @@ pub async fn redirect_to_login() -> Response {
     Redirect::to(&get_login_url()).into_response()
 }
 
+pub async fn redirect_to_signup() -> Response {
+    Redirect::to(&format!("{}/signup", get_login_url())).into_response()
+}
+
 pub async fn redirect_to_store() -> Response {
     Redirect::to("/store").into_response()
 }
@@ -99,6 +103,9 @@ async fn resolve_and_serve_cloud(path: &str) -> Response {
 pub async fn serve_cloud(
     axum::extract::Path(path): axum::extract::Path<String>,
 ) -> Response {
+    if path == "signup" || path == "login" || path.starts_with("signup/") || path.starts_with("login/") {
+        return Redirect::to(&format!("{}/{}", get_login_url(), path)).into_response();
+    }
     resolve_and_serve_cloud(&path).await
 }
 
@@ -112,6 +119,10 @@ pub async fn serve_cloud_fallback(original_uri: OriginalUri) -> Response {
     }
     if path == "/signup" || path == "/signup/" {
         return Redirect::to(&format!("{}/signup", get_login_url())).into_response();
+    }
+    if path == "/chat" || path == "/chat/" {
+        let suite_url = std::env::var("SUITE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+        return Redirect::to(&format!("{suite_url}/")).into_response();
     }
     resolve_and_serve_cloud(path).await
 }

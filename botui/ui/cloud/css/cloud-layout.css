@@ -220,12 +220,19 @@ img {
   z-index: 100;
   overflow-y: auto;
   overflow-x: hidden;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 .mgmt-sidebar::-webkit-scrollbar {
-  display: none;
+  width: 4px;
+}
+
+.mgmt-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mgmt-sidebar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 99px;
 }
 
 /* --- Logo --- */

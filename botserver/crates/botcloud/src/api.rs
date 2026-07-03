@@ -2291,28 +2291,7 @@ async fn list_offers() -> Result<Json<serde_json::Value>, (StatusCode, String)> 
             "savings_percent": 12,
             "highlight": false,
         },
-        {
-            "id": "private-cloud-starter",
-            "name": "Private Cloud Starter",
-            "description": "Shared + 1 VPS Small. Exclusive data, dedicated infrastructure and superior performance.",
-            "base": "shared",
-            "addons": ["vps_small"],
-            "monthly_price": 12.99,
-            "original_price": 13.98,
-            "savings_percent": 7,
-            "highlight": true,
-        },
-        {
-            "id": "private-cloud-business",
-            "name": "Private Cloud Business",
-            "description": "Shared + 1 VPS Medium. For teams that need more power and scalability.",
-            "base": "shared",
-            "addons": ["vps_medium"],
-            "monthly_price": 29.99,
-            "original_price": 33.98,
-            "savings_percent": 12,
-            "highlight": true,
-        },
+
     ]);
     Ok(Json(serde_json::json!({ "offers": offers })))
 }
