@@ -37,9 +37,6 @@
 
 .mgmt-split-right {
   background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 48px 40px;
 }
 
@@ -789,7 +786,185 @@
 }
 
 /* ----------------------------------------------------------
-   13. RESPONSIVE — SPLIT
+   13. PLAN CARDS (SaaS pricing page)
+   ---------------------------------------------------------- */
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.saas-plan-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.saas-plan-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.saas-plan-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.plan-subtitle {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.saas-plan-card .price {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--text);
+  margin-top: 12px;
+  letter-spacing: -0.03em;
+}
+
+.price-period {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.plan-trial {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plan-features li {
+  font-size: 0.82rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plan-features li::before {
+  content: '✓';
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.plan-limits {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.limit-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+}
+
+.limit-row span:first-child {
+  color: var(--muted);
+}
+
+.limit-row span:last-child {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.saas-plan-card .btn-primary {
+  margin-top: 20px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.saas-plan-card .btn-primary:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+/* Feature comparison table */
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.invoice-table th,
+.invoice-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.invoice-table th {
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg2);
+  position: sticky;
+  top: 0;
+}
+
+.invoice-table td {
+  color: var(--text);
+}
+
+.invoice-table td.feature-name {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.invoice-table td.check {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.invoice-table td.cross {
+  color: var(--muted);
+}
+
+.invoice-table tr.section-divider td {
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg2);
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ----------------------------------------------------------
+   14. RESPONSIVE — SPLIT
    ---------------------------------------------------------- */
 
 @media (max-width: 900px) {

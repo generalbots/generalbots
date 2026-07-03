@@ -42,23 +42,16 @@ pub async fn serve_login_signup() -> Response {
     serve_login_file(login_root.join("signup.html")).await
 }
 
-pub async fn serve_login_cloud_css(
+pub async fn serve_login_js(
     axum::extract::Path(path): axum::extract::Path<String>,
 ) -> Response {
-    let cloud_root = get_ui_root().join("cloud");
-    serve_login_file(cloud_root.join("css").join(path.as_str())).await
+    let login_root = get_ui_root().join("login");
+    serve_login_file(login_root.join("js").join(path.as_str())).await
 }
 
-pub async fn serve_login_cloud_js(
+pub async fn serve_login_images(
     axum::extract::Path(path): axum::extract::Path<String>,
 ) -> Response {
-    let cloud_root = get_ui_root().join("cloud");
-    serve_login_file(cloud_root.join("js").join(path.as_str())).await
-}
-
-pub async fn serve_login_cloud_images(
-    axum::extract::Path(path): axum::extract::Path<String>,
-) -> Response {
-    let cloud_root = get_ui_root().join("cloud");
-    serve_login_file(cloud_root.join("images").join(path.as_str())).await
+    let login_root = get_ui_root().join("login");
+    serve_login_file(login_root.join("images").join(path.as_str())).await
 }

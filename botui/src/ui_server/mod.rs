@@ -7,12 +7,12 @@ pub mod suite;
 pub mod suite_ops;
 pub mod ws;
 
-pub use self::assets::{serve_favicon, serve_login, serve_logout};
+pub use self::assets::serve_favicon;
 #[cfg(feature = "embed-ui")]
 pub use self::assets::{handle_embedded_asset, handle_embedded_root_asset, handle_auth_asset};
 pub use self::cloud::*;
 pub use self::constants::get_ui_root;
-pub use self::login::{serve_login_index, serve_login_signup, serve_login_cloud_css, serve_login_cloud_js, serve_login_cloud_images};
+pub use self::login::{serve_login_index, serve_login_signup, serve_login_js, serve_login_images};
 pub use self::proxy::*;
 pub use self::suite::*;
 pub use self::suite_ops::*;
@@ -90,8 +90,6 @@ pub fn configure_router() -> Router {
     let mut router = Router::new()
         .route("/health", get(health))
         .route("/favicon.ico", get(serve_favicon))
-        .route("/login", get(serve_login))
-        .route("/logout", get(serve_logout))
         .nest("/api", create_api_router())
         .nest("/ui", create_ui_router())
         .nest("/ws", create_ws_router())
@@ -99,19 +97,6 @@ pub fn configure_router() -> Router {
         .route("/", get(index))
         .route("/minimal", get(serve_minimal))
         .route("/suite", get(serve_suite));
-
-    // Route /auth/login.html to the configured LOGIN_URL (before any static file service)
-    router = router.route("/auth/login.html", get(serve_login));
-
-    #[cfg(not(feature = "embed-ui"))]
-    {
-        router = router.nest_service("/auth", ServeDir::new(suite_path.join("auth")));
-    }
-
-    #[cfg(feature = "embed-ui")]
-    {
-        router = router.route("/auth/*path", get(handle_auth_asset));
-    }
 
     router = add_static_routes(router, &suite_path);
 
@@ -123,16 +108,21 @@ pub fn configure_cloud_router() -> Router {
 
     Router::new()
         .route("/health", get(health))
-        .route("/cloud", get(serve_cloud_index))
-        .route("/cloud/", get(serve_cloud_index))
+        // Root → store (no landing page)
+        .route("/", get(redirect_to_store))
+        // Legacy /cloud/* paths for static assets
+        .route("/cloud", get(redirect_to_store))
+        .route("/cloud/", get(redirect_to_store))
         .route("/cloud/login", get(redirect_to_login))
         .route("/cloud/login/", get(redirect_to_login))
         .route("/cloud/*path", get(serve_cloud))
+        // API, UI, WS nests
         .nest("/api", create_api_router())
         .nest("/ui", create_ui_router())
         .nest("/ws", create_ws_router())
-        .route("/", get(serve_cloud_index))
-        .fallback(get(serve_cloud_index))
+        // All root-level paths resolve to cloud pages
+        // e.g. /store → store.html, /plans → plans.html, /js/cloud.js → cloud/js/cloud.js
+        .fallback(get(serve_cloud_fallback))
         .with_state(state)
 }
 
@@ -143,9 +133,8 @@ pub fn configure_login_router() -> Router {
         .route("/health", get(health))
         .route("/", get(serve_login_index))
         .route("/signup", get(serve_login_signup))
-        .route("/cloud/css/*path", get(serve_login_cloud_css))
-        .route("/cloud/js/*path", get(serve_login_cloud_js))
-        .route("/cloud/images/*path", get(serve_login_cloud_images))
+        .route("/js/*path", get(serve_login_js))
+        .route("/images/*path", get(serve_login_images))
         .nest("/api", create_api_router())
         .nest("/ws", create_ws_router())
         .fallback(get(serve_login_index))

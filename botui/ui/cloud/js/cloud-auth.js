@@ -132,7 +132,7 @@ function getToken() {
 
 function requireAuth() {
   const token = getToken();
-  if (!token) window.location.href = '/login';
+  if (!token) window.location.href = (window.GB_LOGIN_URL || '/login');
   return token;
 }
 

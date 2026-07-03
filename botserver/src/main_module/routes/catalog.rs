@@ -15,26 +15,17 @@ mod prod_schema {
     diesel::table! {
         products (id) {
             id -> Uuid,
-            org_id -> Uuid,
-            bot_id -> Uuid,
-            sku -> Nullable<Varchar>,
+            branch_id -> Uuid,
             name -> Varchar,
+            sku -> Varchar,
             description -> Nullable<Text>,
-            category -> Nullable<Varchar>,
-            product_type -> Varchar,
             price -> Numeric,
-            cost -> Nullable<Numeric>,
             currency -> Varchar,
-            tax_rate -> Numeric,
-            unit -> Varchar,
             stock_quantity -> Int4,
-            low_stock_threshold -> Int4,
-            is_active -> Bool,
-            images -> Jsonb,
+            category_id -> Nullable<Uuid>,
             attributes -> Jsonb,
-            weight -> Nullable<Numeric>,
-            dimensions -> Nullable<Jsonb>,
-            barcode -> Nullable<Varchar>,
+            is_public -> Bool,
+            is_active -> Bool,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
         }
@@ -45,30 +36,27 @@ mod prod_schema {
 #[diesel(table_name = prod_schema::products)]
 struct CatalogProduct {
     id: uuid::Uuid,
-    sku: Option<String>,
     name: String,
+    sku: String,
     description: Option<String>,
-    category: Option<String>,
-    product_type: String,
     price: bigdecimal::BigDecimal,
     currency: String,
-    unit: String,
+    stock_quantity: i32,
     attributes: serde_json::Value,
+    is_public: bool,
+    is_active: bool,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CatalogProductResponse {
     id: uuid::Uuid,
-    sku: Option<String>,
+    sku: String,
     name: String,
     description: Option<String>,
-    category: Option<String>,
-    product_type: String,
     price_cents: i64,
     price_usd: f64,
     currency: String,
-    unit: String,
     attributes: serde_json::Value,
     created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -81,12 +69,9 @@ impl From<CatalogProduct> for CatalogProductResponse {
             sku: p.sku,
             name: p.name,
             description: p.description,
-            category: p.category,
-            product_type: p.product_type,
             price_cents: (price_f64 * 100.0).round() as i64,
             price_usd: price_f64,
             currency: p.currency,
-            unit: p.unit,
             attributes: p.attributes,
             created_at: p.created_at,
         }
@@ -129,10 +114,6 @@ pub struct JsonLdOffer {
     availability: String,
 }
 
-fn is_public_product(attrs: &serde_json::Value) -> bool {
-    attrs.get("is_public").and_then(|v| v.as_bool()).unwrap_or(false)
-}
-
 fn load_public_products(
     conn: &mut diesel::PgConnection,
 ) -> Result<Vec<CatalogProduct>, diesel::result::Error> {
@@ -140,9 +121,9 @@ fn load_public_products(
 
     dsl::products
         .filter(dsl::is_active.eq(true))
-        .filter(dsl::org_id.eq(uuid::Uuid::nil()))
+        .filter(dsl::is_public.eq(true))
         .select(CatalogProduct::as_select())
-        .order((dsl::product_type, dsl::name))
+        .order(dsl::name)
         .load::<CatalogProduct>(conn)
 }
 
@@ -161,7 +142,6 @@ pub async fn list_products(
 
     let public: Vec<CatalogProductResponse> = products
         .into_iter()
-        .filter(|p| is_public_product(&p.attributes))
         .map(CatalogProductResponse::from)
         .collect();
 
@@ -182,6 +162,7 @@ pub async fn get_product_by_sku(
 
     let product: Option<CatalogProduct> = dsl::products
         .filter(dsl::is_active.eq(true))
+        .filter(dsl::is_public.eq(true))
         .filter(dsl::sku.eq(&product_sku))
         .select(CatalogProduct::as_select())
         .first(&mut conn)
@@ -191,12 +172,7 @@ pub async fn get_product_by_sku(
         })?;
 
     match product {
-        Some(p) => {
-            if !is_public_product(&p.attributes) {
-                return Err((StatusCode::NOT_FOUND, "Product not found".to_string()));
-            }
-            Ok(Json(p.into()))
-        }
+        Some(p) => Ok(Json(p.into())),
         None => Err((StatusCode::NOT_FOUND, format!("Product '{product_sku}' not found"))),
     }
 }
@@ -214,7 +190,7 @@ pub async fn list_plans(
 
     let products: Vec<CatalogProduct> = dsl::products
         .filter(dsl::is_active.eq(true))
-        .filter(dsl::product_type.eq("plan"))
+        .filter(dsl::is_public.eq(true))
         .select(CatalogProduct::as_select())
         .order(dsl::price.asc())
         .load(&mut conn)
@@ -224,7 +200,6 @@ pub async fn list_plans(
 
     let public: Vec<CatalogProductResponse> = products
         .into_iter()
-        .filter(|p| is_public_product(&p.attributes))
         .map(CatalogProductResponse::from)
         .collect();
 
@@ -244,12 +219,7 @@ pub async fn prices_json(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))
     })?;
 
-    let public: Vec<CatalogProduct> = products
-        .into_iter()
-        .filter(|p| is_public_product(&p.attributes))
-        .collect();
-
-    let items: Vec<JsonLdListItem> = public
+    let items: Vec<JsonLdListItem> = products
         .into_iter()
         .enumerate()
         .map(|(i, p)| {
@@ -261,7 +231,7 @@ pub async fn prices_json(
                     json_type: "Product".to_string(),
                     name: p.name,
                     description: p.description.unwrap_or_default(),
-                    sku: p.sku.unwrap_or_default(),
+                    sku: p.sku,
                     offers: JsonLdOffer {
                         json_type: "Offer".to_string(),
                         price: format!("{:.2}", price_usd),

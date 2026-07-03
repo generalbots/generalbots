@@ -8,35 +8,67 @@ let TLD_PRICES = [];    // Populated from domain-type products
 let PRODUCT_MAP = {};   // All products keyed by sku
 
 async function loadCatalogProducts() {
+  let items;
   try {
     const res = await fetch('/api/products/items?limit=100');
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const items = await res.json();
-
-    // Build product map
-    PRODUCT_MAP = {};
-    for (const item of items) PRODUCT_MAP[item.sku] = item;
-
-    // Build TLD_PRICES from domain products
-    TLD_PRICES = items
-      .filter(p => p.sku && p.sku.startsWith('domain-') && p.sku !== 'domain-search')
-      .map(p => ({
-        ext: '.' + (p.attributes?.tld || p.sku.replace('domain-', '')),
-        price: '$' + parseFloat(p.price).toFixed(2),
-        period: 'yr',
-        sku: p.sku
-      }));
-
-    // Build CATALOGUE from infrastructure + communication products
-    CATALOGUE = buildCatalogue(items);
-
-    // Update store UI if already rendered
-    syncStoreFromAPI();
-    return items;
+    items = await res.json();
   } catch(e) {
     console.warn('Catalog API unavailable, using fallback:', e);
   }
+
+  if (!items || !items.length) {
+    items = getFallbackProducts();
+  }
+
+  // Build product map
+  PRODUCT_MAP = {};
+  for (const item of items) PRODUCT_MAP[item.sku] = item;
+
+  // Build TLD_PRICES from domain products
+  TLD_PRICES = items
+    .filter(p => p.sku && p.sku.startsWith('domain-') && p.sku !== 'domain-search')
+    .map(p => ({
+      ext: '.' + (p.attributes?.tld || p.sku.replace('domain-', '')),
+      price: '$' + parseFloat(p.price).toFixed(2),
+      period: 'yr',
+      sku: p.sku
+    }));
+
+  // Build CATALOGUE from infrastructure + communication products
+  CATALOGUE = buildCatalogue(items);
+
+  // Update store UI if already rendered
+  syncStoreFromAPI();
+  return items;
 }
+
+function getFallbackProducts() {
+  return [
+    { sku: 'vps-small', name: 'Small', price: 9.99, description: '4 vCPU · 8 GB RAM · 100 GB NVMe', attributes: { vcpu: 4, ram_gb: 8, storage_gb: 100, bandwidth_tb: 2 } },
+    { sku: 'vps-medium', name: 'Medium', price: 19.99, description: '6 vCPU · 16 GB RAM · 200 GB NVMe', attributes: { vcpu: 6, ram_gb: 16, storage_gb: 200, bandwidth_tb: 4 } },
+    { sku: 'vps-large', name: 'Large', price: 39.99, description: '8 vCPU · 32 GB RAM · 400 GB NVMe', attributes: { vcpu: 8, ram_gb: 32, storage_gb: 400, bandwidth_tb: 8 } },
+    { sku: 'vps-xl', name: 'XL', price: 79.99, description: '16 vCPU · 64 GB RAM · 800 GB NVMe', attributes: { vcpu: 16, ram_gb: 64, storage_gb: 800, bandwidth_tb: 16 } },
+    { sku: 'gpu-basic', name: 'GPU Basic', price: 39.99, description: 'NVIDIA RTX 3060 · 12 GB VRAM', attributes: { gpu_model: 'RTX 3060', vram_gb: 12, vcpu: 4, ram_gb: 16, storage_gb: 100 } },
+    { sku: 'gpu-pro', name: 'GPU Pro', price: 99.99, description: 'NVIDIA RTX 4090 · 24 GB VRAM', attributes: { gpu_model: 'RTX 4090', vram_gb: 24, vcpu: 8, ram_gb: 32, storage_gb: 200 } },
+    { sku: 'gpu-enterprise', name: 'GPU Enterprise', price: 299.99, description: 'NVIDIA A100 · 80 GB VRAM', attributes: { gpu_model: 'A100', vram_gb: 80, vcpu: 16, ram_gb: 64, storage_gb: 500 } },
+    { sku: 'storage-50', name: 'Starter Storage', price: 9.99, description: '50 GB S3-compatible storage', attributes: { size_gb: 50 } },
+    { sku: 'storage-250', name: 'Growth Storage', price: 29.99, description: '250 GB S3-compatible storage', attributes: { size_gb: 250 } },
+    { sku: 'storage-1tb', name: 'Scale Storage', price: 99.99, description: '1 TB S3-compatible storage', attributes: { size_gb: 1000 } },
+    { sku: 'storage-10tb', name: 'Power Storage', price: 299.99, description: '10 TB S3-compatible storage', attributes: { size_gb: 10000 } },
+    { sku: 'number-local', name: 'Local Number', price: 5.99, description: 'Virtual number with SMS + Voice', attributes: { type: 'local' } },
+    { sku: 'number-global', name: 'Global Number', price: 19.99, description: 'Multi-country virtual number', attributes: { type: 'global' } },
+    { sku: 'number-business', name: 'Business Number', price: 49.99, description: 'Toll-free + local numbers bundle', attributes: { type: 'business' } },
+    { sku: 'domain-com', name: '.com Domain', price: 21.99, description: '.com domain with free WHOIS privacy', attributes: { tld: 'com' } },
+    { sku: 'domain-org', name: '.org Domain', price: 19.99, description: '.org domain with free WHOIS privacy', attributes: { tld: 'org' } },
+    { sku: 'domain-net', name: '.net Domain', price: 21.99, description: '.net domain with free WHOIS privacy', attributes: { tld: 'net' } },
+    { sku: 'domain-io', name: '.io Domain', price: 71.99, description: '.io domain with free WHOIS privacy', attributes: { tld: 'io' } },
+    { sku: 'llm-tokens-1m', name: '1M LLM Tokens', price: 9.99, description: '1 million LLM tokens', attributes: {} },
+    { sku: 'llm-tokens-10m', name: '10M LLM Tokens', price: 79.99, description: '10 million LLM tokens', attributes: {} },
+  ];
+}
+
+const GB_ICON = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="16"/><circle cx="24" cy="24" r="6"/><line x1="24" y1="4" x2="24" y2="10"/><line x1="24" y1="38" x2="24" y2="44"/><line x1="4" y1="24" x2="10" y2="24"/><line x1="38" y1="24" x2="44" y2="24"/><line x1="10.5" y1="10.5" x2="14.5" y2="14.5"/><line x1="33.5" y1="33.5" x2="37.5" y2="37.5"/><line x1="37.5" y1="10.5" x2="33.5" y2="14.5"/><line x1="14.5" y1="33.5" x2="10.5" y2="37.5"/></svg>';
 
 function buildCatalogue(items) {
   const C = {};
@@ -85,7 +117,7 @@ function buildCatalogue(items) {
   }
 
   addGroup(['vps-small','vps-medium','vps-large','vps-xl'], {
-    tag: 'Virtual Machine', icon: '\uD83D\uDDA5\uFE0F',
+    tag: 'Virtual Machine', icon: GB_ICON,
     title: 'Virtual Machines', cat: 'compute',
     desc: 'Linux VMs with full root access, NVMe SSD, DDoS protection.',
     bullets: ['Full root SSH access','NVMe SSD storage','DDoS protection','Hourly snapshots','Upgradeable anytime'],
@@ -97,7 +129,7 @@ function buildCatalogue(items) {
   });
 
   addGroup(['gpu-basic','gpu-pro','gpu-enterprise'], {
-    tag: 'GPU Computing', icon: '\u26A1',
+    tag: 'GPU Computing', icon: GB_ICON,
     title: 'GPU Computing', cat: 'gpu',
     desc: 'Dedicated NVIDIA GPUs for AI inference and LLM fine-tuning.',
     bullets: ['Dedicated NVIDIA GPU','CUDA 12 pre-installed','Persistent storage','Upgradeable anytime','Cancel independently'],
@@ -109,7 +141,7 @@ function buildCatalogue(items) {
   });
 
   addGroup(['storage-50','storage-250','storage-1tb','storage-10tb'], {
-    tag: 'Object Storage', icon: '\uD83D\uDCBE',
+    tag: 'Object Storage', icon: GB_ICON,
     title: 'Object Storage', cat: 'storage',
     desc: 'S3-compatible storage for bot data, backups and media.',
     bullets: ['S3-compatible API','Versioning & lifecycle rules','End-to-end encryption','Zero-egress option','Upgrade anytime'],
@@ -121,7 +153,7 @@ function buildCatalogue(items) {
   });
 
   addGroup(['number-local','number-global','number-business'], {
-    tag: 'Phone Numbers', icon: '\uD83D\uDCDE',
+    tag: 'Phone Numbers', icon: GB_ICON,
     title: 'Virtual Phone Numbers', cat: 'comms',
     desc: 'Virtual numbers for WhatsApp, SMS and voice.',
     bullets: ['150+ countries','WhatsApp Business ready','SMS + Voice','Instant activation','Cancel any number'],
@@ -131,6 +163,16 @@ function buildCatalogue(items) {
     specKeys: ['type'],
     featured: 'number-local'
   });
+
+  // Domain search (not a plan group — uses search UI + TLD cards)
+  C['domain-search'] = {
+    type: 'domain-search',
+    tag: 'Domains', icon: GB_ICON,
+    title: 'Domain Names',
+    cat: 'apps',
+    desc: 'Register and manage domains with free WHOIS privacy and managed DNS.',
+    bullets: ['Free WHOIS privacy','Managed DNS','Auto-renewal','Transfer assistance','150+ TLDs'],
+  };
 
   return C;
 }

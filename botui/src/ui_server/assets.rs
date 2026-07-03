@@ -77,37 +77,4 @@ pub async fn handle_embedded_root_asset(
     }
 }
 
-#[cfg(feature = "embed-ui")]
-pub async fn handle_auth_asset(
-    axum::extract::Path(path): axum::extract::Path<String>,
-) -> impl IntoResponse {
-    let normalized_path = path.strip_prefix('/').unwrap_or(&path);
-    let asset_path = format!("suite/auth/{}", normalized_path);
-    match Assets::get(&asset_path) {
-        Some(content) => {
-            let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
-            (
-                [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                content.data,
-            )
-                .into_response()
-        }
-        None => StatusCode::NOT_FOUND.into_response(),
-    }
-}
 
-use axum::response::Redirect;
-
-/// Login and logout now served by dedicated login app on port 5000.
-/// Redirect requests to the login server URL.
-fn get_login_url() -> String {
-    std::env::var("LOGIN_URL").unwrap_or_else(|_| "http://localhost:5000".to_string())
-}
-
-pub async fn serve_login() -> impl IntoResponse {
-    Redirect::to(&get_login_url()).into_response()
-}
-
-pub async fn serve_logout() -> impl IntoResponse {
-    Redirect::to(&format!("{}/logout", get_login_url())).into_response()
-}

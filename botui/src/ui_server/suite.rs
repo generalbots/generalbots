@@ -82,15 +82,13 @@ pub async fn index(
 
     let path_lower = path.to_lowercase();
 
-    // Redirect auth login paths to the configured LOGIN_URL (e.g. login.pragmatismo.com.br)
-    if path_lower.contains("/auth/") && path_lower.ends_with("login.html") {
-        let login_url = std::env::var("LOGIN_URL")
-            .unwrap_or_else(|_| "http://localhost:5000".to_string());
-        return Redirect::to(&login_url).into_response();
-    }
-
     // Cloud pages are served exclusively on port 4000 — never on the suite port
     if path_lower.starts_with("/cloud/") || path_lower == "/cloud" {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+
+    // Auth pages are served exclusively on port 5000 — never on the suite port
+    if path_lower.starts_with("/auth/") || path_lower == "/auth" {
         return StatusCode::NOT_FOUND.into_response();
     }
 
@@ -128,7 +126,7 @@ pub async fn index(
         let path_parts: Vec<&str> = path.split('/').collect();
         let fs_path = if path_parts.len() > 1 {
             let mut start_idx = 1;
-            let known_dirs = ["suite", "js", "css", "vendor", "assets", "public", "partials", "settings", "auth", "about", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "m365", "minutes", "office365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "tools", "vision"];
+            let known_dirs = ["suite", "js", "css", "vendor", "assets", "public", "partials", "settings", "about", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "m365", "minutes", "office365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "tools", "vision"];
             let suite_dirs = ["drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "settings", "about", "tools", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "m365", "minutes", "office365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "vision"];
 
             if known_dirs.contains(&path_parts[1]) {
@@ -138,9 +136,7 @@ pub async fn index(
                     path_parts[1..].join("/")
                 }
             } else {
-                if path_parts.get(1) == Some(&"auth") && path_parts.get(2) == Some(&"suite") {
-                    start_idx = 2;
-                } else if path_parts.len() > start_idx + 1
+                if path_parts.len() > start_idx + 1
                     && known_dirs.contains(&path_parts[start_idx + 1])
                 {
                     start_idx += 1;

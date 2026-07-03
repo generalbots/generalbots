@@ -626,60 +626,7 @@
 
 <div id="cloud-toast"></div>
 
-<!-- Signup Modal (for anonymous users) -->
-<div class="mgmt-modal" id="store-signup-modal">
-  <div class="mgmt-backdrop" onclick="hideStoreSignup()"></div>
-  <div class="mgmt-modal-box" style="max-width:480px">
-    <div class="mgmt-modal-title">Create Account</div>
-    <div id="store-signup-error" style="display:none;background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.25);border-radius:10px;padding:.85rem 1.1rem;font-size:.9rem;color:var(--accent3);margin-bottom:1.25rem"></div>
-    <form id="store-signup-form" onsubmit="return handleStoreSignup(event)">
-      <div class="form-group">
-        <label class="form-label">Your Name</label>
-        <input type="text" id="store-signup-name" class="form-control" placeholder="Your full name" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Bot Name</label>
-        <input type="text" id="store-signup-botname" class="form-control" required placeholder="e.g. MyAssistant">
-        <span class="form-help">Used to create your organization and workspace.</span>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" id="store-signup-email" class="form-control" required placeholder="you@example.com">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" id="store-signup-password" class="form-control" required minlength="8" placeholder="At least 8 characters">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Choose your plan</label>
-        <div class="plan-chooser" style="display:flex;gap:.65rem;flex-wrap:wrap">
-          <label class="plan-option selected" style="flex:1;display:flex;flex-direction:column;gap:3px;padding:.8rem 1rem;border:2px solid var(--accent);border-radius:12px;cursor:pointer;background:var(--accent-dim)">
-            <input type="radio" name="store-plan" value="free" checked style="position:absolute;opacity:0;pointer-events:none">
-            <span style="font-weight:700;font-size:.95rem;color:var(--text)">Free</span>
-            <span style="font-weight:800;font-size:1.1rem;color:var(--accent)">$0/mo</span>
-            <span style="font-size:.75rem;color:var(--muted)">1 bot, 20MB, all apps</span>
-          </label>
-          <label class="plan-option" style="flex:1;display:flex;flex-direction:column;gap:3px;padding:.8rem 1rem;border:2px solid var(--border);border-radius:12px;cursor:pointer;background:var(--bg3)">
-            <input type="radio" name="store-plan" value="shared" style="position:absolute;opacity:0;pointer-events:none">
-            <span style="font-weight:700;font-size:.95rem;color:var(--text)">Shared</span>
-            <span style="font-weight:800;font-size:1.1rem;color:var(--accent)">$3.99/mo</span>
-            <span style="font-size:.75rem;color:var(--muted)">5 bots, 50GB, 14-day TRIAL</span>
-          </label>
-          <label class="plan-option" style="flex:1;display:flex;flex-direction:column;gap:3px;padding:.8rem 1rem;border:2px dashed var(--border);border-radius:12px;cursor:pointer;background:var(--bg3)">
-            <input type="radio" name="store-plan" value="private-cloud" style="position:absolute;opacity:0;pointer-events:none">
-            <span style="font-weight:700;font-size:.95rem;color:var(--text)">Private Server</span>
-            <span style="font-weight:800;font-size:.9rem;color:#bf5af2">Your infra</span>
-            <span style="font-size:.75rem;color:var(--muted)">Self-hosted, unlimited</span>
-          </label>
-        </div>
-      </div>
-      <button type="submit" id="store-signup-btn" class="btn btn-primary btn-block" style="margin-top:1rem">Create Free Account</button>
-    </form>
-    <div class="auth-alt" style="margin-top:.85rem;font-size:.8rem;color:var(--muted);text-align:center">
-      Already have an account? <a href="/login" style="color:var(--accent);text-decoration:none;font-weight:600">Sign in</a>
-    </div>
-  </div>
-</div>
+
 
 <script src="/cloud/js/cloud.js"></script>
 <script src="/cloud/js/store/01_data.js"></script>
@@ -691,78 +638,9 @@ function onActivateClick() {
   if (isAuthenticated()) {
     submitCalculator();
   } else {
-    document.getElementById('store-signup-modal').style.display = 'flex';
+    window.location.href = '/cloud/signup';
   }
 }
-
-function hideStoreSignup() {
-  document.getElementById('store-signup-modal').style.display = 'none';
-  document.getElementById('store-signup-error').style.display = 'none';
-}
-
-async function handleStoreSignup(e) {
-  e.preventDefault();
-  const btn = document.getElementById('store-signup-btn');
-  const errEl = document.getElementById('store-signup-error');
-  const name = document.getElementById('store-signup-name').value.trim();
-  const email = document.getElementById('store-signup-email').value.trim();
-  const password = document.getElementById('store-signup-password').value;
-  const botName = document.getElementById('store-signup-botname').value.trim();
-  const plan = document.querySelector('input[name="store-plan"]:checked')?.value || 'free';
-
-  btn.textContent = 'Creating account…';
-  btn.disabled = true;
-  errEl.style.display = 'none';
-
-  try {
-    const res = await fetch('/api/cloud/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, bot_name: botName, password, plan }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      errEl.textContent = data.detail || data || 'Signup failed.';
-      errEl.style.display = 'block';
-      return;
-    }
-    localStorage.setItem('management_token', data.token);
-    localStorage.setItem('management_email', data.account?.email || email);
-    localStorage.setItem('management_name', data.account?.name || name);
-    localStorage.setItem('management_org_id', data.org_id || '');
-    localStorage.setItem('management_bot_id', data.bot_id || '');
-    localStorage.setItem('management_bot_name', botName);
-    localStorage.setItem('management_plan', data.plan || 'free');
-    const dest = plan === 'private-cloud' ? '/store' : '/dashboard';
-    window.location.href = dest;
-  } catch (err) {
-    errEl.textContent = 'Network error: ' + err.message;
-    errEl.style.display = 'block';
-  } finally {
-    btn.textContent = 'Create Free Account';
-    btn.disabled = false;
-  }
-}
-
-// Plan selector toggle for store signup modal
-document.addEventListener('DOMContentLoaded', function() {
-  const modal = document.getElementById('store-signup-modal');
-  if (modal) {
-    modal.querySelectorAll('.plan-option').forEach(function(el) {
-      el.addEventListener('click', function() {
-        el.closest('.plan-chooser').querySelectorAll('.plan-option').forEach(function(o) {
-          o.style.borderColor = 'var(--border)';
-          o.style.background = 'var(--bg3)';
-          if (o.querySelector('input[value="private-cloud"]')) o.style.borderStyle = 'dashed';
-        });
-        el.style.borderColor = 'var(--accent)';
-        el.style.background = 'var(--accent-dim)';
-        el.style.borderStyle = 'solid';
-        el.querySelector('input').checked = true;
-      });
-    });
-  }
-});
 </script>
 </body>
 </html>
