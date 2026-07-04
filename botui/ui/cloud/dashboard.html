@@ -77,6 +77,14 @@
         </div>
       </div>
 
+      <!-- YOUR BOTS -->
+      <div class="mgmt-section-header" style="margin-top:1rem">
+        <div><div class="mgmt-section-title">Your Bots</div><div class="mgmt-section-sub">Direct links to your chatbots</div></div>
+      </div>
+      <div id="bots-grid" style="margin-bottom:1.5rem;font-size:.82rem">
+        <span style="color:var(--muted)">Loading...</span>
+      </div>
+
       <!-- UPGRADE PATH -->
       <div class="upgrade-card" id="upgrade-card">
         <div style="flex-shrink:0">
@@ -138,17 +146,6 @@
         </a>
       </div>
 
-      <!-- YOUR BOTS -->
-      <div class="mgmt-section-header">
-        <div><div class="mgmt-section-title">Your Bots</div><div class="mgmt-section-sub">Direct links to your chatbots</div></div>
-      </div>
-      <div id="bots-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;margin-bottom:2rem">
-        <div class="mgmt-empty" style="grid-column:1/-1">
-          <div class="mgmt-empty-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
-          Loading bots...
-        </div>
-      </div>
-
       <!-- RECENT SERVICES -->
       <div class="mgmt-section-header">
         <div><div class="mgmt-section-title">Recent Services</div></div>
@@ -181,11 +178,11 @@
 (async function() {
   const token = requireAuth();
   if (!token) return;
+  const authHeaders = { 'Authorization': 'Bearer ' + token };
 
   // Load dashboard data
   async function loadDashboard() {
     try {
-      const authHeaders = { 'Authorization': 'Bearer ' + token };
       const [orgRes, svcRes, invRes] = await Promise.all([
         fetch('/api/cloud/organizations', { headers: authHeaders }),
         fetch('/api/cloud/services', { headers: authHeaders }),
@@ -322,29 +319,23 @@
   async function loadBots() {
     try {
       const res = await fetch('/api/cloud/bots', { headers: authHeaders });
-      if (!res.ok) return;
+      if (!res.ok) { document.getElementById('bots-grid').textContent = 'Could not load bots'; return; }
       const data = await res.json();
       const bots = data.bots || [];
-      const container = document.getElementById('bots-grid');
-      if (!container) return;
-      if (bots.length === 0) {
-        container.innerHTML = '<div class="mgmt-empty" style="grid-column:1/-1"><div class="mgmt-empty-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>No bots yet. <a href="/signup" style="color:var(--accent)">Create one</a>.</div>';
-        return;
-      }
+      const grid = document.getElementById('bots-grid');
+      if (!grid) return;
+      if (bots.length === 0) { grid.innerHTML = '<span style="color:var(--muted)">No bots yet.</span>'; return; }
       const chatBase = window.GB_CHAT_URL || 'http://localhost:3000';
-      container.innerHTML = bots.map(b => {
+      grid.innerHTML = bots.map(b => {
         const chatUrl = chatBase + '/' + encodeURIComponent(b.slug);
-        return '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;display:flex;flex-direction:column;gap:.5rem">' +
-          '<div style="font-size:.85rem;font-weight:700;color:var(--text)">' + escapeHtml(b.name) + '</div>' +
-          (b.description ? '<div style="font-size:.72rem;color:var(--muted)">' + escapeHtml(b.description) + '</div>' : '') +
-          '<div style="font-size:.7rem;color:var(--accent3);font-family:monospace">' + escapeHtml(b.slug) + '</div>' +
-          '<div style="display:flex;gap:.5rem;margin-top:auto;padding-top:.5rem">' +
-          '<a href="' + chatUrl + '" target="_blank" class="btn btn-primary btn-sm" style="flex:1;text-align:center;text-decoration:none;font-size:.75rem">Open Chat</a>' +
-          '<button onclick="navigator.clipboard.writeText(\'' + chatUrl + '\').then(()=>{this.textContent=\'Copied!\';setTimeout(()=>this.textContent=\'Copy Link\',2000)}).catch(()=>{})" class="btn btn-ghost btn-sm" style="font-size:.75rem">Copy Link</button>' +
-          '</div>' +
-          '</div>';
+        return '<span style="display:inline-flex;align-items:center;gap:.4rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.25rem .5rem;margin:0 .35rem .35rem 0;white-space:nowrap;font-size:.75rem">' +
+          '<span style="font-weight:600;color:var(--text)">' + escapeHtml(b.name) + '</span>' +
+          '<span style="color:var(--accent3);font-family:monospace">' + escapeHtml(b.slug) + '</span>' +
+          '<a href="' + chatUrl + '" target="_blank" style="color:var(--accent);text-decoration:none" title="Open chat">\u2197</a>' +
+          '<span onclick="navigator.clipboard.writeText(\'' + chatUrl + '\').then(()=>{this.textContent=\'Copied\';setTimeout(()=>this.textContent=\'\uD83D\uDCCB\',1200)}).catch(()=>{})" style="cursor:pointer;color:var(--muted)" title="Copy link">\uD83D\uDCCB</span>' +
+          '</span>';
       }).join('');
-    } catch(e) { /* non-critical */ }
+    } catch(e) { document.getElementById('bots-grid').textContent = 'Error loading bots'; }
   }
 
   await loadBots();
