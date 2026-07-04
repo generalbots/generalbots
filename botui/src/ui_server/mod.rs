@@ -9,7 +9,7 @@ pub mod ws;
 
 pub use self::assets::serve_favicon;
 #[cfg(feature = "embed-ui")]
-pub use self::assets::{handle_embedded_asset, handle_embedded_root_asset, handle_auth_asset};
+pub use self::assets::{handle_embedded_asset, handle_embedded_root_asset};
 pub use self::cloud::*;
 pub use self::constants::get_ui_root;
 pub use self::login::{serve_login_index, serve_login_signup, serve_login_js, serve_login_images};

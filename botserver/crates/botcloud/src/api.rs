@@ -179,6 +179,7 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources", get(list_workspace_resources).post(assign_resource))
         .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources/{res_id}", delete(remove_resource))
         // Services (purchased add-ons)
+        .route("/api/cloud/bots", get(list_bots))
         .route("/api/cloud/services", get(list_services))
         .route("/api/cloud/services/{id}/cancel", post(cancel_service))
         // Invoices
@@ -1823,6 +1824,55 @@ async fn delete_branch_handler(
 
 /// `GET /api/cloud/services`
 /// Returns provisioned services (active subscriptions).
+/// `GET /api/cloud/bots`
+async fn list_bots(
+    State(service): State<Arc<SaasService>>,
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    let user_branch_id = get_branch_id_from_jwt(&headers, &mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    #[derive(QueryableByName, Debug)]
+    struct BotRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        slug: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        description: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Bool)]
+        is_active: bool,
+    }
+
+    let rows: Vec<BotRow> = if let Some(bid) = user_branch_id {
+        diesel::sql_query(
+            "SELECT id, name, slug, description, is_active FROM bots WHERE branch_id = $1 ORDER BY name"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bid)
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
+    } else {
+        Vec::new()
+    };
+
+    let result: Vec<serde_json::Value> = rows.into_iter().map(|r| {
+        serde_json::json!({
+            "id": r.id,
+            "name": r.name,
+            "slug": r.slug,
+            "description": r.description,
+            "is_active": r.is_active,
+        })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "bots": result })))
+}
+
 async fn list_services(
     State(service): State<Arc<SaasService>>,
     headers: HeaderMap,

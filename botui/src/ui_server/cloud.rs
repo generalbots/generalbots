@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Redirect, Response},
 };
+#[cfg(not(feature = "embed-ui"))]
 use log::info;
 
 #[cfg(feature = "embed-ui")]
@@ -11,6 +12,10 @@ use crate::ui_server::constants::get_ui_root;
 
 fn get_login_url() -> String {
     std::env::var("LOGIN_URL").unwrap_or_else(|_| "http://localhost:5000".to_string())
+}
+
+fn get_chat_url() -> String {
+    std::env::var("CHAT_URL").unwrap_or_else(|_| "http://localhost:3000".to_string())
 }
 
 pub async fn redirect_to_login() -> Response {
@@ -25,7 +30,31 @@ pub async fn redirect_to_store() -> Response {
     Redirect::to("/store").into_response()
 }
 
+fn inject_script_into_html(bytes: &[u8], script: &str) -> Vec<u8> {
+    if let Ok(content) = std::str::from_utf8(bytes) {
+        if let Some(head_end) = content.find("</head>") {
+            let mut new_content = String::with_capacity(content.len() + script.len());
+            new_content.push_str(&content[..head_end]);
+            new_content.push_str(script);
+            new_content.push_str(&content[head_end..]);
+            return new_content.into_bytes();
+        }
+    }
+    bytes.to_vec()
+}
+
+fn get_html_injection_script() -> String {
+    let login_url = get_login_url();
+    let chat_url = get_chat_url();
+    format!(
+        r#"<script>window.GB_LOGIN_URL = "{}";window.GB_CHAT_URL = "{}";</script>"#,
+        login_url, chat_url
+    )
+}
+
 async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
+    let injection = get_html_injection_script();
+
     #[cfg(feature = "embed-ui")]
     {
         let cloud_root = get_ui_root().join("cloud");
@@ -33,9 +62,14 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
         let asset_path = format!("cloud/{}", relative.display()).replace('\\', "/");
         if let Some(content) = Assets::get(&asset_path) {
             let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
+            let data = if mime.as_ref() == "text/html" {
+                inject_script_into_html(&content.data, &injection).into()
+            } else {
+                content.data
+            };
             return (
                 [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                content.data,
+                data,
             )
                 .into_response();
         }
@@ -45,36 +79,21 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
     #[cfg(not(feature = "embed-ui"))]
     {
         match tokio::fs::read(&file_path).await {
-            Ok(mut bytes) => {
+            Ok(bytes) => {
                 let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
-                // Inject GB_LOGIN_URL into HTML pages (same pattern as suite)
-                if mime.as_ref() == "text/html" {
-                    if let Ok(content) = std::str::from_utf8(&bytes) {
-                        if let Some(head_end) = content.find("</head>") {
-                            let login_url = get_login_url();
-                            let script = format!(
-                                r#"<script>window.GB_LOGIN_URL = "{}";</script>"#,
-                                login_url
-                            );
-                            let mut new_content = String::with_capacity(content.len() + script.len());
-                            new_content.push_str(&content[..head_end]);
-                            new_content.push_str(&script);
-                            new_content.push_str(&content[head_end..]);
-                            bytes = new_content.into_bytes();
-                            info!(
-                                "Injected GB_LOGIN_URL ({}) into {}",
-                                login_url,
-                                file_path.display()
-                            );
-                        }
-                    }
-                }
+                let data = if mime.as_ref() == "text/html" {
+                    let d = inject_script_into_html(&bytes, &injection);
+                    info!(
+                        "Injected GB_LOGIN_URL and GB_CHAT_URL into {}",
+                        file_path.display()
+                    );
+                    d
+                } else {
+                    bytes
+                };
                 (
-                    [(
-                        axum::http::header::CONTENT_TYPE,
-                        mime.as_ref(),
-                    )],
-                    bytes,
+                    [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
+                    data,
                 )
                     .into_response()
             }
