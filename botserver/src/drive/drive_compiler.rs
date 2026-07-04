@@ -135,7 +135,7 @@ impl DriveCompiler {
     }
 
     /// Compilar arquivo .bas → .ast DIRETAMENTE em work/{bot}.gbai/{bot}.gbdialog/
-    async fn compile_file(&self, bot_id: Uuid, fp: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn compile_file(&self, _bot_id: Uuid, fp: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // fp formats:
         // - {bot}.gbai/{bot}.gbdialog/{tool}.bas (full path with bucket prefix)
         // - {bot}.gbdialog/{tool}.bas (without bucket prefix)
@@ -146,16 +146,16 @@ impl DriveCompiler {
         }
 
     // Determine bot name and work directory structure
-    let (_bot_name, work_dir) = if parts[0].ends_with(".gbai") {
+    let (bot_name, work_dir) = if parts[0].ends_with(".gbai") {
         // Full path: {bot}.gbai/{bot}.gbdialog/{tool}.bas
         let bot_name = parts[0].strip_suffix(".gbai").unwrap_or(parts[0]);
         let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
-        (bot_name, work_dir)
+        (bot_name.to_string(), work_dir)
     } else if parts.len() >= 2 && parts[0].ends_with(".gbdialog") {
         // Short path: {bot}.gbdialog/{tool}.bas
         let bot_name = parts[0].strip_suffix(".gbdialog").unwrap_or(parts[0]);
         let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
-        (bot_name, work_dir)
+        (bot_name.to_string(), work_dir)
     } else if parts.len() >= 2 && parts[0].ends_with(".gbkb") {
         // KB file: {bot}.gbkb/{doc}.txt - skip compilation
         debug!("Skipping KB file: {}", fp);
@@ -164,6 +164,9 @@ impl DriveCompiler {
         warn!("Unknown file path format: {}", fp);
         return Err("Invalid file path format".into());
     };
+
+    // Look up the real bot_id from the database using the bot name
+    let real_bot_id = Self::resolve_bot_id(&self.state, &bot_name);
 
     // Create work directory
     std::fs::create_dir_all(&work_dir)?;
@@ -242,7 +245,7 @@ impl DriveCompiler {
         callbacks.create_runtime = Some(Box::new(|state| {
             Arc::new(crate::basic::AppStateBasicRuntime(state))
         }));
-        let mut compiler = BasicCompiler::with_callbacks(self.state.clone(), bot_id, callbacks);
+        let mut compiler = BasicCompiler::with_callbacks(self.state.clone(), real_bot_id, callbacks);
         compiler.compile_file(
             work_bas_path.to_str().ok_or("Invalid path")?,
             work_dir.to_str().ok_or("Invalid path")?
@@ -251,7 +254,7 @@ impl DriveCompiler {
         let work_ast_path = work_dir.join(format!("{}.ast", tool_name));
         let ast_path_str = work_ast_path.to_str().unwrap_or("").to_string();
 
-        let bot_id_str = bot_id.to_string();
+        let bot_id_str = real_bot_id.to_string();
         let upsert_sql = diesel::sql_query(
             "INSERT INTO basic_tools (bot_id, tool_name, file_path, ast_path, compiled_at, is_active) \
              VALUES ($1::uuid, $2, $3, $4, $5, true) \
@@ -272,6 +275,32 @@ impl DriveCompiler {
 
         info!("Compiled {} to {}.ast", fp, tool_name);
         Ok(())
+    }
+
+    /// Resolve the real bot_id from the bot name using the database.
+    /// Falls back to Uuid::nil() if the bot is not found (backward compatibility).
+    fn resolve_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
+        use botcore::shared::models::schema::bots::dsl::*;
+
+        let mut conn = match state.conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("Failed to get DB connection for bot name lookup: {}", e);
+                return Uuid::nil();
+            }
+        };
+
+        match bots
+            .filter(name.eq(bot_name))
+            .select(id)
+            .first::<Uuid>(&mut *conn)
+        {
+            Ok(bot_id) => bot_id,
+            Err(e) => {
+                warn!("Bot '{}' not found in database ({}), using nil UUID", bot_name, e);
+                Uuid::nil()
+            }
+        }
     }
 }
 
