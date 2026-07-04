@@ -308,11 +308,7 @@ impl OpenAIClient {
         };
 
         Self {
-            client: reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(180))
-                .connect_timeout(std::time::Duration::from_secs(30))
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new()),
+            client: reqwest::Client::new(),
             base_url: final_base,
             endpoint_path: final_endpoint,
             rate_limiter: Arc::new(rate_limiter),
@@ -591,10 +587,10 @@ impl LLMProvider for OpenAIClient {
                 }
                 Err(e) => {
                     if attempt < max_retries {
-                        warn!("LLM generate_stream attempt {} failed (connection): {}, retrying...", attempt + 1, e);
+                        warn!("LLM generate_stream attempt {} failed (connection): {:?}, retrying...", attempt + 1, e);
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     } else {
-                        log::error!("LLM generate_stream connection error after {} retries: {}", max_retries, e);
+                        log::error!("LLM generate_stream connection error after {} retries: {:?}", max_retries, e);
                         return Err(Box::new(e));
                     }
                 }
