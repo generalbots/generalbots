@@ -14,6 +14,12 @@ struct ConfigRow {
     is_encrypted: bool,
 }
 
+#[derive(Debug, Clone, QueryableByName)]
+struct ExistsRow {
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    exists: bool,
+}
+
 fn is_placeholder_value(val: &str) -> bool {
     let lower = val.trim().to_lowercase();
     lower.is_empty() || lower == "none" || lower == "null" || lower == "n/a"
@@ -73,7 +79,6 @@ pub struct EmailConfig {
 
 impl Default for AppConfig {
     fn default() -> Self {
-        // Configuration loading priority: 1) Environment (from Vault via .env), 2) Defaults for development
         Self {
             server: ServerConfig {
                 host: "0.0.0.0".to_string(),
@@ -119,13 +124,10 @@ impl AppConfig {
     pub fn from_database(
         _pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        // Try to load config from database
-        // For now, return default
         Ok(Self::default())
     }
 
 pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
-    // Configuration loading: Environment vars (from Vault via .env) with fallbacks for development
     Ok(Self {
         server: ServerConfig {
             host: "0.0.0.0".to_string(),
@@ -154,16 +156,43 @@ pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
 pub struct ConfigManager {
     pool: Arc<DbPool>,
     master_key: Vec<u8>,
+    has_branch_id: bool,
 }
 
 impl ConfigManager {
     pub fn new(pool: DbPool) -> Self {
         let master_key = load_master_encryption_key();
-        Self { pool: Arc::new(pool), master_key }
+        let has_branch_id = Self::check_has_branch_id(&pool);
+        Self { pool: Arc::new(pool), master_key, has_branch_id }
+    }
+
+    fn check_has_branch_id(pool: &DbPool) -> bool {
+        if let Ok(mut conn) = pool.get() {
+            diesel::sql_query(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.columns \
+                 WHERE table_name='bot_configuration' AND column_name='branch_id') AS exists"
+            )
+            .get_result::<ExistsRow>(&mut conn)
+            .ok()
+            .map(|r| r.exists)
+            .unwrap_or(false)
+        } else {
+            false
+        }
     }
 
     fn config_key(&self, bot_id: &uuid::Uuid) -> Vec<u8> {
         derive_scope_key(&self.master_key, "config", bot_id)
+    }
+
+    fn get_query(&self) -> &'static str {
+        if self.has_branch_id {
+            "SELECT config_value, is_encrypted FROM bot_configuration \
+             WHERE branch_id = $1 AND bot_id = $2 AND config_key = $3 LIMIT 1"
+        } else {
+            "SELECT config_value, is_encrypted FROM bot_configuration \
+             WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+        }
     }
 
     pub fn get_config(
@@ -175,13 +204,18 @@ impl ConfigManager {
         let key_bytes = self.config_key(bot_id);
 
         if let Ok(mut conn) = self.pool.get() {
-            let bot_val = diesel::sql_query(
-                "SELECT config_value, is_encrypted FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .bind::<diesel::sql_types::Text, _>(key)
-            .get_result::<ConfigRow>(&mut conn)
-            .ok();
+            let bot_val = if self.has_branch_id {
+                diesel::sql_query(self.get_query())
+                    .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
+                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                    .bind::<diesel::sql_types::Text, _>(key)
+                    .get_result::<ConfigRow>(&mut conn).ok()
+            } else {
+                diesel::sql_query(self.get_query())
+                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                    .bind::<diesel::sql_types::Text, _>(key)
+                    .get_result::<ConfigRow>(&mut conn).ok()
+            };
 
             if let Some(r) = bot_val {
                 if !is_placeholder_value(&r.config_value) && !is_local_file_path(&r.config_value) {
@@ -194,13 +228,18 @@ impl ConfigManager {
                 }
             }
 
-            let default_val = diesel::sql_query(
-                "SELECT config_value, is_encrypted FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
-            .bind::<diesel::sql_types::Text, _>(key)
-            .get_result::<ConfigRow>(&mut conn)
-            .ok();
+            let default_val = if self.has_branch_id {
+                diesel::sql_query(self.get_query())
+                    .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
+                    .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
+                    .bind::<diesel::sql_types::Text, _>(key)
+                    .get_result::<ConfigRow>(&mut conn).ok()
+            } else {
+                diesel::sql_query(self.get_query())
+                    .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
+                    .bind::<diesel::sql_types::Text, _>(key)
+                    .get_result::<ConfigRow>(&mut conn).ok()
+            };
 
             if let Some(r) = default_val {
                 if !is_placeholder_value(&r.config_value) {
@@ -224,13 +263,25 @@ impl ConfigManager {
         let key_bytes = self.config_key(bot_id);
 
         if let Ok(mut conn) = self.pool.get() {
-            let row = diesel::sql_query(
-                "SELECT config_value, is_encrypted FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .bind::<diesel::sql_types::Text, _>(key)
-            .get_result::<ConfigRow>(&mut conn)
-            .ok();
+            let row = if self.has_branch_id {
+                diesel::sql_query(
+                    "SELECT config_value, is_encrypted FROM bot_configuration \
+                     WHERE branch_id = $1 AND bot_id = $2 AND config_key = $3 LIMIT 1"
+                )
+                .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .bind::<diesel::sql_types::Text, _>(key)
+                .get_result::<ConfigRow>(&mut conn).ok()
+            } else {
+                diesel::sql_query(
+                    "SELECT config_value, is_encrypted FROM bot_configuration \
+                     WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+                )
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .bind::<diesel::sql_types::Text, _>(key)
+                .get_result::<ConfigRow>(&mut conn).ok()
+            };
+
             if let Some(r) = row {
                 let val = if r.is_encrypted {
                     decrypt_field(&r.config_value, &key_bytes).unwrap_or_else(|_| r.config_value.clone())
@@ -249,6 +300,16 @@ impl ConfigManager {
         key: &str,
         value: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        self.set_config_with_branch(bot_id, key, value, None)
+    }
+
+    pub fn set_config_with_branch(
+        &self,
+        bot_id: &uuid::Uuid,
+        key: &str,
+        value: &str,
+        branch_id: Option<uuid::Uuid>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let is_sensitive = is_sensitive_key(key);
         let key_bytes = self.config_key(bot_id);
 
@@ -259,34 +320,46 @@ impl ConfigManager {
         };
 
         if let Ok(mut conn) = self.pool.get() {
-            diesel::sql_query(
-                "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type, is_encrypted, created_at, updated_at) \
-                 VALUES ($1, $2, $3, $4, 'string', $5, NOW(), NOW()) \
-                 ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, is_encrypted = $5, updated_at = NOW()"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .bind::<diesel::sql_types::Text, _>(key)
-            .bind::<diesel::sql_types::Text, _>(final_value)
-            .bind::<diesel::sql_types::Bool, _>(is_sensitive)
-            .execute(&mut conn)?;
+            if self.has_branch_id {
+                let bid = branch_id.unwrap_or(uuid::Uuid::nil());
+                diesel::sql_query(
+                    "INSERT INTO bot_configuration (id, branch_id, bot_id, config_key, config_value, created_at, updated_at) \
+                     VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) \
+                     ON CONFLICT (branch_id, bot_id, config_key) DO UPDATE SET config_value = $5, updated_at = NOW()"
+                )
+                .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
+                .bind::<diesel::sql_types::Uuid, _>(bid)
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .bind::<diesel::sql_types::Text, _>(key)
+                .bind::<diesel::sql_types::Text, _>(final_value)
+                .execute(&mut conn)?;
+            } else {
+                diesel::sql_query(
+                    "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type, is_encrypted, created_at, updated_at) \
+                     VALUES ($1, $2, $3, $4, 'string', $5, NOW(), NOW()) \
+                     ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, is_encrypted = $5, updated_at = NOW()"
+                )
+                .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .bind::<diesel::sql_types::Text, _>(key)
+                .bind::<diesel::sql_types::Text, _>(final_value)
+                .bind::<diesel::sql_types::Bool, _>(is_sensitive)
+                .execute(&mut conn)?;
+            }
         }
         Ok(())
     }
 }
 
-// Re-export for convenience
 pub use AppConfig as Config;
 
-// Manual implementation to load from Vault
 impl Default for DriveConfig {
     fn default() -> Self {
-        // Try to load from Vault
         if let Ok(vault_addr) = std::env::var("VAULT_ADDR") {
             if let Ok(vault_token) = std::env::var("VAULT_TOKEN") {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
                 let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
-                
+
                 if let Ok(output) = std::process::Command::new("curl")
                     .args(["-sf", "--cacert", &ca_cert, "-H", &format!("X-Vault-Token: {}", &vault_token), &url])
                     .output()
@@ -299,7 +372,7 @@ impl Default for DriveConfig {
                             let secret = secret_data.get("secret").and_then(|v| v.as_str()).unwrap_or("");
                             let bucket = secret_data.get("bucket").and_then(|v| v.as_str()).unwrap_or("default.gbai");
                             let server = format!("{}:{}", host, port);
-                            
+
                             return Self {
                                 endpoint: format!("http://{}:{}", host, port),
                                 bucket: bucket.to_string(),
@@ -313,8 +386,7 @@ impl Default for DriveConfig {
                 }
             }
         }
-        
-        // Fallback for development: read from environment or use minimal defaults
+
         Self {
             endpoint: std::env::var("MINIO_ENDPOINT")
                 .unwrap_or_else(|_| "http://localhost:9100".to_string()),

@@ -78,27 +78,30 @@ async fn handle_ws_proxy(
 
     info!("Proxying WebSocket to: {backend_url}");
 
-    let Ok(tls_connector) = native_tls::TlsConnector::builder()
-        .danger_accept_invalid_certs(true)
-        .danger_accept_invalid_hostnames(true)
-        .build()
-    else {
-        error!("Failed to build TLS connector for WebSocket proxy");
-        return;
-    };
-
-    let connector = tokio_tungstenite::Connector::NativeTls(tls_connector);
-
-    let backend_result =
-        connect_async_tls_with_config(&backend_url, None, false, Some(connector)).await;
-
-    let backend_socket: tokio_tungstenite::WebSocketStream<
-        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
-    > = match backend_result {
-        Ok((socket, _)) => socket,
-        Err(e) => {
-            error!("Failed to connect to backend WebSocket: {e}");
+    let backend_socket = if backend_url.starts_with("wss://") {
+        let Ok(tls_connector) = native_tls::TlsConnector::builder()
+            .danger_accept_invalid_certs(true)
+            .danger_accept_invalid_hostnames(true)
+            .build()
+        else {
+            error!("Failed to build TLS connector for WebSocket proxy");
             return;
+        };
+        let connector = tokio_tungstenite::Connector::NativeTls(tls_connector);
+        match connect_async_tls_with_config(&backend_url, None, false, Some(connector)).await {
+            Ok((socket, _)) => socket,
+            Err(e) => {
+                error!("Failed to connect to backend WebSocket: {e}");
+                return;
+            }
+        }
+    } else {
+        match tokio_tungstenite::connect_async(&backend_url).await {
+            Ok((socket, _)) => socket,
+            Err(e) => {
+                error!("Failed to connect to backend WebSocket: {e}");
+                return;
+            }
         }
     };
 
@@ -107,67 +110,47 @@ async fn handle_ws_proxy(
     let (mut client_tx, mut client_rx) = client_socket.split();
     let (mut backend_tx, mut backend_rx) = backend_socket.split();
 
-    let client_to_backend = async {
-        while let Some(msg) = client_rx.next().await {
-            match msg {
-                Ok(AxumMessage::Text(text)) => {
-                    if backend_tx.send(TungsteniteMessage::Text(text)).await.is_err() {
-                        break;
+    // Proxy loop: respond to pings locally to keep both sides alive
+    loop {
+        tokio::select! {
+            msg = client_rx.next() => {
+                match msg {
+                    Some(Ok(AxumMessage::Text(text))) => {
+                        if backend_tx.send(TungsteniteMessage::Text(text)).await.is_err() { break; }
                     }
-                }
-                Ok(AxumMessage::Binary(data)) => {
-                    if backend_tx.send(TungsteniteMessage::Binary(data)).await.is_err() {
-                        break;
+                    Some(Ok(AxumMessage::Binary(data))) => {
+                        if backend_tx.send(TungsteniteMessage::Binary(data)).await.is_err() { break; }
                     }
-                }
-                Ok(AxumMessage::Ping(data)) => {
-                    if backend_tx.send(TungsteniteMessage::Ping(data)).await.is_err() {
-                        break;
+                    Some(Ok(AxumMessage::Ping(data))) => {
+                        // Respond to client pings directly (backend may be busy)
+                        let _ = client_tx.send(AxumMessage::Pong(data)).await;
                     }
+                    Some(Ok(AxumMessage::Pong(_))) => {}
+                    Some(Ok(AxumMessage::Close(_))) | None => break,
+                    Some(Err(_)) => break,
                 }
-                Ok(AxumMessage::Pong(data)) => {
-                    if backend_tx.send(TungsteniteMessage::Pong(data)).await.is_err() {
-                        break;
+            }
+            msg = backend_rx.next() => {
+                match msg {
+                    Some(Ok(TungsteniteMessage::Text(text))) => {
+                        if client_tx.send(AxumMessage::Text(text)).await.is_err() { break; }
                     }
+                    Some(Ok(TungsteniteMessage::Binary(data))) => {
+                        if client_tx.send(AxumMessage::Binary(data)).await.is_err() { break; }
+                    }
+                    Some(Ok(TungsteniteMessage::Ping(data))) => {
+                        // Respond to backend pings directly (client may be slow)
+                        let _ = backend_tx.send(TungsteniteMessage::Pong(data)).await;
+                    }
+                    Some(Ok(TungsteniteMessage::Pong(_))) => {}
+                    Some(Ok(TungsteniteMessage::Close(_))) | None => break,
+                    Some(Err(_)) => break,
+                    _ => {}
                 }
-                Ok(AxumMessage::Close(_)) | Err(_) => break,
             }
         }
-    };
-
-    let backend_to_client = async {
-        while let Some(msg) = backend_rx.next().await {
-            match msg {
-                Ok(TungsteniteMessage::Text(text)) => {
-                    if client_tx.send(AxumMessage::Text(text)).await.is_err() {
-                        break;
-                    }
-                }
-                Ok(TungsteniteMessage::Binary(data)) => {
-                    if client_tx.send(AxumMessage::Binary(data)).await.is_err() {
-                        break;
-                    }
-                }
-                Ok(TungsteniteMessage::Ping(data)) => {
-                    if client_tx.send(AxumMessage::Ping(data)).await.is_err() {
-                        break;
-                    }
-                }
-                Ok(TungsteniteMessage::Pong(data)) => {
-                    if client_tx.send(AxumMessage::Pong(data)).await.is_err() {
-                        break;
-                    }
-                }
-                Ok(TungsteniteMessage::Close(_)) | Err(_) => break,
-                Ok(_) => {}
-            }
-        }
-    };
-
-    tokio::select! {
-        () = client_to_backend => info!("Client connection closed"),
-        () = backend_to_client => info!("Backend connection closed"),
     }
+    info!("[WS_PROXY:{bot_name}] Proxy connection closed");
 }
 
 pub async fn ws_task_progress_proxy(
@@ -198,27 +181,30 @@ async fn handle_task_progress_ws_proxy(
 
     info!("Proxying task-progress WebSocket to: {backend_url}");
 
-    let Ok(tls_connector) = native_tls::TlsConnector::builder()
-        .danger_accept_invalid_certs(true)
-        .danger_accept_invalid_hostnames(true)
-        .build()
-    else {
-        error!("Failed to build TLS connector for task-progress");
-        return;
-    };
-
-    let connector = tokio_tungstenite::Connector::NativeTls(tls_connector);
-
-    let backend_result =
-        connect_async_tls_with_config(&backend_url, None, false, Some(connector)).await;
-
-    let backend_socket: tokio_tungstenite::WebSocketStream<
-        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
-    > = match backend_result {
-        Ok((socket, _)) => socket,
-        Err(e) => {
-            error!("Failed to connect to backend task-progress WebSocket: {e}");
+    let backend_socket = if backend_url.starts_with("wss://") {
+        let Ok(tls_connector) = native_tls::TlsConnector::builder()
+            .danger_accept_invalid_certs(true)
+            .danger_accept_invalid_hostnames(true)
+            .build()
+        else {
+            error!("Failed to build TLS connector for task-progress");
             return;
+        };
+        let connector = tokio_tungstenite::Connector::NativeTls(tls_connector);
+        match connect_async_tls_with_config(&backend_url, None, false, Some(connector)).await {
+            Ok((socket, _)) => socket,
+            Err(e) => {
+                error!("Failed to connect to backend task-progress WebSocket: {e}");
+                return;
+            }
+        }
+    } else {
+        match tokio_tungstenite::connect_async(&backend_url).await {
+            Ok((socket, _)) => socket,
+            Err(e) => {
+                error!("Failed to connect to backend task-progress WebSocket: {e}");
+                return;
+            }
         }
     };
 

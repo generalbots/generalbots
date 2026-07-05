@@ -17,3 +17,4 @@ start-and-unseal.sh
 *.swp
 *.swo
 a.tmp
+opencode.json

@@ -4,6 +4,7 @@ use crate::drive_monitor::monitor::CHECK_INTERVAL_SECS;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::KnowledgeBaseManager;
 use chrono::Utc;
+use diesel::RunQueryDsl;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
@@ -11,6 +12,12 @@ use std::sync::Arc;
 use std::collections::HashSet;
 #[cfg(any(feature = "research", feature = "llm"))]
 use tokio::sync::RwLock as TokioRwLock;
+
+#[derive(Debug, Clone, diesel::QueryableByName)]
+struct BranchIdRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: uuid::Uuid,
+}
 
 pub fn normalize_etag(etag: &str) -> String {
     etag.trim_matches('"').to_string()
@@ -348,6 +355,8 @@ impl DriveMonitor {
 
         let config_manager = botcore::config::ConfigManager::new(self.state.conn.clone());
 
+        let branch_id = self.resolve_branch_id();
+
         for line in content.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') || line.to_lowercase().starts_with("key,") {
@@ -359,10 +368,10 @@ impl DriveMonitor {
                 if key.is_empty() {
                     continue;
                 }
-                if let Err(e) = config_manager.set_config(&self.bot_id, key, value) {
+                if let Err(e) = config_manager.set_config_with_branch(&self.bot_id, key, value, branch_id) {
                     log::error!("Failed to set config {}={} for bot {}: {}", key, value, bot_name, e);
                 } else {
-                    log::trace!("Synced config {}={} for bot {}", key, value, bot_name);
+                    log::trace!("Synced config {}={} for bot {} (branch_id={:?})", key, value, bot_name, branch_id);
                 }
             }
         }
@@ -370,6 +379,27 @@ impl DriveMonitor {
         let relative_key = self.strip_prefix(s3_key);
         let full_key = format!("{}.gbai/{}", bot_name, relative_key);
         let _ = self.file_repo.mark_indexed(&full_key, etag);
+    }
+
+    fn resolve_branch_id(&self) -> Option<uuid::Uuid> {
+        if self.branch_slug == "default" {
+            return Some(uuid::Uuid::nil());
+        }
+        if let Ok(mut conn) = self.state.conn.get() {
+            use diesel::sql_query;
+            let result = sql_query(
+                "SELECT id FROM branches WHERE slug = $1 LIMIT 1"
+            )
+            .bind::<diesel::sql_types::Text, _>(&self.branch_slug)
+            .get_result::<BranchIdRow>(&mut conn)
+            .ok();
+            if let Some(row) = result {
+                log::info!("Resolved branch_id {} from slug '{}'", row.id, self.branch_slug);
+                return Some(row.id);
+            }
+            log::warn!("No branch found for slug '{}', using nil UUID", self.branch_slug);
+        }
+        Some(uuid::Uuid::nil())
     }
 
     async fn sync_bas_to_work(&self, bot_name: &str, s3_key: &str, etag: Option<String>) {

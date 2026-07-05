@@ -43,6 +43,26 @@ fn inject_script_into_html(bytes: &[u8], script: &str) -> Vec<u8> {
     bytes.to_vec()
 }
 
+fn get_preview_banner_html() -> String {
+    r#"<div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#1c1917;text-align:center;padding:3px 12px;font-size:0.7rem;font-weight:500;line-height:1.3">⚡ <strong>General Bots 6</strong> is currently in <strong>Preview</strong> — features are evolving rapidly. <a href="/terms" style="color:#1c1917;font-weight:600;text-decoration:underline">Review terms</a> before production use.</div>"#.to_string()
+}
+
+fn inject_banner_into_html(bytes: &[u8], banner: &str) -> Vec<u8> {
+    if let Ok(content) = std::str::from_utf8(bytes) {
+        if let Some(body_start) = content.find("<body") {
+            if let Some(body_end) = content[body_start..].find('>') {
+                let insert_pos = body_start + body_end + 1;
+                let mut new_content = String::with_capacity(content.len() + banner.len());
+                new_content.push_str(&content[..insert_pos]);
+                new_content.push_str(banner);
+                new_content.push_str(&content[insert_pos..]);
+                return new_content.into_bytes();
+            }
+        }
+    }
+    bytes.to_vec()
+}
+
 fn get_html_injection_script() -> String {
     let login_url = get_login_url();
     let chat_url = get_chat_url();
@@ -54,6 +74,7 @@ fn get_html_injection_script() -> String {
 
 async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
     let injection = get_html_injection_script();
+    let banner = get_preview_banner_html();
 
     #[cfg(feature = "embed-ui")]
     {
@@ -63,7 +84,8 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
         if let Some(content) = Assets::get(&asset_path) {
             let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
             let data = if mime.as_ref() == "text/html" {
-                inject_script_into_html(&content.data, &injection).into()
+                let d = inject_script_into_html(&content.data, &injection);
+                inject_banner_into_html(&d, &banner).into()
             } else {
                 content.data
             };
@@ -83,11 +105,12 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
                 let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
                 let data = if mime.as_ref() == "text/html" {
                     let d = inject_script_into_html(&bytes, &injection);
+                    let d2 = inject_banner_into_html(&d, &banner);
                     info!(
-                        "Injected GB_LOGIN_URL and GB_CHAT_URL into {}",
+                        "Injected GB_LOGIN_URL, GB_CHAT_URL, and preview banner into {}",
                         file_path.display()
                     );
-                    d
+                    d2
                 } else {
                     bytes
                 };

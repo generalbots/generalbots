@@ -1,7 +1,7 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use diesel::prelude::*;
-use log::info;
+use log::{info, warn};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -97,12 +97,16 @@ pub fn register_use_kb_keyword(
         let conn = state_clone2.db_pool().clone();
         let kb_name_clone = kb_name.to_string();
 
-        let result = std::thread::spawn(move || {
+        let join_result = std::thread::spawn(move || {
             add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone)
         })
         .join();
 
-        match result {
+        log::info!("use_kb AFTER JOIN kb {} result={:?} join_ok={}", kb_name,
+            join_result.as_ref().map(|r| r.as_ref().map(|_| "ok").unwrap_or("err")),
+            join_result.is_ok());
+
+        match join_result {
             Ok(Ok(_)) => {
                 info!(" use_kb '{}' added to session {}", kb_name, session_id);
                 Dynamic::UNIT
@@ -130,12 +134,16 @@ pub fn register_use_kb_keyword(
         let conn = state_clone.db_pool().clone();
         let kb_name_clone = kb_name.to_string();
 
-        let result = std::thread::spawn(move || {
+        let join_result = std::thread::spawn(move || {
             add_kb_to_session(conn, session_id, bot_id, user_id, &kb_name_clone)
         })
         .join();
 
-        match result {
+        log::info!("USE_KB AFTER JOIN kb {} result={:?} join_ok={}", kb_name,
+            join_result.as_ref().map(|r| r.as_ref().map(|_| "ok").unwrap_or("err")),
+            join_result.is_ok());
+
+        match join_result {
             Ok(Ok(_)) => {
                 info!(" USE_KB '{}' added to session {}", kb_name, session_id);
                 Dynamic::UNIT
@@ -152,7 +160,7 @@ pub fn register_use_kb_keyword(
     });
 }
 
-fn add_kb_to_session(
+pub fn add_kb_to_session(
     conn_pool: botbasic_types::types::DbPool,
     session_id: Uuid,
     bot_id: Uuid,
@@ -241,7 +249,7 @@ fn add_kb_to_session(
     let tool_name: Option<String> = None;
 
     let assoc_id = Uuid::new_v4();
-    diesel::sql_query(
+    if let Err(e) = diesel::sql_query(
         "INSERT INTO session_kb_associations (id, session_id, bot_id, kb_name, kb_folder_path, qdrant_collection, added_by_tool, is_active)
         VALUES ($1, $2, $3, $4, $5, $6, $7, true)
         ON CONFLICT (session_id, kb_name)
@@ -258,12 +266,18 @@ fn add_kb_to_session(
     .bind::<diesel::sql_types::Text, _>(&qdrant_collection)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(tool_name.as_deref())
     .execute(&mut conn)
-    .map_err(|e| format!("Failed to add KB association: {}", e))?;
-
-    info!(
-        " Added KB '{}' to session {} (collection: {}, path: {})",
-        kb_name, session_id, qdrant_collection, kb_folder_path
-    );
+    {
+        if e.to_string().contains("foreign key constraint") {
+            warn!("KB '{}' deferred for session {} (session not yet in DB)", kb_name, session_id);
+        } else {
+            return Err(format!("Failed to add KB association: {}", e));
+        }
+    } else {
+        info!(
+            " Added KB '{}' to session {} (collection: {}, path: {})",
+            kb_name, session_id, qdrant_collection, kb_folder_path
+        );
+    }
 
     Ok(())
 }

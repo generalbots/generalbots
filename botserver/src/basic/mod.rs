@@ -143,10 +143,16 @@ impl ScriptService {
         std::fs::write("/tmp/execute_script_debug.txt", format!(
             "ast_content len={}\nfirst 200: {}\n", ast_content.len(), &ast_content.chars().take(200).collect::<String>()
         )).ok();
-        let mut script_service = Self::new(state.clone(), user.clone());
-        script_service.load_bot_config_params(&state, user.bot_id);
-
-        let result = script_service.run(ast_content);
+        let ast_owned = ast_content.to_string();
+        let bot_id = user.bot_id;
+        let state_outer = state.clone();
+        let user_outer = user.clone();
+        let result = tokio::task::spawn_blocking(move || {
+            let state_for_svc = state_outer.clone();
+            let mut script_service = ScriptService::new(state_outer, user_outer);
+            script_service.load_bot_config_params(&state_for_svc, bot_id);
+            script_service.run(&ast_owned)
+        }).await.map_err(|e| format!("spawn_blocking join error: {}", e))?;
         std::fs::write("/tmp/run_result.txt", format!("run result: {:?}\n", result)).ok();
         match result {
             Ok(result) => {
