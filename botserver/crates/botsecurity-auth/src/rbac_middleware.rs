@@ -1053,6 +1053,8 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
 
         RoutePermission::new("/api/auth/login", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/cloud/auth/login", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/cloud/auth/signup", "POST", "").with_anonymous(true),
 
         // Client error reporting - anonymous to catch all JS errors
         RoutePermission::new("/api/client-errors", "POST", "").with_anonymous(true),

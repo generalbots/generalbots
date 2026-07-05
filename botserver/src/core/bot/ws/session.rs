@@ -59,6 +59,10 @@ pub async fn handle_ws(
                             &mut start_bas_ran, &text,
                         ).await;
                     }
+                    Some(Ok(Message::Ping(data))) => {
+                        let _ = ws_sender.send(Message::Pong(data)).await;
+                    }
+                    Some(Ok(Message::Pong(_))) => {}
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Err(e)) => { error!("WS err: {}", e); break; }
                     _ => {}

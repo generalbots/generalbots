@@ -291,9 +291,6 @@ walkdir = { workspace = true }
 # Embedded static files
 rust-embed = { workspace = true, optional = true }
 
-# Blocking HTTP for Vault config
-ureq = { version = "2", features = ["json"] }
-
 # === NON-OPTIONAL EXTRACTED CRATES (always linked, no feature gate) ===
 botchannels = { workspace = true }
 botbrowser = { workspace = true }
