@@ -1,5 +1,5 @@
 //! drive_monitors - extracted from bootstrap.rs
-//! Supports both flat .gbai buckets (legacy) and .gborg buckets (tenant isolation)
+//! Processes .gborg buckets containing .gbai bot sub-directories
 
 use botcore::shared::state::AppState;
 use diesel::RunQueryDsl;
@@ -20,10 +20,7 @@ pub(crate) async fn start_drive_monitors(
     _pool: &botcore::shared::utils::DbPool,
 ) {
     use botcore::shared::memory_monitor::register_thread;
-    use botcore::shared::models::schema::bots;
-    use diesel::prelude::*;
 
-    let drive_monitor_state = app_state.clone();
     let pool_clone = _pool.clone();
     let state_for_scan = app_state.clone();
     let scan_pool = _pool.clone();
@@ -49,7 +46,7 @@ pub(crate) async fn start_drive_monitors(
             info!("LOAD_ONLY filter active: {:?}", load_only);
         }
 
-        // Step 1: Discover bots from S3 buckets (.gbai and .gborg)
+        // Step 1: Discover bots from S3 .gborg buckets
         log::info!("Drive client status: {:?}", state_for_scan.drive.is_some());
         if let Some(s3_client) = &state_for_scan.drive {
             match s3_client.list_all_buckets().await {
@@ -59,83 +56,21 @@ pub(crate) async fn start_drive_monitors(
                             process_org_bucket(
                                 &state_for_scan, &pool_clone, &bucket, &load_only,
                             ).await;
-                        } else if bucket.ends_with(".gbai") {
-                            process_flat_bucket(
-                                &state_for_scan, &pool_clone, &bucket, &load_only,
-                            ).await;
                         }
                     }
                 }
-                Err(e) => error!("Failed to list S3 buckets for bot discovery: {}", e),
+                Err(e) => warn!("Failed to list S3 buckets for bot discovery: {}", e),
             }
         }
 
-        // Step 2: Start DriveMonitor for each active bot
-        let bots_to_monitor = tokio::task::spawn_blocking({
-            let pool_clone = pool_clone.clone();
-            move || {
-                let mut conn = match pool_clone.get() {
-                    Ok(conn) => conn,
-                    Err(_) => return Vec::new(),
-                };
-                bots::dsl::bots
-                    .filter(bots::dsl::is_active.eq(true))
-                    .select((bots::dsl::id, bots::dsl::name))
-                    .load::<(Uuid, String)>(&mut conn)
-                    .unwrap_or_default()
-            }
-        })
-        .await
-        .unwrap_or_default();
-
-        info!("Found {} active bots to monitor", bots_to_monitor.len());
-
+        // Step 2: Periodic bucket re-scan (bots are discovered via process_org_bucket)
         let load_only_for_monitor: Vec<String> = std::env::var("LOAD_ONLY")
             .ok()
             .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_default();
-
         let mut monitored_bots: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-        for (bot_id, bot_name) in bots_to_monitor {
-            if !load_only_for_monitor.is_empty() && !load_only_for_monitor.contains(&bot_name) {
-                trace!("Skipping monitoring for bot '{}' (not in LOAD_ONLY)", bot_name);
-                continue;
-            }
-
-            let bucket_name = format!("{}.gbai", bot_name);
-
-            // Check if .gbai bucket exists using HEAD request (skip .gborg bots, they get monitors via process_org_bucket)
-            let bucket_exists = match &state_for_scan.drive {
-                Some(s3) => s3.create_bucket_if_not_exists(&bucket_name).await.is_ok(),
-                None => true,
-            };
-            if !bucket_exists {
-                trace!("Skipping flat monitor for '{}': '{}' not found (bot may be in .gborg)", bot_name, bucket_name);
-                continue;
-            }
-
-            monitored_bots.insert(bot_name.clone());
-            let monitor_state = drive_monitor_state.clone();
-            let bot_id_clone = bot_id;
-            let bucket_name_clone = bucket_name.clone();
-
-            tokio::spawn(async move {
-                use crate::drive::drive_monitor::DriveMonitor;
-                register_thread(&format!("drive-monitor-{}", bot_name), "drive");
-                trace!("DriveMonitor::new starting for bot: {}", bot_name);
-                let monitor = DriveMonitor::new(monitor_state, bucket_name_clone, bot_id_clone);
-                info!(
-                    "Starting DriveMonitor for bot: {} (bucket: {})",
-                    bot_name, bucket_name
-                );
-                if let Err(e) = monitor.start_monitoring().await {
-                    error!("DriveMonitor failed for bot {}: {}", bot_name, e);
-                }
-            });
-        }
-
-        // Step 3: Periodic bucket re-scan
+        let mut last_list_error: Option<std::time::Instant> = None;
         let scan_state = app_state.clone();
         tokio::spawn(async move {
             register_thread("drive-scan", "drive");
@@ -150,6 +85,10 @@ pub(crate) async fn start_drive_monitors(
                 if let Some(s3_client) = &scan_state.drive {
                     match s3_client.list_all_buckets().await {
                         Ok(buckets) => {
+                            if last_list_error.is_some() {
+                                info!("Drive scan recovered — S3 buckets now accessible");
+                                last_list_error = None;
+                            }
                             for bucket in buckets {
                                 if bucket.ends_with(".gborg") {
                                     if let Err(e) = scan_org_bucket(
@@ -158,17 +97,17 @@ pub(crate) async fn start_drive_monitors(
                                     ).await {
                                         warn!("Periodic .gborg scan failed for {}: {}", bucket, e);
                                     }
-                                } else if bucket.ends_with(".gbai") {
-                                    if let Err(e) = scan_flat_bucket(
-                                        &scan_state, &scan_pool, &bucket,
-                                        &load_only_for_monitor, &mut monitored_bots,
-                                    ).await {
-                                        warn!("Periodic .gbai scan failed for {}: {}", bucket, e);
-                                    }
                                 }
                             }
                         }
-                        Err(e) => warn!("Periodic bucket re-scan failed: {}", e),
+                        Err(e) => {
+                            let now = std::time::Instant::now();
+                            let should_log = last_list_error.map_or(true, |t| now.duration_since(t).as_secs() > 120);
+                            if should_log {
+                                warn!("Periodic bucket re-scan failed: {}", e);
+                                last_list_error = Some(now);
+                            }
+                        }
                     }
                 }
             }
@@ -360,93 +299,6 @@ fn ensure_org_branches_schema(pool: &botcore::shared::utils::DbPool) {
 
         trace!("ensure_org_branches_schema: branches table and bot columns ensured");
     }
-}
-
-/// Process a flat .gbai bucket (legacy mode) during initial discovery
-async fn process_flat_bucket(
-    state: &Arc<AppState>,
-    pool: &botcore::shared::utils::DbPool,
-    bucket_name: &str,
-    load_only: &[String],
-) {
-    let bot_name = bucket_name.strip_suffix(".gbai").unwrap_or(bucket_name).to_string();
-
-    if !load_only.is_empty() && !load_only.contains(&bot_name) {
-        trace!("Skipping bot '{}' (not in LOAD_ONLY)", bot_name);
-        return;
-    }
-
-    let exists = bot_exists_in_db_async(pool, &bot_name).await;
-    if exists {
-        return;
-    }
-
-    info!("Auto-creating bot '{}' from S3 bucket '{}'", bot_name, bucket_name);
-    let create_state = state.clone();
-    let bn = bot_name.clone();
-    let pool_create = pool.clone();
-    let ld = load_only.to_vec();
-    let created = match tokio::task::spawn_blocking(move || {
-        create_bot_from_drive(&create_state, &pool_create, &bn, None, None, &ld)
-    })
-    .await
-    {
-        Ok(Ok(_)) => {
-            info!("Bot '{}' created successfully", bot_name);
-            true
-        }
-        Ok(Err(e)) => {
-            error!("Failed to create bot '{}': {}", bot_name, e);
-            false
-        }
-        Err(e) => {
-            error!("Task failed to create bot '{}': {}", bot_name, e);
-            false
-        }
-    };
-
-    if created {
-        // Sync tables.bas immediately so table schema exists before any script runs
-        if let Err(e) = sync_tables_for_bot(state, pool, &bot_name).await {
-            warn!("Failed to sync tables for new bot '{}': {}", bot_name, e);
-        }
-    }
-}
-
-/// Sync tables.bas for a bot immediately after creation.
-/// Downloads tables.bas from S3 and processes table definitions so schema exists before scripts run.
-async fn sync_tables_for_bot(
-    state: &Arc<AppState>,
-    pool: &botcore::shared::utils::DbPool,
-    bot_name: &str,
-) -> Result<(), String> {
-    let bot_id = get_bot_id(pool, bot_name).await?;
-
-    let bucket_name = format!("{}.gbai", bot_name);
-    let tables_key = format!("{}.gbdialog/tables.bas", bot_name);
-
-    let content = match &state.drive {
-        Some(s3) => {
-            match s3.get_object_direct(&bucket_name, &tables_key).await {
-                Ok(data) => String::from_utf8(data).map_err(|e| format!("UTF-8 error: {e}"))?,
-                Err(_) => {
-                    trace!("tables.bas not found in S3 for bot {}, skipping", bot_name);
-                    return Ok(());
-                }
-            }
-        }
-        None => {
-            trace!("S3 client not available, skipping table sync for bot {}", bot_name);
-            return Ok(());
-        }
-    };
-
-    let runtime: Arc<dyn botbasic_types::BasicRuntime> = Arc::new(AppStateBasicRuntime(state.clone()));
-    match process_table_definitions(runtime, bot_id, &content) {
-        Ok(tables) => info!("Synced {} table definitions for bot '{}'", tables.len(), bot_name),
-        Err(e) => warn!("Failed to sync table definitions for bot '{}': {}", bot_name, e),
-    }
-    Ok(())
 }
 
 /// Sync tables.bas for a bot within a .gborg bucket structure.
@@ -641,61 +493,6 @@ async fn discover_and_create_bots(
     }
 }
 
-/// Periodic re-scan for a flat .gbai bucket
-async fn scan_flat_bucket(
-    state: &Arc<AppState>,
-    pool: &botcore::shared::utils::DbPool,
-    bucket_name: &str,
-    load_only: &[String],
-    monitored_bots: &mut std::collections::HashSet<String>,
-) -> Result<(), String> {
-    let bot_name = bucket_name.strip_suffix(".gbai").unwrap_or(bucket_name).to_string();
-
-    if monitored_bots.contains(&bot_name) {
-        return Ok(());
-    }
-
-    if !load_only.is_empty() && !load_only.contains(&bot_name) {
-        return Ok(());
-    }
-
-    let exists = bot_exists_in_db_async(pool, &bot_name).await;
-    if exists {
-        monitored_bots.insert(bot_name);
-        return Ok(());
-    }
-
-    info!("Periodic scan: auto-creating bot '{}' from '{}'", bot_name, bucket_name);
-    let create_state = state.clone();
-    let bn = bot_name.clone();
-    let pool_create = pool.clone();
-    let ld = load_only.to_vec();
-    let created = match tokio::task::spawn_blocking(move || {
-        create_bot_from_drive(&create_state, &pool_create, &bn, None, None, &ld)
-    }).await {
-        Ok(Ok(_)) => true,
-        Ok(Err(e)) => {
-            error!("Periodic scan: failed to create bot '{}': {}", bot_name, e);
-            false
-        }
-        Err(e) => {
-            error!("Periodic scan: task failed for bot '{}': {}", bot_name, e);
-            false
-        }
-    };
-
-    if created {
-        // Sync tables before starting monitor so schema exists before scripts run
-        if let Err(e) = sync_tables_for_bot(state, pool, &bot_name).await {
-            warn!("Periodic scan: failed to sync tables for '{}': {}", bot_name, e);
-        }
-        monitored_bots.insert(bot_name.clone());
-        start_bot_monitor(state, pool, &bot_name).await;
-    }
-
-    Ok(())
-}
-
 /// Periodic re-scan for a .gborg bucket
 async fn scan_org_bucket(
     state: &Arc<AppState>,
@@ -749,41 +546,6 @@ async fn scan_org_bucket(
     }
 
     Ok(())
-}
-
-/// Start a DriveMonitor for a bot created in a flat bucket
-async fn start_bot_monitor(state: &Arc<AppState>, pool: &botcore::shared::utils::DbPool, bot_name: &str) {
-    let mon_pool = pool.clone();
-    let mn = bot_name.to_string();
-    let bot_id = tokio::task::spawn_blocking(move || {
-        use diesel::prelude::*;
-        use botcore::shared::models::schema::bots;
-        let mut conn = match mon_pool.get() {
-            Ok(c) => c,
-            Err(_) => return None,
-        };
-        bots::dsl::bots
-            .filter(bots::dsl::name.eq(&mn))
-            .select(bots::dsl::id)
-            .first::<Uuid>(&mut conn)
-            .ok()
-    }).await.ok().flatten();
-
-    if let Some(bot_id) = bot_id {
-        let bucket_name = format!("{}.gbai", bot_name);
-        let mon_state = state.clone();
-        let bn_for_spawn = bot_name.to_string();
-        tokio::spawn(async move {
-            use crate::drive::drive_monitor::DriveMonitor;
-            use botcore::shared::memory_monitor::register_thread;
-            register_thread(&format!("drive-monitor-{}", bn_for_spawn), "drive");
-            let monitor = DriveMonitor::new(mon_state, bucket_name, bot_id);
-            info!("Starting DriveMonitor for newly discovered bot: {}", bn_for_spawn);
-            if let Err(e) = monitor.start_monitoring().await {
-                error!("DriveMonitor failed for new bot {}: {}", bn_for_spawn, e);
-            }
-        });
-    }
 }
 
 /// Start a DriveMonitor for a bot within a .gborg bucket
@@ -871,26 +633,6 @@ async fn get_bot_names_in_branch(
             .load::<String>(&mut conn)
             .unwrap_or_default()
     }).await.unwrap_or_default()
-}
-
-async fn bot_exists_in_db_async(pool: &botcore::shared::utils::DbPool, bot_name: &str) -> bool {
-    let pool_clone = pool.clone();
-    let bn = bot_name.to_string();
-    tokio::task::spawn_blocking(move || {
-        use botcore::shared::models::schema::bots;
-        use diesel::prelude::*;
-        let mut conn = match pool_clone.get() {
-            Ok(c) => c,
-            Err(_) => return false,
-        };
-        bots::dsl::bots
-            .filter(bots::dsl::name.eq(&bn))
-            .select(bots::dsl::id)
-            .first::<Uuid>(&mut conn)
-            .is_ok()
-    })
-    .await
-    .unwrap_or(false)
 }
 
 fn ensure_tenant_and_org(pool: &botcore::shared::utils::DbPool, tenant_slug: &str) -> Result<(Uuid, Uuid), String> {

@@ -551,10 +551,8 @@ pub fn load_master_encryption_key() -> Vec<u8> {
             return hasher.finalize().to_vec();
         }
     }
-    warn!("MESSAGE_ENCRYPTION_KEY not configured. Using dev fallback key (NOT SECURE).");
-    let mut hasher = Sha256::new();
-    hasher.update(b"generalbots_dev_fallback_key_2026");
-    hasher.finalize().to_vec()
+    warn!("MESSAGE_ENCRYPTION_KEY not configured. Using ephemeral random key (will change on restart).");
+    rand::random::<[u8; 32]>().to_vec()
 }
 
 #[cfg(test)]

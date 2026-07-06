@@ -58,6 +58,12 @@ pub fn safe_curl(args: &[&str]) -> Option<std::process::Output> {
 
 /// Check Vault health status
 pub fn vault_health_check() -> bool {
+    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+    if vault_addr.is_empty() {
+        info!("VAULT_ADDR not set, skipping Vault health check");
+        return false;
+    }
+    let health_url = format!("{}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200", vault_addr);
     let stack_path = crate::shared::utils::get_stack_path();
     let client_cert = std::path::Path::new(&format!(
         "{}/conf/system/certificates/botserver/client.crt",
@@ -90,7 +96,7 @@ pub fn vault_health_check() -> bool {
                 "{}/conf/system/certificates/botserver/client.key",
                 stack_path
             ),
-            "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200",
+            &health_url,
         ])
     } else {
         info!("Using plain TLS for Vault health check (no client certs yet)");
@@ -101,7 +107,7 @@ pub fn vault_health_check() -> bool {
             "2",
             "-m",
             "5",
-            "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200",
+            &health_url,
         ])
     };
 

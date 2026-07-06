@@ -114,7 +114,11 @@ impl VertexTokenManager {
             .map_err(|e| format!("Failed to encode JWT: {}", e))?;
 
         // Exchange JWT for access token
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(std::time::Duration::from_secs(15))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
         let response = client
             .post(token_uri)
             .form(&[
@@ -197,7 +201,14 @@ impl VertexClient {
         });
 
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(180))
+                .connect_timeout(std::time::Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| {
+                    log::warn!("vertex: failed to build reqwest client, using default");
+                    reqwest::Client::new()
+                }),
             base_url,
             endpoint_path: endpoint,
             token_manager: Arc::new(tokio::sync::RwLock::new(None)),

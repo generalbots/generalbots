@@ -1,8 +1,33 @@
-DO $$
-BEGIN
-
 -- 9.15-org-branches: Add branches table for Tenant > Branch > Bot hierarchy
 -- Aligns with ISO 27001 tenant isolation (Forest/Domain model)
+
+-- Ensure UNIQUE constraints exist on tables that may have been created earlier
+-- without them (e.g., by 6.5.0-consolidated / 9.15.1-consolidated). This is needed
+-- because ON CONFLICT below requires a matching unique constraint.
+DO $$
+BEGIN
+    -- Ensure UNIQUE(slug) on tenants
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'tenants') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'tenants' AND constraint_type = 'UNIQUE' AND constraint_name = 'tenants_slug_key') THEN
+            ALTER TABLE tenants ADD CONSTRAINT tenants_slug_key UNIQUE (slug);
+        END IF;
+    END IF;
+    -- Ensure UNIQUE(slug) on organizations
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'organizations') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'organizations' AND constraint_type = 'UNIQUE' AND constraint_name = 'organizations_slug_key') THEN
+            ALTER TABLE organizations ADD CONSTRAINT organizations_slug_key UNIQUE (slug);
+        END IF;
+    END IF;
+    -- Ensure UNIQUE(org_id, slug) on branches (will be created below, but check anyway)
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'branches') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'branches' AND constraint_type = 'UNIQUE' AND constraint_name = 'branches_org_id_slug_key') THEN
+            ALTER TABLE branches ADD CONSTRAINT branches_org_id_slug_key UNIQUE (org_id, slug);
+        END IF;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
 
 -- Ensure tenants table and organizations.tenant_id exist (pre-requisites)
 CREATE TABLE IF NOT EXISTS tenants (

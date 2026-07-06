@@ -32,7 +32,7 @@ pub fn seed_vault_defaults(
             vec![
                 ("accesskey".to_string(), drive_user),
                 ("secret".to_string(), drive_pass),
-                ("host".to_string(), "localhost".to_string()),
+                ("host".to_string(), "127.0.0.1".to_string()),
                 ("port".to_string(), "9100".to_string()),
                 ("url".to_string(), "".to_string()),
             ],
@@ -181,8 +181,10 @@ pub fn recover_existing_vault(base_path: &std::path::Path) -> Result<()> {
 
     info!("Recovering existing Vault installation...");
 
-    let vault_addr =
-        std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+    let vault_addr = std::env::var("VAULT_ADDR")
+        .ok()
+        .filter(|a| !a.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("VAULT_ADDR must be set in .env or environment"))?;
     let ca_cert = base_path.join("conf/system/certificates/ca/ca.crt");
     let vault_bin = base_path.join("bin/vault/vault");
 
@@ -327,8 +329,7 @@ pub fn ensure_env_file_exists(base_path: &std::path::Path) -> Result<()> {
         .context("No root_token in init.json")?;
 
     let ca_cert = base_path.join("conf/system/certificates/ca/ca.crt");
-    let vault_addr =
-        std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
 
     let env_content = format!(
         r#"

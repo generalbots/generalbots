@@ -171,7 +171,7 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     let stripe_secret = match std::env::var("STRIPE_SECRET_KEY") {
         Ok(key) => key,
         Err(_) => {
-            tracing::warn!("STRIPE_SECRET_KEY not set — Stripe operations will fail at runtime");
+            tracing::info!("STRIPE_SECRET_KEY not set — Stripe operations will fail at runtime");
             String::new()
         }
     };
@@ -190,14 +190,14 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                 .output()
                 .ok();
         } else {
-            tracing::warn!("Drive credentials from Vault are empty, mc alias not configured");
+            tracing::info!("Drive credentials from Vault are empty, mc alias not configured");
         }
     }
 
     let base_url = match std::env::var("SAAS_BASE_URL") {
         Ok(url) => url,
         Err(_) => {
-            tracing::warn!("SAAS_BASE_URL not set — redirect URLs may be broken");
+            tracing::info!("SAAS_BASE_URL not set — redirect URLs may be broken");
             String::new()
         }
     };
@@ -205,7 +205,7 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
         Ok(secret) => secret,
         Err(_) => {
             let generated = uuid::Uuid::new_v4().to_string();
-            tracing::warn!(
+            tracing::info!(
                 "SAAS_JWT_SECRET not set — using auto-generated fallback \
                  (all sessions invalidated on next restart)"
             );

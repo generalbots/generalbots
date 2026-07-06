@@ -30,12 +30,11 @@ pub fn fetch_vault_credentials_impl() -> HashMap<String, String> {
                 .join("botserver-stack")
         });
 
-    let vault_addr =
-        std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
     let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
 
-    if vault_token.is_empty() {
-        info!("VAULT_TOKEN not set yet, using bootstrap defaults");
+    if vault_token.is_empty() || vault_addr.is_empty() {
+        info!("VAULT_ADDR or VAULT_TOKEN not set yet, using bootstrap defaults");
         return credentials;
     }
 
@@ -139,8 +138,10 @@ pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
     info!("Waiting for Vault to start...");
     std::thread::sleep(std::time::Duration::from_secs(3));
 
-    let vault_addr =
-        std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+    let vault_addr = std::env::var("VAULT_ADDR")
+        .ok()
+        .filter(|a| !a.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("VAULT_ADDR must be set in .env or environment"))?;
     let ca_cert = base_path.join("conf/system/certificates/ca/ca.crt");
 
     if vault_data_exists {
@@ -205,7 +206,7 @@ pub fn initialize_vault_local(base_path: &std::path::Path) -> Result<()> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if stderr.contains("already initialized") {
-            warn!("Vault already initialized, recovering existing data");
+            info!("Vault already initialized, recovering existing data");
             return installer_vault2::recover_existing_vault(base_path);
         }
         return Err(anyhow::anyhow!("Failed to initialize Vault: {}", stderr));

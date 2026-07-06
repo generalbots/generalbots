@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use log::info;
+use log::{error, info};
 use crate::generate_random_string;
 use botlib::security::get_stack_path;
 
@@ -105,7 +105,7 @@ INSTALL_LOCK = true
 
             match secrets_manager.put_secret(botcoresecrets::SecretPaths::ALM, secrets).await {
                 Ok(_) => info!("ALM credentials and runner token stored in Vault"),
-                Err(e) => info!("Failed to store ALM credentials in Vault: {}", e),
+                Err(e) => error!("Failed to store ALM credentials in Vault: {}", e),
             }
         }
     }

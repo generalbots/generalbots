@@ -8,7 +8,6 @@
 ///
 /// SEM usar /opt/gbo/data/ como intermediário!
 use crate::basic::compiler::{BasicCompiler, CompilerCallbacks};
-use crate::core::config::DriveConfig;
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::get_work_path;
 use crate::drive::drive_files::drive_files as drive_files_table;
@@ -33,9 +32,9 @@ pub struct DriveCompiler {
 
 /// Helper function to download file from S3
 /// Separated to avoid Send trait issues with tokio::spawn
-async fn download_from_s3(file_path: &str) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
-    let config = DriveConfig::default();
-    let s3_repo = crate::drive::s3_repository::S3Repository::new(&config.endpoint, &config.access_key, &config.secret_key, &config.bucket)
+async fn download_from_s3(file_path: &str, state: &Arc<AppState>) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
+    let app_cfg = state.config.as_ref().ok_or_else(|| "AppState not initialized".to_string())?;
+    let s3_repo = crate::drive::s3_repository::S3Repository::new(&app_cfg.drive.endpoint, &app_cfg.drive.access_key, &app_cfg.drive.secret_key, &app_cfg.drive.bucket)
         .map_err(|e| format!("Failed to create S3 operator: {}", e))?;
 
     // file_path format: {bot}.gbai/{bot}.gbdialog/{tool}.bas
@@ -73,15 +72,31 @@ impl DriveCompiler {
 
         let compiler = self.clone();
 
-        // Loop que verifica drive_files a cada 1s
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(CHECK_INTERVAL_SECS));
+            let mut consecutive_db_errors: u32 = 0;
 
             while compiler.is_processing.load(Ordering::SeqCst) {
-                interval.tick().await;
+                tokio::time::sleep(Duration::from_secs(CHECK_INTERVAL_SECS)).await;
 
-                if let Err(e) = compiler.check_and_compile().await {
-                    error!("DriveCompiler error: {}", e);
+                match compiler.check_and_compile().await {
+                    Ok(_) => {
+                        consecutive_db_errors = 0;
+                    }
+                    Err(e) => {
+                        let err_msg = e.to_string();
+                        if err_msg.contains("timed out") || err_msg.contains("connection refused") {
+                            consecutive_db_errors = consecutive_db_errors.saturating_add(1);
+                            let backoff = CHECK_INTERVAL_SECS * (1u64 << consecutive_db_errors.min(4));
+                            let backoff = backoff.min(300);
+                            warn!(
+                                "DriveCompiler: DB unavailable ({} consecutive), backing off {}s: {}",
+                                consecutive_db_errors, backoff, err_msg
+                            );
+                            tokio::time::sleep(Duration::from_secs(backoff)).await;
+                        } else {
+                            error!("DriveCompiler error: {}", err_msg);
+                        }
+                    }
                 }
             }
         });
@@ -184,7 +199,7 @@ impl DriveCompiler {
             info!("File {} not found in work dir, attempting to download from S3", work_bas_path.display());
             
             // Download in separate task to avoid Send issues
-            let download_result = download_from_s3(fp).await;
+            let download_result = download_from_s3(fp, &self.state).await;
             
             match download_result {
                 Ok(content) => {

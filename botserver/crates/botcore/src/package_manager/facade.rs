@@ -509,7 +509,7 @@ impl PackageManager {
             let stderr = String::from_utf8_lossy(&output.stderr);
 
             if stderr.contains("already initialized") {
-                warn!("Vault already initialized, skipping file generation");
+                info!("Vault already initialized, skipping file generation");
                 return Ok(());
             }
             return Err(anyhow::anyhow!("Failed to initialize Vault: {}", stderr));

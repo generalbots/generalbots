@@ -11,17 +11,17 @@ impl SecretsManager {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
                 log::info!("Attempting to read drive config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
+                let auth = format!("X-Vault-Token: {}", &vault_token);
 
-                let result = std::process::Command::new("curl")
-                    .args([
-                        "-sf",
-                        "--cacert",
-                        &ca_cert,
-                        "-H",
-                        &format!("X-Vault-Token: {}", &vault_token),
-                        &url,
-                    ])
-                    .output();
+                let mut args = vec!["-sf".to_string(), "-H".to_string(), auth, url];
+                if !ca_cert.is_empty() && std::path::Path::new(&ca_cert).exists() {
+                    args.insert(1, "--cacert".to_string());
+                    args.insert(2, ca_cert);
+                } else {
+                    args.insert(1, "-k".to_string());
+                }
+
+                let result = std::process::Command::new("curl").args(&args).output();
 
                 if let Ok(output) = result {
                     if output.status.success() {
@@ -58,17 +58,17 @@ impl SecretsManager {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
                 log::info!("Attempting to read cache config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/cache", vault_addr);
+                let auth = format!("X-Vault-Token: {}", &vault_token);
 
-                let result = std::process::Command::new("curl")
-                    .args([
-                        "-sf",
-                        "--cacert",
-                        &ca_cert,
-                        "-H",
-                        &format!("X-Vault-Token: {}", &vault_token),
-                        &url,
-                    ])
-                    .output();
+                let mut args = vec!["-sf".to_string(), "-H".to_string(), auth, url];
+                if !ca_cert.is_empty() && std::path::Path::new(&ca_cert).exists() {
+                    args.insert(1, "--cacert".to_string());
+                    args.insert(2, ca_cert);
+                } else {
+                    args.insert(1, "-k".to_string());
+                }
+
+                let result = std::process::Command::new("curl").args(&args).output();
 
                 if let Ok(output) = result {
                     if output.status.success() {
@@ -102,17 +102,17 @@ impl SecretsManager {
                 let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
                 log::info!("Attempting to read qdrant config from Vault: {}", vault_addr);
                 let url = format!("{}/v1/secret/data/gbo/vectordb", vault_addr);
+                let auth = format!("X-Vault-Token: {}", &vault_token);
 
-                let result = std::process::Command::new("curl")
-                    .args([
-                        "-sf",
-                        "--cacert",
-                        &ca_cert,
-                        "-H",
-                        &format!("X-Vault-Token: {}", &vault_token),
-                        &url,
-                    ])
-                    .output();
+                let mut args = vec!["-sf".to_string(), "-H".to_string(), auth, url];
+                if !ca_cert.is_empty() && std::path::Path::new(&ca_cert).exists() {
+                    args.insert(1, "--cacert".to_string());
+                    args.insert(2, ca_cert);
+                } else {
+                    args.insert(1, "-k".to_string());
+                }
+
+                let result = std::process::Command::new("curl").args(&args).output();
 
                 if let Ok(output) = result {
                     if output.status.success() {

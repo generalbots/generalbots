@@ -26,7 +26,6 @@ pub mod dsl {
 pub use botcore::shared::schema::drive::DriveFile;
 
 pub struct FileUpsertParams {
-    pub bot_id: uuid::Uuid,
     pub file_path: String,
     pub file_type: String,
     pub etag: Option<String>,
@@ -65,28 +64,46 @@ impl DriveFileRepository {
 
     pub fn upsert_file(
         &self,
-        bot_id: uuid::Uuid,
         file_path: &str,
         file_type: &str,
         etag: Option<String>,
         last_modified: Option<DateTime<Utc>>,
+        branch_id: Option<uuid::Uuid>,
     ) -> Result<(), String> {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
-        diesel::sql_query(
-            "INSERT INTO drive_files (bot_id, file_path, file_type, etag, last_modified, indexed, fail_count, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, false, 0, NOW(), NOW()) \
-             ON CONFLICT (bot_id, file_path) DO UPDATE SET \
-             file_type = EXCLUDED.file_type, etag = EXCLUDED.etag, \
-             last_modified = EXCLUDED.last_modified, updated_at = NOW()"
+        let branch_uuid = branch_id.unwrap_or_else(uuid::Uuid::nil);
+        let name = file_path.rsplit('/').next().unwrap_or(file_path).to_string();
+
+        // First try UPDATE (unique key is branch_id + path)
+        let updated = diesel::sql_query(
+            "UPDATE drive_files SET name = $3, mime_type = $4, etag = $5, \
+             last_modified = $6, updated_at = NOW() \
+             WHERE branch_id = $1 AND path = $2"
         )
-        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Uuid, _>(&branch_uuid)
         .bind::<diesel::sql_types::Text, _>(file_path)
+        .bind::<diesel::sql_types::Text, _>(&name)
         .bind::<diesel::sql_types::Text, _>(file_type)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(etag)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&etag)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(last_modified)
         .execute(&mut conn)
         .map_err(|e| e.to_string())?;
+
+        if updated == 0 {
+            diesel::sql_query(
+                "INSERT INTO drive_files (branch_id, name, path, file_path, mime_type, file_type, etag, last_modified, indexed, fail_count, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $3, $4, $4, $5, $6, false, 0, NOW(), NOW())"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(&branch_uuid)
+            .bind::<diesel::sql_types::Text, _>(&name)
+            .bind::<diesel::sql_types::Text, _>(file_path)
+            .bind::<diesel::sql_types::Text, _>(file_type)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&etag)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(last_modified)
+            .execute(&mut conn)
+            .map_err(|e| e.to_string())?;
+        }
 
         Ok(())
     }
@@ -192,19 +209,21 @@ impl DriveFileRepository {
     pub fn upsert_file_full(
         &self,
         params: FileUpsertParams,
+        branch_id: Option<uuid::Uuid>,
     ) -> Result<(), String> {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
-        diesel::sql_query(
-            "INSERT INTO drive_files (bot_id, file_path, file_type, etag, last_modified, indexed, fail_count, last_failed_at, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) \
-             ON CONFLICT (bot_id, file_path) DO UPDATE SET \
-             etag = EXCLUDED.etag, last_modified = EXCLUDED.last_modified, \
-             indexed = EXCLUDED.indexed, fail_count = EXCLUDED.fail_count, \
-             last_failed_at = EXCLUDED.last_failed_at, updated_at = NOW()"
+        let branch_uuid = branch_id.unwrap_or_else(uuid::Uuid::nil);
+        let name = params.file_path.rsplit('/').next().unwrap_or(&params.file_path).to_string();
+
+        let updated = diesel::sql_query(
+            "UPDATE drive_files SET name = $3, mime_type = $4, etag = $5, last_modified = $6, \
+             indexed = $7, fail_count = $8, last_failed_at = $9, updated_at = NOW() \
+             WHERE branch_id = $1 AND path = $2"
         )
-        .bind::<diesel::sql_types::Uuid, _>(params.bot_id)
+        .bind::<diesel::sql_types::Uuid, _>(&branch_uuid)
         .bind::<diesel::sql_types::Text, _>(&params.file_path)
+        .bind::<diesel::sql_types::Text, _>(&name)
         .bind::<diesel::sql_types::Text, _>(&params.file_type)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&params.etag)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(params.last_modified)
@@ -213,6 +232,24 @@ impl DriveFileRepository {
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(params.last_failed_at)
         .execute(&mut conn)
         .map_err(|e| e.to_string())?;
+
+        if updated == 0 {
+            diesel::sql_query(
+                "INSERT INTO drive_files (branch_id, name, path, file_path, mime_type, file_type, etag, last_modified, indexed, fail_count, last_failed_at, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $3, $4, $4, $5, $6, $7, $8, $9, NOW(), NOW())"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(&branch_uuid)
+            .bind::<diesel::sql_types::Text, _>(&name)
+            .bind::<diesel::sql_types::Text, _>(&params.file_path)
+            .bind::<diesel::sql_types::Text, _>(&params.file_type)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&params.etag)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(params.last_modified)
+            .bind::<diesel::sql_types::Bool, _>(params.indexed)
+            .bind::<diesel::sql_types::Int4, _>(params.fail_count)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(params.last_failed_at)
+            .execute(&mut conn)
+            .map_err(|e| e.to_string())?;
+        }
 
         Ok(())
     }

@@ -1,6 +1,5 @@
 use botcore::shared::state::AppState;
 use crate::drive_files::DriveFileRepository;
-use crate::drive_monitor::monitor::CHECK_INTERVAL_SECS;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::KnowledgeBaseManager;
 use chrono::Utc;
@@ -28,17 +27,20 @@ impl DriveMonitor {
         log::trace!("DriveMonitor monitoring started for bucket: {}", self.bucket_name);
 
         loop {
-            // Reentrancy protection: skip if previous scan is still running
             if self.is_processing.load(Ordering::Relaxed) {
                 log::trace!("DriveMonitor still processing, skipping iteration");
             } else {
                 self.is_processing.store(true, Ordering::Relaxed);
                 if let Err(e) = self.scan_bucket().await {
                     log::error!("Failed to scan bucket {}: {}", self.bucket_name, e);
+                    self.consecutive_failures.fetch_add(1, Ordering::Relaxed);
+                } else {
+                    self.consecutive_failures.store(0, Ordering::Relaxed);
                 }
                 self.is_processing.store(false, Ordering::Relaxed);
             }
-            tokio::time::sleep(std::time::Duration::from_secs(CHECK_INTERVAL_SECS)).await;
+            let backoff = self.calculate_backoff();
+            tokio::time::sleep(backoff).await;
         }
     }
 
@@ -147,12 +149,13 @@ impl DriveMonitor {
             let etag_changed = existing.as_ref().is_none_or(|prev| prev.etag.as_deref() != etag.as_deref());
 
         if etag_changed || existing.is_none() || needs_reindex {
+            let branch_id = self.resolve_branch_id();
             match self.file_repo.upsert_file(
-                self.bot_id,
                 &full_key,
                 file_type,
                 etag.clone(),
                 None,
+                branch_id,
             ) {
                 Ok(_) => log::info!("DriveMonitor: Added/updated drive_files for: {} ({})", full_key, file_type),
                 Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),
@@ -742,11 +745,6 @@ pub struct DriveMonitor {
 }
 
 impl DriveMonitor {
-    pub fn new(state: Arc<AppState>, bucket_name: String, bot_id: uuid::Uuid) -> Self {
-        let bot_name = bucket_name.strip_suffix(".gbai").unwrap_or(&bucket_name).to_string();
-        Self::new_with_params(state, bucket_name, bot_id, bot_name.clone(), bot_name, None, "default".into(), "default".into())
-    }
-
     pub fn new_with_params(
         state: Arc<AppState>,
         bucket_name: String,

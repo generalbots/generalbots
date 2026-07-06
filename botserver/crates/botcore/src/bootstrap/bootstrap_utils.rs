@@ -138,9 +138,10 @@ fn sh_exec(command: &str) -> Result<std::process::Output, anyhow::Error> {
 
 /// Check if vault is healthy
 pub fn vault_health_check() -> bool {
-    let vault_addr =
-        std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
-
+    let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
+    if vault_addr.is_empty() {
+        return false;
+    }
     let health_url = format!("{}/v1/sys/health", vault_addr);
 
     match SafeCommand::new("curl")
