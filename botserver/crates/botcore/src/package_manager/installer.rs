@@ -1049,8 +1049,8 @@ listener "tcp" {
   tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
-api_addr = "https://localhost:8200"
-cluster_addr = "https://localhost:8201"
+api_addr = "https://127.0.0.1:8200"
+cluster_addr = "https://127.0.0.1:8201"
 ui = true
 disable_mlock = true
 EOF"#.to_string(),
@@ -1093,8 +1093,8 @@ listener "tcp" {
   tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
-api_addr = "https://localhost:8200"
-cluster_addr = "https://localhost:8201"
+api_addr = "https://127.0.0.1:8200"
+cluster_addr = "https://127.0.0.1:8201"
 ui = true
 disable_mlock = true
 EOF"#.to_string(),
@@ -1106,7 +1106,7 @@ EOF"#.to_string(),
                     let mut env = HashMap::new();
                     env.insert(
                         "VAULT_ADDR".to_string(),
-                        "https://localhost:8200".to_string(),
+                        "https://127.0.0.1:8200".to_string(),
                     );
                     env.insert(
                         "VAULT_CACERT".to_string(),
@@ -1117,7 +1117,7 @@ EOF"#.to_string(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                     .to_string(),
-                check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; fi"
+                check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; fi"
                     .to_string(),
             exec_cmd_windows: None,
             check_cmd_windows: None,
@@ -1320,6 +1320,11 @@ EOF"#.to_string(),
                     trace!("Component {} spawned successfully", component.name);
 
                     if component.name == "vault" && self.mode == InstallMode::Local {
+                        if let Some(addr) = evaluated_envs.get("VAULT_ADDR") {
+                            if !addr.is_empty() {
+                                std::env::set_var("VAULT_ADDR", addr);
+                            }
+                        }
                         if let Err(e) = self.initialize_vault_local() {
                             warn!("Failed to initialize Vault: {}", e);
                         }
@@ -1363,12 +1368,11 @@ EOF"#.to_string(),
                     .join("botserver-stack")
             });
 
-        let vault_addr =
-            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
         let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
 
-        if vault_token.is_empty() {
-            info!("VAULT_TOKEN not set yet, using bootstrap defaults");
+        if vault_token.is_empty() || vault_addr.is_empty() {
+            info!("VAULT_ADDR or VAULT_TOKEN not set yet, using bootstrap defaults");
             return credentials;
         }
 
@@ -1485,8 +1489,10 @@ EOF"#.to_string(),
         info!("Waiting for Vault to start...");
         std::thread::sleep(std::time::Duration::from_secs(3));
 
-        let vault_addr =
-            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let vault_addr = std::env::var("VAULT_ADDR")
+            .ok()
+            .filter(|a| !a.is_empty())
+            .ok_or_else(|| anyhow::anyhow!("VAULT_ADDR must be set in .env or environment"))?;
         let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
 
         // Only attempt recovery if data directory exists
@@ -1526,12 +1532,47 @@ EOF"#.to_string(),
             }
         }
 
-        // Initialize Vault
+        // Initialize Vault: wait for it to be ready, then run init
         let init_cmd = format!(
             "{} operator init -tls-skip-verify -key-shares=5 -key-threshold=3 -format=json -address={}",
             vault_bin.display(),
             vault_addr
         );
+
+        // Wait for Vault to be ready (up to 30s, polling every 2s)
+        info!("Waiting for Vault to be ready on {}...", vault_addr);
+        let vault_ready = 'wait: {
+            for i in 1..=15 {
+                // Use curl without -f (health returns 503 when sealed, which is fine)
+                let check_cmd = format!(
+                    "curl -sk --connect-timeout 2 --max-time 4 -o /dev/null -w '%{{http_code}}' {}/v1/sys/health",
+                    vault_addr
+                );
+                if let Some(output) = safe_sh_command(&check_cmd) {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    if output.status.success() || stdout.contains("503") || stdout.contains("200") {
+                        break 'wait true;
+                    }
+                }
+                info!("Waiting for Vault... (attempt {}/15)", i);
+                std::thread::sleep(std::time::Duration::from_secs(2));
+            }
+            false
+        };
+
+        if !vault_ready {
+            return Err(anyhow::anyhow!("Vault did not become ready after 30s"));
+        }
+
+        // Check if already initialized
+        let check_json = format!("curl -sk --connect-timeout 2 --max-time 4 {}/v1/sys/health", vault_addr);
+        if let Some(output) = safe_sh_command(&check_json) {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains("\"initialized\":true") {
+                info!("Vault already initialized, recovering existing data");
+                return self.recover_existing_vault();
+            }
+        }
 
         info!("Running vault operator init...");
         let output = safe_sh_command(&init_cmd)
@@ -1540,7 +1581,7 @@ EOF"#.to_string(),
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             if stderr.contains("already initialized") {
-                warn!("Vault already initialized, recovering existing data");
+                info!("Vault already initialized, recovering existing data");
                 return self.recover_existing_vault();
             }
             return Err(anyhow::anyhow!("Failed to initialize Vault: {}", stderr));
@@ -1550,16 +1591,26 @@ EOF"#.to_string(),
         let init_json_val: serde_json::Value =
             serde_json::from_str(&init_output).context("Failed to parse Vault init output")?;
 
-        let unseal_keys = init_json_val["unseal_keys_b64"]
-            .as_array()
-            .context("No unseal keys in output")?;
         let root_token = init_json_val["root_token"]
             .as_str()
-            .context("No root token in output")?;
+            .ok_or_else(|| anyhow::anyhow!("No root_token in vault init output"))?
+            .to_string();
+        let unseal_keys: Vec<String> = init_json_val["unseal_keys_b64"]
+            .as_array()
+            .ok_or_else(|| anyhow::anyhow!("No unseal_keys_b64 in vault init output"))?
+            .iter()
+            .filter_map(|v| v.as_str().map(String::from))
+            .collect();
+
+        // Set VAULT_TOKEN early so it's available for all subsequent operations
+        std::env::set_var("VAULT_TOKEN", &root_token);
 
         // Save init.json
         let init_json = self.base_path.join("conf/vault/init.json");
-        std::fs::create_dir_all(init_json.parent().unwrap())?;
+        std::fs::create_dir_all(
+            init_json.parent()
+                .ok_or_else(|| anyhow::anyhow!("Invalid init.json path: no parent directory"))?
+        )?;
         std::fs::write(&init_json, serde_json::to_string_pretty(&init_json_val)?)?;
         info!("Created {}", init_json.display());
 
@@ -1596,12 +1647,8 @@ VAULT_CACERT={}
         let keys_content: String = unseal_keys
             .iter()
             .enumerate()
-            .map(|(i, key): (usize, &serde_json::Value)| {
-                format!(
-                    "VAULT_UNSEAL_KEY_{}={}\n",
-                    i + 1,
-                    key.as_str().unwrap_or("")
-                )
+            .map(|(i, key)| {
+                format!("VAULT_UNSEAL_KEY_{}={key}\n", i + 1)
             })
             .collect();
 
@@ -1649,7 +1696,7 @@ VAULT_CACERT={}
         }
 
         // Write default credentials to Vault for all components
-        self.seed_vault_defaults(&vault_addr, root_token, &ca_cert, &vault_bin)?;
+        self.seed_vault_defaults(&vault_addr, &root_token, &ca_cert, &vault_bin)?;
 
         Ok(())
     }
@@ -1728,8 +1775,9 @@ VAULT_CACERT={}
                 vec![
                     ("accesskey".to_string(), drive_user),
                     ("secret".to_string(), drive_pass),
-                    ("host".to_string(), "localhost".to_string()),
+                    ("host".to_string(), "127.0.0.1".to_string()),
                     ("port".to_string(), "9100".to_string()),
+                    ("bucket".to_string(), "default.gborg".to_string()),
                     ("url".to_string(), "".to_string()),
                 ],
             ),
@@ -1878,8 +1926,10 @@ VAULT_CACERT={}
 
         info!("Recovering existing Vault installation...");
 
-        let vault_addr =
-            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let vault_addr = std::env::var("VAULT_ADDR")
+            .ok()
+            .filter(|a| !a.is_empty())
+            .ok_or_else(|| anyhow::anyhow!("VAULT_ADDR must be set in .env or environment"))?;
         let ca_cert = self.base_path.join("conf/system/certificates/ca/ca.crt");
         let vault_bin = self.base_path.join("bin/vault/vault");
 
@@ -1960,6 +2010,7 @@ VAULT_CACERT={}
                 std::fs::write(&env_file, env_content.trim_start())?;
                 info!("Created .env with Vault config");
             }
+            std::env::set_var("VAULT_TOKEN", token);
         } else {
             warn!("No root token found - Vault may need manual recovery");
         }
@@ -2028,8 +2079,7 @@ VAULT_CACERT={}
 
         let conf_path = self.base_path.join("conf");
         let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
-        let vault_addr =
-            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+        let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
 
         let env_content = format!(
             r#"

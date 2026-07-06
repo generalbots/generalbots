@@ -29,20 +29,24 @@ pub async fn create_app_state(
     let voice_adapter = Arc::new(VoiceAdapter::new());
 
     #[cfg(feature = "drive")]
-    let drive = match S3Repository::new(&cfg.drive.endpoint, &cfg.drive.access_key, &cfg.drive.secret_key, &cfg.drive.bucket) {
-        Ok(client) => client,
-        Err(e) => {
-            return Err(std::io::Error::other(format!("Failed to initialize Drive: {}", e)));
+    let drive_initialized = if cfg.drive.is_valid() {
+        match S3Repository::new(&cfg.drive.endpoint, &cfg.drive.access_key, &cfg.drive.secret_key, &cfg.drive.bucket) {
+            Ok(client) => {
+                if let Err(e) = client.create_bucket_if_not_exists("default.gborg").await {
+                    warn!("Failed to create default.gborg bucket: {}", e);
+                }
+                super::ensure_vendor_files_in_minio(&client).await;
+                Some(std::sync::Arc::new(client) as std::sync::Arc<dyn botlib::traits::DriveRepository>)
+            }
+            Err(e) => {
+                warn!("Failed to initialize S3 client: {}", e);
+                None
+            }
         }
+    } else {
+        info!("Drive credentials not configured — skipping MinIO/Drive initialization");
+        None
     };
-
-    #[cfg(feature = "drive")]
-    if let Err(e) = drive.create_bucket_if_not_exists("default.gborg").await {
-        warn!("Failed to create default.gborg bucket: {}", e);
-    }
-
-    #[cfg(feature = "drive")]
-    super::ensure_vendor_files_in_minio(&drive).await;
 
     let session_manager_inner = crate::core::session::LocalSessionManager(botcoresession::SessionManager::new(
         pool.clone(),
@@ -210,14 +214,14 @@ pub async fn create_app_state(
 
     let app_state = Arc::new(AppState {
         #[cfg(feature = "drive")]
-        drive: Some(std::sync::Arc::new(drive) as std::sync::Arc<dyn botlib::traits::DriveRepository>),
+        drive: drive_initialized,
         #[cfg(not(feature = "drive"))]
         drive: None,
         config: Some(cfg.clone()),
         conn: pool.clone(),
         database_url: database_url.clone(),
         bot_database_manager: bot_database_manager.clone(),
-        bucket_name: "default.gbai".to_string(),
+        bucket_name: cfg.drive.bucket.clone(),
         #[cfg(feature = "cache")]
         cache: redis_client.clone(),
         session_manager,
