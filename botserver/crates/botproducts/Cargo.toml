@@ -1,6 +1,6 @@
 [package]
 name = "botproducts"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots products, services, inventory, and pricing management"
 license = "AGPL-3.0"

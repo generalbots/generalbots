@@ -463,8 +463,6 @@ pub fn derive_key_from_password(password: &str, salt: &[u8]) -> Result<Vec<u8>> 
         return Err(anyhow!("Salt too short"));
     }
 
-    let mut key = vec![0u8; KEY_SIZE];
-
     let mut hasher = Sha256::new();
     hasher.update(password.as_bytes());
     hasher.update(salt);
@@ -477,8 +475,7 @@ pub fn derive_key_from_password(password: &str, salt: &[u8]) -> Result<Vec<u8>> 
         result = hasher.finalize_reset();
     }
 
-    key.copy_from_slice(&result[..KEY_SIZE]);
-    Ok(key)
+    Ok(result[..KEY_SIZE].to_vec())
 }
 
 pub fn generate_salt() -> Vec<u8> {

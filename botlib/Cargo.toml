@@ -1,6 +1,6 @@
 [package]
 name = "botlib"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "Shared library for General Bots - common types, utilities, and HTTP client"
 license = "AGPL-3.0"

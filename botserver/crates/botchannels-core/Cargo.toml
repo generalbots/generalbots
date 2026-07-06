@@ -1,6 +1,6 @@
 [package]
 name = "botchannels-core"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots channels core: OAuth and media upload"
 license = "AGPL-3.0"

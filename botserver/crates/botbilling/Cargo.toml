@@ -1,6 +1,6 @@
 [package]
 name = "botbilling"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots billing, invoicing, quotas, and subscription management"
 license = "AGPL-3.0"

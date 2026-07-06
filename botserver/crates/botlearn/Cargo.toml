@@ -1,6 +1,6 @@
 [package]
 name = "botlearn"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "Learning Management System (LMS) module for General Bots"
 license = "AGPL-3.0"

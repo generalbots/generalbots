@@ -1,6 +1,6 @@
 [package]
 name = "boteval"
-version = "6.5.0"
+version.workspace = true
 edition = "2021"
 description = "LLM response evaluation framework (datasets, contracts, runner, CI gate)"
 license = "AGPL-3.0"

@@ -1,6 +1,6 @@
 [package]
 name = "botkb"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots face recognition and computer vision models"
 license = "AGPL-3.0"

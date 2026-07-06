@@ -1,6 +1,6 @@
 [package]
 name = "botbasic_core"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "BASIC language core keywords - arrays, math, validation, datetime, strings, control flow, hearing, procedures, errors"
 license = "AGPL-3.0"

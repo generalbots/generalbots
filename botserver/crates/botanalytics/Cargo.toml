@@ -1,6 +1,6 @@
 [package]
 name = "botanalytics"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots analytics, insights, OKR goals tracking, and reporting"
 license = "AGPL-3.0"

@@ -1,6 +1,6 @@
 [package]
 name = "botsecurity-core"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots security core: guards, sanitizers, validators"
 license = "AGPL-3.0"

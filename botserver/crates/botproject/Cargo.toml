@@ -1,6 +1,6 @@
 [package]
 name = "botproject"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots project management"
 license = "AGPL-3.0"

@@ -1,6 +1,6 @@
 [package]
 name = "botbasic_ai"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "BASIC AI/intelligence keywords - LLM, AI tools, MCP, sandbox, orchestration, web scraping"
 license = "AGPL-3.0"

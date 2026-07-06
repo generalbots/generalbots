@@ -1,6 +1,6 @@
 [package]
 name = "botbasic_comms"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "BASIC communication keywords - messaging, email, SMS, social, chat, webhooks, calendar"
 license = "AGPL-3.0"

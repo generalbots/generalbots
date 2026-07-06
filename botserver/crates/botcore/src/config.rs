@@ -35,7 +35,7 @@ fn is_local_file_path(val: &str) -> bool {
 }
 
 /// Application configuration
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
@@ -43,6 +43,26 @@ pub struct AppConfig {
     pub email: EmailConfig,
     pub site_path: String,
     pub data_dir: String,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            server: ServerConfig {
+                host: "0.0.0.0".to_string(),
+                port: 8080,
+                base_url: String::new(),
+            },
+            database: DatabaseConfig {
+                url: "postgresql://postgres:postgres@localhost/botserver".to_string(),
+                max_connections: 10,
+            },
+            drive: DriveConfig::default(),
+            email: EmailConfig::default(),
+            site_path: "/opt/gbo/data".to_string(),
+            data_dir: "/opt/gbo/data".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -112,9 +132,13 @@ pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
         Ok(d) => d,
         Err(vault_err) => {
             log::warn!("DriveConfig::from_vault() failed: {vault_err}, trying env");
-            DriveConfig::from_env().map_err(|env_err| {
-                format!("Drive config failed (vault: {vault_err}, env: {env_err})")
-            })?
+            match DriveConfig::from_env() {
+                Ok(d) => d,
+                Err(env_err) => {
+                    log::warn!("DriveConfig::from_env() also failed: {env_err} — starting without Drive");
+                    DriveConfig::default()
+                }
+            }
         }
     };
 

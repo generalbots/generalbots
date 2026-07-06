@@ -1,6 +1,6 @@
 [package]
 name = "botmonitoring"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots monitoring, metrics collection, alerting, and distributed tracing"
 license = "AGPL-3.0"

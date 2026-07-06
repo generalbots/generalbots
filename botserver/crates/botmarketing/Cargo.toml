@@ -1,6 +1,6 @@
 [package]
 name = "botmarketing"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots marketing campaigns, email, WhatsApp, IP routing, warmup, and advisor"
 license = "AGPL-3.0"

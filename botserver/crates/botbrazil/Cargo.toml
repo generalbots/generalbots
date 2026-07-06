@@ -1,6 +1,6 @@
 [package]
 name = "botbrazil"
-version = "6.5.0"
+version.workspace = true
 edition = "2021"
 description = "Brazilian tax compliance crate (NFe, NFSe, CTe, MDFe, SPED, EFD, ICMS modules)"
 license = "AGPL-3.0"

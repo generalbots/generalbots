@@ -1,6 +1,6 @@
 [package]
 name = "bottest"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "Comprehensive test suite for General Bots - Unit, Integration, and E2E testing"
 license = "AGPL-3.0"
