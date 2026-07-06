@@ -18,3 +18,4 @@ start-and-unseal.sh
 *.swo
 a.tmp
 opencode.json
+work/
