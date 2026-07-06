@@ -32,10 +32,10 @@ pub fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
             secrets.insert("client_secret".into(), String::new());
         }
         "drive" | "gbo/drive" | "system/drive" => {
-            secrets.insert("host".into(), "localhost".into());
-            secrets.insert("port".into(), "9100".into());
-            secrets.insert("accesskey".into(), "minioadmin".into());
-            secrets.insert("secret".into(), "minioadmin".into());
+            secrets.insert("host".into(), String::new());
+            secrets.insert("port".into(), String::new());
+            secrets.insert("accesskey".into(), String::new());
+            secrets.insert("secret".into(), String::new());
         }
         "cache" | "gbo/cache" | "system/cache" => {
             secrets.insert("host".into(), "localhost".into());

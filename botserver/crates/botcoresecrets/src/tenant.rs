@@ -221,18 +221,18 @@ impl SecretsManager {
         let tenant_path = SecretPaths::tenant_infrastructure(tenant);
         if let Ok(s) = self.get_secret(&format!("{}/drive", tenant_path)).await {
             return Ok((
-                s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
-                s.get("port").cloned().unwrap_or_else(|| "9100".into()),
-                s.get("accesskey").cloned().unwrap_or_default(),
-                s.get("secret").cloned().unwrap_or_default(),
+                s.get("host").cloned().ok_or_else(|| anyhow::anyhow!("{}/drive: 'host' not set in secrets", tenant_path))?,
+                s.get("port").cloned().ok_or_else(|| anyhow::anyhow!("{}/drive: 'port' not set in secrets", tenant_path))?,
+                s.get("accesskey").cloned().ok_or_else(|| anyhow::anyhow!("{}/drive: 'accesskey' not set in secrets", tenant_path))?,
+                s.get("secret").cloned().ok_or_else(|| anyhow::anyhow!("{}/drive: 'secret' not set in secrets", tenant_path))?,
             ));
         }
         let s = self.get_secret(SecretPaths::DRIVE).await?;
         Ok((
-            s.get("host").cloned().unwrap_or_else(|| "localhost".into()),
-            s.get("port").cloned().unwrap_or_else(|| "9100".into()),
-            s.get("accesskey").cloned().unwrap_or_default(),
-            s.get("secret").cloned().unwrap_or_default(),
+            s.get("host").cloned().ok_or_else(|| anyhow::anyhow!("{}: 'host' not set in secrets", SecretPaths::DRIVE))?,
+            s.get("port").cloned().ok_or_else(|| anyhow::anyhow!("{}: 'port' not set in secrets", SecretPaths::DRIVE))?,
+            s.get("accesskey").cloned().ok_or_else(|| anyhow::anyhow!("{}: 'accesskey' not set in secrets", SecretPaths::DRIVE))?,
+            s.get("secret").cloned().ok_or_else(|| anyhow::anyhow!("{}: 'secret' not set in secrets", SecretPaths::DRIVE))?,
         ))
     }
 
