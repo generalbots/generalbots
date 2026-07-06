@@ -340,8 +340,29 @@ pub fn create_cors_layer() -> CorsLayer {
         info!("Creating CORS layer with configured origins");
         CorsConfig::production().with_origins(config_origins).build()
     } else {
-        info!("Creating CORS layer with development defaults (no origins configured)");
-        CorsConfig::development().build()
+        info!("Creating CORS layer with permissive defaults (no origins configured — allowing any valid HTTP/S origin)");
+        CorsLayer::new()
+            .allow_origin(AllowOrigin::predicate(validate_origin))
+            .allow_methods([
+                Method::GET, Method::POST, Method::PUT,
+                Method::DELETE, Method::PATCH, Method::OPTIONS, Method::HEAD,
+            ])
+            .allow_headers([
+                header::CONTENT_TYPE,
+                header::AUTHORIZATION,
+                header::ACCEPT,
+                header::ORIGIN,
+                header::HeaderName::from_static("x-request-id"),
+                header::HeaderName::from_static("x-user-id"),
+            ])
+            .expose_headers([
+                header::HeaderName::from_static("x-request-id"),
+                header::HeaderName::from_static("x-ratelimit-limit"),
+                header::HeaderName::from_static("x-ratelimit-remaining"),
+                header::HeaderName::from_static("retry-after"),
+            ])
+            .allow_credentials(true)
+            .max_age(std::time::Duration::from_secs(7200))
     }
 }
 

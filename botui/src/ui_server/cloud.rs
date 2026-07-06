@@ -44,6 +44,9 @@ fn inject_script_into_html(bytes: &[u8], script: &str) -> Vec<u8> {
 }
 
 fn get_preview_banner_html() -> String {
+    if std::env::var("PRODUCTION").is_ok() && std::env::var("PRODUCTION").unwrap_or_default() == "true" {
+        return String::new();
+    }
     r#"<div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#1c1917;text-align:center;padding:3px 12px;font-size:0.7rem;font-weight:500;line-height:1.3">⚡ <strong>General Bots 6</strong> is currently in <strong>Preview</strong> — features are evolving rapidly. <a href="/terms" style="color:#1c1917;font-weight:600;text-decoration:underline">Review terms</a> before production use.</div>"#.to_string()
 }
 
