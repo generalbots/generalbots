@@ -1,6 +1,6 @@
 [package]
 name = "botsearch"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots full-text search service"
 license = "AGPL-3.0"

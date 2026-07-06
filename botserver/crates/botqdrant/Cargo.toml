@@ -1,6 +1,6 @@
 [package]
 name = "botqdrant"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots Qdrant vector database client"
 license = "AGPL-3.0"

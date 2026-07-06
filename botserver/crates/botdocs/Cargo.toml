@@ -1,6 +1,6 @@
 [package]
 name = "botdocs"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots document processing, collaboration, and conversion"
 license = "AGPL-3.0"

@@ -1,6 +1,6 @@
 [package]
 name = "botsecurity-crypto"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots crypto: TLS, CA, encryption, certificates"
 license = "AGPL-3.0"

@@ -37,17 +37,19 @@ async fn download_from_s3(file_path: &str, state: &Arc<AppState>) -> Result<Vec<
     let s3_repo = crate::drive::s3_repository::S3Repository::new(&app_cfg.drive.endpoint, &app_cfg.drive.access_key, &app_cfg.drive.secret_key, &app_cfg.drive.bucket)
         .map_err(|e| format!("Failed to create S3 operator: {}", e))?;
 
-    // file_path format: {bot}.gbai/{bot}.gbdialog/{tool}.bas
-    // S3 bucket = first part ({bot}.gbai), key = rest
+    // file_path format: {branch}.gbai/{bot}.gbdialog/{tool}.bas
+    // In .gborg structure: bucket = {branch}.gborg, key = {branch}.gbai/{bot}.gbdialog/{tool}.bas
     let parts: Vec<&str> = file_path.split('/').collect();
     if parts.len() < 2 {
         return Err("Invalid file path for S3 download".into());
     }
 
-    let bucket_name = parts[0];
-    let s3_key = parts[1..].join("/");
+    let branch_prefix = parts[0];
+    let branch_name = branch_prefix.strip_suffix(".gbai").unwrap_or(branch_prefix);
+    let bucket_name = format!("{}.gborg", branch_name);
+    let s3_key = file_path;
 
-    s3_repo.get_object_direct(bucket_name, &s3_key)
+    s3_repo.get_object_direct(&bucket_name, s3_key)
         .await
         .map_err(|e| format!("S3 get_object_direct failed for {}/{}: {}", bucket_name, s3_key, e).into())
 }
@@ -269,10 +271,20 @@ impl DriveCompiler {
         let work_ast_path = work_dir.join(format!("{}.ast", tool_name));
         let ast_path_str = work_ast_path.to_str().unwrap_or("").to_string();
 
+        let branch_name = if parts[0].ends_with(".gbai") {
+            parts[0].strip_suffix(".gbai").unwrap_or(parts[0]).to_string()
+        } else if parts.len() >= 2 && parts[0].ends_with(".gbdialog") {
+            parts[0].strip_suffix(".gbdialog").unwrap_or(parts[0]).to_string()
+        } else {
+            bot_name.clone()
+        };
+        let branch_id = Self::resolve_branch_id(&self.state, &branch_name);
+
         let bot_id_str = real_bot_id.to_string();
+        let branch_id_str = branch_id.to_string();
         let upsert_sql = diesel::sql_query(
-            "INSERT INTO basic_tools (bot_id, tool_name, file_path, ast_path, compiled_at, is_active) \
-             VALUES ($1::uuid, $2, $3, $4, $5, true) \
+            "INSERT INTO basic_tools (bot_id, tool_name, file_path, ast_path, compiled_at, is_active, branch_id) \
+             VALUES ($1::uuid, $2, $3, $4, $5, true, $6::uuid) \
              ON CONFLICT (bot_id, tool_name) DO UPDATE SET \
              file_path = EXCLUDED.file_path, ast_path = EXCLUDED.ast_path, \
              compiled_at = EXCLUDED.compiled_at, is_active = true"
@@ -281,7 +293,8 @@ impl DriveCompiler {
         .bind::<diesel::sql_types::Text, _>(tool_name)
         .bind::<diesel::sql_types::Text, _>(fp)
         .bind::<diesel::sql_types::Text, _>(&ast_path_str)
-        .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now());
+        .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+        .bind::<diesel::sql_types::Text, _>(&branch_id_str);
         match upsert_sql.execute(&mut *self.state.conn.get()?)
         {
             Ok(_) => info!("Registered tool '{}' in database", tool_name),
@@ -290,6 +303,32 @@ impl DriveCompiler {
 
         info!("Compiled {} to {}.ast", fp, tool_name);
         Ok(())
+    }
+
+    /// Resolve the branch UUID from the branch slug/name using the database.
+    /// Falls back to Uuid::nil() if the branch is not found.
+    fn resolve_branch_id(state: &Arc<AppState>, branch_name: &str) -> Uuid {
+        use botcore::shared::models::schema::branches::dsl::*;
+
+        let mut conn = match state.conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("Failed to get DB connection for branch name lookup: {}", e);
+                return Uuid::nil();
+            }
+        };
+
+        match branches
+            .filter(slug.eq(branch_name))
+            .select(id)
+            .first::<Uuid>(&mut *conn)
+        {
+            Ok(branch_id) => branch_id,
+            Err(e) => {
+                warn!("Branch '{}' not found in database ({}), using nil UUID", branch_name, e);
+                Uuid::nil()
+            }
+        }
     }
 
     /// Resolve the real bot_id from the bot name using the database.

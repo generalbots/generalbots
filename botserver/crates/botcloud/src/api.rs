@@ -2599,12 +2599,7 @@ async fn handle_save_byok(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
 
-    let salt: [u8; 32] = {
-        let mut s = [0u8; 32];
-        let hash = sha2::Sha256::digest(user_email.as_bytes());
-        s.copy_from_slice(&hash);
-        s
-    };
+    let salt: [u8; 32] = sha2::Sha256::digest(user_email.as_bytes()).into();
     let key_bytes = derive_key_from_password(&service.config.jwt_secret, &salt)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Key derivation: {e}")))?;
 

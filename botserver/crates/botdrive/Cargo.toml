@@ -1,6 +1,6 @@
 [package]
 name = "botdrive"
-version = "6.3.1"
+version.workspace = true
 edition = "2021"
 
 [features]

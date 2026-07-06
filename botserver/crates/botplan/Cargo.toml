@@ -1,6 +1,6 @@
 [package]
 name = "botplan"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots project planner (Gantt + Kanban) with real-time collaboration"
 license = "AGPL-3.0"

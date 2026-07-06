@@ -1,6 +1,6 @@
 [package]
 name = "botclock"
-version = "6.5.0"
+version.workspace = true
 edition = "2021"
 description = "Electronic time clock (Registro de Ponto Eletrônico) with Brazilian CLT rules in botbrazil."
 

@@ -1,6 +1,6 @@
 [package]
 name = "botserver"
-version = "6.3.1"
+version.workspace = true
 edition = "2021"
 resolver = "2"
 

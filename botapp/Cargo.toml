@@ -1,6 +1,6 @@
 [package]
 name = "botapp"
-version = "6.3.1"
+version.workspace = true
 edition = "2021"
 description = "General Bots App - Tauri wrapper for desktop/mobile"
 license = "AGPL-3.0"

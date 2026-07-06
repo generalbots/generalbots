@@ -1089,7 +1089,7 @@ dependencies = [
 
 [[package]]
 name = "botanalytics"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "bigdecimal",
@@ -1150,7 +1150,7 @@ dependencies = [
 
 [[package]]
 name = "botattendance"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -1172,7 +1172,7 @@ dependencies = [
 
 [[package]]
 name = "botattendant"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -1188,7 +1188,7 @@ dependencies = [
 
 [[package]]
 name = "botautotask"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botlib",
@@ -1224,7 +1224,7 @@ dependencies = [
 
 [[package]]
 name = "botbasic_ai"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1256,7 +1256,7 @@ dependencies = [
 
 [[package]]
 name = "botbasic_comms"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1288,7 +1288,7 @@ dependencies = [
 
 [[package]]
 name = "botbasic_compiler"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "botbasic_types",
  "botcore",
@@ -1306,7 +1306,7 @@ dependencies = [
 
 [[package]]
 name = "botbasic_core"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "bigdecimal",
  "botbasic_types",
@@ -1328,7 +1328,7 @@ dependencies = [
 
 [[package]]
 name = "botbasic_data"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1356,7 +1356,7 @@ dependencies = [
 
 [[package]]
 name = "botbasic_system"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1390,7 +1390,7 @@ dependencies = [
 
 [[package]]
 name = "botbasic_types"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "botlib",
  "chrono",
@@ -1406,7 +1406,7 @@ dependencies = [
 
 [[package]]
 name = "botbilling"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
@@ -1440,7 +1440,7 @@ dependencies = [
 
 [[package]]
 name = "botbrazil"
-version = "6.5.0"
+version = "6.3.1"
 dependencies = [
  "chrono",
  "log",
@@ -1452,7 +1452,7 @@ dependencies = [
 
 [[package]]
 name = "botbrowser"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -1471,7 +1471,7 @@ dependencies = [
 
 [[package]]
 name = "botcalendar"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -1488,7 +1488,7 @@ dependencies = [
 
 [[package]]
 name = "botcanvas"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -1501,7 +1501,7 @@ dependencies = [
 
 [[package]]
 name = "botchannels"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
@@ -1526,7 +1526,7 @@ dependencies = [
 
 [[package]]
 name = "botchannels-core"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1540,7 +1540,7 @@ dependencies = [
 
 [[package]]
 name = "botclock"
-version = "6.5.0"
+version = "6.3.1"
 dependencies = [
  "chrono",
  "rust_decimal",
@@ -1580,7 +1580,7 @@ dependencies = [
 
 [[package]]
 name = "botcompliance"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -1600,7 +1600,7 @@ dependencies = [
 
 [[package]]
 name = "botcontacts"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -1673,7 +1673,7 @@ dependencies = [
 
 [[package]]
 name = "botcorebot"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1699,7 +1699,7 @@ dependencies = [
 
 [[package]]
 name = "botcoredirectory"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "argon2",
@@ -1723,7 +1723,7 @@ dependencies = [
 
 [[package]]
 name = "botcoreoauth"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -1742,7 +1742,7 @@ dependencies = [
 
 [[package]]
 name = "botcorepkg"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "botcoresecrets",
@@ -1769,7 +1769,7 @@ dependencies = [
 
 [[package]]
 name = "botcoresecrets"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "diesel",
@@ -1783,7 +1783,7 @@ dependencies = [
 
 [[package]]
 name = "botcoresession"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -1802,7 +1802,7 @@ dependencies = [
 
 [[package]]
 name = "botdashboards"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -1835,7 +1835,7 @@ dependencies = [
 
 [[package]]
 name = "botdeployment"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -1852,7 +1852,7 @@ dependencies = [
 
 [[package]]
 name = "botdesigner"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -1886,7 +1886,7 @@ dependencies = [
 
 [[package]]
 name = "botdocs"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botlib",
@@ -1955,7 +1955,7 @@ dependencies = [
 
 [[package]]
 name = "botemail"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -2000,7 +2000,7 @@ dependencies = [
 
 [[package]]
 name = "boteval"
-version = "6.5.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2016,7 +2016,7 @@ dependencies = [
 
 [[package]]
 name = "botfraud"
-version = "6.5.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2044,7 +2044,7 @@ dependencies = [
 
 [[package]]
 name = "botgl"
-version = "6.5.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2091,7 +2091,7 @@ dependencies = [
 
 [[package]]
 name = "botinstagram"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
@@ -2123,7 +2123,7 @@ dependencies = [
 
 [[package]]
 name = "botinventory"
-version = "6.5.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2153,7 +2153,7 @@ dependencies = [
 
 [[package]]
 name = "botkb"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "base64 0.22.1",
  "botlib",
@@ -2184,7 +2184,7 @@ dependencies = [
 
 [[package]]
 name = "botlearn"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2196,7 +2196,7 @@ dependencies = [
 
 [[package]]
 name = "botlegal"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2211,7 +2211,7 @@ dependencies = [
 
 [[package]]
 name = "botlib"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2232,7 +2232,7 @@ dependencies = [
 
 [[package]]
 name = "botllm"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "botcore",
@@ -2278,7 +2278,7 @@ dependencies = [
 
 [[package]]
 name = "botmaintenance"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2292,7 +2292,7 @@ dependencies = [
 
 [[package]]
 name = "botmarketing"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -2357,7 +2357,7 @@ dependencies = [
 
 [[package]]
 name = "botmodelsbridge"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "base64 0.22.1",
  "botsecurity",
@@ -2372,7 +2372,7 @@ dependencies = [
 
 [[package]]
 name = "botmonitoring"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2389,7 +2389,7 @@ dependencies = [
 
 [[package]]
 name = "botmsteams"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
@@ -2406,7 +2406,7 @@ dependencies = [
 
 [[package]]
 name = "botmultimodal"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "botlib",
  "log",
@@ -2419,7 +2419,7 @@ dependencies = [
 
 [[package]]
 name = "botnvidia"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "botlib",
@@ -2428,7 +2428,7 @@ dependencies = [
 
 [[package]]
 name = "botpaper"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2442,7 +2442,7 @@ dependencies = [
 
 [[package]]
 name = "botpeople"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "bigdecimal",
@@ -2457,7 +2457,7 @@ dependencies = [
 
 [[package]]
 name = "botplan"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2472,7 +2472,7 @@ dependencies = [
 
 [[package]]
 name = "botplayer"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
@@ -2499,7 +2499,7 @@ dependencies = [
 
 [[package]]
 name = "botproducts"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "bigdecimal",
@@ -2515,7 +2515,7 @@ dependencies = [
 
 [[package]]
 name = "botproject"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -2544,7 +2544,7 @@ dependencies = [
 
 [[package]]
 name = "botqdrant"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "botcore",
@@ -2563,7 +2563,7 @@ dependencies = [
 
 [[package]]
 name = "botresearch"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botlib",
@@ -2580,7 +2580,7 @@ dependencies = [
 
 [[package]]
 name = "botretail"
-version = "6.5.0"
+version = "6.3.1"
 dependencies = [
  "chrono",
  "rust_decimal",
@@ -2608,7 +2608,7 @@ dependencies = [
 
 [[package]]
 name = "botschema"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "chrono",
  "diesel",
@@ -2619,7 +2619,7 @@ dependencies = [
 
 [[package]]
 name = "botsearch"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "botlib",
  "chrono",
@@ -2632,7 +2632,7 @@ dependencies = [
 
 [[package]]
 name = "botsecurity"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -2656,7 +2656,7 @@ dependencies = [
 
 [[package]]
 name = "botsecurity-auth"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "argon2",
@@ -2692,7 +2692,7 @@ dependencies = [
 
 [[package]]
 name = "botsecurity-core"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -2725,7 +2725,7 @@ dependencies = [
 
 [[package]]
 name = "botsecurity-crypto"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -2753,7 +2753,7 @@ dependencies = [
 
 [[package]]
 name = "botsecurity-protection"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -2978,7 +2978,7 @@ dependencies = [
 
 [[package]]
 name = "botsheet"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
@@ -3004,7 +3004,7 @@ dependencies = [
 
 [[package]]
 name = "botsheet-core"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3021,7 +3021,7 @@ dependencies = [
 
 [[package]]
 name = "botslides"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botlib",
@@ -3042,7 +3042,7 @@ dependencies = [
 
 [[package]]
 name = "botsocial"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -3057,7 +3057,7 @@ dependencies = [
 
 [[package]]
 name = "botsources"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "base64 0.22.1",
@@ -3077,7 +3077,7 @@ dependencies = [
 
 [[package]]
 name = "bottasks"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -3108,7 +3108,7 @@ dependencies = [
 
 [[package]]
 name = "bottelegram"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
@@ -3141,7 +3141,7 @@ dependencies = [
 
 [[package]]
 name = "bottest"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3170,7 +3170,7 @@ dependencies = [
 
 [[package]]
 name = "bottickets"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -3199,7 +3199,7 @@ dependencies = [
 
 [[package]]
 name = "bottimeseries"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "botlib",
  "chrono",
@@ -3212,7 +3212,7 @@ dependencies = [
 
 [[package]]
 name = "botui"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
@@ -3250,7 +3250,7 @@ dependencies = [
 
 [[package]]
 name = "botvibe"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botautotask",
@@ -3272,7 +3272,7 @@ dependencies = [
 
 [[package]]
 name = "botvideo"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botlib",
@@ -3308,7 +3308,7 @@ dependencies = [
 
 [[package]]
 name = "botweba"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -3321,7 +3321,7 @@ dependencies = [
 
 [[package]]
 name = "botwhatsapp"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",
@@ -3335,7 +3335,7 @@ dependencies = [
 
 [[package]]
 name = "botworkspaces"
-version = "6.3.0"
+version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "chrono",

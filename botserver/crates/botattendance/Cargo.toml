@@ -1,6 +1,6 @@
 [package]
 name = "botattendance"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots attendance module - queue, SLA, webhooks, LLM assist, keyword services"
 license = "AGPL-3.0"

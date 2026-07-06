@@ -1,6 +1,6 @@
 [package]
 name = "botretail"
-version = "6.5.0"
+version.workspace = true
 edition = "2021"
 description = "Retail management (Bling-style): products, stock, variations, price lists, POS, NFCe via botbrazil."
 

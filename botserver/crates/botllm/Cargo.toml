@@ -1,6 +1,6 @@
 [package]
 name = "botllm"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "General Bots LLM provider implementations and core types"
 license = "AGPL-3.0"

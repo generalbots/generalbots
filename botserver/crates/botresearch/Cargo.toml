@@ -1,6 +1,6 @@
 [package]
 name = "botresearch"
-version = "6.3.0"
+version.workspace = true
 edition = "2021"
 description = "Research module for General Bots - web search, knowledge base exploration, and deep research"
 license = "AGPL-3.0"
