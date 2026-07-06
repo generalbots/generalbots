@@ -19,17 +19,7 @@ use uuid::Uuid;
 pub type DbPool = Pool<ConnectionManager<diesel::PgConnection>>;
 
 diesel::table! {
-    organizations (org_id) {
-        org_id -> Uuid,
-        tenant_id -> Uuid,
-        name -> Text,
-        slug -> Text,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    bots (id) {
+    branches (id) {
         id -> Uuid,
     }
 }
@@ -37,8 +27,7 @@ diesel::table! {
 diesel::table! {
     legal_documents (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         slug -> Varchar,
         title -> Varchar,
         content -> Text,
@@ -69,8 +58,7 @@ diesel::table! {
 diesel::table! {
     cookie_consents (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         user_id -> Nullable<Uuid>,
         session_id -> Nullable<Varchar>,
         ip_address -> Nullable<Varchar>,
@@ -105,8 +93,7 @@ diesel::table! {
 diesel::table! {
     legal_acceptances (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         user_id -> Uuid,
         document_id -> Uuid,
         document_version -> Varchar,
@@ -119,8 +106,7 @@ diesel::table! {
 diesel::table! {
     data_deletion_requests (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         user_id -> Uuid,
         request_type -> Varchar,
         status -> Varchar,
@@ -140,8 +126,7 @@ diesel::table! {
 diesel::table! {
     data_export_requests (id) {
         id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
+        branch_id -> Uuid,
         user_id -> Uuid,
         status -> Varchar,
         format -> Varchar,
@@ -157,26 +142,20 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(legal_documents -> organizations (org_id));
-diesel::joinable!(legal_documents -> bots (bot_id));
+diesel::joinable!(legal_documents -> branches (branch_id));
 diesel::joinable!(legal_document_versions -> legal_documents (document_id));
-diesel::joinable!(cookie_consents -> organizations (org_id));
-diesel::joinable!(cookie_consents -> bots (bot_id));
+diesel::joinable!(cookie_consents -> branches (branch_id));
 diesel::joinable!(consent_history -> cookie_consents (consent_id));
-diesel::joinable!(legal_acceptances -> organizations (org_id));
-diesel::joinable!(legal_acceptances -> bots (bot_id));
+diesel::joinable!(legal_acceptances -> branches (branch_id));
 diesel::joinable!(legal_acceptances -> legal_documents (document_id));
-diesel::joinable!(data_deletion_requests -> organizations (org_id));
-diesel::joinable!(data_deletion_requests -> bots (bot_id));
-diesel::joinable!(data_export_requests -> organizations (org_id));
-diesel::joinable!(data_export_requests -> bots (bot_id));
+diesel::joinable!(data_deletion_requests -> branches (branch_id));
+diesel::joinable!(data_export_requests -> branches (branch_id));
 
 #[derive(Debug, Clone, Queryable, Insertable, AsChangeset, Serialize, Deserialize)]
 #[diesel(table_name = legal_documents)]
 pub struct DbLegalDocument {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub slug: String,
     pub title: String,
     pub content: String,
@@ -207,8 +186,7 @@ pub struct DbDocumentVersion {
 #[diesel(table_name = cookie_consents)]
 pub struct DbCookieConsent {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub user_id: Option<Uuid>,
     pub session_id: Option<String>,
     pub ip_address: Option<String>,
@@ -243,8 +221,7 @@ pub struct DbConsentHistory {
 #[diesel(table_name = legal_acceptances)]
 pub struct DbLegalAcceptance {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub user_id: Uuid,
     pub document_id: Uuid,
     pub document_version: String,
@@ -257,8 +234,7 @@ pub struct DbLegalAcceptance {
 #[diesel(table_name = data_deletion_requests)]
 pub struct DbDeletionRequest {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub user_id: Uuid,
     pub request_type: String,
     pub status: String,
@@ -278,8 +254,7 @@ pub struct DbDeletionRequest {
 #[diesel(table_name = data_export_requests)]
 pub struct DbExportRequest {
     pub id: Uuid,
-    pub org_id: Uuid,
-    pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub user_id: Uuid,
     pub status: String,
     pub format: String,
@@ -592,16 +567,13 @@ fn get_default_cookie_policy() -> CookiePolicy {
     }
 }
 
-pub type GetDefaultBotFn = fn(&mut diesel::PgConnection) -> Uuid;
-
 pub async fn handle_record_consent(
     State(pool): State<Arc<DbPool>>,
     Json(req): Json<CookieConsentRequest>,
 ) -> Result<Json<CookieConsentResponse>, LegalError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot_stub(&mut conn);
-        let org_id = Uuid::nil();
+        let branch_id = get_branch_id(&mut conn);
         let now = Utc::now();
 
         let mut consents = req.consents;
@@ -609,8 +581,7 @@ pub async fn handle_record_consent(
 
         let db_consent = DbCookieConsent {
             id: Uuid::new_v4(),
-            org_id,
-            bot_id,
+            branch_id,
             user_id: None,
             session_id: req.session_id,
             ip_address: None,
@@ -775,10 +746,10 @@ pub async fn handle_list_documents(
 ) -> Result<Json<Vec<LegalDocument>>, LegalError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, _) = get_default_bot_stub(&mut conn);
+        let branch_id = get_branch_id(&mut conn);
 
         let mut db_query = legal_documents::table
-            .filter(legal_documents::bot_id.eq(bot_id))
+            .filter(legal_documents::branch_id.eq(branch_id))
             .into_boxed();
 
         if let Some(doc_type) = query.document_type {
@@ -809,10 +780,10 @@ pub async fn handle_get_document(
 ) -> Result<Json<Option<LegalDocument>>, LegalError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, _) = get_default_bot_stub(&mut conn);
+        let branch_id = get_branch_id(&mut conn);
 
         let db_doc: Option<DbLegalDocument> = legal_documents::table
-            .filter(legal_documents::bot_id.eq(bot_id))
+            .filter(legal_documents::branch_id.eq(branch_id))
             .filter(legal_documents::slug.eq(&slug))
             .filter(legal_documents::is_active.eq(true))
             .first(&mut conn)
@@ -833,14 +804,12 @@ pub async fn handle_create_document(
 ) -> Result<Json<LegalDocument>, LegalError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot_stub(&mut conn);
-        let org_id = Uuid::nil();
+        let branch_id = get_branch_id(&mut conn);
         let now = Utc::now();
 
         let db_doc = DbLegalDocument {
             id: Uuid::new_v4(),
-            org_id,
-            bot_id,
+            branch_id,
             slug: req.slug,
             title: req.title,
             content: req.content,
@@ -875,11 +844,11 @@ pub async fn handle_update_document(
 ) -> Result<Json<LegalDocument>, LegalError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, _) = get_default_bot_stub(&mut conn);
+        let branch_id = get_branch_id(&mut conn);
         let now = Utc::now();
 
         let mut db_doc: DbLegalDocument = legal_documents::table
-            .filter(legal_documents::bot_id.eq(bot_id))
+            .filter(legal_documents::branch_id.eq(branch_id))
             .filter(legal_documents::slug.eq(&slug))
             .first(&mut conn)
             .map_err(|_| LegalError::NotFound("Document not found".to_string()))?;
@@ -933,15 +902,13 @@ pub async fn handle_request_data_deletion(
 ) -> Result<Json<DataDeletionResult>, LegalError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot_stub(&mut conn);
-        let org_id = Uuid::nil();
+        let branch_id = get_branch_id(&mut conn);
         let now = Utc::now();
         let token = Uuid::new_v4().to_string();
 
         let db_request = DbDeletionRequest {
             id: Uuid::new_v4(),
-            org_id,
-            bot_id,
+            branch_id,
             user_id,
             request_type: "full".to_string(),
             status: "pending".to_string(),
@@ -964,7 +931,7 @@ pub async fn handle_request_data_deletion(
 
         let deleted_consents = diesel::delete(
             cookie_consents::table
-                .filter(cookie_consents::bot_id.eq(bot_id))
+                .filter(cookie_consents::branch_id.eq(branch_id))
                 .filter(cookie_consents::user_id.eq(user_id)),
         )
         .execute(&mut conn)
@@ -990,8 +957,7 @@ pub async fn handle_export_user_data(
 ) -> Result<Json<UserDataExport>, LegalError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| LegalError::Database(e.to_string()))?;
-        let (bot_id, _bot_name) = get_default_bot_stub(&mut conn);
-        let org_id = Uuid::nil();
+        let branch_id = get_branch_id(&mut conn);
         let now = Utc::now();
 
         let format = req.format.unwrap_or_else(|| "json".to_string());
@@ -999,8 +965,7 @@ pub async fn handle_export_user_data(
 
         let db_export = DbExportRequest {
             id: Uuid::new_v4(),
-            org_id,
-            bot_id,
+            branch_id,
             user_id,
             status: "completed".to_string(),
             format: format.clone(),
@@ -1021,7 +986,7 @@ pub async fn handle_export_user_data(
             .map_err(|e| LegalError::Database(e.to_string()))?;
 
         let db_consents: Vec<DbCookieConsent> = cookie_consents::table
-            .filter(cookie_consents::bot_id.eq(bot_id))
+            .filter(cookie_consents::branch_id.eq(branch_id))
             .filter(cookie_consents::user_id.eq(user_id))
             .load(&mut conn)
             .unwrap_or_default();
@@ -1067,17 +1032,12 @@ pub fn configure_legal_routes() -> Router<Arc<DbPool>> {
         .route("/api/legal/gdpr/export/{user_id}", post(handle_export_user_data))
 }
 
-fn get_default_bot_stub(conn: &mut diesel::PgConnection) -> (Uuid, String) {
+fn get_branch_id(conn: &mut diesel::PgConnection) -> Uuid {
     use diesel::dsl::exists;
     use diesel::select;
-    let bot_exists: bool = select(exists(bots::table.find(Uuid::nil())))
-        .get_result(conn)
-        .unwrap_or(false);
-    if bot_exists {
-        (Uuid::nil(), "Default".to_string())
-    } else {
-        (Uuid::nil(), "Default".to_string())
-    }
+    let _ = select(exists(branches::table.find(Uuid::nil())))
+        .get_result::<bool>(conn);
+    Uuid::nil()
 }
 
 pub async fn handle_legal_list_page(State(_pool): State<Arc<DbPool>>) -> Html<String> {

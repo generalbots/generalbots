@@ -1,5 +1,6 @@
 //! Bootstrap and application initialization logic
 
+use diesel::RunQueryDsl;
 use botcore::shared::utils::{create_conn, get_stack_path};
 use crate::core::config::AppConfig;
 use crate::core::i18n;
@@ -244,6 +245,27 @@ pub async fn init_database(
             #[cfg(feature = "saas")]
             {
                 if let Ok(mut conn) = pool.get() {
+                    diesel::sql_query(
+                        "INSERT INTO tenants (id, name, slug, is_active, created_at, updated_at) \
+                         VALUES ('00000000-0000-0000-0000-000000000000', 'System', 'system', true, NOW(), NOW()) \
+                         ON CONFLICT (id) DO NOTHING",
+                    )
+                    .execute(&mut conn)
+                    .ok();
+                    diesel::sql_query(
+                        "INSERT INTO organizations (org_id, name, slug, domain, created_at, updated_at) \
+                         VALUES ('00000000-0000-0000-0000-000000000000', 'System', 'system', NULL, NOW(), NOW()) \
+                         ON CONFLICT (org_id) DO NOTHING",
+                    )
+                    .execute(&mut conn)
+                    .ok();
+                    diesel::sql_query(
+                        "INSERT INTO branches (id, org_id, tenant_id, slug, name, is_active, created_at, updated_at) \
+                         VALUES ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 'system', 'System', true, NOW(), NOW()) \
+                         ON CONFLICT (id) DO NOTHING",
+                    )
+                    .execute(&mut conn)
+                    .ok();
                     botproducts::seed::seed_default_products(&mut conn, uuid::Uuid::nil());
                 }
             }

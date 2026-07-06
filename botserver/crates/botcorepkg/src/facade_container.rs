@@ -200,7 +200,7 @@ pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if stderr.contains("already initialized") {
-            warn!("Vault already initialized, skipping file generation");
+            info!("Vault already initialized, skipping file generation");
             return Ok(());
         }
         return Err(anyhow::anyhow!("Failed to initialize Vault: {}", stderr));

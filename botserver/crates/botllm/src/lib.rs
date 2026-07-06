@@ -80,8 +80,13 @@ impl AzureGPT5Client {
     pub fn new(base_url: String, api_version: Option<String>) -> Self {
         let api_version = api_version.unwrap_or_else(|| "2025-04-01-preview".to_string());
         let rate_limiter = Arc::new(ApiRateLimiter::unlimited());
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(180))
+            .connect_timeout(std::time::Duration::from_secs(30))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
         Self {
-            client: reqwest::Client::new(),
+            client,
             base_url,
             api_version,
             rate_limiter,
@@ -307,9 +312,13 @@ impl OpenAIClient {
         };
 
         let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(180))
             .connect_timeout(std::time::Duration::from_secs(30))
             .build()
-            .expect("Failed to build reqwest client");
+            .unwrap_or_else(|_| {
+                log::warn!("Failed to build reqwest client with timeouts, falling back to default");
+                reqwest::Client::new()
+            });
 
         Self {
             client,

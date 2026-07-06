@@ -59,9 +59,11 @@ pub fn reset_vault_only() -> Result<()> {
 pub fn get_db_password_from_vault() -> Option<String> {
     use crate::bootstrap::bootstrap_utils::safe_sh_command;
 
-    let vault_addr =
-        env::var("VAULT_ADDR").unwrap_or_else(|_| "https://localhost:8200".to_string());
+    let vault_addr = env::var("VAULT_ADDR").unwrap_or_default();
     let vault_token = env::var("VAULT_TOKEN").ok()?;
+    if vault_addr.is_empty() {
+        return None;
+    }
     let vault_cacert = env::var("VAULT_CACERT")
         .unwrap_or_else(|_| format!("{}/conf/system/certificates/ca/ca.crt", get_stack_path()));
     let vault_bin = format!("{}/bin/vault/vault", get_stack_path());

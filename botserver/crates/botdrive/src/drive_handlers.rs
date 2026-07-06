@@ -425,7 +425,7 @@ pub async fn recent_files(
             last_modified: Option<chrono::DateTime<chrono::Utc>>,
         }
         let rows = diesel::sql_query(
-            "SELECT file_path, file_type, file_size, last_modified FROM drive_files WHERE bot_id = ANY(SELECT id FROM bots WHERE bucket_name = $1) AND indexed = true ORDER BY last_modified DESC NULLS LAST LIMIT 50"
+            "SELECT file_path, file_type, file_size, last_modified FROM drive_files WHERE file_path LIKE $1 || '/%' AND indexed = true ORDER BY last_modified DESC NULLS LAST LIMIT 50"
         )
         .bind::<Text, _>(&bucket)
         .load::<Row>(&mut conn);

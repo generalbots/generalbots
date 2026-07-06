@@ -1,4 +1,4 @@
-use axum::routing::{get, post, put, patch, delete};
+use axum::routing::{get, post, put};
 use axum::Router;
 
 use crate::handlers;

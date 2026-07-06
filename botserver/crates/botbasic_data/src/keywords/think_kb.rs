@@ -189,6 +189,7 @@ fn get_recent_consolidations(
 
 fn get_kb_memory_stats(
     conn: &mut diesel::PgConnection,
+    bot_name: &str,
     bot_id: uuid::Uuid,
 ) -> serde_json::Value {
     #[derive(QueryableByName)]
@@ -197,10 +198,12 @@ fn get_kb_memory_stats(
         count: i64,
     }
 
+    let file_prefix = format!("{}.gbai/%", bot_name);
+
     let total_memories: i64 = diesel::sql_query(
-        "SELECT COUNT(*) as count FROM drive_files WHERE bot_id = $1 AND file_type = 'kb' AND indexed = true",
+        "SELECT COUNT(*) as count FROM drive_files WHERE file_path LIKE $1 AND file_type = 'kb' AND indexed = true",
     )
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .bind::<diesel::sql_types::Text, _>(&file_prefix)
     .get_result::<CountRow>(conn)
     .map(|r| r.count)
     .unwrap_or(0);
@@ -213,15 +216,17 @@ fn get_kb_memory_stats(
     .map(|r| r.count)
     .unwrap_or(0);
 
+
+
     let unconsolidated: i64 = diesel::sql_query(
-        "SELECT COUNT(*) as count FROM drive_files WHERE bot_id = $1 AND file_type = 'kb' AND indexed = true
+        "SELECT COUNT(*) as count FROM drive_files WHERE file_path LIKE $1 AND file_type = 'kb' AND indexed = true
         AND NOT EXISTS (
             SELECT 1 FROM kb_consolidation_sources kcs
             JOIN kb_consolidations kc ON kc.id = kcs.consolidation_id
-            WHERE kc.bot_id = $1 AND kcs.file_path = drive_files.file_path
+            WHERE kcs.file_path = drive_files.file_path
         )",
     )
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .bind::<diesel::sql_types::Text, _>(&file_prefix)
     .get_result::<CountRow>(conn)
     .map(|r| r.count)
     .unwrap_or(0);
@@ -383,7 +388,7 @@ async fn think_kb_search(
         let accessible_ids = get_accessible_kb_ids(&mut conn, user_id)?;
         let kb_collections = get_accessible_kb_collections(&mut conn, bot_id, &accessible_ids)?;
         let consolidations = get_recent_consolidations(&mut conn, bot_id, 10);
-        let memory_stats = get_kb_memory_stats(&mut conn, bot_id);
+        let memory_stats = get_kb_memory_stats(&mut conn, &bot_name, bot_id);
 
         (bot_name, kb_collections, consolidations, memory_stats)
     };

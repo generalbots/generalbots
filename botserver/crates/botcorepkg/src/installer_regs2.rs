@@ -224,8 +224,8 @@ listener "tcp" {
   tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
-api_addr = "https://localhost:8200"
-cluster_addr = "https://localhost:8201"
+api_addr = "https://127.0.0.1:8200"
+cluster_addr = "https://127.0.0.1:8201"
 ui = true
 disable_mlock = true
 EOF"#.to_string(),
@@ -267,8 +267,8 @@ listener "tcp" {
   tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
-api_addr = "https://localhost:8200"
-cluster_addr = "https://localhost:8201"
+api_addr = "https://127.0.0.1:8200"
+cluster_addr = "https://127.0.0.1:8201"
 ui = true
 disable_mlock = true
 EOF"#.to_string(),
@@ -280,7 +280,7 @@ EOF"#.to_string(),
                 let mut env = HashMap::new();
                 env.insert(
                     "VAULT_ADDR".to_string(),
-                    "https://localhost:8200".to_string(),
+                    "https://127.0.0.1:8200".to_string(),
                 );
                 env.insert(
                     "VAULT_CACERT".to_string(),
@@ -291,10 +291,10 @@ EOF"#.to_string(),
             data_download_list: Vec::new(),
             exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                 .to_string(),
-            check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1; fi"
+            check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; fi"
                 .to_string(),
             exec_cmd_windows: Some("start /B {{BIN_PATH}}\\vault.exe server -config={{CONF_PATH}}\\vault\\config.hcl > {{LOGS_PATH}}\\vault.log 2>&1".to_string()),
-            check_cmd_windows: Some("curl -f -sk --connect-timeout 2 -m 5 https://localhost:8200/v1/sys/health?standbyok=true >NUL 2>&1".to_string()),
+            check_cmd_windows: Some("curl -f -sk --connect-timeout 2 -m 5 %VAULT_ADDR%/v1/sys/health?standbyok=true >NUL 2>&1".to_string()),
             container: None,
         },
     );

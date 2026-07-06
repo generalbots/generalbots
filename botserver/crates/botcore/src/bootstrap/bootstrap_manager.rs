@@ -168,7 +168,7 @@ impl BootstrapManager {
                 #[cfg(feature = "directory")]
                 match crate::package_manager::setup_directory().await {
                     Ok(_) => info!("OAuth client created successfully"),
-                    Err(e) => warn!("Failed to create OAuth client: {}", e),
+                    Err(e) => warn!("Failed to create OAuth client in Directory service (Zitadel): {}. Make sure Zitadel is running on the configured port.", e),
                 }
                 #[cfg(not(feature = "directory"))]
                 info!("Directory feature not enabled, skipping OAuth setup");

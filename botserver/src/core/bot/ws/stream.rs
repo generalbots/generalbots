@@ -89,7 +89,10 @@ pub async fn process_llm_response(
         return;
     }
 
-    match bot_llm_provider.or_else(|| state.llm_provider.clone().map(|p| (p, String::new(), String::new()))) {
+    let env_key = std::env::var("LLM_KEY").unwrap_or_default();
+    let env_model = std::env::var("LLM_MODEL").unwrap_or_default();
+    info!("stream: bot_llm_provider.is_some={}, fallback_key_len={}", bot_llm_provider.is_some(), env_key.len());
+    match bot_llm_provider.or_else(|| state.llm_provider.clone().map(move |p| (p, env_key.clone(), env_model.clone()))) {
         Some((ref llm, ref llm_key, ref llm_model)) => {
             let state_clone = state.clone();
             let prompt_clone = full_prompt.to_string();
@@ -142,7 +145,7 @@ pub async fn process_llm_response(
             };
 
             let _stream_handle = tokio::spawn(async move {
-                info!("LLM spawn task starting: model={}, key_len={}", llm_model_clone, llm_key_clone.len());
+                info!("LLM spawn task starting: model={}, key_len={}, key_first_20={}", llm_model_clone, llm_key_clone.len(), &llm_key_clone.chars().take(20).collect::<String>());
                 let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
                 if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, tools_arg.as_ref()).await {
                     error!("LLM stream error: {}", e);

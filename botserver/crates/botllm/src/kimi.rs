@@ -109,7 +109,14 @@ impl KimiClient {
         let base = base_url.trim_end_matches('/').to_string();
 
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(180))
+                .connect_timeout(std::time::Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| {
+                    log::warn!("kimi: failed to build reqwest client, using default");
+                    reqwest::Client::new()
+                }),
             base_url: base,
         }
     }

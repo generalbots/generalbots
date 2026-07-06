@@ -1,0 +1,4 @@
+ALTER TABLE drive_files DROP COLUMN IF EXISTS path;
+ALTER TABLE drive_files DROP COLUMN IF EXISTS name;
+ALTER TABLE drive_files DROP COLUMN IF EXISTS mime_type;
+ALTER TABLE drive_files DROP COLUMN IF EXISTS branch_id;

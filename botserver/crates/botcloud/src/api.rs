@@ -374,7 +374,7 @@ async fn handle_signup(
     #[cfg(feature = "saas")]
     {
         use botproducts::seed::seed_default_products;
-        seed_default_products(&mut conn, Uuid::nil());
+        seed_default_products(&mut conn, branch_id);
     }
 
     // 9. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal — outside tx)

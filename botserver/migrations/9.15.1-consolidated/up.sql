@@ -1,10 +1,109 @@
--- 6.5.0-consolidated: up.sql
+-- 9.15.1-consolidated: up.sql (was 6.5.0-consolidated, moved after 9.15-org-branches for branch_id ordering)
 -- Consolidated schema creation from scratch
+
+-- Ensure branch_id and tenant_id columns exist on all tables that need them
+-- (tables may have been created by earlier migrations without these columns).
+-- Also ensure UNIQUE constraints required by later migrations (9.15-org-branches)
+-- are in place. This must run BEFORE ALTER TABLE ADD CONSTRAINT statements below.
+DO $$
+DECLARE
+    tables_with_branch_id TEXT[] := ARRAY[
+        'attendance_sla_policies', 'attendance_webhooks', 'attendant_agent_status',
+        'attendant_canned_responses', 'attendant_queues', 'attendant_sessions',
+        'attendant_tags', 'attendant_wrap_up_codes', 'billing_alert_history',
+        'billing_grace_periods', 'billing_invoices', 'billing_notification_preferences',
+        'billing_payments', 'billing_quotes', 'billing_recurring', 'billing_tax_rates',
+        'billing_usage_alerts', 'bots', 'calendar_events', 'calendars', 'canvases',
+        'compliance_access_reviews', 'compliance_audit_log', 'compliance_checks',
+        'compliance_evidence', 'compliance_issues', 'compliance_risk_assessments',
+        'compliance_training_records', 'conversational_queries', 'cookie_consents',
+        'crm_accounts', 'crm_activities', 'crm_contacts', 'crm_deals', 'crm_deal_segments',
+        'crm_leads', 'crm_notes', 'crm_opportunities', 'crm_pipeline_stages',
+        'dashboard_data_sources', 'dashboards', 'data_deletion_requests',
+        'data_export_requests', 'feature_flags', 'inventory_movements',
+        'legal_acceptances', 'legal_documents', 'marketing_campaigns', 'marketing_lists',
+        'marketing_templates', 'meeting_recordings', 'meeting_rooms',
+        'meeting_transcriptions', 'meeting_whiteboards', 'okr_activity_log',
+        'okr_alignments', 'okr_checkins', 'okr_comments', 'okr_key_results',
+        'okr_objectives', 'okr_templates', 'organization_invitations', 'people',
+        'people_departments', 'people_org_chart', 'people_skills', 'people_teams',
+        'people_time_off', 'price_lists', 'product_categories', 'products',
+        'research_projects', 'scheduled_meetings', 'services', 'social_announcements',
+        'social_channel_accounts', 'social_communities', 'social_hashtags',
+        'social_posts', 'social_praises', 'support_tickets', 'ticket_canned_responses',
+        'ticket_categories', 'ticket_sla_policies', 'ticket_tags', 'whiteboard_exports',
+        'workspaces', 'workspace_templates'
+    ];
+    tables_with_tenant_id TEXT[] := ARRAY[
+        'organizations'
+    ];
+    t TEXT;
+BEGIN
+    FOREACH t IN ARRAY tables_with_branch_id LOOP
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = t) THEN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = t AND column_name = 'branch_id') THEN
+                EXECUTE format('ALTER TABLE public.%I ADD COLUMN branch_id UUID', t);
+            END IF;
+        END IF;
+    END LOOP;
+    FOREACH t IN ARRAY tables_with_tenant_id LOOP
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = t) THEN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = t AND column_name = 'tenant_id') THEN
+                EXECUTE format('ALTER TABLE public.%I ADD COLUMN tenant_id UUID', t);
+            END IF;
+        END IF;
+    END LOOP;
+    -- Ensure UNIQUE constraints needed by 9.15-org-branches ON CONFLICT clauses
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'branches') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'branches' AND constraint_type = 'UNIQUE' AND constraint_name = 'branches_org_id_slug_key') THEN
+            ALTER TABLE branches ADD CONSTRAINT branches_org_id_slug_key UNIQUE (org_id, slug);
+        END IF;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'tenants') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'tenants' AND constraint_type = 'UNIQUE' AND constraint_name = 'tenants_slug_key') THEN
+            ALTER TABLE tenants ADD CONSTRAINT tenants_slug_key UNIQUE (slug);
+        END IF;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'organizations') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'organizations' AND constraint_type = 'UNIQUE' AND constraint_name = 'organizations_slug_key') THEN
+            ALTER TABLE organizations ADD CONSTRAINT organizations_slug_key UNIQUE (slug);
+        END IF;
+    END IF;
+    -- Add missing columns to product_categories (used by botproducts seed)
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'product_categories') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'product_categories' AND column_name = 'display_order') THEN
+            ALTER TABLE product_categories ADD COLUMN display_order INTEGER;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'product_categories' AND column_name = 'updated_at') THEN
+            ALTER TABLE product_categories ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+        END IF;
+        -- Make org_id and bot_id nullable (botproducts seed may not provide them)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'product_categories' AND column_name = 'org_id' AND is_nullable = 'NO') THEN
+            ALTER TABLE product_categories ALTER COLUMN org_id DROP NOT NULL;
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'product_categories' AND column_name = 'bot_id' AND is_nullable = 'NO') THEN
+            ALTER TABLE product_categories ALTER COLUMN bot_id DROP NOT NULL;
+        END IF;
+    END IF;
+    -- Add category_id to products (used by botproducts seed)
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'products') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'category_id') THEN
+            ALTER TABLE products ADD COLUMN category_id UUID;
+        END IF;
+        -- Make org_id and bot_id nullable (botproducts seed may not provide them)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'org_id' AND is_nullable = 'NO') THEN
+            ALTER TABLE products ALTER COLUMN org_id DROP NOT NULL;
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'bot_id' AND is_nullable = 'NO') THEN
+            ALTER TABLE products ALTER COLUMN bot_id DROP NOT NULL;
+        END IF;
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS attendance_sla_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL,
-    sla_policy_id UUID NOT NULL REFERENCES attendance_sla_policies(id) ON DELETE CASCADE,
+    sla_policy_id UUID NOT NULL,
     event_type VARCHAR(255) NOT NULL,
     due_at TIMESTAMPTZ NOT NULL,
     met_at TIMESTAMPTZ,
@@ -15,8 +114,8 @@ CREATE TABLE IF NOT EXISTS attendance_sla_events (
 
 CREATE TABLE IF NOT EXISTS attendance_sla_policies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     channel VARCHAR(255),
     priority VARCHAR(255),
@@ -29,8 +128,8 @@ CREATE TABLE IF NOT EXISTS attendance_sla_policies (
 
 CREATE TABLE IF NOT EXISTS attendance_webhooks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     webhook_url VARCHAR(255) NOT NULL,
     events TEXT[],
     is_active BOOLEAN DEFAULT TRUE,
@@ -41,8 +140,8 @@ CREATE TABLE IF NOT EXISTS attendance_webhooks (
 
 CREATE TABLE IF NOT EXISTS attendant_agent_status (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     agent_id UUID NOT NULL,
     status VARCHAR(255) NOT NULL,
     status_message VARCHAR(255),
@@ -58,8 +157,8 @@ CREATE TABLE IF NOT EXISTS attendant_agent_status (
 
 CREATE TABLE IF NOT EXISTS attendant_canned_responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     shortcut VARCHAR(255),
@@ -74,7 +173,7 @@ CREATE TABLE IF NOT EXISTS attendant_canned_responses (
 
 CREATE TABLE IF NOT EXISTS attendant_queue_agents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    queue_id UUID NOT NULL REFERENCES attendant_queues(id) ON DELETE CASCADE,
+    queue_id UUID NOT NULL,
     agent_id UUID NOT NULL,
     max_concurrent INTEGER NOT NULL,
     priority INTEGER NOT NULL,
@@ -85,8 +184,8 @@ CREATE TABLE IF NOT EXISTS attendant_queue_agents (
 
 CREATE TABLE IF NOT EXISTS attendant_queues (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     priority INTEGER NOT NULL,
@@ -100,7 +199,7 @@ CREATE TABLE IF NOT EXISTS attendant_queues (
 
 CREATE TABLE IF NOT EXISTS attendant_session_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES attendant_sessions(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL,
     sender_type VARCHAR(255) NOT NULL,
     sender_id UUID,
     sender_name VARCHAR(255),
@@ -113,8 +212,8 @@ CREATE TABLE IF NOT EXISTS attendant_session_messages (
 
 CREATE TABLE IF NOT EXISTS attendant_session_wrap_up (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES attendant_sessions(id) ON DELETE CASCADE,
-    wrap_up_code_id UUID REFERENCES attendant_wrap_up_codes(id) ON DELETE SET NULL,
+    session_id UUID NOT NULL,
+    wrap_up_code_id UUID,
     notes TEXT,
     follow_up_required BOOLEAN NOT NULL,
     follow_up_date VARCHAR(255),
@@ -124,8 +223,8 @@ CREATE TABLE IF NOT EXISTS attendant_session_wrap_up (
 
 CREATE TABLE IF NOT EXISTS attendant_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     session_number VARCHAR(255) NOT NULL,
     channel VARCHAR(255) NOT NULL,
     customer_id UUID,
@@ -135,7 +234,7 @@ CREATE TABLE IF NOT EXISTS attendant_sessions (
     status VARCHAR(255) NOT NULL,
     priority INTEGER NOT NULL,
     agent_id UUID,
-    queue_id UUID REFERENCES attendant_queues(id) ON DELETE SET NULL,
+    queue_id UUID,
     subject VARCHAR(255),
     initial_message TEXT,
     started_at TIMESTAMPTZ NOT NULL,
@@ -155,8 +254,8 @@ CREATE TABLE IF NOT EXISTS attendant_sessions (
 
 CREATE TABLE IF NOT EXISTS attendant_tags (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     color VARCHAR(255),
     description TEXT,
@@ -166,7 +265,7 @@ CREATE TABLE IF NOT EXISTS attendant_tags (
 
 CREATE TABLE IF NOT EXISTS attendant_transfers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES attendant_sessions(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL,
     from_agent_id UUID,
     to_agent_id UUID,
     to_queue_id UUID,
@@ -177,8 +276,8 @@ CREATE TABLE IF NOT EXISTS attendant_transfers (
 
 CREATE TABLE IF NOT EXISTS attendant_wrap_up_codes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     code VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -204,8 +303,8 @@ CREATE TABLE IF NOT EXISTS basic_tools (
 
 CREATE TABLE IF NOT EXISTS billing_alert_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     alert_id UUID NOT NULL,
     metric VARCHAR(255) NOT NULL,
     severity VARCHAR(255) NOT NULL,
@@ -222,8 +321,8 @@ CREATE TABLE IF NOT EXISTS billing_alert_history (
 
 CREATE TABLE IF NOT EXISTS billing_grace_periods (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     metric VARCHAR(255) NOT NULL,
     started_at TIMESTAMPTZ NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
@@ -239,7 +338,7 @@ CREATE TABLE IF NOT EXISTS billing_grace_periods (
 
 CREATE TABLE IF NOT EXISTS billing_invoice_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    invoice_id UUID NOT NULL REFERENCES billing_invoices(id) ON DELETE CASCADE,
+    invoice_id UUID NOT NULL,
     product_id UUID,
     description VARCHAR(255) NOT NULL,
     quantity NUMERIC NOT NULL,
@@ -253,8 +352,8 @@ CREATE TABLE IF NOT EXISTS billing_invoice_items (
 
 CREATE TABLE IF NOT EXISTS billing_invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     invoice_number VARCHAR(255) NOT NULL,
     customer_id UUID,
     customer_name VARCHAR(255) NOT NULL,
@@ -284,8 +383,8 @@ CREATE TABLE IF NOT EXISTS billing_invoices (
 
 CREATE TABLE IF NOT EXISTS billing_notification_preferences (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     enabled BOOLEAN NOT NULL,
     channels JSONB NOT NULL,
     email_recipients JSONB NOT NULL,
@@ -306,9 +405,9 @@ CREATE TABLE IF NOT EXISTS billing_notification_preferences (
 
 CREATE TABLE IF NOT EXISTS billing_payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    invoice_id UUID REFERENCES billing_invoices(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
+    invoice_id UUID,
     payment_number VARCHAR(255) NOT NULL,
     amount NUMERIC NOT NULL,
     currency VARCHAR(255) NOT NULL,
@@ -326,7 +425,7 @@ CREATE TABLE IF NOT EXISTS billing_payments (
 
 CREATE TABLE IF NOT EXISTS billing_quote_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    quote_id UUID NOT NULL REFERENCES billing_quotes(id) ON DELETE CASCADE,
+    quote_id UUID NOT NULL,
     product_id UUID,
     description VARCHAR(255) NOT NULL,
     quantity NUMERIC NOT NULL,
@@ -340,8 +439,8 @@ CREATE TABLE IF NOT EXISTS billing_quote_items (
 
 CREATE TABLE IF NOT EXISTS billing_quotes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     quote_number VARCHAR(255) NOT NULL,
     customer_id UUID,
     customer_name VARCHAR(255) NOT NULL,
@@ -369,8 +468,8 @@ CREATE TABLE IF NOT EXISTS billing_quotes (
 
 CREATE TABLE IF NOT EXISTS billing_recurring (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     customer_id UUID,
     customer_name VARCHAR(255) NOT NULL,
     customer_email VARCHAR(255),
@@ -392,8 +491,8 @@ CREATE TABLE IF NOT EXISTS billing_recurring (
 
 CREATE TABLE IF NOT EXISTS billing_tax_rates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     rate NUMERIC NOT NULL,
     description TEXT,
@@ -405,8 +504,8 @@ CREATE TABLE IF NOT EXISTS billing_tax_rates (
 
 CREATE TABLE IF NOT EXISTS billing_usage_alerts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     metric VARCHAR(255) NOT NULL,
     severity VARCHAR(255) NOT NULL,
     current_usage BIGINT NOT NULL,
@@ -424,7 +523,7 @@ CREATE TABLE IF NOT EXISTS billing_usage_alerts (
 
 CREATE TABLE IF NOT EXISTS bot_configuration (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID REFERENCES bots(id) ON DELETE SET NULL,
+    bot_id UUID,
     config_key TEXT NOT NULL,
     config_value TEXT NOT NULL,
     is_encrypted BOOLEAN NOT NULL,
@@ -435,7 +534,7 @@ CREATE TABLE IF NOT EXISTS bot_configuration (
 
 CREATE TABLE IF NOT EXISTS bot_memories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID REFERENCES bots(id) ON DELETE SET NULL,
+    bot_id UUID,
     key TEXT NOT NULL,
     value TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -453,8 +552,8 @@ CREATE TABLE IF NOT EXISTS bot_shared_memory (
 
 CREATE TABLE IF NOT EXISTS bots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL,
+    branch_id UUID NOT NULL,
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) NOT NULL,
     description TEXT,
@@ -472,8 +571,8 @@ CREATE TABLE IF NOT EXISTS bots (
 
 CREATE TABLE IF NOT EXISTS branches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL,
+    tenant_id UUID NOT NULL,
     slug VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -484,7 +583,7 @@ CREATE TABLE IF NOT EXISTS branches (
 
 CREATE TABLE IF NOT EXISTS calendar_event_attendees (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+    event_id UUID NOT NULL,
     email VARCHAR(255) NOT NULL,
     name VARCHAR(255),
     status VARCHAR(255) NOT NULL,
@@ -496,7 +595,7 @@ CREATE TABLE IF NOT EXISTS calendar_event_attendees (
 
 CREATE TABLE IF NOT EXISTS calendar_event_reminders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+    event_id UUID NOT NULL,
     reminder_type VARCHAR(255) NOT NULL,
     minutes_before INTEGER NOT NULL,
     is_sent BOOLEAN NOT NULL,
@@ -506,9 +605,9 @@ CREATE TABLE IF NOT EXISTS calendar_event_reminders (
 
 CREATE TABLE IF NOT EXISTS calendar_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    calendar_id UUID NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL,
+    branch_id UUID,
+    calendar_id UUID NOT NULL,
     owner_id UUID NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -532,7 +631,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 
 CREATE TABLE IF NOT EXISTS calendar_shares (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    calendar_id UUID NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+    calendar_id UUID NOT NULL,
     shared_with_user_id UUID,
     shared_with_email VARCHAR(255),
     permission VARCHAR(255) NOT NULL,
@@ -541,8 +640,8 @@ CREATE TABLE IF NOT EXISTS calendar_shares (
 
 CREATE TABLE IF NOT EXISTS calendars (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     owner_id UUID NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -557,7 +656,7 @@ CREATE TABLE IF NOT EXISTS calendars (
 
 CREATE TABLE IF NOT EXISTS canvas_collaborators (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    canvas_id UUID NOT NULL REFERENCES canvases(id) ON DELETE CASCADE,
+    canvas_id UUID NOT NULL,
     user_id UUID NOT NULL,
     permission VARCHAR(255) NOT NULL,
     added_by UUID,
@@ -566,7 +665,7 @@ CREATE TABLE IF NOT EXISTS canvas_collaborators (
 
 CREATE TABLE IF NOT EXISTS canvas_comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    canvas_id UUID NOT NULL REFERENCES canvases(id) ON DELETE CASCADE,
+    canvas_id UUID NOT NULL,
     element_id UUID,
     parent_comment_id UUID,
     author_id UUID NOT NULL,
@@ -582,7 +681,7 @@ CREATE TABLE IF NOT EXISTS canvas_comments (
 
 CREATE TABLE IF NOT EXISTS canvas_elements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    canvas_id UUID NOT NULL REFERENCES canvases(id) ON DELETE CASCADE,
+    canvas_id UUID NOT NULL,
     element_type VARCHAR(255) NOT NULL,
     x DOUBLE PRECISION NOT NULL,
     y DOUBLE PRECISION NOT NULL,
@@ -599,7 +698,7 @@ CREATE TABLE IF NOT EXISTS canvas_elements (
 
 CREATE TABLE IF NOT EXISTS canvas_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    canvas_id UUID NOT NULL REFERENCES canvases(id) ON DELETE CASCADE,
+    canvas_id UUID NOT NULL,
     version_number INTEGER NOT NULL,
     name VARCHAR(255),
     elements_snapshot JSONB NOT NULL,
@@ -609,8 +708,8 @@ CREATE TABLE IF NOT EXISTS canvas_versions (
 
 CREATE TABLE IF NOT EXISTS canvases (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     width INTEGER NOT NULL,
@@ -633,8 +732,8 @@ CREATE TABLE IF NOT EXISTS clicks (
 
 CREATE TABLE IF NOT EXISTS compliance_access_reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     user_id UUID NOT NULL,
     reviewer_id UUID NOT NULL,
     review_date TIMESTAMPTZ NOT NULL,
@@ -650,8 +749,8 @@ CREATE TABLE IF NOT EXISTS compliance_access_reviews (
 
 CREATE TABLE IF NOT EXISTS compliance_audit_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     event_type VARCHAR(255) NOT NULL,
     user_id UUID,
     resource_type VARCHAR(255) NOT NULL,
@@ -666,8 +765,8 @@ CREATE TABLE IF NOT EXISTS compliance_audit_log (
 
 CREATE TABLE IF NOT EXISTS compliance_checks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     framework VARCHAR(255) NOT NULL,
     control_id VARCHAR(255) NOT NULL,
     control_name VARCHAR(255) NOT NULL,
@@ -683,8 +782,8 @@ CREATE TABLE IF NOT EXISTS compliance_checks (
 
 CREATE TABLE IF NOT EXISTS compliance_evidence (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     check_id UUID,
     issue_id UUID,
     evidence_type VARCHAR(255) NOT NULL,
@@ -702,9 +801,9 @@ CREATE TABLE IF NOT EXISTS compliance_evidence (
 
 CREATE TABLE IF NOT EXISTS compliance_issues (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    check_id UUID REFERENCES compliance_checks(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
+    check_id UUID,
     severity VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
@@ -721,8 +820,8 @@ CREATE TABLE IF NOT EXISTS compliance_issues (
 
 CREATE TABLE IF NOT EXISTS compliance_risk_assessments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     title VARCHAR(255) NOT NULL,
     assessor_id UUID NOT NULL,
     methodology VARCHAR(255) NOT NULL,
@@ -738,7 +837,7 @@ CREATE TABLE IF NOT EXISTS compliance_risk_assessments (
 
 CREATE TABLE IF NOT EXISTS compliance_risks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    assessment_id UUID NOT NULL REFERENCES compliance_risk_assessments(id) ON DELETE CASCADE,
+    assessment_id UUID NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     category VARCHAR(255) NOT NULL,
@@ -757,8 +856,8 @@ CREATE TABLE IF NOT EXISTS compliance_risks (
 
 CREATE TABLE IF NOT EXISTS compliance_training_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     user_id UUID NOT NULL,
     training_type VARCHAR(255) NOT NULL,
     training_name VARCHAR(255) NOT NULL,
@@ -774,7 +873,7 @@ CREATE TABLE IF NOT EXISTS compliance_training_records (
 
 CREATE TABLE IF NOT EXISTS consent_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    consent_id UUID NOT NULL REFERENCES cookie_consents(id) ON DELETE CASCADE,
+    consent_id UUID NOT NULL,
     action VARCHAR(255) NOT NULL,
     previous_consents JSONB NOT NULL,
     new_consents JSONB NOT NULL,
@@ -785,8 +884,8 @@ CREATE TABLE IF NOT EXISTS consent_history (
 
 CREATE TABLE IF NOT EXISTS conversational_queries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     dashboard_id UUID,
     user_id UUID NOT NULL,
     natural_language TEXT NOT NULL,
@@ -797,8 +896,8 @@ CREATE TABLE IF NOT EXISTS conversational_queries (
 
 CREATE TABLE IF NOT EXISTS cookie_consents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     user_id UUID,
     session_id VARCHAR(255),
     ip_address VARCHAR(255),
@@ -818,8 +917,8 @@ CREATE TABLE IF NOT EXISTS cookie_consents (
 
 CREATE TABLE IF NOT EXISTS crm_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     website VARCHAR(255),
     industry VARCHAR(255),
@@ -843,8 +942,8 @@ CREATE TABLE IF NOT EXISTS crm_accounts (
 
 CREATE TABLE IF NOT EXISTS crm_activities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     contact_id UUID,
     lead_id UUID,
     opportunity_id UUID,
@@ -861,8 +960,8 @@ CREATE TABLE IF NOT EXISTS crm_activities (
 
 CREATE TABLE IF NOT EXISTS crm_contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     first_name VARCHAR(255),
     last_name VARCHAR(255),
     email VARCHAR(255),
@@ -888,8 +987,8 @@ CREATE TABLE IF NOT EXISTS crm_contacts (
 
 CREATE TABLE IF NOT EXISTS crm_deal_segments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description VARCHAR(255),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -897,8 +996,8 @@ CREATE TABLE IF NOT EXISTS crm_deal_segments (
 
 CREATE TABLE IF NOT EXISTS crm_deals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     contact_id UUID,
     account_id UUID,
     am_id UUID,
@@ -914,7 +1013,7 @@ CREATE TABLE IF NOT EXISTS crm_deals (
     probability INTEGER NOT NULL,
     source VARCHAR(255),
     segment_id UUID,
-    department_id UUID REFERENCES people_departments(id) ON DELETE SET NULL,
+    department_id UUID,
     expected_close_date VARCHAR(255),
     actual_close_date VARCHAR(255),
     period INTEGER,
@@ -931,8 +1030,8 @@ CREATE TABLE IF NOT EXISTS crm_deals (
 
 CREATE TABLE IF NOT EXISTS crm_leads (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     contact_id UUID,
     account_id UUID,
     title VARCHAR(255) NOT NULL,
@@ -955,8 +1054,8 @@ CREATE TABLE IF NOT EXISTS crm_leads (
 
 CREATE TABLE IF NOT EXISTS crm_notes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     contact_id UUID,
     lead_id UUID,
     opportunity_id UUID,
@@ -969,8 +1068,8 @@ CREATE TABLE IF NOT EXISTS crm_notes (
 
 CREATE TABLE IF NOT EXISTS crm_opportunities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     lead_id UUID,
     account_id UUID,
     contact_id UUID,
@@ -994,8 +1093,8 @@ CREATE TABLE IF NOT EXISTS crm_opportunities (
 
 CREATE TABLE IF NOT EXISTS crm_pipeline_stages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     stage_order INTEGER NOT NULL,
     probability INTEGER NOT NULL,
@@ -1007,8 +1106,8 @@ CREATE TABLE IF NOT EXISTS crm_pipeline_stages (
 
 CREATE TABLE IF NOT EXISTS dashboard_data_sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     source_type VARCHAR(255) NOT NULL,
@@ -1023,7 +1122,7 @@ CREATE TABLE IF NOT EXISTS dashboard_data_sources (
 
 CREATE TABLE IF NOT EXISTS dashboard_filters (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    dashboard_id UUID NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
+    dashboard_id UUID NOT NULL,
     name VARCHAR(255) NOT NULL,
     field VARCHAR(255) NOT NULL,
     filter_type VARCHAR(255) NOT NULL,
@@ -1035,14 +1134,14 @@ CREATE TABLE IF NOT EXISTS dashboard_filters (
 
 CREATE TABLE IF NOT EXISTS dashboard_widget_data_sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    widget_id UUID NOT NULL REFERENCES dashboard_widgets(id) ON DELETE CASCADE,
-    data_source_id UUID NOT NULL REFERENCES dashboard_data_sources(id) ON DELETE CASCADE,
+    widget_id UUID NOT NULL,
+    data_source_id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS dashboard_widgets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    dashboard_id UUID NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
+    dashboard_id UUID NOT NULL,
     widget_type VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     position_x INTEGER NOT NULL,
@@ -1058,8 +1157,8 @@ CREATE TABLE IF NOT EXISTS dashboard_widgets (
 
 CREATE TABLE IF NOT EXISTS dashboards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     owner_id UUID NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -1074,8 +1173,8 @@ CREATE TABLE IF NOT EXISTS dashboards (
 
 CREATE TABLE IF NOT EXISTS data_deletion_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     user_id UUID NOT NULL,
     request_type VARCHAR(255) NOT NULL,
     status VARCHAR(255) NOT NULL,
@@ -1093,8 +1192,8 @@ CREATE TABLE IF NOT EXISTS data_deletion_requests (
 
 CREATE TABLE IF NOT EXISTS data_export_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     user_id UUID NOT NULL,
     status VARCHAR(255) NOT NULL,
     format VARCHAR(255) NOT NULL,
@@ -1133,7 +1232,7 @@ CREATE TABLE IF NOT EXISTS database_saved_queries (
 
 CREATE TABLE IF NOT EXISTS desktop_connection_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    connection_id UUID REFERENCES desktop_connections(id) ON DELETE SET NULL,
+    connection_id UUID,
     user_id UUID NOT NULL,
     session_id UUID NOT NULL,
     host VARCHAR(255) NOT NULL,
@@ -1378,8 +1477,8 @@ CREATE TABLE IF NOT EXISTS email_tracking (
 
 CREATE TABLE IF NOT EXISTS feature_flags (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     feature VARCHAR(255) NOT NULL,
     enabled BOOLEAN NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -1398,9 +1497,9 @@ CREATE TABLE IF NOT EXISTS global_email_signatures (
 
 CREATE TABLE IF NOT EXISTS inventory_movements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL,
+    branch_id UUID,
+    product_id UUID NOT NULL,
     movement_type VARCHAR(255) NOT NULL,
     quantity INTEGER NOT NULL,
     reference_type VARCHAR(255),
@@ -1412,7 +1511,7 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
 
 CREATE TABLE IF NOT EXISTS kb_collections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID REFERENCES bots(id) ON DELETE SET NULL,
+    bot_id UUID,
     name TEXT NOT NULL,
     folder_path TEXT NOT NULL,
     qdrant_collection TEXT NOT NULL,
@@ -1423,7 +1522,7 @@ CREATE TABLE IF NOT EXISTS kb_collections (
 
 CREATE TABLE IF NOT EXISTS kb_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID REFERENCES bots(id) ON DELETE SET NULL,
+    bot_id UUID,
     collection_name TEXT NOT NULL,
     file_path TEXT NOT NULL,
     file_size BIGINT NOT NULL,
@@ -1440,9 +1539,9 @@ CREATE TABLE IF NOT EXISTS kb_documents (
 
 CREATE TABLE IF NOT EXISTS kb_group_associations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    kb_id UUID NOT NULL REFERENCES kb_collections(id) ON DELETE CASCADE,
-    group_id UUID NOT NULL REFERENCES rbac_groups(id) ON DELETE CASCADE,
-    granted_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    kb_id UUID NOT NULL,
+    group_id UUID NOT NULL,
+    granted_by UUID,
     granted_at TIMESTAMPTZ NOT NULL
 );
 
@@ -1541,10 +1640,10 @@ CREATE TABLE IF NOT EXISTS learn_user_progress (
 
 CREATE TABLE IF NOT EXISTS legal_acceptances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     user_id UUID NOT NULL,
-    document_id UUID NOT NULL REFERENCES legal_documents(id) ON DELETE CASCADE,
+    document_id UUID NOT NULL,
     document_version VARCHAR(255) NOT NULL,
     accepted_at TIMESTAMPTZ NOT NULL,
     ip_address VARCHAR(255),
@@ -1553,7 +1652,7 @@ CREATE TABLE IF NOT EXISTS legal_acceptances (
 
 CREATE TABLE IF NOT EXISTS legal_document_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    document_id UUID NOT NULL REFERENCES legal_documents(id) ON DELETE CASCADE,
+    document_id UUID NOT NULL,
     version VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     change_summary TEXT,
@@ -1563,8 +1662,8 @@ CREATE TABLE IF NOT EXISTS legal_document_versions (
 
 CREATE TABLE IF NOT EXISTS legal_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     slug VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
@@ -1581,8 +1680,8 @@ CREATE TABLE IF NOT EXISTS legal_documents (
 
 CREATE TABLE IF NOT EXISTS marketing_campaigns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     deal_id UUID,
     name VARCHAR(255) NOT NULL,
     status VARCHAR(255) NOT NULL,
@@ -1606,8 +1705,8 @@ CREATE TABLE IF NOT EXISTS marketing_list_contacts (
 
 CREATE TABLE IF NOT EXISTS marketing_lists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     list_type VARCHAR(255) NOT NULL,
     query_text TEXT,
@@ -1633,8 +1732,8 @@ CREATE TABLE IF NOT EXISTS marketing_recipients (
 
 CREATE TABLE IF NOT EXISTS marketing_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     channel VARCHAR(255) NOT NULL,
     subject VARCHAR(255),
@@ -1650,8 +1749,8 @@ CREATE TABLE IF NOT EXISTS marketing_templates (
 
 CREATE TABLE IF NOT EXISTS meeting_chat_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    room_id UUID NOT NULL REFERENCES meeting_rooms(id) ON DELETE CASCADE,
-    participant_id UUID REFERENCES meeting_participants(id) ON DELETE SET NULL,
+    room_id UUID NOT NULL,
+    participant_id UUID,
     sender_name VARCHAR(255) NOT NULL,
     message_type VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
@@ -1663,7 +1762,7 @@ CREATE TABLE IF NOT EXISTS meeting_chat_messages (
 
 CREATE TABLE IF NOT EXISTS meeting_participants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    room_id UUID NOT NULL REFERENCES meeting_rooms(id) ON DELETE CASCADE,
+    room_id UUID NOT NULL,
     user_id UUID,
     participant_name VARCHAR(255) NOT NULL,
     email VARCHAR(255),
@@ -1679,9 +1778,9 @@ CREATE TABLE IF NOT EXISTS meeting_participants (
 
 CREATE TABLE IF NOT EXISTS meeting_recordings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    room_id UUID NOT NULL REFERENCES meeting_rooms(id) ON DELETE CASCADE,
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    room_id UUID NOT NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     recording_type VARCHAR(255) NOT NULL,
     file_url TEXT,
     file_size BIGINT,
@@ -1697,8 +1796,8 @@ CREATE TABLE IF NOT EXISTS meeting_recordings (
 
 CREATE TABLE IF NOT EXISTS meeting_rooms (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     room_code VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -1716,11 +1815,11 @@ CREATE TABLE IF NOT EXISTS meeting_rooms (
 
 CREATE TABLE IF NOT EXISTS meeting_transcriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    room_id UUID NOT NULL REFERENCES meeting_rooms(id) ON DELETE CASCADE,
-    recording_id UUID REFERENCES meeting_recordings(id) ON DELETE SET NULL,
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    participant_id UUID REFERENCES meeting_participants(id) ON DELETE SET NULL,
+    room_id UUID NOT NULL,
+    recording_id UUID,
+    org_id UUID NOT NULL,
+    branch_id UUID,
+    participant_id UUID,
     speaker_name VARCHAR(255),
     content TEXT NOT NULL,
     start_time NUMERIC NOT NULL,
@@ -1734,9 +1833,9 @@ CREATE TABLE IF NOT EXISTS meeting_transcriptions (
 
 CREATE TABLE IF NOT EXISTS meeting_whiteboards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    room_id UUID REFERENCES meeting_rooms(id) ON DELETE SET NULL,
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    room_id UUID,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     background_color VARCHAR(255),
     grid_enabled BOOLEAN NOT NULL,
@@ -1762,8 +1861,8 @@ CREATE TABLE IF NOT EXISTS message_history (
 
 CREATE TABLE IF NOT EXISTS okr_activity_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     objective_id UUID,
     key_result_id UUID,
     user_id UUID NOT NULL,
@@ -1777,8 +1876,8 @@ CREATE TABLE IF NOT EXISTS okr_activity_log (
 
 CREATE TABLE IF NOT EXISTS okr_alignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     child_objective_id UUID NOT NULL,
     parent_objective_id UUID NOT NULL,
     alignment_type VARCHAR(255) NOT NULL,
@@ -1788,9 +1887,9 @@ CREATE TABLE IF NOT EXISTS okr_alignments (
 
 CREATE TABLE IF NOT EXISTS okr_checkins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    key_result_id UUID NOT NULL REFERENCES okr_key_results(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL,
+    branch_id UUID,
+    key_result_id UUID NOT NULL,
     user_id UUID NOT NULL,
     previous_value NUMERIC,
     new_value NUMERIC NOT NULL,
@@ -1802,8 +1901,8 @@ CREATE TABLE IF NOT EXISTS okr_checkins (
 
 CREATE TABLE IF NOT EXISTS okr_comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     objective_id UUID,
     key_result_id UUID,
     user_id UUID NOT NULL,
@@ -1815,9 +1914,9 @@ CREATE TABLE IF NOT EXISTS okr_comments (
 
 CREATE TABLE IF NOT EXISTS okr_key_results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    objective_id UUID NOT NULL REFERENCES okr_objectives(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL,
+    branch_id UUID,
+    objective_id UUID NOT NULL,
     owner_id UUID NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -1836,8 +1935,8 @@ CREATE TABLE IF NOT EXISTS okr_key_results (
 
 CREATE TABLE IF NOT EXISTS okr_objectives (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     owner_id UUID NOT NULL,
     parent_id UUID,
     title VARCHAR(255) NOT NULL,
@@ -1856,8 +1955,8 @@ CREATE TABLE IF NOT EXISTS okr_objectives (
 
 CREATE TABLE IF NOT EXISTS okr_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     category VARCHAR(255),
@@ -1872,8 +1971,8 @@ CREATE TABLE IF NOT EXISTS okr_templates (
 
 CREATE TABLE IF NOT EXISTS organization_invitations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     email VARCHAR(255) NOT NULL,
     role VARCHAR(255) NOT NULL,
     status VARCHAR(255) NOT NULL,
@@ -1889,7 +1988,7 @@ CREATE TABLE IF NOT EXISTS organization_invitations (
 
 CREATE TABLE IF NOT EXISTS organizations (
     org_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL,
     name TEXT NOT NULL,
     slug TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -1897,8 +1996,8 @@ CREATE TABLE IF NOT EXISTS organizations (
 
 CREATE TABLE IF NOT EXISTS people (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     user_id UUID,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255),
@@ -1926,8 +2025,8 @@ CREATE TABLE IF NOT EXISTS people (
 
 CREATE TABLE IF NOT EXISTS people_departments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     code VARCHAR(255),
@@ -1941,8 +2040,8 @@ CREATE TABLE IF NOT EXISTS people_departments (
 
 CREATE TABLE IF NOT EXISTS people_org_chart (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     person_id UUID NOT NULL,
     reports_to_id UUID,
     position_title VARCHAR(255),
@@ -1956,8 +2055,8 @@ CREATE TABLE IF NOT EXISTS people_org_chart (
 
 CREATE TABLE IF NOT EXISTS people_person_skills (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
-    skill_id UUID NOT NULL REFERENCES people_skills(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL,
+    skill_id UUID NOT NULL,
     proficiency_level INTEGER NOT NULL,
     years_experience NUMERIC,
     verified_by UUID,
@@ -1967,8 +2066,8 @@ CREATE TABLE IF NOT EXISTS people_person_skills (
 
 CREATE TABLE IF NOT EXISTS people_skills (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     category VARCHAR(255),
     description TEXT,
@@ -1978,8 +2077,8 @@ CREATE TABLE IF NOT EXISTS people_skills (
 
 CREATE TABLE IF NOT EXISTS people_team_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    team_id UUID NOT NULL REFERENCES people_teams(id) ON DELETE CASCADE,
-    person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    team_id UUID NOT NULL,
+    person_id UUID NOT NULL,
     role VARCHAR(255),
     is_primary BOOLEAN NOT NULL,
     joined_at TIMESTAMPTZ NOT NULL
@@ -1987,8 +2086,8 @@ CREATE TABLE IF NOT EXISTS people_team_members (
 
 CREATE TABLE IF NOT EXISTS people_teams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     leader_id UUID,
@@ -2002,8 +2101,8 @@ CREATE TABLE IF NOT EXISTS people_teams (
 
 CREATE TABLE IF NOT EXISTS people_time_off (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     person_id UUID NOT NULL,
     time_off_type VARCHAR(255) NOT NULL,
     status VARCHAR(255) NOT NULL,
@@ -2020,9 +2119,9 @@ CREATE TABLE IF NOT EXISTS people_time_off (
 
 CREATE TABLE IF NOT EXISTS price_list_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    price_list_id UUID NOT NULL REFERENCES price_lists(id) ON DELETE CASCADE,
-    product_id UUID REFERENCES products(id) ON DELETE SET NULL,
-    service_id UUID REFERENCES services(id) ON DELETE SET NULL,
+    price_list_id UUID NOT NULL,
+    product_id UUID,
+    service_id UUID,
     price NUMERIC NOT NULL,
     min_quantity INTEGER NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -2030,8 +2129,8 @@ CREATE TABLE IF NOT EXISTS price_list_items (
 
 CREATE TABLE IF NOT EXISTS price_lists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     currency VARCHAR(255) NOT NULL,
@@ -2047,8 +2146,8 @@ CREATE TABLE IF NOT EXISTS price_lists (
 
 CREATE TABLE IF NOT EXISTS product_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     parent_id UUID,
@@ -2061,7 +2160,7 @@ CREATE TABLE IF NOT EXISTS product_categories (
 
 CREATE TABLE IF NOT EXISTS product_variants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL,
     sku VARCHAR(255),
     name VARCHAR(255) NOT NULL,
     price_adjustment NUMERIC NOT NULL,
@@ -2082,8 +2181,8 @@ CREATE TABLE IF NOT EXISTS product_variants (
 
 CREATE TABLE IF NOT EXISTS products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     sku VARCHAR(255),
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -2108,8 +2207,8 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS project_assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id UUID NOT NULL REFERENCES project_tasks(id) ON DELETE CASCADE,
-    resource_id UUID NOT NULL REFERENCES project_resources(id) ON DELETE CASCADE,
+    task_id UUID NOT NULL,
+    resource_id UUID NOT NULL,
     units VARCHAR(255) NOT NULL,
     work_hours VARCHAR(255) NOT NULL,
     start_date VARCHAR(255) NOT NULL,
@@ -2119,7 +2218,7 @@ CREATE TABLE IF NOT EXISTS project_assignments (
 
 CREATE TABLE IF NOT EXISTS project_dependencies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id UUID NOT NULL REFERENCES project_tasks(id) ON DELETE CASCADE,
+    task_id UUID NOT NULL,
     predecessor_id UUID NOT NULL,
     dependency_type TEXT NOT NULL,
     lag_days INTEGER NOT NULL
@@ -2127,7 +2226,7 @@ CREATE TABLE IF NOT EXISTS project_dependencies (
 
 CREATE TABLE IF NOT EXISTS project_resources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL,
     user_id UUID,
     name TEXT NOT NULL,
     resource_type TEXT NOT NULL,
@@ -2142,7 +2241,7 @@ CREATE TABLE IF NOT EXISTS project_resources (
 
 CREATE TABLE IF NOT EXISTS project_tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL,
     parent_id UUID,
     name TEXT NOT NULL,
     description TEXT,
@@ -2183,8 +2282,8 @@ CREATE TABLE IF NOT EXISTS projects (
 
 CREATE TABLE IF NOT EXISTS rbac_group_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    group_id UUID NOT NULL REFERENCES rbac_groups(id) ON DELETE CASCADE,
-    role_id UUID NOT NULL REFERENCES rbac_roles(id) ON DELETE CASCADE,
+    group_id UUID NOT NULL,
+    role_id UUID NOT NULL,
     granted_by UUID,
     granted_at TIMESTAMPTZ NOT NULL
 );
@@ -2215,8 +2314,8 @@ CREATE TABLE IF NOT EXISTS rbac_permissions (
 
 CREATE TABLE IF NOT EXISTS rbac_role_permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_id UUID NOT NULL REFERENCES rbac_roles(id) ON DELETE CASCADE,
-    permission_id UUID NOT NULL REFERENCES rbac_permissions(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL,
+    permission_id UUID NOT NULL,
     granted_by UUID,
     granted_at TIMESTAMPTZ NOT NULL
 );
@@ -2235,16 +2334,16 @@ CREATE TABLE IF NOT EXISTS rbac_roles (
 
 CREATE TABLE IF NOT EXISTS rbac_user_groups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    group_id UUID NOT NULL REFERENCES rbac_groups(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
+    group_id UUID NOT NULL,
     added_by UUID,
     added_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS rbac_user_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role_id UUID NOT NULL REFERENCES rbac_roles(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
+    role_id UUID NOT NULL,
     granted_by UUID,
     granted_at TIMESTAMPTZ NOT NULL,
     expires_at TIMESTAMPTZ
@@ -2252,7 +2351,7 @@ CREATE TABLE IF NOT EXISTS rbac_user_roles (
 
 CREATE TABLE IF NOT EXISTS research_citations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    source_id UUID NOT NULL REFERENCES research_sources(id) ON DELETE CASCADE,
+    source_id UUID NOT NULL,
     citation_style VARCHAR(255) NOT NULL,
     formatted_citation TEXT NOT NULL,
     bibtex TEXT,
@@ -2261,7 +2360,7 @@ CREATE TABLE IF NOT EXISTS research_citations (
 
 CREATE TABLE IF NOT EXISTS research_collaborators (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES research_projects(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL,
     user_id UUID NOT NULL,
     role VARCHAR(255) NOT NULL,
     invited_by UUID,
@@ -2270,7 +2369,7 @@ CREATE TABLE IF NOT EXISTS research_collaborators (
 
 CREATE TABLE IF NOT EXISTS research_exports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES research_projects(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL,
     export_type VARCHAR(255) NOT NULL,
     format VARCHAR(255) NOT NULL,
     file_url TEXT,
@@ -2283,7 +2382,7 @@ CREATE TABLE IF NOT EXISTS research_exports (
 
 CREATE TABLE IF NOT EXISTS research_findings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES research_projects(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     finding_type VARCHAR(255) NOT NULL,
@@ -2298,7 +2397,7 @@ CREATE TABLE IF NOT EXISTS research_findings (
 
 CREATE TABLE IF NOT EXISTS research_notes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES research_projects(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL,
     source_id UUID,
     title VARCHAR(255),
     content TEXT NOT NULL,
@@ -2313,8 +2412,8 @@ CREATE TABLE IF NOT EXISTS research_notes (
 
 CREATE TABLE IF NOT EXISTS research_projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     status VARCHAR(255) NOT NULL,
@@ -2327,7 +2426,7 @@ CREATE TABLE IF NOT EXISTS research_projects (
 
 CREATE TABLE IF NOT EXISTS research_sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES research_projects(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL,
     source_type VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     url TEXT,
@@ -2361,9 +2460,9 @@ CREATE TABLE IF NOT EXISTS scheduled_emails (
 
 CREATE TABLE IF NOT EXISTS scheduled_meetings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    room_id UUID REFERENCES meeting_rooms(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
+    room_id UUID,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     organizer_id UUID NOT NULL,
@@ -2382,8 +2481,8 @@ CREATE TABLE IF NOT EXISTS scheduled_meetings (
 
 CREATE TABLE IF NOT EXISTS services (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     category VARCHAR(255),
@@ -2426,8 +2525,8 @@ CREATE TABLE IF NOT EXISTS shared_mailboxes (
 
 CREATE TABLE IF NOT EXISTS social_announcements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     author_id UUID NOT NULL,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
@@ -2445,14 +2544,14 @@ CREATE TABLE IF NOT EXISTS social_announcements (
 CREATE TABLE IF NOT EXISTS social_bookmarks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    post_id UUID NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
+    post_id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS social_channel_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     channel_type VARCHAR(255) NOT NULL,
     credentials JSONB NOT NULL,
@@ -2464,7 +2563,7 @@ CREATE TABLE IF NOT EXISTS social_channel_accounts (
 
 CREATE TABLE IF NOT EXISTS social_comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    post_id UUID NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
+    post_id UUID NOT NULL,
     parent_comment_id UUID,
     author_id UUID NOT NULL,
     content TEXT NOT NULL,
@@ -2479,8 +2578,8 @@ CREATE TABLE IF NOT EXISTS social_comments (
 
 CREATE TABLE IF NOT EXISTS social_communities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) NOT NULL,
     description TEXT,
@@ -2501,7 +2600,7 @@ CREATE TABLE IF NOT EXISTS social_communities (
 
 CREATE TABLE IF NOT EXISTS social_community_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    community_id UUID NOT NULL REFERENCES social_communities(id) ON DELETE CASCADE,
+    community_id UUID NOT NULL,
     user_id UUID NOT NULL,
     role VARCHAR(255) NOT NULL,
     notifications_enabled BOOLEAN NOT NULL,
@@ -2511,8 +2610,8 @@ CREATE TABLE IF NOT EXISTS social_community_members (
 
 CREATE TABLE IF NOT EXISTS social_hashtags (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     tag VARCHAR(255) NOT NULL,
     post_count INTEGER NOT NULL,
     last_used_at TIMESTAMPTZ NOT NULL,
@@ -2521,7 +2620,7 @@ CREATE TABLE IF NOT EXISTS social_hashtags (
 
 CREATE TABLE IF NOT EXISTS social_poll_options (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    poll_id UUID NOT NULL REFERENCES social_polls(id) ON DELETE CASCADE,
+    poll_id UUID NOT NULL,
     text VARCHAR(255) NOT NULL,
     vote_count INTEGER NOT NULL,
     position INTEGER NOT NULL,
@@ -2530,15 +2629,15 @@ CREATE TABLE IF NOT EXISTS social_poll_options (
 
 CREATE TABLE IF NOT EXISTS social_poll_votes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    poll_id UUID NOT NULL REFERENCES social_polls(id) ON DELETE CASCADE,
-    option_id UUID NOT NULL REFERENCES social_poll_options(id) ON DELETE CASCADE,
+    poll_id UUID NOT NULL,
+    option_id UUID NOT NULL,
     user_id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS social_polls (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    post_id UUID NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
+    post_id UUID NOT NULL,
     question TEXT NOT NULL,
     allow_multiple BOOLEAN NOT NULL,
     allow_add_options BOOLEAN NOT NULL,
@@ -2550,8 +2649,8 @@ CREATE TABLE IF NOT EXISTS social_polls (
 
 CREATE TABLE IF NOT EXISTS social_posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     author_id UUID NOT NULL,
     community_id UUID,
     parent_id UUID,
@@ -2576,8 +2675,8 @@ CREATE TABLE IF NOT EXISTS social_posts (
 
 CREATE TABLE IF NOT EXISTS social_praises (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     from_user_id UUID NOT NULL,
     to_user_id UUID NOT NULL,
     badge_type VARCHAR(255) NOT NULL,
@@ -2598,8 +2697,8 @@ CREATE TABLE IF NOT EXISTS social_reactions (
 
 CREATE TABLE IF NOT EXISTS support_tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     ticket_number VARCHAR(255) NOT NULL,
     subject VARCHAR(255) NOT NULL,
     description TEXT,
@@ -2625,7 +2724,7 @@ CREATE TABLE IF NOT EXISTS support_tickets (
 
 CREATE TABLE IF NOT EXISTS system_automations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID REFERENCES bots(id) ON DELETE SET NULL,
+    bot_id UUID,
     kind INTEGER NOT NULL,
     target TEXT,
     schedule TEXT,
@@ -2663,8 +2762,8 @@ CREATE TABLE IF NOT EXISTS tenants (
 
 CREATE TABLE IF NOT EXISTS ticket_canned_responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     category VARCHAR(255),
@@ -2677,8 +2776,8 @@ CREATE TABLE IF NOT EXISTS ticket_canned_responses (
 
 CREATE TABLE IF NOT EXISTS ticket_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     parent_id UUID,
@@ -2703,8 +2802,8 @@ CREATE TABLE IF NOT EXISTS ticket_comments (
 
 CREATE TABLE IF NOT EXISTS ticket_sla_policies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     priority VARCHAR(255) NOT NULL,
     first_response_hours INTEGER NOT NULL,
@@ -2717,8 +2816,8 @@ CREATE TABLE IF NOT EXISTS ticket_sla_policies (
 
 CREATE TABLE IF NOT EXISTS ticket_tags (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     color VARCHAR(255),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -2766,8 +2865,8 @@ CREATE TABLE IF NOT EXISTS user_login_tokens (
 
 CREATE TABLE IF NOT EXISTS user_organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
+    org_id UUID NOT NULL,
     role VARCHAR(255) NOT NULL,
     is_default BOOLEAN NOT NULL,
     joined_at TIMESTAMPTZ NOT NULL
@@ -2785,7 +2884,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 CREATE TABLE IF NOT EXISTS user_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    bot_id UUID REFERENCES bots(id) ON DELETE SET NULL,
+    bot_id UUID,
     title TEXT NOT NULL,
     context_data JSONB NOT NULL,
     current_tool TEXT,
@@ -2806,7 +2905,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS website_crawls (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID REFERENCES bots(id) ON DELETE SET NULL,
+    bot_id UUID,
     url TEXT NOT NULL,
     last_crawled TIMESTAMPTZ,
     next_crawl TIMESTAMPTZ,
@@ -2833,7 +2932,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_business (
 
 CREATE TABLE IF NOT EXISTS whiteboard_elements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    whiteboard_id UUID NOT NULL REFERENCES meeting_whiteboards(id) ON DELETE CASCADE,
+    whiteboard_id UUID NOT NULL,
     element_type VARCHAR(255) NOT NULL,
     position_x NUMERIC NOT NULL,
     position_y NUMERIC NOT NULL,
@@ -2849,9 +2948,9 @@ CREATE TABLE IF NOT EXISTS whiteboard_elements (
 
 CREATE TABLE IF NOT EXISTS whiteboard_exports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    whiteboard_id UUID NOT NULL REFERENCES meeting_whiteboards(id) ON DELETE CASCADE,
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    whiteboard_id UUID NOT NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     export_format VARCHAR(255) NOT NULL,
     file_url TEXT,
     file_size BIGINT,
@@ -2876,7 +2975,7 @@ CREATE TABLE IF NOT EXISTS workflow_events (
 
 CREATE TABLE IF NOT EXISTS workflow_executions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID REFERENCES bots(id) ON DELETE SET NULL,
+    bot_id UUID,
     workflow_name TEXT NOT NULL,
     current_step INTEGER,
     state_json JSONB,
@@ -2887,7 +2986,7 @@ CREATE TABLE IF NOT EXISTS workflow_executions (
 
 CREATE TABLE IF NOT EXISTS workspace_comment_reactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    comment_id UUID NOT NULL REFERENCES workspace_comments(id) ON DELETE CASCADE,
+    comment_id UUID NOT NULL,
     user_id UUID NOT NULL,
     emoji VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -2895,8 +2994,8 @@ CREATE TABLE IF NOT EXISTS workspace_comment_reactions (
 
 CREATE TABLE IF NOT EXISTS workspace_comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-    page_id UUID NOT NULL REFERENCES workspace_pages(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL,
+    page_id UUID NOT NULL,
     block_id UUID,
     parent_comment_id UUID,
     author_id UUID NOT NULL,
@@ -2910,7 +3009,7 @@ CREATE TABLE IF NOT EXISTS workspace_comments (
 
 CREATE TABLE IF NOT EXISTS workspace_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL,
     user_id UUID NOT NULL,
     role VARCHAR(255) NOT NULL,
     invited_by UUID,
@@ -2919,7 +3018,7 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 
 CREATE TABLE IF NOT EXISTS workspace_page_permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    page_id UUID NOT NULL REFERENCES workspace_pages(id) ON DELETE CASCADE,
+    page_id UUID NOT NULL,
     user_id UUID,
     role VARCHAR(255),
     permission VARCHAR(255) NOT NULL,
@@ -2928,7 +3027,7 @@ CREATE TABLE IF NOT EXISTS workspace_page_permissions (
 
 CREATE TABLE IF NOT EXISTS workspace_page_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    page_id UUID NOT NULL REFERENCES workspace_pages(id) ON DELETE CASCADE,
+    page_id UUID NOT NULL,
     version_number INTEGER NOT NULL,
     title VARCHAR(255) NOT NULL,
     content JSONB NOT NULL,
@@ -2939,7 +3038,7 @@ CREATE TABLE IF NOT EXISTS workspace_page_versions (
 
 CREATE TABLE IF NOT EXISTS workspace_pages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL,
     parent_id UUID,
     title VARCHAR(255) NOT NULL,
     icon_type VARCHAR(255),
@@ -2960,8 +3059,8 @@ CREATE TABLE IF NOT EXISTS workspace_pages (
 
 CREATE TABLE IF NOT EXISTS workspace_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     category VARCHAR(255),
@@ -2978,8 +3077,8 @@ CREATE TABLE IF NOT EXISTS workspace_templates (
 
 CREATE TABLE IF NOT EXISTS workspaces (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    org_id UUID NOT NULL,
+    branch_id UUID,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     icon_type VARCHAR(255),
@@ -2990,3 +3089,283 @@ CREATE TABLE IF NOT EXISTS workspaces (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Foreign keys (extracted from CREATE TABLE to avoid ordering issues)
+
+ALTER TABLE ONLY attendance_sla_events ADD CONSTRAINT fk_attendance_sla_events_sla_policy_id FOREIGN KEY (sla_policy_id) REFERENCES attendance_sla_policies(id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendance_sla_policies ADD CONSTRAINT fk_attendance_sla_policies_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendance_sla_policies ADD CONSTRAINT fk_attendance_sla_policies_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendance_webhooks ADD CONSTRAINT fk_attendance_webhooks_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendance_webhooks ADD CONSTRAINT fk_attendance_webhooks_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendant_agent_status ADD CONSTRAINT fk_attendant_agent_status_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_agent_status ADD CONSTRAINT fk_attendant_agent_status_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendant_canned_responses ADD CONSTRAINT fk_attendant_canned_responses_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_canned_responses ADD CONSTRAINT fk_attendant_canned_responses_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendant_queue_agents ADD CONSTRAINT fk_attendant_queue_agents_queue_id FOREIGN KEY (queue_id) REFERENCES attendant_queues(id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_queues ADD CONSTRAINT fk_attendant_queues_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_queues ADD CONSTRAINT fk_attendant_queues_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendant_session_messages ADD CONSTRAINT fk_attendant_session_messages_session_id FOREIGN KEY (session_id) REFERENCES attendant_sessions(id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_session_wrap_up ADD CONSTRAINT fk_attendant_session_wrap_up_session_id FOREIGN KEY (session_id) REFERENCES attendant_sessions(id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_session_wrap_up ADD CONSTRAINT fk_attendant_session_wrap_up_wrap_up_code_id FOREIGN KEY (wrap_up_code_id) REFERENCES attendant_wrap_up_codes(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendant_sessions ADD CONSTRAINT fk_attendant_sessions_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_sessions ADD CONSTRAINT fk_attendant_sessions_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendant_sessions ADD CONSTRAINT fk_attendant_sessions_queue_id FOREIGN KEY (queue_id) REFERENCES attendant_queues(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendant_tags ADD CONSTRAINT fk_attendant_tags_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_tags ADD CONSTRAINT fk_attendant_tags_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY attendant_transfers ADD CONSTRAINT fk_attendant_transfers_session_id FOREIGN KEY (session_id) REFERENCES attendant_sessions(id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_wrap_up_codes ADD CONSTRAINT fk_attendant_wrap_up_codes_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY attendant_wrap_up_codes ADD CONSTRAINT fk_attendant_wrap_up_codes_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_alert_history ADD CONSTRAINT fk_billing_alert_history_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_alert_history ADD CONSTRAINT fk_billing_alert_history_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_grace_periods ADD CONSTRAINT fk_billing_grace_periods_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_grace_periods ADD CONSTRAINT fk_billing_grace_periods_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_invoice_items ADD CONSTRAINT fk_billing_invoice_items_invoice_id FOREIGN KEY (invoice_id) REFERENCES billing_invoices(id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_invoices ADD CONSTRAINT fk_billing_invoices_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_invoices ADD CONSTRAINT fk_billing_invoices_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_notification_preferences ADD CONSTRAINT fk_billing_notification_preferences_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_notification_preferences ADD CONSTRAINT fk_billing_notification_preferences_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_payments ADD CONSTRAINT fk_billing_payments_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_payments ADD CONSTRAINT fk_billing_payments_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_payments ADD CONSTRAINT fk_billing_payments_invoice_id FOREIGN KEY (invoice_id) REFERENCES billing_invoices(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_quote_items ADD CONSTRAINT fk_billing_quote_items_quote_id FOREIGN KEY (quote_id) REFERENCES billing_quotes(id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_quotes ADD CONSTRAINT fk_billing_quotes_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_quotes ADD CONSTRAINT fk_billing_quotes_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_recurring ADD CONSTRAINT fk_billing_recurring_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_recurring ADD CONSTRAINT fk_billing_recurring_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_tax_rates ADD CONSTRAINT fk_billing_tax_rates_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_tax_rates ADD CONSTRAINT fk_billing_tax_rates_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY billing_usage_alerts ADD CONSTRAINT fk_billing_usage_alerts_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY billing_usage_alerts ADD CONSTRAINT fk_billing_usage_alerts_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY bot_configuration ADD CONSTRAINT fk_bot_configuration_bot_id FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL;
+ALTER TABLE ONLY bot_memories ADD CONSTRAINT fk_bot_memories_bot_id FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL;
+ALTER TABLE ONLY bots ADD CONSTRAINT fk_bots_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY bots ADD CONSTRAINT fk_bots_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE;
+ALTER TABLE ONLY branches ADD CONSTRAINT fk_branches_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY branches ADD CONSTRAINT fk_branches_tenant_id FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE;
+ALTER TABLE ONLY calendar_event_attendees ADD CONSTRAINT fk_calendar_event_attendees_event_id FOREIGN KEY (event_id) REFERENCES calendar_events(id) ON DELETE CASCADE;
+ALTER TABLE ONLY calendar_event_reminders ADD CONSTRAINT fk_calendar_event_reminders_event_id FOREIGN KEY (event_id) REFERENCES calendar_events(id) ON DELETE CASCADE;
+ALTER TABLE ONLY calendar_events ADD CONSTRAINT fk_calendar_events_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY calendar_events ADD CONSTRAINT fk_calendar_events_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY calendar_events ADD CONSTRAINT fk_calendar_events_calendar_id FOREIGN KEY (calendar_id) REFERENCES calendars(id) ON DELETE CASCADE;
+ALTER TABLE ONLY calendar_shares ADD CONSTRAINT fk_calendar_shares_calendar_id FOREIGN KEY (calendar_id) REFERENCES calendars(id) ON DELETE CASCADE;
+ALTER TABLE ONLY calendars ADD CONSTRAINT fk_calendars_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY calendars ADD CONSTRAINT fk_calendars_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY canvas_collaborators ADD CONSTRAINT fk_canvas_collaborators_canvas_id FOREIGN KEY (canvas_id) REFERENCES canvases(id) ON DELETE CASCADE;
+ALTER TABLE ONLY canvas_comments ADD CONSTRAINT fk_canvas_comments_canvas_id FOREIGN KEY (canvas_id) REFERENCES canvases(id) ON DELETE CASCADE;
+ALTER TABLE ONLY canvas_elements ADD CONSTRAINT fk_canvas_elements_canvas_id FOREIGN KEY (canvas_id) REFERENCES canvases(id) ON DELETE CASCADE;
+ALTER TABLE ONLY canvas_versions ADD CONSTRAINT fk_canvas_versions_canvas_id FOREIGN KEY (canvas_id) REFERENCES canvases(id) ON DELETE CASCADE;
+ALTER TABLE ONLY canvases ADD CONSTRAINT fk_canvases_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY canvases ADD CONSTRAINT fk_canvases_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY compliance_access_reviews ADD CONSTRAINT fk_compliance_access_reviews_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY compliance_access_reviews ADD CONSTRAINT fk_compliance_access_reviews_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY compliance_audit_log ADD CONSTRAINT fk_compliance_audit_log_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY compliance_audit_log ADD CONSTRAINT fk_compliance_audit_log_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY compliance_checks ADD CONSTRAINT fk_compliance_checks_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY compliance_checks ADD CONSTRAINT fk_compliance_checks_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY compliance_evidence ADD CONSTRAINT fk_compliance_evidence_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY compliance_evidence ADD CONSTRAINT fk_compliance_evidence_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY compliance_issues ADD CONSTRAINT fk_compliance_issues_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY compliance_issues ADD CONSTRAINT fk_compliance_issues_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY compliance_issues ADD CONSTRAINT fk_compliance_issues_check_id FOREIGN KEY (check_id) REFERENCES compliance_checks(id) ON DELETE SET NULL;
+ALTER TABLE ONLY compliance_risk_assessments ADD CONSTRAINT fk_compliance_risk_assessments_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY compliance_risk_assessments ADD CONSTRAINT fk_compliance_risk_assessments_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY compliance_risks ADD CONSTRAINT fk_compliance_risks_assessment_id FOREIGN KEY (assessment_id) REFERENCES compliance_risk_assessments(id) ON DELETE CASCADE;
+ALTER TABLE ONLY compliance_training_records ADD CONSTRAINT fk_compliance_training_records_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY compliance_training_records ADD CONSTRAINT fk_compliance_training_records_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY consent_history ADD CONSTRAINT fk_consent_history_consent_id FOREIGN KEY (consent_id) REFERENCES cookie_consents(id) ON DELETE CASCADE;
+ALTER TABLE ONLY conversational_queries ADD CONSTRAINT fk_conversational_queries_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY conversational_queries ADD CONSTRAINT fk_conversational_queries_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY cookie_consents ADD CONSTRAINT fk_cookie_consents_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY cookie_consents ADD CONSTRAINT fk_cookie_consents_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_accounts ADD CONSTRAINT fk_crm_accounts_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_accounts ADD CONSTRAINT fk_crm_accounts_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_activities ADD CONSTRAINT fk_crm_activities_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_activities ADD CONSTRAINT fk_crm_activities_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_contacts ADD CONSTRAINT fk_crm_contacts_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_contacts ADD CONSTRAINT fk_crm_contacts_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_deal_segments ADD CONSTRAINT fk_crm_deal_segments_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_deal_segments ADD CONSTRAINT fk_crm_deal_segments_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_deals ADD CONSTRAINT fk_crm_deals_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_deals ADD CONSTRAINT fk_crm_deals_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_deals ADD CONSTRAINT fk_crm_deals_department_id FOREIGN KEY (department_id) REFERENCES people_departments(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_leads ADD CONSTRAINT fk_crm_leads_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_leads ADD CONSTRAINT fk_crm_leads_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_notes ADD CONSTRAINT fk_crm_notes_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_notes ADD CONSTRAINT fk_crm_notes_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_opportunities ADD CONSTRAINT fk_crm_opportunities_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_opportunities ADD CONSTRAINT fk_crm_opportunities_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY crm_pipeline_stages ADD CONSTRAINT fk_crm_pipeline_stages_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY crm_pipeline_stages ADD CONSTRAINT fk_crm_pipeline_stages_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY dashboard_data_sources ADD CONSTRAINT fk_dashboard_data_sources_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY dashboard_data_sources ADD CONSTRAINT fk_dashboard_data_sources_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY dashboard_filters ADD CONSTRAINT fk_dashboard_filters_dashboard_id FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE;
+ALTER TABLE ONLY dashboard_widget_data_sources ADD CONSTRAINT fk_dashboard_widget_data_sources_widget_id FOREIGN KEY (widget_id) REFERENCES dashboard_widgets(id) ON DELETE CASCADE;
+ALTER TABLE ONLY dashboard_widget_data_sources ADD CONSTRAINT fk_dashboard_widget_data_sources_data_source_id FOREIGN KEY (data_source_id) REFERENCES dashboard_data_sources(id) ON DELETE CASCADE;
+ALTER TABLE ONLY dashboard_widgets ADD CONSTRAINT fk_dashboard_widgets_dashboard_id FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE;
+ALTER TABLE ONLY dashboards ADD CONSTRAINT fk_dashboards_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY dashboards ADD CONSTRAINT fk_dashboards_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY data_deletion_requests ADD CONSTRAINT fk_data_deletion_requests_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY data_deletion_requests ADD CONSTRAINT fk_data_deletion_requests_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY data_export_requests ADD CONSTRAINT fk_data_export_requests_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY data_export_requests ADD CONSTRAINT fk_data_export_requests_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY desktop_connection_log ADD CONSTRAINT fk_desktop_connection_log_connection_id FOREIGN KEY (connection_id) REFERENCES desktop_connections(id) ON DELETE SET NULL;
+ALTER TABLE ONLY feature_flags ADD CONSTRAINT fk_feature_flags_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY feature_flags ADD CONSTRAINT fk_feature_flags_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY inventory_movements ADD CONSTRAINT fk_inventory_movements_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY inventory_movements ADD CONSTRAINT fk_inventory_movements_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY inventory_movements ADD CONSTRAINT fk_inventory_movements_product_id FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
+ALTER TABLE ONLY kb_collections ADD CONSTRAINT fk_kb_collections_bot_id FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL;
+ALTER TABLE ONLY kb_documents ADD CONSTRAINT fk_kb_documents_bot_id FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL;
+ALTER TABLE ONLY kb_group_associations ADD CONSTRAINT fk_kb_group_associations_kb_id FOREIGN KEY (kb_id) REFERENCES kb_collections(id) ON DELETE CASCADE;
+ALTER TABLE ONLY kb_group_associations ADD CONSTRAINT fk_kb_group_associations_group_id FOREIGN KEY (group_id) REFERENCES rbac_groups(id) ON DELETE CASCADE;
+ALTER TABLE ONLY kb_group_associations ADD CONSTRAINT fk_kb_group_associations_granted_by FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE ONLY legal_acceptances ADD CONSTRAINT fk_legal_acceptances_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY legal_acceptances ADD CONSTRAINT fk_legal_acceptances_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY legal_acceptances ADD CONSTRAINT fk_legal_acceptances_document_id FOREIGN KEY (document_id) REFERENCES legal_documents(id) ON DELETE CASCADE;
+ALTER TABLE ONLY legal_document_versions ADD CONSTRAINT fk_legal_document_versions_document_id FOREIGN KEY (document_id) REFERENCES legal_documents(id) ON DELETE CASCADE;
+ALTER TABLE ONLY legal_documents ADD CONSTRAINT fk_legal_documents_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY legal_documents ADD CONSTRAINT fk_legal_documents_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY marketing_campaigns ADD CONSTRAINT fk_marketing_campaigns_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY marketing_campaigns ADD CONSTRAINT fk_marketing_campaigns_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY marketing_lists ADD CONSTRAINT fk_marketing_lists_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY marketing_lists ADD CONSTRAINT fk_marketing_lists_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY marketing_templates ADD CONSTRAINT fk_marketing_templates_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY marketing_templates ADD CONSTRAINT fk_marketing_templates_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY meeting_chat_messages ADD CONSTRAINT fk_meeting_chat_messages_room_id FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE CASCADE;
+ALTER TABLE ONLY meeting_chat_messages ADD CONSTRAINT fk_meeting_chat_messages_participant_id FOREIGN KEY (participant_id) REFERENCES meeting_participants(id) ON DELETE SET NULL;
+ALTER TABLE ONLY meeting_participants ADD CONSTRAINT fk_meeting_participants_room_id FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE CASCADE;
+ALTER TABLE ONLY meeting_recordings ADD CONSTRAINT fk_meeting_recordings_room_id FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE CASCADE;
+ALTER TABLE ONLY meeting_recordings ADD CONSTRAINT fk_meeting_recordings_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY meeting_recordings ADD CONSTRAINT fk_meeting_recordings_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY meeting_rooms ADD CONSTRAINT fk_meeting_rooms_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY meeting_rooms ADD CONSTRAINT fk_meeting_rooms_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY meeting_transcriptions ADD CONSTRAINT fk_meeting_transcriptions_room_id FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE CASCADE;
+ALTER TABLE ONLY meeting_transcriptions ADD CONSTRAINT fk_meeting_transcriptions_recording_id FOREIGN KEY (recording_id) REFERENCES meeting_recordings(id) ON DELETE SET NULL;
+ALTER TABLE ONLY meeting_transcriptions ADD CONSTRAINT fk_meeting_transcriptions_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY meeting_transcriptions ADD CONSTRAINT fk_meeting_transcriptions_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY meeting_transcriptions ADD CONSTRAINT fk_meeting_transcriptions_participant_id FOREIGN KEY (participant_id) REFERENCES meeting_participants(id) ON DELETE SET NULL;
+ALTER TABLE ONLY meeting_whiteboards ADD CONSTRAINT fk_meeting_whiteboards_room_id FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE SET NULL;
+ALTER TABLE ONLY meeting_whiteboards ADD CONSTRAINT fk_meeting_whiteboards_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY meeting_whiteboards ADD CONSTRAINT fk_meeting_whiteboards_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY okr_activity_log ADD CONSTRAINT fk_okr_activity_log_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_activity_log ADD CONSTRAINT fk_okr_activity_log_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY okr_alignments ADD CONSTRAINT fk_okr_alignments_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_alignments ADD CONSTRAINT fk_okr_alignments_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY okr_checkins ADD CONSTRAINT fk_okr_checkins_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_checkins ADD CONSTRAINT fk_okr_checkins_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY okr_checkins ADD CONSTRAINT fk_okr_checkins_key_result_id FOREIGN KEY (key_result_id) REFERENCES okr_key_results(id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_comments ADD CONSTRAINT fk_okr_comments_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_comments ADD CONSTRAINT fk_okr_comments_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY okr_key_results ADD CONSTRAINT fk_okr_key_results_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_key_results ADD CONSTRAINT fk_okr_key_results_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY okr_key_results ADD CONSTRAINT fk_okr_key_results_objective_id FOREIGN KEY (objective_id) REFERENCES okr_objectives(id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_objectives ADD CONSTRAINT fk_okr_objectives_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_objectives ADD CONSTRAINT fk_okr_objectives_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY okr_templates ADD CONSTRAINT fk_okr_templates_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY okr_templates ADD CONSTRAINT fk_okr_templates_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY organization_invitations ADD CONSTRAINT fk_organization_invitations_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY organization_invitations ADD CONSTRAINT fk_organization_invitations_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY organizations ADD CONSTRAINT fk_organizations_tenant_id FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE;
+ALTER TABLE ONLY people ADD CONSTRAINT fk_people_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY people ADD CONSTRAINT fk_people_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY people_departments ADD CONSTRAINT fk_people_departments_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_departments ADD CONSTRAINT fk_people_departments_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY people_org_chart ADD CONSTRAINT fk_people_org_chart_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_org_chart ADD CONSTRAINT fk_people_org_chart_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY people_person_skills ADD CONSTRAINT fk_people_person_skills_person_id FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_person_skills ADD CONSTRAINT fk_people_person_skills_skill_id FOREIGN KEY (skill_id) REFERENCES people_skills(id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_skills ADD CONSTRAINT fk_people_skills_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_skills ADD CONSTRAINT fk_people_skills_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY people_team_members ADD CONSTRAINT fk_people_team_members_team_id FOREIGN KEY (team_id) REFERENCES people_teams(id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_team_members ADD CONSTRAINT fk_people_team_members_person_id FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_teams ADD CONSTRAINT fk_people_teams_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_teams ADD CONSTRAINT fk_people_teams_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY people_time_off ADD CONSTRAINT fk_people_time_off_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY people_time_off ADD CONSTRAINT fk_people_time_off_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY price_list_items ADD CONSTRAINT fk_price_list_items_price_list_id FOREIGN KEY (price_list_id) REFERENCES price_lists(id) ON DELETE CASCADE;
+ALTER TABLE ONLY price_list_items ADD CONSTRAINT fk_price_list_items_product_id FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
+ALTER TABLE ONLY price_list_items ADD CONSTRAINT fk_price_list_items_service_id FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL;
+ALTER TABLE ONLY price_lists ADD CONSTRAINT fk_price_lists_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY price_lists ADD CONSTRAINT fk_price_lists_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY product_categories ADD CONSTRAINT fk_product_categories_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY product_categories ADD CONSTRAINT fk_product_categories_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY product_variants ADD CONSTRAINT fk_product_variants_product_id FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
+ALTER TABLE ONLY products ADD CONSTRAINT fk_products_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY products ADD CONSTRAINT fk_products_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY project_assignments ADD CONSTRAINT fk_project_assignments_task_id FOREIGN KEY (task_id) REFERENCES project_tasks(id) ON DELETE CASCADE;
+ALTER TABLE ONLY project_assignments ADD CONSTRAINT fk_project_assignments_resource_id FOREIGN KEY (resource_id) REFERENCES project_resources(id) ON DELETE CASCADE;
+ALTER TABLE ONLY project_dependencies ADD CONSTRAINT fk_project_dependencies_task_id FOREIGN KEY (task_id) REFERENCES project_tasks(id) ON DELETE CASCADE;
+ALTER TABLE ONLY project_resources ADD CONSTRAINT fk_project_resources_project_id FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY project_tasks ADD CONSTRAINT fk_project_tasks_project_id FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY rbac_group_roles ADD CONSTRAINT fk_rbac_group_roles_group_id FOREIGN KEY (group_id) REFERENCES rbac_groups(id) ON DELETE CASCADE;
+ALTER TABLE ONLY rbac_group_roles ADD CONSTRAINT fk_rbac_group_roles_role_id FOREIGN KEY (role_id) REFERENCES rbac_roles(id) ON DELETE CASCADE;
+ALTER TABLE ONLY rbac_role_permissions ADD CONSTRAINT fk_rbac_role_permissions_role_id FOREIGN KEY (role_id) REFERENCES rbac_roles(id) ON DELETE CASCADE;
+ALTER TABLE ONLY rbac_role_permissions ADD CONSTRAINT fk_rbac_role_permissions_permission_id FOREIGN KEY (permission_id) REFERENCES rbac_permissions(id) ON DELETE CASCADE;
+ALTER TABLE ONLY rbac_user_groups ADD CONSTRAINT fk_rbac_user_groups_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY rbac_user_groups ADD CONSTRAINT fk_rbac_user_groups_group_id FOREIGN KEY (group_id) REFERENCES rbac_groups(id) ON DELETE CASCADE;
+ALTER TABLE ONLY rbac_user_roles ADD CONSTRAINT fk_rbac_user_roles_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY rbac_user_roles ADD CONSTRAINT fk_rbac_user_roles_role_id FOREIGN KEY (role_id) REFERENCES rbac_roles(id) ON DELETE CASCADE;
+ALTER TABLE ONLY research_citations ADD CONSTRAINT fk_research_citations_source_id FOREIGN KEY (source_id) REFERENCES research_sources(id) ON DELETE CASCADE;
+ALTER TABLE ONLY research_collaborators ADD CONSTRAINT fk_research_collaborators_project_id FOREIGN KEY (project_id) REFERENCES research_projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY research_exports ADD CONSTRAINT fk_research_exports_project_id FOREIGN KEY (project_id) REFERENCES research_projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY research_findings ADD CONSTRAINT fk_research_findings_project_id FOREIGN KEY (project_id) REFERENCES research_projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY research_notes ADD CONSTRAINT fk_research_notes_project_id FOREIGN KEY (project_id) REFERENCES research_projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY research_projects ADD CONSTRAINT fk_research_projects_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY research_projects ADD CONSTRAINT fk_research_projects_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY research_sources ADD CONSTRAINT fk_research_sources_project_id FOREIGN KEY (project_id) REFERENCES research_projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY scheduled_meetings ADD CONSTRAINT fk_scheduled_meetings_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY scheduled_meetings ADD CONSTRAINT fk_scheduled_meetings_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY scheduled_meetings ADD CONSTRAINT fk_scheduled_meetings_room_id FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE SET NULL;
+ALTER TABLE ONLY services ADD CONSTRAINT fk_services_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY services ADD CONSTRAINT fk_services_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY social_announcements ADD CONSTRAINT fk_social_announcements_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_announcements ADD CONSTRAINT fk_social_announcements_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY social_bookmarks ADD CONSTRAINT fk_social_bookmarks_post_id FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_channel_accounts ADD CONSTRAINT fk_social_channel_accounts_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_channel_accounts ADD CONSTRAINT fk_social_channel_accounts_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY social_comments ADD CONSTRAINT fk_social_comments_post_id FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_communities ADD CONSTRAINT fk_social_communities_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_communities ADD CONSTRAINT fk_social_communities_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY social_community_members ADD CONSTRAINT fk_social_community_members_community_id FOREIGN KEY (community_id) REFERENCES social_communities(id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_hashtags ADD CONSTRAINT fk_social_hashtags_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_hashtags ADD CONSTRAINT fk_social_hashtags_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY social_poll_options ADD CONSTRAINT fk_social_poll_options_poll_id FOREIGN KEY (poll_id) REFERENCES social_polls(id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_poll_votes ADD CONSTRAINT fk_social_poll_votes_poll_id FOREIGN KEY (poll_id) REFERENCES social_polls(id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_poll_votes ADD CONSTRAINT fk_social_poll_votes_option_id FOREIGN KEY (option_id) REFERENCES social_poll_options(id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_polls ADD CONSTRAINT fk_social_polls_post_id FOREIGN KEY (post_id) REFERENCES social_posts(id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_posts ADD CONSTRAINT fk_social_posts_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_posts ADD CONSTRAINT fk_social_posts_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY social_praises ADD CONSTRAINT fk_social_praises_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY social_praises ADD CONSTRAINT fk_social_praises_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY support_tickets ADD CONSTRAINT fk_support_tickets_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY support_tickets ADD CONSTRAINT fk_support_tickets_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY system_automations ADD CONSTRAINT fk_system_automations_bot_id FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL;
+ALTER TABLE ONLY ticket_canned_responses ADD CONSTRAINT fk_ticket_canned_responses_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY ticket_canned_responses ADD CONSTRAINT fk_ticket_canned_responses_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY ticket_categories ADD CONSTRAINT fk_ticket_categories_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY ticket_categories ADD CONSTRAINT fk_ticket_categories_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY ticket_sla_policies ADD CONSTRAINT fk_ticket_sla_policies_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY ticket_sla_policies ADD CONSTRAINT fk_ticket_sla_policies_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY ticket_tags ADD CONSTRAINT fk_ticket_tags_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY ticket_tags ADD CONSTRAINT fk_ticket_tags_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY user_organizations ADD CONSTRAINT fk_user_organizations_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY user_organizations ADD CONSTRAINT fk_user_organizations_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY user_sessions ADD CONSTRAINT fk_user_sessions_bot_id FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL;
+ALTER TABLE ONLY website_crawls ADD CONSTRAINT fk_website_crawls_bot_id FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL;
+ALTER TABLE ONLY whiteboard_elements ADD CONSTRAINT fk_whiteboard_elements_whiteboard_id FOREIGN KEY (whiteboard_id) REFERENCES meeting_whiteboards(id) ON DELETE CASCADE;
+ALTER TABLE ONLY whiteboard_exports ADD CONSTRAINT fk_whiteboard_exports_whiteboard_id FOREIGN KEY (whiteboard_id) REFERENCES meeting_whiteboards(id) ON DELETE CASCADE;
+ALTER TABLE ONLY whiteboard_exports ADD CONSTRAINT fk_whiteboard_exports_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY whiteboard_exports ADD CONSTRAINT fk_whiteboard_exports_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY workflow_executions ADD CONSTRAINT fk_workflow_executions_bot_id FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL;
+ALTER TABLE ONLY workspace_comment_reactions ADD CONSTRAINT fk_workspace_comment_reactions_comment_id FOREIGN KEY (comment_id) REFERENCES workspace_comments(id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspace_comments ADD CONSTRAINT fk_workspace_comments_workspace_id FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspace_comments ADD CONSTRAINT fk_workspace_comments_page_id FOREIGN KEY (page_id) REFERENCES workspace_pages(id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspace_members ADD CONSTRAINT fk_workspace_members_workspace_id FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspace_page_permissions ADD CONSTRAINT fk_workspace_page_permissions_page_id FOREIGN KEY (page_id) REFERENCES workspace_pages(id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspace_page_versions ADD CONSTRAINT fk_workspace_page_versions_page_id FOREIGN KEY (page_id) REFERENCES workspace_pages(id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspace_pages ADD CONSTRAINT fk_workspace_pages_workspace_id FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspace_templates ADD CONSTRAINT fk_workspace_templates_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspace_templates ADD CONSTRAINT fk_workspace_templates_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+ALTER TABLE ONLY workspaces ADD CONSTRAINT fk_workspaces_org_id FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE;
+ALTER TABLE ONLY workspaces ADD CONSTRAINT fk_workspaces_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+

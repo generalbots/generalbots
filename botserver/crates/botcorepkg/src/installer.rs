@@ -407,6 +407,11 @@ impl PackageManager {
                     trace!("Component {} started successfully", component.name);
 
                     if component.name == "vault" && self.mode == InstallMode::Local {
+                        if let Some(addr) = evaluated_envs.get("VAULT_ADDR") {
+                            if !addr.is_empty() {
+                                std::env::set_var("VAULT_ADDR", addr);
+                            }
+                        }
                         if let Err(e) = installer_vault::initialize_vault_local(&self.base_path) {
                             warn!("Failed to initialize Vault: {}", e);
                             warn!("Vault started but may need manual initialization");

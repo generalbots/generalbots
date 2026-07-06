@@ -564,17 +564,19 @@ pub fn register_website_for_crawling_with_refresh(
     let expires_policy = days_to_expires_policy(days);
 
     let query = diesel::sql_query(
-        "INSERT INTO website_crawls (id, bot_id, url, expires_policy, crawl_status, next_crawl, refresh_policy)
-         VALUES (gen_random_uuid(), $1, $2, $3, 0, NOW(), $4)
-         ON CONFLICT (bot_id, url) DO UPDATE SET
-            next_crawl = CASE
-                WHEN website_crawls.crawl_status = 2 THEN NOW()  -- Failed, retry now
-                ELSE website_crawls.next_crawl  -- Keep existing schedule
-            END,
-            refresh_policy = CASE
-                WHEN website_crawls.refresh_policy IS NULL THEN $4
-                ELSE LEAST(website_crawls.refresh_policy, $4)  -- Use shorter interval
-            END",
+        "WITH upsert AS (
+            UPDATE website_crawls SET
+                next_crawl = CASE WHEN crawl_status = 2 THEN NOW() ELSE next_crawl END,
+                refresh_policy = CASE
+                    WHEN website_crawls.refresh_policy IS NULL THEN $4
+                    ELSE LEAST(website_crawls.refresh_policy, $4)
+                END
+            WHERE bot_id = $1 AND url = $2
+            RETURNING id
+        )
+        INSERT INTO website_crawls (id, bot_id, url, expires_policy, crawl_status, next_crawl, refresh_policy)
+        SELECT gen_random_uuid(), $1, $2, $3, 0, NOW(), $4
+        WHERE NOT EXISTS (SELECT 1 FROM upsert)",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<diesel::sql_types::Text, _>(url)
