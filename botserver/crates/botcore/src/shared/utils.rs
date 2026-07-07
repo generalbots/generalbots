@@ -22,7 +22,67 @@ use tokio::io::AsyncWriteExt;
 
 
 
-pub async fn init_secrets_manager() -> anyhow::Result<()> { Ok(()) }
+use botsecurity_core::VaultConfigProvider;
+use botcoresecrets::SecretsManager;
+
+struct SecretsManagerVaultProvider(SecretsManager);
+
+impl VaultConfigProvider for SecretsManagerVaultProvider {
+    fn get_secret(&self, path: &str) -> Result<String, String> {
+        let v = self.0.get_value_blocking(path, "key", "");
+        if v.is_empty() {
+            Ok(self.0.get_value_blocking(path, "master_key", ""))
+        } else {
+            Ok(v)
+        }
+    }
+    fn get_directory_config(&self) -> Result<(String, String, String, String), String> {
+        let url = self.0.get_value_blocking("gbo/directory", "url", "");
+        let host = self.0.get_value_blocking("gbo/directory", "host", "localhost");
+        let port = self.0.get_value_blocking("gbo/directory", "port", "9000");
+        let project_id = self.0.get_value_blocking("gbo/directory", "project_id", "");
+        Ok((url, host, port, project_id))
+    }
+    fn get_directory_config_sync(&self) -> (String, String, String, String) {
+        self.get_directory_config().unwrap_or_default()
+    }
+    fn get_vectordb_config_sync(&self) -> (String, Option<String>) { (String::new(), None) }
+    fn get_llm_config(&self) -> (String, String, Option<String>, Option<String>, String) {
+        (String::new(), String::new(), None, None, String::new())
+    }
+    fn get_cache_config(&self) -> Result<(String, u16, Option<String>), String> {
+        let host = self.0.get_value_blocking("gbo/cache", "host", "localhost");
+        let port: u16 = self.0.get_value_blocking("gbo/cache", "port", "6379").parse().unwrap_or(6379);
+        let password = self.0.get_value_blocking("gbo/cache", "password", "");
+        let pw = if password.is_empty() { None } else { Some(password) };
+        Ok((host, port, pw))
+    }
+    fn get_database_config_sync(&self) -> Result<(String, u16, String, String, String), String> {
+        let host = self.0.get_value_blocking("gbo/tables", "host", "localhost");
+        let port: u16 = self.0.get_value_blocking("gbo/tables", "port", "5432").parse().unwrap_or(5432);
+        let db = self.0.get_value_blocking("gbo/tables", "database", "botserver");
+        let user = self.0.get_value_blocking("gbo/tables", "username", "gbuser");
+        let pass = self.0.get_value_blocking("gbo/tables", "password", "");
+        Ok((host, port, db, user, pass))
+    }
+    fn get_drive_config(&self) -> Result<(String, String, String), String> {
+        let host = self.0.get_value_blocking("gbo/drive", "host", "");
+        let access = self.0.get_value_blocking("gbo/drive", "accesskey", "");
+        let secret = self.0.get_value_blocking("gbo/drive", "secret", "");
+        Ok((host, access, secret))
+    }
+    fn get_jwt_secret(&self) -> Result<String, String> {
+        Ok(self.0.get_value_blocking("gbo/jwt", "secret", ""))
+    }
+}
+
+pub async fn init_secrets_manager() -> anyhow::Result<()> {
+    let manager = SecretsManager::from_env()?;
+    let provider = SecretsManagerVaultProvider(manager);
+    botsecurity_core::set_vault_provider(Box::new(provider));
+    botsecurity_crypto::encryption::reload_master_key_from_vault();
+    Ok(())
+}
 
 
 pub fn get_database_url_sync() -> anyhow::Result<String> {
