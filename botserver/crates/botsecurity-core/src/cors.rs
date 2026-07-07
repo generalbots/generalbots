@@ -335,6 +335,23 @@ fn is_valid_origin_format(origin: &str) -> bool {
 
 pub fn create_cors_layer() -> CorsLayer {
     let config_origins = get_allowed_origins_from_config();
+    let proxy_cors = std::env::var("DISABLE_CORS").is_ok()
+        && std::env::var("DISABLE_CORS").unwrap_or_default() == "true";
+
+    if proxy_cors {
+        info!("CORS disabled via DISABLE_CORS=true — proxy expected to handle CORS");
+        return CorsLayer::new()
+            .allow_origin(AllowOrigin::any())
+            .allow_methods([
+                Method::GET, Method::POST, Method::PUT,
+                Method::DELETE, Method::PATCH, Method::OPTIONS, Method::HEAD,
+            ])
+            .allow_headers([
+                header::CONTENT_TYPE,
+                header::AUTHORIZATION,
+            ])
+            .max_age(std::time::Duration::from_secs(0));
+    }
 
     if !config_origins.is_empty() {
         info!("Creating CORS layer with configured origins");
