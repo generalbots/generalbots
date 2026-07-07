@@ -9,7 +9,7 @@ work
 bin
 botserver-stack
 *logfile*
-*-log*
+*.log
 docs/book
 *.rdb
 botserver-installers
