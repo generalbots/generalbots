@@ -20,5 +20,6 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
          url=off,percent_encoding=off,\
           ring=off,webpki=off,\
           hickory_resolver=off,hickory_proto=off,\
-          tokio_backend=error"
+          tokio_backend=error,\
+          rust_s3=error"
 }
