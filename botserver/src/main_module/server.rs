@@ -321,6 +321,7 @@ fn apply_middleware(
         }))
         .layer(axum::Extension(app_state))
         .layer(cors)
+        .layer(axum::middleware::from_fn(crate::security::strip_proxy_cors_middleware))
         .layer(TraceLayer::new_for_http())
 }
 

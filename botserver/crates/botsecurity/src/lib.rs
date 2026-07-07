@@ -20,7 +20,8 @@ pub use botsecurity_core::panic_handler::{
 };
 pub use botsecurity_core::cors::{
     create_cors_layer, create_cors_layer_for_production, create_cors_layer_with_origins,
-    get_cors_allowed_origins, set_cors_allowed_origins, CorsConfig, OriginValidator,
+    get_cors_allowed_origins, set_cors_allowed_origins, strip_proxy_cors_middleware,
+    CorsConfig, OriginValidator,
 };
 pub use botsecurity_core::headers::{
     create_security_headers_layer, security_headers_middleware,

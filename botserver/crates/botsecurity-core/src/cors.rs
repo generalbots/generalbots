@@ -335,23 +335,6 @@ fn is_valid_origin_format(origin: &str) -> bool {
 
 pub fn create_cors_layer() -> CorsLayer {
     let config_origins = get_allowed_origins_from_config();
-    let proxy_cors = std::env::var("DISABLE_CORS").is_ok()
-        && std::env::var("DISABLE_CORS").unwrap_or_default() == "true";
-
-    if proxy_cors {
-        info!("CORS disabled via DISABLE_CORS=true — proxy expected to handle CORS");
-        return CorsLayer::new()
-            .allow_origin(AllowOrigin::any())
-            .allow_methods([
-                Method::GET, Method::POST, Method::PUT,
-                Method::DELETE, Method::PATCH, Method::OPTIONS, Method::HEAD,
-            ])
-            .allow_headers([
-                header::CONTENT_TYPE,
-                header::AUTHORIZATION,
-            ])
-            .max_age(std::time::Duration::from_secs(0));
-    }
 
     if !config_origins.is_empty() {
         info!("Creating CORS layer with configured origins");
@@ -381,6 +364,33 @@ pub fn create_cors_layer() -> CorsLayer {
             .allow_credentials(true)
             .max_age(std::time::Duration::from_secs(7200))
     }
+}
+
+/// Middleware that strips CORS headers from responses when the request
+/// came through a reverse proxy (detected via X-Forwarded-* headers).
+/// This prevents duplicate Access-Control-Allow-Origin headers caused by
+/// both the application and the proxy (e.g., Caddy) setting them.
+pub async fn strip_proxy_cors_middleware(
+    request: axum::http::Request<axum::body::Body>,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let behind_proxy = request.headers().contains_key("x-forwarded-for")
+        || request.headers().contains_key("x-forwarded-host")
+        || request.headers().contains_key("x-forwarded-proto");
+
+    let mut response = next.run(request).await;
+
+    if behind_proxy {
+        let headers = response.headers_mut();
+        headers.remove(header::ACCESS_CONTROL_ALLOW_ORIGIN);
+        headers.remove(header::ACCESS_CONTROL_ALLOW_METHODS);
+        headers.remove(header::ACCESS_CONTROL_ALLOW_HEADERS);
+        headers.remove(header::ACCESS_CONTROL_EXPOSE_HEADERS);
+        headers.remove(header::ACCESS_CONTROL_MAX_AGE);
+        headers.remove(header::ACCESS_CONTROL_ALLOW_CREDENTIALS);
+    }
+
+    response
 }
 
 pub fn create_cors_layer_for_production(allowed_origins: Vec<String>) -> CorsLayer {
