@@ -1,2 +1,0 @@
-DROP TABLE IF EXISTS etl_jobs;
-DROP TABLE IF EXISTS connectors;
