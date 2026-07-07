@@ -523,31 +523,58 @@ pub fn derive_scope_key(master_key: &[u8], domain: &str, scope_id: &Uuid) -> Vec
     result.to_vec()
 }
 
-/// Carrega a chave mestra de criptografia a partir de variáveis de ambiente.
+/// Carrega a chave mestra de criptografia.
 /// Prioridade:
-/// 1. `MESSAGE_ENCRYPTION_KEY` (hex ou raw string, hasheada para 32 bytes)
-/// 2. `JWT_SECRET` (hasheada para 32 bytes, fallback dev)
-/// 3. Hash fixo para desenvolvimento (log warning se cair aqui)
+/// 1. Vault `secret/gbo/encryption` (campo `key` ou `master_key`)
+/// 2. `MESSAGE_ENCRYPTION_KEY` (hex ou raw string, hasheada para 32 bytes)
+/// 3. `JWT_SECRET` (hasheada para 32 bytes, fallback dev)
+/// 4. Chave aleatória efêmera (log warning)
 pub fn load_master_encryption_key() -> Vec<u8> {
+    // 1. Try Vault first
+    if let Some(provider) = botsecurity_core::get_vault_provider() {
+        if let Ok(vault_key) = provider.get_secret("secret/gbo/encryption") {
+            if !vault_key.is_empty() {
+                if let Ok(bytes) = hex::decode(&vault_key) {
+                    if bytes.len() == 32 {
+                        info!("Master encryption key loaded from Vault");
+                        return bytes;
+                    }
+                }
+                let mut hasher = Sha256::new();
+                hasher.update(vault_key.as_bytes());
+                info!("Master encryption key derived from Vault secret");
+                return hasher.finalize().to_vec();
+            }
+        }
+    }
+
+    // 2. Try env var
     if let Ok(key) = std::env::var("MESSAGE_ENCRYPTION_KEY") {
         if !key.is_empty() {
             if let Ok(bytes) = hex::decode(&key) {
                 if bytes.len() == 32 {
+                    info!("Master encryption key loaded from MESSAGE_ENCRYPTION_KEY");
                     return bytes;
                 }
             }
             let mut hasher = Sha256::new();
             hasher.update(key.as_bytes());
+            info!("Master encryption key derived from MESSAGE_ENCRYPTION_KEY");
             return hasher.finalize().to_vec();
         }
     }
+
+    // 3. Fallback to JWT_SECRET
     if let Ok(jwt) = std::env::var("JWT_SECRET") {
         if !jwt.is_empty() {
+            info!("Master encryption key derived from JWT_SECRET (dev fallback)");
             let mut hasher = Sha256::new();
             hasher.update(jwt.as_bytes());
             return hasher.finalize().to_vec();
         }
     }
+
+    // 4. Ephemeral fallback
     warn!("MESSAGE_ENCRYPTION_KEY not configured. Using ephemeral random key (will change on restart).");
     rand::random::<[u8; 32]>().to_vec()
 }

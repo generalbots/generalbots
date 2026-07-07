@@ -18,6 +18,7 @@ rustls=off,rustls_pemfile=off,tokio_rustls=off,\
          want=off,try_lock=off,futures=off,\
          base64=off,bytes=off,encoding_rs=off,\
          url=off,percent_encoding=off,\
-         ring=off,webpki=off,\
-         hickory_resolver=off,hickory_proto=off"
+          ring=off,webpki=off,\
+          hickory_resolver=off,hickory_proto=off,\
+          tokio_backend=error"
 }
