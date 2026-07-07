@@ -1190,7 +1190,9 @@ grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
 
 ## ☁️ Cloud SaaS Product Architecture (CRM + Default Bot)
 
-Products live in `botproducts` crate, NOT in CRM. CRM and products share the same `org_id`+`bot_id` scope but are separate domains with no FK between them.
+Products live in `botproducts` crate, NOT in CRM. Products and CRM share the same `org_id`/`bot_id`/`branch_id` scope but are separate domains with no FK between them.
+
+**Products are scoped by `branch_id`** (not by `org_id` or `bot_id` directly). The `get_bot_context()` at `botproducts/src/lib.rs:33` resolves to `branch_id = Uuid::nil()` in the global SaaS admin mode, or to the organization's real branch when a user signs up.
 
 ### Feature Gates & Dependency Chain
 
@@ -1204,10 +1206,10 @@ Chain: `saas` → `billing` → `botproducts`
 
 ### Product Seeding (idempotent)
 
-**Two trigger points** via `botproducts::seed::seed_default_products(conn, org_id, bot_id)`:
+**Two trigger points** via `botproducts::seed::seed_default_products(conn, branch_id)`:
 
-1. **Server init** (`init.rs:239`): called once with `Uuid::nil()` for both org and bot (global catalog before any org signs up)
-2. **Org signup** (`botcloud/api.rs:352`): called with the new org's real `org_id` + `new_bot_id`
+1. **Server init** (`init.rs:269`): called once with `Uuid::nil()` (global catalog — visible to all orgs before signup)
+2. **Org signup** (`botcloud/api.rs:376`): called with the new org's `branch_id` (creates a dedicated product scope for the org's branch)
 
 Seeded products by category (all `stock_quantity: -1` / unlimited):
 
@@ -1222,14 +1224,14 @@ Seeded products by category (all `stock_quantity: -1` / unlimited):
 
 ### `get_default_bot` Resolver
 
-Determines which bot's product scope to use. **O default bot é o backend do SaaS** — o super admin faz login no bot padrão (porta 3000) e vê CRM, produtos, clientes, billing tudo integrado, de forma agnóstica. A Store, Plans e demais páginas cloud (porta 4000) leem do mesmo escopo.
+Determines which bot's product scope to use. The default bot acts as the SaaS backend — the super admin logs into the default bot (port 3000) and sees CRM, products, clients, billing all integrated. The Store, Plans and other cloud pages (port 4000) read from the same scope.
 
-- **SaaS ativo** (`get_default_bot=Some(|_c| (nil, "default"))`): queries usam `bot_id = Uuid::nil()` — produtos seedados globalmente visíveis
+- **SaaS ativo** (`get_default_bot=Some(|_c| (nil, "default"))`): queries usam `branch_id = Uuid::nil()` — produtos seedados globalmente visíveis
 - **SaaS inativo** (`get_default_bot=None`): **BUG conhecido** — handlers retornam `None` prematuramente, causando grids vazios
 
 Todos os crates devem usar `Some(...)` quando a feature correspondente está ativa:
 
-| Crate | Feature | get_default_bot | Arquivo/linha |
+| Crate | Feature | get_default_bot | File/line |
 |-------|---------|----------------|--------------|
 | `botproducts` (products) | `billing` | `Some(\|_c\| (nil, "default"))` | `server.rs:379` |
 | `bottickets` (tickets) | `tickets` | `Some(\|_c\| (nil, "default"))` | `server.rs:387` |
@@ -1237,7 +1239,7 @@ Todos os crates devem usar `Some(...)` quando a feature correspondente está ati
 | `botattendant` (attendant) | `attendant` | `Some(\|_c\| (nil, "default"))` | `server.rs:409` |
 | `botworkspaces` (workspaces) | `workspaces` | `Some(\|_c\| (nil, "default"))` | `server.rs:371` |
 
-**⚠️ IMPORTANTE:** Não confundir com o `get_default_bot` usado em `botcloud` (signup) — lá a closure retorna o primeiro bot ativo do banco (`query_first_bot`) para escopo por organização. Na suite/admin, usamos `(nil, "default")` para o escopo global do bot padrão.
+**⚠️ IMPORTANT:** Do not confuse with `get_default_bot` used in `botcloud` (signup) — there the closure returns the first active bot from the database (`query_first_bot`) for per-organization scoping. In the suite/admin, we use `(nil, "default")` for the global default bot scope.
 
 **Histórico de bug:** ProductsState ficou com `get_default_bot: None` por semanas após a refatoração de módulos (jun/2026). Todos os outros crates (tickets, people, attendant, workspaces) usavam `Some(|_c| (nil, "default"))` corretamente. A correção foi aplicar o mesmo padrão em `products_routes` em `server.rs:379-380`.
 
@@ -1263,8 +1265,21 @@ Implementation at `botproducts/src/lib.rs:33-45` (`get_bot_context()`).
 
 - **NEVER create a separate admin products HTML page.** Products are shown through existing Store/Plans/Dashboard pages.
 - **Products are NOT CRM entities** — they share the `org_id`/`bot_id` scope but have separate tables and no FK relationship.
-- **Seeding is idempotent** — checks `products::table.filter(org_id)` before inserting.
+- **Seeding is idempotent** — checks `products::table.filter(branch_id)` before inserting.
 - **Default bot with nil UUID** is a global fallback. In production SaaS, `query_first_bot` finds the real active bot.
+
+### Cloud Domain Architecture
+
+| Domain | Port | Serves | Notes |
+|--------|------|--------|-------|
+| `pragmatismo.com.br` | Caddy → 4000 | Landing page + Cloud store/Plans | Static landing + cloud UI via botui |
+| `cloud.pragmatismo.com.br` | Caddy → 4000 | Cloud dashboard, store, plans | Same botui cloud server, different proxy route |
+| `chat.pragmatismo.com.br` | Caddy → 8080 | Bot API, WebSocket | Proxied directly to botserver |
+| `login.pragmatismo.com.br` | Caddy → 5000 | Login, signup | Botui login server |
+
+**Store page** (`/store` or `/cloud/store`): served by botui on port 4000, file `botui/ui/cloud/store.html`. The page loads products via `GET /api/catalog/products` (public endpoint). If the API is offline, `calc.js` uses local estimates (fallback).
+
+> **Important:** Products are seeded by `branch_id`. The global catalog (SAAS) uses `branch_id = nil`. When a user signs up, a new branch is created and products are seeded for it — each organization sees its own product set.
 
 ---
 
