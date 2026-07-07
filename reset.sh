@@ -22,9 +22,9 @@ if [ -n "$BOTSRV" ] || [ -n "$BOTUI" ]; then
   echo ""
 fi
 
-# Require 'y' confirmation
-read -r -p "Type 'y' to proceed with reset: " CONFIRM
-if [ "$CONFIRM" != "y" ]; then
+# Require 'PRUNE' confirmation (safety: must type explicitly to avoid accidental reset)
+read -r -p $'Type \e[1;31mPRUNE\e[0m to proceed with reset: ' CONFIRM
+if [ "$CONFIRM" != "PRUNE" ]; then
   echo "Reset cancelled."
   exit 1
 fi
