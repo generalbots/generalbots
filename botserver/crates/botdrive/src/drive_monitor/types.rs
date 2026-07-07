@@ -148,8 +148,10 @@ impl DriveMonitor {
 
             let etag_changed = existing.as_ref().is_none_or(|prev| prev.etag.as_deref() != etag.as_deref());
 
-        if etag_changed || existing.is_none() || needs_reindex {
+        let is_unchanged = existing.is_some() && !etag_changed && !needs_reindex;
+        if !is_unchanged {
             let branch_id = self.resolve_branch_id();
+            let was_new = existing.is_none();
             match self.file_repo.upsert_file(
                 &full_key,
                 file_type,
@@ -157,19 +159,24 @@ impl DriveMonitor {
                 None,
                 branch_id,
             ) {
-                Ok(_) => log::info!("DriveMonitor: Added/updated drive_files for: {} ({})", full_key, file_type),
+                Ok(_) => {
+                    if etag_changed || was_new {
+                        log::info!("DriveMonitor: {} drive_files for: {} ({})",
+                            if was_new { "Created" } else { "Updated" },
+                            full_key, file_type
+                        );
+                    }
+                    // KB/config: never marked indexed — reindex pipeline decides
+                    if file_type == "bas" {
+                        self.sync_bas_to_work(bot_name, &obj.key, etag.clone()).await;
+                    } else if file_type == "prompt" {
+                        self.sync_gbot_to_work(bot_name, &obj.key, etag.clone()).await;
+                    } else if file_type != "kb" && file_type != "config" {
+                        let _ = self.file_repo.mark_indexed(&full_key, etag.clone());
+                    }
+                }
                 Err(e) => log::error!("Failed to upsert {}: {}", full_key, e),
             }
-
-            if file_type == "bas" {
-                self.sync_bas_to_work(bot_name, &obj.key, etag.clone()).await;
-            } else if file_type == "prompt" {
-                self.sync_gbot_to_work(bot_name, &obj.key, etag.clone()).await;
-            } else if file_type != "kb" && file_type != "config" {
-                let _ = self.file_repo.mark_indexed(&full_key, etag.clone());
-            }
-        } else {
-            log::trace!("{} unchanged, skipping upsert", full_key);
         }
 
             if needs_reindex && file_type == "kb" {
