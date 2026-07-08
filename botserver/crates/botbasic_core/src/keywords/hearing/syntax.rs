@@ -128,7 +128,7 @@ fn register_hear_as_type(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
 
     engine
         .register_custom_syntax(
-            ["HEAR", "$ident$", "AS", "$ident$"],
+            ["HEAR", "$expr$", "as", "$ident$"],
             true,
             move |context, inputs| {
                 let variable_name = inputs[0]

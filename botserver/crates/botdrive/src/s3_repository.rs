@@ -54,12 +54,70 @@ impl S3Repository {
         Ok(())
     }
 
-    /// Download data from S3 - creates bucket reference for target bucket
+    /// Download data from S3 - uses reqwest directly with path-style URL
+    /// Bypasses rust-s3 entirely because rust-s3 0.37's Region::Custom.host()
+    /// returns empty string for custom endpoints, producing malformed URLs.
     pub async fn get_object_direct(&self, bucket: &str, key: &str) -> Result<Vec<u8>> {
         debug!("Downloading from S3: {}/{}", bucket, key);
-        let target_bucket = self.bucket_for(bucket)?;
-        let response = target_bucket.get_object(key).await?;
-        let data = response.to_vec();
+
+        let region = self.bucket.region();
+
+        // Extract endpoint from Region::Custom to build correct path-style URL
+        let endpoint = if let s3::Region::Custom { ref endpoint, .. } = region {
+            endpoint.clone()
+        } else {
+            // Fallback: try region.endpoint() (may not exist on non-Custom regions)
+            format!("http://localhost:9000")
+        };
+
+        // Build path-style URL directly: {endpoint}/{bucket}/{key}
+        let path_url = format!("{}/{}/{}", endpoint.trim_end_matches('/'), bucket, key);
+
+        // Use rust-s3's presign to generate signed query params, then rebuild
+        // the URL with our correct path-style base URL
+        let creds = s3::creds::Credentials::new(
+            Some(&self.access_key),
+            Some(&self.secret_key),
+            None, None, None,
+        ).context("Failed to create credentials")?;
+
+        let target_bucket = Bucket::new(bucket, region.clone(), creds)
+            .context("Failed to create target bucket")?
+            .with_path_style();
+
+        let presigned = target_bucket
+            .presign_get(key, 3600, None)
+            .await
+            .map_err(|e| anyhow::anyhow!("S3 presign_get failed for {}/{}: {}", bucket, key, e))?;
+
+        // Extract query params (signature) from presigned URL
+        let presigned_url = url::Url::parse(&presigned)
+            .map_err(|e| anyhow::anyhow!("Failed to parse presigned URL: {}", e))?;
+
+        let query = presigned_url.query()
+            .ok_or_else(|| anyhow::anyhow!("Presigned URL has no query string"))?;
+
+        // Rebuild URL with correct base + signature params
+        let signed_url = format!("{}?{}", path_url, query);
+
+        // Download using reqwest
+        let client = reqwest::Client::new();
+        let response = client
+            .get(&signed_url)
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to download from S3: {}", e))?;
+
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!("S3 GET failed with status {} for {}/{}: {}",
+                response.status(), bucket, key, response.text().await.unwrap_or_default()));
+        }
+
+        let data = response.bytes()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to read response bytes: {}", e))?
+            .to_vec();
+
         info!("Successfully downloaded from S3: {}/{}", bucket, key);
         Ok(data)
     }
