@@ -1,4 +1,5 @@
 use botcore::shared::state::AppState;
+use botcore::shared::utils::current_org_id;
 use botbasic_types::BasicRuntime;
 use diesel::PgConnection;
 use std::sync::Arc;
@@ -95,8 +96,8 @@ impl BasicCompiler {
             let work_path = botcore::shared::utils::get_work_path();
             let bot_name = Self::get_bot_name_from_state(&self.state, self.bot_id)?;
             let tables_bas_path = format!(
-                "{}/{}.gbai/{}.gbdialog/tables.bas",
-                work_path, bot_name, bot_name
+                "{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/tables.bas",
+                org_id = current_org_id()
             );
             let tables_ast_path = tables_bas_path.replace(".bas", ".ast");
 

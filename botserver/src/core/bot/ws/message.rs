@@ -7,17 +7,18 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::core::bot::ws::handler::verify_path_within_workdir;
+use botcore::shared::utils::current_org_id;
 
 pub fn load_system_prompt(bot_name: &str) -> String {
     let work_dir = botcore::shared::utils::get_work_path();
-    let rel_path = format!("{}.gbai/{}.gbot/", bot_name, bot_name);
+    let rel_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = current_org_id());
     if !verify_path_within_workdir(&rel_path) {
         error!("Path traversal detected in load_system_prompt for bot: {}", bot_name);
         let now = chrono::Utc::now().format("%B %d, %Y").to_string();
-        return format!("Today is {now}.\n\nYou are a helpful assistant. Respond only with valid HTML fragments. Do not use markdown. Do not use code blocks. Use only: <p>, <h3>, <ul>, <li>, <strong>, <em>. Every tag you open MUST be properly closed. Start your response directly with an HTML tag, never with plain text.");
+        return format!("Today is {now}.\n\nYou are a helpful assistant. Be concise. Respond in plain text. No HTML.");
     }
 
-    let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
+    let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = current_org_id());
     let prompt_from_file = std::fs::read_to_string(format!("{}PROMPT.md", gbot_dir))
         .or_else(|_| std::fs::read_to_string(format!("{}prompt.md", gbot_dir)))
         .or_else(|_| std::fs::read_to_string(format!("{}PROMPT.txt", gbot_dir)))
@@ -28,18 +29,18 @@ pub fn load_system_prompt(bot_name: &str) -> String {
     }
 
     let now = chrono::Utc::now().format("%B %d, %Y").to_string();
-    format!("Today is {now}.\n\nYou are a helpful assistant. Respond only with valid HTML fragments. Do not use markdown. Do not use code blocks. Use only: <p>, <h3>, <ul>, <li>, <strong>, <em>. Every tag you open MUST be properly closed. Start your response directly with an HTML tag, never with plain text.\n\nWhen asked for a ramal (extension), answer ONLY the number. Do not mention name, job title, department or any other information. Just the number.")
+    format!("Today is {now}.\n\nYou are a helpful assistant. Be concise. Respond in plain text. No HTML.")
 }
 
 pub fn load_bot_styles_css(bot_name: &str) -> String {
     let work_dir = botcore::shared::utils::get_work_path();
-    let rel_path = format!("{}.gbai/{}.gbot/", bot_name, bot_name);
+    let rel_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = current_org_id());
     if !verify_path_within_workdir(&rel_path) {
         error!("Path traversal detected in load_bot_styles_css for bot: {}", bot_name);
         return String::new();
     }
 
-    let gbot_dir = format!("{}/{}.gbai/{}.gbot/", work_dir, bot_name, bot_name);
+    let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = current_org_id());
 
     let global_css_path = format!("{}global.css", gbot_dir);
     let mut combined_css = match std::fs::read_to_string(&global_css_path) {
@@ -157,13 +158,13 @@ pub async fn run_start_bas_on_connect(
     }
 
     let work_path = botcore::shared::utils::get_work_path();
-    let rel_ast_path = format!("{}.gbai/{}.gbdialog/start.ast", bot_name, bot_name);
+    let rel_ast_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast", org_id = current_org_id());
     if !verify_path_within_workdir(&rel_ast_path) {
         error!("Path traversal detected in run_start_bas_on_connect for bot: {}", bot_name);
         return false;
     }
 
-    let ast_path = format!("{}/{}.gbai/{}.gbdialog/start.ast", work_path, bot_name, bot_name);
+    let ast_path = format!("{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast", org_id = current_org_id());
     let ast_content = match tokio::fs::read_to_string(&ast_path).await {
         Ok(c) if !c.is_empty() => c,
         _ => {

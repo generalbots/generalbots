@@ -1,5 +1,6 @@
 use super::BasicCompiler;
 use botcore::shared::state::AppState;
+use botcore::shared::utils::current_org_id;
 use diesel::{ExpressionMethods, QueryDsl, QueryableByName, RunQueryDsl};
 use log::trace;
 use std::error::Error;
@@ -239,8 +240,8 @@ impl BasicCompiler {
         let bot_name = self.get_bot_name_by_id(bot_id)?;
         let work_path = botcore::shared::utils::get_work_path();
         let tables_path = format!(
-            "{}/{}.gbai/{}.gbdialog/tables.bas",
-            work_path, bot_name, bot_name
+            "{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/tables.bas",
+            org_id = current_org_id()
         );
 
         let tables_content = fs::read_to_string(&tables_path)?;
@@ -289,8 +290,8 @@ impl BasicCompiler {
         let bot_name = Self::get_bot_name_from_state(&self.state, self.bot_id)?;
         let work_path = botcore::shared::utils::get_work_path();
         let tables_path = format!(
-            "{}/{}.gbai/{}.gbdialog/tables.bas",
-            work_path, bot_name, bot_name
+            "{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/tables.bas",
+            org_id = current_org_id()
         );
 
         if !Path::new(&tables_path).exists() {

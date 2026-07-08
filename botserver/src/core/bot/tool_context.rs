@@ -37,7 +37,8 @@ pub fn get_session_tools(
         info!("Created work directory at: {:?}", work_root);
     }
 
-    let rel_path_str = format!("{}.gbai/{}.gbdialog", bot_name, bot_name);
+    use botcore::shared::utils::current_org_id;
+    let rel_path_str = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog", org_id = current_org_id());
     let rel_path = std::path::Path::new(&rel_path_str);
     if !crate::security::code_scan_fixes::is_safe_path(&work_root, rel_path) {
         return Err(format!("Path traversal detected for bot '{}'", bot_name).into());

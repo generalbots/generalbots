@@ -1,4 +1,5 @@
 use botcore::shared::state::AppState;
+use botcore::shared::utils::current_org_id;
 use crate::drive_files::DriveFileRepository;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::KnowledgeBaseManager;
@@ -571,7 +572,7 @@ impl DriveMonitor {
                 let kb_folder_name = parts[1];
                 let kb_folder_path =
                     work_root.join(&tenant_slug).join(&org_slug)
-                        .join(format!("{}.gbai/{}.gbkb", branch_slug, bot_name))
+                        .join(format!("{org_id}.gborg/{branch_slug}.gbai/{bot_name}.gbkb", org_id = current_org_id()))
                         .join(kb_folder_name);
 
                 {
@@ -810,14 +811,15 @@ impl DriveMonitor {
     fn bot_work_dir(&self, subdir: &str) -> PathBuf {
         if &self.tenant_slug == "default" && &self.org_slug == "default" {
             // Flat bot (no tenant/org isolation) — store directly under work_root
+            // Wrapped in .gborg to mirror Drive bucket structure (Issue #712)
             self.work_root
-                .join(format!("{}.gbai/{}.{}", self.branch_slug, self.bot_name, subdir))
+                .join(format!("{org_id}.gborg/{branch_slug}.gbai/{bot_name}.{subdir}", org_id = current_org_id(), branch_slug = self.branch_slug, bot_name = self.bot_name))
         } else {
-            // Multi-tenant bot — store under tenant/org prefix
+            // Multi-tenant bot — store under tenant/org prefix with .gborg wrapping
             self.work_root
                 .join(&self.tenant_slug)
                 .join(&self.org_slug)
-                .join(format!("{}.gbai/{}.{}", self.branch_slug, self.bot_name, subdir))
+                .join(format!("{org_id}.gborg/{branch_slug}.gbai/{bot_name}.{subdir}", org_id = current_org_id(), branch_slug = self.branch_slug, bot_name = self.bot_name))
         }
     }
 }

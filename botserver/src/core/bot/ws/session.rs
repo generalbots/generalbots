@@ -10,6 +10,7 @@ use super::handler::validate_bot_name;
 use super::handler::verify_path_within_workdir;
 use super::message::load_system_prompt;
 use super::message::run_start_bas_on_connect;
+use botcore::shared::utils::current_org_id;
 
 pub async fn handle_ws(
     socket: WebSocket,
@@ -172,13 +173,13 @@ async fn handle_text_message(
         if !tool_name.is_empty() {
             info!("TOOL_EXEC: Direct tool execution: {} (validated from: {})", tool_name, raw_tool_name);
             let work_path = botcore::shared::utils::get_work_path();
-            let rel_tool_path = format!("{}.gbai/{}.gbdialog/{}.ast", bot_name, bot_name, tool_name);
+            let rel_tool_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast", org_id = current_org_id());
             if !verify_path_within_workdir(&rel_tool_path) {
                 error!("Path traversal detected in TOOL_EXEC for tool: {}", tool_name);
                 return;
             }
 
-            let ast_path = format!("{}/{}.gbai/{}.gbdialog/{}.ast", work_path, bot_name, bot_name, tool_name);
+            let ast_path = format!("{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast", org_id = current_org_id());
             let ast_content = match tokio::fs::read_to_string(&ast_path).await {
                 Ok(c) if !c.is_empty() => c,
                 _ => {

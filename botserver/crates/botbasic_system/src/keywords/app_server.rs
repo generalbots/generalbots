@@ -353,8 +353,8 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
         .unwrap_or_else(|| format!("{}/sites", get_stack_path()));
 
     let full_path = format!(
-        "{}/{}.gbai/{}.gbapp/{}/{}",
-        site_path, sanitized_bot_name, sanitized_bot_name, sanitized_app_name, sanitized_file_path
+        "{site_path}/{org_id}.gborg/{sanitized_bot_name}.gbai/{sanitized_bot_name}.gbapp/{sanitized_app_name}/{sanitized_file_path}",
+        org_id = botcore::shared::utils::current_org_id()
     );
 
     trace!("Fallback: serving app file from filesystem: {full_path}");

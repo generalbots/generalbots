@@ -145,7 +145,8 @@ fn associate_tool_with_session(
 
     // Get bot name to construct the path
     let bot_name = get_bot_name_from_id(state, &user.bot_id)?;
-    let work_path = Path::new(&work_root).join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+    let org_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog", org_id = botcore::shared::utils::current_org_id());
+    let work_path = Path::new(&work_root).join(&org_path);
     let mcp_path = work_path.join(format!("{}.mcp.json", tool_name));
 
     trace!("Checking for tool .mcp.json at: {:?}", mcp_path);

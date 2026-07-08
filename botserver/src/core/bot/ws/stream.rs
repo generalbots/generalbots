@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::core::bot::ws::handler::validate_bot_name;
 use crate::core::bot::ws::handler::verify_path_within_workdir;
 use crate::core::bot::ws::message::load_bot_styles_css;
+use botcore::shared::utils::current_org_id;
 
 pub async fn process_llm_response(
     ws_sender: &mut futures_util::stream::SplitSink<WebSocket, Message>,
@@ -253,13 +254,13 @@ pub async fn process_llm_response(
                         };
 
                         let work_path = botcore::shared::utils::get_work_path();
-                        let rel_tool_path = format!("{}.gbai/{}.gbdialog/{}.ast", bot_name, bot_name, tool_name);
+                        let rel_tool_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast", org_id = current_org_id());
                         if !verify_path_within_workdir(&rel_tool_path) {
                             error!("Path traversal detected in LLM tool_call for tool: {}", tool_name);
                             return;
                         }
 
-                        let ast_path = format!("{}/{}.gbai/{}.gbdialog/{}.ast", work_path, bot_name, bot_name, tool_name);
+                        let ast_path = format!("{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast", org_id = current_org_id());
                         let ast_content = match tokio::fs::read_to_string(&ast_path).await {
                             Ok(c) if !c.is_empty() => c,
                             _ => {
@@ -316,7 +317,7 @@ pub async fn process_llm_response(
                                         }
                                     }
                                 }
-                                let mcp_path = format!("{}.gbai/{}.gbdialog/{}.mcp.json", bot_name_for_mcp, bot_name_for_mcp, tool_name_for_mcp);
+                                let mcp_path = format!("{org_id}.gborg/{bot_name_for_mcp}.gbai/{bot_name_for_mcp}.gbdialog/{tool_name_for_mcp}.mcp.json", org_id = current_org_id());
                                 let mcp_full = std::path::Path::new(&work_path_for_mcp).join(&mcp_path);
                                 if mcp_full.exists() {
                                     if let Ok(mcp_content) = std::fs::read_to_string(&mcp_full) {

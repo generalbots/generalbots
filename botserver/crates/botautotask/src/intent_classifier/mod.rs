@@ -412,7 +412,7 @@ Respond with JSON only:
 
     fn save_basic_file(&self, bot_id: Uuid, path: &str, content: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let site_path = "/opt/gbo/data/sites".to_string();
-        let full_path = format!("{}/{}.gbai/{}", site_path, bot_id, path);
+        let full_path = format!("{site_path}/{org_id}.gborg/{bot_id}.gbai/{path}", org_id = botcore::shared::utils::current_org_id());
         if let Some(dir) = std::path::Path::new(&full_path).parent() {
             if !dir.exists() { std::fs::create_dir_all(dir)?; }
         }

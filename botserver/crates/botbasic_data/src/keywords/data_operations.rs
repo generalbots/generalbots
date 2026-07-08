@@ -709,14 +709,10 @@ fn fire_table_triggers(
         }
 
         // Try .ast first (pre-compiled Rhai), fall back to .bas (raw BASIC source)
-        let ast_path = std::path::Path::new(&work_root).join(format!(
-            "{}.gbai/{}.gbdialog/{}.ast",
-            bot_name, bot_name, script_name
-        ));
-        let bas_path = std::path::Path::new(&work_root).join(format!(
-            "{}.gbai/{}.gbdialog/{}.bas",
-            bot_name, bot_name, script_name
-        ));
+        let ast_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{script_name}.ast", org_id = botcore::shared::utils::current_org_id());
+        let ast_path = std::path::Path::new(&work_root).join(&ast_rel);
+        let bas_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{script_name}.bas", org_id = botcore::shared::utils::current_org_id());
+        let bas_path = std::path::Path::new(&work_root).join(&bas_rel);
 
         let content = std::fs::read_to_string(&ast_path)
             .or_else(|_| std::fs::read_to_string(&bas_path));

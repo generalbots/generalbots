@@ -394,7 +394,7 @@ pub async fn apply_file_change(
         .clone()
         .unwrap_or_else(|| format!("{}/sites", (state.get_stack_path)()));
 
-    let local_path = format!("{site_path}/{}.gbai/{}.gbapp/{app_name}/{file_name}", sanitized_name, sanitized_name);
+    let local_path = format!("{site_path}/{org_id}.gborg/{sanitized_name}.gbai/{sanitized_name}.gbapp/{app_name}/{file_name}", org_id = botcore::shared::utils::current_org_id());
     if let Some(parent) = std::path::Path::new(&local_path).parent() {
         std::fs::create_dir_all(parent)?;
     }

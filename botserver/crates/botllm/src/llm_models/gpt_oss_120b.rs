@@ -153,4 +153,8 @@ impl ModelHandler for GptOss120bHandler {
     fn has_analysis_markers(&self, buffer: &str) -> bool {
         buffer.contains("**start**") || buffer.contains("<thinking>")
     }
+
+    fn skip_reasoning_content(&self) -> bool {
+        true
+    }
 }
