@@ -9,7 +9,7 @@
 /// SEM usar /opt/gbo/data/ como intermediário!
 use crate::basic::compiler::{BasicCompiler, CompilerCallbacks};
 use crate::core::shared::state::AppState;
-use crate::core::shared::utils::get_work_path;
+use crate::core::shared::utils::{current_org_id, get_work_path};
 use crate::drive::drive_files::drive_files as drive_files_table;
 use crate::drive::drive_monitor::CHECK_INTERVAL_SECS;
 use diesel::prelude::*;
@@ -166,12 +166,12 @@ impl DriveCompiler {
     let (bot_name, work_dir) = if parts[0].ends_with(".gbai") {
         // Full path: {bot}.gbai/{bot}.gbdialog/{tool}.bas
         let bot_name = parts[0].strip_suffix(".gbai").unwrap_or(parts[0]);
-        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+        let work_dir = self.work_root.join(format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog", org_id = current_org_id()));
         (bot_name.to_string(), work_dir)
     } else if parts.len() >= 2 && parts[0].ends_with(".gbdialog") {
         // Short path: {bot}.gbdialog/{tool}.bas
         let bot_name = parts[0].strip_suffix(".gbdialog").unwrap_or(parts[0]);
-        let work_dir = self.work_root.join(format!("{}.gbai/{}.gbdialog", bot_name, bot_name));
+        let work_dir = self.work_root.join(format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog", org_id = current_org_id()));
         (bot_name.to_string(), work_dir)
     } else if parts.len() >= 2 && parts[0].ends_with(".gbkb") {
         // KB file: {bot}.gbkb/{doc}.txt - skip compilation

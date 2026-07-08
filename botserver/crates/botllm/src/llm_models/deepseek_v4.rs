@@ -70,7 +70,11 @@ impl ModelHandler for DeepseekV4Handler {
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {
-        buffer.contains("<think>")
+        buffer.contains("lldsdkx")
+    }
+
+    fn skip_reasoning_content(&self) -> bool {
+        true
     }
 }
 

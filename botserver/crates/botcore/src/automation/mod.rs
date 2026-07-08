@@ -1,6 +1,7 @@
 // ScriptService stays in botserver layer
 // use crate::basic::ScriptService;
 use crate::shared::models::{Automation, TriggerKind};
+use crate::shared::utils::current_org_id;
 use log::{error, trace};
 use tokio::time::{interval, Duration};
 
@@ -126,8 +127,8 @@ impl AutomationService {
                 .first(&mut conn)?
         };
         let script_path = format!(
-            "./work/{}.gbai/{}.gbdialog/{}.ast",
-            bot_name, bot_name, automation.param
+            "./work/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{param}.ast",
+            org_id = current_org_id(), param = automation.param
         );
         let script_content = match tokio::fs::read_to_string(&script_path).await {
             Ok(content) => content,

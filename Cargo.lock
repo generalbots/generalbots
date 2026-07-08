@@ -1191,6 +1191,7 @@ name = "botautotask"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "botcore",
  "botlib",
  "chrono",
  "diesel",
@@ -1856,6 +1857,7 @@ name = "botdesigner"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "botcore",
  "chrono",
  "diesel",
  "log",

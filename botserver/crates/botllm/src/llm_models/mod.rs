@@ -11,6 +11,14 @@ pub trait ModelHandler: Send + Sync {
         self.process_content(content)
     }
     fn has_analysis_markers(&self, buffer: &str) -> bool;
+    /// Whether to skip `reasoning_content`/`reasoning` deltas in streaming.
+    /// Models that output reasoning AND content as separate fields (e.g. deepseek-v4-flash
+    /// via opencode.ai) should return `true` so only the final `content` is sent to the user.
+    /// Models that ONLY output reasoning (e.g. gpt-oss via NVIDIA) should return `false`
+    /// so the reasoning is sent as the response.
+    fn skip_reasoning_content(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Debug)]

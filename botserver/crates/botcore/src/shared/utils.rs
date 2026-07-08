@@ -117,6 +117,50 @@ pub fn get_work_path() -> String {
     get_work_path_default()
 }
 
+/// Returns the current org ID for bot file path isolation.
+///
+/// Currently always returns Uuid::nil() until real multi-tenant auth
+/// is implemented. Once UserSession.branch_id is properly populated
+/// from JWT tokens, this function will return the real org UUID.
+///
+/// When a session context is available, prefer passing the session's
+/// branch_id directly to build_bot_path() / get_org_work_path().
+pub fn current_org_id() -> uuid::Uuid {
+    uuid::Uuid::nil()
+}
+
+/// Build a relative bot path with org isolation (.gborg wrapping).
+/// Returns: "{org_id}.gborg/{bot_bucket}.gbai/{sub_path}"
+///
+/// This mirrors the MinIO Drive bucket structure where each org's bots
+/// are stored under `{org_id}.gborg/` and each bot under `{bot_name}.gbai/`.
+///
+/// When `org_id` is not available, use `current_org_id()` which returns
+/// the nil UUID (current default for single-tenant mode).
+pub fn build_bot_path(org_id: impl std::fmt::Display, bot_bucket: &str, sub_path: &str) -> String {
+    format!("{org_id}.gborg/{bot_bucket}.gbai/{sub_path}")
+}
+
+/// Build an absolute bot path with org isolation.
+/// Returns: "{work_root}/{org_id}.gborg/{bot_bucket}.gbai/{sub_path}"
+///
+/// Use this for local filesystem paths to bot files (compiled .ast,
+/// templates, etc.). The .gborg layer ensures org-level isolation.
+pub fn build_absolute_bot_path(
+    work_root: &str,
+    org_id: impl std::fmt::Display,
+    bot_bucket: &str,
+    sub_path: &str,
+) -> String {
+    format!("{work_root}/{org_id}.gborg/{bot_bucket}.gbai/{sub_path}")
+}
+
+/// Get work path with org isolation suffix.
+/// Returns: "{work_path}/{org_id}.gborg/"
+pub fn get_org_work_path(org_id: impl std::fmt::Display) -> String {
+    format!("{}/{org_id}.gborg/", get_work_path())
+}
+
 /// Returns the work directory path.
 /// In production (system container with .env but no botserver-stack): /opt/gbo/work
 /// In development (with botserver-stack directory): ./botserver-stack/data/system/work

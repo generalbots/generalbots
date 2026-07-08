@@ -475,8 +475,12 @@ impl LLMProvider for OpenAIClient {
 
         let result_value: Value = serde_json::from_str(&response_text)
             .map_err(|e| format!("JSON parse error: {}", e))?;
-        let raw_content = result_value["choices"][0]["message"]["content"]
+        let msg = &result_value["choices"][0]["message"];
+        let raw_content = msg["content"]
             .as_str()
+            .filter(|s| !s.is_empty())
+            .or_else(|| msg["reasoning_content"].as_str())
+            .or_else(|| msg["reasoning"].as_str())
             .unwrap_or("");
 
         let handler = get_handler(model);
@@ -494,6 +498,8 @@ impl LLMProvider for OpenAIClient {
         key: &str,
         tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        log::info!("OpenAIClient::generate_stream ENTERED: model={}, key_len={}, url={}{}",
+            model, key.len(), self.base_url, self.endpoint_path);
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
 
         let raw_messages =
@@ -554,7 +560,8 @@ impl LLMProvider for OpenAIClient {
             "top_p": 1.0
         });
 
-        if model.contains("kimi") || model.contains("glm") {
+        // Only add chat_template_kwargs for native z.ai/GLM API, not for opencode.ai proxy
+        if (model.contains("kimi") || model.contains("glm")) && self.base_url.contains("z.ai") {
             let kwargs = if model.contains("glm") {
                 serde_json::json!({"enable_thinking": true, "clear_thinking": false})
             } else {
@@ -582,7 +589,7 @@ impl LLMProvider for OpenAIClient {
             }
         }
 
-        let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::channel::<Result<Vec<u8>, String>>(64);
+        let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::channel::<Result<Vec<u8>, String>>(100000);
 
         let max_retries = 2;
         let mut stream_started = false;
@@ -697,11 +704,10 @@ impl LLMProvider for OpenAIClient {
                             .map(|s| s.to_string());
                         let content_text = data["choices"][0]["delta"]["content"].as_str().map(|s| s.to_string());
 
-                        // For reasoning models (gpt-oss), skip reasoning entirely
-                        let is_reasoning_model = model.contains("gpt-oss");
-
-                        if !is_reasoning_model {
-                            // Send reasoning_content only if there's no content delta (thinking-only chunks)
+                        // Let the model handler decide whether to skip reasoning content.
+                        // Models like deepseek-v4-flash output reasoning then content separately,
+                        // so we skip reasoning. Models like gpt-oss only output reasoning, so we send it.
+                        if !handler.skip_reasoning_content() {
                             if let Some(ref reasoning) = reasoning_text {
                                 if !reasoning.is_empty() && content_text.as_ref().is_none_or(|c| c.is_empty()) {
                                     let processed = handler.process_content_streaming(reasoning, &mut stream_state);
@@ -758,12 +764,16 @@ impl LLMProvider for OpenAIClient {
             }
         }
 
-        // Flush any remaining buffered content from streaming look-ahead
+        // Flush any remaining buffered content from streaming look-ahead.
+        // Only send content not yet emitted by process_content_streaming.
         if !stream_state.is_empty() {
             let remaining = handler.process_content(&stream_state);
-            if !remaining.is_empty() {
-                content_sent += remaining.len();
-                let _ = tx.send(remaining).await;
+            if !remaining.is_empty() && remaining.len() > content_sent {
+                let unsent = &remaining[content_sent..];
+                if !unsent.is_empty() {
+                    content_sent += unsent.len();
+                    let _ = tx.send(unsent.to_string()).await;
+                }
             }
         }
 

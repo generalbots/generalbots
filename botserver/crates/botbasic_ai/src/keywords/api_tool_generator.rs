@@ -1,4 +1,5 @@
 use botbasic_types::BasicRuntime;
+use botcore::shared::utils::current_org_id;
 use diesel::prelude::*;
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -170,8 +171,8 @@ impl ApiToolGenerator {
         let endpoints = Self::extract_endpoints(&spec)?;
 
         let api_folder = format!(
-            "{}/{}.gbai/.gbdialog/{}",
-            self.work_path, self.bot_id, api_name
+            "{work_path}/{org_id}.gborg/{bot_id}.gbai/.gbdialog/{api_name}",
+            work_path = self.work_path, org_id = current_org_id(), bot_id = self.bot_id
         );
         std::fs::create_dir_all(&api_folder)
             .map_err(|e| format!("Failed to create API folder: {}", e))?;
@@ -572,8 +573,8 @@ impl ApiToolGenerator {
                 .ok();
 
                 let api_folder = format!(
-                    "{}/{}.gbai/.gbdialog/{}",
-                    self.work_path, self.bot_id, api.api_name
+                    "{work_path}/{org_id}.gborg/{bot_id}.gbai/.gbdialog/{api_name}",
+                    work_path = self.work_path, org_id = current_org_id(), bot_id = self.bot_id, api_name = api.api_name
                 );
                 if let Err(e) = std::fs::remove_dir_all(&api_folder) {
                     warn!("Failed to remove API folder {}: {}", api_folder, e);
