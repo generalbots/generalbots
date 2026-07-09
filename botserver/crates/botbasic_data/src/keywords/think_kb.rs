@@ -450,26 +450,30 @@ async fn think_kb_search(
     let total_results_count: usize = all_results.iter().map(|kb| kb["results"].as_array().map(|a| a.len()).unwrap_or(0)).sum();
 
     let content = if let Some(first_insight) = consolidation_insights.first() {
-        first_insight["insight"].as_str().unwrap_or("").to_string()
+        let insight = first_insight["insight"].as_str().unwrap_or("");
+        if !insight.is_empty() {
+            insight.to_string()
+        } else {
+            String::new()
+        }
     } else {
         let mut lines: Vec<String> = Vec::new();
         for kb in &all_results {
             if let Some(results) = kb["results"].as_array() {
                 for r in results {
-                    if let Some(payload) = r.get("payload") {
-                        if let Some(text) = payload.get("content").and_then(|v| v.as_str()) {
-                            lines.push(text.to_string());
-                        } else if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
-                            lines.push(text.to_string());
-                        }
-                    } else if let Some(text) = r.get("content").and_then(|v| v.as_str()) {
+                    let text = r.get("payload")
+                        .and_then(|p| p.get("content").and_then(|v| v.as_str()))
+                        .or_else(|| r.get("payload").and_then(|p| p.get("text").and_then(|v| v.as_str())))
+                        .or_else(|| r.get("content").and_then(|v| v.as_str()))
+                        .unwrap_or("");
+                    if !text.is_empty() {
                         lines.push(text.to_string());
                     }
                 }
             }
         }
         if lines.is_empty() {
-            format!("Encontrados {} resultados. Nao foi possivel extrair o conteudo.", total_results_count)
+            String::new()
         } else {
             lines.join("\n")
         }

@@ -19,7 +19,7 @@ pub async fn process_llm_response(
     session_id: Uuid,
     user_id: Uuid,
     bot_name: &str,
-    full_prompt: &str,
+    messages: &serde_json::Value,
     user_text: &str,
 ) {
     let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
@@ -96,7 +96,8 @@ pub async fn process_llm_response(
     match bot_llm_provider.or_else(|| state.llm_provider.clone().map(move |p| (p, env_key.clone(), env_model.clone()))) {
         Some((ref llm, ref llm_key, ref llm_model)) => {
             let state_clone = state.clone();
-            let prompt_clone = full_prompt.to_string();
+            let prompt_clone = user_text.to_string();
+            let messages_clone = messages.clone();
             let llm = llm.clone();
             let llm_key_clone = llm_key.clone();
             let llm_model_clone = llm_model.clone();
@@ -148,7 +149,7 @@ pub async fn process_llm_response(
             let _stream_handle = tokio::spawn(async move {
                 info!("LLM spawn task starting: model={}, key_len={}, key_first_20={}", llm_model_clone, llm_key_clone.len(), &llm_key_clone.chars().take(20).collect::<String>());
                 let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
-                if let Err(e) = llm.generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx, &llm_model_clone, &llm_key_clone, tools_arg.as_ref()).await {
+                if let Err(e) = llm.generate_stream(&prompt_clone, &messages_clone, stream_tx, &llm_model_clone, &llm_key_clone, tools_arg.as_ref()).await {
                     error!("LLM stream error: {}", e);
                 } else {
                     info!("LLM spawn task completed successfully");

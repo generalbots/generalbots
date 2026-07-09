@@ -379,35 +379,25 @@ async fn handle_text_message(
         warn!("ws_handler: inject_kb_context TIMEOUT after 30s for session {}", session_id);
     }
     info!("ws_handler: KB context injection completed for session {}", session_id);
-    if let Some(arr) = messages_val.as_array() {
-        messages = arr.clone();
-    }
 
     if !is_switcher_replay {
         let mut sm = state.session_manager.lock().await;
         let _ = sm.save_message(session_id, user_id, 1, &user_text, 1);
     }
 
-    let mut full_prompt = String::new();
-    for msg in &messages {
-        let role = msg["role"].as_str().unwrap_or("user");
-        let content = msg["content"].as_str().unwrap_or("");
-        match role {
-            "system" => full_prompt.push_str(&format!("System: {}\n\n", content)),
-            "user" => full_prompt.push_str(&format!("User: {}\n", content)),
-            "assistant" => full_prompt.push_str(&format!("Assistant: {}\n", content)),
-            _ => full_prompt.push_str(&format!("{}: {}\n", role, content)),
-        }
+    if let Some(arr) = messages_val.as_array_mut() {
+        arr.push(serde_json::json!({
+            "role": "user",
+            "content": user_text
+        }));
     }
-    full_prompt.push_str(&format!("\nUser: {}", user_text));
-    full_prompt.push_str("\nAssistant: ");
 
     info!("ws_handler: calling process_llm_response for session {}", session_id);
     if tokio::time::timeout(
         std::time::Duration::from_secs(300),
         super::stream::process_llm_response(
             ws_sender, rx, state, bot_uuid, session_id, user_id, bot_name,
-            &full_prompt, &user_text,
+            &messages_val, &user_text,
         ),
     ).await.is_err() {
         warn!("ws_handler: process_llm_response TIMEOUT after 300s for session {}", session_id);
