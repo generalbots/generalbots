@@ -11,21 +11,35 @@ use botcore::shared::utils::current_org_id;
 
 pub fn load_system_prompt(bot_name: &str) -> String {
     let work_dir = botcore::shared::utils::get_work_path();
-    let rel_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = current_org_id());
-    if !verify_path_within_workdir(&rel_path) {
-        error!("Path traversal detected in load_system_prompt for bot: {}", bot_name);
-        let now = chrono::Utc::now().format("%B %d, %Y").to_string();
-        return format!("Today is {now}.\n\nYou are a helpful assistant. Be concise. Respond in plain text. No HTML.");
+    let org_id = current_org_id();
+    let nil_uuid = uuid::Uuid::nil();
+
+    // Helper to read prompt from a gbot directory
+    let read_prompt = |gbot_dir: &str| -> Option<String> {
+        let path = |f: &str| format!("{}{}", gbot_dir, f);
+        std::fs::read_to_string(path("PROMPT.md"))
+            .or_else(|_| std::fs::read_to_string(path("prompt.md")))
+            .or_else(|_| std::fs::read_to_string(path("PROMPT.txt")))
+            .or_else(|_| std::fs::read_to_string(path("prompt.txt")))
+            .ok()
+    };
+
+    // Primary path: {bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/ (mirrors MinIO drive)
+    let primary_rel = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
+    if verify_path_within_workdir(&primary_rel) {
+        let gbot_dir = format!("{work_dir}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
+        if let Some(p) = read_prompt(&gbot_dir) {
+            return p;
+        }
     }
 
-    let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = current_org_id());
-    let prompt_from_file = std::fs::read_to_string(format!("{}PROMPT.md", gbot_dir))
-        .or_else(|_| std::fs::read_to_string(format!("{}prompt.md", gbot_dir)))
-        .or_else(|_| std::fs::read_to_string(format!("{}PROMPT.txt", gbot_dir)))
-        .or_else(|_| std::fs::read_to_string(format!("{}prompt.txt", gbot_dir)));
-
-    if let Ok(p) = prompt_from_file {
-        return p;
+    // Fallback: {org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/ (nil UUID legacy)
+    let fallback_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+    if org_id != nil_uuid && verify_path_within_workdir(&fallback_rel) {
+        let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+        if let Some(p) = read_prompt(&gbot_dir) {
+            return p;
+        }
     }
 
     let now = chrono::Utc::now().format("%B %d, %Y").to_string();
@@ -34,52 +48,70 @@ pub fn load_system_prompt(bot_name: &str) -> String {
 
 pub fn load_bot_styles_css(bot_name: &str) -> String {
     let work_dir = botcore::shared::utils::get_work_path();
-    let rel_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = current_org_id());
-    if !verify_path_within_workdir(&rel_path) {
-        error!("Path traversal detected in load_bot_styles_css for bot: {}", bot_name);
-        return String::new();
-    }
+    let org_id = current_org_id();
+    let nil_uuid = uuid::Uuid::nil();
 
-    let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = current_org_id());
+    // Helper: read CSS from a gbot directory
+    let read_css = |gbot_dir: &str| -> String {
+        let global_css_path = format!("{}global.css", gbot_dir);
+        let mut combined = match std::fs::read_to_string(&global_css_path) {
+            Ok(c) => {
+                info!("global.css loaded from {} ({} bytes)", global_css_path, c.len());
+                c
+            }
+            Err(_) => String::new(),
+        };
 
-    let global_css_path = format!("{}global.css", gbot_dir);
-    let mut combined_css = match std::fs::read_to_string(&global_css_path) {
-        Ok(c) => {
-            info!("global.css loaded from {} ({} bytes)", global_css_path, c.len());
-            c
-        }
-        Err(_) => String::new(),
-    };
-
-    let css_path = format!("{}styles.css", gbot_dir);
-    let local_css = match std::fs::read_to_string(&css_path) {
-        Ok(c) => {
-            info!("styles.css loaded from {} ({} bytes)", css_path, c.len());
-            c
-        }
-        Err(e1) => {
-            let alt_path = format!("{}style.css", gbot_dir);
-            match std::fs::read_to_string(&alt_path) {
-                Ok(c) => {
-                    info!("style.css loaded from {} ({} bytes)", alt_path, c.len());
-                    c
-                }
-                Err(e2) => {
-                    warn!("No styles.css/ style.css found at {} or {}: {}, {}", css_path, alt_path, e1, e2);
-                    String::new()
+        let css_path = format!("{}styles.css", gbot_dir);
+        let local_css = match std::fs::read_to_string(&css_path) {
+            Ok(c) => {
+                info!("styles.css loaded from {} ({} bytes)", css_path, c.len());
+                c
+            }
+            Err(e1) => {
+                let alt_path = format!("{}style.css", gbot_dir);
+                match std::fs::read_to_string(&alt_path) {
+                    Ok(c) => {
+                        info!("style.css loaded from {} ({} bytes)", alt_path, c.len());
+                        c
+                    }
+                    Err(e2) => {
+                        warn!("No styles.css/ style.css found at {} or {}: {}, {}", css_path, alt_path, e1, e2);
+                        String::new()
+                    }
                 }
             }
+        };
+
+        if !local_css.is_empty() {
+            if !combined.is_empty() {
+                combined.push('\n');
+            }
+            combined.push_str(&local_css);
         }
+        combined
     };
 
-    if !local_css.is_empty() {
-        if !combined_css.is_empty() {
-            combined_css.push('\n');
+    // Primary: nil UUID path
+    let primary_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+    if verify_path_within_workdir(&primary_rel) {
+        let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+        let css = read_css(&gbot_dir);
+        if !css.is_empty() {
+            return css;
         }
-        combined_css.push_str(&local_css);
     }
 
-    combined_css
+    // Fallback: when org_id is nil UUID, try {bot_name}.gborg/
+    if org_id == nil_uuid {
+        let fallback_rel = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
+        if verify_path_within_workdir(&fallback_rel) {
+            let gbot_dir = format!("{work_dir}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
+            return read_css(&gbot_dir);
+        }
+    }
+
+    String::new()
 }
 
 pub async fn send_start_suggestions(

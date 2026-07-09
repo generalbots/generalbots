@@ -248,6 +248,33 @@ pub fn add_kb_to_session(
 
     let tool_name: Option<String> = None;
 
+    // Ensure session exists in user_sessions for FK constraint on session_kb_associations
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct BranchIdRow { #[diesel(sql_type = diesel::sql_types::Uuid)] branch_id: uuid::Uuid }
+    let session_branch_id: Option<uuid::Uuid> = diesel::sql_query(
+        "SELECT branch_id FROM bots WHERE id = $1"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .get_result::<BranchIdRow>(&mut conn)
+    .ok()
+    .map(|r| r.branch_id);
+    if let Some(branch_id) = session_branch_id {
+        if let Err(e) = diesel::sql_query(
+            "INSERT INTO user_sessions (id, user_id, bot_id, branch_id, title, answer_mode, context_data, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, 'KB Session', 1, '{}'::jsonb, NOW(), NOW())
+             ON CONFLICT (id) DO NOTHING"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(session_id)
+        .bind::<diesel::sql_types::Text, _>(user_id.to_string())
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .execute(&mut conn)
+        {
+            warn!("Failed to ensure session {} in user_sessions: {}", session_id, e);
+        }
+    }
+
     let assoc_id = Uuid::new_v4();
     if let Err(e) = diesel::sql_query(
         "INSERT INTO session_kb_associations (id, session_id, bot_id, kb_name, kb_folder_path, qdrant_collection, added_by_tool, is_active)

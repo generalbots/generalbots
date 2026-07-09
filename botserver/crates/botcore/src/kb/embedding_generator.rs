@@ -73,7 +73,10 @@ impl EmbeddingConfig {
         let embedding_key = config_manager
             .get_config(_bot_id, "embedding-key", Some(""))
             .ok()
-            .filter(|s| !s.is_empty());
+            .filter(|s| !s.is_empty())
+            // If value looks encrypted (1:nonce:ciphertext) but decryption failed,
+            // it means the master key is ephemeral (dev mode) - reject it
+            .filter(|s| !s.starts_with("1:"));
 
         let dimensions = config_manager
             .get_config(_bot_id, "embedding-dimensions", Some(""))
@@ -417,14 +420,11 @@ impl KbEmbeddingGenerator {
             return Ok(Vec::new());
         }
 
-        if !is_embedding_server_ready() {
-            trace!("Server not marked ready, checking health...");
-            if !self.wait_for_server(30).await {
-                return Err(anyhow::anyhow!(
-                    "Embedding server not available at {}. Skipping embedding generation.",
-                    self.config.read().unwrap().embedding_url.clone()
-                ));
-            }
+        if !self.wait_for_server(30).await {
+            return Err(anyhow::anyhow!(
+                "Embedding server not available at {}. Skipping embedding generation.",
+                self.config.read().unwrap().embedding_url.clone()
+            ));
         }
 
         let start_mem = MemoryStats::current();
@@ -797,7 +797,7 @@ impl KbEmbeddingGenerator {
     }
 
     pub async fn generate_single_embedding(&self, text: &str) -> Result<Embedding> {
-        if !is_embedding_server_ready() && !self.check_health().await {
+        if !self.check_health().await {
             return Err(anyhow::anyhow!(
                 "Embedding server not available at {}",
                 self.config.read().unwrap().embedding_url.clone()
