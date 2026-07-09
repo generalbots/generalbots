@@ -173,20 +173,37 @@ async fn handle_text_message(
         if !tool_name.is_empty() {
             info!("TOOL_EXEC: Direct tool execution: {} (validated from: {})", tool_name, raw_tool_name);
             let work_path = botcore::shared::utils::get_work_path();
-            let rel_tool_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast", org_id = current_org_id());
-            if !verify_path_within_workdir(&rel_tool_path) {
-                error!("Path traversal detected in TOOL_EXEC for tool: {}", tool_name);
-                return;
-            }
+            let org_id = current_org_id();
 
-            let ast_path = format!("{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast", org_id = current_org_id());
-            let ast_content = match tokio::fs::read_to_string(&ast_path).await {
-                Ok(c) if !c.is_empty() => c,
-                _ => {
-                    let bas_path = ast_path.replace(".ast", ".bas");
-                    tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
-                }
+            // Helper: read tool from a path
+            let read_tool = |gbdialog_dir: &str| -> Option<String> {
+                let ast_p = format!("{}/{}.ast", gbdialog_dir, tool_name);
+                let bas_p = ast_p.replace(".ast", ".bas");
+                std::fs::read_to_string(&ast_p).ok()
+                    .or_else(|| std::fs::read_to_string(&bas_p).ok())
             };
+
+            // Primary path: {bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/ (mirrors MinIO)
+            let primary_rel = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/");
+            let tool_content = if verify_path_within_workdir(&primary_rel) {
+                let gbdialog_dir = format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/");
+                read_tool(&gbdialog_dir)
+            } else {
+                None
+            };
+
+            // Fallback: {org_id}.gborg/ path
+            let tool_content = tool_content.or_else(|| {
+                let fallback_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/", org_id = org_id);
+                if org_id != uuid::Uuid::nil() && verify_path_within_workdir(&fallback_rel) {
+                    let gbdialog_dir = format!("{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/", org_id = org_id);
+                    read_tool(&gbdialog_dir)
+                } else {
+                    None
+                }
+            });
+
+            let ast_content = tool_content.unwrap_or_default();
 
             if !ast_content.is_empty() {
                 let state_for_tool = state.clone();
