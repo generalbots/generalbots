@@ -162,6 +162,11 @@ impl KbIndexer {
               kb_name, bot_name, MemoryStats::format_bytes(start_mem.rss_bytes));
         log_jemalloc_stats();
 
+        // Reload embedding config from database to detect config.csv changes
+        if let Some(ref pool) = self.db_pool {
+            self.embedding_generator.reload_config(pool, &bot_id);
+        }
+
         if !is_embedding_server_ready() {
             info!("Embedding server not ready yet, waiting up to 60s...");
             if !self.embedding_generator.wait_for_server(60).await {
@@ -554,6 +559,11 @@ pub async fn index_single_file_with_id(
     file_path: &Path,
     document_id: Option<&str>,
     ) -> Result<IndexingResult> {
+        // Reload embedding config from database to detect config.csv changes
+        if let Some(ref pool) = self.db_pool {
+            self.embedding_generator.reload_config(pool, &bot_id);
+        }
+
         if !is_embedding_server_ready()
             && !self.embedding_generator.wait_for_server(30).await
         {

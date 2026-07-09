@@ -199,7 +199,7 @@ async fn handle_text_message(
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                 };
-                let _ = tokio::task::spawn_blocking(move || {
+                tokio::task::spawn_blocking(move || {
                     let mut svc = crate::basic::ScriptService::new(
                         state_for_tool.clone(), session_for_tool,
                     );
@@ -207,20 +207,7 @@ async fn handle_text_message(
                     if let Err(e) = svc.run(&ast_content) {
                         warn!("Tool '{}' execution error: {}", tool_name_clone, e);
                     }
-                }).await;
-            }
-
-            for _ in 0..50 {
-                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                match rx.try_recv() {
-                    Ok(response) => {
-                        if let Ok(json) = serde_json::to_string(&response) {
-                            let _ = ws_sender.send(Message::Text(json)).await;
-                        }
-                    }
-                    Err(tokio::sync::mpsc::error::TryRecvError::Empty) => continue,
-                    Err(_) => break,
-                }
+                });
             }
         }
         return;

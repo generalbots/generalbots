@@ -155,6 +155,6 @@ impl ModelHandler for GptOss120bHandler {
     }
 
     fn skip_reasoning_content(&self) -> bool {
-        true
+        false
     }
 }

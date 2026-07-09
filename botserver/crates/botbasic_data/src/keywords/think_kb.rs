@@ -345,16 +345,21 @@ async fn search_qdrant_with_real_embeddings(
     Ok(results)
 }
 
-fn generate_hash_embedding(text: &str, dimensions: usize) -> Vec<f32> {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
+fn fnv1a_hash(text: &str, salt: usize) -> u64 {
+    let mut hash: u64 = 14695981039346656037;
+    for &b in text.as_bytes() {
+        hash ^= b as u64;
+        hash = hash.wrapping_mul(1099511628211);
+    }
+    hash ^= salt as u64;
+    hash = hash.wrapping_mul(1099511628211);
+    hash
+}
 
+fn generate_hash_embedding(text: &str, dimensions: usize) -> Vec<f32> {
     let mut embedding = Vec::with_capacity(dimensions);
     for i in 0..dimensions {
-        let mut hasher = DefaultHasher::new();
-        text.hash(&mut hasher);
-        i.hash(&mut hasher);
-        let hash = hasher.finish();
+        let hash = fnv1a_hash(text, i);
         embedding.push((hash as f32) / (u64::MAX as f32) * 2.0 - 1.0);
     }
     embedding
@@ -442,6 +447,34 @@ async fn think_kb_search(
         }).collect::<Vec<_>>()
     }).take(20).collect();
 
+    let total_results_count: usize = all_results.iter().map(|kb| kb["results"].as_array().map(|a| a.len()).unwrap_or(0)).sum();
+
+    let content = if let Some(first_insight) = consolidation_insights.first() {
+        first_insight["insight"].as_str().unwrap_or("").to_string()
+    } else {
+        let mut lines: Vec<String> = Vec::new();
+        for kb in &all_results {
+            if let Some(results) = kb["results"].as_array() {
+                for r in results {
+                    if let Some(payload) = r.get("payload") {
+                        if let Some(text) = payload.get("content").and_then(|v| v.as_str()) {
+                            lines.push(text.to_string());
+                        } else if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
+                            lines.push(text.to_string());
+                        }
+                    } else if let Some(text) = r.get("content").and_then(|v| v.as_str()) {
+                        lines.push(text.to_string());
+                    }
+                }
+            }
+        }
+        if lines.is_empty() {
+            format!("Encontrados {} resultados. Nao foi possivel extrair o conteudo.", total_results_count)
+        } else {
+            lines.join("\n")
+        }
+    };
+
     let avg_score = if scored_count > 0 { total_score / scored_count as f32 } else { 0.0 };
     let confidence = calculate_confidence(avg_score, all_results.len(), consolidation_insights.len());
 
@@ -449,8 +482,9 @@ async fn think_kb_search(
         "results": all_results,
         "consolidation_insights": consolidation_insights,
         "confidence": confidence,
-        "total_results": all_results.iter().map(|kb| kb["results"].as_array().map(|a| a.len()).unwrap_or(0)).sum::<usize>(),
+        "total_results": total_results_count,
         "sources": sources,
+        "content": content,
         "query": query,
         "bot_name": bot_name,
         "memory_stats": memory_stats,

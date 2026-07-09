@@ -711,12 +711,16 @@ struct KbPathParts {
 
 #[cfg(any(feature = "research", feature = "llm"))]
 fn parse_kb_path(s3_key: &str) -> Option<KbPathParts> {
-    let parts: Vec<&str> = s3_key.splitn(4, '/').collect();
-    if parts.len() < 3 || !parts[0].ends_with(".gbkb") {
+    let segments: Vec<&str> = s3_key.split('/').collect();
+    let gbkb_idx = segments.iter().position(|s| s.ends_with(".gbkb"))?;
+    if gbkb_idx + 1 >= segments.len() {
         return None;
     }
-    let kb_name = parts[1].to_string();
-    let file_name = parts[2..].join("/");
+    let kb_name = segments[gbkb_idx + 1].to_string();
+    let file_name = segments[gbkb_idx + 2..].join("/");
+    if file_name.is_empty() {
+        return None;
+    }
     let relative_path = format!("{}/{}", kb_name, file_name);
     Some(KbPathParts {
         kb_name,

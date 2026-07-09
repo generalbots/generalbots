@@ -6,8 +6,6 @@ use rhai::{Dynamic, Engine, EvalAltResult};
 use serde_json::json;
 use std::sync::Arc;
 
-use super::types::InputType;
-
 pub fn hear_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     register_hear_basic(state, user.clone(), engine);
     register_hear_as_type(state, user.clone(), engine);
@@ -162,15 +160,14 @@ fn register_hear_as_type(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
 
 fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
-    let bot_id = user.bot_id;
     let state_clone = Arc::clone(state);
 
     engine
         .register_custom_syntax(
-            ["HEAR", "$ident$", "AS", "$expr$"],
+            ["HEAR", "$expr$", "as", "$ident$"],
             true,
             move |context, inputs| {
-                let variable_name = inputs[0]
+                let variable_name = inputs[1]
                     .get_string_value()
                     .ok_or_else(|| Box::new(EvalAltResult::ErrorRuntime(
                         "Expected identifier for variable".into(),
@@ -178,67 +175,9 @@ fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
                     )))?
                     .to_lowercase();
 
-                let options_expr = context.eval_expression_tree(&inputs[1])?;
-                let options_str = options_expr.to_string();
-
-                let input_type = InputType::parse_type(&options_str);
-                if input_type != InputType::Any {
-                    return Err(Box::new(EvalAltResult::ErrorRuntime(
-                        "Use HEAR AS TYPE syntax".into(),
-                        rhai::Position::NONE,
-                    )));
-                }
-
-                let options: Vec<String> = if options_str.starts_with('[') {
-                    serde_json::from_str(&options_str).unwrap_or_default()
-                } else {
-                    options_str
-                        .split(',')
-                        .map(|s| s.trim().trim_matches('"').to_string())
-                        .filter(|s| !s.is_empty())
-                        .collect()
-                };
-
-                if options.is_empty() {
-                    return Err(Box::new(EvalAltResult::ErrorRuntime(
-                        "Menu requires at least one option".into(),
-                        rhai::Position::NONE,
-                    )));
-                }
-
-                let state_for_suggestions = Arc::clone(&state_clone);
-                let opts_clone = options.clone();
-                let bot_id_clone = bot_id;
-                let (tx2, rx2) = std::sync::mpsc::channel();
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
-                        .build();
-                    if let Ok(rt) = rt {
-                        rt.block_on(async move {
-                            if let Some(redis) = state_for_suggestions.cache_client().as_ref() {
-                                if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-                                    // TODO(#477): Pass org when available (UserSession does not carry org yet)
-                                    let key = botlib::key_utils::build_key("", &["suggestions", &bot_id_clone.to_string(), &session_id.to_string()]);
-                                    for opt in &opts_clone {
-                                        let _: Result<(), _> = redis::cmd("RPUSH")
-                                            .arg(&key)
-                                            .arg(json!({"text": opt, "value": opt}).to_string())
-                                            .query_async(&mut conn)
-                                            .await;
-                                    }
-                                }
-                            }
-                        });
-                    }
-                    let _ = tx2.send(());
-                });
-                let _ = rx2.recv();
-
                 let value = hear_block(&state_clone, session_id, &variable_name, json!({
                     "variable": variable_name,
-                    "type": "menu",
-                    "options": options,
+                    "type": "any",
                     "waiting": true
                 }))?;
 

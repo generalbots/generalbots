@@ -247,7 +247,7 @@ pub struct Embedding {
 }
 
 pub struct KbEmbeddingGenerator {
-    config: EmbeddingConfig,
+    config: std::sync::RwLock<EmbeddingConfig>,
     client: Client,
     semaphore: Arc<Semaphore>,
 }
@@ -255,7 +255,7 @@ pub struct KbEmbeddingGenerator {
 impl std::fmt::Debug for KbEmbeddingGenerator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("KbEmbeddingGenerator")
-            .field("config", &self.config)
+            .field("config", &self.config.read().unwrap())
             .field("client", &"Client")
             .field("semaphore", &"Semaphore")
             .finish()
@@ -280,10 +280,15 @@ impl KbEmbeddingGenerator {
         let semaphore = Arc::new(Semaphore::new(config.max_concurrent_requests));
 
         Self {
-            config,
+            config: std::sync::RwLock::new(config),
             client,
             semaphore,
         }
+    }
+
+    pub fn reload_config(&self, pool: &DbPool, bot_id: &uuid::Uuid) {
+        let new_config = EmbeddingConfig::from_bot_config(pool, bot_id);
+        *self.config.write().unwrap() = new_config;
     }
 
     fn extract_base_url(url: &str) -> String {
@@ -303,8 +308,8 @@ impl KbEmbeddingGenerator {
         // Remote HTTPS APIs (Cloudflare Workers AI, OpenAI, etc.) are assumed available
         // — they don't have /health endpoints and return 401/403/301 on probe.
         // Only local servers need TCP health checks.
-        if self.config.embedding_url.starts_with("https://") {
-            info!("Embedding server is remote HTTPS API ({}), assuming available", self.config.embedding_url);
+        if self.config.read().unwrap().embedding_url.clone().starts_with("https://") {
+            info!("Embedding server is remote HTTPS API ({}), assuming available", self.config.read().unwrap().embedding_url.clone());
             set_embedding_server_ready(true);
             return true;
         }
@@ -314,17 +319,21 @@ impl KbEmbeddingGenerator {
         // - 404/405 etc → server is reachable but has no /health (remote API or llama.cpp)
         // - Connection refused/timeout → server truly unavailable
         // Extract base URL (scheme://host:port) from embedding URL for health check
-        let base_url = Self::extract_base_url(&self.config.embedding_url);
+        let (embedding_url, connect_timeout) = {
+            let cfg = self.config.read().unwrap();
+            (cfg.embedding_url.clone(), cfg.connect_timeout_seconds)
+        };
+        let base_url = Self::extract_base_url(&embedding_url);
         let health_url = format!("{}/health", base_url);
 
         match tokio::time::timeout(
-            Duration::from_secs(self.config.connect_timeout_seconds),
+            Duration::from_secs(connect_timeout),
             self.client.get(&health_url).send()
         ).await {
         Ok(Ok(response)) => {
             let status = response.status();
             if status.is_success() {
-                info!("Embedding server health check passed ({})", self.config.embedding_url);
+                info!("Embedding server health check passed ({})", self.config.read().unwrap().embedding_url.clone());
                 set_embedding_server_ready(true);
                 true
             } else if status.as_u16() == 404 || status.as_u16() == 405 {
@@ -332,7 +341,7 @@ impl KbEmbeddingGenerator {
                 // Try a HEAD request to the base URL to confirm it's up
                 info!("No /health endpoint at {} (status {}), probing base URL", base_url, status);
                 match tokio::time::timeout(
-                    Duration::from_secs(self.config.connect_timeout_seconds),
+                    Duration::from_secs(connect_timeout),
                     self.client.head(&base_url).send()
                 ).await {
                     Ok(Ok(_)) => {
@@ -365,12 +374,12 @@ impl KbEmbeddingGenerator {
             }
             Ok(Err(e)) => {
                 // Connection failed entirely — server not running or network issue
-                info!("Embedding server connection failed for {}: {}", self.config.embedding_url, e);
+                info!("Embedding server connection failed for {}: {}", self.config.read().unwrap().embedding_url.clone(), e);
                 set_embedding_server_ready(false);
                 false
             }
             Err(_) => {
-                info!("Embedding server health check timed out for {}", self.config.embedding_url);
+                info!("Embedding server health check timed out for {}", self.config.read().unwrap().embedding_url.clone());
                 set_embedding_server_ready(false);
                 false
             }
@@ -382,7 +391,7 @@ impl KbEmbeddingGenerator {
         let max_wait = Duration::from_secs(max_wait_secs);
 
         info!("Waiting for embedding server at {} (max {}s)...",
-              self.config.embedding_url, max_wait_secs);
+              self.config.read().unwrap().embedding_url.clone(), max_wait_secs);
 
         while start.elapsed() < max_wait {
             if self.check_health().await {
@@ -396,7 +405,7 @@ impl KbEmbeddingGenerator {
     }
     /// Get the configured embedding dimensions
     pub fn get_dimensions(&self) -> usize {
-        self.config.dimensions
+        self.config.read().unwrap().dimensions
     }
 
     pub async fn generate_embeddings(
@@ -413,7 +422,7 @@ impl KbEmbeddingGenerator {
             if !self.wait_for_server(30).await {
                 return Err(anyhow::anyhow!(
                     "Embedding server not available at {}. Skipping embedding generation.",
-                    self.config.embedding_url
+                    self.config.read().unwrap().embedding_url.clone()
                 ));
             }
         }
@@ -422,10 +431,12 @@ impl KbEmbeddingGenerator {
         trace!("Generating embeddings for {} chunks, RSS={}",
               chunks.len(), MemoryStats::format_bytes(start_mem.rss_bytes));
 
+        let batch_size = self.config.read().unwrap().batch_size;
+        let timeout_seconds = self.config.read().unwrap().timeout_seconds;
         let mut results = Vec::with_capacity(chunks.len());
-        let total_batches = chunks.len().div_ceil(self.config.batch_size);
+        let total_batches = chunks.len().div_ceil(batch_size);
 
-        for (batch_num, batch) in chunks.chunks(self.config.batch_size).enumerate() {
+        for (batch_num, batch) in chunks.chunks(batch_size).enumerate() {
             let batch_start = MemoryStats::current();
             trace!("Processing batch {}/{} ({} items), RSS={}",
                   batch_num + 1,
@@ -434,7 +445,7 @@ impl KbEmbeddingGenerator {
                   MemoryStats::format_bytes(batch_start.rss_bytes));
 
             let batch_embeddings = match tokio::time::timeout(
-                Duration::from_secs(self.config.timeout_seconds),
+                Duration::from_secs(timeout_seconds),
                 self.generate_batch_embeddings(batch)
             ).await {
                 Ok(Ok(embeddings)) => embeddings,
@@ -445,7 +456,7 @@ impl KbEmbeddingGenerator {
                 }
                 Err(_) => {
                     warn!("Batch {} timed out after {}s",
-                          batch_num + 1, self.config.timeout_seconds);
+                          batch_num + 1, self.config.read().unwrap().timeout_seconds);
                     // Continue with next batch instead of breaking completely
                     continue;
                 }
@@ -512,17 +523,17 @@ impl KbEmbeddingGenerator {
     async fn generate_local_embeddings(&self, texts: &[String]) -> Result<Vec<Embedding>> {
         // Apply token-aware truncation to each text before creating request
         let truncated_texts: Vec<String> = texts.iter()
-            .map(|text| crate::shared::utils::truncate_text_for_model(text, &self.config.embedding_model, 600))
+            .map(|text| crate::shared::utils::truncate_text_for_model(text, &self.config.read().unwrap().embedding_model.clone(), 600))
             .collect();
 
         // Detect API format based on URL pattern
         // Cloudflare AI: https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/baai/bge-m3
         // Scaleway (OpenAI-compatible): https://router.huggingface.co/scaleway/v1/embeddings
         // HuggingFace Inference (old): https://router.huggingface.co/hf-inference/models/.../pipeline/feature-extraction
-        let is_cloudflare = self.config.embedding_url.contains("api.cloudflare.com/client/v4/accounts");
-        let is_scaleway = self.config.embedding_url.contains("/scaleway/v1/embeddings");
-        let is_hf_inference = self.config.embedding_url.contains("/hf-inference/") ||
-                             self.config.embedding_url.contains("/pipeline/feature-extraction");
+        let is_cloudflare = self.config.read().unwrap().embedding_url.clone().contains("api.cloudflare.com/client/v4/accounts");
+        let is_scaleway = self.config.read().unwrap().embedding_url.clone().contains("/scaleway/v1/embeddings");
+        let is_hf_inference = self.config.read().unwrap().embedding_url.clone().contains("/hf-inference/") ||
+                             self.config.read().unwrap().embedding_url.clone().contains("/pipeline/feature-extraction");
 
         let response = if is_cloudflare {
             // Cloudflare AI Workers API format: {"text": ["text1", "text2", ...]}
@@ -534,15 +545,22 @@ impl KbEmbeddingGenerator {
                 .map(|s| s.len())
                 .unwrap_or(0);
             trace!("Sending Cloudflare AI request to {} (size: {} bytes)",
-                  self.config.embedding_url, request_size);
+                  self.config.read().unwrap().embedding_url.clone(), request_size);
 
             let mut request_builder = self.client
-                .post(&self.config.embedding_url)
+                .post(&self.config.read().unwrap().embedding_url.clone())
                 .json(&cf_request);
 
             // Add Authorization header if API key is provided
-            if let Some(ref api_key) = self.config.embedding_key {
+            if let Some(ref api_key) = self.config.read().unwrap().embedding_key.clone() {
+                if api_key.len() >= 8 {
+                    info!("Using Cloudflare API key ending with: ...{}", &api_key[api_key.len()-8..]);
+                } else {
+                    info!("Using Cloudflare API key (short): {}", api_key);
+                }
                 request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+            } else {
+                warn!("Cloudflare API key is NOT SET — embeddings will fail with 401");
             }
 
             request_builder
@@ -563,14 +581,14 @@ impl KbEmbeddingGenerator {
                     .map(|s| s.len())
                     .unwrap_or(0);
                 trace!("Sending HuggingFace Inference request to {} (size: {} bytes)",
-                      self.config.embedding_url, request_size);
+                      self.config.read().unwrap().embedding_url.clone(), request_size);
 
                 let mut request_builder = self.client
-                    .post(&self.config.embedding_url)
+                    .post(&self.config.read().unwrap().embedding_url.clone())
                     .json(&hf_request);
 
                 // Add Authorization header if API key is provided
-                if let Some(ref api_key) = self.config.embedding_key {
+                if let Some(ref api_key) = self.config.read().unwrap().embedding_key.clone() {
                     request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
                 }
 
@@ -613,8 +631,8 @@ impl KbEmbeddingGenerator {
 
                 all_embeddings.push(Embedding {
                     vector: embedding_vec,
-                    dimensions: self.config.dimensions,
-                    model: self.config.embedding_model.clone(),
+                    dimensions: self.config.read().unwrap().dimensions,
+                    model: self.config.read().unwrap().embedding_model.clone(),
                     tokens_used: None,
                 });
             }
@@ -625,7 +643,7 @@ impl KbEmbeddingGenerator {
             // This includes Scaleway which uses OpenAI-compatible format: {"input": [texts], "model": "model-name"}
             let request = EmbeddingRequest {
                 input: truncated_texts,
-                model: self.config.embedding_model.clone(),
+                model: self.config.read().unwrap().embedding_model.clone(),
             };
 
             let request_size = serde_json::to_string(&request)
@@ -635,19 +653,19 @@ impl KbEmbeddingGenerator {
             // Log the API format being used
             if is_scaleway {
                 trace!("Sending Scaleway (OpenAI-compatible) request to {} (size: {} bytes)",
-                      self.config.embedding_url, request_size);
+                      self.config.read().unwrap().embedding_url.clone(), request_size);
             } else {
                 trace!("Sending standard embedding request to {} (size: {} bytes)",
-                      self.config.embedding_url, request_size);
+                      self.config.read().unwrap().embedding_url.clone(), request_size);
             }
 
             // Build request
             let mut request_builder = self.client
-                .post(&self.config.embedding_url)
+                .post(&self.config.read().unwrap().embedding_url.clone())
                 .json(&request);
 
             // Add Authorization header if API key is provided (for Scaleway, OpenAI, etc.)
-            if let Some(ref api_key) = self.config.embedding_key {
+            if let Some(ref api_key) = self.config.read().unwrap().embedding_key.clone() {
                 request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
             }
 
@@ -696,7 +714,7 @@ impl KbEmbeddingGenerator {
                 for data in openai_response.data {
                     embeddings.push(Embedding {
                         vector: data.embedding,
-                        dimensions: self.config.dimensions,
+                        dimensions: self.config.read().unwrap().dimensions,
                         model: openai_response.model.clone(),
                         tokens_used: openai_response.usage.as_ref().map(|u| u.total_tokens),
                     });
@@ -709,8 +727,8 @@ impl KbEmbeddingGenerator {
                     for embedding_vec in item.embedding {
                         embeddings.push(Embedding {
                             vector: embedding_vec,
-                            dimensions: self.config.dimensions,
-                            model: self.config.embedding_model.clone(),
+                            dimensions: self.config.read().unwrap().dimensions,
+                            model: self.config.read().unwrap().embedding_model.clone(),
                             tokens_used: None,
                         });
                     }
@@ -722,8 +740,8 @@ impl KbEmbeddingGenerator {
                 for embedding_vec in hf_response {
                     embeddings.push(Embedding {
                         vector: embedding_vec,
-                        dimensions: self.config.dimensions,
-                        model: self.config.embedding_model.clone(),
+                        dimensions: self.config.read().unwrap().dimensions,
+                        model: self.config.read().unwrap().embedding_model.clone(),
                         tokens_used: None,
                     });
                 }
@@ -734,8 +752,8 @@ impl KbEmbeddingGenerator {
                 for embedding_vec in generic_response.embeddings {
                     embeddings.push(Embedding {
                         vector: embedding_vec,
-                        dimensions: self.config.dimensions,
-                        model: generic_response.model.clone().unwrap_or_else(|| self.config.embedding_model.clone()),
+                        dimensions: self.config.read().unwrap().dimensions,
+                        model: generic_response.model.clone().unwrap_or_else(|| self.config.read().unwrap().embedding_model.clone()),
                         tokens_used: generic_response.usage.as_ref().map(|u| u.total_tokens),
                     });
                 }
@@ -746,8 +764,8 @@ impl KbEmbeddingGenerator {
                 for data in scaleway_response.data {
                     embeddings.push(Embedding {
                         vector: data.embedding,
-                        dimensions: self.config.dimensions,
-                        model: scaleway_response.model.clone().unwrap_or_else(|| self.config.embedding_model.clone()),
+                        dimensions: self.config.read().unwrap().dimensions,
+                        model: scaleway_response.model.clone().unwrap_or_else(|| self.config.read().unwrap().embedding_model.clone()),
                         tokens_used: scaleway_response.usage.as_ref().map(|u| u.total_tokens),
                     });
                 }
@@ -764,8 +782,8 @@ impl KbEmbeddingGenerator {
                 for embedding_vec in cf_response.result.data {
                     embeddings.push(Embedding {
                         vector: embedding_vec,
-                        dimensions: self.config.dimensions,
-                        model: self.config.embedding_model.clone(),
+                        dimensions: self.config.read().unwrap().dimensions,
+                        model: self.config.read().unwrap().embedding_model.clone(),
                         tokens_used: cf_response.result.meta.as_ref().and_then(|m| {
                             m.cost_metric_value_1.map(|v| v as usize)
                         }),
@@ -782,7 +800,7 @@ impl KbEmbeddingGenerator {
         if !is_embedding_server_ready() && !self.check_health().await {
             return Err(anyhow::anyhow!(
                 "Embedding server not available at {}",
-                self.config.embedding_url
+                self.config.read().unwrap().embedding_url.clone()
             ));
         }
 
