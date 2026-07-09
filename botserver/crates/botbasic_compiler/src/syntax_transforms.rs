@@ -658,8 +658,13 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         }
 
         if !converted {
-            result.push_str(line);
-            result.push('\n');
+            let trimmed_line = line.trim();
+            if trimmed_line.starts_with('\'') || trimmed_line.starts_with('#') || trimmed_line.starts_with("//") || trimmed_line.starts_with("BEGIN ") || trimmed_line.starts_with("END ") {
+                // skip comment lines
+            } else {
+                result.push_str(line);
+                result.push('\n');
+            }
         }
     }
 
