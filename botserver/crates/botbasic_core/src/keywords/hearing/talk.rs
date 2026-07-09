@@ -66,7 +66,7 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
     engine
         .register_custom_syntax(
             ["TALK", "TO", "$expr$", ",", "$expr$"],
-            true,
+            false,
             move |context, inputs| {
                 let recipient = context.eval_expression_tree(&inputs[0])?.to_string();
                 let message = context.eval_expression_tree(&inputs[1])?.to_string();
@@ -102,7 +102,7 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
         .expect("valid syntax registration");
 
     engine
-        .register_custom_syntax(["TALK", "$expr$"], true, move |context, inputs| {
+        .register_custom_syntax(["TALK", "$expr$"], false, move |context, inputs| {
             let message = context.eval_expression_tree(&inputs[0])?.to_string();
             let state_for_talk = Arc::clone(&state_clone);
             let user_for_talk = user_clone.clone();
