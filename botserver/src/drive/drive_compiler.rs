@@ -9,7 +9,7 @@
 /// SEM usar /opt/gbo/data/ como intermediário!
 use crate::basic::compiler::{BasicCompiler, CompilerCallbacks};
 use crate::core::shared::state::AppState;
-use crate::core::shared::utils::{current_org_id, get_work_path};
+use crate::core::shared::utils::get_work_path;
 use crate::drive::drive_files::drive_files as drive_files_table;
 use crate::drive::drive_monitor::CHECK_INTERVAL_SECS;
 use diesel::prelude::*;
@@ -162,17 +162,25 @@ impl DriveCompiler {
             return Err("Invalid file path format".into());
         }
 
-    // Determine bot name and work directory structure
-    let (bot_name, work_dir) = if parts[0].ends_with(".gbai") {
-        // Full path: {bot}.gbai/{bot}.gbdialog/{tool}.bas
-        let bot_name = parts[0].strip_suffix(".gbai").unwrap_or(parts[0]);
-        let work_dir = self.work_root.join(format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog", org_id = current_org_id()));
-        (bot_name.to_string(), work_dir)
+    // Determine branch name, bot name, and work directory structure.
+    // Structure: {org}.gborg/{branch}.gbai/{bot}.gbdialog/{tool}.ast
+    // .gborg = organization/tenant, .gbai = branch, .gbdialog = bot
+    // Branch and bot are separate: multiple bots can exist under one branch.
+    let (branch_name, bot_name, work_dir) = if parts[0].ends_with(".gbai") {
+        // Full path: {branch}.gbai/{bot}.gbdialog/{tool}.bas
+        let branch_name = parts[0].strip_suffix(".gbai").unwrap_or(parts[0]);
+        let bot_name = if parts.len() >= 2 {
+            parts[1].strip_suffix(".gbdialog").unwrap_or(parts[1])
+        } else {
+            branch_name
+        };
+        let work_dir = self.work_root.join(format!("{branch_name}.gborg/{branch_name}.gbai/{bot_name}.gbdialog"));
+        (branch_name.to_string(), bot_name.to_string(), work_dir)
     } else if parts.len() >= 2 && parts[0].ends_with(".gbdialog") {
-        // Short path: {bot}.gbdialog/{tool}.bas
+        // Short path (legacy): {bot}.gbdialog/{tool}.bas
         let bot_name = parts[0].strip_suffix(".gbdialog").unwrap_or(parts[0]);
-        let work_dir = self.work_root.join(format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog", org_id = current_org_id()));
-        (bot_name.to_string(), work_dir)
+        let work_dir = self.work_root.join(format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog"));
+        (bot_name.to_string(), bot_name.to_string(), work_dir)
     } else if parts.len() >= 2 && parts[0].ends_with(".gbkb") {
         // KB file: {bot}.gbkb/{doc}.txt - skip compilation
         debug!("Skipping KB file: {}", fp);
@@ -271,13 +279,6 @@ impl DriveCompiler {
         let work_ast_path = work_dir.join(format!("{}.ast", tool_name));
         let ast_path_str = work_ast_path.to_str().unwrap_or("").to_string();
 
-        let branch_name = if parts[0].ends_with(".gbai") {
-            parts[0].strip_suffix(".gbai").unwrap_or(parts[0]).to_string()
-        } else if parts.len() >= 2 && parts[0].ends_with(".gbdialog") {
-            parts[0].strip_suffix(".gbdialog").unwrap_or(parts[0]).to_string()
-        } else {
-            bot_name.clone()
-        };
         let branch_id = Self::resolve_branch_id(&self.state, &branch_name);
 
         let bot_id_str = real_bot_id.to_string();

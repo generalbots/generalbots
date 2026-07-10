@@ -110,10 +110,6 @@ pub async fn process_llm_response(
             let bot_name_clone = bot_name.to_string();
 
             let style_css = load_bot_styles_css(&bot_name_clone);
-            if !style_css.is_empty() {
-                let style_tag = format!("<style>\n{}</style>\n", style_css);
-                full_response.push_str(&style_tag);
-            }
 
             let session_tools = {
                 let sid: Uuid = match session_id_s.parse() {
@@ -160,30 +156,39 @@ pub async fn process_llm_response(
                 }
             });
 
-            let _ = ws_sender.send(Message::Text(serde_json::json!({
-                "bot_id": bot_uuid_s,
-                "user_id": user_id.to_string(),
-                "session_id": session_id_s,
-                "channel": "web",
-                "content": "",
-                "message_type": 2,
-                "is_complete": false,
-                "thinking": true,
-                "suggestions": [],
-                "switchers": [],
-                "context_length": 0,
-                "context_max_length": 0,
-            }).to_string())).await;
+            {
+                let mut init_msg = serde_json::json!({
+                    "bot_id": bot_uuid_s,
+                    "user_id": user_id.to_string(),
+                    "session_id": session_id_s,
+                    "channel": "web",
+                    "content": "",
+                    "message_type": 2,
+                    "is_complete": false,
+                    "thinking": true,
+                    "suggestions": [],
+                    "switchers": [],
+                    "context_length": 0,
+                    "context_max_length": 0,
+                });
+                if !style_css.is_empty() {
+                    init_msg["css"] = serde_json::Value::String(style_css.clone());
+                    info!("CSS included in thinking msg for bot {} ({} bytes)", bot_name_clone, style_css.len());
+                    let style_tag = format!("<style>\n{}</style>\n", style_css);
+                    full_response.push_str(&style_tag);
+                } else {
+                    info!("CSS NOT included - style_css was empty for bot {}", bot_name_clone);
+                }
+                let _ = ws_sender.send(Message::Text(init_msg.to_string())).await;
+            }
 
-            let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(2000));
+            let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(800));
             keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-            let mut stream_started = false;
             loop {
                 tokio::select! {
                     chunk = stream_rx.recv() => {
                         match chunk {
                             Some(chunk) => {
-                                stream_started = true;
                                 full_response.push_str(&chunk);
                                 if !chunk.contains("\"__tool_call__\"") {
                                     let chunk_resp = serde_json::json!({
@@ -208,24 +213,27 @@ pub async fn process_llm_response(
                         }
                     }
                     _ = keepalive_interval.tick() => {
-                        if !stream_started {
-                            let _ = ws_sender.send(Message::Text(serde_json::json!({
-                                "bot_id": bot_uuid_s,
-                                "user_id": user_id.to_string(),
-                                "session_id": session_id_s,
-                                "channel": "web",
-                                "content": "",
-                                "message_type": 2,
-                                "is_complete": false,
-                                "thinking": true,
-                                "suggestions": [],
-                                "switchers": [],
-                                "context_length": 0,
-                                "context_max_length": 0,
-                            }).to_string())).await;
-                        }
+                        let _ = ws_sender.send(Message::Text(serde_json::json!({
+                            "bot_id": bot_uuid_s,
+                            "user_id": user_id.to_string(),
+                            "session_id": session_id_s,
+                            "channel": "web",
+                            "content": "",
+                            "message_type": 2,
+                            "is_complete": false,
+                            "thinking": true,
+                            "suggestions": [],
+                            "switchers": [],
+                            "context_length": 0,
+                            "context_max_length": 0,
+                        }).to_string())).await;
                     }
                 }
+            }
+
+            let mut final_content = full_response.trim_end().to_string();
+            if let Some(pos) = final_content.rfind("{\"__tool_call__\":") {
+                final_content = final_content[..pos].trim_end().to_string();
             }
 
             let final_resp = serde_json::json!({
@@ -233,7 +241,7 @@ pub async fn process_llm_response(
                 "user_id": user_id.to_string(),
                 "session_id": session_id_s,
                 "channel": "web",
-                "content": "",
+                "content": final_content,
                 "message_type": 2,
                 "is_complete": true,
                 "suggestions": [],
@@ -241,7 +249,10 @@ pub async fn process_llm_response(
                 "context_length": 0,
                 "context_max_length": 0,
             });
-            let _ = ws_sender.send(Message::Text(final_resp.to_string())).await;
+            if ws_sender.send(Message::Text(final_resp.to_string())).await.is_err() {
+                let mut pending = state.pending_stream_responses.lock().await;
+                pending.insert(session_id_s.clone(), final_content);
+            }
 
             let tool_call_trigger = "\"__tool_call__\":".to_string();
             if full_response.contains(&tool_call_trigger) {
@@ -259,13 +270,13 @@ pub async fn process_llm_response(
                         };
 
                         let work_path = botcore::shared::utils::get_work_path();
-                        let rel_tool_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast", org_id = current_org_id());
+                        let rel_tool_path = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
                         if !verify_path_within_workdir(&rel_tool_path) {
                             error!("Path traversal detected in LLM tool_call for tool: {}", tool_name);
                             return;
                         }
 
-                        let ast_path = format!("{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast", org_id = current_org_id());
+                        let ast_path = format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
                         let ast_content = match tokio::fs::read_to_string(&ast_path).await {
                             Ok(c) if !c.is_empty() => c,
                             _ => {
@@ -322,7 +333,7 @@ pub async fn process_llm_response(
                                         }
                                     }
                                 }
-                                let mcp_path = format!("{org_id}.gborg/{bot_name_for_mcp}.gbai/{bot_name_for_mcp}.gbdialog/{tool_name_for_mcp}.mcp.json", org_id = current_org_id());
+                                let mcp_path = format!("{bot_name_for_mcp}.gborg/{bot_name_for_mcp}.gbai/{bot_name_for_mcp}.gbdialog/{tool_name_for_mcp}.mcp.json");
                                 let mcp_full = std::path::Path::new(&work_path_for_mcp).join(&mcp_path);
                                 if mcp_full.exists() {
                                     if let Ok(mcp_content) = std::fs::read_to_string(&mcp_full) {

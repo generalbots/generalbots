@@ -6,7 +6,7 @@ use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 
-pub async fn execute_talk(
+pub fn execute_talk(
     state: &Arc<dyn BasicRuntime>,
     user_session: UserSession,
     message: String,
@@ -107,31 +107,8 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
             let state_for_talk = Arc::clone(&state_clone);
             let user_for_talk = user_clone.clone();
 
-            match tokio::runtime::Handle::try_current() {
-                Ok(rt_handle) => {
-                    tokio::task::block_in_place(move || {
-                        rt_handle.block_on(async move {
-                            if let Err(e) = execute_talk(&state_for_talk, user_for_talk, message).await {
-                                log::error!("Error executing TALK command: {}", e);
-                            }
-                        });
-                    });
-                }
-                Err(_) => {
-                    log::warn!("TALK called outside tokio runtime, building temp runtime");
-                    let rt = match tokio::runtime::Runtime::new() {
-                        Ok(rt) => rt,
-                        Err(e) => {
-                            log::error!("Failed to create temp runtime for TALK: {}", e);
-                            return Ok(Dynamic::UNIT);
-                        }
-                    };
-                    rt.block_on(async move {
-                        if let Err(e) = execute_talk(&state_for_talk, user_for_talk, message).await {
-                            log::error!("Error executing TALK command: {}", e);
-                        }
-                    });
-                }
+            if let Err(e) = execute_talk(&state_for_talk, user_for_talk, message) {
+                log::error!("Error executing TALK command: {}", e);
             }
 
             Ok(Dynamic::UNIT)

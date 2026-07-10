@@ -626,10 +626,24 @@ pub fn convert_multiword_keywords(script: &str) -> String {
                             }
                         }
 
+                        // Fallback: try splitting by ' AS ' (for ADD_SUGGESTION, ADD_SUGGESTION_TOOL, etc.)
+                        if param_count < *min_params {
+                            let as_upper = params_str.to_uppercase();
+                            if let Some(pos) = as_upper.find(" AS ") {
+                                let a = &params_str[..pos];
+                                let b = &params_str[pos + 4..];
+                                let fallback_params = vec![a.trim().to_string(), b.trim().to_string()];
+                                if fallback_params.len() >= *min_params && fallback_params.len() <= *max_params {
+                                    params = fallback_params;
+                                    param_count = params.len();
+                                }
+                            }
+                        }
+
                         if param_count >= *min_params && param_count <= *max_params {
                             let keyword = pattern.replace(r"\s+", "_").to_lowercase();
 
-                            let output = if keyword == "ADD_SWITCHER" {
+                            let output = if keyword == "add_switcher" {
                                 let (switcher_id, label) = if params.len() == 2 {
                                     (params[0].clone(), params[1].clone())
                                 } else if params.len() == 3 && params[1].eq_ignore_ascii_case("AS") {
@@ -637,7 +651,21 @@ pub fn convert_multiword_keywords(script: &str) -> String {
                                 } else {
                                     (params[0].clone(), params.last().cloned().unwrap_or_default())
                                 };
-                                format!("{}{}{} {} as {};", indent, prefix, keyword, switcher_id, label)
+                                let up_keyword = keyword.to_uppercase();
+                                format!("{}{}{} {} as {};", indent, prefix, up_keyword, switcher_id, label)
+                            } else if keyword.starts_with("add_suggestion") {
+                                // ADD_SUGGESTION, ADD_SUGGESTION_TOOL, ADD_SUGGESTION_TEXT
+                                // all use "AS" separator between param1 and param2 and are custom syntaxes, not functions
+                                let (a, b) = if params.len() == 2 {
+                                    (params[0].clone(), params[1].clone())
+                                } else if params.len() >= 3 {
+                                    let as_idx = params.iter().position(|p| p.eq_ignore_ascii_case("as")).unwrap_or(1);
+                                    (params[0].clone(), params[as_idx + 1..].join(" "))
+                                } else {
+                                    (params[0].clone(), String::new())
+                                };
+                                let up_keyword = keyword.to_uppercase();
+                                format!("{}{}{} {} as {};", indent, prefix, up_keyword, a, b)
                             } else {
                                 let param_str = if params.is_empty() {
                                     String::new()
@@ -659,12 +687,20 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 
         if !converted {
             let trimmed_line = line.trim();
-            if trimmed_line.starts_with('\'') || trimmed_line.starts_with('#') || trimmed_line.starts_with("//") || trimmed_line.starts_with("BEGIN ") || trimmed_line.starts_with("END ") {
-                // skip comment lines
+            let is_comment = trimmed_line.starts_with('\'') || trimmed_line.starts_with('#') || trimmed_line.starts_with("//");
+            let is_decl = trimmed_line.starts_with("BEGIN ") || trimmed_line.starts_with("END ") || trimmed_line.starts_with("TABLE ");
+            let is_control = trimmed_line.starts_with("IF ") || trimmed_line.starts_with("ELSE") || trimmed_line.starts_with("END ") || trimmed_line.starts_with("NEXT") || trimmed_line.starts_with("LOOP") || trimmed_line.starts_with("FOR ") || trimmed_line.starts_with("WHILE") || trimmed_line.starts_with("SWITCH") || trimmed_line.starts_with("CASE") || trimmed_line.starts_with("DEFAULT") || trimmed_line.starts_with("DO") || trimmed_line.starts_with("UNTIL") || trimmed_line.starts_with("WEND");
+            if is_comment || trimmed_line.is_empty() {
+                // skip comment/blank lines entirely — Rhai doesn't understand ' as comment
+            } else if is_decl || is_control {
+                result.push_str(line);
+            } else if trimmed_line.ends_with(';') || trimmed_line.ends_with('{') || trimmed_line.ends_with('}') || trimmed_line.ends_with(':') {
+                result.push_str(line);
             } else {
                 result.push_str(line);
-                result.push('\n');
+                result.push(';');
             }
+            result.push('\n');
         }
     }
 

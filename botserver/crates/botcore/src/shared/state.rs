@@ -371,6 +371,7 @@ pub struct AppState {
     pub llm_provider: Option<Arc<dyn botlib::traits::LLMProvider>>,
     pub dynamic_llm_provider: Option<UnresolvedService>,
     pub start_bas_guards: Arc<tokio::sync::Mutex<HashMap<uuid::Uuid, bool>>>,
+    pub pending_stream_responses: Arc<tokio::sync::Mutex<HashMap<String, String>>>,
 }
 
 impl Clone for AppState {
@@ -411,6 +412,7 @@ impl Clone for AppState {
             llm_provider: self.llm_provider.clone(),
             dynamic_llm_provider: self.dynamic_llm_provider.clone(),
             start_bas_guards: Arc::clone(&self.start_bas_guards),
+            pending_stream_responses: Arc::clone(&self.pending_stream_responses),
         }
     }
 }

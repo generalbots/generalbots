@@ -45,6 +45,10 @@ function connectWebSocket() {
 
 ChatState.ws.onopen = function () {
   ChatState.disconnectNotified = false;
+  ChatState.isStreaming = false;
+  ChatState.streamingMessageId = null;
+  ChatState.currentStreamingContent = "";
+  ChatState.streamingBuffer = "";
   updateConnectionStatus("connected");
   var loadingOverlay = document.getElementById("chatLoadingOverlay");
   if (loadingOverlay) loadingOverlay.style.display = "none";
@@ -88,8 +92,21 @@ ChatState.ws.onopen = function () {
         window.AgentMode.handleMessage(data);
       }
 
+      if (data.css && typeof data.css === 'string' && data.css.length > 0) {
+        var cssId = 'bot-style-' + ChatState.currentBotName;
+        var existing = document.getElementById(cssId);
+        if (!existing) {
+          var styleEl = document.createElement('style');
+          styleEl.id = cssId;
+          styleEl.textContent = data.css;
+          document.head.appendChild(styleEl);
+          window.__cssInjected = (window.__cssInjected || 0) + 1;
+        }
+      }
+
       if (data.message_type === MessageType.BOT_RESPONSE) {
-        console.log("[WS] processMessage: is_complete=" + data.is_complete + " sugg=" + (data.suggestions ? data.suggestions.length : 0) + " len=" + (data.content ? data.content.length : 0));
+        var contentPreview = data.content ? data.content.substring(0, 200) : '(empty)';
+        console.log("[WS] processMessage: complete=" + data.is_complete + " content_preview=" + contentPreview);
         processMessage(data);
       }
     } catch (e) { console.error("[WS] onmessage error:", e); }
@@ -112,3 +129,5 @@ ChatState.ws.onopen = function () {
     updateConnectionStatus("disconnected");
   };
 }
+
+// cache-bust: 1783790700
