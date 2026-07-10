@@ -192,10 +192,10 @@ async fn handle_text_message(
                 None
             };
 
-            // Fallback: {org_id}.gborg/ path
+            // Fallback: {org_id}.gborg/ path (nil UUID for global admin)
             let tool_content = tool_content.or_else(|| {
                 let fallback_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/", org_id = org_id);
-                if org_id != uuid::Uuid::nil() && verify_path_within_workdir(&fallback_rel) {
+                if verify_path_within_workdir(&fallback_rel) {
                     let gbdialog_dir = format!("{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/", org_id = org_id);
                     read_tool(&gbdialog_dir)
                 } else {

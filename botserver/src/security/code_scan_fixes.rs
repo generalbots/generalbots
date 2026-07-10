@@ -20,27 +20,27 @@ pub fn is_safe_path(base: &std::path::Path, path: &std::path::Path) -> bool {
         }
     }
 
-    let target = base.join(path);
-
-    // Try canonicalizing base — if base doesn't exist, fall back to string comparison
-    let base_for_check = match base.canonicalize() {
-        Ok(canonical) => canonical.to_path_buf(),
-        Err(_) => {
-            let base_str = base.to_string_lossy().to_string();
-            let target_str = target.to_string_lossy().to_string();
-            return target_str.starts_with(&base_str);
+    // If base directory exists, use canonical base for consistent path resolution.
+    // This avoids string comparison mismatches when base is a relative path
+    // (e.g. "./botserver-stack/data/system/work") but canonicalize resolves it to
+    // an absolute path (e.g. "/opt/gbo/bin/botserver-stack/...").
+    if let Ok(canonical_base) = base.canonicalize() {
+        let target = canonical_base.join(path);
+        match target.canonicalize() {
+            Ok(canonical_target) => {
+                canonical_target.starts_with(&canonical_base)
+            }
+            Err(_) => {
+                let target_str = target.to_string_lossy();
+                let base_str = canonical_base.to_string_lossy();
+                target_str.starts_with(base_str.as_ref())
+            }
         }
-    };
-
-    match target.canonicalize() {
-        Ok(canonical_target) => {
-            let base_canonical = base_for_check.canonicalize().unwrap_or(base_for_check);
-            canonical_target.starts_with(&base_canonical)
-        }
-        Err(_) => {
-            let target_str = target.to_string_lossy();
-            let base_str = base_for_check.to_string_lossy();
-            target_str.starts_with(base_str.as_ref())
-        }
+    } else {
+        // Base doesn't exist — use string comparison as-is
+        let target = base.join(path);
+        let base_str = base.to_string_lossy().to_string();
+        let target_str = target.to_string_lossy().to_string();
+        target_str.starts_with(&base_str)
     }
 }
