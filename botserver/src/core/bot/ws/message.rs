@@ -92,22 +92,23 @@ pub fn load_bot_styles_css(bot_name: &str) -> String {
         combined
     };
 
-    // Primary: nil UUID path
-    let primary_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+    // Primary: {bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/
+    let primary_rel = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
     if verify_path_within_workdir(&primary_rel) {
-        let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+        let gbot_dir = format!("{work_dir}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
         let css = read_css(&gbot_dir);
         if !css.is_empty() {
             return css;
         }
     }
 
-    // Fallback: when org_id is nil UUID, try {bot_name}.gborg/
-    if org_id == nil_uuid {
-        let fallback_rel = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
-        if verify_path_within_workdir(&fallback_rel) {
-            let gbot_dir = format!("{work_dir}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
-            return read_css(&gbot_dir);
+    // Fallback: {org_id}.gborg path (nil UUID)
+    let fallback_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+    if org_id != nil_uuid && verify_path_within_workdir(&fallback_rel) {
+        let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+        let css = read_css(&gbot_dir);
+        if !css.is_empty() {
+            return css;
         }
     }
 
