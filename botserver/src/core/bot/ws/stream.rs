@@ -28,9 +28,13 @@ pub async fn process_llm_response(
     let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> = {
         use botcore::config::ConfigManager;
         let cfg = ConfigManager::new(state.conn.clone());
-        let llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
-        let llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
-        let llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
+        let mut llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
+        let mut llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
+        let mut llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
+        // Env var overrides for production (take priority over DB config)
+        if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
+        if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
+        if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }
         if !llm_url.is_empty() {
             let provider = crate::llm::create_llm_provider_from_url(&llm_url, if llm_model.is_empty() { None } else { Some(llm_model.clone()) }, None, None);
             Some((Arc::new(crate::llm::BotlibLLMProviderWrapper::new(provider, llm_model.clone(), llm_key.clone())) as Arc<dyn botlib::traits::LLMProvider>, llm_key, llm_model))

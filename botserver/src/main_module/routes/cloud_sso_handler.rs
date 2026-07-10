@@ -40,7 +40,10 @@ pub async fn handle_cloud_sso(
     let (header_b64, payload_b64, sig_b64) = (parts[0], parts[1], parts[2]);
     let message = format!("{}.{}", header_b64, payload_b64);
 
-    let expected_sig = jwt_sign_inner(&message, jwt_secret.as_bytes());
+    let expected_sig = match jwt_sign_inner(&message, jwt_secret.as_bytes()) {
+        Ok(sig) => sig,
+        Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Token signing failed"})))),
+    };
     if sig_b64 != expected_sig {
         // Dev mode fallback: if running on localhost, accept the token by decoding
         // payload without validation. This handles JWT signed with a different
@@ -123,8 +126,11 @@ pub async fn handle_unified_login(
             return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid cloud token format"}))));
         }
         let message = format!("{}.{}", parts[0], parts[1]);
-    let expected_sig = jwt_sign_inner(&message, jwt_secret.as_bytes());
-    if parts[2] != expected_sig {
+        let expected_sig = match jwt_sign_inner(&message, jwt_secret.as_bytes()) {
+            Ok(sig) => sig,
+            Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Token signing failed"})))),
+        };
+        if parts[2] != expected_sig {
         log::warn!("unified-login (cloud_token): JWT signature mismatch — falling back to unvalidated payload (dev mode)");
     }
     let payload_bytes = base64_url_decode(parts[1]).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid payload"}))))?;
@@ -159,12 +165,9 @@ pub async fn handle_unified_login(
     });
     let header_b64 = base64_url_encode(&serde_json::to_vec(&header).unwrap_or_default());
     let payload_b64 = base64_url_encode(&serde_json::to_vec(&payload).unwrap_or_default());
-    let cloud_token = format!(
-        "{}.{}.{}",
-        header_b64,
-        payload_b64,
-        jwt_sign_inner(&format!("{}.{}", header_b64, payload_b64), jwt_secret.as_bytes())
-    );
+    let sig = jwt_sign_inner(&format!("{}.{}", header_b64, payload_b64), jwt_secret.as_bytes())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e}))))?;
+    let cloud_token = format!("{}.{}.{}", header_b64, payload_b64, sig);
 
     Ok(Json(serde_json::json!({
         "access_token": suite_token,
@@ -199,12 +202,13 @@ pub(crate) async fn verify_local_admin(email: &str, password: &str) -> Result<St
 
 /// HMAC-SHA256 sign a message and return the base64url-encoded signature.
 /// Duplicado de botcloud::api::jwt_sign_inner para evitar dependência entre crates.
-fn jwt_sign_inner(message: &str, secret: &[u8]) -> String {
+fn jwt_sign_inner(message: &str, secret: &[u8]) -> Result<String, String> {
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret).expect("HMAC key must be 32+ bytes");
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret)
+        .map_err(|e| format!("HMAC key error: {}", e))?;
     mac.update(message.as_bytes());
-    base64_url_encode(&mac.finalize().into_bytes())
+    Ok(base64_url_encode(&mac.finalize().into_bytes()))
 }
 
 fn base64_url_encode(input: &[u8]) -> String {

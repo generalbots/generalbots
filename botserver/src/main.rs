@@ -394,10 +394,13 @@ async fn main() -> std::io::Result<()> {
                 loop {
                     std::thread::sleep(Duration::from_secs(10));
                     let state = pool.state();
-                    let http_ok = std::net::TcpStream::connect_timeout(
-                        &format!("127.0.0.1:{}", server_port).parse().unwrap(),
-                        Duration::from_secs(1),
-                    ).is_ok();
+                    let http_ok = match (format!("127.0.0.1:{}", server_port)).parse::<std::net::SocketAddr>() {
+                        Ok(addr) => std::net::TcpStream::connect_timeout(
+                            &addr,
+                            Duration::from_secs(1),
+                        ).is_ok(),
+                        Err(_) => false,
+                    };
                     info!(
                         "[watchdog] alive | pool: {} conns, {} idle, {} in_use | http: {}",
                         state.connections,

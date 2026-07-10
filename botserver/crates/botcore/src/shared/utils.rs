@@ -162,7 +162,7 @@ pub fn get_org_work_path(org_id: impl std::fmt::Display) -> String {
 }
 
 /// Returns the work directory path.
-/// In production (system container with .env but no botserver-stack): /opt/gbo/work
+/// In production (system container): /opt/gbo/work
 /// In development (with botserver-stack directory): ./botserver-stack/data/system/work
 fn get_work_path_default() -> String {
     if let Ok(path) = std::env::var("GBO_WORK_PATH") {
@@ -171,18 +171,17 @@ fn get_work_path_default() -> String {
         }
     }
 
-    let stack_work = "./botserver-stack/data/system/work";
-    let stack_root = std::path::Path::new("./botserver-stack");
-    let prod_env = std::path::Path::new("/opt/gbo/bin/.env").exists();
+    // Production check: binary running from /opt/gbo/bin with /opt/gbo/work existing
     let prod_exe = std::env::current_exe()
         .ok()
         .is_some_and(|p| p.starts_with("/opt/gbo/bin"));
-
-    if stack_root.exists() || !(prod_env || prod_exe) {
-        stack_work.to_string()
-    } else {
-        "/opt/gbo/work".to_string()
+    let prod_work = std::path::Path::new("/opt/gbo/work").exists();
+    if prod_exe && prod_work {
+        return "/opt/gbo/work".to_string();
     }
+
+    // Dev fallback: relative path when botserver-stack exists in CWD
+    "./botserver-stack/data/system/work".to_string()
 }
 
 /// Returns the stack base path.
