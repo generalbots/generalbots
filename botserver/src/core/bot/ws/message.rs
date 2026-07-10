@@ -190,13 +190,13 @@ pub async fn run_start_bas_on_connect(
     }
 
     let work_path = botcore::shared::utils::get_work_path();
-    let rel_ast_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast", org_id = current_org_id());
+    let rel_ast_path = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast");
     if !verify_path_within_workdir(&rel_ast_path) {
         error!("Path traversal detected in run_start_bas_on_connect for bot: {}", bot_name);
         return false;
     }
 
-    let ast_path = format!("{work_path}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast", org_id = current_org_id());
+    let ast_path = format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast");
     let ast_content = match tokio::fs::read_to_string(&ast_path).await {
         Ok(c) if !c.is_empty() => c,
         _ => {
