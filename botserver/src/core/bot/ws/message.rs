@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::extract::ws::Message;
 use botcore::shared::state::AppState;
 use futures_util::SinkExt;
-use log::{error, info, warn};
+use log::{info, warn};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -191,19 +191,32 @@ pub async fn run_start_bas_on_connect(
     }
 
     let work_path = botcore::shared::utils::get_work_path();
-    let rel_ast_path = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast");
-    if !verify_path_within_workdir(&rel_ast_path) {
-        error!("Path traversal detected in run_start_bas_on_connect for bot: {}", bot_name);
-        return false;
-    }
 
-    let ast_path = format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast");
-    let ast_content = match tokio::fs::read_to_string(&ast_path).await {
-        Ok(c) if !c.is_empty() => c,
-        _ => {
-            let bas_path = ast_path.replace(".ast", ".bas");
-            tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
+    // Try {bot_name}.gborg/ path first, then {bot_name}.gbai/ (legacy)
+    let ast_content = {
+        let paths = [
+            format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast"),
+            format!("{bot_name}.gbai/{bot_name}.gbdialog/start.ast"),
+        ];
+        let mut found = String::new();
+        for rel_path in &paths {
+            let safe = verify_path_within_workdir(rel_path);
+            info!("start.bas: trying path='{}' safe={} work_path='{}'", rel_path, safe, work_path);
+            if !safe {
+                continue;
+            }
+            let full_path = format!("{work_path}/{rel_path}");
+            match tokio::fs::read_to_string(&full_path).await {
+                Ok(c) if !c.is_empty() => { found = c; info!("start.bas: found at {}", full_path); break; }
+                _ => {
+                    let bas_path = full_path.replace(".ast", ".bas");
+                    if let Ok(c) = tokio::fs::read_to_string(&bas_path).await {
+                        if !c.is_empty() { found = c; info!("start.bas: found at {}", bas_path); break; }
+                    }
+                }
+            }
         }
+        found
     };
 
     if ast_content.is_empty() {
@@ -226,47 +239,33 @@ pub async fn run_start_bas_on_connect(
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
-    info!("start.bas: DEBUG BEFORE execute_script (ast_content len={})", ast_content.len());
-    info!("start.bas: session_id={}, user_id={}, bot_uuid={}", session_id, user_id, bot_uuid);
     let exec_result = crate::basic::ScriptService::execute_script(
         state_for_bas.clone(),
         session_for_bas.clone(),
         &ast_content,
     ).await;
-    info!("start.bas: DEBUG AFTER execute_script");
     match exec_result {
         Ok(result) => info!("start.bas: execution result (len={}): {}", result.to_string().len(), result),
         Err(e) => warn!("start.bas: execution error: {}", e),
     }
 
-    info!("start.bas: entering draining loop for 50 iterations (5s)");
-    for i in 0..50 {
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let mut drained = 0usize;
+    loop {
         match rx.try_recv() {
             Ok(response) => {
+                drained += 1;
                 info!("start.bas: drained BotResponse[{}]: mtype={}, session={}, content='{}'",
-                    i, i32::from(response.message_type), response.session_id,
+                    drained, i32::from(response.message_type), response.session_id,
                     response.content.chars().take(80).collect::<String>());
                 if let Ok(json) = serde_json::to_string(&response) {
-                    info!("start.bas: ws_sender.send json len={}", json.len());
                     let _ = ws_sender.send(Message::Text(json)).await;
                 }
             }
-            Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
-                if i == 0 {
-                    info!("start.bas: rx empty at i=0, will retry for {} iterations", 50);
-                } else if i % 10 == 9 {
-                    info!("start.bas: rx still empty at i={}", i);
-                }
-                continue;
-            }
-            Err(e) => {
-                info!("start.bas: rx exhausted at i={}: {:?}", i, e);
-                break;
-            }
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty) => break,
+            Err(_) => break,
         }
     }
-    info!("start.bas: draining loop done");
+    info!("start.bas: drained {} responses immediately", drained);
 
     send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
     true

@@ -257,38 +257,17 @@ impl BasicRuntime for AppStateBasicRuntime {
         info!("send_message: attempting to send to session={}, bot={}, content='{}'",
             sid, bot_id, content_preview);
 
-        match tokio::runtime::Handle::try_current() {
-            Ok(handle) => {
-                handle.spawn(async move {
-                    let guard = channels.lock().await;
-                    let count = guard.len();
-                    if let Some(tx) = guard.get(&sid).cloned() {
-                        info!("send_message: FOUND channel for session {} ({} channels total)", sid, count);
-                        if let Err(e) = tx.send(resp).await {
-                            warn!("send_message: tx.send failed for session {}: {}", sid, e);
-                        }
-                    } else {
-                        let keys: Vec<&String> = guard.keys().collect();
-                        warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
-                            sid, count, keys);
-                    }
-                });
+        let guard = channels.blocking_lock();
+        let count = guard.len();
+        if let Some(tx) = guard.get(&sid) {
+            info!("send_message: FOUND channel for session {} ({} channels total)", sid, count);
+            if let Err(e) = tx.try_send(resp) {
+                warn!("send_message: try_send failed for session {}: {}", sid, e);
             }
-            Err(_) => {
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
-                        .build();
-                    if let Ok(rt) = rt {
-                        rt.block_on(async move {
-                            let guard = channels.lock().await;
-                            if let Some(tx) = guard.get(&sid).cloned() {
-                                let _ = tx.send(resp).await;
-                            }
-                        });
-                    }
-                });
-            }
+        } else {
+            let keys: Vec<&String> = guard.keys().collect();
+            warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
+                sid, count, keys);
         }
         Ok(())
     }

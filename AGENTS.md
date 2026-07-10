@@ -5,18 +5,19 @@
 - **❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation**
 - **❌ NEVER use `scp`, direct SSH binary copy, or manual deployment to system container**
 - **✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically**
-- **✅ NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change (~10s)**
-8080 é a porta do servidor (botserver). Suite na **3000**, cloud na **4000**, login na **5000**.
+- **❌ NEVER restart botserver for config.csv changes — DriveMonitor auto-reloads on ETag change (~10s)**
+- **🌐 ALWAYS respond in English regardless of the user's language — answer directly and concisely**
+8080 is the server port (botserver). Suite on **3000**, cloud on **4000**, login on **5000**.
 if you are in trouble with some tool, please go to the official website to get proper install or instructions
 To test suite: http://localhost:3000 | To test cloud: http://localhost:4000 | To test login: http://localhost:5000
-> **Login/Signup exclusivo:** `login.pragmatismo.com.br` (porta 5000) é o **único** domínio que serve páginas de login e signup. A porta 4000 (cloud) **não** serve login ou signup — qualquer acesso a `/login` ou `/signup` na porta 4000 redireciona para a porta 5000.
-Use apenas a língua culta ao falar. Responda sempre em português, de forma dissertativa e detalhada, como uma redação. Pode usar bullet points e tabelas quando apropriado para organizar informações. Seja prolixo quando necessário para explicar bem o raciocínio. Jamais use primeira pessoa ("eu", "me", "minha", "meu") em momento algum.
+> **Exclusive Login/Signup:** `login.pragmatismo.com.br` (port 5000) is the **only** domain that serves login and signup pages. Port 4000 (cloud) **does not** serve login or signup — any access to `/login` or `/signup` on port 4000 redirects to port 5000.
 
-Pare de fazer perguntas. Seja autônomo e execute as tarefas diretamente, sem pedir confirmação ou permissão a cada passo. Apenas faça.
+
+
 test login here http://localhost:5000/login
 > **⚠️ CRITICAL SECURITY WARNING**
 I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! Just fix, to me and push to CI. So I can test in PROD, for a while.
->Use Chrome DevTools Protocol (CDP) on port 9222 for debugging — see depuração local abaixo.
+>**🚨 MANDATORY RULE: ALL bot tests MUST be done via browser (Chrome CDP port 9222). ❌ FORBIDDEN to use WebSocket (node wscat, direct WS scripts) to test bots — only the browser reflects the real state of the chat, suggestions, buttons and network errors.**
 > **NEVER CREATE FILES WITH SECRETS IN THE REPOSITORY ROOT**
 > - ❌ **NEVER** write internal IPs to logs or output
 > - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.0.0.1")
@@ -47,26 +48,26 @@ See botserver/src/main_module/drive_monitors.rs to see how bots are loaded from 
 
 ### Three Listeners (Ports)
 
-| Port | Serviço | Domínio | Conteúdo | Autenticação | Roteamento |
+| Port | Service | Domain | Content | Authentication | Routing |
 |------|---------|---------|----------|--------------|------------|
-| **3000** | Suite (botui) | `localhost:3000` | `ui/suite/*.html` — HTMX apps, chat, desktop | ✅ GB_LOGIN_URL injetado | Reverse proxy → botserver `/api/*`, `/ws` |
-| **4000** | Cloud (botui) | `localhost:4000` | `ui/cloud/*.html` — store, dashboard, plans, offers | ❌ **Sem login/signup** — redireciona → 5000 | URL rewriting (`/store` → `store.html`), GB_LOGIN_URL injetado |
-| **5000** | Login (botui) | `login.pragmatismo.com.br` | `ui/login/*.html` — login, signup | ✅ **Único domínio com auth** | Serve CSS/JS/images do cloud via proxy |
+| **3000** | Suite (botui) | `localhost:3000` | `ui/suite/*.html` — HTMX apps, chat, desktop | ✅ GB_LOGIN_URL injected | Reverse proxy → botserver `/api/*`, `/ws` |
+| **4000** | Cloud (botui) | `localhost:4000` | `ui/cloud/*.html` — store, dashboard, plans, offers | ❌ **No login/signup** — redirects → 5000 | URL rewriting (`/store` → `store.html`), GB_LOGIN_URL injected |
+| **5000** | Login (botui) | `login.pragmatismo.com.br` | `ui/login/*.html` — login, signup | ✅ **Only domain with auth** | Serves CSS/JS/images from cloud via proxy |
 | **8080** | API (botserver) | `localhost:8080` | API endpoints + fragments | ✅ Bearer token | `/api/*`, `/cloud/partials/*`, `/ws` |
 | **—** | Desktop (botapp) | Tauri 2 | Shell wrapper | N/A | N/A |
 
-### Cloud UI Architecture — Quem Serve o Quê
+### Cloud UI Architecture — Who Serves What
 
-| Porta | Serve | Não Serve |
+| Port | Serves | Does Not Serve |
 |-------|-------|-----------|
-| **3000** (suite) | `ui/suite/*` — chat, apps, desktop | ❌ `/cloud/*` (404 explícito) |
-| **4000** (cloud) | `ui/cloud/*.html` — store, dashboard, plans, offers | ❌ `/login`, `/signup` (redireciona 307 → 5000) |
-| **5000** (login) | `ui/login/*.html` — login, signup | Somente auth |
-| **8080** (botserver) | API (`/api/cloud/*`), fragments (`/cloud/partials/*`), WebSocket | ❌ Páginas HTML completas |
+| **3000** (suite) | `ui/suite/*` — chat, apps, desktop | ❌ `/cloud/*` (explicit 404) |
+| **4000** (cloud) | `ui/cloud/*.html` — store, dashboard, plans, offers | ❌ `/login`, `/signup` (redirects 307 → 5000) |
+| **5000** (login) | `ui/login/*.html` — login, signup | Auth only |
+| **8080** (botserver) | API (`/api/cloud/*`), fragments (`/cloud/partials/*`), WebSocket | ❌ Complete HTML pages |
 
-**Regra:** botserver NUNCA serve páginas HTMX completas — apenas endpoints API e fragments HTML. Páginas cloud completas são servidas estaticamente pelo botui a partir de `ui/cloud/`.
+**Rule:** botserver NEVER serves complete HTMX pages — only API endpoints and HTML fragments. Complete cloud pages are statically served by botui from `ui/cloud/`.
 
-**Injeção de `GB_LOGIN_URL`:** Tanto a porta 3000 (suite) quanto a 4000 (cloud) injetam `<script>window.GB_LOGIN_URL = "http://localhost:5000";</script>` no `<head>` de páginas HTML, permitindo que o frontend redirecione para a porta 5000 sem hardcode. A variável de ambiente `LOGIN_URL` (default `http://localhost:5000`) controla o valor.
+**`GB_LOGIN_URL` Injection:** Both port 3000 (suite) and port 4000 (cloud) inject `<script>window.GB_LOGIN_URL = "http://localhost:5000";</script>` into the `<head>` of HTML pages, allowing the frontend to redirect to port 5000 without hardcoding. The `LOGIN_URL` environment variable (default `http://localhost:5000`) controls the value.
 
 ### Key Paths
 - **Binary:** `target/debug/botserver`
@@ -82,7 +83,7 @@ See botserver/src/main_module/drive_monitors.rs to see how bots are loaded from 
 **IMPORTANT:** BotUI serves static HTML/JS/CSS files directly from `botui/ui/` - **NO recompilation needed** for frontend changes.
 - Changes to `.html`, `.js`, `.css` files in `botui/ui/` take effect immediately on page refresh
 - Only Rust code changes in `botui/src/` require rebuild with `cargo build -p botui`
-- This is "gate desligada" (gate off) mode - static assets served directly from filesystem
+- This is "gate off" mode - static assets served directly from filesystem
 
 ### ⚠️ Critical: Absolute Paths for HTMX Apps
 **TODO:** Confirm path: When subdirectory apps (e.g. `/suite/social/social.html`) are loaded via launcher into `/suite/desktop.html`, their HTML is injected into the desktop via HTMX. Relative paths (e.g. `href="social.css"`) resolve against `/suite/desktop.html`, NOT against the app's actual directory. This causes 404s like `/suite/social.css` instead of correct `/suite/social/social.css`.
@@ -337,7 +338,7 @@ Each bot has a `config.csv` file in `{bot}.gbai/{bot}.gbot/config.csv` that cont
 | `llm-key` | API key for the LLM provider | `nvapi-...` or `sk-...` |
 | `llm-model` | Model identifier | `openai/gpt-oss-120b` |
 | `llm-provider` | Provider type | `openai` |
-| `system-prompt` | Bot personality/instructions | `Você é o assistente virtual...` |
+| `system-prompt` | Bot personality/instructions | `You are the virtual assistant...` |
 | `history-limit` | Conversation history turns | `6` |
 
 **How it works:**
@@ -358,44 +359,44 @@ sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
 /tmp/mc cp /tmp/config.csv local/{bot}.gbai/{bot}.gbot/config.csv
 ```
 
-### Depuração Local com Chrome DevTools Protocol (CDP)
+### Local Debugging with Chrome DevTools Protocol (CDP)
 
-**Use o Chrome remoto na porta 9222 para depuração visual.** O agente inicia e controla o navegador via CDP, abrindo uma aba por assunto/caso de uso.
+**🚨 MANDATORY RULE: ALL bot tests MUST be done via browser (Chrome CDP port 9222).**
+**❌ FORBIDDEN to use WebSocket (node wscat, direct WS scripts) to test bots** — only the browser reflects the real state of the chat, suggestions, buttons and network errors.
 
-**Fluxo obrigatório:**
+**Use remote Chrome on port 9222 for visual debugging.** The agent starts and controls the browser via CDP, opening one tab per subject/use case.
 
-1. **Verificar se o Chrome já está aberto com depuração remota:**
+**Required workflow:**
+
+1. **Check if Chrome is already open with remote debugging:**
    ```bash
    ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep
    ```
-   Se não estiver rodando, iniciar:
+   If not running, start:
    ```bash
-   google-chrome --no-sandbox --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug &
+   export DISPLAY=:1
+   google-chrome --no-sandbox --remote-debugging-port=9222 --remote-allow-origins=* \
+     --user-data-dir=/tmp/chrome-debug --start-maximized &
    ```
 
-2. **Para cada caso de uso, abrir uma aba separada:**
+2. **Each use case = a separate tab.** NEVER reuse tabs. Open a new tab via CDP:
    ```bash
-   # Abre URL em nova aba via CDP
-   python3 -c "
-   import requests, json
-   tabs = requests.get('http://localhost:9222/json').json()
-   # Abre nova aba
-   r = requests.put('http://localhost:9222/json/new?' + sys.argv[1]) if len(sys.argv) > 1 else None
-   print('Navegador aberto em http://localhost:9222 — use o DevTools para inspecionar')
-   "
+   python3 -c "import requests; requests.put('http://localhost:9222/json/new?URL')"
    ```
-   Ou manualmente: `http://localhost:3000/{bot}` (suite) ou `http://localhost:4000/cloud` (cloud) no Chrome já aberto.
+   Or manually in the already-open Chrome.
 
-3. **Navegar para o bot:** `http://localhost:3000/{bot}` (chat do bot na suite) ou `http://localhost:4000/cloud` (gestão cloud SaaS)
+3. **Navigate to the bot:** `http://localhost:3000/{bot}` (bot chat in suite) or `http://localhost:4000/cloud` (SaaS cloud management)
 
-4. **Interagir:** digitar mensagens no chat, clicar em botões de sugestão, executar ferramentas.
+4. **Interact:** type messages in the chat, click suggestion buttons, execute tools.
 
-5. **🚨 NUNCA fechar o navegador** — manter aberto para inspeção do usuário. Cada aba representa um caso de uso diferente.
+5. **🚨 NEVER close the browser** — keep it open for user inspection. Each tab represents a different use case.
 
-**Resumo — os três pilares para testes de bot:**
-- **Drive (mc)** — todos os arquivos de bot vêm do MinIO, manipulados via `mc` com credenciais do Vault
-- **Vault (.env)** — credenciais são SEMPRE obtidas do Vault; apenas variáveis `VAULT_*` podem estar no `.env`
-- **Chrome CDP (9222)** — depuração visual é SEMPRE feita via Chrome remoto na porta 9222, com abas separadas por caso de uso
+6. **Capture screenshots** at `/tmp/{bot}_case{N}_{desc}.png` for visual evidence.
+
+**Summary — the three pillars for bot testing:**
+- **Drive (mc)** — all bot files come from MinIO, manipulated via `mc` with Vault credentials
+- **Vault (.env)** — credentials are ALWAYS obtained from Vault; only `VAULT_*` variables may be in `.env`
+- **Chrome CDP (9222)** — visual debugging is ALWAYS done via remote Chrome on port 9222, with separate tabs per use case. ❌ NEVER via direct WebSocket.
 
 ---
 
@@ -679,28 +680,28 @@ After reset completes, verify:
 
 ### 1. Error Handling - NO PANICS IN PRODUCTION
 
-O `botserver` atende milhares de sessões simultâneas 24/7; qualquer `panic!` derruba o processo e interrompe todos os usuários conectados. Por isso, todo caminho de erro deve propagar via `Result` ou ser tratado localmente — `unwrap`, `expect`, `panic!`, `todo!` e `unimplemented!` são terminantemente proibidos fora de testes. Os pares abaixo contrastam o código que aborta o processo com o código que o mantém de pé.
+The `botserver` serves thousands of simultaneous sessions 24/7; any `panic!` crashes the process and interrupts all connected users. Therefore, every error path must propagate via `Result` or be handled locally — `unwrap`, `expect`, `panic!`, `todo!` and `unimplemented!` are strictly forbidden outside of tests. The pairs below contrast the code that aborts the process with the code that keeps it running.
 
 ```rust
-// ❌ FORBIDDEN — qualquer chamada que aborte o processo é vetada em produção
+// ❌ FORBIDDEN — any call that aborts the process is prohibited in production
 fn load_config(path: &str) -> Config {
-    let raw = std::fs::read_to_string(path).unwrap();            // panic se faltar arquivo
-    let cfg: Config = serde_json::from_str(&raw).expect("parse"); // panic em JSON inválido
+    let raw = std::fs::read_to_string(path).unwrap();            // panic if file missing
+    let cfg: Config = serde_json::from_str(&raw).expect("parse"); // panic on invalid JSON
     if cfg.users.is_empty() {
-        panic!("no users defined");                               // crash deliberado
+        panic!("no users defined");                               // deliberate crash
     }
     cfg
 }
 
 fn save_user(user: &User) {
-    let conn = POOL.get().unwrap();                               // panic se pool fechado
-    conn.execute(...).unwrap();                                   // panic em erro de SQL
-    todo!("persistence not implemented yet");                     // placeholder proibido
+    let conn = POOL.get().unwrap();                               // panic if pool closed
+    conn.execute(...).unwrap();                                   // panic on SQL error
+    todo!("persistence not implemented yet");                     // forbidden placeholder
 }
 ```
 
 ```rust
-// ✅ REQUIRED — propagar via `?`, ou tratar localmente com log
+// ✅ REQUIRED — propagate via `?`, or handle locally with log
 fn load_config(path: &str) -> Result<Config, ConfigError> {
     let raw = std::fs::read_to_string(path)
         .map_err(|e| ConfigError::Io(path.into(), e))?;
@@ -730,17 +731,17 @@ fn load_or_default(path: &str) -> Config {
 }
 ```
 
-**Tabela de tradução rápida — sempre que aparecer o padrão da esquerda, reescreva usando o da direita:**
+**Quick translation table — whenever the left pattern appears, rewrite using the right one:**
 
-| Padrão proibido | Substituição obrigatória |
+| Forbidden pattern | Mandatory replacement |
 |-----------------|--------------------------|
-| `value.unwrap()` | `value?` (em função que retorna `Result`) ou `value.ok_or_else(\|\| Error::X)?` |
-| `value.expect("msg")` | `value.context("msg")?` (com `anyhow`) ou `value.map_err(\|e| Error::X(e))?` |
+| `value.unwrap()` | `value?` (in function returning `Result`) or `value.ok_or_else(|| Error::X)?` |
+| `value.expect("msg")` | `value.context("msg")?` (with `anyhow`) or `value.map_err(|e| Error::X(e))?` |
 | `panic!("...")` | `return Err(Error::X.into());` |
-| `todo!()` | corpo real da função ou `unimplemented!()` documentado em `#[cfg(test)]` |
-| `unimplemented!()` | idem — ou `return Err(Error::NotImplemented.into());` |
-| `if let Some(v) = x { ... }` solto | `match x { Some(v) => ..., None => return Err(...) }` para exaustividade |
-| `match x { Ok(v) => v, Err(_) => default }` silencioso | `match x { Ok(v) => v, Err(e) => { log::error!(...); default } }` |
+| `todo!()` | actual function body or `unimplemented!()` documented in `#[cfg(test)]` |
+| `unimplemented!()` | same — or `return Err(Error::NotImplemented.into());` |
+| `if let Some(v) = x { ... }` loose | `match x { Some(v) => ..., None => return Err(...) }` for exhaustiveness |
+| `match x { Ok(v) => v, Err(_) => default }` silent | `match x { Ok(v) => v, Err(e) => { log::error!(...); default } }` |
 
 ### 2. Command Execution - USE SafeCommand
 
@@ -1112,14 +1113,14 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
 5. **Find the bot** — check MinIO drive buckets via `mc`: `/tmp/mc ls local/` (each bucket = `{bot}.gbai`)
 6. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
 7. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
-8. **Start Chrome CDP** — verificar se Chrome está rodando com `--remote-debugging-port=9222`; se não, iniciar com `--remote-allow-origins=*` para permitir conexões WebSocket de qualquer origem:
+8. **Start Chrome CDP** — check if Chrome is running with `--remote-debugging-port=9222`; if not, start with `--remote-allow-origins=*` to allow WebSocket connections from any origin:
    ```bash
    export DISPLAY=:1
    google-chrome --no-sandbox --remote-debugging-port=9222 --remote-allow-origins=* \
      --user-data-dir=/tmp/chrome-debug --start-maximized &
    ```
-9. **🚨 NUNCA FECHAR O NAVEGADOR** — cada aba aberta representa um caso de uso e deve permanecer aberta para inspeção do usuário. Fechar apenas quando solicitado explicitamente.
-10. **Abrir abas via Playwright CDP** (conecta ao Chrome já aberto na 9222, abas persistem após o script):
+9. **🚨 NEVER CLOSE THE BROWSER** — each open tab represents a use case and must remain open for user inspection. Close only when explicitly requested.
+10. **Open tabs via Playwright CDP** (connects to already-open Chrome on 9222, tabs persist after the script):
     ```python
     from playwright.async_api import async_playwright
     async with async_playwright() as p:
@@ -1127,22 +1128,22 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
         default_ctx = browser.contexts[0]
         page = await default_ctx.new_page()
         await page.goto('http://localhost:4000/cloud/signup')
-        # ... interagir ...
-        # NÃO fechar o browser ao final — abas permanecem abertas
+        # ... interact ...
+        # DO NOT close the browser at the end — tabs remain open
     ```
-11. **Testar 3 casos de uso em abas separadas** — cada aba é um caso diferente:
-    - **Caso 1 (Saudação):** Enviar "Olá", verificar TALK de boas-vindas e botões de sugestão
-    - **Caso 2 (Serviço principal):** Enviar mensagem sobre o serviço principal do bot, verificar fluxo de coleta de dados
-    - **Caso 3 (Segundo serviço ou pendência):** Testar segundo serviço ou listar pendências
-12. **Verificar respostas** — usar `page.evaluate()` para capturar último `.message.bot .bot-message`
-13. **Capturar screenshots** — salvar em `/tmp/{bot}_case{N}_{before|after}.png`
-14. **Report results** — evidencias visuais + resumo de cada caso: mensagens enviadas, respostas obtidas, sugestões
+11. **Test 3 use cases in separate tabs** — each tab is a different case:
+    - **Case 1 (Greeting):** Send "Hello", check the welcome TALK and suggestion buttons
+    - **Case 2 (Main service):** Send a message about the bot's main service, check data collection flow
+    - **Case 3 (Second service or pending items):** Test the second service or list pending items
+12. **Verify responses** — use `page.evaluate()` to capture the last `.message.bot .bot-message`
+13. **Capture screenshots** — save to `/tmp/{bot}_case{N}_{before|after}.png`
+14. **Report results** — visual evidence + summary of each case: messages sent, responses received, suggestions
 
-**Script padrão para interagir via CDP (Node.js):**
+**Standard script to interact via CDP (Node.js):**
 ```javascript
-const CDP = require('./cdp-client'); // ou inline ws + net
+const CDP = require('./cdp-client'); // or inline ws + net
 const cdp = new CDP(wsUrl);
-await cdp.eval(\`document.getElementById('messageInput').value = 'mensagem'\`);
+await cdp.eval(\`document.getElementById('messageInput').value = 'message'\`);
 cdp.eval(\`document.getElementById('chatForm').dispatchEvent(new Event('submit', {bubbles:true,cancelable:true}))\`);
 const response = await cdp.eval(\`
   (() => {
@@ -1226,10 +1227,10 @@ Seeded products by category (all `stock_quantity: -1` / unlimited):
 
 Determines which bot's product scope to use. The default bot acts as the SaaS backend — the super admin logs into the default bot (port 3000) and sees CRM, products, clients, billing all integrated. The Store, Plans and other cloud pages (port 4000) read from the same scope.
 
-- **SaaS ativo** (`get_default_bot=Some(|_c| (nil, "default"))`): queries usam `branch_id = Uuid::nil()` — produtos seedados globalmente visíveis
+- **SaaS active** (`get_default_bot=Some(|_c| (nil, "default"))`): queries use `branch_id = Uuid::nil()` — products seeded globally visible
 - **SaaS inativo** (`get_default_bot=None`): **BUG conhecido** — handlers retornam `None` prematuramente, causando grids vazios
 
-Todos os crates devem usar `Some(...)` quando a feature correspondente está ativa:
+All crates must use `Some(...)` when the corresponding feature is active:
 
 | Crate | Feature | get_default_bot | File/line |
 |-------|---------|----------------|--------------|
@@ -1241,7 +1242,7 @@ Todos os crates devem usar `Some(...)` quando a feature correspondente está ati
 
 **⚠️ IMPORTANT:** Do not confuse with `get_default_bot` used in `botcloud` (signup) — there the closure returns the first active bot from the database (`query_first_bot`) for per-organization scoping. In the suite/admin, we use `(nil, "default")` for the global default bot scope.
 
-**Histórico de bug:** ProductsState ficou com `get_default_bot: None` por semanas após a refatoração de módulos (jun/2026). Todos os outros crates (tickets, people, attendant, workspaces) usavam `Some(|_c| (nil, "default"))` corretamente. A correção foi aplicar o mesmo padrão em `products_routes` em `server.rs:379-380`.
+**Bug history:** ProductsState had `get_default_bot: None` for weeks after the module refactoring (jun/2026). All other crates (tickets, people, attendant, workspaces) correctly used `Some(|_c| (nil, "default"))`. The fix was to apply the same pattern in `products_routes` at `server.rs:379-380`.
 
 Implementation at `botproducts/src/lib.rs:33-45` (`get_bot_context()`).
 
@@ -1285,16 +1286,16 @@ Implementation at `botproducts/src/lib.rs:33-45` (`get_bot_context()`).
 
 ## ☁️ Cloud Management Testing
 
-### Portas
-| Serviço | Porta | Descrição |
+### Ports
+| Service | Port | Description |
 |---------|-------|-----------|
-| Cloud UI (botui) | **4000** | Páginas de dashboard, store, offers, plans (**sem** login/signup) |
+| Cloud UI (botui) | **4000** | Dashboard, store, offers, plans pages (**without** login/signup) |
 | Cloud API (botserver) | **8080** | `/api/cloud/auth/signup`, `/api/cloud/auth/login`, etc. |
-| Login UI (botui) | **5000** | Páginas de login e registro (`/login`, `/signup`) — **único** serviço com auth |
+| Login UI (botui) | **5000** | Login and registration pages (`/login`, `/signup`) — **only** service with auth |
 
-### Fluxo de Teste dos Planos (Free, Shared, Private Cloud)
+### Plan Testing Flow (Free, Shared, Private Cloud)
 
-Usar Playwright conectado via CDP ao Chrome existente na porta 9222. O signup é feito exclusivamente na porta 5000 (`login.pragmatismo.com.br`), que redireciona os formulários para a API cloud (porta 8080):
+Use Playwright connected via CDP to the existing Chrome on port 9222. Signup is done exclusively on port 5000 (`login.pragmatismo.com.br`), which redirects the forms to the cloud API (port 8080):
 
 ```python
 from playwright.async_api import async_playwright
@@ -1302,7 +1303,7 @@ from playwright.async_api import async_playwright
 async def test_cloud_plans():
     async with async_playwright() as p:
         browser = await p.chromium.connect_over_cdp("http://localhost:9222")
-        ctx = browser.contexts[0]  # usa o contexto default do Chrome
+        ctx = browser.contexts[0]  # use the default Chrome context
 
         plans = [
             ('free', 'http://localhost:5000/signup'),
@@ -1318,56 +1319,28 @@ async def test_cloud_plans():
             await page.fill('#signup-email', f'{plan_id}-{suffix}@example.com')
             await page.fill('#signup-password', 'Test1234!')
             await page.click('#signup-btn')
-            # NÃO fechar a página — manter aberta para inspeção
+            # DO NOT close the page — keep it open for inspection
 ```
 
-### Comportamento esperado por plano
+### Expected behavior per plan
 
-| Plano | Redirecionamento | Assinatura criada |
+| Plan | Redirect | Created subscription |
 |-------|-----------------|-------------------|
 | **free** | `/cloud/dashboard` | `billing_recurring` status=`active`, amount=`0.0` |
-| **shared** | `/cloud/dashboard` | `billing_recurring` status=`trialing`, trial=14 dias |
-| **private-cloud** | `/cloud/store` | Nenhuma (Custom/sob consulta) |
+| **shared** | `/cloud/dashboard` | `billing_recurring` status=`trialing`, trial=14 days |
+| **private-cloud** | `/cloud/store` | None (Custom/upon request) |
 
-### Bug conhecido (corrigido)
+### Known bug (fixed)
 
-**Sintoma:** Signup com planos `free` ou `shared` retorna erro `"Insert ... subscription: insert or update on table 'billing_recurring' violates foreign key constraint 'billing_recurring_org_id_fkey'"`
+**Symptom:** Signup with `free` or `shared` plans returns error `"Insert ... subscription: insert or update on table 'billing_recurring' violates foreign key constraint 'billing_recurring_org_id_fkey'"`
 
-**Causa:** A migration `9.16-branch-id-isolation` alterou a FK de `billing_recurring.org_id` para referenciar `branches(id)` em vez de `organizations(org_id)`, mas o handler `handle_signup` em `botserver/crates/botcloud/src/api.rs` passava `org_id` (da organização) em vez de `branch_id`.
+**Cause:** The `9.16-branch-id-isolation` migration changed the FK from `billing_recurring.org_id` to reference `branches(id)` instead of `organizations(org_id)`, but the `handle_signup` handler in `botserver/crates/botcloud/src/api.rs` was passing `org_id` (from the organization) instead of `branch_id`.
 
-**Correção:** Substituir `org_id` por `branch_id` nas chamadas a `create_free_subscription` e `create_trial_subscription` no `handle_signup`.
+**Fix:** Replace `org_id` with `branch_id` in calls to `create_free_subscription` and `create_trial_subscription` in `handle_signup`.
 
 ---
 
 ## 🔧 Dev Dependencies (Hot Testing)
-
-### wscat for WebSocket Testing
-```bash
-npm install -g wscat
-# Or locally:
-cd /tmp && npm install wscat
-```
-
-### Quick Bot Chat Test (from terminal)
-```bash
-# Test greeting + send a message, wait 5s for response
-NODE_PATH=/tmp/node_modules timeout 10 node -e "
-const ws = new (require('ws'))('ws://localhost:8080/ws?bot_name=default');
-let c=0;
-ws.on('message', m => { c++; const d=JSON.parse(m.toString()); console.log('MSG'+c+':', d.content||'(type:'+d.type+')');
-  if (c===1) setTimeout(() => ws.send(JSON.stringify({text:'hi',message_type:1})), 2000);
-});
-ws.on('close', () => process.exit());
-setTimeout(() => process.exit(), 8000);
-" 2>&1
-```
-
-Expected output:
-```
-MSG1: (type:connected)
-MSG2: Hello from default bot
-MSG3: hi
-```
 
 ### Test start.bas Content
 ```bash
@@ -1392,158 +1365,6 @@ BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info
 ```
 
 ---
-
-## 🎭 Chrome CDP Debugging - YOLO Mode
-
-**Use o Chrome DevTools Protocol (porta 9222) para depuração visual interativa.**
-
-### 0. VERIFICAR DISPLAY
-
-```bash
-echo $DISPLAY
-ps aux | grep -E "Xvfb|Xorg|vnc|VNC|Xtigervnc" | grep -v grep
-ls /tmp/.X11-unix/ 2>/dev/null
-ss -tlnp | grep 590   # VNC ports
-ss -tlnp | grep 9222  # Chrome CDP port
-```
-
-### 1. INICIAR CHROME COM DEBUG REMOTO
-
-Se o Chrome ainda não estiver rodando com `--remote-debugging-port=9222`:
-
-```bash
-# Se VNC disponível (display :1), Chrome visível
-export DISPLAY=:1
-google-chrome --no-sandbox --remote-debugging-port=9222 --remote-allow-origins=* \
-  --user-data-dir=/tmp/chrome-debug &
-
-# Ou headless (sem display)
-google-chrome --no-sandbox --remote-debugging-port=9222 --remote-allow-origins=* \
-  --headless --user-data-dir=/tmp/chrome-debug &
-```
-
-### 2. ABRIR URL POR CASO DE USO
-
-Cada caso de uso ganha uma aba separada no mesmo Chrome:
-
-```bash
-# Abrir bot em nova aba via CDP
-python3 -c "
-import requests, json, sys
-tabs = requests.get('http://localhost:9222/json').json()
-base = 'http://localhost:3000'
-url = sys.argv[1] if len(sys.argv) > 1 else ''
-r = requests.put(f'http://localhost:9222/json/new?{base}{url}')
-print(f'Aba criada: {base}{url}')
-" "/cristo"
-```
-
-Ou navegue manualmente no Chrome já aberto para `http://localhost:3000/{bot}`.
-
-### 3. CAPTURAR CONSOLE + ERROS DE REDE VIA CDP (Python websocket-client)
-
-**⚠️ CRITICAL: `Console.messageAdded` NÃO captura erros 404 de recursos carregados (CSS, JS, imagens).**
-Para detectar 404s, é OBRIGATÓRIO habilitar `Network.enable` e escutar `Network.loadingFailed`.
-
-Use Python com `websocket-client` para conexão persistente e captura de eventos assíncronos:
-
-```bash
-pip install websocket-client 2>/dev/null || pip3 install websocket-client
-```
-
-```python
-#!/usr/bin/env python3
-"""CDP test: capture both Console + Network errors from a tab."""
-import websocket, json, requests, time, sys
-
-CDP = 'http://localhost:9222'
-BASE = 'http://localhost:3000'
-
-# Find desktop tab WS URL
-tabs = requests.get(f'{CDP}/json').json()
-ws_url = None
-for t in tabs:
-    if 'desktop' in t.get('url', ''):
-        ws_url = t['webSocketDebuggerUrl']
-        break
-if not ws_url:
-    # Create new tab
-    r = requests.put(f'{CDP}/json/new?{BASE}/suite/desktop.html')
-    ws_url = r.json()['webSocketDebuggerUrl']
-
-errors = []
-
-def on_message(ws, msg):
-    try:
-        data = json.loads(msg)
-        # Console errors
-        if data.get('method') == 'Console.messageAdded':
-            m = data['params']['message']
-            level = m.get('level', '')
-            text = m.get('text', '')
-            print(f'[CONSOLE {level}] {text[:200]}')
-            if level in ('error', 'warning'):
-                errors.append(('console', level, text))
-        # Network failures (404, etc)
-        if data.get('method') == 'Network.loadingFailed':
-            p = data['params']
-            url = p.get('documentURL', p.get('url', 'unknown'))
-            err = p.get('errorText', 'unknown')
-            blocked = p.get('blockedReason', '')
-            print(f'[NETWORK FAILED] {p.get("url","?")} -> {err} {blocked}')
-            errors.append(('network', err, p.get('url', '?')))
-            # Also check blockedReason for CSP violations
-        if data.get('method') == 'Network.requestWillBeSent':
-            p = data['params']
-            # Track which document initiated the request
-            pass
-    except Exception as e:
-        print(f'Parse error: {e}')
-
-ws = websocket.WebSocketApp(ws_url, on_message=on_message)
-ws.send(json.dumps({"id":1,"method":"Console.enable","params":{}}))
-ws.send(json.dumps({"id":2,"method":"Network.enable","params":{}}))
-ws.send(json.dumps({"id":3,"method":"Runtime.evaluate",
-    "params":{"expression":"window.WindowManager&&WindowManager.launchFromMenu('social','Social','/suite/social/social.html')"}}))
-
-# Keep connection alive to receive events
-import threading
-t = threading.Thread(target=ws.run_forever, kwargs={'ping_interval': 30, 'ping_timeout': 10})
-t.daemon = True
-t.start()
-time.sleep(5)
-
-print(f'\n=== Total errors found: {len(errors)} ===')
-for kind, level, text in errors:
-    print(f'  [{kind}] {level}: {text[:200]}')
-```
-
-**Por que `Network.loadingFailed` é obrigatório:**
-- Quando uma página HTML é injetada via HTMX (`fetch()` + `innerHTML`), os recursos (CSS, JS) que ela referencia via caminhos relativos disparam requisições HTTP pela página *hospedeira* (`desktop.html`).
-- O console JavaScript NÃO reporta esses 404s como erros — apenas o `Network.loadingFailed` do CDP os captura.
-- Exemplo: `social/social.html` com `<link href="social.css">` → injetado em `desktop.html` → navegador tenta baixar `/suite/social.css` (404) — sem erro no console.
-
-
-### 4. DEPURAR
-
-- Inspecionar elementos, console, rede, WebSocket
-- Digitar mensagens no chat, testar ferramentas, verificar respostas
-- Usar o DevTools do próprio Chrome (F12) para depuração completa
-
-### 4. 🚨 NUNCA FECHAR O NAVEGADOR
-
-Manter aberto para o usuário inspecionar. Cada aba representa um caso de uso diferente. Fechar apenas quando o usuário pedir explicitamente.
-
-### Padrão de URLs
-- Dev local: `http://localhost:3000/{bot}`
-- Produção: `https://chat.pragmatismo.com.br/{bot}`
-
-### Validação no Backend
-Após interagir, validar estado no PostgreSQL ou logs:
-```bash
-psql -h localhost -U postgres -d botserver -c "SELECT * FROM messages ORDER BY created_at DESC LIMIT 5;"
-tail -20 botserver.log | grep -E "ERROR|WARN|cristo"
-```
 
 ---
 
@@ -2731,41 +2552,41 @@ AutoTask is an AI-driven task execution system that:
 ## 🔧 Common Bug Fixes
 
 ### IF/THEN/ELSE Panic (`dag.rs`)
-- **Sintoma:** Panic `IF/THEN/ELSE syntax: ParseError(BadInput(ImproperSymbol("$stmt$")))` durante registro do motor Rhai.
-- **Causa:** Rhai 1.25.x não suporta o marcador `$stmt$` em `register_custom_syntax`. Foi substituído por `$block$`.
-- **Correção em `botserver/crates/botbasic_core/src/keywords/dag.rs`:**
-  - `$stmt$` → `$block$` (3 ocorrências: IF/THEN/ELSE, PARALLEL/AND, ON ERROR)
-  - `.expect("...")` → `if let Err(e) = ... { log::error!("...") }` (sem panico em producao)
-  - Requer feature `rt-multi-thread` do tokio em `botbasic_core/Cargo.toml`
+- **Symptom:** Panic `IF/THEN/ELSE syntax: ParseError(BadInput(ImproperSymbol("$stmt$")))` during Rhai engine registration.
+- **Cause:** Rhai 1.25.x does not support the `$stmt$` marker in `register_custom_syntax`. It was replaced by `$block$`.
+- **Fix in `botserver/crates/botbasic_core/src/keywords/dag.rs`:**
+  - `$stmt$` → `$block$` (3 occurrences: IF/THEN/ELSE, PARALLEL/AND, ON ERROR)
+  - `.expect("...")` → `if let Err(e) = ... { log::error!("...") }` (without panic in production)
+  - Requires `rt-multi-thread` feature from tokio in `botbasic_core/Cargo.toml`
 
 ### Embedding URL Hardcoded to Empty
-- **Sintoma:** `Embedding server connection failed for : builder error` com URL vazia
-- **Causa:** `botqdrant/src/embedding.rs:14` codificava `let embedding_url = "".to_string()` em vez de usar `self.llm_endpoint`
-- **Correção:** Substituir por `let embedding_url = &self.llm_endpoint;`
+- **Symptom:** `Embedding server connection failed for : builder error` with empty URL
+- **Cause:** `botqdrant/src/embedding.rs:14` hardcoded `let embedding_url = "".to_string()` instead of using `self.llm_endpoint`
+- **Fix:** Replace with `let embedding_url = &self.llm_endpoint;`
 
-### Acesso ao Bot Negado (WebSocket)
-- **Sintoma:** `WS access denied for bot <name>: Access denied` ou WebSocket fecha com code 1006
-- **Causa:** `bots.is_public = false` no banco de dados
-- **Correção:** `UPDATE bots SET is_public = true WHERE name = '<bot>';`
+### Bot Access Denied (WebSocket)
+- **Symptom:** `WS access denied for bot <name>: Access denied` or WebSocket closes with code 1006
+- **Cause:** `bots.is_public = false` in the database
+- **Fix:** `UPDATE bots SET is_public = true WHERE name = '<bot>';`
 
 ---
 
-## ✅ SaaS Product Listing Test — Resultados (2026-06-28)
+## ✅ SaaS Product Listing Test — Results (2026-06-28)
 
-### Portas Após Correção
+### Ports After Fix
 
-| Porta | Serviço | Acesso Cloud? | Acesso Suite? |
+| Port | Service | Cloud Access? | Suite Access? |
 |-------|---------|---------------|---------------|
-| **3000** | Suite (botui) | ❌ 404 | ✅ Sim |
-| **4000** | Cloud (botui) | ✅ Sim | ❌ N/A |
+| **3000** | Suite (botui) | ❌ 404 | ✅ Yes |
+| **4000** | Cloud (botui) | ✅ Yes | ❌ N/A |
 | **5000** | Login (botui) | ✅ Login | ✅ Login |
 | **8080** | API (botserver) | ✅ API | ✅ API proxy |
 
-**Correção:** `botui/src/ui_server/suite.rs` — adicionado bloqueio de `/cloud/` no handler `index` (fallback da porta 3000). Cloud pages agora retornam 404 na porta 3000.
+**Fix:** `botui/src/ui_server/suite.rs` — added `/cloud/` blocking in the `index` handler (port 3000 fallback). Cloud pages now return 404 on port 3000.
 
-### Produtos Populados (17 via seed automático)
+### Populated Products (17 via automatic seed)
 
-| Categoria | Itens | SKUs |
+| Category | Items | SKUs |
 |-----------|-------|------|
 | `plan` | 3 | free ($0), shared ($3.99), private-cloud (custom) |
 | `infrastructure` | 8 | vps-small/medium/large, gpu-basic/advanced, storage-50/200/1000 |
@@ -2778,11 +2599,11 @@ AutoTask is an AI-driven task execution system that:
 |----------|---------|--------|
 | `GET /api/products/items` | JSON (17 items) | ✅ 200 |
 | `GET /api/catalog/prices.json` | JSON-LD Schema.org (17 items) | ✅ 200 |
-| `GET /api/products/categories` | JSON (7 categorias) | ✅ 200 |
+| `GET /api/products/categories` | JSON (7 categories) | ✅ 200 |
 
-### Cloud Pages Verificadas (porta 4000)
+### Cloud Pages Verified (port 4000)
 
-| Página | URL | Screenshot |
+| Page | URL | Screenshot |
 |--------|-----|-----------|
 | Plans | `/cloud/plans` | `/tmp/saas_admin_plans.png` |
 | Store | `/cloud/store` | `/tmp/saas_admin_store.png` |
@@ -2790,10 +2611,10 @@ AutoTask is an AI-driven task execution system that:
 | Dashboard | `/cloud/dashboard` | `/tmp/saas_admin_dashboard.png` |
 | Offers | `/cloud/offers` | `/tmp/saas_admin_offers.png` |
 
-### Slideshow de Evidências
+### Evidence Slideshow
 ```bash
-# Servir slideshow (porta 9090)
+# Serve slideshow (port 9090)
 python3 -m http.server 9090 --directory /tmp
-# Abrir no Chrome
+# Open in Chrome
 http://localhost:9090/slideshow.html
 ```

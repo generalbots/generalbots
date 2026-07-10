@@ -765,15 +765,10 @@ impl LLMProvider for OpenAIClient {
         }
 
         // Flush any remaining buffered content from streaming look-ahead.
-        // Only send content not yet emitted by process_content_streaming.
         if !stream_state.is_empty() {
             let remaining = handler.process_content(&stream_state);
-            if !remaining.is_empty() && remaining.len() > content_sent {
-                let unsent = &remaining[content_sent..];
-                if !unsent.is_empty() {
-                    content_sent += unsent.len();
-                    let _ = tx.send(unsent.to_string()).await;
-                }
+            if !remaining.is_empty() {
+                let _ = tx.send(remaining).await;
             }
         }
 

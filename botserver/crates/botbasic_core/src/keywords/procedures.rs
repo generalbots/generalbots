@@ -353,23 +353,14 @@ fn call_bas_script(state: &Arc<dyn BasicRuntime>, user: &UserSession, script_nam
     let state_clone = state.clone();
     let user_clone = user.clone();
 
-    // Use blocking channel for thread communication
     let (tx, rx) = std::sync::mpsc::channel();
 
     std::thread::spawn(move || {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build();
-
-            if let Ok(_rt) = rt {
-                let result = state_clone.execute_script(
-                    user_clone,
-                    &script_content,
-                );
-                let _ = tx.send(result);
-        } else {
-            let _ = tx.send(Err("Failed to create runtime".into()));
-        }
+        let result = state_clone.execute_script(
+            user_clone,
+            &script_content,
+        );
+        let _ = tx.send(result);
     });
 
     match rx.recv_timeout(std::time::Duration::from_secs(60)) {

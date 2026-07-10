@@ -1,22 +1,6 @@
 use super::ModelHandler;
 use log;
 
-fn separate_text_number(text: &str) -> String {
-    let mut result = String::with_capacity(text.len() + 8);
-    let mut chars = text.chars().peekable();
-    while let Some(c) = chars.next() {
-        result.push(c);
-        if let Some(&next) = chars.peek() {
-            if c.is_alphabetic() && next.is_ascii_digit()
-                || c.is_ascii_digit() && next.is_alphabetic()
-            {
-                result.push(' ');
-            }
-        }
-    }
-    result
-}
-
 /// Handler for GPT-OSS 120B model with thinking tags filtering
 #[derive(Debug)]
 pub struct GptOss120bHandler {}
@@ -121,31 +105,30 @@ impl ModelHandler for GptOss120bHandler {
         if cleaned.is_empty() {
             return String::new();
         }
-        // Final safety net: fix text-number boundaries in the full response
-        separate_text_number(&cleaned)
+        // Strip reasoning/chain-of-thought before first HTML structural tag.
+        let html_start = cleaned.find("<div")
+            .or_else(|| cleaned.find("<h2"))
+            .or_else(|| cleaned.find("<h3"))
+            .or_else(|| cleaned.find("<p>"))
+            .or_else(|| cleaned.find("<table"))
+            .or_else(|| cleaned.find("<blockquote"))
+            .or_else(|| cleaned.find("<hr"));
+        match html_start {
+            Some(pos) if pos > 0 => cleaned[pos..].to_string(),
+            _ => cleaned,
+        }
     }
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
         if chunk.is_empty() {
             return String::new();
         }
-
-        // Accumulate raw chunks for token-level look-ahead.
-        // This prevents text-number boundaries from being split across
-        // streaming chunks (e.g. "fevereiro20" + "21" = "fevereiro2021").
         state.push_str(chunk);
-
-        // Wait until enough content is accumulated (~4-5 tokens)
-        // before processing with the regex.
         const MIN_EMIT: usize = 50;
-
         if state.len() < MIN_EMIT {
             return String::new();
         }
-
-        // Apply text-number separation to the full accumulated buffer
-        let result = separate_text_number(state);
-
+        let result = state.clone();
         state.clear();
         result
     }

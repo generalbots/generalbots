@@ -10,7 +10,6 @@ use super::handler::validate_bot_name;
 use super::handler::verify_path_within_workdir;
 use super::message::load_system_prompt;
 use super::message::run_start_bas_on_connect;
-use botcore::shared::utils::current_org_id;
 
 pub async fn handle_ws(
     socket: WebSocket,
@@ -33,6 +32,27 @@ pub async fn handle_ws(
         "bot_id": bot_uuid, "message": "Connected to bot server", "tools": []
     });
     let _ = ws_sender.send(Message::Text(welcome.to_string())).await;
+
+    {
+        let mut pending = state.pending_stream_responses.lock().await;
+        if let Some(content) = pending.remove(&session_id.to_string()) {
+            info!("Delivering pending stream response for session {} ({} bytes)", session_id, content.len());
+            let resp = serde_json::json!({
+                "bot_id": bot_uuid.to_string(),
+                "user_id": user_id.to_string(),
+                "session_id": session_id.to_string(),
+                "channel": "web",
+                "content": content,
+                "message_type": 2,
+                "is_complete": true,
+                "suggestions": [],
+                "switchers": [],
+                "context_length": 0,
+                "context_max_length": 0,
+            });
+            let _ = ws_sender.send(Message::Text(resp.to_string())).await;
+        }
+    }
 
     let mut start_bas_ran = run_start_bas_on_connect(
         &state, &mut ws_sender, &mut rx, bot_uuid, session_id, user_id, &bot_name,
@@ -76,10 +96,7 @@ pub async fn handle_ws(
         let mut channels = state.response_channels.lock().await;
         channels.remove(&session_id.to_string());
     }
-    {
-        let mut guards = state.start_bas_guards.lock().await;
-        guards.remove(&session_id);
-    }
+    // start_bas_guards entry intentionally NOT removed — prevents re-running start.bas on WS reconnect
     info!("WS disconnected: session={}", session_id);
 }
 
@@ -173,7 +190,6 @@ async fn handle_text_message(
         if !tool_name.is_empty() {
             info!("TOOL_EXEC: Direct tool execution: {} (validated from: {})", tool_name, raw_tool_name);
             let work_path = botcore::shared::utils::get_work_path();
-            let org_id = current_org_id();
 
             // Helper: read tool from a path
             let read_tool = |gbdialog_dir: &str| -> Option<String> {
