@@ -18,6 +18,7 @@ test login here http://localhost:5000/login
 > **⚠️ CRITICAL SECURITY WARNING**
 I AM IN DEV ENV, but sometimes, pasting from PROD, do not treat my env as prod! Just fix, to me and push to CI. So I can test in PROD, for a while.
 >**🚨 MANDATORY RULE: ALL bot tests MUST be done via browser (Chrome CDP port 9222). ❌ FORBIDDEN to use WebSocket (node wscat, direct WS scripts) to test bots — only the browser reflects the real state of the chat, suggestions, buttons and network errors.**
+> **🚨 ALSO: Every web-facing task (login, dashboard, settings, etc.) MUST be browser-tested before marking complete. Open one tab per use case, NEVER close the browser — tabs are living trace evidence.**
 > **NEVER CREATE FILES WITH SECRETS IN THE REPOSITORY ROOT**
 > - ❌ **NEVER** write internal IPs to logs or output
 > - When debugging network issues, mask IPs (e.g., "10.x.x.x" instead of "10.0.0.1")
@@ -393,7 +394,27 @@ sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
 
 6. **Capture screenshots** at `/tmp/{bot}_case{N}_{desc}.png` for visual evidence.
 
-**Summary — the three pillars for bot testing:**
+### 🚨 Suite App Testing — ALWAYS Open Inside Desktop (NEVER Direct URL)
+
+**❌ NEVER open a suite app page directly** — this includes `/suite/drive/drive.html`, `/suite/chat/chat.html`, `/suite/tasks/tasks.html`, or any other HTML file under `botui/ui/suite/`. Suite apps are **HTMX fragments** that require the desktop shell (`desktop.html`) to bootstrap their JS modules, security context, and window manager. Opening a fragment URL directly results in a broken layout with no JS modules loaded and no network/auth context.
+
+**✅ Correct flow — always navigate to the desktop route, never to the HTML file:**
+- `/drive` → desktop shell detects app name "drive" → HTMX loads `/suite/drive/drive.html` into the content area
+- `/chat/<bot>` → desktop shell → HTMX loads `/suite/chat/chat.html`
+- `/tasks` → desktop shell → HTMX loads `/suite/tasks/tasks.html`
+- `/social` → desktop shell → HTMX loads `/suite/social/social.html`
+
+**Why this matters for the Drive app specifically:** The Drive app now has 5 top-level tabs: **Bots** (admin), **My Files**, **Shared**, **Public**, **Root** (admin). When loaded via direct URL, none of the JS modules execute (no `01_state.js` → `99_init.js` chain), the tab bar stays empty, no API calls happen, and the page shows a broken empty shell. The desktop shell must load the HTML fragment into its content area for the sequential script loader (in `drive.html`) to fire.
+
+**Verification:** After login/SSO hop lands on `/drive`, the desktop shell must be visible — window manager, taskbar, app icons, title bar with close/minimize/maximize. The Drive app appears as a **window inside the desktop**, NOT as a standalone full-page view. If you see the full browser window with only Drive content and no desktop chrome, you opened the wrong URL.
+
+**How to test in Chrome:**
+1. Open a new tab and navigate to `http://localhost:3000/` (the desktop login)
+2. Log in (or redirect through port 5000)
+3. Type `/drive` in the desktop launcher or navigate within the desktop
+4. OR, using CDP directly: `http://localhost:9222/json/new?http://localhost:3000/drive` — this will hit the Zitadel SSO redirect chain and land on the desktop with Drive loaded inside
+
+**Summary — the three pillars for bot testing:****
 - **Drive (mc)** — all bot files come from MinIO, manipulated via `mc` with Vault credentials
 - **Vault (.env)** — credentials are ALWAYS obtained from Vault; only `VAULT_*` variables may be in `.env`
 - **Chrome CDP (9222)** — visual debugging is ALWAYS done via remote Chrome on port 9222, with separate tabs per use case. ❌ NEVER via direct WebSocket.

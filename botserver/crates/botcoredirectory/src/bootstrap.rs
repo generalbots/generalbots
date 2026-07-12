@@ -274,8 +274,6 @@ async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<BootstrapResul
 
     save_setup_credentials(&result);
 
-    save_admin_credentials(&result);
-
     create_password_change_reminder(&user_id);
 
     let bootstrap_state = BootstrapState {
@@ -403,28 +401,6 @@ fn save_setup_credentials(result: &BootstrapResult) {
         Err(e) => {
             log::error!("Failed to save setup credentials: {}", e);
         }
-    }
-}
-
-fn save_admin_credentials(result: &BootstrapResult) {
-    let stack = get_stack_path();
-    let creds_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-credentials.json", stack));
-    if let Some(parent) = creds_path.parent() {
-        if let Err(e) = fs::create_dir_all(parent) {
-            log::error!("Failed to create credentials directory: {}", e);
-            return;
-        }
-    }
-    let creds = serde_json::json!({
-        "email": result.email,
-        "password": result.initial_password,
-        "user_id": result.user_id,
-        "username": result.username,
-        "organization_id": result.organization_id,
-    });
-    match fs::write(&creds_path, serde_json::to_string_pretty(&creds).unwrap_or_default()) {
-        Ok(_) => info!("Admin credentials saved to {}", creds_path.display()),
-        Err(e) => log::error!("Failed to save admin credentials: {}", e),
     }
 }
 

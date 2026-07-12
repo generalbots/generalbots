@@ -5,6 +5,7 @@ pub mod sources_handlers;
 pub mod api_keys_handlers;
 pub mod integrations_handlers;
 pub mod connector_handlers;
+pub mod accounts_handlers;
 
 pub use kb_handlers::*;
 pub use mcp_handlers::*;

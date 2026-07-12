@@ -12,6 +12,9 @@ categories = ["web-programming", "gui"]
 workspace = true
 features = ["http-client"]
 
+[dependencies.botcoresecrets]
+workspace = true
+
 [features]
 default = ["ui-server", "chat", "drive", "tasks", "admin"]
 ui-server = []

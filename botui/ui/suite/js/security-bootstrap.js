@@ -40,7 +40,7 @@
     initialized: false,
 
     getToken: function () {
-      return _accessToken;
+      return _accessToken || localStorage.getItem("gb-access-token") || null;
     },
 
     getSessionId: function () {
@@ -191,10 +191,10 @@
       // Access token is stored in sessionStorage by setTokens() as a
       // fallback, so it survives page navigation. Primary storage is
       // the closure for XSS protection (Issue #575).
-      var storedAccess = sessionStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
+      var storedAccess = sessionStorage.getItem(AUTH_KEYS.ACCESS_TOKEN) || localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
       if (storedAccess) {
         _accessToken = storedAccess;
-        console.log("[GBSecurity] Access token restored from sessionStorage");
+        console.log("[GBSecurity] Access token restored from sessionStorage/localStorage");
       }
       var storedRefresh = sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
       if (storedRefresh) {

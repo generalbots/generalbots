@@ -22,6 +22,13 @@
 
         <!-- Quick Actions -->
         <div class="drive-sidebar-actions">
+            <button class="btn-primary-full" id="new-bot-btn" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span data-i18n="drive-new-bot">New Bot</span>
+            </button>
             <button class="btn-primary-full" id="upload-btn">
                 <svg
                     width="16"
@@ -54,35 +61,6 @@
                 </svg>
                 <span data-i18n="drive-new-folder">New Folder</span>
             </button>
-        </div>
-
-        <!-- Division Selector (for .gborg buckets) -->
-        <div class="drive-divisions" id="drive-divisions" style="display:none;">
-            <div class="division-label" data-i18n="drive-divisions">Divisions</div>
-            <div class="drive-nav-item division-item active" data-division="all">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-                <span data-i18n="drive-all">All Files (Admin)</span>
-            </div>
-            <div class="drive-nav-item division-item" data-division="shared">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                </svg>
-                <span data-i18n="drive-shared-div">Shared Drive</span>
-            </div>
-            <div class="drive-nav-item division-item" data-division="personal">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <span data-i18n="drive-personal">My Drive</span>
-            </div>
-            <div class="division-divider"></div>
         </div>
 
         <!-- Navigation -->
@@ -171,41 +149,72 @@
 
     <!-- Main Content -->
     <main class="drive-main">
-        <!-- Scope Tabs -->
-        <div class="drive-scope-tabs" id="drive-scope-tabs">
-            <button class="scope-tab active" data-scope="user">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- Top-Level Tabs -->
+        <div class="drive-top-tabs" id="drive-top-tabs">
+            <button class="top-tab active" data-tab="branchdrive" id="tab-branchdrive">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>Branch Drive</span>
+                <span class="tab-badge tab-badge-branchdrive">Branch</span>
+            </button>
+            <button class="top-tab" data-tab="shared" id="tab-shared">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                <span>Shared</span>
+                <span class="tab-badge tab-badge-shared">Shared</span>
+            </button>
+            <button class="top-tab" data-tab="public" id="tab-public">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                <span>Public</span>
+                <span class="tab-badge tab-badge-public">Public</span>
+            </button>
+            <button class="top-tab" data-tab="myfiles" id="tab-myfiles">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
                 <span>My Files</span>
+                <span class="tab-badge tab-badge-myfiles">Personal</span>
             </button>
-            <button class="scope-tab" data-scope="bot">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="top-tab" data-tab="bots" id="tab-bots">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="11" width="18" height="10" rx="2"></rect>
                     <circle cx="12" cy="5" r="2"></circle>
                     <path d="M12 7v4"></path>
                 </svg>
-                <span>Bot Files</span>
+                <span>Bots</span>
+                <span class="tab-badge tab-badge-bots">Bots</span>
+            </button>
+            <button class="top-tab" data-tab="root" id="tab-root" style="display:none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+                <span>Root</span>
+                <span class="tab-badge tab-badge-root">Admin</span>
             </button>
         </div>
 
         <!-- Toolbar -->
         <div class="drive-toolbar">
             <div class="drive-toolbar-left">
-                <select
-                    id="bucket-selector"
-                    class="bucket-selector"
-                    style="display: none"
-                >
-                    <!-- Populated by JavaScript -->
-                </select>
                 <div class="drive-breadcrumb">
                     <button
                         class="breadcrumb-item"
                         onclick="DriveModule.loadFiles('')"
                     >
-                        My Drive
+                        Branch Drive
                     </button>
                 </div>
             </div>
@@ -380,4 +389,30 @@
 <!-- Context Menu (dynamically populated by JS) -->
 <div id="context-menu" class="context-menu hidden"></div>
 
-<script src="/suite/drive/drive.js"></script>
+<script>
+// Sequential module loader — ensures scripts execute in order
+(function() {
+    var modules = [
+        '/suite/drive/modules/01_state.js',
+        '/suite/drive/modules/02_api.js',
+        '/suite/drive/modules/03_utils.js',
+        '/suite/drive/modules/04_bots.js',
+        '/suite/drive/modules/05_files.js',
+        '/suite/drive/modules/06_render.js',
+        '/suite/drive/modules/07_events.js',
+        '/suite/drive/modules/08_modals.js',
+        '/suite/drive/modules/99_init.js',
+    ];
+    var ts = Date.now();
+    function loadNext() {
+        if (modules.length === 0) return;
+        var src = modules.shift() + '?_=' + ts;
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = loadNext;
+        s.onerror = loadNext;
+        document.body.appendChild(s);
+    }
+    loadNext();
+})();
+</script>

@@ -65,7 +65,21 @@ function proceedWithChatInit() {
       try {
         localStorage.setItem(storageKey, JSON.stringify({ user_id: auth.user_id }));
       } catch (e) {}
-      connectWebSocket();
+      
+      // Check bot visibility — redirect private bots to login if not authenticated
+      fetch("/api/bot/config?bot_name=" + encodeURIComponent(botName))
+        .then(function (r) { return r.json(); })
+        .then(function (cfg) {
+          var isPub = cfg.is_public === "true" || cfg.is_public === true;
+          var isAuth = window.GBSecurity && window.GBSecurity.isAuthenticated && window.GBSecurity.isAuthenticated();
+          if (!isPub && !isAuth) {
+            window.location.href = (window.GB_LOGIN_URL || "/login") + "?redirect=" + encodeURIComponent(window.location.href);
+            return;
+          }
+          if (isPub) window.__BOT_IS_PUBLIC__ = true;
+          connectWebSocket();
+        })
+        .catch(function () { connectWebSocket(); });
     })
     .catch(function () {
       notify("Failed to connect to chat server", "error");

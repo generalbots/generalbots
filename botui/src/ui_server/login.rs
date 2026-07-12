@@ -7,7 +7,16 @@ use axum::{
 use crate::ui_server::constants::Assets;
 use crate::ui_server::constants::get_ui_root;
 
+fn get_cloud_url() -> String {
+    std::env::var("CLOUD_URL").unwrap_or_else(|_| "http://localhost:4000".to_string())
+}
+
 async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
+    let injection = format!(
+        r#"<script>window.GB_CLOUD_URL = "{}";</script>"#,
+        get_cloud_url()
+    );
+
     #[cfg(feature = "embed-ui")]
     {
         let ui_root = get_ui_root();
@@ -15,7 +24,12 @@ async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
         let asset_path = relative.display().to_string().replace('\\', "/");
         if let Some(content) = Assets::get(&asset_path) {
             let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
-            return ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], content.data).into_response();
+            let data = if mime.as_ref() == "text/html" {
+                inject_script_into_html(&content.data, &injection).into()
+            } else {
+                content.data
+            };
+            return ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], data).into_response();
         }
         return StatusCode::NOT_FOUND.into_response();
     }
@@ -25,11 +39,30 @@ async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
         match tokio::fs::read(&file_path).await {
             Ok(bytes) => {
                 let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
-                ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], bytes).into_response()
+                let data = if mime.as_ref() == "text/html" {
+                    let d = inject_script_into_html(&bytes, &injection);
+                    d
+                } else {
+                    bytes
+                };
+                ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], data).into_response()
             }
             Err(_) => StatusCode::NOT_FOUND.into_response(),
         }
     }
+}
+
+fn inject_script_into_html(bytes: &[u8], script: &str) -> Vec<u8> {
+    if let Ok(content) = std::str::from_utf8(bytes) {
+        if let Some(head_end) = content.find("</head>") {
+            let mut new_content = String::with_capacity(content.len() + script.len());
+            new_content.push_str(&content[..head_end]);
+            new_content.push_str(script);
+            new_content.push_str(&content[head_end..]);
+            return new_content.into_bytes();
+        }
+    }
+    bytes.to_vec()
 }
 
 pub async fn serve_login_index() -> Response {

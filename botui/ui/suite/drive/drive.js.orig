@@ -144,7 +144,9 @@
 
   async function discoverBuckets() {
     try {
-      const buckets = await apiRequest("/buckets");
+      var botName = window.__INITIAL_BOT_NAME__ || window.location.pathname.split('/').filter(Boolean)[0] || '';
+      var url = botName ? '/buckets?bot=' + encodeURIComponent(botName) : '/buckets';
+      const buckets = await apiRequest(url);
       availableBuckets = buckets || [];
       retryCount = 0;
 

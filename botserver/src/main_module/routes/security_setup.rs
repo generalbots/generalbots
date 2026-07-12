@@ -81,14 +81,34 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_public_path("/favicon.ico")
             .add_public_path("/suite")
             .add_public_path("/themes")
+            .add_public_path("/api/cloud")
             .add_public_path("/api/product")
+            .add_public_path("/api/auth/suite-sso")
         )
     };
 
-    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
-        info!("JWT_SECRET not set, using default development secret");
-        "dev-secret-key-change-in-production-minimum-32-chars".to_string()
-    });
+    let jwt_secret = {
+        let config_path = format!("{}/conf/system/directory_config.json", botcore::shared::utils::get_stack_path());
+        match std::fs::read_to_string(&config_path) {
+            Ok(content) => {
+                match serde_json::from_str::<serde_json::Value>(&content) {
+                    Ok(json) => json.get("saas_jwt_secret").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string())
+                        .unwrap_or_else(|| std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+                            info!("JWT_SECRET not set, using default development secret");
+                            "dev-secret-key-change-in-production-minimum-32-chars".to_string()
+                        })),
+                    Err(_) => std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+                        info!("JWT_SECRET not set, using default development secret");
+                        "dev-secret-key-change-in-production-minimum-32-chars".to_string()
+                    }),
+                }
+            }
+            Err(_) => std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+                info!("JWT_SECRET not set, using default development secret");
+                "dev-secret-key-change-in-production-minimum-32-chars".to_string()
+            }),
+        }
+    };
 
     let jwt_config = JwtConfig::default();
     let jwt_key = JwtKey::from_secret(&jwt_secret);

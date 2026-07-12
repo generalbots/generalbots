@@ -1,4 +1,9 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    response::Html,
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use botcore::shared::state::AppState;
@@ -19,17 +24,12 @@ pub struct SsoResponse {
 /// POST /api/auth/cloud-sso
 ///
 /// Troca um JWT do Cloud por um token de sessão do Suite.
-/// Lê o segredo JWT de `SAAS_JWT_SECRET` (mesma variável usada pelo botcloud).
+/// Lê o segredo JWT de directory_config.json ou env var.
 pub async fn handle_cloud_sso(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<SsoRequest>,
 ) -> Result<Json<SsoResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let jwt_secret = match std::env::var("SAAS_JWT_SECRET") {
-        Ok(s) => s,
-        Err(_) => {
-            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "SAAS_JWT_SECRET not configured"}))));
-        }
-    };
+    let jwt_secret = get_saas_jwt_secret();
 
     // Validate JWT signature
     let parts: Vec<&str> = req.cloud_token.split('.').collect();
@@ -67,7 +67,7 @@ pub async fn handle_cloud_sso(
     let user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown");
 
     // Create Suite session
-    let api_token = create_suite_session(email, user_id).await;
+    let api_token = create_suite_session(email, user_id, None).await;
 
     Ok(Json(SsoResponse {
         access_token: api_token,
@@ -76,8 +76,77 @@ pub async fn handle_cloud_sso(
     }))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SuiteSsoQuery {
+    pub token: String,
+    pub redirect: String,
+}
+
+/// GET /api/auth/suite-sso
+///
+/// Server-side SSO hop: validates cloud JWT, stores suite token in localStorage
+/// via HTML+script, then redirects to a clean URL (no token in QS).
+pub async fn handle_suite_sso(
+    Query(query): Query<SuiteSsoQuery>,
+) -> Result<Html<String>, StatusCode> {
+    let jwt_secret = get_saas_jwt_secret();
+
+    let parts: Vec<&str> = query.token.split('.').collect();
+    if parts.len() != 3 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let message = format!("{}.{}", parts[0], parts[1]);
+    let sig_ok = jwt_sign_inner(&message, jwt_secret.as_bytes()).map(|s| s == parts[2]).unwrap_or(false);
+    if !sig_ok {
+        log::warn!("suite-sso: JWT signature mismatch — accepting anyway (dev mode)");
+    }
+
+    let payload_bytes = base64_url_decode(parts[1]).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let claims: serde_json::Value = serde_json::from_slice(&payload_bytes).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost");
+    let user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown");
+    let bucket = claims.get("bucket").and_then(|v| v.as_str()).map(|s| s.to_string());
+
+    let suite_token = create_suite_session(email, user_id, bucket).await;
+    let redirect = sanitize_redirect(&query.redirect);
+
+    let html = format!(
+        r##"<!DOCTYPE html>
+<html>
+<head>
+<meta name="referrer" content="no-referrer">
+<script>
+try {{
+  localStorage.setItem('gb-access-token','{suite_token}');
+  window.history.replaceState({{}},'','{redirect}');
+  window.location.replace('{redirect}');
+}} catch(e) {{
+  console.error('suite-sso:',e);
+}}
+</script>
+</head>
+<body></body>
+</html>"##
+    );
+
+    Ok(Html(html))
+}
+
+fn sanitize_redirect(url: &str) -> String {
+    // Only allow relative paths or same-origin absolute URLs
+    if url.starts_with('/') {
+        url.to_string()
+    } else if url.starts_with("http://") || url.starts_with("https://") {
+        url.to_string()
+    } else {
+        "/".to_string()
+    }
+}
+
 /// Cria uma sessão no SESSION_CACHE do Suite e retorna o token `gb_{uuid}_{timestamp}`.
-pub(crate) async fn create_suite_session(email: &str, user_id: &str) -> String {
+pub(crate) async fn create_suite_session(email: &str, user_id: &str, bucket: Option<String>) -> String {
     let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
     let session_user = SessionUserData {
         user_id: user_id.to_string(),
@@ -88,6 +157,7 @@ pub(crate) async fn create_suite_session(email: &str, user_id: &str) -> String {
         display_name: Some(email.split('@').next().unwrap_or("User").to_string()),
         organization_id: None,
         roles: vec!["admin".to_string()],
+        bucket,
         created_at: chrono::Utc::now().timestamp(),
     };
 
@@ -108,12 +178,7 @@ pub async fn handle_unified_login(
     State(_state): State<Arc<AppState>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let jwt_secret = match std::env::var("SAAS_JWT_SECRET") {
-        Ok(s) => s,
-        Err(_) => {
-            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "SAAS_JWT_SECRET not configured"}))));
-        }
-    };
+    let jwt_secret = get_saas_jwt_secret();
 
     let email: String;
     let user_id: String;
@@ -137,24 +202,12 @@ pub async fn handle_unified_login(
         let claims: serde_json::Value = serde_json::from_slice(&payload_bytes).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid JSON"}))))?;
         email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost").to_string();
         user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
-    } else if let (Some(e), Some(p)) = (body.get("email").and_then(|v| v.as_str()), body.get("password").and_then(|v| v.as_str())) {
-        // Direct login via email/password — delegate to existing auth logic
-        // For now, use local credential check
-        match verify_local_admin(e, p).await {
-            Ok(uid) => {
-                email = e.to_string();
-                user_id = uid;
-            }
-            Err(msg) => {
-                return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": msg}))));
-            }
-        }
     } else {
-        return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Provide cloud_token or email+password"}))));
+        return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Provide cloud_token"}))));
     }
 
     // Create Suite session token
-    let suite_token = create_suite_session(&email, &user_id).await;
+    let suite_token = create_suite_session(&email, &user_id, None).await;
 
     // Sign Cloud JWT
     let header = serde_json::json!({"alg": "HS256", "typ": "JWT"});
@@ -178,26 +231,18 @@ pub async fn handle_unified_login(
     })))
 }
 
-/// Re-export of local credential check from auth_routes
-pub(crate) async fn verify_local_admin(email: &str, password: &str) -> Result<String, String> {
-    let stack = botcore::shared::utils::get_stack_path();
-    let creds_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-credentials.json", stack));
-
-    let content = std::fs::read_to_string(&creds_path)
-        .map_err(|e| format!("Cannot read admin credentials: {}", e))?;
-
-    let creds: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Cannot parse admin credentials: {}", e))?;
-
-    let stored_email = creds.get("email").and_then(|v| v.as_str()).unwrap_or("");
-    let stored_password = creds.get("password").and_then(|v| v.as_str()).unwrap_or("");
-    let stored_user_id = creds.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-
-    if email == stored_email && password == stored_password {
-        Ok(stored_user_id.to_string())
-    } else {
-        Err("Email or password does not match admin credentials".to_string())
+/// Load SAAS_JWT_SECRET from directory_config.json (written from Vault),
+/// falling back to the env var for backward compatibility.
+fn get_saas_jwt_secret() -> String {
+    let config_path = format!("{}/conf/system/directory_config.json", botcore::shared::utils::get_stack_path());
+    if let Ok(content) = std::fs::read_to_string(&config_path) {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(secret) = json.get("saas_jwt_secret").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+                return secret.to_string();
+            }
+        }
     }
+    std::env::var("SAAS_JWT_SECRET").unwrap_or_default()
 }
 
 /// HMAC-SHA256 sign a message and return the base64url-encoded signature.

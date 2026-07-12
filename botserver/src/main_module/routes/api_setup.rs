@@ -20,10 +20,20 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
 
     #[cfg(feature = "drive")]
     {
-        use axum::routing::{get as axum_get, post as axum_post};
+        use axum::routing::{get as axum_get, post as axum_post, delete as axum_delete};
+        use crate::security::require_admin_middleware;
+
+        // Admin-only drive routes (bot management)
+        let admin_drive_routes = axum::Router::new()
+            .route("/api/files/bots", axum_post(crate::drive::drive_handlers::create_bot))
+            .route("/api/files/bots/delete", axum_post(crate::drive::drive_handlers::delete_bot))
+            .route("/api/files/buckets", axum_get(crate::drive::drive_handlers::list_buckets))
+            .layer(axum::middleware::from_fn(require_admin_middleware));
+        api_router = api_router.merge(admin_drive_routes);
+
+        // Regular authenticated drive routes
         api_router = api_router
             .route("/api/files/list", axum_get(crate::drive::drive_handlers::list_files))
-            .route("/api/files/buckets", axum_get(crate::drive::drive_handlers::list_buckets))
             .route("/api/files/quota", axum_get(crate::drive::drive_handlers::quota))
             .route("/api/files/recent", axum_get(crate::drive::drive_handlers::recent_files))
             .route("/api/files/search", axum_get(crate::drive::drive_handlers::search_files))
@@ -58,10 +68,14 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
 
 pub fn add_base_api_routes(api_router: Router<Arc<AppState>>) -> Router<Arc<AppState>> {
     use super::org_handlers::*;
+    use super::cloud_sso_handler::{handle_cloud_sso, handle_suite_sso, handle_unified_login};
 
     api_router
         .nest("/api/directory", crate::directory::router::configure())
         .nest("/api/auth", crate::directory::auth_routes::configure())
+        .route("/api/auth/suite-sso", get(handle_suite_sso))
+        .route("/api/auth/cloud-sso", post(handle_cloud_sso))
+        .route("/api/auth/unified-login", post(handle_unified_login))
         .route("/api/organizations/current", get(handle_get_organization).put(handle_update_organization).post(handle_update_organization).delete(handle_delete_organization))
         .route("/api/organizations/current/settings", get(handle_get_org_settings))
         .route("/api/organizations/current/stats", get(handle_get_org_stats))

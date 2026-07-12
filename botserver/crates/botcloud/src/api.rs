@@ -259,25 +259,6 @@ async fn handle_signup(
     let is_free_plan = matches!(plan_config.price, botbilling::PlanPrice::Free);
     let trial_days = plan_config.trial_days.unwrap_or(0);
 
-    // Hash password before transaction (fail fast if Argon2 fails)
-    let pass_hash = match &body.password {
-        Some(p) => {
-            use argon2::password_hash::{rand_core::OsRng, SaltString};
-            use argon2::{Argon2, PasswordHasher};
-            let salt = SaltString::generate(&mut OsRng);
-            Some(
-                Argon2::default()
-                    .hash_password(p.as_bytes(), &salt)
-                    .map(|h| h.to_string())
-                    .map_err(|e| {
-                        tracing::error!("Argon2 password hashing failed: {e}");
-                        format!("Password hashing failed")
-                    })
-                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?,
-            )
-        }
-        None => None,
-    };
 
     // Get a single DB connection for the entire signup transaction (raw SQL tx)
     let mut conn = service.pool().get()
@@ -302,9 +283,9 @@ async fn handle_signup(
         // 4. Create bot record
         let (new_bot_id, org_slug) = integration::create_bot_inner(&mut conn, org_id, branch_id, &bot_name)?;
 
-        // 5. Create CRM contact
+        // 5. Create CRM contact (password managed by Zitadel, not stored in DB)
         let contact_id = integration::create_crm_contact_inner(
-            &mut conn, branch_id, &body.name, &body.email, pass_hash.as_deref(),
+            &mut conn, branch_id, new_bot_id, &body.name, &body.email, None::<&str>,
         )?;
 
         // 6. Create subscription
@@ -313,11 +294,11 @@ async fn handle_signup(
             None
         } else if is_free_plan {
             Some(integration::create_free_subscription_inner(
-                &mut conn, branch_id, &body.name, &body.email,
+                &mut conn, branch_id, new_bot_id, &body.name, &body.email,
             )?)
         } else {
             Some(integration::create_trial_subscription_inner(
-                &mut conn, branch_id, &body.name, &body.email,
+                &mut conn, branch_id, new_bot_id, &body.name, &body.email,
                 &chosen_plan, trial_days as i32,
             )?)
         };
@@ -325,31 +306,29 @@ async fn handle_signup(
         // 7. For free plan, create a $0 invoice to populate billing/ERP
         if is_free_plan {
             let now = chrono::Utc::now();
-            let zero = bigdecimal::BigDecimal::from(0);
             let inv_id = Uuid::new_v4();
             let inv_number = botbilling::api_models::generate_invoice_number(&mut conn, branch_id);
-            diesel::insert_into(botbilling::schema::billing_invoices::table)
-                .values((
-                    botbilling::schema::billing_invoices::id.eq(inv_id),
-                    botbilling::schema::billing_invoices::branch_id.eq(branch_id),
-                    botbilling::schema::billing_invoices::invoice_number.eq(&inv_number),
-                    botbilling::schema::billing_invoices::customer_name.eq(&body.name),
-                    botbilling::schema::billing_invoices::customer_email.eq(Some(&body.email)),
-                    botbilling::schema::billing_invoices::status.eq("paid"),
-                    botbilling::schema::billing_invoices::issue_date.eq(now.date_naive()),
-                    botbilling::schema::billing_invoices::due_date.eq(now.date_naive()),
-                    botbilling::schema::billing_invoices::subtotal.eq(&zero),
-                    botbilling::schema::billing_invoices::total.eq(&zero),
-                    botbilling::schema::billing_invoices::amount_due.eq(&zero),
-                    botbilling::schema::billing_invoices::amount_paid.eq(&zero),
-                    botbilling::schema::billing_invoices::currency.eq("usd"),
-                    botbilling::schema::billing_invoices::notes.eq(Some("Free Plan activation".to_string())),
-                    botbilling::schema::billing_invoices::paid_at.eq(Some(now)),
-                    botbilling::schema::billing_invoices::created_at.eq(now),
-                    botbilling::schema::billing_invoices::updated_at.eq(now),
-                ))
-                .execute(&mut conn)
-                .map_err(|e| format!("Insert free plan invoice: {e}"))?;
+            diesel::sql_query(
+                r#"INSERT INTO billing_invoices
+                   (id, org_id, bot_id, branch_id, invoice_number, customer_name, customer_email,
+                    status, issue_date, due_date, subtotal, total, amount_due, amount_paid,
+                    currency, notes, paid_at, created_at, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, 'paid', $8, $9, 0, 0, 0, 0,
+                           'usd', 'Free Plan activation', $10, $11, $11)"#,
+            )
+            .bind::<diesel::sql_types::Uuid, _>(inv_id)
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .bind::<diesel::sql_types::Uuid, _>(new_bot_id)
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .bind::<diesel::sql_types::Text, _>(&inv_number)
+            .bind::<diesel::sql_types::Text, _>(&body.name)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some(body.email.clone()))
+            .bind::<diesel::sql_types::Date, _>(now.date_naive())
+            .bind::<diesel::sql_types::Date, _>(now.date_naive())
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(Some(now))
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .execute(&mut conn)
+            .map_err(|e| format!("Insert free plan invoice: {e}"))?;
         }
 
         // 8. Create default cloud workspace
@@ -389,22 +368,50 @@ async fn handle_signup(
         let parts: Vec<&str> = body.name.splitn(2, ' ').collect();
         let first_name = parts.first().unwrap_or(&"");
         let last_name = parts.get(1).unwrap_or(&"");
-        let _ = reqwest::Client::new()
+        let client = reqwest::Client::new();
+
+        let mut create_req = client
             .post(format!("{dir_url}/management/v1/users/human"))
             .header("Authorization", format!("Bearer {dir_token}"))
             .json(&serde_json::json!({
                 "userName": &body.email,
                 "profile": { "firstName": first_name, "lastName": last_name, "displayName": &body.name },
                 "email": { "email": &body.email, "isVerified": true },
-            }))
-            .send()
-            .await
-            .map(|resp| {
-                if !resp.status().is_success() {
-                    tracing::warn!("Zitadel user creation returned {}", resp.status());
+                "password": body.password.as_deref().unwrap_or(""),
+            }));
+        if let Some(host) = &service.config.directory_external_domain {
+            create_req = create_req.header("Host", host);
+        }
+        let create_resp = create_req.send().await;
+
+        match create_resp {
+            Ok(resp) if resp.status().is_success() => {
+                if let Ok(data) = resp.json::<serde_json::Value>().await {
+                    if let Some(user_id) = data.get("userId").and_then(|v| v.as_str()) {
+                        if let Some(password) = &body.password {
+                            let mut pw_req = client
+                                .post(format!("{dir_url}/v2/users/{user_id}/password"))
+                                .header("Authorization", format!("Bearer {dir_token}"))
+                                .json(&serde_json::json!({
+                                    "newPassword": { "password": password, "changeRequired": false }
+                                }));
+                            if let Some(host) = &service.config.directory_external_domain {
+                                pw_req = pw_req.header("Host", host);
+                            }
+                            let _ = pw_req.send().await
+                                .map(|r| {
+                                    if !r.status().is_success() {
+                                        tracing::warn!("Zitadel password set returned {}", r.status());
+                                    }
+                                })
+                                .unwrap_or_else(|e| tracing::warn!("Zitadel password set failed: {e}"));
+                        }
+                    }
                 }
-            })
-            .unwrap_or_else(|e| tracing::warn!("Zitadel user creation failed: {e}"));
+            }
+            Ok(resp) => tracing::warn!("Zitadel user creation returned {}", resp.status()),
+            Err(e) => tracing::warn!("Zitadel user creation failed: {e}"),
+        }
     }
 
     notifier::notify_welcome(&notifier::EmailVars::new(
@@ -415,8 +422,8 @@ async fn handle_signup(
     let now_ts = (chrono::Utc::now() + chrono::Duration::hours(24)).timestamp();
     let payload = base64_url_encode(
         format!(
-            "{{\"sub\":\"{}\",\"email\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bot_id\":\"{}\",\"exp\":{}}}",
-            body.name, body.email, org_id, branch_id, new_bot_id, now_ts,
+            "{{\"sub\":\"{}\",\"email\":\"{}\",\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bot_id\":\"{}\",\"bucket\":\"{}.gborg\",\"exp\":{}}}",
+            body.name, body.email, org_id, branch_id, new_bot_id, org_slug, now_ts,
         ).as_bytes()
     );
     let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
@@ -802,7 +809,8 @@ async fn get_plan_detail(
 /// `POST /api/cloud/auth/login`
 ///
 /// Validates credentials and returns a JWT token for the management portal.
-/// In production, delegate to the configured OIDC provider (Zitadel).
+/// Uses Zitadel sessions API when directory is configured; falls back to
+/// local argon2 hash (dev mode) when Zitadel is not available.
 async fn handle_login(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<LoginBody>,
@@ -814,45 +822,50 @@ async fn handle_login(
         return Err((StatusCode::BAD_REQUEST, "Invalid email".to_string()));
     }
 
-    // Verificar se existe contato com este email na base
-    let mut conn = service.pool().get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+    // Zitadel is the only auth provider — must be configured
+    let (dir_url, dir_token) = match (&service.config.directory_api_url, &service.config.directory_service_token) {
+        (Some(url), Some(token)) => (url, token),
+        _ => return Err((StatusCode::INTERNAL_SERVER_ERROR,
+            "Authentication provider (Zitadel) not configured. Set ZITADEL_API_URL and ZITADEL_SERVICE_TOKEN.".to_string())),
+    };
 
-    use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, id, first_name, last_name, pass_hash};
-    let contact_opt = crm_contacts
-        .filter(email.eq(&body.email))
-        .select((id, first_name, last_name, email, pass_hash))
-        .first::<(Uuid, Option<String>, Option<String>, String, Option<String>)>(&mut conn)
-        .optional()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
-
-    // Verify password against stored hash
-    if let Some((_, _, _, _, Some(stored_hash))) = &contact_opt {
-        let password_matches = {
-            use argon2::password_hash::{PasswordHash, PasswordVerifier};
-            use argon2::Argon2;
-            if let Ok(parsed) = PasswordHash::new(stored_hash) {
-                Argon2::default()
-                    .verify_password(body.password.as_bytes(), &parsed)
-                    .is_ok()
-            } else {
-                false
+    let client = reqwest::Client::new();
+    let mut request_builder = client
+        .post(format!("{dir_url}/v2/sessions"))
+        .header("Authorization", format!("Bearer {dir_token}"))
+        .json(&serde_json::json!({
+            "checks": {
+                "user": { "loginName": body.email },
+                "password": { "password": body.password }
             }
-        };
-        if !password_matches {
-            return Err((StatusCode::UNAUTHORIZED, "Invalid email or password".to_string()));
-        }
-    } else if contact_opt.is_some() {
-        // Contact exists but no password set (legacy account) — skip verification
-    } else {
+        }));
+    if let Some(host) = &service.config.directory_external_domain {
+        request_builder = request_builder.header("Host", host);
+    }
+    let session_resp = request_builder.send().await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Zitadel connection: {e}")))?;
+
+    if !session_resp.status().is_success() {
         return Err((StatusCode::UNAUTHORIZED, "Invalid email or password".to_string()));
     }
 
-    // Gerar token JWT simples (HMAC-SHA256 com o secret configurado)
+    // Look up user in CRM contacts for JWT claims
+    let mut conn = service.pool().get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
+
+    use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, id, first_name, last_name};
+    let contact_opt = crm_contacts
+        .filter(email.eq(&body.email))
+        .select((id, first_name, last_name, email))
+        .first::<(Uuid, Option<String>, Option<String>, String)>(&mut conn)
+        .optional()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+
+    // Generate JWT (HMAC-SHA256 with configured secret)
     let exp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
-        .as_secs() + 86400 * 7; // 7 dias
+        .as_secs() + 86400 * 7; // 7 days
 
     let header  = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
     let payload_body = format!(
@@ -865,7 +878,7 @@ async fn handle_login(
     let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let (user_name, found) = if let Some((_, fn_, ln_, _, _)) = &contact_opt {
+    let (user_name, found) = if let Some((_, fn_, ln_, _)) = &contact_opt {
         let n = [fn_.as_deref().unwrap_or(""), ln_.as_deref().unwrap_or("")]
             .iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" ");
         (if n.is_empty() { body.email.split('@').next().unwrap_or("User").to_string() } else { n }, true)

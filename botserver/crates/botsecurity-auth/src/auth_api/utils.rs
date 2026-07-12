@@ -228,15 +228,23 @@ impl ExtractedAuthData {
             );
         }
 
-        let bearer_token = raw_auth
-            .and_then(|s| s.strip_prefix(&config.bearer_prefix))
-            .map(|s| s.to_string());
-
-        if bearer_token.is_some() {
-            debug!("Bearer token extracted successfully");
-        } else if raw_auth.is_some() {
-            warn!("Authorization header present but failed to extract bearer token. Prefix expected: '{}'", config.bearer_prefix);
-        }
+        let bearer_token: Option<String> = raw_auth.and_then(|s| {
+            // Try exact prefix first
+            if let Some(token) = s.strip_prefix(&config.bearer_prefix) {
+                return Some(token.to_string());
+            }
+            // Case-insensitive fallback for proxies that normalize header values
+            let prefix_len = config.bearer_prefix.len();
+            if s.len() > prefix_len && s[..prefix_len].eq_ignore_ascii_case(&config.bearer_prefix) {
+                return Some(s[prefix_len..].to_string());
+            }
+            warn!(
+                "Authorization header present but failed to extract bearer token. Prefix expected: '{}', raw: '{}...'",
+                config.bearer_prefix,
+                &s[..std::cmp::min(20, s.len())]
+            );
+            None
+        });
 
         let session_id = extract_session_from_cookies(request, &config.session_cookie_name);
 

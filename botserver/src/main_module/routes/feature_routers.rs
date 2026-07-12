@@ -194,36 +194,43 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
         }
     }
 
-    let base_url = match std::env::var("SAAS_BASE_URL") {
-        Ok(url) => url,
-        Err(_) => {
-            tracing::info!("SAAS_BASE_URL not set — redirect URLs may be broken");
-            String::new()
+    // Load all SaaS config from directory_config.json (written during init from Vault)
+    let (base_url, jwt_secret, templates_dir, mc_path, mc_alias,
+         directory_api_url, directory_service_token, directory_external_domain) = {
+        let config_path = format!("{}/conf/system/directory_config.json", botcore::shared::utils::get_stack_path());
+        match std::fs::read_to_string(&config_path) {
+            Ok(content) => {
+                match serde_json::from_str::<serde_json::Value>(&content) {
+                    Ok(json) => {
+                        let j = |key: &str| json.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
+                        (
+                            j("saas_base_url").unwrap_or_default(),
+                            j("saas_jwt_secret").unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                            j("bot_templates_dir").unwrap_or_else(|| "work/templates/bots".to_string()),
+                            j("mc_path").unwrap_or_else(|| "/tmp/mc".to_string()),
+                            j("mc_alias").unwrap_or_else(|| "local".to_string()),
+                            j("base_url"),
+                            j("service_token"),
+                            j("external_domain"),
+                        )
+                    }
+                    Err(_) => (String::new(), uuid::Uuid::new_v4().to_string(), "work/templates/bots".to_string(),
+                              "/tmp/mc".to_string(), "local".to_string(), None, None, None),
+                }
+            }
+            Err(_) => (String::new(), uuid::Uuid::new_v4().to_string(), "work/templates/bots".to_string(),
+                      "/tmp/mc".to_string(), "local".to_string(), None, None, None),
         }
     };
-    let jwt_secret = match std::env::var("SAAS_JWT_SECRET") {
-        Ok(secret) => secret,
-        Err(_) => {
-            let generated = uuid::Uuid::new_v4().to_string();
-            tracing::info!(
-                "SAAS_JWT_SECRET not set — using auto-generated fallback \
-                 (all sessions invalidated on next restart)"
-            );
-            generated
-        }
-    };
-    // Bot templates are sourced from github.com/generalbots/templates.
-    // Clone the repo into a local dir and set BOT_TEMPLATES_DIR to its bots/ subdir.
-    let templates_dir = std::env::var("BOT_TEMPLATES_DIR")
-        .unwrap_or_else(|_| "work/templates/bots".to_string());
     let saas_config = SaasConfig {
         base_url,
         jwt_secret,
         mc_path,
         mc_alias,
         templates_dir,
-        directory_api_url: std::env::var("ZITADEL_API_URL").ok(),
-        directory_service_token: std::env::var("ZITADEL_SERVICE_TOKEN").ok(),
+        directory_api_url,
+        directory_service_token,
+        directory_external_domain,
     };
     let saas_config_for_api = saas_config.clone();
     let saas_service = Arc::new(SaasService::new(

@@ -62,7 +62,10 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/mentions", get(handle_mentions_autocomplete))
         .route("/api-keys", get(handle_list_api_keys))
         .route("/api-keys", axum::routing::post(handle_add_api_key))
-        .route("/api-keys/{id}", axum::routing::delete(handle_delete_api_key));
+        .route("/api-keys/{id}", axum::routing::delete(handle_delete_api_key))
+        .route("/accounts", get(accounts_handlers::handle_list_accounts_htmx))
+        .route("/accounts/add", post(accounts_handlers::handle_add_imap_account))
+        .route("/accounts/{id}/remove", delete(accounts_handlers::handle_delete_account));
 
     let integrations_routes = Router::new()
         .route("/connectors", get(integrations_handlers::handle_list_connectors).post(integrations_handlers::handle_connect_connector))

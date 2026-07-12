@@ -262,7 +262,7 @@
 
 <script>
 window.CLOUD_CONFIG = {
-  baseUrl: window.location.origin.replace(/:(\d+)$/, function(_, p) { return p === '5000' ? ':4000' : ':' + p }),
+  baseUrl: window.GB_CLOUD_URL || window.location.origin.replace(/:(\d+)$/, function(_, p) { return p === '5000' ? ':4000' : ':' + p }),
   contactUrl: 'https://pragmatismo.com.br/contact',
   docsUrl: 'https://docs.generalbots.org',
   salesEmail: 'sales@pragmatismo.com.br',

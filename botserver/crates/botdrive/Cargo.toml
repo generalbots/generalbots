@@ -36,6 +36,7 @@ hmac = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
 base64 = { workspace = true }
+botsecurity-auth = { path = "../botsecurity-auth" }
 http = "1.4"
 url = "2.5"
 time = { version = "0.3", default-features = false, features = ["formatting", "macros", "parsing"] }

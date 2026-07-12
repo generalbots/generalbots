@@ -1,0 +1,104 @@
+/* Drive Module v2.0 — Context Menu Styles */
+.context-menu {
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    z-index: 1000;
+    padding: 6px;
+    backdrop-filter: blur(12px);
+    animation: contextMenuIn 0.15s ease-out;
+    transform-origin: top left;
+}
+
+@keyframes contextMenuIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.context-menu.hidden {
+    display: none !important;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-radius: 8px;
+    color: var(--text);
+}
+
+.context-menu-item svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+
+.context-menu-item:hover {
+    background: linear-gradient(
+        135deg,
+        var(--primary-light, rgba(99, 102, 241, 0.1)) 0%,
+        var(--surface-hover, rgba(99, 102, 241, 0.05)) 100%
+    );
+    color: var(--primary, #6366f1);
+}
+
+.context-menu-item:hover svg {
+    opacity: 1;
+    transform: scale(1.1);
+    stroke: var(--primary, #6366f1);
+}
+
+.context-menu-item:active {
+    transform: scale(0.98);
+}
+
+.context-menu-item.danger {
+    color: var(--error, #ef4444);
+}
+
+.context-menu-item.danger svg {
+    stroke: var(--error, #ef4444);
+}
+
+.context-menu-item.danger:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(239, 68, 68, 0.15) 0%,
+        rgba(239, 68, 68, 0.05) 100%
+    );
+    color: var(--error, #ef4444);
+}
+
+.context-menu-item.danger:hover svg {
+    stroke: var(--error, #ef4444);
+}
+
+.context-menu-divider {
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--border) 20%,
+        var(--border) 80%,
+        transparent 100%
+    );
+    margin: 6px 8px;
+}

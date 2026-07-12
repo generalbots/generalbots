@@ -28,7 +28,11 @@ async function handleLogin(e) {
     localStorage.setItem('management_token', data.token);
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
-    window.location.href = CLOUD_CONFIG.baseUrl + '/dashboard?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
+    var dest = (new URLSearchParams(window.location.search)).get('redirect') || (CLOUD_CONFIG.baseUrl + '/dashboard');
+    // SSO hop: server endpoint stores token via HTML, redirects to clean URL
+    var u = new URL(dest, window.location.origin);
+    var ssoUrl = u.origin + '/api/auth/suite-sso?token=' + encodeURIComponent(data.token) + '&redirect=' + encodeURIComponent(dest);
+    window.location.href = ssoUrl;
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';
@@ -82,11 +86,12 @@ async function handleSignup(e) {
     localStorage.setItem('management_bot_name', botName);
     localStorage.setItem('management_plan', data.plan || 'free');
     // Private Server: redirect to Store VPS calculator instead of Dashboard
-    const dest = plan === 'private-cloud' ? '/store' : '/dashboard';
-    window.location.href = CLOUD_CONFIG.baseUrl + dest
-      + '?token=' + encodeURIComponent(token)
-      + '&email=' + encodeURIComponent(emailOut)
-      + '&name=' + encodeURIComponent(data.account?.name || name);
+    var redir = (new URLSearchParams(window.location.search)).get('redirect');
+    var dest = redir || (plan === 'private-cloud' ? CLOUD_CONFIG.baseUrl + '/store' : CLOUD_CONFIG.baseUrl + '/dashboard');
+    // SSO hop: server endpoint stores token via HTML, redirects to clean URL
+    var u = new URL(dest, window.location.origin);
+    var ssoUrl = u.origin + '/api/auth/suite-sso?token=' + encodeURIComponent(token) + '&redirect=' + encodeURIComponent(dest);
+    window.location.href = ssoUrl;
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';
