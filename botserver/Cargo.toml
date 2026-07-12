@@ -26,7 +26,7 @@ scripting = ["dep:rhai"]
 automation = ["scripting", "dep:cron"]
 drive = ["dep:pdf-extract", "dep:rust-s3", "botcore/drive"]
 cache = ["dep:redis"]
-directory = ["rbac"]
+directory = ["rbac", "botsecurity/directory"]
 rbac = []
 crawler = ["cache"]
 

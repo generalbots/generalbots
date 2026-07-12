@@ -482,6 +482,7 @@ pub fn create_bot_inner(conn: &mut PgConnection, org_id: Uuid, branch_id: Uuid, 
 pub fn create_crm_contact_inner(
     conn: &mut PgConnection,
     branch_id: Uuid,
+    bot_id: Uuid,
     name: &str,
     email: &str,
     pass_hash: Option<&str>,
@@ -492,10 +493,12 @@ pub fn create_crm_contact_inner(
     let last_name = parts.get(1);
 
     diesel::sql_query(
-        r#"INSERT INTO crm_contacts (id, branch_id, first_name, last_name, email, pass_hash, status, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, 'active', NOW(), NOW())"#,
+        r#"INSERT INTO crm_contacts (id, org_id, bot_id, branch_id, first_name, last_name, email, pass_hash, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), NOW())"#,
     )
     .bind::<DieselUuid, _>(id)
+    .bind::<DieselUuid, _>(branch_id)
+    .bind::<DieselUuid, _>(bot_id)
     .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(first_name)
     .bind::<Nullable<Text>, _>(last_name.map(|s| s.to_string()))
@@ -510,6 +513,7 @@ pub fn create_crm_contact_inner(
 pub fn create_free_subscription_inner(
     conn: &mut PgConnection,
     branch_id: Uuid,
+    bot_id: Uuid,
     customer_name: &str,
     customer_email: &str,
 ) -> Result<Uuid, String> {
@@ -518,19 +522,21 @@ pub fn create_free_subscription_inner(
 
     diesel::sql_query(
         r#"INSERT INTO billing_recurring
-           (id, branch_id, customer_name, customer_email, status, frequency, interval_count,
+           (id, org_id, bot_id, branch_id, customer_name, customer_email, status, frequency, interval_count,
             amount, currency, description, next_invoice_date, start_date, last_invoice_id,
             invoices_generated, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, 'active', 'monthly', 1, 0.0, 'USD',
-                   'Free Plan', $7, $5, NULL, 0, $6, $6)"#,
+           VALUES ($1, $2, $3, $4, $5, $6, 'active', 'monthly', 1, 0.0, 'USD',
+                   'Free Plan', $9, $7, NULL, 0, $8, $8)"#,
     )
     .bind::<DieselUuid, _>(sub_id)
+    .bind::<DieselUuid, _>(branch_id)
+    .bind::<DieselUuid, _>(bot_id)
     .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(customer_name)
     .bind::<Nullable<Text>, _>(Some(customer_email.to_string()))
     .bind::<Date, _>(now.date_naive())
-    .bind::<Date, _>(now.date_naive())
     .bind::<Timestamptz, _>(now)
+    .bind::<Date, _>(now.date_naive())
     .execute(conn)
     .map_err(|e| format!("Insert free subscription: {e}"))?;
 
@@ -540,6 +546,7 @@ pub fn create_free_subscription_inner(
 pub fn create_trial_subscription_inner(
     conn: &mut PgConnection,
     branch_id: Uuid,
+    bot_id: Uuid,
     customer_name: &str,
     customer_email: &str,
     plan: &str,
@@ -551,13 +558,15 @@ pub fn create_trial_subscription_inner(
 
     diesel::sql_query(
         r#"INSERT INTO billing_recurring
-           (id, branch_id, customer_name, customer_email, status, frequency, interval_count,
+           (id, org_id, bot_id, branch_id, customer_name, customer_email, status, frequency, interval_count,
             amount, currency, description, next_invoice_date, start_date, last_invoice_id,
             invoices_generated, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, 'trialing', 'monthly', 1, 0.0, 'USD',
-                   $5, $6, $7, NULL, 0, $8, $8)"#,
+           VALUES ($1, $2, $3, $4, $5, $6, 'trialing', 'monthly', 1, 0.0, 'USD',
+                   $7, $8, $9, NULL, 0, $10, $10)"#,
     )
     .bind::<DieselUuid, _>(sub_id)
+    .bind::<DieselUuid, _>(branch_id)
+    .bind::<DieselUuid, _>(bot_id)
     .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(customer_name)
     .bind::<Nullable<Text>, _>(Some(customer_email.to_string()))
@@ -576,10 +585,11 @@ pub fn create_cloud_workspace_inner(conn: &mut PgConnection, branch_id: Uuid, na
     let now = Utc::now();
 
     diesel::sql_query(
-        r#"INSERT INTO cloud_workspaces (id, branch_id, name, description, icon, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, 'default', $5, $5)"#,
+        r#"INSERT INTO cloud_workspaces (id, org_id, branch_id, name, description, icon, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, 'default', $6, $6)"#,
     )
     .bind::<DieselUuid, _>(id)
+    .bind::<DieselUuid, _>(branch_id)
     .bind::<DieselUuid, _>(branch_id)
     .bind::<Text, _>(name)
     .bind::<Nullable<Text>, _>(Some(format!("Default workspace for {}", name)))

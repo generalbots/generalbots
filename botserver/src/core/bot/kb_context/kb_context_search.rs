@@ -10,12 +10,16 @@ use super::KbSearchResult;
 
 fn get_vectordb_url() -> String {
     std::env::var("QDRANT_URL")
-        .unwrap_or_else(|_| std::env::var("VECTORDB_URL").unwrap_or_else(|_| "http://127.0.0.1:6333".to_string()))
+        .ok()
+        .or_else(|| std::env::var("VECTORDB_URL").ok())
+        .unwrap_or_else(|| "http://127.0.0.1:6333".to_string())
 }
 
 fn get_vectordb_api_key() -> String {
     std::env::var("QDRANT_API_KEY")
-        .unwrap_or_else(|_| std::env::var("VECTORDB_API_KEY").unwrap_or_default())
+        .ok()
+        .or_else(|| std::env::var("VECTORDB_API_KEY").ok())
+        .unwrap_or_default()
 }
 
 #[cfg(any(feature = "research", feature = "llm"))]

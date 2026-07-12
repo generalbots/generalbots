@@ -246,9 +246,13 @@ async fn search_qdrant_with_real_embeddings(
     db_pool: &botbasic_types::types::DbPool,
 ) -> Result<Vec<serde_json::Value>, String> {
     let qdrant_url = std::env::var("QDRANT_URL")
-        .unwrap_or_else(|_| std::env::var("VECTORDB_URL").unwrap_or_else(|_| "http://127.0.0.1:6333".to_string()));
+        .ok()
+        .or_else(|| std::env::var("VECTORDB_URL").ok())
+        .unwrap_or_else(|| "http://127.0.0.1:6333".to_string());
     let api_key = std::env::var("QDRANT_API_KEY")
-        .unwrap_or_else(|_| std::env::var("VECTORDB_API_KEY").unwrap_or_default());
+        .ok()
+        .or_else(|| std::env::var("VECTORDB_API_KEY").ok())
+        .unwrap_or_default();
 
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)

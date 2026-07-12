@@ -165,6 +165,11 @@ pub struct BucketListItem {
     pub is_gborg: bool,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ListBucketsParams {
+    pub bot: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WriteFileBody {
     pub bucket: Option<String>,
@@ -335,6 +340,27 @@ pub struct ShareItem {
     pub path: String,
     pub permissions: String,
     pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateBotRequest {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CreateBotResponse {
+    pub name: String,
+    pub status: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeleteBotRequest {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DeleteBotResponse {
+    pub status: String,
 }
 
 #[derive(Debug, Deserialize)]

@@ -13,11 +13,13 @@ billing = []
 llm = []
 drive = ["dep:pdf-extract"]
 sheet = ["dep:calamine", "dep:rust_xlsxwriter"]
+mail = ["dep:imap", "dep:mailparse", "botqdrant/mail"]
 
 [dependencies]
 botlib = { workspace = true, features = ["database", "http-client"] }
 botbasic_types = { path = "../botbasic_types" }
 botbasic_core = { path = "../botbasic_core" }
+botcoresecrets = { workspace = true }
 rhai = { workspace = true, features = ["sync"] }
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
 serde = { workspace = true, features = ["derive"] }
@@ -35,6 +37,9 @@ botsecurity = { path = "../botsecurity" }
 axum = { workspace = true, features = ["ws", "macros"] }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
+botqdrant = { path = "../botqdrant" }
+imap = { workspace = true, optional = true }
+mailparse = { workspace = true, optional = true }
 calamine = { workspace = true, optional = true }
 rust_xlsxwriter = { workspace = true, optional = true }
 pdf-extract = { workspace = true, optional = true }

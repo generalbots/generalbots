@@ -43,9 +43,32 @@ pub async fn index(
         })
         .map(|s| s.to_string());
 
+    // Suite directories that can be accessed directly without bot auth
+    let suite_dirs: &[&str] = &["drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "settings", "about", "tools", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "m365", "minutes", "office365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "vision"];
+    let known_dirs: &[&str] = &["suite", "js", "css", "vendor", "assets", "public", "partials", "settings", "about", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "m365", "minutes", "office365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "tools", "vision"];
+    let is_suite_dir = bot_name.as_ref().is_some_and(|b| suite_dirs.contains(&b.as_str()));
     if let Some(ref bot) = bot_name {
-        let has_token = headers
-            .get(axum::http::header::COOKIE)
+        if !is_suite_dir {
+        // Check for token from query param (cloud dashboard link)
+        let query_token = uri.query().and_then(|q| {
+            q.split('&').find_map(|p| {
+                let mut parts = p.splitn(2, '=');
+                match (parts.next(), parts.next()) {
+                    (Some("token"), Some(v)) => Some(v.to_string()),
+                    _ => None,
+                }
+            })
+        });
+        let auth_header = query_token
+            .map(|t| format!("Bearer {}", t))
+            .or_else(|| {
+                headers.get(axum::http::header::AUTHORIZATION)
+                    .and_then(|v| v.to_str().ok())
+                    .map(|s| s.to_string())
+            });
+
+        // Only cookie-based token counts for has_token (query token is new/untested)
+        let has_token = headers.get(axum::http::header::COOKIE)
             .and_then(|c| c.to_str().ok())
             .is_some_and(|s| s.contains("gb-access-token"));
 
@@ -56,6 +79,9 @@ pub async fn index(
             .unwrap_or_else(|_| reqwest::Client::new());
 
         let mut req = client.get(&target_url);
+        if let Some(ref auth) = auth_header {
+            req = req.header(axum::http::header::AUTHORIZATION, auth);
+        }
         for (k, v) in headers.iter() {
             if k != axum::http::header::HOST {
                 req = req.header(k, v);
@@ -77,6 +103,7 @@ pub async fn index(
             Err(e) => {
                 warn!("index: Access check failed for bot {}: {}", bot, e);
             }
+        }
         }
     }
 
@@ -126,8 +153,6 @@ pub async fn index(
         let path_parts: Vec<&str> = path.split('/').collect();
         let fs_path = if path_parts.len() > 1 {
             let mut start_idx = 1;
-            let known_dirs = ["suite", "js", "css", "vendor", "assets", "public", "partials", "settings", "about", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "m365", "minutes", "office365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "tools", "vision"];
-            let suite_dirs = ["drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "settings", "about", "tools", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "m365", "minutes", "office365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "vision"];
 
             if known_dirs.contains(&path_parts[1]) {
                 if suite_dirs.contains(&path_parts[1]) {
@@ -166,6 +191,13 @@ pub async fn index(
             if let Ok(bytes) = tokio::fs::read(&full_path).await {
                 let mime = mime_guess::from_path(&full_path).first_or_octet_stream();
                 return (StatusCode::OK, [("content-type", mime.as_ref())], bytes).into_response();
+            }
+            // Directory index: serve index.html for directories
+            if full_path.is_dir() {
+                let index_path = full_path.join("index.html");
+                if let Ok(bytes) = tokio::fs::read(&index_path).await {
+                    return (StatusCode::OK, [("content-type", "text/html")], bytes).into_response();
+                }
             }
         }
 

@@ -43,7 +43,7 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
-    border: 2px solid var(--border, rgba(0,0,0,0.12));
+    border: 1px solid hsl(var(--border));
     overflow: hidden;
     z-index: 100;
 }
@@ -55,7 +55,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    border-bottom: 2px solid var(--border, rgba(0,0,0,0.12));
+    border-bottom: 1px solid hsl(var(--border));
     user-select: none;
     cursor: move;
     position: relative;
@@ -212,7 +212,7 @@
 .window-header {
     height: 40px;
     background-color: var(--surface, #ffffff);
-    border-bottom: 2px solid var(--border, rgba(0,0,0,0.12));
+    border-bottom: 1px solid hsl(var(--border));
     display: flex;
     align-items: center;
     justify-content: space-between;

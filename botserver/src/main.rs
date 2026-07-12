@@ -99,6 +99,7 @@ pub mod video;
 pub mod workspaces;
 pub mod apps;
 
+
 #[cfg(feature = "desktop")]
 pub mod desktop;
 
@@ -326,6 +327,20 @@ async fn main() -> std::io::Result<()> {
     let redis_client: Option<Arc<redis::Client>> = None;
 
     let app_state = main_module::create_app_state(cfg, pool, &redis_client).await?;
+
+    // Wire SESSION_CACHE into auth middleware so gb_xxx tokens resolve
+    // to their stored roles (e.g. "admin") instead of falling back to Role::User.
+    #[cfg(all(feature = "security", feature = "directory"))]
+    {
+        botsecurity::set_session_cache_lookup(Box::new(|token: &str| {
+            let cache = botcoredirectory::auth_routes::SESSION_CACHE.try_read().ok()?;
+            cache.get(token).map(|u| botsecurity::SessionCacheEntry {
+                user_id: u.user_id.clone(),
+                email: u.email.clone(),
+                roles: u.roles.clone(),
+            })
+        }));
+    }
 
     // Resume workflows after server restart
     if let Err(e) =

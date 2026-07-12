@@ -1,0 +1,450 @@
+/* Drive Module v2.0 — Bots Tab Styles */
+/* ── Top Level Tabs ────────────────────────────────────────── */
+.drive-top-tabs {
+    display: flex;
+    gap: 0;
+    height: var(--drive-tab-height, 48px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    background: var(--surface);
+    flex-shrink: 0;
+}
+
+.top-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--drive-transition, 0.18s ease);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.top-tab:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+}
+
+.top-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: transparent;
+}
+
+.top-tab svg {
+    flex-shrink: 0;
+}
+
+/* ── Bot List Sidebar ──────────────────────────────────────── */
+.drive-bot-list {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.bot-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted, var(--text-secondary));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bot-search {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    margin: 0 4px 4px;
+    width: calc(100% - 8px);
+    box-sizing: border-box;
+}
+
+.bot-search:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.bot-search::placeholder {
+    color: var(--text-secondary);
+}
+
+.bot-list-items {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.bot-item {
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+}
+
+.bot-item:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.bot-item.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary);
+}
+
+/* ── Bot Cards (grid) ──────────────────────────────────────── */
+.bot-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--drive-card-radius, 10px);
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: var(--drive-transition, 0.18s ease);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.bot-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.bot-card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary, #6366f1), #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+}
+
+.bot-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.bot-card-stats {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 12px;
+}
+
+.bot-card-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ── Folder Tiles ──────────────────────────────────────────── */
+.folder-tiles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+    padding: 20px 20px 0;
+}
+
+.folder-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--drive-card-radius, 10px);
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--drive-transition, 0.18s ease);
+}
+
+.folder-tile:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+    transform: translateY(-1px);
+}
+
+.folder-tile-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    color: var(--primary);
+}
+
+.folder-tile-icon svg {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+}
+
+.folder-tile-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    word-break: break-all;
+}
+
+.folder-tile-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ── Secondary toolbar (for bot detail view) ─────────────── */
+.drive-toolbar-secondary {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.drive-toolbar-secondary h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* ── Tab badges ──────────────────────────────────────────────── */
+.tab-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    line-height: 1.4;
+    letter-spacing: 0.3px;
+    display: none;
+}
+
+.top-tab.active .tab-badge {
+    display: inline-block;
+}
+
+.tab-badge-branchdrive {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+}
+
+.tab-badge-shared {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+}
+
+.tab-badge-public {
+    background: rgba(168, 85, 247, 0.12);
+    color: #7c3aed;
+}
+
+.tab-badge-myfiles {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0ea5e9;
+}
+
+.tab-badge-bots {
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+}
+
+.tab-badge-root {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+}
+
+/* ── Tab accent color: active tab bottom border ───────────────── */
+.top-tab.active[data-tab="branchdrive"] {
+    color: #d97706;
+    border-bottom-color: #d97706;
+}
+
+.top-tab.active[data-tab="shared"] {
+    color: #059669;
+    border-bottom-color: #059669;
+}
+
+.top-tab.active[data-tab="public"] {
+    color: #7c3aed;
+    border-bottom-color: #7c3aed;
+}
+
+.top-tab.active[data-tab="myfiles"] {
+    color: #0ea5e9;
+    border-bottom-color: #0ea5e9;
+}
+
+.top-tab.active[data-tab="bots"] {
+    color: #6366f1;
+    border-bottom-color: #6366f1;
+}
+
+.top-tab.active[data-tab="root"] {
+    color: #dc2626;
+    border-bottom-color: #dc2626;
+}
+
+/* ── Shared table styles ─────────────────────────────────────── */
+.shares-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.shares-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #888);
+    border-bottom: 1px solid var(--border, #eee);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.shares-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border, #eee);
+}
+
+.shares-table tr:hover td {
+    background: var(--surface-hover, rgba(0,0,0,0.02));
+}
+
+.shares-table code {
+    font-size: 11px;
+    background: var(--surface, #f5f5f5);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text-secondary, #666);
+}
+
+.shares-table .file-name-col {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.share-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.perm-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+}
+
+.perm-badge.perm-read {
+    background: rgba(14, 165, 233, 0.1);
+    color: #0ea5e9;
+}
+
+.perm-badge.perm-read_write,
+.perm-badge.perm-write {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.perm-badge.perm-admin {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.btn-primary-sm {
+    background: var(--primary, #6366f1);
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.btn-primary-sm:hover {
+    opacity: 0.85;
+}
+
+/* ── Bot Config Grid (Bots tab) ─────────────────────────────── */
+.bot-config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    padding: 20px;
+}
+
+.bot-config-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.bot-config-card:hover {
+    border-color: #6366f1;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.15);
+}
+
+.bot-config-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(99, 102, 241, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.bot-config-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.bot-config-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.other-folders-heading {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 16px 20px 8px;
+    margin: 0;
+}

@@ -13,7 +13,7 @@
         </div>
     </div>
 
-    <div class="accounts-grid" id="accounts-list" hx-get="/api/ui/sources/accounts/list" hx-trigger="load" hx-swap="innerHTML">
+    <div class="accounts-grid" id="accounts-list" hx-get="/api/ui/sources/accounts" hx-trigger="load" hx-swap="innerHTML">
         <div class="loading-spinner">
             <div class="spinner"></div>
             <p>Loading accounts...</p>
@@ -75,43 +75,99 @@
         <div class="modal-body">
             <p class="modal-description">Connect an email or cloud storage account to enable LLM search and file operations.</p>
 
-            <div class="provider-grid">
-                <button class="provider-btn" onclick="connectAccount('google')">
-                    <div class="provider-icon google">
-                        <svg width="24" height="24" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                    </div>
-                    <span class="provider-name">Google</span>
-                    <span class="provider-services">Gmail, Drive, Calendar</span>
-                </button>
+            <div id="provider-selection">
+                <div class="provider-grid">
+                    <button class="provider-btn" onclick="connectAccount('google')">
+                        <div class="provider-icon google">
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                        </div>
+                        <span class="provider-name">Google</span>
+                        <span class="provider-services">Gmail, Drive, Calendar</span>
+                    </button>
 
-                <button class="provider-btn" onclick="connectAccount('microsoft')">
-                    <div class="provider-icon microsoft">
-                        <svg width="24" height="24" viewBox="0 0 24 24">
-                            <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
-                            <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
-                            <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
-                            <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
-                        </svg>
-                    </div>
-                    <span class="provider-name">Microsoft</span>
-                    <span class="provider-services">Outlook, OneDrive, Calendar</span>
-                </button>
+                    <button class="provider-btn" onclick="connectAccount('microsoft')">
+                        <div class="provider-icon microsoft">
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+                                <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
+                                <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
+                                <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+                            </svg>
+                        </div>
+                        <span class="provider-name">Microsoft</span>
+                        <span class="provider-services">Outlook, OneDrive, Calendar</span>
+                    </button>
 
-                <button class="provider-btn" onclick="connectAccount('imap')">
-                    <div class="provider-icon imap">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                            <polyline points="22,6 12,13 2,6"></polyline>
+                    <button class="provider-btn" onclick="connectAccount('imap')">
+                        <div class="provider-icon imap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                        </div>
+                        <span class="provider-name">IMAP</span>
+                        <span class="provider-services">Custom email server</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="imap-config-form" style="display: none;">
+                <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+                    <button onclick="showImapConfigBack()" style="background:none;border:none;cursor:pointer;padding:4px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
                         </svg>
+                    </button>
+                    <h4 style="margin:0;">IMAP Email Account</h4>
+                </div>
+                <form hx-post="/api/ui/sources/accounts/add" hx-target="#accounts-list" hx-swap="innerHTML">
+                    <div style="display:grid;gap:0.75rem;">
+                        <div>
+                            <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">Email</label>
+                            <input type="email" name="email" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:0.375rem;">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">Display Name</label>
+                            <input type="text" name="display_name" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:0.375rem;">
+                        </div>
+                        <div style="display:grid;grid-template-columns:2fr 1fr;gap:0.5rem;">
+                            <div>
+                                <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">IMAP Server</label>
+                                <input type="text" name="imap_server" required placeholder="imap.example.com" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:0.375rem;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">Port</label>
+                                <input type="number" name="imap_port" value="993" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:0.375rem;">
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:2fr 1fr;gap:0.5rem;">
+                            <div>
+                                <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">SMTP Server</label>
+                                <input type="text" name="smtp_server" required placeholder="smtp.example.com" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:0.375rem;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">Port</label>
+                                <input type="number" name="smtp_port" value="587" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:0.375rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">Username</label>
+                            <input type="text" name="username" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:0.375rem;">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.25rem;">Password</label>
+                            <input type="password" name="password" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:0.375rem;">
+                        </div>
                     </div>
-                    <span class="provider-name">IMAP</span>
-                    <span class="provider-services">Custom email server</span>
-                </button>
+                    <button type="submit" style="margin-top:1rem;width:100%;padding:0.625rem;background:var(--primary);color:var(--primary-text,#000);border:none;border-radius:0.5rem;font-weight:600;cursor:pointer;">
+                        Add IMAP Account
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -610,30 +666,31 @@ function showAddAccountModal() {
 
 function hideAddAccountModal() {
     document.getElementById('add-account-modal').style.display = 'none';
+    document.getElementById('provider-selection').style.display = 'block';
+    document.getElementById('imap-config-form').style.display = 'none';
 }
 
 function connectAccount(provider) {
-    hideAddAccountModal();
-
     if (provider === 'google') {
+        hideAddAccountModal();
         window.location.href = '/api/oauth/google/authorize';
     } else if (provider === 'microsoft') {
+        hideAddAccountModal();
         window.location.href = '/api/oauth/microsoft/authorize';
     } else if (provider === 'imap') {
-        showImapConfigModal();
+        document.getElementById('provider-selection').style.display = 'none';
+        document.getElementById('imap-config-form').style.display = 'block';
     }
 }
 
-function syncAccount(accountId) {
-    htmx.ajax('POST', `/api/sources/accounts/${accountId}/sync`, {
-        target: '#accounts-list',
-        swap: 'innerHTML'
-    });
+function showImapConfigBack() {
+    document.getElementById('provider-selection').style.display = 'block';
+    document.getElementById('imap-config-form').style.display = 'none';
 }
 
 function removeAccount(accountId) {
-    if (confirm('Are you sure you want to remove this account? All synced data will be deleted.')) {
-        htmx.ajax('DELETE', `/api/sources/accounts/${accountId}`, {
+    if (confirm('Remove this account as a source?')) {
+        htmx.ajax('DELETE', '/api/ui/sources/accounts/' + accountId + '/remove', {
             target: '#accounts-list',
             swap: 'innerHTML'
         });

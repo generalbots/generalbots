@@ -4,12 +4,13 @@ use botcore::shared::state::AppState;
 use crate::drive_types::*;
 use crate::user_scope;
 use axum::{
-    extract::{Extension, Query, State},
+    extract::{Query, State, Extension},
     http::StatusCode,
     response::Json,
 };
-use botcore::middleware::AuthenticatedUser;
 use base64::Engine;
+use botsecurity_auth::auth_api::types::AuthenticatedUser;
+
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz};
 use log::{info, warn};
@@ -17,6 +18,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 fn err(status: StatusCode, msg: &str) -> (StatusCode, Json<serde_json::Value>) {
+    warn!("drive_handler error ({}): {}", status.as_u16(), msg);
     (status, Json(serde_json::json!({"error": msg})))
 }
 
@@ -124,17 +126,26 @@ fn build_file_list_items(
     items
 }
 
+fn get_user_id(user: &AuthenticatedUser) -> String {
+    if user.user_id.is_nil() { "default".to_string() } else { user.user_id.to_string() }
+}
+
+fn is_admin_user(user: &AuthenticatedUser) -> bool {
+    user.is_admin() || user.is_super_admin()
+}
+
 // ====== Handlers ======
 
 pub async fn list_files(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ListFilesParams>,
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = params.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
     let sub_path = normalize_path(params.path.as_deref().unwrap_or(""));
     let full_prefix = if sub_path.is_empty() {
         prefix
@@ -160,13 +171,14 @@ pub async fn list_files(
 
 pub async fn upload_file_to_drive(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<WriteFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
 
     let data = base64::engine::general_purpose::STANDARD
         .decode(&req.content)
@@ -184,13 +196,14 @@ pub async fn upload_file_to_drive(
 
 pub async fn download_file(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<DownloadFileBody>,
 ) -> Result<Json<DownloadFileResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
     let data = drive
@@ -206,13 +219,14 @@ pub async fn download_file(
 
 pub async fn download_file_binary(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<DownloadFileBody>,
 ) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
     let data = drive
@@ -262,13 +276,14 @@ fn guess_mime(file_name: &str) -> &'static str {
 
 pub async fn delete_file(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<DeleteFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
     drive
@@ -282,13 +297,14 @@ pub async fn delete_file(
 
 pub async fn create_folder(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateFolderBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
     let parent = normalize_path(&req.path);
     let folder_name = normalize_path(&req.name);
     let key = if parent.is_empty() {
@@ -308,12 +324,13 @@ pub async fn create_folder(
 
 pub async fn copy_file(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CopyFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let prefix = resolve_scope_prefix(&scope, &uid);
 
     let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
     let dest_bucket = req.dest_bucket.as_deref().unwrap_or(&state.bucket_name);
@@ -336,12 +353,13 @@ pub async fn copy_file(
 
 pub async fn move_file(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<MoveFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let prefix = resolve_scope_prefix(&scope, &uid);
 
     let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
     let dest_bucket = req.dest_bucket.as_deref().unwrap_or(&state.bucket_name);
@@ -371,13 +389,14 @@ pub async fn move_file(
 
 pub async fn search_files(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<SearchQueryParams>,
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = params.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
     let query = params.query.unwrap_or_default();
     let query_lower = query.to_lowercase();
 
@@ -404,13 +423,14 @@ pub async fn search_files(
 
 pub async fn recent_files(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<RecentQueryParams>,
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = params.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
 
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -474,13 +494,8 @@ pub async fn recent_files(
 pub async fn list_buckets(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    Query(params): Query<ListBucketsParams>,
 ) -> Result<Json<Vec<BucketListItem>>, (StatusCode, Json<serde_json::Value>)> {
-    if !user.is_authenticated() {
-        return Err(err(
-            StatusCode::UNAUTHORIZED,
-            "Authentication required to list buckets",
-        ));
-    }
     let drive = get_drive(&state)?;
 
     let bucket_names = drive
@@ -488,8 +503,24 @@ pub async fn list_buckets(
         .await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list buckets: {e}")))?;
 
+    let is_admin = is_admin_user(&user);
     let items: Vec<BucketListItem> = bucket_names
         .into_iter()
+        .filter(|name| {
+            if !is_admin && !name.ends_with(".gbai") {
+                return true; // non-admins can see non-gbai buckets
+            }
+            if !is_admin && name.ends_with(".gbai") {
+                return false; // non-admins cannot see .gbai buckets
+            }
+            if let Some(ref bot) = params.bot {
+                let gbai = format!("{bot}.gbai");
+                let gborg = format!("{bot}.gborg");
+                name == &gbai || name == &gborg
+            } else {
+                true
+            }
+        })
         .map(|name| BucketListItem {
             is_gbai: name.ends_with(".gbai"),
             is_gborg: name.ends_with(".gborg"),
@@ -498,6 +529,91 @@ pub async fn list_buckets(
         .collect();
 
     Ok(Json(items))
+}
+
+pub async fn create_bot(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateBotRequest>,
+) -> Result<Json<CreateBotResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let name = req.name.trim().to_lowercase();
+    if name.is_empty() || !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        return Err(err(StatusCode::BAD_REQUEST, "Invalid bot name. Use lowercase letters, numbers, and hyphens (3-50 chars)."));
+    }
+    if name.len() < 3 || name.len() > 50 {
+        return Err(err(StatusCode::BAD_REQUEST, "Bot name must be between 3 and 50 characters."));
+    }
+
+    let bucket_name = format!("{}.gbai", name);
+    let drive = get_drive(&state)?;
+
+    // Check if already exists
+    let existing = drive.list_all_buckets().await
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list buckets: {e}")))?;
+    if existing.iter().any(|b| b == &bucket_name) {
+        return Err(err(StatusCode::CONFLICT, &format!("Bot '{}' already exists", name)));
+    }
+
+    // Create bucket
+    drive.create_bucket_if_not_exists(&bucket_name).await
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to create bucket: {e}")))?;
+
+    // Seed default folder structure with .keep marker files
+    let seed_paths = [
+        format!("{name}.gbdialog/.keep"),
+        format!("{name}.gbkb/.keep"),
+        format!("{name}.gbdrive/.keep"),
+        format!("{name}.gbot/.keep"),
+        format!("{name}.gbot/config.csv"),
+    ];
+    for path in &seed_paths {
+        let content = if path.ends_with("config.csv") {
+            "llm-url,\nllm-server,\nllm-key,\nllm-model,\nllm-provider,\nsystem-prompt,\nhistory-limit,6\n".as_bytes().to_vec()
+        } else {
+            Vec::new()
+        };
+        drive.put_object(&bucket_name, path, content, Some("text/plain")).await
+            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to seed {path}: {e}")))?;
+    }
+
+    Ok(Json(CreateBotResponse {
+        name: bucket_name,
+        status: "created".to_string(),
+    }))
+}
+
+pub async fn delete_bot(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<CreateBotRequest>,
+) -> Result<Json<DeleteBotResponse>, (StatusCode, Json<serde_json::Value>)> {
+    if !is_admin_user(&user) {
+        return Err(err(StatusCode::FORBIDDEN, "Administrator access required"));
+    }
+
+    let bot_name = req.name.trim().to_lowercase();
+    if bot_name.is_empty() || !bot_name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        return Err(err(StatusCode::BAD_REQUEST, "Invalid bot name. Use lowercase letters, numbers, and hyphens (3-50 chars)."));
+    }
+    if bot_name.len() < 3 || bot_name.len() > 50 {
+        return Err(err(StatusCode::BAD_REQUEST, "Bot name must be between 3 and 50 characters."));
+    }
+
+    let bucket_name = format!("{}.gbai", bot_name);
+    let drive = get_drive(&state)?;
+
+    // List and delete all objects in the bucket
+    let objects = drive.list_objects(&bucket_name, None).await
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list bucket objects: {e}")))?;
+
+    if !objects.is_empty() {
+        drive.delete_objects(&bucket_name, objects).await
+            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to delete bot objects: {e}")))?;
+    }
+
+    info!("Bot '{}' deleted by user {}", bot_name, user.user_id);
+    Ok(Json(DeleteBotResponse {
+        status: "deleted".to_string(),
+    }))
 }
 
 pub async fn open_file(
@@ -554,9 +670,10 @@ pub async fn quota(
 
 pub async fn list_favorites(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<StarItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = params.user_id.as_deref().unwrap_or("default");
+    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -589,9 +706,10 @@ pub async fn list_favorites(
 
 pub async fn toggle_star(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<StarToggleBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = req.user_id.as_deref().unwrap_or("default");
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
     let bucket = req.bucket.as_deref().unwrap_or("default");
     let path = &req.path;
 
@@ -620,9 +738,10 @@ pub async fn toggle_star(
 
 pub async fn list_shared(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<ShareItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = params.user_id.as_deref().unwrap_or("default");
+    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -664,9 +783,10 @@ pub async fn list_shared(
 
 pub async fn share_folder(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateShareBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let owner_id = req.user_id.as_deref().unwrap_or("default");
+    let owner_id = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
     let bucket = req.bucket.as_deref().unwrap_or("default");
     let path = &req.path;
     let recipient_id = &req.recipient_id;
@@ -689,9 +809,10 @@ pub async fn share_folder(
 
 pub async fn list_trash(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<TrashItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = params.user_id.as_deref().unwrap_or("default");
+    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -739,13 +860,14 @@ pub async fn list_trash(
 
 pub async fn trash_file(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<DeleteFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
-    let prefix = resolve_scope_prefix(&scope, uid);
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
     let data = match drive.get_object(&bucket, &key).await {
@@ -780,10 +902,11 @@ pub async fn trash_file(
 
 pub async fn restore_trash(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<RestoreTrashBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let uid = req.user_id.as_deref().unwrap_or("default");
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
 
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -799,7 +922,7 @@ pub async fn restore_trash(
             "SELECT bucket, path, original_path FROM drive_trash WHERE id::text = $1 AND user_id = $2"
         )
         .bind::<Text, _>(&req.id)
-        .bind::<Text, _>(uid)
+        .bind::<Text, _>(&uid)
         .load::<Row>(&mut conn)
         .unwrap_or_default();
 
@@ -810,7 +933,7 @@ pub async fn restore_trash(
             }
             let _ = diesel::sql_query("DELETE FROM drive_trash WHERE id::text = $1 AND user_id = $2")
                 .bind::<Text, _>(&req.id)
-                .bind::<Text, _>(uid)
+                .bind::<Text, _>(&uid)
                 .execute(&mut conn);
         }
     }
@@ -820,10 +943,11 @@ pub async fn restore_trash(
 
 pub async fn empty_trash(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<EmptyTrashBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let uid = req.user_id.as_deref().unwrap_or("default");
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
 
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -836,7 +960,7 @@ pub async fn empty_trash(
         let rows = diesel::sql_query(
             "SELECT bucket, path FROM drive_trash WHERE user_id = $1"
         )
-        .bind::<Text, _>(uid)
+        .bind::<Text, _>(&uid)
         .load::<Row>(&mut conn)
         .unwrap_or_default();
 
@@ -845,7 +969,7 @@ pub async fn empty_trash(
         }
 
         let _ = diesel::sql_query("DELETE FROM drive_trash WHERE user_id = $1")
-            .bind::<Text, _>(uid)
+            .bind::<Text, _>(&uid)
             .execute(&mut conn);
     }
 
@@ -886,6 +1010,7 @@ pub struct AIChatResponse {
 
 pub async fn ai_chat_handler(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<AIChatBody>,
 ) -> Result<Json<AIChatResponse>, (StatusCode, Json<serde_json::Value>)> {
     let provider = state
@@ -895,8 +1020,8 @@ pub async fn ai_chat_handler(
 
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().unwrap_or("default");
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid), None)?;
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
 
     let mut files_context = String::new();
     if let Ok(objects) = drive.list_objects_with_metadata(&bucket, None).await {
@@ -908,7 +1033,7 @@ pub async fn ai_chat_handler(
 
     let mut file_content_context = String::new();
     if let Some(ref path) = req.file_path {
-        let prefix = resolve_scope_prefix(&scope, uid);
+        let prefix = resolve_scope_prefix(&scope, &uid);
         let key = format!("{prefix}{}", normalize_path(path));
         file_content_context.push_str(&format!("\nActive File Selected: {}\n", path));
 

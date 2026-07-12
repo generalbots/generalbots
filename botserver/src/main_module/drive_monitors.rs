@@ -38,14 +38,6 @@ pub(crate) async fn start_drive_monitors(
     tokio::spawn(async move {
         register_thread("drive-monitor", "drive");
 
-        let load_only: Vec<String> = std::env::var("LOAD_ONLY")
-            .ok()
-            .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
-            .unwrap_or_default();
-        if !load_only.is_empty() {
-            info!("LOAD_ONLY filter active: {:?}", load_only);
-        }
-
         // Step 1: Discover bots from S3 .gborg buckets
         log::info!("Drive client status: {:?}", state_for_scan.drive.is_some());
         if let Some(s3_client) = &state_for_scan.drive {
@@ -54,7 +46,7 @@ pub(crate) async fn start_drive_monitors(
                     for bucket in buckets {
                         if bucket.ends_with(".gborg") {
                             process_org_bucket(
-                                &state_for_scan, &pool_clone, &bucket, &load_only,
+                                &state_for_scan, &pool_clone, &bucket,
                             ).await;
                         }
                     }
@@ -64,10 +56,6 @@ pub(crate) async fn start_drive_monitors(
         }
 
         // Step 2: Periodic bucket re-scan (bots are discovered via process_org_bucket)
-        let load_only_for_monitor: Vec<String> = std::env::var("LOAD_ONLY")
-            .ok()
-            .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
-            .unwrap_or_default();
         let mut monitored_bots: std::collections::HashSet<String> = std::collections::HashSet::new();
 
         let mut last_list_error: Option<std::time::Instant> = None;
@@ -93,7 +81,7 @@ pub(crate) async fn start_drive_monitors(
                                 if bucket.ends_with(".gborg") {
                                     if let Err(e) = scan_org_bucket(
                                         &scan_state, &scan_pool, &bucket,
-                                        &load_only_for_monitor, &mut monitored_bots,
+                                        &mut monitored_bots,
                                     ).await {
                                         warn!("Periodic .gborg scan failed for {}: {}", bucket, e);
                                     }
@@ -364,13 +352,9 @@ async fn process_org_bucket(
     state: &Arc<AppState>,
     pool: &botcore::shared::utils::DbPool,
     bucket_name: &str,
-    load_only: &[String],
 ) {
     let tenant_slug = bucket_name.strip_suffix(".gborg").unwrap_or(bucket_name).to_string();
 
-    // For .gborg buckets, LOAD_ONLY filtering happens at the bot level
-    // inside discover_and_create_bots, not at the tenant level.
-    // This allows LOAD_ONLY=cristo to work even if the bucket is named differently.
 
     // Get S3 client to list prefixes
     let (tenant_id, org_id) = if let Ok(result) = ensure_tenant_and_org(pool, &tenant_slug) {
@@ -392,7 +376,7 @@ async fn process_org_bucket(
                     // Discover bot names within this branch
                     discover_and_create_bots(
                         state, pool, bucket_name, &prefix,
-                        &branch_slug, tenant_id, org_id, load_only,
+                        &branch_slug, tenant_id, org_id,
                     ).await;
 
                     // Start monitors for bots in this branch immediately
@@ -420,7 +404,6 @@ async fn discover_and_create_bots(
     branch_slug: &str,
     tenant_id: Uuid,
     org_id: Uuid,
-    load_only: &[String],
 ) {
     if let Some(s3) = &state.drive {
         match s3.list_objects(bucket_name, Some(branch_prefix)).await {
@@ -438,17 +421,12 @@ async fn discover_and_create_bots(
                     }
                 }
 
-                if bot_names.is_empty() && !load_only.iter().any(|s| s == branch_slug) {
+                if bot_names.is_empty() {
                     // Create default bot (branch name == bot name)
                     bot_names.insert(branch_slug.to_string());
                 }
 
                 for bot_name in &bot_names {
-                    if !load_only.is_empty() && !load_only.contains(bot_name) {
-                        trace!("Skipping bot '{}' (not in LOAD_ONLY)", bot_name);
-                        continue;
-                    }
-
                     info!("Ensuring bot '{}' in branch '{}' (org: {}, tenant: {})",
                           bot_name, branch_slug, org_id, tenant_id);
 
@@ -457,12 +435,11 @@ async fn discover_and_create_bots(
                     let bs = branch_slug.to_string();
                     let bs_is_default = bn == bs;
                     let pool_create = pool.clone();
-                    let ld = load_only.to_vec();
                     let created = match tokio::task::spawn_blocking(move || {
                         create_bot_from_drive(
                             &create_state, &pool_create, &bn,
                             Some((tenant_id, org_id, bs)),
-                            Some(bs_is_default), &ld,
+                            Some(bs_is_default),
                         )
                     }).await {
                         Ok(Ok(_)) => {
@@ -498,7 +475,6 @@ async fn scan_org_bucket(
     state: &Arc<AppState>,
     pool: &botcore::shared::utils::DbPool,
     bucket_name: &str,
-    load_only: &[String],
     monitored_bots: &mut std::collections::HashSet<String>,
 ) -> Result<(), String> {
     let tenant_slug = bucket_name.strip_suffix(".gborg").unwrap_or(bucket_name).to_string();
@@ -526,7 +502,7 @@ async fn scan_org_bucket(
             // Discover bots within branch
             discover_and_create_bots(
                 state, pool, bucket_name, &prefix,
-                &branch_slug, tenant_id, org_id, load_only,
+                &branch_slug, tenant_id, org_id,
             ).await;
 
             // Mark branch as monitored (track via prefix)
@@ -732,16 +708,8 @@ fn create_bot_from_drive(
     bot_name: &str,
     org_info: Option<(Uuid, Uuid, String)>, // (tenant_id, org_id, branch_slug)
     is_default: Option<bool>,
-    load_only: &[String],
 ) -> Result<(), String> {
     use diesel::sql_query;
-
-    if !load_only.is_empty() && !load_only.contains(&bot_name.to_string()) {
-        return Err(format!(
-            "Bot '{}' not allowed by LOAD_ONLY filter - refusing to create",
-            bot_name
-        ));
-    }
 
     let mut conn = pool.get().map_err(|e| e.to_string())?;
 

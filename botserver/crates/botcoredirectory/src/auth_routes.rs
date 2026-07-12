@@ -25,6 +25,7 @@ pub struct SessionUserData {
     pub display_name: Option<String>,
     pub organization_id: Option<String>,
     pub roles: Vec<String>,
+    pub bucket: Option<String>,
     pub created_at: i64,
 }
 
@@ -64,6 +65,7 @@ pub struct CurrentUserResponse {
     pub display_name: Option<String>,
     pub roles: Option<Vec<String>>,
     pub organization_id: Option<String>,
+    pub bucket: Option<String>,
     pub avatar_url: Option<String>,
     pub is_anonymous: bool,
 }
@@ -120,7 +122,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/2fa/verify", post(verify_2fa))
         .route("/2fa/resend", post(resend_2fa))
         .route("/bootstrap", post(bootstrap_admin))
-        .route("/dev-credentials", get(dev_credentials))
+
 }
 
 pub async fn login(
@@ -237,6 +239,7 @@ pub async fn login(
                     display_name: Some(req.email.split('@').next().unwrap_or("User").to_string()),
                     organization_id: None,
                     roles: vec!["admin".to_string()],
+                    bucket: None,
                     created_at: chrono::Utc::now().timestamp(),
                 };
 
@@ -274,52 +277,15 @@ pub async fn login(
         log::info!("No admin token available, falling back to local credential check");
     }
 
-    // Fallback: verify against locally stored admin credentials
-    // (Zitadel Jan/2024 binary does not expose /v2/sessions via HTTP)
-    match verify_local_admin(&req.email, &req.password).await {
-        Ok(user_id) => {
-            info!("Local credential check passed for: {}", req.email);
-            let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
-            let session_user = SessionUserData {
-                user_id: user_id.clone(),
-                email: req.email.clone(),
-                username: req.email.split('@').next().unwrap_or("user").to_string(),
-                first_name: None,
-                last_name: None,
-                display_name: Some(req.email.split('@').next().unwrap_or("User").to_string()),
-                organization_id: None,
-                roles: vec!["admin".to_string()],
-                created_at: chrono::Utc::now().timestamp(),
-            };
-            {
-                let mut cache = SESSION_CACHE.write().await;
-                cache.insert(api_token.clone(), session_user.clone());
-            }
-            info!("Session created via local fallback for: {} (user_id: {})", req.email, user_id);
-            Ok(Json(LoginResponse {
-                success: true,
-                user_id: Some(user_id),
-                session_id: None,
-                access_token: Some(api_token),
-                refresh_token: None,
-                expires_in: Some(3600),
-                requires_2fa: false,
-                session_token: None,
-                redirect: Some("/".to_string()),
-                message: Some("Login successful (local auth)".to_string()),
-            }))
-        }
-        Err(e) => {
-            log::error!("Local credential check also failed: {}", e);
-            Err((
-                StatusCode::UNAUTHORIZED,
-                Json(ErrorResponse {
-                    error: "Invalid email or password".to_string(),
-                    details: None,
-                }),
-            ))
-        }
-    }
+    // Zitadel sessions API failed — no fallback; Zitadel is the only auth provider
+    log::error!("Zitadel authentication failed for: {}", req.email);
+    Err((
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "Invalid email or password".to_string(),
+            details: None,
+        }),
+    ))
 }
 
 pub async fn logout(
@@ -368,6 +334,7 @@ pub async fn get_current_user(
                 display_name: None,
                 roles: None,
                 organization_id: None,
+                bucket: None,
                 avatar_url: None,
                 is_anonymous: true,
             })
@@ -383,6 +350,7 @@ pub async fn get_current_user(
                 display_name: None,
                 roles: None,
                 organization_id: None,
+                bucket: None,
                 avatar_url: None,
                 is_anonymous: true,
             })
@@ -405,6 +373,7 @@ pub async fn get_current_user(
                     display_name: user_data.display_name.clone(),
                     roles: Some(user_data.roles.clone()),
                     organization_id: user_data.organization_id.clone(),
+                    bucket: user_data.bucket.clone(),
                     avatar_url: None,
                     is_anonymous: false,
                 })
@@ -419,6 +388,7 @@ pub async fn get_current_user(
                     display_name: None,
                     roles: None,
                     organization_id: None,
+                    bucket: None,
                     avatar_url: None,
                     is_anonymous: true,
                 })
@@ -757,55 +727,4 @@ async fn get_oauth_token(
     Ok(access_token)
 }
 
-/// `GET /api/auth/dev-credentials`
-///
-/// Retorna as credenciais do admin bootstrap para auto-login em dev mode.
-/// Apenas acessivel de localhost; retorna 404 em producao.
-async fn dev_credentials() -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    let stack = botcore::shared::utils::get_stack_path();
-    let creds_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-credentials.json", stack));
 
-    match std::fs::read_to_string(&creds_path) {
-        Ok(content) => {
-            match serde_json::from_str::<serde_json::Value>(&content) {
-                Ok(creds) => Ok(Json(creds)),
-                Err(e) => Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorResponse {
-                        error: "Failed to parse credentials file".to_string(),
-                        details: Some(e.to_string()),
-                    }),
-                )),
-            }
-        }
-        Err(e) => Err((
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: "Bootstrap credentials not found. Run reset.sh first.".to_string(),
-                details: Some(e.to_string()),
-            }),
-        )),
-    }
-}
-
-async fn verify_local_admin(email: &str, password: &str) -> Result<String, String> {
-    let stack = botcore::shared::utils::get_stack_path();
-    let creds_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-credentials.json", stack));
-
-    let content = std::fs::read_to_string(&creds_path)
-        .map_err(|e| format!("Cannot read admin credentials: {}", e))?;
-
-    let creds: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Cannot parse admin credentials: {}", e))?;
-
-    let stored_email = creds.get("email").and_then(|v| v.as_str()).unwrap_or("");
-    let stored_password = creds.get("password").and_then(|v| v.as_str()).unwrap_or("");
-    let stored_user_id = creds.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
-
-    if email == stored_email && password == stored_password {
-        info!("Local credential match for admin user: {}", email);
-        Ok(stored_user_id.to_string())
-    } else {
-        Err("Email or password does not match admin credentials".to_string())
-    }
-}

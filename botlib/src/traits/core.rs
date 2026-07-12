@@ -173,6 +173,9 @@ pub trait DriveRepository: Send + Sync + Debug {
         bucket: &str,
     ) -> BoxFutureUnit;
 
+    // Bucket deletion is only done at organization level (cloud),
+    // not at the individual bot level.
+
     fn delete_objects(
         &self,
         bucket: &str,

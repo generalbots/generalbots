@@ -1,0 +1,139 @@
+/* Drive Module v2.0 — Modal Styles */
+
+/* Inline Editor Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--surface, #12121a);
+    border-radius: 12px;
+    border: 1px solid var(--border, #2a2a3a);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-modal-content {
+    width: 90vw;
+    height: 85vh;
+    max-width: 1200px;
+}
+
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border, #2a2a3a);
+    background: var(--bg-secondary, #0d0d12);
+    border-radius: 12px 12px 0 0;
+}
+
+.editor-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.editor-icon {
+    font-size: 18px;
+}
+
+.editor-filename {
+    color: var(--text, #ffffff);
+}
+
+.editor-status {
+    color: var(--warning, #f59e0b);
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.editor-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.editor-textarea {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    border: none;
+    background: var(--bg, #0a0a0f);
+    color: var(--text, #ffffff);
+    font-family: "JetBrains Mono", "Fira Code", "Monaco", "Consolas", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    tab-size: 2;
+}
+
+.editor-textarea:focus {
+    outline: none;
+}
+
+.editor-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border, #2a2a3a);
+    background: var(--bg-secondary, #0d0d12);
+    border-radius: 0 0 12px 12px;
+    font-size: 12px;
+    color: var(--text-secondary, #6b6b80);
+}
+
+.editor-info {
+    display: flex;
+    gap: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .drive-sidebar {
+        display: none;
+    }
+
+    .file-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .editor-modal-content {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    .editor-header,
+    .editor-footer {
+        border-radius: 0;
+    }
+}
+

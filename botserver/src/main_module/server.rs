@@ -101,7 +101,9 @@ pub async fn run_axum_server(
             "/api/health".into(), "/api/auth".into(), "/api/auth/login".into(),
             "/api/auth/refresh".into(), "/api/auth/bootstrap".into(), "/api/setup/status".into(),
             "/api/product".into(), "/api/manifest".into(), "/api/i18n".into(),
-            "/api/client-errors".into(), "/api/cloud/auth*".into(), "/api/catalog".into(), "/ws".into(),
+            "/api/client-errors".into(), "/api/cloud/auth*".into(),             "/api/auth/cloud-sso".into(),
+            "/api/auth/suite-sso".into(),
+            "/api/auth/unified-login".into(), "/api/catalog".into(), "/ws".into(),
             "/ws/".into(), "/webhook/whatsapp".into(), "/webhook".into(),
         ],
         ..Default::default()

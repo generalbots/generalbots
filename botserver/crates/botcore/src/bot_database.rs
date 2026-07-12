@@ -38,27 +38,6 @@ struct DbExists {
     exists: bool,
 }
 
-/// Check if a bot name is allowed by the LOAD_ONLY env var
-pub fn is_bot_allowed_by_load_only(bot_name: &str) -> bool {
-    let load_only: Vec<String> = std::env::var("LOAD_ONLY")
-        .ok()
-        .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
-        .unwrap_or_default();
-
-    if load_only.is_empty() {
-        return true;
-    }
-    load_only.contains(&bot_name.to_string())
-}
-
-/// Get the LOAD_ONLY list from env var (for display/debug)
-pub fn get_load_only_list() -> Vec<String> {
-    std::env::var("LOAD_ONLY")
-        .ok()
-        .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
-        .unwrap_or_default()
-}
-
 impl BotDatabaseManager {
     /// Create a new BotDatabaseManager
     pub fn new(main_pool: DbPool, database_url: &str) -> Self {
@@ -131,15 +110,6 @@ impl BotDatabaseManager {
         .optional()?;
 
         let bot_info = bot_info.ok_or_else(|| format!("Bot {} not found or not active", bot_id))?;
-
-        // Check LOAD_ONLY filter — prevent creating databases for disallowed bots
-        if !is_bot_allowed_by_load_only(&bot_info.name) {
-            let load_only = get_load_only_list();
-            return Err(format!(
-                "Bot '{}' is not in LOAD_ONLY list {:?}. Refusing to create/get database.",
-                bot_info.name, load_only
-            ).into());
-        }
 
         // Ensure bot has a database, create if needed
         let db_name = if let Some(name) = bot_info.database_name {
@@ -289,17 +259,7 @@ impl BotDatabaseManager {
         let bots = self.get_all_bots()?;
         let mut result = SyncResult::default();
 
-        // Check LOAD_ONLY env var to filter which bots get databases
-        let load_only: Vec<String> = std::env::var("LOAD_ONLY")
-            .ok()
-            .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
-            .unwrap_or_default();
-
         for bot in bots {
-            if !load_only.is_empty() && !load_only.contains(&bot.name) {
-                result.databases_skipped += 1;
-                continue;
-            }
             match self.ensure_bot_has_database(bot.id, &bot.name) {
                 Ok(db_name) => {
                     if bot.database_name.is_none() {
@@ -317,10 +277,9 @@ impl BotDatabaseManager {
         }
 
         info!(
-            "Bot database sync complete: {} created, {} verified, {} skipped, {} errors",
+            "Bot database sync complete: {} created, {} verified, {} errors",
             result.databases_created,
             result.databases_verified,
-            result.databases_skipped,
             result.errors.len()
         );
 
@@ -355,49 +314,6 @@ impl BotDatabaseManager {
         }
     }
 
-    /// Drop databases for bots NOT in LOAD_ONLY list.
-    /// Returns the number of databases dropped.
-    pub fn drop_orphaned_databases(&self) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
-        let load_only = get_load_only_list();
-        if load_only.is_empty() {
-            info!("LOAD_ONLY not set — no orphaned databases to drop");
-            return Ok(0);
-        }
-
-        let mut conn = self.main_pool.get()?;
-
-        // Query all bot databases managed by botserver
-        let bots: Vec<(Uuid, String, Option<String>)> = {
-            use crate::schema::bots::dsl::*;
-            bots.select((id, name, database_name))
-                .load::<(Uuid, String, Option<String>)>(&mut conn)?
-        };
-
-        let mut dropped = 0usize;
-        for (bot_id, bot_name, db_name) in &bots {
-            if load_only.contains(bot_name) {
-                continue;
-            }
-            // Bot is NOT in LOAD_ONLY — drop its database if it has one
-            if let Some(db_name) = db_name {
-                info!("Dropping database '{}' for bot '{}' (not in LOAD_ONLY)", db_name, bot_name);
-                // Terminate connections and drop
-                sql_query(format!(
-                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}' AND pid <> pg_backend_pid()",
-                    db_name
-                )).execute(&mut conn)?;
-                sql_query(format!("DROP DATABASE IF EXISTS \"{}\"", db_name)).execute(&mut conn)?;
-                dropped += 1;
-            }
-            // Clear the bot's database_name in the bots table
-            diesel::update(crate::schema::bots::dsl::bots.find(bot_id))
-                .set(crate::schema::bots::dsl::database_name.eq::<Option<String>>(None))
-                .execute(&mut conn)?;
-        }
-
-        info!("Dropped {} orphaned databases not in LOAD_ONLY", dropped);
-        Ok(dropped)
-    }
 }
 
 /// Result of syncing bot databases
@@ -405,7 +321,6 @@ impl BotDatabaseManager {
 pub struct SyncResult {
     pub databases_created: usize,
     pub databases_verified: usize,
-    pub databases_skipped: usize,
     pub errors: Vec<String>,
 }
 

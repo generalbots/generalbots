@@ -520,12 +520,18 @@
 
         <!-- HTMX Intercepts and WindowManager Init as described in UI.md Phase 3 -->
         <script>
-            // Check for fullscreen mode
+            // Check for fullscreen mode and auth token (from cloud dashboard)
             (function() {
-                const urlParams = new URLSearchParams(window.location.search);
+                var urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('fullscreen') === 'true') {
                     document.body.classList.add('fullscreen');
-                    console.log('Fullscreen mode activated');
+                }
+                var cloudToken = urlParams.get('token');
+                if (cloudToken) {
+                    var u = new URL(window.location.href);
+                    u.searchParams.delete('token');
+                    window.history.replaceState({}, '', u);
+                    localStorage.setItem('gb-access-token', cloudToken);
                 }
             })();
 
@@ -564,17 +570,26 @@
                 const botName = pathParts[1] || 'default';
 
                 // Check if bot is public → hide sidebar, maximize chat
+                // If private and not authenticated → redirect to login
                 (async () => {
                     try {
+        
+
                         if (botName && botName !== 'default') {
                             const resp = await fetch('/api/bot/config?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());
                             if (resp.ok) {
                                 const config = await resp.json();
-                                if (config.is_public === 'true') {
+                                const isPub = config.is_public === 'true' || config.is_public === true;
+                                if (isPub) {
                                     window.__BOT_IS_PUBLIC__ = true;
-                                    document.body.classList.add('public-mode');
                                     const sidebar = document.getElementById('chatSidebar');
                                     if (sidebar) sidebar.style.display = 'none';
+                                } else {
+                                    var isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
+                                    if (!isAuth) {
+                                        window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);
+                                        return;
+                                    }
                                 }
                             }
                         }
@@ -610,25 +625,30 @@
                         window.ThemeManager.init();
                     }
                 }
+                // Re-evaluate auth state after every HTMX navigation
+                if (typeof updateLoginButton === 'function') {
+                    updateLoginButton();
+                }
             });
 
             // Update login button based on auth state
             function setLoginSignIn(btn) {
                 var isPublic = window.__BOT_IS_PUBLIC__ === true;
                 var botName = window.__INITIAL_BOT_NAME__ || '';
+                var currentUrl = encodeURIComponent(window.location.href);
                 if (isPublic) {
                     btn.title = "Entrar / Criar conta gratuita";
                     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span style="font-size:11px;margin-left:4px;">Entrar</span>';
                     btn.style.gap = "2px";
                     btn.onclick = function () {
-                        window.location.href = (window.GB_LOGIN_URL || '/login') + '?signup=1&bot=' + encodeURIComponent(botName);
+                        window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + currentUrl + '&signup=1&bot=' + encodeURIComponent(botName);
                     };
                 } else {
                     btn.title = "Entrar";
                     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
                     btn.style.gap = "";
                     btn.onclick = function () {
-                        window.location.href = (window.GB_LOGIN_URL || '/login');
+                        window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + currentUrl;
                     };
                 }
             }
@@ -636,9 +656,8 @@
             function updateLoginButton() {
                 var loginBtn = document.getElementById("loginBtn");
                 if (!loginBtn) return;
-                var isAuth = window.GBSecurity && window.GBSecurity.isAuthenticated();
                 var token = window.getGBAccessToken && window.getGBAccessToken();
-                if (!isAuth || !token) {
+                if (!token) {
                     setLoginSignIn(loginBtn);
                     return;
                 }
@@ -652,16 +671,32 @@
                 .then(function (user) {
                     var displayName = user.display_name || user.first_name || user.username || "User";
                     var initial = displayName.charAt(0).toUpperCase();
-                    loginBtn.title = displayName + " — clique para sair";
-                    loginBtn.innerHTML = '<span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--primary,#84d669);color:#fff;font-size:11px;line-height:20px;text-align:center;font-weight:700;margin-right:4px;">' + initial + '</span>' + displayName;
+                    loginBtn.title = displayName;
+                    loginBtn.innerHTML = '<span class="user-avatar" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--primary,#84d669);color:#fff;font-size:11px;line-height:22px;text-align:center;font-weight:700;flex-shrink:0">' + initial + '</span><span class="user-name" style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + displayName + '</span><span class="user-chevron" style="font-size:10px;opacity:0.6">▾</span>';
                     loginBtn.style.gap = "4px";
-                    loginBtn.onclick = function () {
-                        sessionStorage.setItem('gb-signed-out', 'true');
-                        fetch("/api/auth/logout", { method: "POST" }).finally(function () {
-                            localStorage.removeItem("gb-access-token");
-                            sessionStorage.removeItem("gb-access-token");
-                            window.location.href = window.GB_LOGIN_URL || '/login';
-                        });
+                    loginBtn.style.display = "inline-flex";
+                    loginBtn.style.alignItems = "center";
+                    loginBtn.onclick = function (e) {
+                        e.stopPropagation();
+                        var m = document.getElementById('user-menu');
+                        if (m) { m.remove(); return; }
+                        var menu = document.createElement('div');
+                        menu.id = 'user-menu';
+                        menu.style.cssText = 'position:fixed;bottom:50px;right:10px;background:var(--surface,#1a1a24);border:1px solid var(--border,#333);border-radius:10px;padding:4px 0;min-width:180px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.5)';
+                        menu.innerHTML =
+                            '<div style="padding:10px 14px;font-size:12px;color:var(--text-secondary,#888);border-bottom:1px solid var(--border,#333)">' + displayName + '<br><span style="font-size:11px;color:var(--muted,#666)">' + (user.email || '') + '</span></div>' +
+                            '<div onclick="fetch(\'/suite/admin/organization-settings.html\').then(function(r){return r.text()}).then(function(html){var m2=document.getElementById(\'user-menu\');if(m2)m2.remove();if(window.WindowManager)window.WindowManager.open(\'settings\',\'Settings\',html)})" style="padding:8px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>' +
+                            '<div onclick="var m2=document.getElementById(\'user-menu\');if(m2)m2.remove();if(window.WindowManager)window.WindowManager.open(\'about\',\'About\',\'<div style=\\\\\'padding:32px;text-align:center\\\\\'><div style=\\\\\'font-size:48px;margin-bottom:12px\\\\\'>🤖</div><h2 style=\\\\\'font-size:20px;color:var(--text);margin-bottom:4px\\\\\'>General Bots</h2><p style=\\\\\'font-size:13px;color:var(--text-secondary);margin-bottom:16px\\\\\'>v6.3.1 — Production</p><p style=\\\\\'font-size:12px;color:var(--muted)\\\\\'>Pragmatismo Cloud Platform<br>Documentation: docs.pragmatismo.com.br</p></div>\')" style="padding:8px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>About</div>' +
+                            '<div style="border-top:1px solid var(--border,#333)"></div>' +
+                            '<div onclick=\"sessionStorage.setItem(\'gb-signed-out\',\'true\');fetch(\'/api/auth/logout\',{method:\'POST\'}).finally(function(){localStorage.removeItem(\'gb-access-token\');sessionStorage.removeItem(\'gb-access-token\');var m3=document.getElementById(\'user-menu\');if(m3)m3.remove();window.location.href=window.GB_LOGIN_URL||\'/login\';})\" style="padding:8px 14px;cursor:pointer;font-size:13px;color:#ef4444;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Logout</div>';
+                        document.body.appendChild(menu);
+                        setTimeout(function() {
+                            document.addEventListener('click', function closeMenu(ev) {
+                                document.removeEventListener('click', closeMenu);
+                                var m2 = document.getElementById('user-menu');
+                                if (m2) m2.remove();
+                            }, { once: true });
+                        }, 10);
                     };
                 })
                 .catch(function () {
