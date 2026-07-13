@@ -129,6 +129,8 @@ pub async fn save_workbook_to_drive(
 
 /// Creates a post-save hook that exports the sheet back to its original
 /// .xlsx location in Drive whenever the sheet is saved.
+/// Runs asynchronously via tokio::spawn (fire-and-forget) to avoid
+/// blocking the tokio runtime from within a sync closure.
 pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
     Arc::new(move |sheet: &Spreadsheet| {
         let src_bucket = match sheet.source_bucket {
@@ -140,21 +142,28 @@ pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
             None => return Ok(()),
         };
 
-        let xlsx_bytes = convert_to_xlsx(sheet)?;
+        let xlsx_bytes = match convert_to_xlsx(sheet) {
+            Ok(b) => b,
+            Err(e) => {
+                log::error!("Failed to convert sheet to xlsx for save-back: {e}");
+                return Ok(());
+            }
+        };
 
-        let handle = tokio::runtime::Handle::current();
-        handle
-            .block_on(async {
-                drive
-                    .put_object(
-                        &src_bucket,
-                        &src_path,
-                        xlsx_bytes,
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    )
-                    .await
-            })
-            .map_err(|e| format!("Failed to save xlsx back to Drive: {e}"))?;
+        let d = drive.clone();
+        tokio::spawn(async move {
+            if let Err(e) = d
+                .put_object(
+                    &src_bucket,
+                    &src_path,
+                    xlsx_bytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+                .await
+            {
+                log::error!("Failed to save xlsx back to Drive: {e}");
+            }
+        });
 
         Ok(())
     })
