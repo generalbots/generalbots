@@ -54,6 +54,16 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
             if let Some(ref style) = cell_data.style {
                 apply_umya_style(cell, style);
             }
+
+            // Restore number format (currency, date, percentage, etc.)
+            // so the round-trip preserves the original cell type
+            if let Some(ref fmt) = cell_data.format {
+                if !fmt.is_empty() {
+                    let mut nf = umya_spreadsheet::structs::NumberingFormat::default();
+                    nf.set_format_code(fmt.as_str());
+                    cell.get_style_mut().set_numbering_format(nf);
+                }
+            }
         }
 
         if let Some(ref widths) = worksheet.column_widths {
