@@ -115,7 +115,7 @@ pub fn win_crm_deal(
 pub fn create_organization(pool: &DbPool, name: &str, domain: Option<&str>) -> Result<Uuid, String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
     let id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-");
+    let slug = name.to_lowercase().replace(' ', "-").replace('_', "-").chars().filter(|c| c.is_alphanumeric() || *c == '-').collect::<String>();
 
     diesel::sql_query(
         r#"INSERT INTO organizations (org_id, name, slug, domain, created_at, updated_at)
@@ -327,7 +327,7 @@ pub fn link_org_to_tenant(pool: &DbPool, org_id: Uuid, tenant_id: Uuid) -> Resul
 pub fn create_branch(pool: &DbPool, org_id: Uuid, tenant_id: Uuid, name: &str) -> Result<Uuid, String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
     let id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-");
+    let slug = name.to_lowercase().replace(' ', "-").replace('_', "-").chars().filter(|c| c.is_alphanumeric() || *c == '-').collect::<String>();
 
     diesel::sql_query(
         r#"INSERT INTO branches (id, org_id, tenant_id, slug, name, is_active, created_at, updated_at)
@@ -348,7 +348,7 @@ pub fn create_branch(pool: &DbPool, org_id: Uuid, tenant_id: Uuid, name: &str) -
 pub fn create_bot(pool: &DbPool, org_id: Uuid, branch_id: Uuid, _tenant_id: Uuid, name: &str) -> Result<(Uuid, String), String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
     let bot_id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-");
+    let slug = name.to_lowercase().replace(' ', "-").replace('_', "-").chars().filter(|c| c.is_alphanumeric() || *c == '-').collect::<String>();
     let org_slug = slug.clone();
     let now = Utc::now();
 
@@ -452,7 +452,7 @@ pub fn create_branch_inner(conn: &mut PgConnection, org_id: Uuid, tenant_id: Uui
 
 pub fn create_bot_inner(conn: &mut PgConnection, org_id: Uuid, branch_id: Uuid, name: &str) -> Result<(Uuid, String), String> {
     let bot_id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-");
+    let slug = name.to_lowercase().replace(' ', "-").replace('_', "-").chars().filter(|c| c.is_alphanumeric() || *c == '-').collect::<String>();
     let org_slug = slug.clone();
     let now = Utc::now();
 
@@ -629,7 +629,7 @@ pub fn create_bot_bucket(
     template: Option<&str>,
 ) -> Result<(), String> {
     let alias = &config.mc_alias;
-    let org_bucket = format!("{alias}/{org_slug}.gborg");
+    let org_bucket = format!("{alias}/{org_slug}-gborg");
 
     let mb = SafeCommand::new("mc")
         .and_then(|c| c.arg("mb"))
