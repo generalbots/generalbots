@@ -30,6 +30,8 @@ pub fn create_new_spreadsheet() -> Spreadsheet {
         updated_at: Utc::now(),
         named_ranges: None,
         external_links: None,
+    source_bucket: None,
+    source_path: None,
     }
 }
 
@@ -390,5 +392,7 @@ pub fn import_spreadsheet_bytes(
         updated_at: Utc::now(),
         named_ranges: None,
         external_links: None,
+    source_bucket: None,
+    source_path: None,
     })
 }

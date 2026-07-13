@@ -140,6 +140,13 @@ pub struct Spreadsheet {
     pub named_ranges: Option<Vec<NamedRange>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub external_links: Option<Vec<ExternalLink>>,
+    /// Original xlsx bucket in Drive (set when loaded via load-from-drive).
+    /// When present, every save also writes back as xlsx to this location.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_bucket: Option<String>,
+    /// Original xlsx path in Drive.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
