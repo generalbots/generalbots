@@ -127,6 +127,11 @@ fn build_file_list_items(
 }
 
 fn get_user_id(user: &AuthenticatedUser) -> String {
+    if let Some(ref email) = user.email {
+        if !email.is_empty() && email != "session-user" {
+            return email.clone();
+        }
+    }
     if user.user_id.is_nil() { "default".to_string() } else { user.user_id.to_string() }
 }
 
