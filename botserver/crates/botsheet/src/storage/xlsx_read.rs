@@ -123,6 +123,7 @@ pub fn load_xlsx_from_bytes(
             .filter(|&v| v > 0);
 
         let sheet_name = sheet.get_name().to_string();
+
         worksheets.push(Worksheet {
             name: sheet_name,
             data,
@@ -152,6 +153,11 @@ pub fn load_xlsx_from_bytes(
             protection: None,
             array_formulas: None,
         });
+    }
+
+    #[cfg(feature = "xlsx")]
+    if let Ok(format_map) = super::format_codes::extract_cell_format_codes(bytes) {
+        super::format_codes::apply_format_codes(&mut worksheets, &format_map);
     }
 
     let spreadsheet = Spreadsheet {

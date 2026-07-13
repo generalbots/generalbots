@@ -167,6 +167,11 @@ pub fn parse_excel_to_worksheets(
             }
 
             if !worksheets.is_empty() {
+                #[cfg(feature = "xlsx")]
+                if let Ok(format_map) = super::format_codes::extract_cell_format_codes(bytes) {
+                    super::format_codes::apply_format_codes(&mut worksheets, &format_map);
+                }
+
                 return Ok(worksheets);
             }
         }
