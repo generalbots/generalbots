@@ -29,10 +29,7 @@ async function handleLogin(e) {
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
     var dest = (new URLSearchParams(window.location.search)).get('redirect') || (CLOUD_CONFIG.baseUrl + '/dashboard');
-    // SSO hop: server endpoint stores token via HTML, redirects to clean URL
-    var u = new URL(dest, window.location.origin);
-    var ssoUrl = u.origin + '/api/auth/suite-sso?token=' + encodeURIComponent(data.token) + '&redirect=' + encodeURIComponent(dest);
-    window.location.href = ssoUrl;
+    window.location.href = dest + '?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';
@@ -88,10 +85,7 @@ async function handleSignup(e) {
     // Private Server: redirect to Store VPS calculator instead of Dashboard
     var redir = (new URLSearchParams(window.location.search)).get('redirect');
     var dest = redir || (plan === 'private-cloud' ? CLOUD_CONFIG.baseUrl + '/store' : CLOUD_CONFIG.baseUrl + '/dashboard');
-    // SSO hop: server endpoint stores token via HTML, redirects to clean URL
-    var u = new URL(dest, window.location.origin);
-    var ssoUrl = u.origin + '/api/auth/suite-sso?token=' + encodeURIComponent(token) + '&redirect=' + encodeURIComponent(dest);
-    window.location.href = ssoUrl;
+    window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(emailOut) + '&name=' + encodeURIComponent(data.account?.name || name);
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';

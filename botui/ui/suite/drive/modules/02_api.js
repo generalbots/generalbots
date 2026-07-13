@@ -128,8 +128,27 @@ async function openFile(path) {
         if (app === "sheets" && window.WindowManager) {
             const fileName = path.split("/").pop() || "Spreadsheet";
             const ts = Date.now();
+            // Pre-load sheet data from Drive — boot script inside injected HTML
+            // can't read URL params (window.location.search belongs to main page).
+            var bucket = getEffectiveBucket();
+            try {
+                var sheetResp = await fetch('/api/sheet/load-from-drive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bucket: bucket, path: path })
+                });
+                if (sheetResp.ok) {
+                    var sheetData = await sheetResp.json();
+                    window.__LOADED_SHEET = sheetData;
+                    window.__SHEET_INITIAL_ID = sheetData.id;
+                    window.__SHEET_BOOT = Promise.resolve();
+                }
+            } catch(e) {
+                console.warn('Pre-load sheet failed, boot script will retry via URL params:', e);
+            }
             window.WindowManager.open("sheets-" + ts, fileName, "");
-            fetch(url).then(function (r) { return r.text(); }).then(function (html) {
+            var cleanUrl = url.split('?')[0];
+            fetch(cleanUrl).then(function (r) { return r.text(); }).then(function (html) {
                 var body = document.getElementById("window-body-sheets-" + ts);
                 if (body) window.WindowManager._injectBodyContent("sheets-" + ts, html);
             });

@@ -204,7 +204,11 @@ if (typeof htmx === 'undefined') {
   var path = params.get('path');
 
   if (!bucket || !path) {
-    window.__SHEET_INITIAL_ID = "current";
+    // If Drive already pre-loaded the sheet (via WindowManager injection),
+    // respect its data — do not override __SHEET_INITIAL_ID.
+    if (!window.__LOADED_SHEET) {
+      window.__SHEET_INITIAL_ID = "current";
+    }
     window.__SHEET_BOOT = Promise.resolve();
     return;
   }
