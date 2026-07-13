@@ -120,6 +120,12 @@ pub fn parse_excel_to_worksheets(
                             let key = format!("{},{}", row - 1, col - 1);
                             let style = super::xlsx_write::extract_cell_style(cell);
 
+                            // Extract number format code (e.g. "$#,##0.00", "yyyy-mm-dd", "0%")
+                            // to preserve cell type across round-trip xlsx → JSON → xlsx
+                            let number_format = cell.get_style().get_number_format()
+                                .map(|nf| nf.get_format_code().to_string())
+                                .filter(|c| c != "General" && !c.is_empty());
+
                             data.insert(
                                 key,
                                 crate::types::CellData {
@@ -130,7 +136,7 @@ pub fn parse_excel_to_worksheets(
                                     },
                                     formula,
                                     style,
-                                    format: None,
+                                    format: number_format,
                                     note: None,
                                     locked: None,
                                     has_comment: None,
