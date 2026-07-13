@@ -2,16 +2,24 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use crate::types::SpreadsheetMetadata;
+use crate::types::{Spreadsheet, SpreadsheetMetadata};
+
+/// Post-save hook that runs after `save_sheet_to_drive` persists the JSON.
+/// Used by the `botsheet` crate to export back to the original xlsx in Drive.
+pub type SheetSaveHook = Arc<dyn Fn(&Spreadsheet) -> Result<(), String> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct SheetState {
     pub drive: Option<Arc<dyn DriveOps>>,
+    pub on_save: Option<SheetSaveHook>,
 }
 
 impl SheetState {
     pub fn new(drive: Option<Arc<dyn DriveOps>>) -> Self {
-        Self { drive }
+        Self {
+            drive,
+            on_save: None,
+        }
     }
 }
 
@@ -57,6 +65,11 @@ pub async fn save_sheet_to_drive(
     drive
         .put_object("gbo", &path, content.into_bytes(), "application/json")
         .await?;
+
+    // Run post-save hook (xlsx export back to original bucket/path)
+    if let Some(ref hook) = state.on_save {
+        hook(sheet)?;
+    }
 
     Ok(())
 }

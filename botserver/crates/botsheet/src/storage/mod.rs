@@ -8,8 +8,9 @@ pub use import::*;
 pub use xlsx_read::load_xlsx_from_bytes;
 pub use xlsx_write::{apply_umya_style, convert_to_xlsx, extract_cell_style, get_col_letter};
 
-use crate::state::SheetState;
-use crate::types::Spreadsheet;
+use botsheet_core::state::{DriveOps, SheetSaveHook, SheetState};
+use botsheet_core::types::Spreadsheet;
+use std::sync::Arc;
 
 pub async fn save_sheet_as_xlsx(
     state: &SheetState,
@@ -124,4 +125,37 @@ pub async fn save_workbook_to_drive(
         .await?;
 
     Ok(())
+}
+
+/// Creates a post-save hook that exports the sheet back to its original
+/// .xlsx location in Drive whenever the sheet is saved.
+pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
+    Arc::new(move |sheet: &Spreadsheet| {
+        let src_bucket = match sheet.source_bucket {
+            Some(ref b) => b.clone(),
+            None => return Ok(()),
+        };
+        let src_path = match sheet.source_path {
+            Some(ref p) => p.clone(),
+            None => return Ok(()),
+        };
+
+        let xlsx_bytes = convert_to_xlsx(sheet)?;
+
+        let handle = tokio::runtime::Handle::current();
+        handle
+            .block_on(async {
+                drive
+                    .put_object(
+                        &src_bucket,
+                        &src_path,
+                        xlsx_bytes,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                    .await
+            })
+            .map_err(|e| format!("Failed to save xlsx back to Drive: {e}"))?;
+
+        Ok(())
+    })
 }

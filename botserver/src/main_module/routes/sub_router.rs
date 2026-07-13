@@ -233,7 +233,13 @@ fn inner_build_sub_router(
             Arc::new(crate::sheet::drive_adapter::DriveOpsAdapter(d.clone()))
                 as Arc<dyn crate::sheet::state::DriveOps>
         });
-        let sheet_state = Arc::new(crate::sheet::state::SheetState::new(sheet_drive));
+        let mut sheet_state = crate::sheet::state::SheetState::new(sheet_drive.clone());
+        // Wire xlsx save-back hook: every sheet save also writes back
+        // to the original .xlsx in Drive (if loaded from one).
+        if let Some(ref drive) = sheet_drive {
+            sheet_state.on_save = Some(crate::sheet::storage::create_save_back_hook(drive.clone()));
+        }
+        let sheet_state = Arc::new(sheet_state);
         sub_router = sub_router.merge(crate::sheet::routes::configure_sheet_routes().with_state(sheet_state));
     }
 

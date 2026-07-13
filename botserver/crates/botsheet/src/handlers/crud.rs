@@ -145,6 +145,8 @@ pub async fn handle_load_from_drive(
         updated_at: Utc::now(),
         named_ranges: None,
         external_links: None,
+        source_bucket: Some(req.bucket.clone()),
+        source_path: Some(req.path.clone()),
     };
 
     // Persist to Drive so subsequent /api/sheet/range calls find the data
@@ -170,6 +172,8 @@ pub async fn handle_save_sheet(
         updated_at: Utc::now(),
         named_ranges: None,
         external_links: None,
+    source_bucket: None,
+    source_path: None,
     };
 
     if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
