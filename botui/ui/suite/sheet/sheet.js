@@ -762,7 +762,7 @@
     if (window.GBAuthGuard) GBAuthGuard.injectLoginButton(document.getElementById("gb-auth-button"));
   }
 
-  window.addEventListener("DOMContentLoaded", function () {
+  function bootSheet() {
     initSidebar();
     initAuth();
     initCollab();
@@ -781,5 +781,11 @@
       window.SheetAPI = SheetAPI;
       window.SheetVirtualGrid = VirtualGrid;
     });
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootSheet);
+  } else {
+    bootSheet();
+  }
 })();
