@@ -30,6 +30,7 @@ botproviders = { workspace = true }
 botsecurity = { path = "../botsecurity" }
 botsecurity-crypto = { workspace = true }
 botproducts = { workspace = true, optional = true }
+botcoredirectory = { workspace = true }
 
 [features]
 saas = ["dep:botproducts"]
