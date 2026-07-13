@@ -102,6 +102,8 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' },
     { id: "minutes", title: "Minutes", category: "office", color: "#8b5cf6", hxGet: "/suite/minutes/minutes.html",
       icon: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>' },
+    { id: "sheet", title: "Sheets", category: "office", color: "#0f9d58", hxGet: "/suite/sheets/sheets.html",
+      icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>' },
   ];
 
   window.APPS_REGISTRY = APPS_REGISTRY;

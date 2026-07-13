@@ -38,7 +38,7 @@ async fn cloud_jwt_middleware(
     let path = request.uri().path().to_string();
 
     // Skip auth for public endpoints
-    if path.starts_with("/api/cloud/auth/") {
+    if path.starts_with("/api/cloud/auth/") || path.starts_with("/api/domains/resolve") {
         return next.run(request).await;
     }
 
@@ -208,6 +208,11 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/tenant/settings/byok", post(handle_save_byok))
         // Admin
         .route("/api/cloud/admin/server-capacity", get(get_server_capacity))
+        // Domains (CRUD — admin only, all require JWT)
+        .route("/api/cloud/domains", get(crate::domains::list_domains).post(crate::domains::create_domain))
+        .route("/api/cloud/domains/{id}", put(crate::domains::update_domain).delete(crate::domains::delete_domain))
+        // Domain resolution (public — no JWT required)
+        .route("/api/domains/resolve", get(crate::domains::resolve_domain))
         // JWT auth middleware — protects all routes except /api/cloud/auth/*
         .layer(middleware::from_fn(cloud_jwt_middleware))
         .layer(axum::Extension(jwt_secret))

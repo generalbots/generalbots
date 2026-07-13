@@ -135,16 +135,20 @@ pub async fn handle_load_from_drive(
     };
 
     let user_id = get_current_user_id();
+    let sheet_id = Uuid::new_v4().to_string();
     let sheet = Spreadsheet {
-        id: Uuid::new_v4().to_string(),
+        id: sheet_id.clone(),
         name: sheet_name,
-        owner_id: user_id,
+        owner_id: user_id.clone(),
         worksheets,
         created_at: Utc::now(),
         updated_at: Utc::now(),
         named_ranges: None,
         external_links: None,
     };
+
+    // Persist to Drive so subsequent /api/sheet/range calls find the data
+    let _ = save_sheet_to_drive(&*state, &user_id, &sheet).await;
 
     Ok(Json(sheet))
 }

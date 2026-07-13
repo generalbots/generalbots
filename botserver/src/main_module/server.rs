@@ -101,7 +101,7 @@ pub async fn run_axum_server(
             "/api/health".into(), "/api/auth".into(), "/api/auth/login".into(),
             "/api/auth/refresh".into(), "/api/auth/bootstrap".into(), "/api/setup/status".into(),
             "/api/product".into(), "/api/manifest".into(), "/api/i18n".into(),
-            "/api/client-errors".into(), "/api/cloud/auth*".into(),             "/api/auth/cloud-sso".into(),
+            "/api/client-errors".into(), "/api/cloud/auth*".into(), "/api/sheet*".into(), "/suite/sheet*".into(),            "/api/auth/cloud-sso".into(),
             "/api/auth/suite-sso".into(),
             "/api/auth/unified-login".into(), "/api/catalog".into(), "/ws".into(),
             "/ws/".into(), "/webhook/whatsapp".into(), "/webhook".into(),
@@ -196,8 +196,6 @@ fn build_base_router(
     let base_router = add_calendar_routes(base_router, &app_state);
     #[cfg(feature = "mail")]
     let base_router = add_mail_routes(base_router, &app_state);
-    #[cfg(feature = "sheet")]
-    let base_router = add_sheet_routes(base_router);
     #[cfg(feature = "slides")]
     let base_router = add_slides_routes(base_router, &app_state);
     #[cfg(feature = "plan")]
@@ -342,11 +340,6 @@ fn add_mail_routes(r: Router, s: &Arc<AppState>) -> Router {
         secrets_provider: Arc::new(|_key: &str| Err("secrets not available".to_string())),
     };
     r.merge(crate::email::routes::configure(Arc::new(email_state)))
-}
-
-#[cfg(feature = "sheet")]
-fn add_sheet_routes(r: Router) -> Router {
-    r.merge(crate::sheet::routes::configure_sheet_routes().with_state(Arc::new(crate::sheet::state::SheetState { drive: None })))
 }
 
 #[cfg(feature = "slides")]

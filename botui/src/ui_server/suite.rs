@@ -18,14 +18,60 @@ pub struct SuiteQueryParams {
     pub bot_name: Option<String>,
 }
 
+/// Resolve a hostname to a bot name via the botserver domain API.
+async fn resolve_bot_from_host(state: &AppState, host: &str) -> Option<String> {
+    let resolve_url = format!("{}/api/domains/resolve?host={}", state.client.base_url(), urlencoding(host));
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+    match client.get(&resolve_url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            if let Ok(data) = resp.json::<serde_json::Value>().await {
+                let found = data.get("found").and_then(|v| v.as_bool()).unwrap_or(false);
+                if found {
+                    return data.get("bot_name").and_then(|v| v.as_str()).map(|s| s.to_string());
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+fn urlencoding(s: &str) -> String {
+    s.chars().fold(String::new(), |mut acc, c| {
+        match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' | '~' => acc.push(c),
+            _ => acc.push_str(&format!("%{:02X}", c as u8)),
+        }
+        acc
+    })
+}
+
 pub async fn index(
     State(state): State<AppState>,
     OriginalUri(uri): OriginalUri,
     headers: axum::http::HeaderMap,
 ) -> Response {
     let path = uri.path();
+
+    // Check Host header for domain-based bot resolution
+    let domain_resolved_bot = headers
+        .get(axum::http::header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|host| {
+            // Strip port if present (e.g., "chat.generalbots.org:3000" -> "chat.generalbots.org")
+            let host_clean = host.split(':').next().unwrap_or(host);
+            if host_clean.contains('.') && !host_clean.starts_with("localhost") {
+                Some(host_clean.to_lowercase())
+            } else {
+                None
+            }
+        });
+
     let path_parts: Vec<&str> = path.split('/').collect();
-    let bot_name = path_parts
+    let mut bot_name = path_parts
         .iter()
         .rev()
         .find(|part| {
@@ -42,6 +88,15 @@ pub async fn index(
                 && !part.ends_with(".css")
         })
         .map(|s| s.to_string());
+
+    // If no bot in URL path and we have a domain, try to resolve it
+    if bot_name.is_none() {
+        if let Some(ref host) = domain_resolved_bot {
+            if let Some(resolved) = resolve_bot_from_host(&state, host).await {
+                bot_name = Some(resolved);
+            }
+        }
+    }
 
     // Suite directories that can be accessed directly without bot auth
     let suite_dirs: &[&str] = &["drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "settings", "about", "tools", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "m365", "minutes", "office365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "vision"];
@@ -205,24 +260,13 @@ pub async fn index(
         return StatusCode::NOT_FOUND.into_response();
     }
 
-    let path_parts: Vec<&str> = path.split('/').collect();
-    let bot_name = path_parts
-        .iter()
-        .rev()
-        .find(|part| {
-            !part.is_empty()
-                && **part != "chat"
-                && **part != "app"
-                && **part != "ws"
-                && **part != "ui"
-                && **part != "api"
-                && **part != "auth"
-                && **part != "suite"
-                && **part != "cloud"
-                && !part.ends_with(".js")
-                && !part.ends_with(".css")
-        })
-        .map(|s| s.to_string());
+    if bot_name.is_none() {
+        if let Some(ref host) = domain_resolved_bot {
+            if let Some(resolved) = resolve_bot_from_host(&state, host).await {
+                bot_name = Some(resolved);
+            }
+        }
+    }
 
     info!(
         "index: Extracted bot_name: {:?} from path: {}",

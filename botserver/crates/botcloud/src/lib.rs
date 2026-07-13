@@ -3,6 +3,7 @@ pub mod integration;
 pub mod notifier;
 pub mod cloud_ui;
 pub mod vouchers;
+pub mod domains;
 pub mod schema_ext;
 pub mod stripe;
 pub mod webhook;

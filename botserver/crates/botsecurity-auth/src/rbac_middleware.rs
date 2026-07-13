@@ -1143,10 +1143,10 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/paper/**", "DELETE", ""),
 
         // Sheet
-        RoutePermission::new("/api/sheet/**", "GET", ""),
-        RoutePermission::new("/api/sheet/**", "POST", ""),
-        RoutePermission::new("/api/sheet/**", "PUT", ""),
-        RoutePermission::new("/api/sheet/**", "DELETE", ""),
+        RoutePermission::new("/api/sheet/**", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/sheet/**", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/sheet/**", "PUT", "").with_anonymous(true),
+        RoutePermission::new("/api/sheet/**", "DELETE", "").with_anonymous(true),
 
         // Slides
         RoutePermission::new("/api/slides/**", "GET", ""),

@@ -229,7 +229,11 @@ fn inner_build_sub_router(
 
     #[cfg(feature = "sheet")]
     {
-        let sheet_state = Arc::new(crate::sheet::state::SheetState::new(None));
+        let sheet_drive = app_state.drive.as_ref().map(|d| {
+            Arc::new(crate::sheet::drive_adapter::DriveOpsAdapter(d.clone()))
+                as Arc<dyn crate::sheet::state::DriveOps>
+        });
+        let sheet_state = Arc::new(crate::sheet::state::SheetState::new(sheet_drive));
         sub_router = sub_router.merge(crate::sheet::routes::configure_sheet_routes().with_state(sheet_state));
     }
 

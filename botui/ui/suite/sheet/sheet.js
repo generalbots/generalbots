@@ -12,7 +12,7 @@
   const OVERSCAN = 5;
   const MAX_VISIBLE_ROWS = 60;
   let WORKSHEET_INDEX = 0;
-  const DEFAULT_SHEET_ID = "current";
+  function currentSheetId() { return window.__SHEET_INITIAL_ID || "current"; }
 
   function $(s, r) { return (r || document).querySelector(s); }
   function $$(s, r) { return Array.from((r || document).querySelectorAll(s)); }
@@ -113,8 +113,8 @@
       this.root.appendChild(this.scrollArea);
 
       this.scrollArea.addEventListener("scroll", this.onScroll.bind(this), { passive: true });
-      this.updateViewport();
       host.appendChild(this.root);
+      this.updateViewport();
       this.renderHeaders();
       this.requestRange();
     },
@@ -319,7 +319,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sheet_id: DEFAULT_SHEET_ID,
+          sheet_id: currentSheetId(),
           worksheet_index: WORKSHEET_INDEX,
           row: p.row,
           col: p.col,
@@ -333,7 +333,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sheet_id: DEFAULT_SHEET_ID,
+          sheet_id: currentSheetId(),
           worksheet_index: WORKSHEET_INDEX,
           formula: formula
         })
@@ -348,7 +348,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sheet_id: DEFAULT_SHEET_ID,
+          sheet_id: currentSheetId(),
           worksheet_index: WORKSHEET_INDEX,
           start_row: startRow,
           start_col: startCol,
@@ -373,7 +373,7 @@
       return fetch("/api/sheet/worksheets/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: DEFAULT_SHEET_ID })
+        body: JSON.stringify({ id: currentSheetId() })
       }).then(function (r) { return r.text(); });
     },
 
@@ -382,7 +382,7 @@
       return fetch("/api/sheet/worksheets/switch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: DEFAULT_SHEET_ID, index: index })
+        body: JSON.stringify({ id: currentSheetId(), index: index })
       }).then(function (r) { return r.text(); });
     },
 
@@ -390,7 +390,7 @@
       return fetch("/api/sheet/worksheets/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: DEFAULT_SHEET_ID, index: index })
+        body: JSON.stringify({ id: currentSheetId(), index: index })
       }).then(function (r) { return r.text(); });
     },
 
@@ -398,7 +398,7 @@
       return fetch("/api/sheet/worksheets/rename", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: DEFAULT_SHEET_ID, index: index, name: name })
+        body: JSON.stringify({ id: currentSheetId(), index: index, name: name })
       }).then(function (r) { return r.json(); });
     }
   };
@@ -528,7 +528,7 @@
     const connStatus = document.getElementById("gb-conn-status");
     window.GBCollab.connect({
       app: "sheet",
-      docId: DEFAULT_SHEET_ID,
+      docId: currentSheetId(),
       collaboratorsEl: document.getElementById("collaborators"),
       onConnect: function () {
         if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "online"; }
@@ -563,15 +563,19 @@
     initSidebar();
     initAuth();
     initCollab();
-    const host = document.getElementById("sheet-content");
-    if (host) {
-      VirtualGrid.init(host);
-      if (window.SheetAdvanced && window.SheetAdvanced.init) {
-        const adv = window.SheetAdvanced.init(host, { sheetId: (host.dataset.sheetId || "current") });
-        if (adv) window.SheetAdvancedInstance = adv;
+    // Wait for boot script to load xlsx from Drive before init'ing
+    var bootPromise = window.__SHEET_BOOT || Promise.resolve();
+    bootPromise.then(function () {
+      var host = document.getElementById("sheet-content");
+      if (host) {
+        VirtualGrid.init(host);
+        if (window.SheetAdvanced && window.SheetAdvanced.init) {
+          var adv = window.SheetAdvanced.init(host, { sheetId: (host.dataset.sheetId || "current") });
+          if (adv) window.SheetAdvancedInstance = adv;
+        }
       }
-    }
-    window.SheetAPI = SheetAPI;
-    window.SheetVirtualGrid = VirtualGrid;
+      window.SheetAPI = SheetAPI;
+      window.SheetVirtualGrid = VirtualGrid;
+    });
   });
 })();
