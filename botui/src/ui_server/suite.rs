@@ -245,13 +245,14 @@ pub async fn index(
         {
             if let Ok(bytes) = tokio::fs::read(&full_path).await {
                 let mime = mime_guess::from_path(&full_path).first_or_octet_stream();
-                return (StatusCode::OK, [("content-type", mime.as_ref())], bytes).into_response();
+                let content_type = if mime.as_ref() == "text/html" { "text/html; charset=utf-8" } else { mime.as_ref() };
+                return (StatusCode::OK, [("content-type", content_type)], bytes).into_response();
             }
             // Directory index: serve index.html for directories
             if full_path.is_dir() {
                 let index_path = full_path.join("index.html");
                 if let Ok(bytes) = tokio::fs::read(&index_path).await {
-                    return (StatusCode::OK, [("content-type", "text/html")], bytes).into_response();
+                    return (StatusCode::OK, [("content-type", "text/html; charset=utf-8")], bytes).into_response();
                 }
             }
         }

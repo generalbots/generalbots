@@ -33,14 +33,14 @@
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group format-group">
-                <button class="btn-icon" id="boldBtn" title="Bold" hx-post="/api/sheet/format" hx-vals='{"id":"current","action":"bold"}' hx-swap="none"><strong>B</strong></button>
-                <button class="btn-icon" id="italicBtn" title="Italic" hx-post="/api/sheet/format" hx-vals='{"id":"current","action":"italic"}' hx-swap="none"><em>I</em></button>
-                <button class="btn-icon" id="underlineBtn" title="Underline" hx-post="/api/sheet/format" hx-vals='{"id":"current","action":"underline"}' hx-swap="none"><u>U</u></button>
-                <button class="btn-icon" id="strikeBtn" title="Strikethrough" hx-post="/api/sheet/format" hx-vals='{"id":"current","action":"strikethrough"}' hx-swap="none"><s>S</s></button>
+                <button class="btn-icon" id="boldBtn" title="Bold" type="button"><strong>B</strong></button>
+                <button class="btn-icon" id="italicBtn" title="Italic" type="button"><em>I</em></button>
+                <button class="btn-icon" id="underlineBtn" title="Underline" type="button"><u>U</u></button>
+                <button class="btn-icon" id="strikeBtn" title="Strikethrough" type="button"><s>S</s></button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="mergeCellsBtn" hx-post="/api/sheet/merge" hx-vals='{"id":"current"}' hx-swap="none" title="Merge Cells">
+                <button class="btn-icon" id="mergeCellsBtn" title="Merge Cells" type="button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
                 </button>
                 <button class="btn-icon" id="conditionalFormatBtn" hx-get="/suite/sheet/modals/conditional-format" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Conditional Formatting">
@@ -77,13 +77,18 @@
         </div>
     </div>
 
+    <div class="formula-bar" style="display:flex;align-items:center;padding:6px 12px;background:#0f172a;border-bottom:1px solid #334155;gap:12px;flex-shrink:0;">
+        <input type="text" id="cellAddress" class="cell-address" readonly value="" style="width:80px;padding:4px 8px;background:#1e293b;border:1px solid #334155;border-radius:4px;font-size:13px;font-weight:500;font-family:monospace;text-align:center;color:#f8fafc;" />
+        <span class="formula-icon" style="color:#94a3b8;font-style:italic;font-weight:500;font-size:14px;">fx</span>
+        <input type="text" id="formulaInput" class="formula-input" placeholder="Enter value or formula" style="flex:1;padding:6px 10px;border:1px solid #334155;border-radius:4px;font-size:13px;font-family:monospace;background:#1e293b;color:#f8fafc;" />
+    </div>
     <div class="sheet-main">
         <aside class="sheet-sidebar" id="sheet-sidebar" style="width:240px;background:#0f172a;border-right:1px solid #334155;display:flex;flex-direction:column;">
             <div class="sidebar-tabs" style="display:flex;border-bottom:1px solid #334155;">
                 <button class="sidebar-tab active" data-sidebar-tab="files" style="flex:1;padding:8px;background:#1e293b;color:#f8fafc;border:none;cursor:pointer;font-size:12px;">📁 Arquivos</button>
                 <button class="sidebar-tab" data-sidebar-tab="panels" style="flex:1;padding:8px;background:#0f172a;color:#94a3b8;border:none;cursor:pointer;font-size:12px;">📊 Painéis</button>
             </div>
-            <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files" hx-get="/api/sheet/list" hx-trigger="load" hx-ext="json-enc" hx-target="this" hx-swap="innerHTML"></div>
+            <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files"></div>
             <div class="sidebar-content" id="sidebar-panels" data-sidebar-content="panels" style="display:none;flex-direction:column;padding:8px;gap:6px;">
                 <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/named-ranges" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📐 Ranges Nomeados</button>
                 <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/charts" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📊 Gráficos</button>
@@ -105,6 +110,79 @@
 </div>
 
 <script>
+/* Load sidebar dynamically from JSON API and render as HTML */
+function newSheet() {
+    fetch('/api/sheet/new').then(function(r){ return r.json(); }).then(function(s){
+        window.__LOADED_SHEET = s;
+        window.__SHEET_INITIAL_ID = s.id;
+        var host = document.getElementById('sheet-content');
+        if (!host) return;
+        host.innerHTML = '';
+        if (window.SheetVirtualGrid) {
+            var VG = window.SheetVirtualGrid;
+            VG.cells = new Map();
+            VG.pool = [];
+            VG.usedCount = 0;
+            VG.requestSeq = 0;
+            VG.lastRenderedRange = null;
+            VG.selectedRow = 0;
+            VG.selectedCol = 0;
+            VG.editingCell = null;
+            VG.selectionOverlay = null;
+            VG.headerColPool = [];
+            VG.init(host);
+        }
+    });
+}
+function loadSidebar() {
+    var el = document.getElementById('sidebar-files');
+    if (!el) return;
+    fetch('/api/sheet/list').then(function(r){ return r.json(); }).then(function(items){
+        if (!items || items.length === 0) {
+            el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-style:italic;">Nenhuma planilha. Crie uma nova para começar.</div>';
+            return;
+        }
+        var html = '<div class="ss-sidebar" id="sheet-list-sidebar"><div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;font-size:14px;">Minhas Planilhas</h3><button class="btn-icon" onclick="newSheet()" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Nova</button></div><div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
+        for (var i = 0; i < items.length; i++) {
+            var m = items[i];
+            html += '<div class="ss-metadata-card" onclick="loadSheet(\'' + m.id + '\')" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;"><div style="font-weight:600;color:#f8fafc;">' + escHtml(m.name) + '</div><div style="font-size:12px;color:#94a3b8;margin-top:4px;">' + (m.worksheet_count || 0) + ' planilha(s)</div></div>';
+        }
+        html += '</div></div>';
+        el.innerHTML = html;
+    }).catch(function(){
+        el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-style:italic;">Erro ao carregar planilhas.</div>';
+    });
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function loadSheet(id) {
+    window.__SHEET_INITIAL_ID = id;
+    var host = document.getElementById('sheet-content');
+    if (host) host.innerHTML = '<div style="padding:20px;color:#94a3b8;text-align:center;">Loading...</div>';
+    // Load the worksheet tabs HTML from server, then init VirtualGrid
+    fetch('/api/sheet/load?id=' + encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(sheet){
+        window.__LOADED_SHEET = sheet;
+        if (!host) return;
+        host.innerHTML = '';
+        // Re-initialize VirtualGrid with fresh state
+        if (window.SheetVirtualGrid) {
+            // Reset VirtualGrid state completely
+            var VG = window.SheetVirtualGrid;
+            VG.cells = new Map();
+            VG.pool = [];
+            VG.usedCount = 0;
+            VG.requestSeq = 0;
+            VG.lastRenderedRange = null;
+            VG.selectedRow = 0;
+            VG.selectedCol = 0;
+            VG.editingCell = null;
+            VG.selectionOverlay = null;
+            VG.headerColPool = [];
+            VG.init(host);
+        }
+    }).catch(function(){
+        if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">Error loading sheet.</div>';
+    });
+}
 if (typeof htmx === 'undefined') {
     var s = document.createElement('script');
     s.src = 'js/vendor/htmx.min.js';
@@ -120,6 +198,7 @@ if (typeof htmx === 'undefined') {
 <script>
 /* Boot: MUST run before sheet.js — load xlsx from Drive URL params */
 (function(){
+  setTimeout(loadSidebar, 100);
   var params = new URLSearchParams(window.location.search);
   var bucket = params.get('bucket');
   var path = params.get('path');

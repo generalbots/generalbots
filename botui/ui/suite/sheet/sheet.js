@@ -39,6 +39,26 @@
     return { col: colIdx(m[1]), row: parseInt(m[2], 10) - 1 };
   }
 
+  function updateFormulaBar() {
+    const addrEl = document.getElementById("cellAddress");
+    const formulaEl = document.getElementById("formulaInput");
+    if (!addrEl) return;
+    if (VirtualGrid.selectedRow == null || VirtualGrid.selectedCol == null) {
+      addrEl.value = "";
+      if (formulaEl) formulaEl.value = "";
+      return;
+    }
+    const ref = colName(VirtualGrid.selectedCol) + (VirtualGrid.selectedRow + 1);
+    addrEl.value = ref;
+    if (formulaEl) {
+      const key = VirtualGrid.selectedRow + "," + VirtualGrid.selectedCol;
+      const cellData = VirtualGrid.cells.get(key);
+      const formula = cellData && cellData.formula ? cellData.formula : "";
+      const val = cellData && cellData.value ? cellData.value : "";
+      formulaEl.value = formula ? formula : val;
+    }
+  }
+
   document.addEventListener("click", function (e) {
     const tab = e.target.closest("[data-sidebar-tab]");
     if (tab) {
@@ -64,6 +84,21 @@
     }
   }
 
+  function clearSelectionOverlay() {
+    if (VirtualGrid.selectionOverlay) {
+      VirtualGrid.selectionOverlay.style.display = "none";
+    }
+  }
+
+  function positionSelectionOverlay(row, col) {
+    if (!VirtualGrid.selectionOverlay) return;
+    VirtualGrid.selectionOverlay.style.display = "block";
+    VirtualGrid.selectionOverlay.style.left = (HEADER_WIDTH + col * COL_WIDTH - 1) + "px";
+    VirtualGrid.selectionOverlay.style.top = (row * ROW_HEIGHT - 1) + "px";
+    VirtualGrid.selectionOverlay.style.width = (COL_WIDTH + 2) + "px";
+    VirtualGrid.selectionOverlay.style.height = (ROW_HEIGHT + 2) + "px";
+  }
+
   const VirtualGrid = {
     totalRows: DEFAULT_TOTAL_ROWS,
     totalCols: DEFAULT_TOTAL_COLS,
@@ -80,6 +115,10 @@
     body: null,
     requestSeq: 0,
     lastRenderedRange: null,
+    selectedRow: 0,
+    selectedCol: 0,
+    editingCell: null,
+    selectionOverlay: null,
 
     init: function (host) {
       this.root = document.createElement("div");
@@ -112,11 +151,22 @@
       this.root.appendChild(this.headerRow);
       this.root.appendChild(this.scrollArea);
 
+      // Selection overlay inside bodyInner so it scrolls naturally
+      this.selectionOverlay = document.createElement("div");
+      this.selectionOverlay.className = "vg-selection";
+      this.selectionOverlay.style.cssText = "position:absolute;border:2px solid #3b82f6;background:rgba(59,130,246,0.08);pointer-events:none;z-index:10;display:none;";
+      this.bodyInner.appendChild(this.selectionOverlay);
+
       this.scrollArea.addEventListener("scroll", this.onScroll.bind(this), { passive: true });
       host.appendChild(this.root);
       this.updateViewport();
       this.renderHeaders();
       this.requestRange();
+      // Select first cell by default
+      var self = this;
+      setTimeout(function () {
+        self.selectCell(0, 0);
+      }, 100);
     },
 
     updateViewport: function () {
@@ -224,10 +274,13 @@
       } else {
         node = document.createElement("div");
         node.className = "vg-cell";
-        node.contentEditable = "true";
-        node.style.cssText = "position:absolute;background:#0f172a;color:#f8fafc;border-right:1px solid #334155;border-bottom:1px solid #334155;padding:2px 4px;font-size:12px;overflow:hidden;outline:none;box-sizing:border-box;";
-        node.addEventListener("focus", this.onCellFocus);
-        node.addEventListener("blur", this.onCellBlur);
+        node.contentEditable = "false";
+        node.tabIndex = -1;
+        node.style.cssText = "position:absolute;background:#0f172a;color:#f8fafc;border-right:1px solid #334155;border-bottom:1px solid #334155;padding:2px 4px;font-size:12px;overflow:hidden;outline:none;box-sizing:border-box;cursor:pointer;";
+        node.addEventListener("mousedown", this.onCellMouseDown.bind(this));
+        node.addEventListener("dblclick", this.onCellDblClick.bind(this));
+        node.addEventListener("blur", this.onCellBlur.bind(this));
+        node.addEventListener("keydown", this.onCellKeyDown.bind(this));
         this.bodyInner.appendChild(node);
         this.pool.push(node);
       }
@@ -235,34 +288,80 @@
       return node;
     },
 
-    onCellFocus: function (e) {
-      e.target.style.outline = "2px solid #3b82f6";
-      e.target.style.zIndex = "5";
-      const ref = e.target.dataset.ref || "";
-      
-      e.target.dataset.origVal = e.target.textContent || "";
-      if (e.target.dataset.formula) {
-        e.target.textContent = e.target.dataset.formula;
-      }
-      
-      if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
-        const p = parseCellRef(ref);
-        if (p) window.GBCollab.sendCursor(p.row * VirtualGrid.totalCols + p.col);
+    onCellMouseDown: function (e) {
+      if (e.button !== 0) return;
+      var row = parseInt(e.target.dataset.row, 10);
+      var col = parseInt(e.target.dataset.col, 10);
+      if (!isNaN(row) && !isNaN(col)) {
+        this.selectCell(row, col);
       }
     },
 
+    selectCell: function (row, col) {
+      this.selectedRow = row;
+      this.selectedCol = col;
+      positionSelectionOverlay(row, col);
+      updateFormulaBar();
+      this.ensureVisible(row, col);
+      // Focus the cell element so keyboard events reach it
+      var cellEl = this.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
+      if (cellEl) cellEl.focus({preventScroll: true});
+      if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
+        window.GBCollab.sendCursor(row * this.totalCols + col);
+      }
+    },
+
+    ensureVisible: function (row, col) {
+      var viewTop = this.scrollTop;
+      var viewBottom = viewTop + this.viewportHeight;
+      var viewLeft = this.scrollLeft;
+      var viewRight = viewLeft + this.viewportWidth;
+      var cellTop = row * ROW_HEIGHT;
+      var cellBottom = cellTop + ROW_HEIGHT;
+      var cellLeft = HEADER_WIDTH + col * COL_WIDTH;
+      var cellRight = cellLeft + COL_WIDTH;
+      if (cellTop < viewTop) this.scrollArea.scrollTop = cellTop - 10;
+      else if (cellBottom > viewBottom) this.scrollArea.scrollTop = cellBottom - this.viewportHeight + 10;
+      if (cellLeft < viewLeft + HEADER_WIDTH) this.scrollArea.scrollLeft = cellLeft - HEADER_WIDTH - 10;
+      else if (cellRight > viewRight) this.scrollArea.scrollLeft = cellRight - this.viewportWidth + 10;
+    },
+
+    onCellDblClick: function (e) {
+      var cell = e.target;
+      cell.contentEditable = "true";
+      this.editingCell = cell;
+      cell.dataset.origVal = cell.textContent || "";
+      if (cell.dataset.formula) {
+        cell.textContent = cell.dataset.formula;
+      }
+      // Focus and place cursor at end
+      var range = document.createRange();
+      var sel = window.getSelection();
+      range.selectNodeContents(cell);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      cell.focus();
+    },
+
     onCellBlur: function (e) {
-      e.target.style.outline = "none";
-      e.target.style.zIndex = "1";
-      const ref = e.target.dataset.ref;
-      const val = e.target.textContent || "";
-      const origVal = e.target.dataset.origVal || "";
-      
+      var cell = e.target;
+      // Only process if this cell was being edited
+      if (this.editingCell !== cell) return;
+      this.editingCell = null;
+      cell.contentEditable = "false";
+      cell.style.outline = "none";
+      cell.style.zIndex = "1";
+
+      const ref = cell.dataset.ref;
+      const val = cell.textContent || "";
+      const origVal = cell.dataset.origVal || "";
+
       if (val === origVal) {
-        if (e.target.dataset.formula) {
-          const key = e.target.dataset.row + "," + e.target.dataset.col;
+        if (cell.dataset.formula) {
+          const key = cell.dataset.row + "," + cell.dataset.col;
           const cellData = VirtualGrid.cells.get(key);
-          e.target.textContent = cellData ? (cellData.value || "") : "";
+          cell.textContent = cellData ? (cellData.value || "") : "";
         }
         return;
       }
@@ -283,9 +382,97 @@
       }
     },
 
+    onCellKeyDown: function (e) {
+      var cell = e.target;
+      var row = parseInt(cell.dataset.row, 10);
+      var col = parseInt(cell.dataset.col, 10);
+      if (isNaN(row) || isNaN(col)) return;
+
+      var isEditing = (this.editingCell === cell);
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (isEditing) {
+          // Finish editing, move down
+          cell.blur();
+          this.selectCell(row + 1, col);
+          var next = this.bodyInner.querySelector('[data-row="' + (row + 1) + '"][data-col="' + col + '"]');
+          if (!next && row + 1 < this.totalRows) {
+            this.scrollArea.scrollTop += ROW_HEIGHT;
+          }
+        } else {
+          // Enter edit mode on selected cell
+          this.startEditingCell(cell);
+        }
+      } else if (e.key === "Tab") {
+        e.preventDefault();
+        if (isEditing) cell.blur();
+        this.selectCell(row, col + 1);
+      } else if (e.key === "ArrowDown" && !isEditing) {
+        e.preventDefault();
+        this.selectCell(row + 1, col);
+      } else if (e.key === "ArrowUp" && !isEditing) {
+        e.preventDefault();
+        if (row > 0) this.selectCell(row - 1, col);
+      } else if (e.key === "ArrowRight" && !isEditing) {
+        e.preventDefault();
+        this.selectCell(row, col + 1);
+      } else if (e.key === "ArrowLeft" && !isEditing) {
+        e.preventDefault();
+        if (col > 0) this.selectCell(row, col - 1);
+      } else if ((e.key === "F2") && !isEditing) {
+        e.preventDefault();
+        this.startEditingCell(cell);
+      } else if (isEditing) {
+        if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
+          var ref = cell.dataset.ref || "";
+          var p = parseCellRef(ref);
+          if (p) window.GBCollab.debouncedTypingStart(p.row * VirtualGrid.totalCols + p.col);
+        }
+      }
+    },
+
+    startEditingCell: function (cell) {
+      if (!cell) return;
+      cell.contentEditable = "true";
+      this.editingCell = cell;
+      cell.dataset.origVal = cell.textContent || "";
+      if (cell.dataset.formula) {
+        cell.textContent = cell.dataset.formula;
+      }
+      cell.focus();
+      var range = document.createRange();
+      var sel = window.getSelection();
+      range.selectNodeContents(cell);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    },
+
+    exitEditMode: function () {
+      if (this.editingCell) {
+        this.editingCell.blur();
+      }
+    },
+
     markCellComputed: function (ref, result) {
       const el = this.bodyInner.querySelector('[data-ref="' + ref + '"]');
       if (el) el.dataset.formulaResult = result;
+    },
+
+    applyCellStyle: function (node, cellData) {
+      if (!cellData || !cellData.style) return;
+      var s = cellData.style;
+      if (s.font_weight) node.style.fontWeight = s.font_weight;
+      if (s.font_style) node.style.fontStyle = s.font_style;
+      if (s.text_decoration) node.style.textDecoration = s.text_decoration;
+      if (s.font_family) node.style.fontFamily = s.font_family;
+      if (s.font_size) node.style.fontSize = s.font_size + 'px';
+      if (s.color) node.style.color = s.color;
+      if (s.background) node.style.backgroundColor = s.background;
+      if (s.text_align) node.style.textAlign = s.text_align;
+      if (s.vertical_align) node.style.verticalAlign = s.vertical_align;
+      if (s.border) node.style.border = s.border;
     },
 
     renderRow: function (row) {
@@ -307,7 +494,52 @@
         node.style.top = (row * ROW_HEIGHT) + "px";
         node.style.width = COL_WIDTH + "px";
         node.style.height = ROW_HEIGHT + "px";
+        // Reset style then apply cell-level style
+        node.style.fontWeight = "";
+        node.style.fontStyle = "";
+        node.style.textDecoration = "";
+        node.style.fontFamily = "";
+        node.style.fontSize = "12px";
+        node.style.color = "#f8fafc";
+        node.style.backgroundColor = "#0f172a";
+        this.applyCellStyle(node, cellData);
+        if (this.editingCell !== node) {
+          node.contentEditable = "false";
+          node.style.outline = "none";
+          node.style.zIndex = "1";
+        }
       }
+    },
+
+    // Format the currently selected cell with given style properties
+    formatSelectedCell: function (styleProps) {
+      var row = this.selectedRow;
+      var col = this.selectedCol;
+      if (row == null || col == null) return Promise.resolve(null);
+      var self = this;
+      return fetch("/api/sheet/format", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheet_id: currentSheetId(),
+          worksheet_index: WORKSHEET_INDEX,
+          start_row: row,
+          start_col: col,
+          end_row: row,
+          end_col: col,
+          style: styleProps
+        })
+      }).then(function (r) { return r.json(); }).then(function () {
+        // Update local cell data and re-render the cell
+        var key = row + "," + col;
+        var existing = self.cells.get(key) || {};
+        var mergedStyle = Object.assign({}, existing.style || {}, styleProps);
+        existing.style = mergedStyle;
+        self.cells.set(key, existing);
+        // Re-render just this cell
+        var node = self.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
+        if (node) self.applyCellStyle(node, existing);
+      }).catch(function () { return null; });
     }
   };
 
@@ -414,106 +646,77 @@
     if (!isNaN(saved) && saved >= 0) WORKSHEET_INDEX = saved;
   } catch (_) {}
 
-  document.addEventListener("keydown", function (e) {
-    if (!(e.target && e.target.classList && e.target.classList.contains("vg-cell"))) return;
-    const row = parseInt(e.target.dataset.row, 10);
-    const col = parseInt(e.target.dataset.col, 10);
-    if (isNaN(row) || isNaN(col)) return;
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const next = VirtualGrid.bodyInner.querySelector('[data-row="' + (row + 1) + '"][data-col="' + col + '"]');
-      if (next) {
-        next.focus();
-      } else {
-        // Se a célula de baixo não está visível no DOM, realiza a rolagem vertical inteligente
-        VirtualGrid.scrollArea.scrollTop += ROW_HEIGHT;
-        setTimeout(function () {
-          const retry = VirtualGrid.bodyInner.querySelector('[data-row="' + (row + 1) + '"][data-col="' + col + '"]');
-          if (retry) retry.focus();
-        }, 50);
-      }
-    } else if (e.key === "Tab") {
-      e.preventDefault();
-      const next = VirtualGrid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + (col + 1) + '"]');
-      if (next) {
-        next.focus();
-      } else {
-        // Se a célula da direita não está visível no DOM, realiza a rolagem horizontal inteligente
-        VirtualGrid.scrollArea.scrollLeft += COL_WIDTH;
-        setTimeout(function () {
-          const retry = VirtualGrid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + (col + 1) + '"]');
-          if (retry) retry.focus();
-        }, 50);
-      }
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const next = VirtualGrid.bodyInner.querySelector('[data-row="' + (row + 1) + '"][data-col="' + col + '"]');
-      if (next) {
-        next.focus();
-      } else {
-        VirtualGrid.scrollArea.scrollTop += ROW_HEIGHT;
-        setTimeout(function () {
-          const retry = VirtualGrid.bodyInner.querySelector('[data-row="' + (row + 1) + '"][data-col="' + col + '"]');
-          if (retry) retry.focus();
-        }, 50);
-      }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const next = VirtualGrid.bodyInner.querySelector('[data-row="' + (row - 1) + '"][data-col="' + col + '"]');
-      if (next) {
-        next.focus();
-      } else {
-        if (row > 0) {
-          VirtualGrid.scrollArea.scrollTop -= ROW_HEIGHT;
-          setTimeout(function () {
-            const retry = VirtualGrid.bodyInner.querySelector('[data-row="' + (row - 1) + '"][data-col="' + col + '"]');
-            if (retry) retry.focus();
-          }, 50);
-        }
-      }
-    } else if (e.key === "ArrowRight") {
-      const sel = window.getSelection();
-      const isAtEnd = !e.target.textContent || (sel.rangeCount > 0 && sel.getRangeAt(0).startOffset === e.target.textContent.length);
-      if (isAtEnd) {
+  // Toolbar format button handlers
+  function initToolbar() {
+    var boldBtn = document.getElementById("boldBtn");
+    if (boldBtn) {
+      boldBtn.addEventListener("click", function (e) {
         e.preventDefault();
-        const next = VirtualGrid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + (col + 1) + '"]');
-        if (next) {
-          next.focus();
-        } else {
-          VirtualGrid.scrollArea.scrollLeft += COL_WIDTH;
-          setTimeout(function () {
-            const retry = VirtualGrid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + (col + 1) + '"]');
-            if (retry) retry.focus();
-          }, 50);
-        }
-      }
-    } else if (e.key === "ArrowLeft") {
-      const sel = window.getSelection();
-      const isAtStart = !e.target.textContent || (sel.rangeCount > 0 && sel.getRangeAt(0).startOffset === 0);
-      if (isAtStart) {
+        VirtualGrid.formatSelectedCell({ font_weight: "bold" });
+      });
+    }
+    var italicBtn = document.getElementById("italicBtn");
+    if (italicBtn) {
+      italicBtn.addEventListener("click", function (e) {
         e.preventDefault();
-        const next = VirtualGrid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + (col - 1) + '"]');
-        if (next) {
-          next.focus();
-        } else {
-          if (col > 0) {
-            VirtualGrid.scrollArea.scrollLeft -= COL_WIDTH;
-            setTimeout(function () {
-              const retry = VirtualGrid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + (col - 1) + '"]');
-              if (retry) retry.focus();
-            }, 50);
+        VirtualGrid.formatSelectedCell({ font_style: "italic" });
+      });
+    }
+    var underlineBtn = document.getElementById("underlineBtn");
+    if (underlineBtn) {
+      underlineBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ text_decoration: "underline" });
+      });
+    }
+    var strikeBtn = document.getElementById("strikeBtn");
+    if (strikeBtn) {
+      strikeBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ text_decoration: "line-through" });
+      });
+    }
+    var mergeBtn = document.getElementById("mergeCellsBtn");
+    if (mergeBtn) {
+      mergeBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        var row = VirtualGrid.selectedRow;
+        var col = VirtualGrid.selectedCol;
+        if (row == null || col == null) return;
+        fetch("/api/sheet/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sheet_id: currentSheetId(),
+            worksheet_index: WORKSHEET_INDEX,
+            start_row: row,
+            start_col: col,
+            end_row: row,
+            end_col: col
+          })
+        });
+      });
+    }
+    var formulaInput = document.getElementById("formulaInput");
+    if (formulaInput) {
+      formulaInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          var val = formulaInput.value;
+          if (VirtualGrid.selectedRow != null && VirtualGrid.selectedCol != null) {
+            var ref = colName(VirtualGrid.selectedCol) + (VirtualGrid.selectedRow + 1);
+            SheetAPI.updateCell(ref, val).then(function (res) {
+              if (res && res.success) {
+                VirtualGrid.lastRenderedRange = null;
+                VirtualGrid.requestRange();
+              }
+            });
           }
         }
-      }
-    } else if (e.target.textContent && e.target.textContent.startsWith("=")) {
-      if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
-        const ref = e.target.dataset.ref || "";
-        const p = parseCellRef(ref);
-        if (p) window.GBCollab.debouncedTypingStart(p.row * VirtualGrid.totalCols + p.col);
-      }
+      });
     }
-  });
+  }
+  window.initToolbar = initToolbar;
 
   window.addEventListener("resize", function () {
     if (VirtualGrid.root) {
@@ -563,6 +766,7 @@
     initSidebar();
     initAuth();
     initCollab();
+    initToolbar();
     // Wait for boot script to load xlsx from Drive before init'ing
     var bootPromise = window.__SHEET_BOOT || Promise.resolve();
     bootPromise.then(function () {
