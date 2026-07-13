@@ -111,6 +111,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    bot_domains (id) {
+        id -> Uuid,
+        domain -> Varchar,
+        bot_id -> Uuid,
+        org_id -> Nullable<Uuid>,
+        branch_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     cloud_voucher_redemptions (id) {
         id -> Uuid,
         voucher_id -> Uuid,

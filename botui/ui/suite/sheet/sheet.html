@@ -97,7 +97,7 @@
             </div>
         </aside>
 
-        <div class="sheet-content" id="sheet-content" hx-get="/suite/sheet/fragments/tabs" hx-vals='{"id":"new"}' hx-trigger="load" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;background:#0f172a;">
+        <div class="sheet-content" id="sheet-content" hx-post="/suite/sheet/fragments/tabs" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;background:#0f172a;">
         </div>
     </div>
 
@@ -117,4 +117,36 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/sheet/js/modules-sheet-advanced/01_core.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/02_conditional.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/03_charts.js"></script>
+<script>
+/* Boot: MUST run before sheet.js — load xlsx from Drive URL params */
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var bucket = params.get('bucket');
+  var path = params.get('path');
+
+  if (!bucket || !path) {
+    window.__SHEET_INITIAL_ID = "current";
+    window.__SHEET_BOOT = Promise.resolve();
+    return;
+  }
+
+  window.__SHEET_INITIAL_ID = "loading";
+  var fileName = path.split('/').pop() || 'Spreadsheet';
+  var nameInput = document.querySelector('.sheet-name-input');
+  if (nameInput) nameInput.value = fileName;
+
+  window.__SHEET_BOOT = fetch('/api/sheet/load-from-drive', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bucket: bucket, path: path })
+  }).then(function(r){ return r.json(); }).then(function(sheet){
+    window.__LOADED_SHEET = sheet;
+    window.__SHEET_INITIAL_ID = sheet.id;
+    if (nameInput) nameInput.value = sheet.name || fileName;
+  }).catch(function(err){
+    console.error('Sheet load error:', err);
+    window.__SHEET_INITIAL_ID = "current";
+  });
+})();
+</script>
 <script src="/suite/sheet/sheet.js"></script>

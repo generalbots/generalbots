@@ -125,6 +125,16 @@ async function openFile(path) {
             body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
         });
         const { app, url } = response;
+        if (app === "sheets" && window.WindowManager) {
+            const fileName = path.split("/").pop() || "Spreadsheet";
+            const ts = Date.now();
+            window.WindowManager.open("sheets-" + ts, fileName, "");
+            fetch(url).then(function (r) { return r.text(); }).then(function (html) {
+                var body = document.getElementById("window-body-sheets-" + ts);
+                if (body) window.WindowManager._injectBodyContent("sheets-" + ts, html);
+            });
+            return;
+        }
         if (window.htmx) {
             htmx.ajax("GET", url, { target: "#main-content", swap: "innerHTML" });
             window.history.pushState({}, "", "/#" + app + "?bucket=" + encodeURIComponent(currentBucket) + "&path=" + encodeURIComponent(path));

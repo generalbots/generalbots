@@ -3,37 +3,60 @@
 
 async function discoverBuckets() {
     try {
+        // Prefer user's own bucket from session (no API call needed)
+        if (userInfo && userInfo.bucket) {
+            var bucketName = userInfo.bucket;
+            currentBucket = bucketName;
+            if (bucketName.indexOf(".gborg") > 0) {
+                currentGborgBucket = bucketName;
+                currentGborgBranch = bucketName.replace(".gborg", "");
+            } else {
+                currentGborgBucket = null;
+                currentGborgBranch = null;
+            }
+            retryCount = 0;
+            return;
+        }
+
+        // Fallback: derive bucket from bot name (prefer .gborg, fallback .gbai)
         var botName = window.__INITIAL_BOT_NAME__ || window.location.pathname.split('/').filter(Boolean)[0] || '';
-        var url = botName ? '/buckets?bot=' + encodeURIComponent(botName) : '/buckets';
-        const buckets = await apiRequest(url);
-        availableBuckets = buckets || [];
-        retryCount = 0;
-
-        // Prefer the user's own org bucket (from suite session) over first alphabetically
-        var myBucketName = (userInfo && userInfo.bucket) || "";
-        var myBucket = null;
-        if (myBucketName) {
-            myBucket = availableBuckets.find(function(b) { return b.name === myBucketName; });
-        }
-        var gborg = myBucket || availableBuckets.find(function(b) { return b.is_gborg; });
-        var gbai = availableBuckets.find(function(b) { return b.is_gbai; });
-
-        if (gborg) {
-            currentGborgBucket = gborg.name;
-            var shortName = gborg.name.replace(".gborg", "");
-            currentGborgBranch = shortName;
-            currentBucket = gborg.name;
-        } else if (gbai) {
-            currentGborgBucket = null;
-            currentGborgBranch = null;
-            currentBucket = gbai.name;
-        } else if (availableBuckets.length > 0) {
-            currentGborgBucket = null;
-            currentGborgBranch = null;
-            currentBucket = availableBuckets[0].name;
+        if (botName) {
+            currentBucket = botName + ".gborg";
+            currentGborgBucket = currentBucket;
+            currentGborgBranch = botName;
+            return;
         }
 
-        updateBucketSelector();
+        // Admin-only: attempt API to list all buckets
+        try {
+            var url = botName ? '/buckets?bot=' + encodeURIComponent(botName) : '/buckets';
+            const buckets = await apiRequest(url);
+            availableBuckets = buckets || [];
+            retryCount = 0;
+
+            var gborg = availableBuckets.find(function(b) { return b.is_gborg; });
+            var gbai = availableBuckets.find(function(b) { return b.is_gbai; });
+
+            if (gborg) {
+                currentGborgBucket = gborg.name;
+                currentGborgBranch = gborg.name.replace(".gborg", "");
+                currentBucket = gborg.name;
+            } else if (gbai) {
+                currentGborgBucket = null;
+                currentGborgBranch = null;
+                currentBucket = gbai.name;
+            } else if (availableBuckets.length > 0) {
+                currentGborgBucket = null;
+                currentGborgBranch = null;
+                currentBucket = availableBuckets[0].name;
+            }
+        } catch (apiErr) {
+            console.warn("Failed to list buckets via API (admin only):", apiErr);
+            if (!currentBucket) {
+                var derived = botName ? botName + ".gbai" : "";
+                if (derived) currentBucket = derived;
+            }
+        }
 
         if (!currentBucket) {
             const content = document.getElementById("drive-content") || document.getElementById("file-grid");

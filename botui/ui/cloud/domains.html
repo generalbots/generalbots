@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domains — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .domains-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-muted); margin-bottom: .4rem; }
+    .form-group input, .form-group select {
+      width: 100%; padding: .55rem .75rem; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg3); color: var(--text); font-size: .85rem;
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+    .domains-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    .domains-table th, .domains-table td { padding: .75rem; border-bottom: 1px solid var(--border); text-align: left; font-size: .85rem; }
+    .domains-table th { font-weight: 700; color: var(--muted); }
+    .domain-badge { font-family: monospace; background: var(--accent-dim); color: var(--accent2); padding: .2rem .5rem; border-radius: 4px; font-weight: 600; font-size: .8rem; }
+    .btn-sm { padding: .35rem .65rem; font-size: .75rem; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-edit { background: var(--accent); color: #fff; margin-right: .4rem; }
+    .btn-edit:hover { opacity: .8; }
+    .actions-cell { display: flex; gap: .4rem; }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Domain Manager</span>
+      <div class="mgmt-topbar-actions"></div>
+    </div>
+
+    <div style="padding:2rem">
+      <div class="domains-grid">
+
+        <!-- Create Domain Mapping -->
+        <div class="card">
+          <h2 style="font-size:1.1rem;margin-bottom:1rem">Map Domain to Bot</h2>
+          <form id="create-domain-form" onsubmit="handleCreateDomain(event)" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;align-items:end">
+            <div class="form-group">
+              <label for="domain">Domain</label>
+              <input type="text" id="domain" name="domain" placeholder="chat.example.com" required>
+            </div>
+            <div class="form-group">
+              <label for="bot_id">Bot ID</label>
+              <input type="text" id="bot_id" name="bot_id" placeholder="UUID of the bot" required>
+            </div>
+            <div class="form-group">
+              <label for="org_id">Org ID (optional)</label>
+              <input type="text" id="org_id" name="org_id" placeholder="UUID of organization">
+            </div>
+            <div class="form-group">
+              <label for="branch_id">Branch ID (optional)</label>
+              <input type="text" id="branch_id" name="branch_id" placeholder="UUID of branch">
+            </div>
+            <div class="form-group">
+              <button type="submit" class="btn btn-primary" style="width:100%">Create Mapping</button>
+            </div>
+          </form>
+          <div id="create-message" style="margin-top:1rem;font-size:.85rem"></div>
+        </div>
+
+        <!-- Domain List -->
+        <div class="card">
+          <h2 style="font-size:1.1rem;margin-bottom:1rem">Domain Mappings</h2>
+          <div style="overflow-x:auto">
+            <table class="domains-table">
+              <thead>
+                <tr>
+                  <th>Domain</th>
+                  <th>Bot ID</th>
+                  <th>Org ID</th>
+                  <th>Branch ID</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="domains-table-body">
+                <tr>
+                  <td colspan="6" style="text-align:center;color:var(--muted)">Loading domains...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/cloud/js/cloud.js"></script>
+<script>
+(async function() {
+  const token = await requireAuth();
+
+  async function loadDomains() {
+    try {
+      const res = await fetch('/api/cloud/domains', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const tbody = document.getElementById('domains-table-body');
+        if (!data.domains || data.domains.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">No domain mappings configured.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.domains.map(d => {
+          const created = new Date(d.created_at).toLocaleString();
+          const botIdShort = d.bot_id ? d.bot_id.substring(0, 8) + '...' : '-';
+          const orgIdShort = d.org_id ? d.org_id.substring(0, 8) + '...' : '-';
+          const branchIdShort = d.branch_id ? d.branch_id.substring(0, 8) + '...' : '-';
+          return `<tr>
+            <td><span class="domain-badge">${escapeHtml(d.domain)}</span></td>
+            <td style="font-size:.75rem;font-family:monospace" title="${d.bot_id}">${botIdShort}</td>
+            <td style="font-size:.75rem;color:var(--muted)" title="${d.org_id || ''}">${orgIdShort}</td>
+            <td style="font-size:.75rem;color:var(--muted)" title="${d.branch_id || ''}">${branchIdShort}</td>
+            <td style="font-size:.75rem;color:var(--muted)">${created}</td>
+            <td><div class="actions-cell">
+              <button class="btn-sm btn-danger" onclick="deleteDomain('${d.id}')">Delete</button>
+            </div></td>
+          </tr>`;
+        }).join('');
+      } else {
+        showToast('Failed to load domain mappings.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Connection error loading domains.', 'error');
+    }
+  }
+
+  window.handleCreateDomain = async function(e) {
+    e.preventDefault();
+    const domain = document.getElementById('domain').value.trim().toLowerCase();
+    const bot_id = document.getElementById('bot_id').value.trim();
+    const org_id = document.getElementById('org_id').value.trim() || null;
+    const branch_id = document.getElementById('branch_id').value.trim() || null;
+
+    const msg = document.getElementById('create-message');
+    msg.style.color = 'var(--muted)';
+    msg.textContent = 'Creating domain mapping...';
+
+    try {
+      const res = await fetch('/api/cloud/domains', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          domain: domain,
+          bot_id: bot_id,
+          org_id: org_id,
+          branch_id: branch_id,
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.style.color = '#34d399';
+        msg.innerHTML = `Domain mapping created: <span class="domain-badge">${domain}</span>`;
+        showToast('Domain mapped!', 'success');
+        document.getElementById('create-domain-form').reset();
+        await loadDomains();
+      } else {
+        msg.style.color = '#ef4444';
+        msg.textContent = `Error: ${data.error || data.message || 'Failed to create.'}`;
+      }
+    } catch (err) {
+      msg.style.color = '#ef4444';
+      msg.textContent = 'Error processing creation.';
+    }
+  };
+
+  window.deleteDomain = async function(id) {
+    if (!confirm('Delete this domain mapping?')) return;
+    try {
+      const res = await fetch(`/api/cloud/domains/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Domain mapping deleted.', 'success');
+        await loadDomains();
+      } else {
+        showToast('Failed to delete.', 'error');
+      }
+    } catch (err) {
+      showToast('Connection error.', 'error');
+    }
+  };
+
+  await loadDomains();
+})();
+</script>
+</body>
+</html>

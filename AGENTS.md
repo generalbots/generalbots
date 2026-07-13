@@ -1305,6 +1305,113 @@ Implementation at `botproducts/src/lib.rs:33-45` (`get_bot_context()`).
 
 ---
 
+## 🌐 Domain Management — Custom DNS → Bot Mapping
+
+**Managed in the cloud manager UI** (`/domains` on port 4000, admin-only via super admin check). Associates hostnames like `chat.generalbots.org` with specific bots.
+
+### How It Works
+
+When a user visits `chat.generalbots.org` (proxied to port 3000), botui:
+1. Reads the `Host` header from the HTTP request
+2. Calls `GET /api/domains/resolve?host=chat.generalbots.org` (public, no auth) on the botserver
+3. Botserver looks up the domain in the `bot_domains` table
+4. If found, returns `{ found: true, bot_name: "gbwebsite", bot_id: "...", org_id: "...", branch_id: "..." }`
+5. botui injects the resolved `bot_name` into `window.__INITIAL_BOT_NAME__` (same as URL path-based resolution)
+6. If not found, falls back to URL path extraction (current behavior)
+
+### Database
+
+**Table:** `bot_domains` (migration `6.5.18-bot-domains`)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID PK | Unique identifier |
+| `domain` | VARCHAR(255) UNIQUE | The hostname (e.g. `chat.generalbots.org`) |
+| `bot_id` | UUID FK → bots | Which bot this domain routes to |
+| `org_id` | UUID FK → organizations (optional) | Org scope for multi-tenant |
+| `branch_id` | UUID FK → branches (optional) | Branch scope for multi-tenant |
+| `created_at` | TIMESTAMPTZ | Record creation time |
+| `updated_at` | TIMESTAMPTZ | Last update time |
+
+### API Endpoints (all on port 8080)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/api/cloud/domains` | JWT + super admin | List all domain mappings |
+| `POST` | `/api/cloud/domains` | JWT + super admin | Create domain mapping |
+| `PUT` | `/api/cloud/domains/{id}` | JWT + super admin | Update domain mapping |
+| `DELETE` | `/api/cloud/domains/{id}` | JWT + super admin | Delete domain mapping |
+| `GET` | `/api/domains/resolve?host=` | **Public** (no auth) | Resolve hostname to bot name |
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `botserver/migrations/6.5.18-bot-domains/up.sql` | New migration for `bot_domains` table |
+| `botserver/crates/botcloud/src/schema_ext.rs` | Added Diesel table definition for `bot_domains` |
+| `botserver/crates/botcloud/src/domains.rs` | **New** — CRUD handlers + resolve endpoint |
+| `botserver/crates/botcloud/src/lib.rs` | Added `pub mod domains` |
+| `botserver/crates/botcloud/src/api.rs` | Added routes + public access in JWT middleware |
+| `botui/src/ui_server/suite.rs` | Added `resolve_bot_from_host()` + Host header check in `index()` |
+| `botui/ui/cloud/domains.html` | **New** — Cloud UI page for managing domain mappings |
+
+### Cloud UI Page
+
+The **Domain Manager** is at `/domains` on port 4000. Only visible to super admins (same gating as Vouchers page). Features:
+- **Create Mapping:** Form to enter domain, bot ID, optional org/branch IDs
+- **List Mappings:** Table showing all domain → bot associations
+- **Delete:** Remove a domain mapping
+
+This is the **existing "Domains" nav link** in the sidebar at `/store/apps` — it's now live (previously placeholder).
+
+### Adding a Domain Mapping
+
+```bash
+# Via API (requires JWT token from cloud login)
+curl -X POST http://localhost:8080/api/cloud/domains \
+  -H "Authorization: Bearer <jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "chat.generalbots.org",
+    "bot_id": "<bot-uuid>",
+    "org_id": null,
+    "branch_id": null
+  }'
+```
+
+### Testing Domain Resolution
+
+```bash
+# Direct API test (no auth required)
+curl -s "http://localhost:8080/api/domains/resolve?host=chat.generalbots.org"
+
+# Expected response when mapped:
+# {"found":true,"bot_id":"...","bot_name":"gbwebsite","org_id":null,"branch_id":null}
+
+# Expected response when NOT mapped:
+# {"found":false}
+```
+
+### Architecture Flow
+
+```
+User's Browser
+  │  GET http://chat.generalbots.org/
+  │  Host: chat.generalbots.org
+  ▼
+Caddy/Proxy (port 80/443 → 3000)
+  │
+  ▼
+botui suite.rs index() handler:
+  1. Extract Host header → "chat.generalbots.org"
+  2. GET http://localhost:8080/api/domains/resolve?host=chat.generalbots.org
+  3. Response: bot_name = "gbwebsite"
+  4. Inject window.__INITIAL_BOT_NAME__ = "gbwebsite"
+  5. Serve desktop.html → browser loads chat for gbwebsite bot
+```
+
+---
+
 ## ☁️ Cloud Management Testing
 
 ### Ports

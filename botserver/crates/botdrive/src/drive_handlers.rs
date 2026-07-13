@@ -627,6 +627,10 @@ pub async fn open_file(
             ("editor".to_string(), format!("/suite/docs/?file={path}"))
         }
         "pdf" => ("viewer".to_string(), format!("/suite/docs/?file={path}")),
+        "xls" | "xlsx" => (
+            "sheets".to_string(),
+            format!("/suite/sheet/sheet.html?bucket={}&path={}", req.bucket.as_deref().unwrap_or(""), path),
+        ),
         _ => ("preview".to_string(), format!("/suite/docs/?file={path}")),
     };
     Ok(Json(OpenFileResponse { app, url }))

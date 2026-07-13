@@ -17,7 +17,6 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "docs",
     #[cfg(feature = "paper")]
     "paper",
-    #[cfg(feature = "sheet")]
     "sheet",
     #[cfg(feature = "slides")]
     "slides",

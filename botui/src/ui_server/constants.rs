@@ -23,7 +23,6 @@ pub const SUITE_DIRS: &[&str] = &[
     "drive",
     #[cfg(feature = "chat")]
     "chat",
-    #[cfg(feature = "mail")]
     "mail",
     #[cfg(feature = "tasks")]
     "tasks",
