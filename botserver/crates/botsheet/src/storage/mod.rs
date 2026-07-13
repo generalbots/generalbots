@@ -1,4 +1,6 @@
 pub mod drive_ops;
+#[cfg(feature = "xlsx")]
+pub mod format_codes;
 pub mod import;
 pub mod xlsx_read;
 pub mod xlsx_write;

@@ -27,10 +27,11 @@ sha2 = { workspace = true }
 umya-spreadsheet = { workspace = true, optional = true }
 rust_xlsxwriter = { workspace = true, optional = true }
 calamine = { workspace = true, optional = true }
+zip = { workspace = true, optional = true }
 
 [features]
 default = ["xlsx"]
-xlsx = ["dep:umya-spreadsheet", "dep:rust_xlsxwriter", "dep:calamine"]
+xlsx = ["dep:umya-spreadsheet", "dep:rust_xlsxwriter", "dep:calamine", "dep:zip"]
 
 [lints]
 workspace = true
