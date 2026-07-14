@@ -100,7 +100,11 @@ pub async fn handle_load_from_drive(
         )
     })?;
 
-    let ext = req.path.rsplit('.').next().unwrap_or("").to_lowercase();
+    let mut ext = req.path.rsplit('.').next().unwrap_or("").to_lowercase();
+    // Detect actual format from magic bytes for misnamed files
+    if bytes.len() >= 4 && &bytes[..4] == b"PK\x03\x04" {
+        ext = "xlsx".to_string();
+    }
     let file_name = req.path.rsplit('/').next().unwrap_or("Spreadsheet");
     let sheet_name = file_name
         .rsplit('.')

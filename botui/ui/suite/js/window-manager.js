@@ -192,12 +192,12 @@ if (typeof window.WindowManager === "undefined") {
 
     _glassHeader(id, title) {
       return `<div class="window-header-glass">
+        <div class="window-title">${title}</div>
         <div class="window-dot-controls">
-          <div class="window-dot window-dot-close" onclick="window.WindowManager.close('${id}')"></div>
           <div class="window-dot window-dot-minimize" onclick="window.WindowManager.toggleMinimize('${id}')"></div>
           <div class="window-dot window-dot-maximize" onclick="window.WindowManager.toggleMaximize('${id}')"></div>
+          <div class="window-dot window-dot-close" onclick="window.WindowManager.close('${id}')"></div>
         </div>
-        <div class="window-title">${title}</div>
       </div>`;
     }
 

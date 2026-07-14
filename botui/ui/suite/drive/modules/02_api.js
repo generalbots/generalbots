@@ -118,7 +118,7 @@ async function previewFile(path) {
     }
 }
 
-async function openFile(path) {
+    async function openFile(path) {
     try {
         const response = await apiRequest("/open", {
             method: "POST",
@@ -128,9 +128,11 @@ async function openFile(path) {
         if (app === "sheets" && window.WindowManager) {
             const fileName = path.split("/").pop() || "Spreadsheet";
             const ts = Date.now();
-            // Pre-load sheet data from Drive — boot script inside injected HTML
-            // can't read URL params (window.location.search belongs to main page).
             var bucket = getEffectiveBucket();
+            // Pass URL params to the sheet via global (window.location.search is empty in injected HTML)
+            var qs = url.split('?')[1] || '';
+            window.__SHEET_URL_PARAMS = qs;
+            window.__SHEET_FILE_NAME = fileName;
             try {
                 var sheetResp = await fetch('/api/sheet/load-from-drive', {
                     method: 'POST',
@@ -139,18 +141,50 @@ async function openFile(path) {
                 });
                 if (sheetResp.ok) {
                     var sheetData = await sheetResp.json();
+                    // Do NOT persist to backend — CSV/XLSX from Drive is ephemeral
+                    sheetData.id = 'drive-' + ts;
                     window.__LOADED_SHEET = sheetData;
                     window.__SHEET_INITIAL_ID = sheetData.id;
                     window.__SHEET_BOOT = Promise.resolve();
+                } else {
+                    // Server returned error — create a default empty sheet
+                    window.__LOADED_SHEET = {
+                        id: 'new-' + ts,
+                        name: fileName,
+                        worksheets: [{ name: 'Sheet1', data: {} }]
+                    };
+                    window.__SHEET_INITIAL_ID = 'new-' + ts;
+                    window.__SHEET_BOOT = Promise.resolve();
                 }
             } catch(e) {
-                console.warn('Pre-load sheet failed, boot script will retry via URL params:', e);
+                console.warn('Pre-load sheet failed:', e);
+                // Pre-load failed (network, bucket missing, etc.) — create a default empty sheet
+                window.__LOADED_SHEET = {
+                    id: 'new-' + ts,
+                    name: fileName,
+                    worksheets: [{ name: 'Sheet1', data: {} }]
+                };
+                window.__SHEET_INITIAL_ID = 'new-' + ts;
+                window.__SHEET_BOOT = Promise.resolve();
             }
             window.WindowManager.open("sheets-" + ts, fileName, "");
             var cleanUrl = url.split('?')[0];
             fetch(cleanUrl).then(function (r) { return r.text(); }).then(function (html) {
                 var body = document.getElementById("window-body-sheets-" + ts);
                 if (body) window.WindowManager._injectBodyContent("sheets-" + ts, html);
+            });
+            return;
+        }
+        if (app === "editor" && window.WindowManager) {
+            var bucket = getEffectiveBucket();
+            var fileName = path.split("/").pop() || "Untitled";
+            var ts = Date.now();
+            window.WindowManager.open("editor-" + ts, fileName, "");
+            window.__EDITOR_FILE_BUCKET = bucket;
+            window.__EDITOR_FILE_PATH = path;
+            window.__EDITOR_BOOT = Promise.resolve();
+            fetch("/suite/editor.html").then(function(r){return r.text();}).then(function(html){
+                window.WindowManager._injectBodyContent("editor-" + ts, html);
             });
             return;
         }

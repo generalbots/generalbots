@@ -158,6 +158,9 @@ pub async fn list_files(
         format!("{prefix}{sub_path}/")
     };
 
+    // Ensure bucket exists — prevents 500 when user's personal bucket hasn't been created yet
+    let _ = drive.create_bucket_if_not_exists(&bucket).await;
+
     let keys = drive
         .list_objects(&bucket, Some(&full_prefix))
         .await
@@ -627,14 +630,15 @@ pub async fn open_file(
 ) -> Result<Json<OpenFileResponse>, (StatusCode, Json<serde_json::Value>)> {
     let path = &req.path;
     let ext = path.rsplit('.').next().unwrap_or("");
+    let bucket = req.bucket.as_deref().unwrap_or("");
     let (app, url) = match ext {
-        "txt" | "md" | "bas" | "json" | "csv" | "xml" | "html" | "css" | "js" => {
-            ("editor".to_string(), format!("/suite/docs/?file={path}"))
+        "txt" | "md" | "bas" | "json" | "xml" | "html" | "css" | "js" => {
+            ("editor".to_string(), format!("/suite/editor.html?file={path}&bucket={bucket}"))
         }
         "pdf" => ("viewer".to_string(), format!("/suite/docs/?file={path}")),
-        "xls" | "xlsx" => (
+        "csv" | "xls" | "xlsx" | "ods" => (
             "sheets".to_string(),
-            format!("/suite/sheet/sheet.html?bucket={}&path={}", req.bucket.as_deref().unwrap_or(""), path),
+            format!("/suite/sheet/sheet.html?bucket={bucket}&path={path}"),
         ),
         _ => ("preview".to_string(), format!("/suite/docs/?file={path}")),
     };

@@ -98,7 +98,8 @@ function readFileAsBase64(file) {
 
 function getEffectiveBucket() {
     if (currentGborgBucket) return currentGborgBucket;
-    return currentBucket;
+    if (currentBucket) return currentBucket;
+    return undefined;
 }
 
 function getGbaiDirName() {

@@ -46,19 +46,25 @@ function renderFileRow(file) {
 }
 
 function bindFileEvents() {
-    document.querySelectorAll(".file-card, .drive-file-item").forEach(function(el) {
-        el.addEventListener("click", function(e) {
-            if (e.target.closest(".file-checkbox") || e.target.closest(".btn-icon-sm")) return;
-            var path = this.dataset.path;
-            toggleSelection(path);
-        });
-        el.addEventListener("dblclick", function(e) {
-            if (e.target.closest(".file-checkbox")) return;
-            var path = this.dataset.path;
-            var type = this.dataset.type;
-            if (type === "folder") loadFiles(path, getEffectiveBucket());
-            else openFile(path);
-        });
+    var content = document.getElementById("drive-content") || document.getElementById("file-grid");
+    if (!content) return;
+    // Use event delegation on the content container — single handler, no accumulation
+    if (content._driveBound) return;
+    content._driveBound = true;
+    content.addEventListener("click", function(e) {
+        var item = e.target.closest(".file-card, .drive-file-item");
+        if (!item) return;
+        if (e.target.closest(".file-checkbox") || e.target.closest(".btn-icon-sm")) return;
+        toggleSelection(item.dataset.path);
+    });
+    content.addEventListener("dblclick", function(e) {
+        var item = e.target.closest(".file-card, .drive-file-item");
+        if (!item) return;
+        if (e.target.closest(".file-checkbox")) return;
+        var path = item.dataset.path;
+        var type = item.dataset.type;
+        if (type === "folder") loadFiles(path, getEffectiveBucket());
+        else openFile(path);
     });
 }
 

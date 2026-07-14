@@ -135,29 +135,45 @@
     gap: 8px;
 }
 
-.breadcrumb {
+.drive-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 14px;
+    padding: 6px 12px;
+    background: var(--surface, #1e293b);
+    border-radius: 6px;
+    min-height: 32px;
 }
 
 .breadcrumb-item {
-    color: var(--text-secondary);
+    color: var(--text-secondary, #94a3b8);
     cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px 6px;
+    font-size: 13px;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
 }
 
 .breadcrumb-item:hover {
-    color: var(--primary);
+    background: var(--surface-hover, #334155);
+    color: var(--primary, #3b82f6);
 }
 
-.breadcrumb-item.current {
-    color: var(--text);
-    font-weight: 500;
+.breadcrumb-sep {
+    color: var(--border, #475569);
+    font-size: 13px;
+    user-select: none;
 }
 
-.breadcrumb-separator {
-    color: var(--text-secondary);
+.breadcrumb-current {
+    color: var(--text, #f8fafc);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 2px 6px;
 }
 
 /* File Grid */

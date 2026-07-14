@@ -52,16 +52,12 @@ async function discoverBuckets() {
             }
         } catch (apiErr) {
             console.warn("Failed to list buckets via API (admin only):", apiErr);
+            // Non-admin: derive bucket from session bot name
             if (!currentBucket) {
-                var derived = botName ? botName + ".gbai" : "";
-                if (derived) currentBucket = derived;
-            }
-        }
-
-        if (!currentBucket) {
-            const content = document.getElementById("drive-content") || document.getElementById("file-grid");
-            if (content) {
-                content.innerHTML = '<div class="empty-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><h3>No drive storage found</h3><p>Please contact your administrator to set up storage.</p></div>';
+                var sessionBot = window.__INITIAL_BOT_NAME__ || 'default';
+                currentBucket = sessionBot + '.gbai';
+                currentGborgBucket = null;
+                currentGborgBranch = sessionBot;
             }
         }
 
@@ -82,11 +78,7 @@ async function loadFiles(path, bucket) {
     if (path !== undefined) currentPath = path;
     if (bucket !== undefined) currentBucket = bucket;
 
-    const effectiveBucket = getEffectiveBucket();
-    if (!effectiveBucket) {
-        await discoverBuckets();
-        return;
-    }
+    await discoverBuckets();
 
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
@@ -94,6 +86,7 @@ async function loadFiles(path, bucket) {
     updateBreadcrumb();
 
     try {
+        const effectiveBucket = getEffectiveBucket();
         const params = new URLSearchParams();
         if (effectiveBucket) params.set("bucket", effectiveBucket);
         if (currentPath) params.set("path", currentPath);
@@ -103,7 +96,13 @@ async function loadFiles(path, bucket) {
 
         renderFiles(files);
     } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>Failed to load files</h3><p>' + escapeHtml(err.message) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Retry</button></div>';
+        var msg = err.message || '';
+        // Show a more user-friendly message for missing buckets
+        if (msg.indexOf('NoSuchBucket') !== -1 || msg.indexOf('bucket does not exist') !== -1) {
+            content.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3 style="color:#f8fafc;">Your Drive is empty</h3><p style="color:#94a3b8;">Upload files or create a new folder to get started.</p></div>';
+        } else {
+            content.innerHTML = '<div class="empty-state"><h3>Failed to load files</h3><p>' + escapeHtml(msg) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Retry</button></div>';
+        }
     }
 }
 
@@ -276,39 +275,57 @@ async function searchFiles(query) {
 // ── Tab Path Builders ────────────────────────────────────────────
 function buildPathBranchDrive() {
     if (!currentGborgBranch) return "";
-    return currentGborgBranch + ".gbai/" + currentGborgBranch + ".gbdrive";
+    // If bucket is .gborg, files are nested inside .gbai subdirectory
+    // If bucket is .gbai directly, files are at root
+    if (currentBucket && currentBucket.indexOf('.gborg') > 0) {
+        return currentGborgBranch + ".gbai/" + currentGborgBranch + ".gbdrive";
+    }
+    return currentGborgBranch + ".gbdrive";
 }
 
 function buildPathShared() {
     if (!currentGborgBranch) return "";
-    return currentGborgBranch + ".gbai/shared.gbdrive";
+    if (currentBucket && currentBucket.indexOf('.gborg') > 0) {
+        return currentGborgBranch + ".gbai/shared.gbdrive";
+    }
+    return "shared.gbdrive";
 }
 
 function buildPathPublic() {
     if (!currentGborgBranch) return "";
-    return currentGborgBranch + ".gbai/public.gbdrive";
+    if (currentBucket && currentBucket.indexOf('.gborg') > 0) {
+        return currentGborgBranch + ".gbai/public.gbdrive";
+    }
+    return "public.gbdrive";
 }
 
 function buildPathMyFiles() {
     if (!currentGborgBranch) return "";
-    var login = (userInfo.username || "unknown").toLowerCase();
-    return currentGborgBranch + ".gbai/users.gbdrive/" + login;
+    var login = (userInfo ? (userInfo.username || "unknown") : "unknown").toLowerCase();
+    if (currentBucket && currentBucket.indexOf('.gborg') > 0) {
+        return currentGborgBranch + ".gbai/users.gbdrive/" + login;
+    }
+    return "users.gbdrive/" + login;
 }
 
 function buildPathRoot() {
     if (!currentGborgBranch) return "";
-    return currentGborgBranch + ".gbai";
+    if (currentBucket && currentBucket.indexOf('.gborg') > 0) {
+        return currentGborgBranch + ".gbai";
+    }
+    return "";
 }
 
 // ── Tab Loaders ───────────────────────────────────────────────────
 async function loadBranchDriveTab() {
-    var path = buildPathBranchDrive();
     if (!currentBucket) await discoverBuckets();
+    var path = buildPathBranchDrive();
     if (path) {
         currentPath = path;
         currentScope = "bot";
         await loadFiles(path, currentGborgBucket || currentBucket);
-    } else if (currentBucket) {
+    } else {
+        currentPath = "";
         currentScope = "user";
         await loadFiles("", currentBucket);
     }
