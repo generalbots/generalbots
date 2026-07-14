@@ -129,10 +129,11 @@ async function previewFile(path) {
             const fileName = path.split("/").pop() || "Spreadsheet";
             const ts = Date.now();
             var bucket = getEffectiveBucket();
-            // Pass URL params to the sheet via global (window.location.search is empty in injected HTML)
+            var winId = "sheets-" + ts;
             var qs = url.split('?')[1] || '';
-            window.__SHEET_URL_PARAMS = qs;
-            window.__SHEET_FILE_NAME = fileName;
+            // Per-window sheet data map — avoids race when multiple files open rapidly
+            window.__SHEET_DATA_MAP = window.__SHEET_DATA_MAP || {};
+            window.__SHEET_DATA_MAP[winId] = { urlParams: qs, fileName: fileName };
             try {
                 var sheetResp = await fetch('/api/sheet/load-from-drive', {
                     method: 'POST',
@@ -141,37 +142,29 @@ async function previewFile(path) {
                 });
                 if (sheetResp.ok) {
                     var sheetData = await sheetResp.json();
-                    // Do NOT persist to backend — CSV/XLSX from Drive is ephemeral
                     sheetData.id = 'drive-' + ts;
-                    window.__LOADED_SHEET = sheetData;
-                    window.__SHEET_INITIAL_ID = sheetData.id;
-                    window.__SHEET_BOOT = Promise.resolve();
+                    window.__SHEET_DATA_MAP[winId].loadedSheet = sheetData;
+                    window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
                 } else {
-                    // Server returned error — create a default empty sheet
-                    window.__LOADED_SHEET = {
-                        id: 'new-' + ts,
-                        name: fileName,
+                    window.__SHEET_DATA_MAP[winId].loadedSheet = {
+                        id: 'new-' + ts, name: fileName,
                         worksheets: [{ name: 'Sheet1', data: {} }]
                     };
-                    window.__SHEET_INITIAL_ID = 'new-' + ts;
-                    window.__SHEET_BOOT = Promise.resolve();
+                    window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
                 }
             } catch(e) {
                 console.warn('Pre-load sheet failed:', e);
-                // Pre-load failed (network, bucket missing, etc.) — create a default empty sheet
-                window.__LOADED_SHEET = {
-                    id: 'new-' + ts,
-                    name: fileName,
+                window.__SHEET_DATA_MAP[winId].loadedSheet = {
+                    id: 'new-' + ts, name: fileName,
                     worksheets: [{ name: 'Sheet1', data: {} }]
                 };
-                window.__SHEET_INITIAL_ID = 'new-' + ts;
-                window.__SHEET_BOOT = Promise.resolve();
+                window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
             }
-            window.WindowManager.open("sheets-" + ts, fileName, "");
+            window.WindowManager.open(winId, fileName, "");
             var cleanUrl = url.split('?')[0];
             fetch(cleanUrl).then(function (r) { return r.text(); }).then(function (html) {
-                var body = document.getElementById("window-body-sheets-" + ts);
-                if (body) window.WindowManager._injectBodyContent("sheets-" + ts, html);
+                var body = document.getElementById("window-body-" + winId);
+                if (body) window.WindowManager._injectBodyContent(winId, html);
             });
             return;
         }

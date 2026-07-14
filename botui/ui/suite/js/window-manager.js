@@ -216,6 +216,7 @@ if (typeof window.WindowManager === "undefined") {
     _injectBodyContent(id, htmlContent) {
       const body = document.getElementById(`window-body-${id}`);
       if (!body) return;
+      body.dataset.windowId = id;
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = htmlContent;
       const scripts = Array.from(tempDiv.querySelectorAll("script")).map((s) => {

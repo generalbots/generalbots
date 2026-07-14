@@ -776,18 +776,33 @@
   }
 
   function bootSheet() {
+    // Discover per-window sheet data from __SHEET_DATA_MAP
+    var myData = null;
+    var myBody = document.currentScript ? document.currentScript.closest('[id^="window-body-"]') : null;
+    if (!myBody) {
+      // Fallback: find the visible sheet-content and climb
+      var els = document.querySelectorAll('#sheet-content');
+      for (var i = 0; i < els.length; i++) {
+        var p = els[i].closest('[id^="window-body-"]');
+        if (p && p.style.display !== 'none') { myBody = p; break; }
+      }
+    }
+    if (myBody && myBody.dataset.windowId) {
+      myData = (window.__SHEET_DATA_MAP || {})[myBody.dataset.windowId];
+    }
+
     initSidebar();
     initAuth();
     initCollab();
     initToolbar();
-    // Wait for boot script to load xlsx from Drive before init'ing
     var bootPromise = window.__SHEET_BOOT || Promise.resolve();
     bootPromise.then(function () {
-      var host = document.getElementById("sheet-content");
+      var host = myBody ? myBody.querySelector('#sheet-content') : document.getElementById("sheet-content");
       if (host) {
         VirtualGrid.init(host);
-        if (window.__LOADED_SHEET && window.__LOADED_SHEET.worksheets && window.__LOADED_SHEET.worksheets.length > 0) {
-          var ws = window.__LOADED_SHEET.worksheets[0];
+        var loaded = myData && myData.loadedSheet ? myData.loadedSheet : window.__LOADED_SHEET;
+        if (loaded && loaded.worksheets && loaded.worksheets.length > 0) {
+          var ws = loaded.worksheets[0];
           if (ws.data) {
             for (var cellRef in ws.data) {
               VirtualGrid.cells.set(cellRef, ws.data[cellRef]);
