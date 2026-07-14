@@ -19,3 +19,4 @@ start-and-unseal.sh
 a.tmp
 opencode.json
 work/
+.github/workflows/boteval.yml
