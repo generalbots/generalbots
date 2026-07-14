@@ -248,32 +248,36 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/sheet/js/modules-sheet-advanced/02_conditional.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/03_charts.js"></script>
 <script>
-/* Boot: MUST run before sheet.js — load xlsx from Drive URL params */
+/* Boot: load sheet data from per-window storage (avoids race with multiple windows) */
 (function(){
-  // Hide sidebar when sheet is opened from Drive (CSV/XLSX file)
-  if (!window.__LOADED_SHEET && !window.__SHEET_URL_PARAMS) {
-    setTimeout(loadSidebar, 100);
-  } else {
+  var bodyEl = document.currentScript ? document.currentScript.closest('[id^="window-body-"]') : null;
+  var winId = bodyEl ? bodyEl.dataset.windowId || bodyEl.id.replace('window-body-', '') : '';
+  var sheetData = (window.__SHEET_DATA_MAP || {})[winId];
+
+  if (sheetData && sheetData.loadedSheet) {
+    // Opened from Drive — use pre-loaded data
     var sidebar = document.getElementById('sheet-sidebar');
     if (sidebar) sidebar.style.display = 'none';
+    var ls = sheetData.loadedSheet;
+    window.__LOADED_SHEET = ls;
+    window.__SHEET_INITIAL_ID = ls.id;
+    window.__SHEET_BOOT = Promise.resolve();
+    var nameInput = document.querySelector('.sheet-name-input');
+    if (nameInput && ls.name) nameInput.value = ls.name;
+    return;
   }
-  // When sheet is injected via WindowManager (from Drive), window.location.search is empty.
-  // Use __SHEET_URL_PARAMS global set by Drive's openFile.
+
+  // Direct URL params fallback
   var qs = window.__SHEET_URL_PARAMS || window.location.search;
   if (qs && !qs.startsWith('?')) qs = '?' + qs;
   var params = new URLSearchParams(qs);
   var bucket = params.get('bucket');
   var path = params.get('path');
 
-  if (!bucket || !path || window.__LOADED_SHEET) {
-    if (window.__LOADED_SHEET) {
-      window.__SHEET_INITIAL_ID = window.__LOADED_SHEET.id;
-      var nameInput = document.querySelector('.sheet-name-input');
-      if (nameInput && window.__LOADED_SHEET.name) nameInput.value = window.__LOADED_SHEET.name;
-    } else {
-      window.__SHEET_INITIAL_ID = "current";
-    }
+  if (!bucket || !path) {
+    window.__SHEET_INITIAL_ID = "current";
     window.__SHEET_BOOT = Promise.resolve();
+    setTimeout(loadSidebar, 100);
     return;
   }
 
@@ -293,8 +297,6 @@ if (typeof htmx === 'undefined') {
   }).catch(function(err){
     console.error('Sheet load error:', err);
     window.__SHEET_INITIAL_ID = "current";
-  }).finally(function(){
-    delete window.__SHEET_URL_PARAMS;
   });
 })();
 </script>
