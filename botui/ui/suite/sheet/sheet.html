@@ -12,6 +12,10 @@
     <div class="sheet-toolbar">
         <div class="toolbar-left">
             <input type="text" class="sheet-name-input" id="sheetName" value="Untitled Spreadsheet" spellcheck="false" hx-post="/api/sheet/save" hx-trigger="blur changed" hx-vals='{"id":"current","action":"rename"}' hx-swap="none" />
+            <button class="btn-icon" id="saveSheetBtn" onclick="saveSheet()" title="Save (Ctrl+S)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span style="font-size:12px;margin-left:4px;">Save</span>
+            </button>
         </div>
         <div class="toolbar-center">
             <div class="toolbar-group">
@@ -178,11 +182,59 @@ function loadSheet(id) {
             VG.selectionOverlay = null;
             VG.headerColPool = [];
             VG.init(host);
+            if (window.__LOADED_SHEET && window.__LOADED_SHEET.worksheets && window.__LOADED_SHEET.worksheets.length > 0) {
+                var ws = window.__LOADED_SHEET.worksheets[0];
+                if (ws.data) {
+                    for (var cellRef in ws.data) {
+                        VG.cells.set(cellRef, ws.data[cellRef]);
+                    }
+                }
+                VG.requestSeq++;
+                VG.totalRows = Math.max(VG.totalRows, 50);
+                VG.render();
+            }
         }
     }).catch(function(){
         if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">Error loading sheet.</div>';
     });
 }
+function saveSheet() {
+    var nameInput = document.getElementById('sheetName');
+    var name = nameInput ? nameInput.value : 'Untitled Spreadsheet';
+    var id = window.__SHEET_INITIAL_ID || 'current';
+    // Collect all cell data from VirtualGrid
+    var cells = {};
+    if (window.SheetVirtualGrid) {
+        var VG = window.SheetVirtualGrid;
+        VG.cells.forEach(function(val, key) {
+            cells[key] = val;
+        });
+    }
+    fetch('/api/sheet/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            id: id,
+            name: name,
+            cells: cells,
+            worksheet_index: 0
+        })
+    }).then(function(r) {
+        if (r.ok) {
+            var notif = document.createElement('div');
+            notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#10b981;color:white;padding:10px 20px;border-radius:6px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+            notif.textContent = '✓ Sheet saved';
+            document.body.appendChild(notif);
+            setTimeout(function() { notif.remove(); }, 2000);
+        }
+    }).catch(function() {});
+}
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveSheet();
+    }
+});
 if (typeof htmx === 'undefined') {
     var s = document.createElement('script');
     s.src = 'js/vendor/htmx.min.js';
@@ -198,15 +250,27 @@ if (typeof htmx === 'undefined') {
 <script>
 /* Boot: MUST run before sheet.js — load xlsx from Drive URL params */
 (function(){
-  setTimeout(loadSidebar, 100);
-  var params = new URLSearchParams(window.location.search);
+  // Hide sidebar when sheet is opened from Drive (CSV/XLSX file)
+  if (!window.__LOADED_SHEET && !window.__SHEET_URL_PARAMS) {
+    setTimeout(loadSidebar, 100);
+  } else {
+    var sidebar = document.getElementById('sheet-sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+  }
+  // When sheet is injected via WindowManager (from Drive), window.location.search is empty.
+  // Use __SHEET_URL_PARAMS global set by Drive's openFile.
+  var qs = window.__SHEET_URL_PARAMS || window.location.search;
+  if (qs && !qs.startsWith('?')) qs = '?' + qs;
+  var params = new URLSearchParams(qs);
   var bucket = params.get('bucket');
   var path = params.get('path');
 
-  if (!bucket || !path) {
-    // If Drive already pre-loaded the sheet (via WindowManager injection),
-    // respect its data — do not override __SHEET_INITIAL_ID.
-    if (!window.__LOADED_SHEET) {
+  if (!bucket || !path || window.__LOADED_SHEET) {
+    if (window.__LOADED_SHEET) {
+      window.__SHEET_INITIAL_ID = window.__LOADED_SHEET.id;
+      var nameInput = document.querySelector('.sheet-name-input');
+      if (nameInput && window.__LOADED_SHEET.name) nameInput.value = window.__LOADED_SHEET.name;
+    } else {
       window.__SHEET_INITIAL_ID = "current";
     }
     window.__SHEET_BOOT = Promise.resolve();
@@ -229,6 +293,8 @@ if (typeof htmx === 'undefined') {
   }).catch(function(err){
     console.error('Sheet load error:', err);
     window.__SHEET_INITIAL_ID = "current";
+  }).finally(function(){
+    delete window.__SHEET_URL_PARAMS;
   });
 })();
 </script>

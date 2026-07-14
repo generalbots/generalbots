@@ -94,6 +94,10 @@ pub fn parse_excel_to_worksheets(
     bytes: &[u8],
     ext: &str,
 ) -> Result<Vec<crate::types::Worksheet>, String> {
+    if ext == "ods" {
+        return parse_ods_to_worksheets(bytes);
+    }
+
     if ext == "xlsx" || ext == "xlsm" || ext == "xls" {
         let cursor = std::io::Cursor::new(bytes);
         if let Ok(workbook) = umya_spreadsheet::reader::xlsx::read_reader(cursor, true) {

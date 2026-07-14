@@ -167,6 +167,7 @@ async function pasteFiles() {
 }
 
 window.DriveModule = {
+    selectedFiles: selectedFiles,
     init: init,
     loadFiles: loadFiles,
     loadBotConfigs: loadBotConfigs,

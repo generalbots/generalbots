@@ -129,13 +129,12 @@
       this.headerRow.className = "vg-header-row";
       this.headerRow.style.cssText = "display:flex;height:24px;background:#0f172a;border-bottom:1px solid #334155;overflow:hidden;flex-shrink:0;";
 
+      this.midRow = document.createElement("div");
+      this.midRow.style.cssText = "display:flex;flex:1;overflow:hidden;";
+
       this.scrollArea = document.createElement("div");
       this.scrollArea.className = "vg-scroll";
       this.scrollArea.style.cssText = "flex:1;overflow:auto;background:#0f172a;position:relative;";
-
-      this.headerCol = document.createElement("div");
-      this.headerCol.className = "vg-header-col";
-      this.headerCol.style.cssText = "position:absolute;top:0;left:0;width:" + HEADER_WIDTH + "px;background:#0f172a;border-right:1px solid #334155;z-index:3;";
 
       this.body = document.createElement("div");
       this.body.className = "vg-body";
@@ -146,10 +145,13 @@
       this.body.appendChild(inner);
       this.bodyInner = inner;
 
-      this.scrollArea.appendChild(this.headerCol);
+      // Row number pool (appended to bodyInner, left:0, scrolls naturally with cells)
+      this.headerColPool = [];
+
+      this.midRow.appendChild(this.scrollArea);
       this.scrollArea.appendChild(this.body);
       this.root.appendChild(this.headerRow);
-      this.root.appendChild(this.scrollArea);
+      this.root.appendChild(this.midRow);
 
       // Selection overlay inside bodyInner so it scrolls naturally
       this.selectionOverlay = document.createElement("div");
@@ -177,8 +179,7 @@
     onScroll: function () {
       this.scrollTop = this.scrollArea.scrollTop;
       this.scrollLeft = this.scrollArea.scrollLeft;
-      this.headerCol.style.transform = "translateY(" + this.scrollTop + "px)";
-      this.headerRow.style.transform = "translateX(" + this.scrollLeft + "px)";
+      this.headerRow.style.transform = "translateX(" + (-this.scrollLeft) + "px)";
       this.requestRange();
     },
 
@@ -193,8 +194,6 @@
         h.style.cssText = "width:" + COL_WIDTH + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:24px;font-size:11px;border-right:1px solid #334155;flex-shrink:0;";
         this.headerRow.appendChild(h);
       }
-      // Otimização: A barra lateral de cabeçalhos de linhas é agora virtualizada
-      this.headerCol.innerHTML = "";
       this.headerColPool = [];
     },
 
@@ -204,8 +203,8 @@
         node = this.headerColPool[idx];
       } else {
         node = document.createElement("div");
-        node.style.cssText = "position:absolute;width:100%;height:" + ROW_HEIGHT + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:" + ROW_HEIGHT + "px;font-size:11px;border-bottom:1px solid #334155;box-sizing:border-box;";
-        this.headerCol.appendChild(node);
+        node.style.cssText = "position:absolute;width:" + HEADER_WIDTH + "px;height:" + ROW_HEIGHT + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:" + ROW_HEIGHT + "px;font-size:11px;border-bottom:1px solid #334155;border-right:1px solid #334155;box-sizing:border-box;z-index:5;";
+        this.bodyInner.appendChild(node);
         this.headerColPool.push(node);
       }
       return node;
@@ -225,34 +224,48 @@
       if (this.lastRenderedRange === rangeKey) return;
       this.lastRenderedRange = rangeKey;
 
+      // Render row numbers IMMEDIATELY — don't wait for API
+      this.renderRowHeaders(range);
+
       const seq = ++this.requestSeq;
       SheetAPI.getRange(range.start, 0, range.end - 1, this.totalCols - 1)
         .then(function (data) {
           if (seq !== VirtualGrid.requestSeq) return;
-          VirtualGrid.cells = new Map(Object.entries(data.cells || {}));
+          // Merge API cells without overwriting pre-loaded data (e.g. from Drive)
+          if (data.cells) {
+            for (var k in data.cells) {
+              if (!VirtualGrid.cells.has(k)) {
+                VirtualGrid.cells.set(k, data.cells[k]);
+              }
+            }
+          }
           if (data.total_rows) VirtualGrid.totalRows = Math.max(VirtualGrid.totalRows, data.total_rows);
           VirtualGrid.render();
         })
         .catch(function () {});
     },
 
-    render: function () {
-      this.usedCount = 0;
-      const range = this.visibleRowRange();
-
-      // Renderização virtualizada dos cabeçalhos de linhas
+    renderRowHeaders: function (range) {
       if (!this.headerColPool) this.headerColPool = [];
       let headerUsed = 0;
       for (let r = range.start; r < range.end; r++) {
         const node = this.getOrCreateHeaderColNode(headerUsed++);
         node.textContent = r + 1;
         node.style.display = "block";
+        node.style.left = "0px";
         node.style.top = (r * ROW_HEIGHT) + "px";
         node.dataset.row = r;
       }
       for (let i = headerUsed; i < this.headerColPool.length; i++) {
         this.headerColPool[i].style.display = "none";
       }
+    },
+
+    render: function () {
+      this.usedCount = 0;
+      const range = this.visibleRowRange();
+
+      this.renderRowHeaders(range);
 
       // Renderização virtualizada das células
       for (let r = range.start; r < range.end; r++) {
@@ -773,6 +786,17 @@
       var host = document.getElementById("sheet-content");
       if (host) {
         VirtualGrid.init(host);
+        if (window.__LOADED_SHEET && window.__LOADED_SHEET.worksheets && window.__LOADED_SHEET.worksheets.length > 0) {
+          var ws = window.__LOADED_SHEET.worksheets[0];
+          if (ws.data) {
+            for (var cellRef in ws.data) {
+              VirtualGrid.cells.set(cellRef, ws.data[cellRef]);
+            }
+          }
+          VirtualGrid.requestSeq++;
+          VirtualGrid.totalRows = Math.max(VirtualGrid.totalRows, 50);
+          VirtualGrid.render();
+        }
         if (window.SheetAdvanced && window.SheetAdvanced.init) {
           var adv = window.SheetAdvanced.init(host, { sheetId: (host.dataset.sheetId || "current") });
           if (adv) window.SheetAdvancedInstance = adv;

@@ -71,7 +71,6 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "dashboards",
     #[cfg(feature = "designer")]
     "designer",
-    #[cfg(feature = "editor")]
     "editor",
     #[cfg(feature = "attendant")]
     "attendant", 

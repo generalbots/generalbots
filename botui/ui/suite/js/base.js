@@ -14,6 +14,13 @@ async function loadProductConfig() {
     const response = await fetch("/api/product");
     if (response.ok) {
       window.productConfig = await response.json();
+      // Ensure core apps are always in the launcher regardless of server config
+      var coreApps = ['editor', 'sheet'];
+      for (var i = 0; i < coreApps.length; i++) {
+        if (window.productConfig.apps && window.productConfig.apps.indexOf(coreApps[i]) < 0) {
+          window.productConfig.apps.push(coreApps[i]);
+        }
+      }
       applyProductConfig(window.productConfig);
     }
   } catch (e) {
