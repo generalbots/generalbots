@@ -28,6 +28,7 @@ umya-spreadsheet = { workspace = true, optional = true }
 rust_xlsxwriter = { workspace = true, optional = true }
 calamine = { workspace = true, optional = true }
 zip = { workspace = true, optional = true }
+quick-xml = { workspace = true }
 
 [features]
 default = ["xlsx"]

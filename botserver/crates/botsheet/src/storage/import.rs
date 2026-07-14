@@ -184,157 +184,135 @@ pub fn parse_excel_to_worksheets(
     Err("Failed to parse spreadsheet".to_string())
 }
 
-pub fn parse_ods_to_worksheets(bytes: &[u8]) -> Result<Vec<crate::types::Worksheet>, String> {
-    let content = String::from_utf8_lossy(bytes);
+fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, String> {
+    use quick_xml::events::Event;
+    use quick_xml::Reader;
+
+    let mut reader = Reader::from_str(xml_content);
+
     let mut worksheets = Vec::new();
-    let mut current_sheet_name = "Sheet1".to_string();
     let mut data: HashMap<String, crate::types::CellData> = HashMap::new();
-    let mut row_idx = 0u32;
+    let mut sheet_name = String::new();
+    let mut current_row: u32 = 0;
+    let mut current_col: u32 = 0;
     let mut in_table = false;
-    let mut col_idx = 0u32;
+    let mut cell_value = String::new();
+    let mut in_text_p = false;
+    let mut buf = Vec::new();
 
-    let chars: Vec<char> = content.chars().collect();
-    let mut i = 0;
-
-    while i < chars.len() {
-        if chars[i] == '<' {
-            let mut tag = String::new();
-            i += 1;
-            while i < chars.len() && chars[i] != '>' {
-                tag.push(chars[i]);
-                i += 1;
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) => {
+                match e.name().as_ref() {
+                    b"table:table" => {
+                        in_table = true;
+                        current_row = 0;
+                        data = HashMap::new();
+                        for attr in e.attributes().flatten() {
+                            if attr.key.as_ref() == b"table:name" {
+                                sheet_name = String::from_utf8_lossy(&attr.value).to_string();
+                            }
+                        }
+                        if sheet_name.is_empty() {
+                            sheet_name = "Sheet1".to_string();
+                        }
+                    }
+                    b"table:table-row" if in_table => {
+                        current_col = 0;
+                    }
+                    b"table:table-cell" if in_table => {
+                        cell_value.clear();
+                    }
+                    b"text:p" => {
+                        in_text_p = true;
+                    }
+                    _ => {}
+                }
             }
-
-            if tag.starts_with("table:table ") {
-                if let Some(name_start) = tag.find("table:name=\"") {
-                    let name_part = &tag[name_start + 12..];
-                    if let Some(name_end) = name_part.find('"') {
-                        current_sheet_name = name_part[..name_end].to_string();
+            Ok(Event::End(ref e)) => {
+                match e.name().as_ref() {
+                    b"table:table" if in_table => {
+                        in_table = false;
+                        worksheets.push(crate::types::Worksheet {
+                            name: sheet_name.clone(),
+                            data: data.clone(),
+                            column_widths: None, row_heights: None,
+                            frozen_rows: None, frozen_cols: None,
+                            merged_cells: None, filters: None,
+                            hidden_rows: None, validations: None,
+                            conditional_formats: None, charts: None,
+                            comments: None, protection: None,
+                            array_formulas: None,
+                        });
                     }
-                }
-                in_table = true;
-                data.clear();
-                row_idx = 0;
-            } else if tag == "/table:table" {
-                if in_table && !data.is_empty() {
-                    worksheets.push(crate::types::Worksheet {
-                        name: current_sheet_name.clone(),
-                        data: data.clone(),
-                        column_widths: None,
-                        row_heights: None,
-                        frozen_rows: None,
-                        frozen_cols: None,
-                        merged_cells: None,
-                        filters: None,
-                        hidden_rows: None,
-                        validations: None,
-                        conditional_formats: None,
-                        charts: None,
-                        comments: None,
-                        protection: None,
-                        array_formulas: None,
-                    });
-                }
-                in_table = false;
-            } else if tag.starts_with("table:table-row") && !tag.ends_with('/') {
-                col_idx = 0;
-            } else if tag == "/table:table-row" {
-                row_idx += 1;
-            } else if tag.starts_with("table:table-cell") {
-                let mut cell_value = String::new();
-                let mut has_formula = false;
-                let mut formula = String::new();
-
-                if tag.contains("table:formula=") {
-                    has_formula = true;
-                    if let Some(f_start) = tag.find("table:formula=\"") {
-                        let f_part = &tag[f_start + 15..];
-                        if let Some(f_end) = f_part.find('"') {
-                            formula = f_part[..f_end].to_string();
-                        }
+                    b"table:table-row" if in_table => {
+                        current_row += 1;
                     }
-                }
-
-                if tag.contains("office:value=") {
-                    if let Some(v_start) = tag.find("office:value=\"") {
-                        let v_part = &tag[v_start + 14..];
-                        if let Some(v_end) = v_part.find('"') {
-                            cell_value = v_part[..v_end].to_string();
+                    b"table:table-cell" if in_table => {
+                        if !cell_value.is_empty() {
+                            let key = format!("{current_row},{current_col}");
+                            data.insert(key, crate::types::CellData {
+                                value: Some(cell_value.clone()),
+                                formula: None, style: None, format: None,
+                                note: None, locked: None, has_comment: None,
+                                array_formula_id: None,
+                            });
                         }
+                        current_col += 1;
                     }
-                }
-
-                i += 1;
-                let mut text_depth = 0;
-                while i < chars.len() {
-                    if chars[i] == '<' {
-                        let mut inner_tag = String::new();
-                        i += 1;
-                        while i < chars.len() && chars[i] != '>' {
-                            inner_tag.push(chars[i]);
-                            i += 1;
-                        }
-                        if inner_tag.starts_with("text:p") {
-                            text_depth += 1;
-                        } else if inner_tag == "/text:p" {
-                            text_depth -= 1;
-                        } else if inner_tag == "/table:table-cell" {
-                            break;
-                        }
-                    } else if text_depth > 0 {
-                        cell_value.push(chars[i]);
+                    b"text:p" => {
+                        in_text_p = false;
                     }
-                    i += 1;
+                    _ => {}
                 }
-
-                if !cell_value.is_empty() || has_formula {
-                    let key = format!("{row_idx},{col_idx}");
-                    data.insert(
-                        key,
-                        crate::types::CellData {
-                            value: if cell_value.is_empty() {
-                                None
-                            } else {
-                                Some(cell_value)
-                            },
-                            formula: if has_formula { Some(formula) } else { None },
-                            style: None,
-                            format: None,
-                            note: None,
-                            locked: None,
-                            has_comment: None,
-                            array_formula_id: None,
-                        },
-                    );
-                }
-
-                col_idx += 1;
             }
+            Ok(Event::Text(ref e)) => {
+                if in_text_p {
+                    if let Ok(text) = e.unescape() {
+                        cell_value.push_str(&text);
+                    }
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(format!("XML parse error: {e}")),
+            _ => {}
         }
-        i += 1;
+        buf.clear();
     }
 
     if worksheets.is_empty() {
         worksheets.push(crate::types::Worksheet {
             name: "Sheet1".to_string(),
             data: HashMap::new(),
-            column_widths: None,
-            row_heights: None,
-            frozen_rows: None,
-            frozen_cols: None,
-            merged_cells: None,
-            filters: None,
-            hidden_rows: None,
-            validations: None,
-            conditional_formats: None,
-            charts: None,
-            comments: None,
-            protection: None,
+            column_widths: None, row_heights: None,
+            frozen_rows: None, frozen_cols: None,
+            merged_cells: None, filters: None,
+            hidden_rows: None, validations: None,
+            conditional_formats: None, charts: None,
+            comments: None, protection: None,
             array_formulas: None,
         });
     }
 
     Ok(worksheets)
+}
+
+pub fn parse_ods_to_worksheets(bytes: &[u8]) -> Result<Vec<crate::types::Worksheet>, String> {
+    use std::io::Cursor;
+    use zip::ZipArchive;
+
+    let cursor = Cursor::new(bytes);
+    let mut zip = ZipArchive::new(cursor)
+        .map_err(|e| format!("Failed to open ODS zip: {e}"))?;
+
+    let mut content_xml = zip.by_name("content.xml")
+        .map_err(|_| "content.xml not found in ODS".to_string())?;
+
+    let mut xml_string = String::new();
+    std::io::Read::read_to_string(&mut content_xml, &mut xml_string)
+        .map_err(|e| format!("Failed to read content.xml: {e}"))?;
+
+    parse_ods_xml(&xml_string)
 }
 
 pub fn detect_spreadsheet_format(bytes: &[u8]) -> &'static str {
