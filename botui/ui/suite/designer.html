@@ -996,6 +996,18 @@
                     History
                 </button>
 
+                <button class="toolbar-btn" id="btn-edit-text"
+                        onclick="var p=window.__EDITOR_FILE_PATH,b=window.__EDITOR_FILE_BUCKET;if(p&&b){var ts=Date.now();window.WindowManager.open('editor-'+ts, p.split('/').pop(), '');window.__EDITOR_FILE_BUCKET=b;window.__EDITOR_FILE_PATH=p;window.__EDITOR_BOOT=Promise.resolve();fetch('/suite/editor.html').then(function(r){return r.text();}).then(function(h){var bb=document.getElementById('window-body-editor-'+ts);if(bb)window.WindowManager._injectBodyContent('editor-'+ts,h);});}"
+                        title="Open in Text Editor"
+                        style="display:none">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Edit Text
+                </button>
+                <script>(function(){var b=document.getElementById('btn-edit-text');if(b&&window.__EDITOR_FILE_PATH)b.style.display='';})();</script>
+
                 <div class="toolbar-separator"></div>
 
                 <button class="toolbar-btn magic" id="btn-magic"
