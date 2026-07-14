@@ -168,6 +168,19 @@ async function previewFile(path) {
             });
             return;
         }
+        if (app === "designer" && window.WindowManager) {
+            var bucket = getEffectiveBucket();
+            var fileName = path.split("/").pop() || "Script";
+            var ts = Date.now();
+            window.__EDITOR_FILE_BUCKET = bucket;
+            window.__EDITOR_FILE_PATH = path;
+            window.__EDITOR_BOOT = Promise.resolve();
+            window.WindowManager.open("designer-" + ts, fileName, "");
+            fetch("/suite/designer.html").then(function(r){return r.text();}).then(function(html){
+                window.WindowManager._injectBodyContent("designer-" + ts, html);
+            });
+            return;
+        }
         if (app === "editor" && window.WindowManager) {
             var bucket = getEffectiveBucket();
             var fileName = path.split("/").pop() || "Untitled";

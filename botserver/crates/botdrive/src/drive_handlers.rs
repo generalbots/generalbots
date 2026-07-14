@@ -632,7 +632,11 @@ pub async fn open_file(
     let ext = path.rsplit('.').next().unwrap_or("");
     let bucket = req.bucket.as_deref().unwrap_or("");
     let (app, url) = match ext {
-        "txt" | "md" | "bas" | "json" | "xml" | "html" | "css" | "js" => {
+        "bas" => (
+            "designer".to_string(),
+            format!("/suite/designer.html?file={path}&bucket={bucket}"),
+        ),
+        "txt" | "md" | "json" | "xml" | "html" | "css" | "js" => {
             ("editor".to_string(), format!("/suite/editor.html?file={path}&bucket={bucket}"))
         }
         "pdf" => ("viewer".to_string(), format!("/suite/docs/?file={path}")),
