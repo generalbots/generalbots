@@ -634,6 +634,7 @@
             var params = new URLSearchParams(window.location.search);
             if (!filePath) filePath = params.get('file') || '';
             var bucket = window.__EDITOR_FILE_BUCKET || params.get('bucket') || '';
+            var scope = window.__EDITOR_FILE_SCOPE || 'bot';
             if (!filePath) { showSaveNotification({detail:{successful:false}}); return; }
             var content = '';
             if (window.__CSV_ACTIVE) {
@@ -654,6 +655,7 @@
                 var ta = document.getElementById('text-editor');
                 content = ta ? ta.value : '';
                 if (window.monacoEditorInstance) content = window.monacoEditorInstance.getValue();
+
             }
             var spinner = document.getElementById('save-spinner');
             if (spinner) spinner.style.display = 'inline-block';
@@ -667,7 +669,7 @@
                     bucket: bucket,
                     path: relativePath,
                     content: btoa(content),
-                    scope: 'user'
+                    scope: scope
                 })
             }).then(function(r) {
                 if (spinner) spinner.style.display = 'none';
@@ -830,6 +832,7 @@
             var params = new URLSearchParams(window.location.search);
             if (!filePath) filePath = params.get('file') || '';
             var bucket = window.__EDITOR_FILE_BUCKET || params.get('bucket') || '';
+            var scope = window.__EDITOR_FILE_SCOPE || 'bot';
             if (filePath) {
                 var isCsv = filePath.toLowerCase().endsWith('.csv');
                 var pathParts = filePath.split('/');
@@ -838,7 +841,7 @@
                 authFetch('/api/files/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bucket: bucket, path: relativePath, scope: 'user' })
+                    body: JSON.stringify({ bucket: bucket, path: relativePath, scope: scope })
                 }).then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data.content) {
@@ -871,6 +874,8 @@
             }
         }, 3000);
 
+        let monacoEditorInstance = null;
+
         // Load Monaco Editor
         if (!document.getElementById('monaco-script')) {
             const script = document.createElement('script');
@@ -894,8 +899,6 @@
             clearTimeout(monacoFallbackTimer);
             initMonaco();
         }
-
-        let monacoEditorInstance = null;
 
         function initMonaco() {
             var fileName = '';
@@ -922,7 +925,8 @@
             
             document.getElementById('file-type').textContent = '📄 ' + language.toUpperCase();
             
-            monacoEditorInstance = monaco.editor.create(container, {
+            window.__MONACO_CREATE_STARTED = true;
+            window.monacoEditorInstance = monaco.editor.create(container, {
                 value: textarea.value,
                 language: language,
                 theme: 'vs-dark',
@@ -933,25 +937,26 @@
                 scrollBeyondLastLine: false
             });
 
-            monacoEditorInstance.onDidChangeModelContent(() => {
-                textarea.value = monacoEditorInstance.getValue();
+            window.monacoEditorInstance.onDidChangeModelContent(() => {
+                textarea.value = window.monacoEditorInstance.getValue();
                 document.getElementById('dirty-indicator').style.display = 'inline-block';
 
-                const pos = monacoEditorInstance.getPosition();
+                const pos = window.monacoEditorInstance.getPosition();
                 const statusPos = document.getElementById('cursor-position');
                 if (statusPos) {
                     statusPos.textContent = `Ln ${pos.lineNumber}, Col ${pos.column}`;
                 }
             });
 
-            monacoEditorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+            window.monacoEditorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
                 htmx.trigger(document.querySelector('[hx-post="/api/editor/save"]'), 'click');
             });
             
+            window.__MONACO_INIT_COMPLETE = true;
             // Apply magic code hook using Monaco
             window.applyMagicCode = function() {
-                if (window.magicImprovedCode && monacoEditorInstance) {
-                    monacoEditorInstance.setValue(window.magicImprovedCode);
+                if (window.magicImprovedCode && window.monacoEditorInstance) {
+                    window.monacoEditorInstance.setValue(window.magicImprovedCode);
                     hideMagicPanel();
                 }
             };

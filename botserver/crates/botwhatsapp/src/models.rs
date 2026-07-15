@@ -103,8 +103,8 @@ pub struct WebhookChange {
 pub struct WebhookValue {
     pub messaging_product: Option<String>,
     pub metadata: Option<WebhookMetadata>,
-    pub messages: Vec<WhatsAppMessage>,
-    pub statuses: Vec<WhatsAppStatus>,
+    pub messages: Option<Vec<WhatsAppMessage>>,
+    pub statuses: Option<Vec<WhatsAppStatus>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

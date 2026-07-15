@@ -13,8 +13,11 @@ use crate::message_processing::process_incoming_message;
 
 #[derive(Deserialize)]
 pub struct VerifyParams {
+    #[serde(rename = "hub.mode")]
     pub hub_mode: Option<String>,
+    #[serde(rename = "hub.challenge")]
     pub hub_challenge: Option<String>,
+    #[serde(rename = "hub.verify_token")]
     pub hub_verify_token: Option<String>,
 }
 
@@ -55,60 +58,64 @@ pub async fn handle_webhook(
             let phone_number_id = change.value.metadata.as_ref()
                 .and_then(|m| m.phone_number_id.clone());
 
-            for message in &change.value.messages {
-                let phone_number = match &message.from {
-                    Some(p) => p.clone(),
-                    None => continue,
-                };
+            if let Some(ref messages) = change.value.messages {
+                for message in messages {
+                    let phone_number = match &message.from {
+                        Some(p) => p.clone(),
+                        None => continue,
+                    };
 
-                let message_content = match message.message_type.as_deref() {
-                    Some("text") => message.text.as_ref().and_then(|t| t.body.clone()),
-                    Some("interactive") => {
-                        message.interactive.as_ref().and_then(|i| {
-                            i.button_reply
-                                .as_ref()
-                                .map(|b| b.title.clone().unwrap_or_default())
-                                .or_else(|| {
-                                    i.list_reply
-                                        .as_ref()
-                                        .map(|l| l.title.clone().unwrap_or_default())
-                                })
-                        })
-                    }
-                    Some("button") => message
-                        .button
-                        .as_ref()
-                        .and_then(|b| b.text.clone()),
-                    _ => {
-                        log::info!(
-                            "Unsupported message type: {:?}",
-                            message.message_type
-                        );
-                        continue;
-                    }
-                };
+                    let message_content = match message.message_type.as_deref() {
+                        Some("text") => message.text.as_ref().and_then(|t| t.body.clone()),
+                        Some("interactive") => {
+                            message.interactive.as_ref().and_then(|i| {
+                                i.button_reply
+                                    .as_ref()
+                                    .map(|b| b.title.clone().unwrap_or_default())
+                                    .or_else(|| {
+                                        i.list_reply
+                                            .as_ref()
+                                            .map(|l| l.title.clone().unwrap_or_default())
+                                    })
+                            })
+                        }
+                        Some("button") => message
+                            .button
+                            .as_ref()
+                            .and_then(|b| b.text.clone()),
+                        _ => {
+                            log::info!(
+                                "Unsupported message type: {:?}",
+                                message.message_type
+                            );
+                            continue;
+                        }
+                    };
 
-                let content = match message_content {
-                    Some(c) => c,
-                    None => {
-                        log::warn!("Empty message content from {}", phone_number);
-                        continue;
-                    }
-                };
+                    let content = match message_content {
+                        Some(c) => c,
+                        None => {
+                            log::warn!("Empty message content from {}", phone_number);
+                            continue;
+                        }
+                    };
 
-                if let Err(e) =
-                    process_incoming_message(&state, &phone_number, &content, message, phone_number_id.clone()).await
-                {
-                    log::error!("Failed to process message from {}: {}", phone_number, e);
+                    if let Err(e) =
+                        process_incoming_message(&state, &phone_number, &content, message, phone_number_id.clone()).await
+                    {
+                        log::error!("Failed to process message from {}: {}", phone_number, e);
+                    }
                 }
             }
 
-            for status in &change.value.statuses {
-                log::info!(
-                    "Message {} status: {:?}",
-                    status.id.as_deref().unwrap_or("unknown"),
-                    status.status
-                );
+            if let Some(ref statuses) = change.value.statuses {
+                for status in statuses {
+                    log::info!(
+                        "Message {} status: {:?}",
+                        status.id.as_deref().unwrap_or("unknown"),
+                        status.status
+                    );
+                }
             }
         }
     }

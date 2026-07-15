@@ -104,7 +104,7 @@ pub async fn run_axum_server(
             "/api/client-errors".into(), "/api/cloud/auth*".into(), "/api/sheet*".into(), "/suite/sheet*".into(),            "/api/auth/cloud-sso".into(),
             "/api/auth/suite-sso".into(),
             "/api/auth/unified-login".into(), "/api/catalog".into(), "/ws".into(),
-            "/ws/".into(), "/webhook/whatsapp".into(), "/webhook".into(),
+            "/ws/".into(), "/webhook/whatsapp".into(), "/api/whatsapp/webhook".into(), "/webhook".into(),
         ],
         ..Default::default()
     };
