@@ -67,6 +67,7 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_anonymous_path("/ws")
             .add_anonymous_path("/auth")
             .add_anonymous_path("/webhook/whatsapp")
+            .add_anonymous_path("/api/whatsapp/webhook")
             .add_anonymous_path("/api/catalog")
             .add_anonymous_path("/api/bots/")
             .add_anonymous_path("/api/cloud/auth/login")

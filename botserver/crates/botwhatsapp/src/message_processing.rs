@@ -31,7 +31,9 @@ pub async fn process_incoming_message(
 
     let session_id = find_or_create_session(state, &formatted_phone, &bot_id).await?;
 
-    save_incoming_message(state, &bot_id, &formatted_phone, &session_id, content)?;
+    if let Err(e) = save_incoming_message(state, &bot_id, &formatted_phone, &session_id, content) {
+        log::warn!("Could not save incoming message (non-fatal): {}", e);
+    }
 
     if is_list_message(content) {
         log::info!("List message detected from {}", formatted_phone);
@@ -98,13 +100,16 @@ pub fn process_outbound_message(
     msg_phone: &str,
     msg_session_id: &uuid::Uuid,
     msg_content: &str,
-) -> Result<(), String> {
+) {
     use crate::models::NewMessage;
 
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| format!("Pool error: {}", e))?;
+    let mut conn = match state.pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("Could not save outbound message (pool): {}", e);
+            return;
+        }
+    };
 
     let new_msg = NewMessage {
         id: uuid::Uuid::new_v4(),
@@ -118,12 +123,12 @@ pub fn process_outbound_message(
         created_at: chrono::Utc::now(),
     };
 
-    diesel::insert_into(crate::schema::message_history::table)
+    if let Err(e) = diesel::insert_into(crate::schema::message_history::table)
         .values(&new_msg)
         .execute(&mut conn)
-        .map_err(|e| format!("Insert error: {}", e))?;
-
-    Ok(())
+    {
+        log::warn!("Could not save outbound message (non-fatal): {}", e);
+    }
 }
 
 pub async fn send_outbound_message(

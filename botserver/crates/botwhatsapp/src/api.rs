@@ -44,15 +44,7 @@ pub async fn handle_send_message(
         }
     };
 
-    match process_outbound_message(&state, &bot_id, &formatted_phone, &session_id, &payload.message) {
-        Ok(()) => {}
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": e})),
-            );
-        }
-    }
+    process_outbound_message(&state, &bot_id, &formatted_phone, &session_id, &payload.message);
 
     match send_outbound_message(&state, &bot_id, &formatted_phone, &payload.message).await {
         Ok(()) => (

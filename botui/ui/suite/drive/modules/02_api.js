@@ -174,6 +174,7 @@ async function previewFile(path) {
             var ts = Date.now();
             window.__EDITOR_FILE_BUCKET = bucket;
             window.__EDITOR_FILE_PATH = path;
+            window.__EDITOR_FILE_SCOPE = currentScope;
             window.__EDITOR_BOOT = Promise.resolve();
             window.WindowManager.open("designer-" + ts, fileName, "");
             fetch("/suite/designer.html").then(function(r){return r.text();}).then(function(html){
@@ -188,6 +189,7 @@ async function previewFile(path) {
             window.WindowManager.open("editor-" + ts, fileName, "");
             window.__EDITOR_FILE_BUCKET = bucket;
             window.__EDITOR_FILE_PATH = path;
+            window.__EDITOR_FILE_SCOPE = currentScope;
             window.__EDITOR_BOOT = Promise.resolve();
             fetch("/suite/editor.html").then(function(r){return r.text();}).then(function(html){
                 window.WindowManager._injectBodyContent("editor-" + ts, html);

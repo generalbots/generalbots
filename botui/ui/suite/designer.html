@@ -997,7 +997,7 @@
                 </button>
 
                 <button class="toolbar-btn" id="btn-edit-text"
-                        onclick="var p=window.__EDITOR_FILE_PATH,b=window.__EDITOR_FILE_BUCKET;if(p&&b){var ts=Date.now();window.WindowManager.open('editor-'+ts, p.split('/').pop(), '');window.__EDITOR_FILE_BUCKET=b;window.__EDITOR_FILE_PATH=p;window.__EDITOR_BOOT=Promise.resolve();fetch('/suite/editor.html').then(function(r){return r.text();}).then(function(h){var bb=document.getElementById('window-body-editor-'+ts);if(bb)window.WindowManager._injectBodyContent('editor-'+ts,h);});}"
+                        onclick="var p=window.__EDITOR_FILE_PATH,b=window.__EDITOR_FILE_BUCKET,s=window.__EDITOR_FILE_SCOPE||'bot';if(p&&b){var ts=Date.now();window.WindowManager.open('editor-'+ts, p.split('/').pop(), '');window.__EDITOR_FILE_BUCKET=b;window.__EDITOR_FILE_PATH=p;window.__EDITOR_FILE_SCOPE=s;window.__EDITOR_BOOT=Promise.resolve();fetch('/suite/editor.html').then(function(r){return r.text();}).then(function(h){var bb=document.getElementById('window-body-editor-'+ts);if(bb)window.WindowManager._injectBodyContent('editor-'+ts,h);});}"
                         title="Open in Text Editor"
                         style="display:none">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
