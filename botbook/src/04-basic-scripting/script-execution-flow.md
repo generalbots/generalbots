@@ -16,8 +16,10 @@ Scripts in General Bots can be triggered through several entry points:
 
 The primary entry point. Executed when a bot initializes or a conversation begins.
 
+The `CHANNEL` built-in variable is available during start.bas execution with values like `"web"`, `"whatsapp"`, `"telegram"`, `"teams"`, `"instagram"`, `"voice"`. Use it to adapt behavior per channel (e.g., show suggestion buttons on web, plain text menu on WhatsApp).
+
 ```basic
-' start.bas - Primary entry point
+' start.bas - Primary entry point with channel awareness
 ' NO MAIN function needed - execution starts at line 1
 
 ' 1. Register tools for LLM to use
