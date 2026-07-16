@@ -149,8 +149,16 @@ impl ScriptService {
         let user_outer = user.clone();
         let result = tokio::task::spawn_blocking(move || {
             let state_for_svc = state_outer.clone();
-            let mut script_service = ScriptService::new(state_outer, user_outer);
+            let mut script_service = ScriptService::new(state_outer, user_outer.clone());
             script_service.load_bot_config_params(&state_for_svc, bot_id);
+            if let Some(obj) = user_outer.context_data.as_object() {
+                for key in &["trigger_record_id", "trigger_old_status", "trigger_new_status", "channel"] {
+                    if let Some(val) = obj.get(*key).and_then(|v| v.as_str()) {
+                        let rhai_key = key.to_uppercase();
+                        let _ = script_service.set_variable(&rhai_key, val);
+                    }
+                }
+            }
             script_service.run(&ast_owned)
         }).await.map_err(|e| format!("spawn_blocking join error: {}", e))?;
         std::fs::write("/tmp/run_result.txt", format!("run result: {:?}\n", result)).ok();
