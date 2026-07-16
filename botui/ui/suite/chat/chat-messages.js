@@ -118,11 +118,9 @@ if (msgId) div.id = msgId;
     var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
     var parsed;
     if (hasHtmlTags) {
-      // F3: HTML content from LLM — render raw via innerHTML (never textContent)
       parsed = cleanContent;
-    } else if (msgId) {
-      // Streaming message — show text content immediately (don't wait for HTML)
-      parsed = escapeHtml(cleanContent);
+    } else if (typeof marked !== "undefined" && marked.parse) {
+      parsed = marked.parse(cleanContent);
     } else {
       parsed = escapeHtml(cleanContent);
     }
