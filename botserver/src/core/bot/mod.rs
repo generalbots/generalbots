@@ -96,6 +96,7 @@ pub mod answer_mode;
 pub mod answer_mode_config;
 pub mod answer_mode_ops;
 pub mod kb_context;
+pub mod pipeline;
 
 pub struct BotOrchestrator;
 

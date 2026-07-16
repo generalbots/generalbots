@@ -234,7 +234,7 @@ pub async fn run_start_bas_on_connect(
     let session_for_bas = botlib::models::UserSession {
         id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_id_for_bas,
         title: String::new(),
-        context_data: serde_json::Value::Null,
+        context_data: serde_json::json!({"channel": "web"}),
         current_tool: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
