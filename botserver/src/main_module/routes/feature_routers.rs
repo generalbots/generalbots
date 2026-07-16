@@ -265,20 +265,40 @@ pub(super) fn make_telegram_router(app_state: &Arc<AppState>) -> Router<()> {
         conn: Arc::new(app_state.conn.clone()),
         get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
         get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-        stream_response: Arc::new(|_: botlib::models::UserMessage, _: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-            tokio::spawn(async move { Ok(()) })
-        }),
+        stream_response: {
+            let app_state = app_state.clone();
+            Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+                let state = app_state.clone();
+                tokio::spawn(async move {
+                    let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
+                    let _ = crate::core::bot::pipeline::run_pipeline_for_channel(
+                        &state, &msg, &sink,
+                    ).await.map_err(|e| e.to_string())?;
+                    Ok(())
+                })
+            })
+        },
         attendant_broadcast: None,
     }))
 }
 
 #[cfg(feature = "instagram")]
-pub(super) fn make_instagram_router() -> Router<()> {
+pub(super) fn make_instagram_router(app_state: &Arc<AppState>) -> Router<()> {
     crate::instagram::webhook::configure().with_state(Arc::new(botinstagram::state::ChannelState {
         get_config: Arc::new(|_: &str, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-        stream_response: Arc::new(|_: botlib::models::UserMessage, _: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-            tokio::spawn(async move { Ok(()) })
-        }),
+        stream_response: {
+            let app_state = app_state.clone();
+            Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+                let state = app_state.clone();
+                tokio::spawn(async move {
+                    let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
+                    let _ = crate::core::bot::pipeline::run_pipeline_for_channel(
+                        &state, &msg, &sink,
+                    ).await.map_err(|e| e.to_string())?;
+                    Ok(())
+                })
+            })
+        },
         attendant_broadcast: None,
     }))
 }
@@ -289,9 +309,19 @@ pub(super) fn make_msteams_router(app_state: &Arc<AppState>) -> Router<()> {
         conn: Arc::new(app_state.conn.clone()),
         get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
         get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-        stream_response: Arc::new(|_: botlib::models::UserMessage, _: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-            tokio::spawn(async move { Ok(()) })
-        }),
+        stream_response: {
+            let app_state = app_state.clone();
+            Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+                let state = app_state.clone();
+                tokio::spawn(async move {
+                    let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
+                    let _ = crate::core::bot::pipeline::run_pipeline_for_channel(
+                        &state, &msg, &sink,
+                    ).await.map_err(|e| e.to_string())?;
+                    Ok(())
+                })
+            })
+        },
         attendant_broadcast: None,
     }))
 }

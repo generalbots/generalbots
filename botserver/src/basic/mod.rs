@@ -289,7 +289,7 @@ impl BasicRuntime for AppStateBasicRuntime {
 
         // Inject trigger context variables from UserSession.context_data
         if let Some(obj) = user.context_data.as_object() {
-            for key in &["trigger_record_id", "trigger_old_status", "trigger_new_status"] {
+            for key in &["trigger_record_id", "trigger_old_status", "trigger_new_status", "channel"] {
                 if let Some(val) = obj.get(*key).and_then(|v| v.as_str()) {
                     let rhai_key = key.to_uppercase();
                     let _ = service.set_variable(&rhai_key, val);

@@ -309,7 +309,7 @@ fn inner_build_sub_router(
     { sub_router = sub_router.merge(super::feature_routers::make_telegram_router(app_state)); }
 
     #[cfg(feature = "instagram")]
-    { sub_router = sub_router.merge(super::feature_routers::make_instagram_router()); }
+    { sub_router = sub_router.merge(super::feature_routers::make_instagram_router(app_state)); }
 
     #[cfg(feature = "msteams")]
     { sub_router = sub_router.merge(super::feature_routers::make_msteams_router(app_state)); }
