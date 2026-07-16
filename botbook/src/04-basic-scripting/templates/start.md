@@ -200,6 +200,32 @@ END SWITCH
 
 ## Customization Ideas
 
+### Channel-Aware start.bas (WhatsApp vs Web)
+
+The `CHANNEL` variable is automatically available in all BASIC scripts. It contains the current conversation channel (`"web"`, `"whatsapp"`, `"telegram"`, `"teams"`, etc.). Use it to adapt your bot's behavior per channel:
+
+```basic
+' start.bas with channel-aware greeting
+USE TOOL "01-batizado"
+USE TOOL "02-casamento"
+
+IF CHANNEL = "whatsapp" THEN
+    ' WhatsApp: plain text menu (no buttons)
+    TALK "Ola! Digite o numero: 1. Batizado, 2. Casamento"
+ELSE
+    ' Web/suite: interactive buttons
+    ADD SUGGESTION "Quero agendar um batizado"
+    ADD SUGGESTION "Quero agendar um casamento"
+    TALK "Como posso ajuda-lo?"
+END IF
+```
+
+This pattern is useful for:
+- **WhatsApp**: Plain text menus (no button support in 24h session window)
+- **Telegram/Teams**: Platform-specific reply markup
+- **Web**: Rich suggestion buttons, HTMX fragments, full UI
+- **Voice**: Shorter messages, no visual elements
+
 ### Add User Detection
 
 ```basic
