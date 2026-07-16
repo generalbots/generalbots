@@ -178,21 +178,7 @@ function updateStreaming(content) {
 function finalizeStreaming() {
   var el = document.getElementById(ChatState.streamingMessageId);
   if (el) {
-    var cleanContent = stripMarkdownBlocks(ChatState.currentStreamingContent);
-    var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
-    var parsed;
-    if (hasHtmlTags) {
-      parsed = cleanContent;
-    } else {
-      parsed = typeof marked !== "undefined" && marked.parse
-        ? marked.parse(cleanContent)
-        : escapeHtml(cleanContent);
-    }
-    parsed = renderMentionInMessage(parsed);
-    el.querySelector(".message-content").innerHTML = parsed;
-    el.removeAttribute("id");
-    setupMentionClickHandlers(el);
-    if (!ChatState.isUserScrolling) scrollToBottom(true);
+    el.remove();
   }
   ChatState.streamingMessageId = null;
   ChatState.currentStreamingContent = "";
@@ -210,7 +196,8 @@ function processMessage(data) {
   if (data.is_complete) {
     if (ChatState.isStreaming) {
       finalizeStreaming();
-    } else if (data.content && data.content.trim() !== "") {
+    }
+    if (data.content && data.content.trim() !== "") {
       addMessage("bot", data.content);
     }
     ChatState.isStreaming = false;
