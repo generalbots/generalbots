@@ -180,8 +180,15 @@ fn get_work_path_default() -> String {
         return "/opt/gbo/work".to_string();
     }
 
-    // Dev fallback: relative path when botserver-stack exists in CWD
-    "./botserver-stack/data/system/work".to_string()
+    // Dev fallback: resolve to absolute path to avoid CWD-dependent breakage
+    let dev_path = std::path::Path::new("./botserver-stack/data/system/work");
+    if dev_path.exists() {
+        std::fs::canonicalize(dev_path)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| "./botserver-stack/data/system/work".to_string())
+    } else {
+        "./botserver-stack/data/system/work".to_string()
+    }
 }
 
 /// Returns the stack base path.

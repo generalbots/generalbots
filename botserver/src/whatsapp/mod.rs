@@ -17,7 +17,7 @@ fn get_default_bot_id_simple(pool: &DbPool) -> Uuid {
             #[diesel(sql_type = diesel::sql_types::Uuid)]
             id: Uuid,
         }
-        diesel::sql_query("SELECT id FROM bots ORDER BY created_at ASC LIMIT 1")
+        diesel::sql_query("SELECT id FROM bots WHERE name = 'cristo' ORDER BY created_at ASC LIMIT 1")
             .get_result::<BotRow>(&mut conn).ok().map(|r| r.id).unwrap_or_default()
     } else {
         Uuid::nil()
@@ -174,13 +174,13 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
         process_message: {
             let app_state = app_state.clone();
             let sm_fn = sm_for_process.clone();
-            Arc::new(move |bot_id_str: String, phone: String, content: String| {
+            Arc::new(move |bot_id_str: String, phone: String, content: String, session_id_str: String| {
                 let state = app_state.clone();
                 let sm = sm_fn.clone();
                 Box::pin(async move {
                     log::info!("WhatsApp process msg from {} for bot '{}': {}", phone, bot_id_str, content);
 
-                    let session_id = Uuid::new_v4();
+                    let session_id = Uuid::parse_str(&session_id_str).unwrap_or_else(|_| Uuid::new_v4());
                     let user_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa:{}", phone).as_bytes());
 
                     let msg = botlib::models::UserMessage::text(

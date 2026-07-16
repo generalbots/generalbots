@@ -43,6 +43,7 @@ pub async fn process_incoming_message(
         bot_id.to_string(),
         formatted_phone.clone(),
         content.to_string(),
+        session_id.to_string(),
     )
     .await
     {
