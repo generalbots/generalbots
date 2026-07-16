@@ -27,6 +27,7 @@ for i in $(seq 1 20); do
   sleep 1
 done
 
+set -a; source .env 2>/dev/null; set +a
 BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
 echo "  botserver PID: $!"
 
