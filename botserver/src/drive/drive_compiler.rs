@@ -126,10 +126,15 @@ impl DriveCompiler {
         for (query_file_path, _file_type, current_etag_opt) in files {
             let current_etag = current_etag_opt.unwrap_or_default();
 
-            // Verificar se precisa compilar
+            // Verificar se precisa compilar (ETag mudou ou .ast foi deletado do work dir)
             let should_compile = {
                 let etags = self.last_etags.read().await;
-                etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true)
+                let etag_changed = etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true);
+                let ast_missing = !self.resolve_ast_path(&query_file_path).exists();
+                if ast_missing {
+                    debug!("Force recompile: .ast file missing for {}", query_file_path);
+                }
+                etag_changed || ast_missing
             };
 
             if should_compile {
@@ -304,6 +309,37 @@ impl DriveCompiler {
 
         info!("Compiled {} to {}.ast", fp, tool_name);
         Ok(())
+    }
+
+    /// Resolve the expected .ast path for a given file path, to check if it exists.
+    /// Returns PathBuf without verifying existence — caller checks .exists().
+    fn resolve_ast_path(&self, fp: &str) -> PathBuf {
+        let parts: Vec<&str> = fp.split('/').collect();
+        if parts.len() < 2 || parts.iter().any(|p| p.ends_with(".gbkb")) {
+            return PathBuf::new();
+        }
+
+        let (branch_name, bot_name) = if parts[0].ends_with(".gbai") {
+            let branch = parts[0].strip_suffix(".gbai").unwrap_or(parts[0]);
+            let bot = if parts.len() >= 2 {
+                parts[1].strip_suffix(".gbdialog").unwrap_or(parts[1])
+            } else {
+                branch
+            };
+            (branch.to_string(), bot.to_string())
+        } else if parts.len() >= 2 && parts[0].ends_with(".gbdialog") {
+            let bot = parts[0].strip_suffix(".gbdialog").unwrap_or(parts[0]);
+            (bot.to_string(), bot.to_string())
+        } else {
+            return PathBuf::new();
+        };
+
+        let tool_name = parts.last()
+            .unwrap_or(&"unknown")
+            .strip_suffix(".bas")
+            .unwrap_or(parts.last().unwrap_or(&"unknown"));
+        let work_dir = self.work_root.join(format!("{branch_name}.gborg/{branch_name}.gbai/{bot_name}.gbdialog"));
+        work_dir.join(format!("{}.ast", tool_name))
     }
 
     /// Resolve the branch UUID from the branch slug/name using the database.

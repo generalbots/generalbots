@@ -100,11 +100,18 @@ pub async fn handle_webhook(
                         }
                     };
 
-                    if let Err(e) =
-                        process_incoming_message(&state, &phone_number, &content, message, phone_number_id.clone()).await
-                    {
-                        log::error!("Failed to process message from {}: {}", phone_number, e);
-                    }
+                    let state_clone = state.clone();
+                    let pn = phone_number.clone();
+                    let ct = content.clone();
+                    let pni = phone_number_id.clone();
+                    let msg = message.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) =
+                            process_incoming_message(&state_clone, &pn, &ct, &msg, pni).await
+                        {
+                            log::error!("Failed to process message from {}: {}", pn, e);
+                        }
+                    });
                 }
             }
 
