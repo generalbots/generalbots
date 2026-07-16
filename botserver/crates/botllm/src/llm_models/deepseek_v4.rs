@@ -39,6 +39,7 @@ impl ModelHandler for DeepseekV4Handler {
         
         let mut clean_current = String::new();
         let mut in_think = false;
+        let mut last_clean_end = 0;
         
         let mut current_pos = 0;
         let full_text = state.as_str();
@@ -53,17 +54,22 @@ impl ModelHandler for DeepseekV4Handler {
                     if current_pos >= old_len {
                         clean_current.push(c);
                     }
+                    last_clean_end = current_pos + c.len_utf8();
                     current_pos += c.len_utf8();
                 }
             } else {
                 if full_text[current_pos..].starts_with("</think>") {
                     in_think = false;
                     current_pos += 8;
+                    last_clean_end = current_pos;
                 } else {
-                    let c = full_text[current_pos..].chars().next().unwrap();
-                    current_pos += c.len_utf8();
+                    current_pos += full_text[current_pos..].chars().next().unwrap().len_utf8();
                 }
             }
+        }
+        
+        if last_clean_end > 0 {
+            state.drain(..last_clean_end);
         }
         
         clean_current
