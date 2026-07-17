@@ -35,7 +35,7 @@ impl ModelHandler for DeepseekV4Handler {
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
         state.push_str(chunk);
-        const MIN_EMIT: usize = 60;
+        const MIN_EMIT: usize = 200;
         if state.len() < MIN_EMIT {
             return String::new();
         }
