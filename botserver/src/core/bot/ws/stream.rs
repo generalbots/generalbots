@@ -173,9 +173,6 @@ pub async fn process_llm_response(
                 });
                 if !style_css.is_empty() {
                     init_msg["css"] = serde_json::Value::String(style_css.clone());
-                    info!("CSS included in thinking msg for bot {} ({} bytes)", bot_name_clone, style_css.len());
-                    let style_tag = format!("<style>\n{}</style>\n", style_css);
-                    full_response.push_str(&style_tag);
                 } else {
                     info!("CSS NOT included - style_css was empty for bot {}", bot_name_clone);
                 }

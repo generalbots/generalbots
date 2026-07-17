@@ -28,6 +28,13 @@ for i in $(seq 1 20); do
 done
 
 set -a; source .env 2>/dev/null; set +a
+unset VAULT_TOKEN
+VAULT_BIN=./botserver-stack/bin/vault/vault
+MINIO_ACCESS_KEY=$($VAULT_BIN kv get -field=accesskey -tls-skip-verify secret/gbo/drive 2>/dev/null)
+MINIO_SECRET_KEY=$($VAULT_BIN kv get -field=secret -tls-skip-verify secret/gbo/drive 2>/dev/null)
+MINIO_ENDPOINT=http://127.0.0.1:9100
+MINIO_BUCKET=default.gbai
+MINIO_SERVER=http://127.0.0.1:9100
 BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
 echo "  botserver PID: $!"
 
