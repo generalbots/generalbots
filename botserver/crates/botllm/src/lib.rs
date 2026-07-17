@@ -555,7 +555,7 @@ impl LLMProvider for OpenAIClient {
             "model": model,
             "messages": messages,
             "stream": true,
-            token_key: 16384,
+            token_key: 65536,
             "temperature": 1.0,
             "top_p": 1.0
         });
@@ -664,6 +664,7 @@ impl LLMProvider for OpenAIClient {
         let mut content_sent: usize = 0;
         let mut tool_call_name = String::new();
         let mut tool_call_args = String::new();
+        let mut reasoning_buffer = String::new();
 
         info!("LLM stream starting for model: {}", model);
 
@@ -719,11 +720,7 @@ impl LLMProvider for OpenAIClient {
                             }
                         } else if let Some(ref reasoning) = reasoning_text {
                             if !reasoning.is_empty() && content_text.as_ref().map_or(true, |c| c.is_empty()) {
-                                let processed = handler.process_content_streaming(reasoning, &mut stream_state);
-                                if !processed.is_empty() {
-                                    content_sent += processed.len();
-                                    let _ = tx.send(processed).await;
-                                }
+                                reasoning_buffer.push_str(reasoning);
                             }
                         }
 
@@ -777,6 +774,16 @@ impl LLMProvider for OpenAIClient {
             let remaining = handler.process_content(&stream_state);
             if !remaining.is_empty() {
                 let _ = tx.send(remaining).await;
+            }
+        }
+
+        // If no content was sent but we accumulated reasoning (e.g. OpenCode Go gateway
+        // that puts all output in reasoning_content), flush reasoning as fallback.
+        if content_sent == 0 && !reasoning_buffer.is_empty() {
+            let processed = handler.process_content(&reasoning_buffer);
+            if !processed.is_empty() {
+                content_sent += processed.len();
+                let _ = tx.send(processed).await;
             }
         }
 
