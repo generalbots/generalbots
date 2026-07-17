@@ -166,8 +166,6 @@ pub async fn stream_llm_response(
                 });
                 if !style_css.is_empty() {
                     init_msg["css"] = serde_json::Value::String(style_css.clone());
-                    let style_tag = format!("<style>\n{style_css}</style>\n");
-                    full_response.push_str(&style_tag);
                 }
                 let _ = sink.send_raw_json(&init_msg).await;
             }
