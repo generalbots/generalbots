@@ -34,12 +34,14 @@ impl ModelHandler for DeepseekV4Handler {
     }
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
-        let old_len = state.len();
         state.push_str(chunk);
+        const MIN_EMIT: usize = 60;
+        if state.len() < MIN_EMIT {
+            return String::new();
+        }
         
         let mut clean_current = String::new();
         let mut in_think = false;
-        let mut last_clean_end = 0;
         
         let mut current_pos = 0;
         let full_text = state.as_str();
@@ -51,27 +53,20 @@ impl ModelHandler for DeepseekV4Handler {
                     current_pos += 7;
                 } else {
                     let c = full_text[current_pos..].chars().next().unwrap();
-                    if current_pos >= old_len {
-                        clean_current.push(c);
-                    }
-                    last_clean_end = current_pos + c.len_utf8();
+                    clean_current.push(c);
                     current_pos += c.len_utf8();
                 }
             } else {
                 if full_text[current_pos..].starts_with("</think>") {
                     in_think = false;
                     current_pos += 8;
-                    last_clean_end = current_pos;
                 } else {
                     current_pos += full_text[current_pos..].chars().next().unwrap().len_utf8();
                 }
             }
         }
         
-        if last_clean_end > 0 {
-            state.drain(..last_clean_end);
-        }
-        
+        state.clear();
         clean_current
     }
 
