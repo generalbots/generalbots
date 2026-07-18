@@ -187,7 +187,7 @@ pub fn register_insert_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     engine
         .register_custom_syntax(
             ["INSERT", "$expr$", ",", "$expr$"],
-            false,
+            true,
             move |context, inputs| {
                 let table = context.eval_expression_tree(&inputs[0])?.to_string();
                 let data = context.eval_expression_tree(&inputs[1])?;
