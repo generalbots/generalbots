@@ -308,6 +308,7 @@ pub async fn send_message_to_recipient(
             context_name: None,
             context_length: 0,
             context_max_length: 0,
+            reasoning: String::new(),
         };
         adapter.send_message(response).await?;
     }
@@ -327,6 +328,7 @@ pub async fn send_message_to_recipient(
             context_name: None,
             context_length: 0,
             context_max_length: 0,
+            reasoning: String::new(),
         };
         adapter.send_message(response).await?;
     }
@@ -346,6 +348,7 @@ pub async fn send_message_to_recipient(
                 context_name: None,
                 context_length: 0,
                 context_max_length: 0,
+            reasoning: String::new(),
             };
             adapter.send_message(response).await?;
         }
@@ -668,6 +671,7 @@ async fn send_web_message(
         context_name: None,
         context_length: 0,
         context_max_length: 0,
+            reasoning: String::new(),
     };
 
     web_adapter

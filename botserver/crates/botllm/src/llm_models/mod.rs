@@ -4,18 +4,20 @@ pub mod gpt_oss_20b;
 pub mod minimax;
 pub mod stepfun;
 
+#[derive(Debug, Clone, Default)]
+pub struct ProcessedChunk {
+    pub content: String,
+    pub reasoning: String,
+}
+
 pub trait ModelHandler: Send + Sync {
     fn is_analysis_complete(&self, buffer: &str) -> bool;
     fn process_content(&self, content: &str) -> String;
-    fn process_content_streaming(&self, content: &str, _state_buffer: &mut String) -> String {
-        self.process_content(content)
+    fn process_content_streaming(&self, content: &str, _state_buffer: &mut String) -> ProcessedChunk {
+        let result = self.process_content(content);
+        ProcessedChunk { content: result, reasoning: String::new() }
     }
     fn has_analysis_markers(&self, buffer: &str) -> bool;
-    /// Whether to skip `reasoning_content`/`reasoning` deltas in streaming.
-    /// Models that output reasoning AND content as separate fields (e.g. deepseek-v4-flash
-    /// via opencode.ai) should return `true` so only the final `content` is sent to the user.
-    /// Models that ONLY output reasoning (e.g. gpt-oss via NVIDIA) should return `false`
-    /// so the reasoning is sent as the response.
     fn skip_reasoning_content(&self) -> bool {
         false
     }
@@ -38,7 +40,6 @@ impl ModelHandler for PassthroughHandler {
     }
 }
 
-#[must_use]
 pub fn get_handler(model_path: &str) -> Box<dyn ModelHandler> {
     let path = model_path.to_lowercase();
     if path.contains("deepseek") {

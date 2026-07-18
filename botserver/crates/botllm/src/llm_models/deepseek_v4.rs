@@ -1,24 +1,35 @@
-use super::ModelHandler;
+use super::{ModelHandler, ProcessedChunk};
 
-pub fn strip_think_tags(content: &str) -> String {
-    // We want to strip <think>...</think> OR <think> until end of string (streaming)
-    let mut result = content.to_string();
-    if let Some(start_idx) = result.find("<think>") {
-        if let Some(end_idx) = result[start_idx..].find("</think>") {
-            // Case 1: Fully enclosed
-            result = format!(
-                "{}{}",
-                &result[..start_idx],
-                &result[start_idx + end_idx + 8..]
-            );
-            // Recursive call to catch multiple blocks
-            return strip_think_tags(&result);
+/// Extract content outside think tags, returning (content, reasoning).
+/// If everything is inside think tags, content is empty and reasoning has the full text.
+pub fn extract_think_tags(content: &str) -> (String, String) {
+    let mut result = String::new();
+    let mut reasoning = String::new();
+    let mut in_think = false;
+    let chars: Vec<char> = content.chars().collect();
+    let mut pos = 0;
+
+    while pos < chars.len() {
+        if !in_think {
+            if pos + 7 <= chars.len() && chars[pos..pos+7].iter().collect::<String>() == " thinking" {
+                in_think = true;
+                pos += 7;
+                continue;
+            }
+            result.push(chars[pos]);
+            pos += 1;
         } else {
-            // Case 2: Unclosed (streaming)
-            result = result[..start_idx].to_string();
+            if pos + 8 <= chars.len() && chars[pos..pos+8].iter().collect::<String>() == " response" {
+                in_think = false;
+                pos += 8;
+                continue;
+            }
+            reasoning.push(chars[pos]);
+            pos += 1;
         }
     }
-    result
+
+    (result.trim().to_string(), reasoning.trim().to_string())
 }
 
 #[derive(Debug)]
@@ -26,48 +37,19 @@ pub struct DeepseekV4Handler;
 
 impl ModelHandler for DeepseekV4Handler {
     fn is_analysis_complete(&self, buffer: &str) -> bool {
-        buffer.contains("</think>")
+        buffer.contains(" response")
     }
 
     fn process_content(&self, content: &str) -> String {
-        strip_think_tags(content)
+        let (cleaned, _reasoning) = extract_think_tags(content);
+        cleaned
     }
 
-    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
-        state.push_str(chunk);
-        const MIN_EMIT: usize = 200;
-        if state.len() < MIN_EMIT {
-            return String::new();
-        }
-        
-        let mut clean_current = String::new();
-        let mut in_think = false;
-        
-        let mut current_pos = 0;
-        let full_text = state.as_str();
-        
-        while current_pos < full_text.len() {
-            if !in_think {
-                if full_text[current_pos..].starts_with("<think>") {
-                    in_think = true;
-                    current_pos += 7;
-                } else {
-                    let c = full_text[current_pos..].chars().next().unwrap();
-                    clean_current.push(c);
-                    current_pos += c.len_utf8();
-                }
-            } else {
-                if full_text[current_pos..].starts_with("</think>") {
-                    in_think = false;
-                    current_pos += 8;
-                } else {
-                    current_pos += full_text[current_pos..].chars().next().unwrap().len_utf8();
-                }
-            }
-        }
-        
-        state.clear();
-        clean_current
+    fn process_content_streaming(&self, chunk: &str, _state: &mut String) -> ProcessedChunk {
+        // Deepseek API sends reasoning via "reasoning_content" SSE field,
+        // NOT in the "content" field. Forward content chunks directly.
+        // The process_content cleanup handles any stray think tags from edge cases.
+        ProcessedChunk { content: chunk.to_string(), reasoning: String::new() }
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {
@@ -84,21 +66,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_strip_think_tags() {
-        assert_eq!(strip_think_tags("Hello <think>thinking...</think> World"), "Hello  World");
-        assert_eq!(strip_think_tags("<think>hmm</think>Ans"), "Ans");
-        assert_eq!(strip_think_tags("Start <think>thinking..."), "Start ");
+    fn test_extract_think_tags() {
+        let (c, r) = extract_think_tags("Hello  thinkingthinking... response World");
+        assert_eq!(c, "Hello  World");
+        assert_eq!(r, "thinking...");
+
+        let (c, r) = extract_think_tags(" thinkinghmm responseAns");
+        assert_eq!(c, "Ans");
+        assert_eq!(r, "hmm");
+
+        let (c, r) = extract_think_tags("Start  thinkingthinking...");
+        assert_eq!(c, "Start");
+        assert_eq!(r, "thinking...");
     }
 
     #[test]
     fn test_process_content_streaming() {
         let handler = DeepseekV4Handler;
         let mut state = String::new();
-        
-        assert_eq!(handler.process_content_streaming("He", &mut state), "He");
-        assert_eq!(handler.process_content_streaming("llo <th", &mut state), "llo <th");
-        
-        let mut state = String::new();
-        assert_eq!(handler.process_content_streaming("<think>thinking</think>Result", &mut state), "Result");
+
+        let r1 = handler.process_content_streaming("He", &mut state);
+        assert_eq!(r1.content, "He");
+        assert_eq!(r1.reasoning, "");
+        assert!(state.is_empty());
+
+        let r2 = handler.process_content_streaming("llo World", &mut state);
+        assert_eq!(r2.content, "llo World");
+        assert_eq!(r2.reasoning, "");
+        assert!(state.is_empty());
     }
 }

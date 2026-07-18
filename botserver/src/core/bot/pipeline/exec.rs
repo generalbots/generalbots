@@ -160,6 +160,7 @@ pub async fn process_message_internal(
             context_name: None,
             context_length: 0,
             context_max_length: 0,
+            reasoning: String::new(),
         };
         let _ = sink.send_bot_response(&resp).await;
     }
@@ -178,6 +179,7 @@ pub async fn process_message_internal(
         context_name: None,
         context_length: 0,
         context_max_length: 0,
+        reasoning: String::new(),
     }).await;
 
     let base_system_prompt = crate::core::bot::ws::message::load_system_prompt(bot_name);
@@ -250,6 +252,7 @@ pub async fn process_message_internal(
         context_name: None,
         context_length: 0,
         context_max_length: 0,
+        reasoning: String::new(),
     }).await;
 
     let user_query = user_text.clone();

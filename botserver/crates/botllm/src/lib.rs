@@ -21,7 +21,7 @@ pub use evaluation::{
 };
 pub use rate_limiter::{ApiRateLimiter, RateLimits};
 pub use hallucination_detector::HallucinationDetector;
-pub use llm_models::get_handler;
+pub use llm_models::{get_handler, ProcessedChunk, ModelHandler};
 pub use claude::ClaudeClient;
 pub use glm::GLMClient;
 pub use vertex::VertexTokenManager;
@@ -658,17 +658,19 @@ impl LLMProvider for OpenAIClient {
 
         let handler = get_handler(model);
         let mut stream_state = String::new();
+        let mut line_buffer = String::new(); // for SSE line fragmentation across chunks
         let mut first_bytes: Option<String> = None;
         let mut last_bytes = String::new();
         let mut total_size: usize = 0;
         let mut content_sent: usize = 0;
         let mut tool_call_name = String::new();
         let mut tool_call_args = String::new();
-        let mut reasoning_buffer = String::new();
+        let mut reasoning_from_field = String::new();   // from reasoning_content/reasoning API field
+        let mut reasoning_from_content = String::new(); // from <think> tags inside content
 
         info!("LLM stream starting for model: {}", model);
 
-        let idle_timeout = std::time::Duration::from_secs(5);
+        let idle_timeout = std::time::Duration::from_secs(60);
         loop {
             let chunk_result = match tokio::time::timeout(idle_timeout, chunk_rx.recv()).await {
                 Ok(Some(Ok(chunk))) => chunk,
@@ -686,9 +688,18 @@ impl LLMProvider for OpenAIClient {
                 first_bytes = Some(chunk_str.chars().take(100).collect());
             }
             last_bytes = chunk_str.chars().take(100).collect();
-            for line in chunk_str.lines() {
-                if line.starts_with("data: ") && !line.contains("[DONE]") {
-                    if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
+
+            // Accumulate lines across chunks to handle SSE fragmentation
+            line_buffer.push_str(&chunk_str);
+            let mut pos = 0;
+            while let Some(newline) = line_buffer[pos..].find('\n') {
+                let end = pos + newline;
+                let line = line_buffer[pos..end].trim_end_matches('\r').to_string();
+                pos = end + 1;
+                if !line.starts_with("data: ") || line.contains("[DONE]") {
+                    continue;
+                }
+                if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
                         if let Some(filter_result) = data["choices"][0]["delta"]["content_filter_result"].as_object() {
                             if let Some(error) = filter_result.get("error") {
                                 let code = error.get("code").and_then(|c| c.as_str()).unwrap_or("unknown");
@@ -699,37 +710,38 @@ impl LLMProvider for OpenAIClient {
                             }
                         }
 
-                        // NVIDIA API uses "reasoning" field in streaming, not "reasoning_content"
+                        // Different models put data in different fields:
+                        //   NVIDIA/Nemotron:    content=answer, reasoning=thinking (separate chunks)
+                        //   DeepSeek paid:      content=answer, reasoning_content=thinking
+                        let content_text = data["choices"][0]["delta"]["content"].as_str()
+                            .map(|s| s.to_string())
+                            .filter(|s| !s.is_empty());
+
+                        // Reasoning/thinking from separate API field
                         let reasoning_text = data["choices"][0]["delta"]["reasoning"].as_str()
                             .or_else(|| data["choices"][0]["delta"]["reasoning_content"].as_str())
                             .map(|s| s.to_string());
-                        let content_text = data["choices"][0]["delta"]["content"].as_str().map(|s| s.to_string());
 
-                        // Let the model handler decide whether to skip reasoning content.
-                        // Models like deepseek-v4-flash output reasoning then content separately,
-                        // so we skip reasoning. Models like gpt-oss only output reasoning, so we send it.
-                        if !handler.skip_reasoning_content() {
-                            if let Some(ref reasoning) = reasoning_text {
-                                if !reasoning.is_empty() && content_text.as_ref().is_none_or(|c| c.is_empty()) {
-                                    let processed = handler.process_content_streaming(reasoning, &mut stream_state);
-                                    if !processed.is_empty() {
-                                        content_sent += processed.len();
-                                        let _ = tx.send(processed).await;
-                                    }
-                                }
-                            }
-                        } else if let Some(ref reasoning) = reasoning_text {
-                            if !reasoning.is_empty() && content_text.as_ref().map_or(true, |c| c.is_empty()) {
-                                reasoning_buffer.push_str(reasoning);
-                            }
+                        // Always accumulate reasoning from separate API field
+                        if let Some(ref reasoning) = reasoning_text {
+                            reasoning_from_field.push_str(reasoning);
                         }
 
+                        // Process content through handler — this extracts think-tag reasoning
                         if let Some(ref content) = content_text {
                             if !content.is_empty() {
                                 let processed = handler.process_content_streaming(content, &mut stream_state);
-                                if !processed.is_empty() {
-                                    content_sent += processed.len();
-                                    let _ = tx.send(processed).await;
+                                if !processed.content.is_empty() {
+                                    content_sent += processed.content.len();
+                                    let _ = tx.send(processed.content).await;
+                                }
+                                if !processed.reasoning.is_empty() {
+                                    reasoning_from_content.push_str(&processed.reasoning);
+                                    // Stream reasoning chunks live to the frontend
+                                    let reasoning_chunk = serde_json::json!({
+                                        "__reasoning__": processed.reasoning.trim()
+                                    }).to_string();
+                                    let _ = tx.send(reasoning_chunk).await;
                                 }
                             }
                         }
@@ -747,10 +759,9 @@ impl LLMProvider for OpenAIClient {
                                     }
                                     if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
                                         tool_call_args.push_str(args);
-                                    }
-                                }
-                            }
-                        }
+                    }
+                }
+            }
 
                         // Handle legacy function_call format (NVIDIA, some open-source models)
                         if let Some(func_call) = data["choices"][0]["delta"]["function_call"].as_object() {
@@ -767,24 +778,26 @@ impl LLMProvider for OpenAIClient {
                     }
                 }
             }
+            // Keep trailing partial line for next chunk
+            line_buffer = line_buffer[pos..].to_string();
         }
 
-        // Flush any remaining buffered content from streaming look-ahead.
-        if !stream_state.is_empty() {
-            let remaining = handler.process_content(&stream_state);
-            if !remaining.is_empty() {
-                let _ = tx.send(remaining).await;
+        // Combine all reasoning from both sources
+        let mut total_reasoning = reasoning_from_field;
+        if !reasoning_from_content.is_empty() {
+            if !total_reasoning.is_empty() {
+                total_reasoning.push('\n');
             }
+            total_reasoning.push_str(&reasoning_from_content);
         }
 
-        // If no content was sent but we accumulated reasoning (e.g. OpenCode Go gateway
-        // that puts all output in reasoning_content), flush reasoning as fallback.
-        if content_sent == 0 && !reasoning_buffer.is_empty() {
-            let processed = handler.process_content(&reasoning_buffer);
-            if !processed.is_empty() {
-                content_sent += processed.len();
-                let _ = tx.send(processed).await;
-            }
+        // Send accumulated reasoning to frontend as a thinking block
+        if !total_reasoning.is_empty() {
+            let reasoning_msg = serde_json::json!({
+                "__reasoning__": total_reasoning.trim()
+            }).to_string();
+            let _ = tx.send(reasoning_msg).await;
+            info!("LLM reasoning sent: {} bytes", total_reasoning.len());
         }
 
         // After streaming ends, if tool_calls were accumulated, send them to tx
@@ -798,8 +811,8 @@ impl LLMProvider for OpenAIClient {
             info!("LLM tool_call accumulated: {} with {} bytes args", tool_call_name, tool_call_args.len());
         }
 
-        info!("LLM stream done: size={} bytes, content_sent={}, first={:?}, last={}",
-            total_size, content_sent, first_bytes, last_bytes);
+        info!("LLM stream done: size={} bytes, content_sent={}, reasoning={}B, first={:?}, last={}",
+            total_size, content_sent, total_reasoning.len(), first_bytes, last_bytes);
 
         Ok(())
     }

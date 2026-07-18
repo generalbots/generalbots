@@ -102,30 +102,40 @@ function reexecuteScripts(container) {
   }
 }
 
-function addMessage(sender, content, msgId) {
-var messages = document.getElementById("messages");
-if (!messages) return;
+function renderThinkingSection(reasoning) {
+  if (!reasoning || reasoning.trim() === "") return "";
+  var safeReasoning = escapeHtml(reasoning);
+  return '<details class="thinking-section">' +
+    '<summary><span class="thinking-summary-icon">\u{1F9E0}</span> Thinking</summary>' +
+    '<div class="thinking-content">' + safeReasoning + '</div>' +
+    '</details>';
+}
 
-var div = document.createElement("div");
-div.className = "message " + sender;
-if (msgId) div.id = msgId;
+/* v3-indicator-fixed */
+
+function addMessage(sender, content, msgId, reasoning) {
+  var messages = document.getElementById("messages");
+  if (!messages) return;
+
+  var div = document.createElement("div");
+  div.className = "message " + sender;
+  if (msgId) div.id = msgId;
 
   if (sender === "user") {
     var processedContent = renderMentionInMessage(escapeHtml(content));
     div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
   } else {
+    var thinkingHtml = renderThinkingSection(reasoning);
     var cleanContent = stripMarkdownBlocks(content);
-    var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
     var parsed;
-    if (hasHtmlTags) {
-      parsed = cleanContent;
-    } else if (typeof marked !== "undefined" && marked.parse) {
+    if (typeof marked !== "undefined" && marked.parse) {
       parsed = marked.parse(cleanContent);
     } else {
-      parsed = escapeHtml(cleanContent);
+      var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+      parsed = hasHtmlTags ? cleanContent : escapeHtml(cleanContent);
     }
     parsed = renderMentionInMessage(parsed);
-    div.innerHTML = '<div class="message-content bot-message">' + parsed + "</div>";
+    div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
   }
 
   messages.appendChild(div);
@@ -155,22 +165,17 @@ function updateStreaming(content) {
 
   var msgContent = el.querySelector(".message-content");
   var cleanContent = stripMarkdownBlocks(content);
-  var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
-
-  if (isHtml) {
-    // F3+F5: Render HTML chunks directly via innerHTML += (never textContent/innerText)
-    // For streaming HTML, set full accumulated content — partial tags won't render, but completed ones will
-    var parsed = renderMentionInMessage(cleanContent);
-    msgContent.innerHTML = parsed;
-    if (!ChatState.isUserScrolling) scrollToBottom(true);
+  var parsed;
+  if (typeof marked !== "undefined" && marked.parse) {
+    parsed = marked.parse(cleanContent);
   } else {
-    var parsed = typeof marked !== "undefined" && marked.parse
-      ? marked.parse(cleanContent)
-      : escapeHtml(cleanContent);
-    parsed = renderMentionInMessage(parsed);
-    msgContent.innerHTML = parsed;
-    if (!ChatState.isUserScrolling) scrollToBottom(true);
+    var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+    parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
   }
+  parsed = renderMentionInMessage(parsed);
+  var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
+  msgContent.innerHTML = thinkingHtml + parsed;
+  if (!ChatState.isUserScrolling) scrollToBottom(true);
 }
 
 function finalizeStreaming() {
@@ -180,6 +185,7 @@ function finalizeStreaming() {
   }
   ChatState.streamingMessageId = null;
   ChatState.currentStreamingContent = "";
+  ChatState.currentReasoning = "";
   ChatState.streamingBuffer = "";
 }
 
@@ -190,30 +196,40 @@ function processMessage(data) {
     }
     return;
   }
-  hideThinkingIndicator();
+
   if (data.is_complete) {
+    hideThinkingIndicator();
     if (ChatState.isStreaming) {
       finalizeStreaming();
     }
     if (data.content && data.content.trim() !== "") {
-      addMessage("bot", data.content);
+      addMessage("bot", data.content, null, data.reasoning || ChatState.currentReasoning);
+    } else if ((data.reasoning || ChatState.currentReasoning) && (data.reasoning || ChatState.currentReasoning).trim() !== "") {
+      addMessage("bot", "", null, data.reasoning || ChatState.currentReasoning);
     }
     ChatState.isStreaming = false;
+    ChatState.currentReasoning = "";
     if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
       renderSuggestions(data.suggestions);
     }
     if (data.switchers && Array.isArray(data.switchers) && data.switchers.length > 0) {
       renderBotSwitchers(data.switchers);
     }
-  } else if (data.content && data.content.trim() !== "") {
+  } else if ((data.content && data.content.trim() !== "") || (data.reasoning && data.reasoning.trim() !== "")) {
     if (!ChatState.isStreaming) {
       ChatState.isStreaming = true;
       ChatState.streamingMessageId = "streaming-" + Date.now();
-      ChatState.currentStreamingContent = data.content;
-      addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId);
+      ChatState.currentStreamingContent = data.content || "";
+      ChatState.currentReasoning = data.reasoning || "";
+      addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning);
       ChatState.lastRenderTime = Date.now();
     } else {
-      ChatState.currentStreamingContent += data.content;
+      if (data.reasoning) {
+        ChatState.currentReasoning = (ChatState.currentReasoning || "") + data.reasoning;
+      }
+      if (data.content) {
+        ChatState.currentStreamingContent += data.content;
+      }
       var now = Date.now();
       if (now - ChatState.lastRenderTime > ChatState.renderInterval) {
         updateStreaming(ChatState.currentStreamingContent);

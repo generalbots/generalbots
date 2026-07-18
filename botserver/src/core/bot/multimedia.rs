@@ -127,6 +127,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
+            reasoning: String::new(),
                 })
             }
             MultimediaMessage::Image { url, caption, .. } => {
@@ -150,6 +151,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
+            reasoning: String::new(),
                 })
             }
             MultimediaMessage::Video { url, caption, duration, .. } => {
@@ -174,6 +176,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
+            reasoning: String::new(),
                 })
             }
             MultimediaMessage::WebSearch { query, .. } => {
@@ -200,6 +203,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
+            reasoning: String::new(),
                 })
             }
             MultimediaMessage::MeetingInvite { meeting_url, start_time, .. } => {
@@ -222,6 +226,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
+            reasoning: String::new(),
                 })
             }
             _ => {
@@ -239,6 +244,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
+            reasoning: String::new(),
                 })
             }
         }

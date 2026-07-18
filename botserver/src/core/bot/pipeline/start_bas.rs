@@ -154,6 +154,7 @@ async fn send_start_suggestions(
             context_name: None,
             context_length: 0,
             context_max_length: 0,
+            reasoning: String::new(),
         };
         let _ = sink.send_bot_response(&resp).await;
     }

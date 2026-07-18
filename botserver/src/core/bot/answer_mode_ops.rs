@@ -73,6 +73,7 @@ fn make_bot_response(
         context_name: None,
         context_length: 0,
         context_max_length: 0,
+            reasoning: String::new(),
     }
 }
 

@@ -179,6 +179,8 @@ pub async fn process_llm_response(
                 let _ = ws_sender.send(Message::Text(init_msg.to_string())).await;
             }
 
+            let mut reasoning_accumulated = String::new();
+
             let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(800));
             keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             loop {
@@ -186,24 +188,34 @@ pub async fn process_llm_response(
                     chunk = stream_rx.recv() => {
                         match chunk {
                             Some(chunk) => {
-                                full_response.push_str(&chunk);
-                                if !chunk.contains("\"__tool_call__\"") {
-                                    let chunk_resp = serde_json::json!({
-                                        "bot_id": bot_uuid_s,
-                                        "user_id": user_id.to_string(),
-                                        "session_id": session_id_s,
-                                        "channel": "web",
-                                        "content": chunk,
-                                        "message_type": 2,
-                                        "is_complete": false,
-                                        "suggestions": [],
-                                        "switchers": [],
-                                        "context_length": 0,
-                                        "context_max_length": 0,
-                                    });
-                                    if ws_sender.send(Message::Text(chunk_resp.to_string())).await.is_err() {
-                                        break;
+                                if chunk.contains("\"__reasoning__\"") {
+                                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&chunk) {
+                                        if let Some(r) = val.get("__reasoning__").and_then(|v| v.as_str()) {
+                                            reasoning_accumulated.push_str(r);
+                                        }
                                     }
+                                    continue;
+                                }
+                                if chunk.contains("\"__tool_call__\"") {
+                                    full_response.push_str(&chunk);
+                                    continue;
+                                }
+                                full_response.push_str(&chunk);
+                                let chunk_resp = serde_json::json!({
+                                    "bot_id": bot_uuid_s,
+                                    "user_id": user_id.to_string(),
+                                    "session_id": session_id_s,
+                                    "channel": "web",
+                                    "content": chunk,
+                                    "message_type": 2,
+                                    "is_complete": false,
+                                    "suggestions": [],
+                                    "switchers": [],
+                                    "context_length": 0,
+                                    "context_max_length": 0,
+                                });
+                                if ws_sender.send(Message::Text(chunk_resp.to_string())).await.is_err() {
+                                    break;
                                 }
                             }
                             None => break,
@@ -241,6 +253,7 @@ pub async fn process_llm_response(
                 "content": final_content,
                 "message_type": 2,
                 "is_complete": true,
+                "reasoning": reasoning_accumulated.trim(),
                 "suggestions": [],
                 "switchers": [],
                 "context_length": 0,

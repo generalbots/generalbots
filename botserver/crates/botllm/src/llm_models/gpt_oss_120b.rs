@@ -1,4 +1,4 @@
-use super::ModelHandler;
+use super::{ModelHandler, ProcessedChunk};
 use log;
 
 /// Handler for GPT-OSS 120B model with thinking tags filtering
@@ -119,18 +119,10 @@ impl ModelHandler for GptOss120bHandler {
         }
     }
 
-    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
-        if chunk.is_empty() {
-            return String::new();
-        }
-        state.push_str(chunk);
-        const MIN_EMIT: usize = 50;
-        if state.len() < MIN_EMIT {
-            return String::new();
-        }
-        let result = state.clone();
-        state.clear();
-        result
+    fn process_content_streaming(&self, chunk: &str, _state: &mut String) -> ProcessedChunk {
+        // Forward each chunk as-is for responsive streaming.
+        // The final content is cleaned via process_content at the end.
+        ProcessedChunk { content: chunk.to_string(), reasoning: String::new() }
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {
