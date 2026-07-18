@@ -577,18 +577,24 @@ impl LLMProvider for OpenAIClient {
                 // DeepSeek needs explicit tool_choice to return tool_calls
                 if model.contains("deepseek") {
                     request_body["tool_choice"] = serde_json::json!("auto");
+                    info!("Setting tool_choice=auto for DeepSeek model: {}", model);
                 }
                 info!("Added {} tools to LLM request", tools_value.len());
+                if let Some(first_tool) = tools_value.first().and_then(|t| t.get("function")) {
+                    info!("First tool: name={:?}", first_tool.get("name"));
+                }
 
-                // Also add legacy "functions" format for models (e.g. NVIDIA NIM)
-                // that don't support the newer "tools" parameter
-                let legacy_functions: Vec<Value> = tools_value
-                    .iter()
-                    .filter_map(|t| t.get("function").cloned())
-                    .collect();
-                if !legacy_functions.is_empty() {
-                    request_body["functions"] = serde_json::json!(legacy_functions);
-                    trace!("Added {} legacy functions for compatibility", legacy_functions.len());
+                // Also add legacy "functions" format for models that don't support
+                // the newer "tools" parameter (e.g. some model providers)
+                if model.contains("deepseek") {
+                    let legacy_functions: Vec<Value> = tools_value
+                        .iter()
+                        .filter_map(|t| t.get("function").cloned())
+                        .collect();
+                    if !legacy_functions.is_empty() {
+                        request_body["functions"] = serde_json::json!(legacy_functions);
+                        trace!("Added {} legacy functions for DeepSeek compatibility", legacy_functions.len());
+                    }
                 }
             }
         }
@@ -704,6 +710,14 @@ impl LLMProvider for OpenAIClient {
                     continue;
                 }
                 if let Ok(data) = serde_json::from_str::<Value>(&line[6..]) {
+                        // Log only when finish_reason or function/tool calls present
+                        let fr = &data["choices"][0]["finish_reason"];
+                        let has_fr = !fr.is_null();
+                        let has_tc = !data["choices"][0]["delta"]["tool_calls"].is_null();
+                        let has_fc = !data["choices"][0]["delta"]["function_call"].is_null();
+                        if has_fr || has_tc || has_fc {
+                            info!("SSE finish_reason={} tool_calls={} function_call={}", fr, has_tc, has_fc);
+                        }
                         if let Some(filter_result) = data["choices"][0]["delta"]["content_filter_result"].as_object() {
                             if let Some(error) = filter_result.get("error") {
                                 let code = error.get("code").and_then(|c| c.as_str()).unwrap_or("unknown");
@@ -753,6 +767,9 @@ impl LLMProvider for OpenAIClient {
                         // Handle modern tool_calls format (OpenAI tools API)
                         // Accumulate across streaming chunks, don't send via tx
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
+                            if !tool_calls.is_empty() {
+                                info!("SSE delta with tool_calls: {} entries, first: {:?}", tool_calls.len(), tool_calls[0].get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()));
+                            }
                             for tool_call in tool_calls {
                                 if let Some(func) = tool_call.get("function") {
                                     if tool_call_name.is_empty() {
