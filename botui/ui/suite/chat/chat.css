@@ -317,6 +317,66 @@
     padding: 0;
 }
 
+/* Thinking Section - collapsible reasoning block */
+.thinking-section {
+    background: var(--surface2, #1e1e2e);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 0;
+    font-size: 0.85em;
+}
+
+.thinking-section summary {
+    cursor: pointer;
+    padding: 8px 12px;
+    color: var(--text-secondary, #888);
+    font-weight: 600;
+    font-size: 0.85em;
+    letter-spacing: 0.02em;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.thinking-summary-icon {
+    font-size: 1em;
+    line-height: 1;
+}
+
+.thinking-section summary::-webkit-details-marker {
+    display: none;
+}
+
+.thinking-section[open] summary::after {
+    content: '▲';
+    font-size: 0.7em;
+    margin-left: auto;
+    opacity: 0.5;
+}
+
+.thinking-section:not([open]) summary::after {
+    content: '▼';
+    font-size: 0.7em;
+    margin-left: auto;
+    opacity: 0.5;
+}
+
+.thinking-section .thinking-content {
+    padding: 0 12px 8px;
+    color: var(--text-secondary, #777);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    font-style: italic;
+    border-top: 1px solid var(--border, #2a2a3a);
+    margin-top: 0;
+    padding-top: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
 /* Footer with solid background */
 footer {
     padding: 12px 20px;

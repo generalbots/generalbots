@@ -1,4 +1,4 @@
-use super::ModelHandler;
+use super::{ModelHandler, ProcessedChunk};
 
 /// Handler for Stepfun models.
 /// Stepfun uses reasoning/content separation - reasoning is skipped at the stream level.
@@ -19,16 +19,19 @@ impl StepfunHandler {
 }
 
 impl ModelHandler for StepfunHandler {
-fn is_analysis_complete(&self, _buffer: &str) -> bool {
-true
-}
+    fn is_analysis_complete(&self, _buffer: &str) -> bool {
+        true
+    }
 
     fn process_content(&self, content: &str) -> String {
         content.to_string()
     }
 
-    fn process_content_streaming(&self, content: &str, _state: &mut String) -> String {
-        content.to_string()
+    fn process_content_streaming(&self, content: &str, _state: &mut String) -> ProcessedChunk {
+        ProcessedChunk {
+            content: content.to_string(),
+            reasoning: String::new(),
+        }
     }
 
     fn has_analysis_markers(&self, _buffer: &str) -> bool {

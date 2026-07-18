@@ -1,54 +1,58 @@
-use super::ModelHandler;
+use super::{ModelHandler, ProcessedChunk};
 
-pub fn strip_think_tags(content: &str) -> String {
-    let mut result = content.to_string();
+/// Strips thinking/analysis markers and returns (content, reasoning).
+/// Handles three marker types:
+/// - Chinese: （分析）...（/分析）
+/// - English: <think>...</think>
+/// - Chinese alt: 【分析】...【/分析】
+pub fn extract_think_tags(content: &str) -> (String, String) {
+    let mut result = String::new();
+    let mut reasoning = String::new();
+    let chars: Vec<char> = content.chars().collect();
+    let mut pos = 0;
+    let mut in_think = false;
 
-    // Chinese: （分析）...（/分析） or unclosed （分析）...
-    while let Some(start_idx) = result.find("（分析）") {
-        if let Some(end_idx) = result[start_idx..].find("（/分析）") {
-            result = format!(
-                "{}{}",
-                &result[..start_idx],
-                &result[start_idx + end_idx + 4..]
-            );
+    while pos < chars.len() {
+        if !in_think {
+            let mut found = false;
+            for (start_tag, _) in &[("（分析）", "（/分析）"), ("<think>", "</think>"), ("【分析】", "【/分析】")] {
+                let tag_chars: Vec<char> = start_tag.chars().collect();
+                if pos + tag_chars.len() <= chars.len() {
+                    let slice: String = chars[pos..pos + tag_chars.len()].iter().collect();
+                    if slice == *start_tag {
+                        in_think = true;
+                        pos += tag_chars.len();
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if !found {
+                result.push(chars[pos]);
+                pos += 1;
+            }
         } else {
-            // Unclosed - strip to the end
-            result = result[..start_idx].to_string();
-            break;
+            let mut found = false;
+            for (_, end_tag) in &[("（分析）", "（/分析）"), ("<think>", "</think>"), ("【分析】", "【/分析】")] {
+                let tag_chars: Vec<char> = end_tag.chars().collect();
+                if pos + tag_chars.len() <= chars.len() {
+                    let slice: String = chars[pos..pos + tag_chars.len()].iter().collect();
+                    if slice == *end_tag {
+                        in_think = false;
+                        pos += tag_chars.len();
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if !found {
+                reasoning.push(chars[pos]);
+                pos += 1;
+            }
         }
     }
 
-    // English: <think>...</think> or unclosed <think>...
-    while let Some(start_idx) = result.find("<think>") {
-        if let Some(end_idx) = result[start_idx..].find("</think>") {
-            result = format!(
-                "{}{}",
-                &result[..start_idx],
-                &result[start_idx + end_idx + 8..]
-            );
-        } else {
-            // Unclosed - strip to the end
-            result = result[..start_idx].to_string();
-            break;
-        }
-    }
-
-    // Chinese alternative: 【分析】...【/分析】 or unclosed 【分析】...
-    while let Some(start_idx) = result.find("【分析】") {
-        if let Some(end_idx) = result[start_idx..].find("【/分析】") {
-            result = format!(
-                "{}{}",
-                &result[..start_idx],
-                &result[start_idx + end_idx + 5..]
-            );
-        } else {
-            // Unclosed - strip to the end
-            result = result[..start_idx].to_string();
-            break;
-        }
-    }
-
-    result
+    (result.trim().to_string(), reasoning.trim().to_string())
 }
 
 #[derive(Debug)]
@@ -72,49 +76,32 @@ impl ModelHandler for MinimaxHandler {
     }
 
     fn process_content(&self, content: &str) -> String {
-        strip_think_tags(content)
+        let (content, _reasoning) = extract_think_tags(content);
+        content
     }
 
-    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
-        let old_len = state.len();
+    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> ProcessedChunk {
         state.push_str(chunk);
-        
-        let mut clean_current = String::new();
-        let mut in_think = false;
-        
-        let mut current_pos = 0;
-        let full_text = state.as_str();
-        
-        while current_pos < full_text.len() {
-            if !in_think {
-                if full_text[current_pos..].starts_with("<think>") {
-                    in_think = true;
-                    current_pos += 7;
-                } else if full_text[current_pos..].starts_with("（分析）") || full_text[current_pos..].starts_with("【分析】") {
-                    in_think = true;
-                    current_pos += 12; // UTF-8 for these 3-char Chinese tags
-                } else {
-                    let c = full_text[current_pos..].chars().next().unwrap();
-                    if current_pos >= old_len {
-                        clean_current.push(c);
-                    }
-                    current_pos += c.len_utf8();
-                }
-            } else {
-                if full_text[current_pos..].starts_with("</think>") {
-                    in_think = false;
-                    current_pos += 8;
-                } else if full_text[current_pos..].starts_with("（/分析）") || full_text[current_pos..].starts_with("【/分析】") {
-                    in_think = false;
-                    current_pos += 13; // UTF-8 for these 4-char Chinese tags
-                } else {
-                    let c = full_text[current_pos..].chars().next().unwrap();
-                    current_pos += c.len_utf8();
+
+        let (content, reasoning) = extract_think_tags(state);
+        state.clear();
+
+        // Keep unclosed partial tags in state
+        let mut pending = String::new();
+        for &start_tag in &["（分析）", "<think>", "【分析】"] {
+            if let Some(pos) = content.rfind(start_tag) {
+                let remaining = &content[pos..];
+                if !remaining.contains("（/分析）") && !remaining.contains("</think>") && !remaining.contains("【/分析】") {
+                    pending = remaining.to_string();
+                    break;
                 }
             }
         }
-        
-        clean_current
+        if !pending.is_empty() {
+            state.push_str(&content[content.len() - pending.len()..]);
+        }
+
+        ProcessedChunk { content, reasoning }
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {

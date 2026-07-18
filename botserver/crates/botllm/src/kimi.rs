@@ -337,12 +337,18 @@ impl LLMProvider for KimiClient {
               if let Some(text) = delta.get("content").and_then(|c| c.as_str()) {
                 if !text.is_empty() {
                   let processed = handler.process_content_streaming(text, &mut stream_state);
-                  if !processed.is_empty() {
-                    total_content_chars += processed.len();
-                    if tx.send(processed).await.is_err() {
+                  if !processed.content.is_empty() {
+                    total_content_chars += processed.content.len();
+                    if tx.send(processed.content).await.is_err() {
                       info!("[Kimi] Channel closed, stopping stream after {} content chars", total_content_chars);
                       return Ok(());
                     }
+                  }
+                  if !processed.reasoning.is_empty() {
+                    let reasoning_msg = serde_json::json!({
+                        "__reasoning__": processed.reasoning
+                    }).to_string();
+                    let _ = tx.send(reasoning_msg).await;
                   }
                 }
               }

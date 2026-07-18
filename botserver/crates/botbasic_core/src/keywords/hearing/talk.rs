@@ -45,6 +45,7 @@ pub fn execute_talk(
         context_name: None,
         context_length: 0,
         context_max_length: 0,
+        reasoning: String::new(),
     };
 
     if let Err(e) = state.send_message(&response) {
@@ -90,6 +91,7 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
+                    reasoning: String::new(),
                 };
 
                 if let Err(e) = state_for_send.send_message(&response) {

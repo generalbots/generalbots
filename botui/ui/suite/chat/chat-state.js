@@ -7,6 +7,7 @@ var ChatState = {
   isStreaming: false,
   streamingMessageId: null,
   currentStreamingContent: "",
+  currentReasoning: "",
   streamingBuffer: "",
   lastRenderTime: 0,
   renderInterval: 200,

@@ -172,6 +172,8 @@ pub struct BotResponse {
     pub context_length: usize,
     #[serde(default)]
     pub context_max_length: usize,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub reasoning: String,
 }
 
 impl BotResponse {
@@ -197,6 +199,7 @@ impl BotResponse {
             context_name: None,
             context_length: 0,
             context_max_length: 0,
+            reasoning: String::new(),
         }
     }
 
@@ -222,6 +225,7 @@ impl BotResponse {
             context_name: None,
             context_length: 0,
             context_max_length: 0,
+            reasoning: String::new(),
         }
     }
 
@@ -291,6 +295,7 @@ impl Default for BotResponse {
             context_name: None,
             context_length: 0,
             context_max_length: 0,
+            reasoning: String::new(),
         }
     }
 }

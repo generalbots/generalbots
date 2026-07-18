@@ -1,5 +1,5 @@
-use super::deepseek_v4::strip_think_tags;
-use super::ModelHandler;
+use super::deepseek_v4::extract_think_tags;
+use super::{ModelHandler, ProcessedChunk};
 use regex::Regex;
 use std::sync::LazyLock;
 
@@ -39,7 +39,7 @@ impl ModelHandler for GptOss20bHandler {
     }
 
     fn process_content(&self, content: &str) -> String {
-        let without_think = strip_think_tags(content);
+        let (without_think, _reasoning) = extract_think_tags(content);
         if without_think.is_empty() {
             return String::new();
         }
@@ -52,29 +52,33 @@ impl ModelHandler for GptOss20bHandler {
         separate_text_number(&cleaned)
     }
 
-    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> String {
+    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> ProcessedChunk {
         if chunk.is_empty() {
-            return String::new();
+            return ProcessedChunk { content: String::new(), reasoning: String::new() };
         }
 
-        // Accumulate raw chunks for token-level look-ahead.
-        // This prevents text-number boundaries from being split across
-        // streaming chunks (e.g. "fevereiro20" + "21" = "fevereiro2021").
         state.push_str(chunk);
 
-        // Wait until enough content is accumulated (~4-5 tokens)
-        // before processing with the regex.
-        const MIN_EMIT: usize = 50;
+        const MIN_EMIT: usize = 1;
 
         if state.len() < MIN_EMIT {
-            return String::new();
+            return ProcessedChunk { content: String::new(), reasoning: String::new() };
         }
 
-        // Apply text-number regex to the full accumulated buffer
-        let result = separate_text_number(state);
+        let (content, reasoning) = extract_think_tags(state);
 
         state.clear();
-        result
+        // Keep any pending partial in state
+        if reasoning.is_empty() && content.contains("<think>") {
+            if let Some(think_pos) = content.rfind("<think>") {
+                state.push_str(&content[think_pos..]);
+            }
+        }
+
+        ProcessedChunk {
+            content: separate_text_number(&content),
+            reasoning,
+        }
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {

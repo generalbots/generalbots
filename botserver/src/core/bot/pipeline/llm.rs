@@ -170,6 +170,8 @@ pub async fn stream_llm_response(
                 let _ = sink.send_raw_json(&init_msg).await;
             }
 
+            let mut reasoning_accumulated = String::new();
+
             let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(800));
             keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             loop {
@@ -177,26 +179,54 @@ pub async fn stream_llm_response(
                     chunk = stream_rx.recv() => {
                         match chunk {
                             Some(chunk) => {
-                                full_response.push_str(&chunk);
-                                if !chunk.contains("\"__tool_call__\"") {
-                                    let chunk_resp = botlib::models::BotResponse {
-                                        bot_id: bot_uuid_s.clone(),
-                                        user_id: user_id.to_string(),
-                                        session_id: session_id_s.clone(),
-                                        channel: "web".to_string(),
-                                        content: chunk,
-                                        message_type: botlib::message_types::MessageType::BOT_RESPONSE,
-                                        stream_token: None,
-                                        is_complete: false,
-                                        suggestions: Vec::new(),
-                                        switchers: Vec::new(),
-                                        context_name: None,
-                                        context_length: 0,
-                                        context_max_length: 0,
-                                    };
-                                    if sink.send_bot_response(&chunk_resp).await.is_err() {
-                                        break;
+                                if chunk.contains("\"__reasoning__\"") {
+                                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&chunk) {
+                                        if let Some(r) = val.get("__reasoning__").and_then(|v| v.as_str()) {
+                                            reasoning_accumulated.push_str(r);
+                                            let reasoning_chunk = botlib::models::BotResponse {
+                                                bot_id: bot_uuid_s.clone(),
+                                                user_id: user_id.to_string(),
+                                                session_id: session_id_s.clone(),
+                                                channel: "web".to_string(),
+                                                content: String::new(),
+                                                message_type: botlib::message_types::MessageType::BOT_RESPONSE,
+                                                stream_token: None,
+                                                is_complete: false,
+                                                suggestions: Vec::new(),
+                                                switchers: Vec::new(),
+                                                context_name: None,
+                                                context_length: 0,
+                                                context_max_length: 0,
+                                                reasoning: r.to_string(),
+                                            };
+                                            let _ = sink.send_bot_response(&reasoning_chunk).await;
+                                        }
                                     }
+                                    continue;
+                                }
+                                if chunk.contains("\"__tool_call__\"") {
+                                    full_response.push_str(&chunk);
+                                    continue;
+                                }
+                                full_response.push_str(&chunk);
+                                let chunk_resp = botlib::models::BotResponse {
+                                    bot_id: bot_uuid_s.clone(),
+                                    user_id: user_id.to_string(),
+                                    session_id: session_id_s.clone(),
+                                    channel: "web".to_string(),
+                                    content: chunk,
+                                    message_type: botlib::message_types::MessageType::BOT_RESPONSE,
+                                    stream_token: None,
+                                    is_complete: false,
+                                    suggestions: Vec::new(),
+                                    switchers: Vec::new(),
+                                    context_name: None,
+                                    context_length: 0,
+                                    context_max_length: 0,
+                                    reasoning: String::new(),
+                                };
+                                if sink.send_bot_response(&chunk_resp).await.is_err() {
+                                    break;
                                 }
                             }
                             None => break,
@@ -227,10 +257,11 @@ pub async fn stream_llm_response(
                 final_content = final_content[..pos].trim_end().to_string();
             }
 
-            let final_resp = botlib::models::BotResponse::new(
+            let mut final_resp = botlib::models::BotResponse::new(
                 &bot_uuid_s, &session_id_s, &user_id.to_string(),
                 &final_content, "web",
             );
+            final_resp.reasoning = reasoning_accumulated.trim().to_string();
             if sink.send_bot_response(&final_resp).await.is_err() {
                 let mut pending = state.pending_stream_responses.lock().await;
                 pending.insert(session_id_s.clone(), final_content.clone());
