@@ -574,6 +574,10 @@ impl LLMProvider for OpenAIClient {
         if let Some(tools_value) = tools {
             if !tools_value.is_empty() {
                 request_body["tools"] = serde_json::json!(tools_value);
+                // DeepSeek needs explicit tool_choice to return tool_calls
+                if model.contains("deepseek") {
+                    request_body["tool_choice"] = serde_json::json!("auto");
+                }
                 info!("Added {} tools to LLM request", tools_value.len());
 
                 // Also add legacy "functions" format for models (e.g. NVIDIA NIM)
