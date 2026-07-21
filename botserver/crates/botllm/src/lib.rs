@@ -551,11 +551,15 @@ impl LLMProvider for OpenAIClient {
         } else {
             "max_tokens"
         };
+        let use_stream = !(model.contains("gpt-oss") && self.base_url.contains("nvidia"));
+        if !use_stream {
+            info!("Setting stream=false for NVIDIA model: {}", model);
+        }
         let mut request_body = serde_json::json!({
             "model": model,
             "messages": messages,
-            "stream": true,
-            token_key: 65536,
+            "stream": use_stream,
+            token_key: if self.base_url.contains("groq") { 4096 } else { 65536 },
             "temperature": 1.0,
             "top_p": 1.0
         });
@@ -574,18 +578,13 @@ impl LLMProvider for OpenAIClient {
         if let Some(tools_value) = tools {
             if !tools_value.is_empty() {
                 request_body["tools"] = serde_json::json!(tools_value);
-                // DeepSeek needs explicit tool_choice to return tool_calls
-                if model.contains("deepseek") {
-                    request_body["tool_choice"] = serde_json::json!("auto");
-                    info!("Setting tool_choice=auto for DeepSeek model: {}", model);
-                }
-                info!("Added {} tools to LLM request", tools_value.len());
+                request_body["tool_choice"] = serde_json::json!("auto");
+                info!("Added {} tools to LLM request (tool_choice=auto)", tools_value.len());
+
                 if let Some(first_tool) = tools_value.first().and_then(|t| t.get("function")) {
                     info!("First tool: name={:?}", first_tool.get("name"));
                 }
 
-                // Also add legacy "functions" format for models that don't support
-                // the newer "tools" parameter (e.g. some model providers)
                 if model.contains("deepseek") {
                     let legacy_functions: Vec<Value> = tools_value
                         .iter()
@@ -640,6 +639,32 @@ impl LLMProvider for OpenAIClient {
             }
 
             stream_started = true;
+
+            if !use_stream {
+                let body = response.text().await.map_err(|e| format!("Failed: {}", e))?;
+                if let Ok(val) = serde_json::from_str::<Value>(&body) {
+                    let choice = &val["choices"][0];
+                    if let Some(reasoning) = choice["message"]["reasoning_content"].as_str().or(choice["message"]["reasoning"].as_str()) {
+                        let _ = tx.send(serde_json::json!({"__reasoning__": reasoning}).to_string()).await;
+                    }
+                    if let Some(content) = choice["message"]["content"].as_str() {
+                        if !content.is_empty() {
+                            let _ = tx.send(content.to_string()).await;
+                        }
+                    }
+                    if let Some(tcs) = choice["message"]["tool_calls"].as_array() {
+                        for tc in tcs {
+                            if let Some(func) = tc.get("function") {
+                                let args = func["arguments"].as_str().unwrap_or("{}");
+                                let msg = serde_json::json!({"__tool_call__": true, "name": func["name"], "arguments": args});
+                                let _ = tx.send(msg.to_string()).await;
+                            }
+                        }
+                    }
+                }
+                return Ok(());
+            }
+
             let mut stream = response.bytes_stream();
             use futures_util::StreamExt;
             loop {
@@ -764,6 +789,19 @@ impl LLMProvider for OpenAIClient {
                             }
                         }
 
+                        // Handle legacy function_call format (Groq legacy functions API)
+                        if tool_call_name.is_empty() {
+                            if let Some(func_call) = data["choices"][0]["delta"]["function_call"].as_object() {
+                                if let Some(name) = func_call.get("name").and_then(|n| n.as_str()) {
+                                    tool_call_name = name.to_string();
+                                    tool_call_args.clear();
+                                }
+                                if let Some(args) = func_call.get("arguments").and_then(|a| a.as_str()) {
+                                    tool_call_args.push_str(args);
+                                }
+                            }
+                        }
+
                         // Handle modern tool_calls format (OpenAI tools API)
                         // Accumulate across streaming chunks, don't send via tx
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
@@ -829,6 +867,7 @@ impl LLMProvider for OpenAIClient {
                 "arguments": tool_call_args
             });
             let _ = tx.send(tool_call_msg.to_string()).await;
+            tokio::task::yield_now().await;
             info!("LLM tool_call accumulated: {} with {} bytes args", tool_call_name, tool_call_args.len());
         }
 

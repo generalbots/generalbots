@@ -1,6 +1,22 @@
-# Prompt Blocks: BEGIN SYSTEM PROMPT & BEGIN TALK 🟡 BETA
+# Prompt Blocks: BEGIN SYSTEM PROMPT, BEGIN TALK & Channel Prompts 🟡 BETA
 
 Prompt blocks are special multi-line constructs in General Bots BASIC that define AI behavior and formatted user messages. Unlike regular keywords, these blocks preserve formatting, line breaks, and support rich content.
+
+## Channel-Specific Prompts (PROMPT-WEB.md / PROMPT-WA.md)
+
+Each bot can have channel-specific system prompt files in its `.gbot/` directory:
+
+| File | Channel | Formatting |
+|------|---------|------------|
+| `PROMPT.md` | All channels (fallback) | Base instructions |
+| `PROMPT-WEB.md` | Web (chat, suite) | HTML + CSS classes |
+| `PROMPT-WA.md` | WhatsApp | WhatsApp text formatting |
+
+The channel-specific prompt is prepended to the base PROMPT.md:
+```text
+PROMPT-WEB.md content  ← channel rules (HTML/CSS for web)
+PROMPT.md content      ← base instructions (tools, behavior)
+```
 
 ## Overview
 
@@ -8,6 +24,8 @@ Prompt blocks are special multi-line constructs in General Bots BASIC that defin
 |-------|---------|----------------|
 | `BEGIN SYSTEM PROMPT` | Define AI personality, rules, and capabilities | Bot initialization |
 | `BEGIN TALK` | Display formatted multi-line messages | Runtime |
+| `PROMPT-WEB.md` | Web-only formatting rules | Every web message |
+| `PROMPT-WA.md` | WhatsApp-only formatting rules | Every WhatsApp message |
 
 ---
 

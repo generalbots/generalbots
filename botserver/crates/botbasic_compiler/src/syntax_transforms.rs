@@ -46,7 +46,7 @@ pub fn predeclare_variables(script: &str) -> String {
 
     let mut declarations = String::new();
     for v in &vars {
-        declarations.push_str(&format!("let {} = ();\n", v));
+        declarations.push_str(&format!("let {};\n", v));
     }
     declarations.push('\n');
     declarations.push_str(script);

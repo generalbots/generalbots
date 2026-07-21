@@ -10,21 +10,36 @@ use crate::core::bot::ws::handler::verify_path_within_workdir;
 use botcore::shared::utils::current_org_id;
 
 pub fn load_system_prompt(bot_name: &str) -> String {
+    load_system_prompt_for_channel(bot_name, "web")
+}
+
+pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
     let work_dir = botcore::shared::utils::get_work_path();
     let org_id = current_org_id();
     let nil_uuid = uuid::Uuid::nil();
 
-    // Helper to read prompt from a gbot directory
+    // Helper to read a prompt by channel suffix, then fall back to base PROMPT.md
     let read_prompt = |gbot_dir: &str| -> Option<String> {
-        let path = |f: &str| format!("{}{}", gbot_dir, f);
-        std::fs::read_to_string(path("PROMPT.md"))
-            .or_else(|_| std::fs::read_to_string(path("prompt.md")))
-            .or_else(|_| std::fs::read_to_string(path("PROMPT.txt")))
-            .or_else(|_| std::fs::read_to_string(path("prompt.txt")))
-            .ok()
+        let channel_file = format!("PROMPT-{}.md", channel.to_uppercase());
+        let channel_file_lower = format!("PROMPT-{}.md", channel.to_lowercase());
+        let base = |f: &str| -> Option<String> {
+            std::fs::read_to_string(f).ok()
+        };
+        let channel_prompt = base(&format!("{}{}", gbot_dir, channel_file))
+            .or_else(|| base(&format!("{}{}", gbot_dir, channel_file_lower)));
+        let base_prompt = base(&format!("{}PROMPT.md", gbot_dir))
+            .or_else(|| base(&format!("{}prompt.md", gbot_dir)))
+            .or_else(|| base(&format!("{}PROMPT.txt", gbot_dir)))
+            .or_else(|| base(&format!("{}prompt.txt", gbot_dir)));
+        match (channel_prompt, base_prompt) {
+            (Some(c), Some(b)) => Some(format!("{}\n\n{}", c, b)),
+            (Some(c), None) => Some(c),
+            (None, Some(b)) => Some(b),
+            (None, None) => None,
+        }
     };
 
-    // Primary path: {bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/ (mirrors MinIO drive)
+    // Primary path: {bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/
     let primary_rel = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
     if verify_path_within_workdir(&primary_rel) {
         let gbot_dir = format!("{work_dir}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbot/");
@@ -33,7 +48,7 @@ pub fn load_system_prompt(bot_name: &str) -> String {
         }
     }
 
-    // Fallback: {org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/ (nil UUID legacy)
+    // Fallback: {org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/
     let fallback_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
     if org_id != nil_uuid && verify_path_within_workdir(&fallback_rel) {
         let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
@@ -43,7 +58,7 @@ pub fn load_system_prompt(bot_name: &str) -> String {
     }
 
     let now = chrono::Utc::now().format("%B %d, %Y").to_string();
-    format!("Today is {now}.\n\nYou are a helpful assistant. Be concise. Respond in plain text. No HTML.")
+    format!("Today is {now}.\n\nYou are a helpful assistant. Be concise. Respond in plain text.")
 }
 
 pub fn load_bot_styles_css(bot_name: &str) -> String {

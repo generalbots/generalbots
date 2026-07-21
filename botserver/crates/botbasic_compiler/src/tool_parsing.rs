@@ -117,13 +117,15 @@ impl super::BasicCompiler {
             "".to_string()
         };
 
+        let is_optional = description.to_lowercase().contains("(opcional)")
+            || description.to_lowercase().contains("optional");
         Ok(Some(ParamDeclaration {
             name,
             param_type: Self::normalize_type(&param_type),
             original_type: param_type.to_lowercase(),
             example,
             description,
-            required: true,
+            required: !is_optional,
             enum_values,
         }))
     }

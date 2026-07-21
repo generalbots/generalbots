@@ -71,11 +71,12 @@ pub async fn run_llm_tool_call(
     use botcore::shared::utils::get_work_path;
 
     let tool_call_trigger = "\"__tool_call__\":";
-    if !full_response.contains(tool_call_trigger) {
-        return;
-    }
-
-    if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(full_response) {
+    let tc_start = match full_response.find(tool_call_trigger) {
+        Some(pos) => full_response[..pos].rfind('{').unwrap_or(pos),
+        None => return,
+    };
+    let tc_json = &full_response[tc_start..];
+    if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(tc_json) {
         let raw_tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
         log::info!("LLM tool_call: executing tool '{raw_tool_name}' with args: {tool_args}");
@@ -140,17 +141,16 @@ pub async fn run_llm_tool_call(
                 let mut injected_param_names: std::collections::HashSet<String> = std::collections::HashSet::new();
                 if let Some(obj) = injected_args.as_object() {
                     for (key, value) in obj {
-                        let rhai_key = key.to_lowercase();
-                        injected_param_names.insert(rhai_key.clone());
+                        injected_param_names.insert(key.clone());
                         match value {
                             serde_json::Value::String(s) => {
-                                let _ = svc.set_variable(&rhai_key, s);
+                                let _ = svc.set_variable(&key, s);
                             }
                             serde_json::Value::Number(n) => {
-                                let _ = svc.set_variable(&rhai_key, &n.to_string());
+                                let _ = svc.set_variable(&key, &n.to_string());
                             }
                             serde_json::Value::Bool(b) => {
-                                let _ = svc.set_variable(&rhai_key, if *b { "true" } else { "false" });
+                                let _ = svc.set_variable(&key, if *b { "true" } else { "false" });
                             }
                             _ => {}
                         }
@@ -163,7 +163,7 @@ pub async fn run_llm_tool_call(
                         if let Ok(mcp_val) = serde_json::from_str::<serde_json::Value>(&mcp_content) {
                             if let Some(props) = mcp_val.get("input_schema").and_then(|s| s.get("properties")).and_then(|p| p.as_object()) {
                                 for (param_name, _) in props {
-                                    let clean_name = param_name.trim_end_matches(":string").to_lowercase();
+                                    let clean_name = param_name.trim_end_matches(":string").to_string();
                                     if !injected_param_names.contains(&clean_name) {
                                         let _ = svc.set_variable(&clean_name, "");
                                     }
@@ -177,6 +177,7 @@ pub async fn run_llm_tool_call(
                 }
             }).await;
 
+            // Drain rx to forward tool responses to the sink
             for _ in 0..50 {
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                 match rx.try_recv() {
