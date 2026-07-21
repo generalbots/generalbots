@@ -30,6 +30,8 @@ pub struct BotDatabaseInfo {
     pub name: String,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Varchar>)]
     pub database_name: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Varchar>)]
+    pub branch_slug: Option<String>,
 }
 
 #[derive(QueryableByName)]
@@ -78,7 +80,9 @@ impl BotDatabaseManager {
         let mut conn = self.main_pool.get()?;
 
         let result: Option<BotDatabaseInfo> = sql_query(
-            "SELECT id, name, database_name FROM bots WHERE id = $1 AND is_active = true",
+            "SELECT b.id, b.name, b.database_name, br.slug AS branch_slug \
+             FROM bots b LEFT JOIN branches br ON b.branch_id = br.id \
+             WHERE b.id = $1 AND b.is_active = true",
         )
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .get_result(&mut conn)
@@ -103,7 +107,9 @@ impl BotDatabaseManager {
         // Get bot info (including name) from database
         let mut conn = self.main_pool.get()?;
         let bot_info: Option<BotDatabaseInfo> = sql_query(
-            "SELECT id, name, database_name FROM bots WHERE id = $1 AND is_active = true",
+            "SELECT b.id, b.name, b.database_name, br.slug AS branch_slug \
+             FROM bots b LEFT JOIN branches br ON b.branch_id = br.id \
+             WHERE b.id = $1 AND b.is_active = true",
         )
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .get_result(&mut conn)
@@ -112,12 +118,13 @@ impl BotDatabaseManager {
         let bot_info = bot_info.ok_or_else(|| format!("Bot {} not found or not active", bot_id))?;
 
         // Ensure bot has a database, create if needed
+        let branch_slug = bot_info.branch_slug.as_deref().unwrap_or("default");
         let db_name = if let Some(name) = bot_info.database_name {
             name
         } else {
             // Bot doesn't have a database configured, create it now
             info!("Bot {} ({}) has no database, creating now", bot_info.name, bot_id);
-            self.ensure_bot_has_database(bot_id, &bot_info.name)?
+            self.ensure_bot_has_database(bot_id, &bot_info.name, branch_slug)?
         };
 
         // Create new pool
@@ -197,17 +204,16 @@ impl BotDatabaseManager {
         Ok(true) // Newly created
     }
 
-    /// Generate a database name for a bot
-    pub fn generate_database_name(bot_name: &str) -> String {
-        format!(
-            "bot_{}",
-            bot_name
-                .replace(['-', ' '], "_")
+    /// Generate a database name for a bot: bot_{branch_slug}_{bot_name}
+    pub fn generate_database_name(branch_slug: &str, bot_name: &str) -> String {
+        let clean = |s: &str| -> String {
+            s.replace(['-', ' '], "_")
                 .to_lowercase()
                 .chars()
                 .filter(|c| c.is_alphanumeric() || *c == '_')
                 .collect::<String>()
-        )
+        };
+        format!("bot_{}_{}", clean(branch_slug), clean(bot_name))
     }
 
     /// Ensure a bot has a database and update the bots table if needed
@@ -215,6 +221,7 @@ impl BotDatabaseManager {
         &self,
         bot_id: Uuid,
         bot_name: &str,
+        branch_slug: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         // Check if bot already has a database_name
         let existing_db_name = self.get_bot_database_name(bot_id)?;
@@ -223,7 +230,7 @@ impl BotDatabaseManager {
             name
         } else {
             // Generate and set database name
-            let new_db_name = Self::generate_database_name(bot_name);
+            let new_db_name = Self::generate_database_name(branch_slug, bot_name);
             let mut conn = self.main_pool.get()?;
 
             sql_query("UPDATE bots SET database_name = $1 WHERE id = $2")
@@ -246,7 +253,9 @@ impl BotDatabaseManager {
         let mut conn = self.main_pool.get()?;
 
         let bots: Vec<BotDatabaseInfo> = sql_query(
-            "SELECT id, name, database_name FROM bots WHERE is_active = true",
+            "SELECT b.id, b.name, b.database_name, br.slug AS branch_slug \
+             FROM bots b LEFT JOIN branches br ON b.branch_id = br.id \
+             WHERE b.is_active = true",
         )
         .get_results(&mut conn)?;
 
@@ -260,7 +269,8 @@ impl BotDatabaseManager {
         let mut result = SyncResult::default();
 
         for bot in bots {
-            match self.ensure_bot_has_database(bot.id, &bot.name) {
+            let branch_slug = bot.branch_slug.as_deref().unwrap_or("default");
+            match self.ensure_bot_has_database(bot.id, &bot.name, branch_slug) {
                 Ok(db_name) => {
                     if bot.database_name.is_none() {
                         result.databases_created += 1;
@@ -354,18 +364,18 @@ mod tests {
     #[test]
     fn test_generate_database_name() {
         assert_eq!(
-            BotDatabaseManager::generate_database_name("my-bot"),
-            "bot_my_bot"
+            BotDatabaseManager::generate_database_name("default", "my-bot"),
+            "bot_default_my_bot"
         );
 
         assert_eq!(
-            BotDatabaseManager::generate_database_name("My Bot 2"),
-            "bot_my_bot_2"
+            BotDatabaseManager::generate_database_name("branch1", "My Bot 2"),
+            "bot_branch1_my_bot_2"
         );
 
         assert_eq!(
-            BotDatabaseManager::generate_database_name("test@bot!"),
-            "bot_testbot"
+            BotDatabaseManager::generate_database_name("prod", "test@bot!"),
+            "bot_prod_testbot"
         );
     }
 }

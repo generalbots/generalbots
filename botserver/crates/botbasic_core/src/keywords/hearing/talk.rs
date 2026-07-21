@@ -82,7 +82,7 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
                     user_id: recipient.clone(),
                     session_id: user_for_send.id.to_string(),
                     channel: "direct".to_string(),
-                    content: message,
+        content: message.replace('\n', "<br>"),
                     message_type: MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: true,

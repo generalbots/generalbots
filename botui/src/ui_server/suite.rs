@@ -360,7 +360,7 @@ pub async fn serve_suite_impl(_state: &AppState, bot_name: Option<String>, _head
                         let ins_offset = head_end + base_tag.len() + login_script.len();
                         info!("serve_suite: Injecting bot_name '{}' into page with base href='{}'", name, base_href);
                         let bot_script = format!(
-                            r#"<script>window.__INITIAL_BOT_NAME__ = "{}"; window.__BOT_IS_PUBLIC__ = false;</script>"#,
+                            r#"<script>window.__INITIAL_BOT_NAME__ = "{}"; window.__BOT_IS_PUBLIC__ = true;</script>"#,
                             &name
                         );
                         html.insert_str(ins_offset, &bot_script);

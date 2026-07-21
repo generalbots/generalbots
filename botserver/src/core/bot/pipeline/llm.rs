@@ -95,6 +95,9 @@ pub async fn stream_llm_response(
         state.llm_provider.clone().map(move |p| (p, env_key.clone(), env_model.clone()))
     }) {
         Some((ref llm, ref llm_key, ref llm_model)) => {
+            // Trace the actual messages sent to the LLM
+            log::info!("LLM REQUEST: {} messages, model={}", messages.as_array().map(|a| a.len()).unwrap_or(0), llm_model);
+
             let state_clone = state.clone();
             let prompt_clone = user_text.to_string();
             let messages_clone = messages.clone();
@@ -171,6 +174,7 @@ pub async fn stream_llm_response(
             }
 
             let mut reasoning_accumulated = String::new();
+            let mut content_buffer = String::new();
 
             let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(800));
             keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -209,25 +213,9 @@ pub async fn stream_llm_response(
                                     continue;
                                 }
                                 full_response.push_str(&chunk);
-                                let chunk_resp = botlib::models::BotResponse {
-                                    bot_id: bot_uuid_s.clone(),
-                                    user_id: user_id.to_string(),
-                                    session_id: session_id_s.clone(),
-                                    channel: "web".to_string(),
-                                    content: chunk,
-                                    message_type: botlib::message_types::MessageType::BOT_RESPONSE,
-                                    stream_token: None,
-                                    is_complete: false,
-                                    suggestions: Vec::new(),
-                                    switchers: Vec::new(),
-                                    context_name: None,
-                                    context_length: 0,
-                                    context_max_length: 0,
-                                    reasoning: String::new(),
-                                };
-                                if sink.send_bot_response(&chunk_resp).await.is_err() {
-                                    break;
-                                }
+                                // Buffer content chunks instead of sending immediately.
+                                // If a tool_call is detected later, buffered content will be discarded.
+                                content_buffer.push_str(&chunk);
                             }
                             None => break,
                         }
@@ -252,23 +240,67 @@ pub async fn stream_llm_response(
                 }
             }
 
-            let mut final_content = full_response.trim_end().to_string();
-            if let Some(pos) = final_content.rfind("{\"__tool_call__\":") {
-                final_content = final_content[..pos].trim_end().to_string();
+            // Send buffered content only if no tool was called
+            let has_tool_call = full_response.contains("\"__tool_call__\":");
+            log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}", full_response.len(), content_buffer.len(), has_tool_call);
+            if content_buffer.len() > 0 {
+                log::info!("LLM CONTENT BUFFER (first 300): {}", &content_buffer[..content_buffer.len().min(300)]);
             }
 
-            let mut final_resp = botlib::models::BotResponse::new(
-                &bot_uuid_s, &session_id_s, &user_id.to_string(),
-                &final_content, "web",
-            );
-            final_resp.reasoning = reasoning_accumulated.trim().to_string();
-            if sink.send_bot_response(&final_resp).await.is_err() {
-                let mut pending = state.pending_stream_responses.lock().await;
-                pending.insert(session_id_s.clone(), final_content.clone());
+            if !has_tool_call && !content_buffer.is_empty() {
+                // Convert markdown **bold** to <strong>bold</strong> (UTF-8 safe)
+                let mut converted = content_buffer
+                    .split("**")
+                    .enumerate()
+                    .map(|(i, part)| {
+                        if i % 2 == 1 {
+                            format!("<strong>{}</strong>", part)
+                        } else {
+                            part.to_string()
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .concat();
+                // Convert "- item" lines to <li> wrapped in <ul>
+                let lines: Vec<&str> = converted.lines().collect();
+                let mut out = Vec::new();
+                let mut i = 0;
+                while i < lines.len() {
+                    let trimmed = lines[i].trim_start();
+                    if trimmed.starts_with("- ") {
+                        out.push("<ul>".to_string());
+                        while i < lines.len() && lines[i].trim_start().starts_with("- ") {
+                            let li_content = lines[i].trim_start().strip_prefix("- ").unwrap_or(lines[i].trim_start());
+                            out.push(format!("<li>{}</li>", li_content));
+                            i += 1;
+                        }
+                        out.push("</ul>".to_string());
+                    } else {
+                        out.push(lines[i].to_string());
+                        i += 1;
+                    }
+                }
+                converted = out.join("\n");
+                let final_resp = botlib::models::BotResponse {
+                    bot_id: bot_uuid_s.clone(),
+                    user_id: user_id.to_string(),
+                    session_id: session_id_s.clone(),
+                    channel: "web".to_string(),
+                    content: converted,
+                    message_type: botlib::message_types::MessageType::BOT_RESPONSE,
+                    stream_token: None,
+                    is_complete: true,
+                    suggestions: Vec::new(),
+                    switchers: Vec::new(),
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                    reasoning: reasoning_accumulated.trim().to_string(),
+                };
+                let _ = sink.send_bot_response(&final_resp).await;
             }
 
-            let tool_call_trigger = "\"__tool_call__\":".to_string();
-            if full_response.contains(&tool_call_trigger) {
+            if has_tool_call {
                 super::tool_exec::run_llm_tool_call(
                     sink, state, bot_uuid, session_id, user_id, bot_name,
                     &full_response, rx,

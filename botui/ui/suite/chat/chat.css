@@ -107,6 +107,15 @@
     overflow: hidden;
 }
 
+@media (max-width: 1024px) {
+    .chat-layout {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        border-radius: 0;
+    }
+}
+
 /* Chat Content Wrapper - fill available space with flex column */
 .chat-content-wrapper {
     flex: 1;

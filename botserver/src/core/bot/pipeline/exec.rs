@@ -182,7 +182,8 @@ pub async fn process_message_internal(
         reasoning: String::new(),
     }).await;
 
-    let base_system_prompt = crate::core::bot::ws::message::load_system_prompt(bot_name);
+    let channel = sink.channel_type();
+    let base_system_prompt = crate::core::bot::ws::message::load_system_prompt_for_channel(bot_name, channel);
     let system_prompt = if !active_switchers.is_empty() {
         let switcher_prompts = crate::basic::keywords::switcher::resolve_active_switchers(
             state.cache.as_ref(),

@@ -216,7 +216,7 @@ impl ConfigManager {
         default: Option<&str>,
     ) -> Result<String, Box<dyn std::error::Error>> {
         if let Ok(mut conn) = self.pool.get() {
-            let bot_val = if self.has_branch_id {
+            let mut bot_val = if self.has_branch_id {
                 diesel::sql_query(self.get_query())
                     .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
                     .bind::<diesel::sql_types::Uuid, _>(bot_id)
@@ -228,6 +228,17 @@ impl ConfigManager {
                     .bind::<diesel::sql_types::Text, _>(key)
                     .get_result::<ConfigRow>(&mut conn).ok()
             };
+
+            // Fallback: if branch_id filter returned nothing, try without branch_id
+            if bot_val.is_none() && self.has_branch_id {
+                bot_val = diesel::sql_query(
+                    "SELECT config_value FROM bot_configuration \
+                     WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+                )
+                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                    .bind::<diesel::sql_types::Text, _>(key)
+                    .get_result::<ConfigRow>(&mut conn).ok();
+            }
 
             if let Some(r) = bot_val {
                 if !is_placeholder_value(&r.config_value) && !is_local_file_path(&r.config_value) {

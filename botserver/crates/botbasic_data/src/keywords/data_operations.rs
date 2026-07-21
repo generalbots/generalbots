@@ -113,10 +113,18 @@ fn register_save_variants(state: Arc<dyn BasicRuntime>, user: UserSession, user_
 
                     trace!("SAVE: table={}", table);
 
-                    let mut conn = state_clone
-                        .db_pool()
-                        .get()
-                        .map_err(|e| format!("DB error: {}", e))?;
+                    // Use bot database if available (tables are per-bot), fallback to main
+                    let pool_opt = state_clone
+                        .bot_database_manager()
+                        .get_bot_pool(user_clone.bot_id);
+                    let mut conn = if let Some(pool) = pool_opt {
+                        pool.get().map_err(|e| format!("Bot DB error: {}", e))?
+                    } else {
+                        state_clone
+                            .db_pool()
+                            .get()
+                            .map_err(|e| format!("DB error: {}", e))?
+                    };
 
                     if let Err(e) =
                         check_table_access(&mut conn, &table, &user_roles_clone, AccessType::Write)
@@ -242,10 +250,18 @@ pub fn register_update_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
 
                 trace!("UPDATE table: {}, filter: {}", table, filter);
 
-                let mut conn = state_clone
-                    .db_pool()
-                    .get()
-                    .map_err(|e| format!("DB error: {}", e))?;
+                // Use bot database if available, fallback to main
+                let pool_opt = state_clone
+                    .bot_database_manager()
+                    .get_bot_pool(user_clone.bot_id);
+                let mut conn = if let Some(pool) = pool_opt {
+                    pool.get().map_err(|e| format!("Bot DB error: {}", e))?
+                } else {
+                    state_clone
+                        .db_pool()
+                        .get()
+                        .map_err(|e| format!("DB error: {}", e))?
+                };
 
                 // Check write access
                 if let Err(e) =
@@ -287,6 +303,7 @@ pub fn register_update_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
 
 pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
+    let user_clone = user.clone();
     let user_roles = UserRoles::from_user_session(&user);
 
     engine
@@ -342,10 +359,17 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 } else {
                     trace!("DELETE from table: {}, filter: {}", first_arg, second_arg);
 
-                    let mut conn = state_clone
-                        .db_pool()
-                        .get()
-                        .map_err(|e| format!("DB error: {}", e))?;
+                    let pool_opt = state_clone
+                        .bot_database_manager()
+                        .get_bot_pool(user_clone.bot_id);
+                    let mut conn = if let Some(pool) = pool_opt {
+                        pool.get().map_err(|e| format!("Bot DB error: {}", e))?
+                    } else {
+                        state_clone
+                            .db_pool()
+                            .get()
+                            .map_err(|e| format!("DB error: {}", e))?
+                    };
 
                     // Check write access (delete requires write permission)
                     if let Err(e) =
@@ -429,8 +453,9 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
         .expect("valid syntax registration");
 }
 
-pub fn register_merge_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
+pub fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
+    let user_clone = user.clone();
 
     engine
         .register_custom_syntax(
@@ -443,10 +468,17 @@ pub fn register_merge_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, 
 
                 trace!("MERGE into table: {}, key: {}", table, key_field);
 
-                let mut conn = state_clone
-                    .db_pool()
-                    .get()
-                    .map_err(|e| format!("DB error: {}", e))?;
+                let pool_opt = state_clone
+                    .bot_database_manager()
+                    .get_bot_pool(user_clone.bot_id);
+                let mut conn = if let Some(pool) = pool_opt {
+                    pool.get().map_err(|e| format!("Bot DB error: {}", e))?
+                } else {
+                    state_clone
+                        .db_pool()
+                        .get()
+                        .map_err(|e| format!("DB error: {}", e))?
+                };
 
                 let result = execute_merge(&mut conn, &table, &data, &key_field)
                     .map_err(|e| format!("MERGE error: {}", e))?;
