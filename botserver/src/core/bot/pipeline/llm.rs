@@ -307,6 +307,16 @@ pub async fn stream_llm_response(
                 ).await;
             }
 
+            if !has_tool_call && content_buffer.is_empty() {
+                let err_msg = "Desculpe, nao consegui processar sua mensagem agora (servico ocupado). Tente novamente em alguns segundos.";
+                log::warn!("LLM empty response, sending fallback message to user");
+                let err_resp = botlib::models::BotResponse::new(
+                    &bot_uuid_s, &session_id_s, &user_id.to_string(),
+                    err_msg, "web",
+                );
+                let _ = sink.send_bot_response(&err_resp).await;
+            }
+
             {
                 let mut sm = state.session_manager.lock().await;
                 let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
