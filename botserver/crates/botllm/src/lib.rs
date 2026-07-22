@@ -602,6 +602,7 @@ impl LLMProvider for OpenAIClient {
 
         let max_retries = 2;
         let mut stream_started = false;
+        info!("LLM request URL: {}, body size: {} bytes, stream={}", full_url, request_body.to_string().len(), use_stream);
         'retry_loop: for attempt in 0..=max_retries {
             let response = match self.client
                 .post(&full_url)
@@ -626,8 +627,10 @@ impl LLMProvider for OpenAIClient {
             };
 
             let status = response.status();
+            info!("LLM HTTP response status: {} for model {} (attempt {})", status, model, attempt + 1);
             if !status.is_success() {
                 let error_text = response.text().await.unwrap_or_default();
+                warn!("LLM HTTP error body: {}", error_text);
                 let _ = chunk_tx.send(Err(format!("Status {}: {}", status, error_text))).await;
                 if attempt < max_retries {
                     warn!("LLM generate_stream attempt {} failed (status {}): {}, retrying...", attempt + 1, status, error_text);
