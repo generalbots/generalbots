@@ -107,7 +107,9 @@ pub async fn generate_data_response(
          3. Limit results to 100 rows max\n\
          4. Return ONLY the SQL query, no explanations, no markdown formatting\n\
          5. Use single quotes for string literals\n\
-         6. Table and column names should be lowercase\n\n\
+         6. Table and column names should be lowercase\n\
+         7. If using COUNT, SUM, AVG, MIN, MAX or any aggregate function, you MUST include GROUP BY for all non-aggregated columns in SELECT\n\
+         8. Always include GROUP BY when counting or aggregating by a column\n\n\
          SQL:"
     );
 
@@ -123,7 +125,10 @@ pub async fn generate_data_response(
         ));
     }
 
-    let results = execute_sql_query(&mut conn, &sql)?;
+    let bot_pool = state.bot_database_manager.get_bot_pool(bot_uuid)
+        .ok_or_else(|| format!("No database pool for bot {}", bot_uuid))?;
+    let mut bot_conn = bot_pool.get().map_err(|e| format!("Bot DB connection error: {e}"))?;
+    let results = execute_sql_query(&mut bot_conn, &sql)?;
     let table_html = format_results_as_html_table(&results);
 
     let content = format!(
@@ -166,7 +171,9 @@ pub async fn generate_chart_response(
          2. Limit results to 100 rows max\n\
          3. Return ONLY the SQL query, no explanations, no markdown\n\
          4. Use single quotes for string literals\n\
-         5. Table and column names should be lowercase\n\n\
+         5. Table and column names should be lowercase\n\
+         6. If using COUNT, SUM, AVG, MIN, MAX or any aggregate function, you MUST include GROUP BY for all non-aggregated columns in SELECT\n\
+         7. Always include GROUP BY when counting or aggregating by a column\n\n\
          SQL:"
     );
 
@@ -180,7 +187,10 @@ pub async fn generate_chart_response(
         ));
     }
 
-    let results = execute_sql_query(&mut conn, &sql)?;
+    let bot_pool = state.bot_database_manager.get_bot_pool(bot_uuid)
+        .ok_or_else(|| format!("No database pool for bot {}", bot_uuid))?;
+    let mut bot_conn = bot_pool.get().map_err(|e| format!("Bot DB connection error: {e}"))?;
+    let results = execute_sql_query(&mut bot_conn, &sql)?;
     let results_json = serde_json::to_value(&results).unwrap_or(json!([]));
     let results_str = serde_json::to_string_pretty(&results_json).unwrap_or_default();
 

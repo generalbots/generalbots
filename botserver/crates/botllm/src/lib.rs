@@ -551,7 +551,7 @@ impl LLMProvider for OpenAIClient {
         } else {
             "max_tokens"
         };
-        let use_stream = !(model.contains("gpt-oss") && self.base_url.contains("nvidia"));
+        let use_stream = !(model.contains("gpt-oss") && (self.base_url.contains("nvidia") || self.base_url.contains("cerebras")));
         if !use_stream {
             info!("Setting stream=false for NVIDIA model: {}", model);
         }
