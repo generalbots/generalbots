@@ -1160,27 +1160,41 @@ To test `chat.stage.pragmatismo.com.br` or other services in the STAGE-GBO envir
 13. **Capture screenshots** — save to `/tmp/{bot}_case{N}_{before|after}.png`
 14. **Report results** — visual evidence + summary of each case: messages sent, responses received, suggestions
 
-**Standard script to interact via CDP (Node.js):**
-```javascript
-const CDP = require('./cdp-client'); // or inline ws + net
-const cdp = new CDP(wsUrl);
-await cdp.eval(\`document.getElementById('messageInput').value = 'message'\`);
-cdp.eval(\`document.getElementById('chatForm').dispatchEvent(new Event('submit', {bubbles:true,cancelable:true}))\`);
-const response = await cdp.eval(\`
-  (() => {
-    var msgs = document.getElementById('messages');
-    if (!msgs) return '';
-    for (var i = msgs.children.length - 1; i >= 0; i--) {
-      var msg = msgs.children[i];
-      if (msg.classList.contains('bot')) {
-        var content = msg.querySelector('.bot-message');
-        return content ? content.textContent.trim().substring(0, 800) : '';
-      }
-    }
-    return '';
-  })()
-\`);
+### 🎯 Interactive Chat Testing Protocol — ONE STEP AT A TIME
+
+**CRITICAL RULE: NEVER batch-send messages to the chat.** Always interact one message at a time. Send one message, read the bot's response, analyze it, then decide the next message based on what the bot is asking for.
+
+**Required pattern:**
+
+```python
+# STEP 1 (single execution): Send ONE message, read response
+# python3 step.py
+await page.fill("#messageInput", "quero agendar um batizado")
+await page.keyboard.press("Enter")
+await asyncio.sleep(12)
+r = await page.evaluate("""() => {
+    const c = document.getElementById('messages');
+    if (!c) return 'NONE';
+    const bots = Array.from(c.children).filter(el => el.className.includes('bot'));
+    return bots.length ? bots[bots.length-1].textContent.trim().substring(0,600) : 'NONE';
+}""")
+print(r)
+
+# THEN: Analyze print output. Type the next field the bot is asking for.
+# NEVER pre-program all fields in a loop. Each step depends on the bot's response.
 ```
+
+**Workflow:**
+1. Write a short Python script that sends ONE message and prints the bot's response
+2. Run it, READ the bot's response
+3. Look at what field the bot is asking for next
+4. Write/update the script to send just that one field
+5. Repeat until the tool is called or flow completes
+
+**NEVER:**
+- ❌ Pre-define all fields in a list/loop
+- ❌ Send multiple fields without reading each response
+- ❌ Assume what the bot will ask next — always read the actual response first
 
 **Key commands:**
 ```bash

@@ -26,15 +26,15 @@ pub fn get_bot_table_schemas(conn: &mut PgConnection, bot_id: Uuid) -> Result<Ve
     #[derive(QueryableByName, Debug)]
     struct ColumnRow {
         #[diesel(sql_type = diesel::sql_types::Text)]
-        table_name: String,
-        #[diesel(sql_type = diesel::sql_types::Text)]
         column_name: String,
         #[diesel(sql_type = diesel::sql_types::Text)]
         data_type: String,
         #[diesel(sql_type = diesel::sql_types::Text)]
-        is_nullable: String,
-        #[diesel(sql_type = diesel::sql_types::Text)]
         character_maximum_length: String,
+        #[diesel(sql_type = diesel::sql_types::Bool)]
+        is_nullable: bool,
+        #[diesel(sql_type = diesel::sql_types::Bool)]
+        is_key: bool,
     }
 
     let tables: Vec<TableRow> = sql_query(
@@ -51,56 +51,52 @@ pub fn get_bot_table_schemas(conn: &mut PgConnection, bot_id: Uuid) -> Result<Ve
         return Ok(Vec::new());
     }
 
-    let table_names: Vec<String> = tables.iter().map(|t| t.table_name.clone()).collect();
-    let table_list = table_names
+    let result: Vec<TableSchema> = tables
         .iter()
-        .map(|n| format!("'{}'", n.replace('\'', "''")))
-        .collect::<Vec<_>>()
-        .join(",");
-
-    let columns_raw: Vec<ColumnRow> = sql_query(format!(
-        "SELECT c.table_name::text, c.column_name::text, \
-                c.data_type::text, c.is_nullable::text, \
-                COALESCE(c.character_maximum_length::text, '') as character_maximum_length \
-         FROM information_schema.columns c \
-         WHERE c.table_schema = 'public' \
-           AND c.table_name IN ({table_list}) \
-         ORDER BY c.table_name, c.ordinal_position"
-    ))
-    .load(conn)
-    .map_err(|e| format!("Failed to query materialized columns: {e}"))?;
-
-    let result: Vec<TableSchema> = table_names
-        .iter()
-        .map(|name| {
-            let cols: Vec<ColumnSchema> = columns_raw
-                .iter()
-                .filter(|c| c.table_name == *name)
-                .map(|c| {
-                    let pg_type = &c.data_type;
-                    let display_type = if pg_type == "character varying" || pg_type == "character" {
-                        if c.character_maximum_length.is_empty() {
-                            "VARCHAR".to_string()
-                        } else {
-                            format!("VARCHAR({})", c.character_maximum_length)
-                        }
-                    } else if pg_type == "numeric" {
-                        "NUMERIC".to_string()
-                    } else if pg_type == "timestamp with time zone" || pg_type == "timestamp without time zone" {
-                        "TIMESTAMP".to_string()
+        .map(|table| {
+            let cols: Vec<ColumnSchema> = sql_query(
+                "SELECT dtf.field_name::text as column_name, dtf.field_type::text as data_type, \
+                        COALESCE(dtf.field_length::text, '') as character_maximum_length, \
+                        dtf.is_nullable as is_nullable, dtf.is_key as is_key \
+                 FROM dynamic_table_fields dtf \
+                 JOIN dynamic_table_definitions dtd ON dtf.table_definition_id = dtd.id \
+                 WHERE dtd.bot_id = $1 AND dtd.table_name = $2 \
+                 ORDER BY dtf.field_order"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<diesel::sql_types::Varchar, _>(&table.table_name)
+            .load::<ColumnRow>(conn)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|c| {
+                let field_type = &c.data_type;
+                let display_type = if field_type == "string" {
+                    if c.character_maximum_length.is_empty() {
+                        "VARCHAR".to_string()
                     } else {
-                        pg_type.to_uppercase()
-                    };
-                    ColumnSchema {
-                        name: c.column_name.clone(),
-                        data_type: display_type,
-                        nullable: c.is_nullable == "YES",
-                        is_key: c.column_name == "id",
+                        format!("VARCHAR({})", c.character_maximum_length)
                     }
-                })
-                .collect();
+                } else if field_type == "integer" {
+                    "INTEGER".to_string()
+                } else if field_type == "date" {
+                    "DATE".to_string()
+                } else if field_type == "datetime" {
+                    "TIMESTAMP".to_string()
+                } else if field_type == "numeric" {
+                    "NUMERIC".to_string()
+                } else {
+                    field_type.to_uppercase()
+                };
+                ColumnSchema {
+                    name: c.column_name,
+                    data_type: display_type,
+                    nullable: c.is_nullable,
+                    is_key: c.is_key,
+                }
+            })
+            .collect();
             TableSchema {
-                name: name.clone(),
+                name: table.table_name.clone(),
                 columns: cols,
             }
         })
