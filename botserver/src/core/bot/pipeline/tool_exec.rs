@@ -56,6 +56,19 @@ pub async fn run_tool_exec(
     }
 }
 
+fn is_generic_greeting(text: &str) -> bool {
+    let trimmed = text.trim().to_lowercase();
+    let greetings = [
+        "ola", "oi", "hey", "hello", "hi", "bom dia", "boa tarde", "boa noite",
+        "olá", "oie", "bem-vindo", "e ai", "e aí", "tudo bem", "td bem",
+    ];
+    if greetings.contains(&trimmed.as_str()) {
+        return true;
+    }
+    let word_count = trimmed.split_whitespace().count();
+    word_count <= 2
+}
+
 pub async fn run_llm_tool_call(
     sink: &dyn ChannelSink,
     state: &Arc<AppState>,
@@ -65,6 +78,7 @@ pub async fn run_llm_tool_call(
     bot_name: &str,
     full_response: &str,
     rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
+    user_text: &str,
 ) {
     use crate::core::bot::ws::handler::validate_bot_name;
     use crate::core::bot::ws::handler::verify_path_within_workdir;
@@ -81,6 +95,11 @@ pub async fn run_llm_tool_call(
         let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
         log::info!("LLM tool_call: executing tool '{raw_tool_name}' with args: {tool_args}");
         if raw_tool_name.is_empty() { return; }
+
+        if is_generic_greeting(user_text) {
+            log::info!("Blocking tool '{raw_tool_name}' on short generic user message: '{user_text}'");
+            return;
+        }
 
         let tool_name = match validate_bot_name(&raw_tool_name) {
             Ok(n) => n,

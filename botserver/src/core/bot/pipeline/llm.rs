@@ -303,7 +303,7 @@ pub async fn stream_llm_response(
             if has_tool_call {
                 super::tool_exec::run_llm_tool_call(
                     sink, state, bot_uuid, session_id, user_id, bot_name,
-                    &full_response, rx,
+                    &full_response, rx, user_text,
                 ).await;
             }
 

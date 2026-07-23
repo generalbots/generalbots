@@ -129,5 +129,8 @@ pub async fn handle_ws(
         let mut channels = state.response_channels.lock().await;
         channels.remove(&session_id.to_string());
     }
+    if let Ok(mut hear_map) = state.hear_channels.lock() {
+        hear_map.remove(&session_id);
+    }
     info!("WebSocket disconnected: session={session_id}");
 }
