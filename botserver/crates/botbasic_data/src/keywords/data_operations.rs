@@ -642,7 +642,7 @@ fn execute_save(
         if key == "id" {
             continue;
         }
-        let sanitized_key = sanitize_identifier(key);
+        let sanitized_key = sanitize_identifier(key).to_lowercase();
         let value_str = value.to_string();
         let converted_value = convert_date_to_iso_format(&value_str);
         let sanitized_value = format!("'{}'", sanitize_sql_value(&converted_value));
@@ -653,7 +653,7 @@ fn execute_save(
 
     let query = format!(
         "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO UPDATE SET {}",
-        sanitize_identifier(table),
+        sanitize_identifier(table).to_lowercase(),
         columns.join(", "),
         values.join(", "),
         update_sets.join(", ")
@@ -793,7 +793,7 @@ fn execute_insert(
 
     let query = format!(
         "INSERT INTO {} ({}) VALUES ({}) RETURNING id",
-        sanitize_identifier(table),
+        sanitize_identifier(table).to_lowercase(),
         columns.join(", "),
         values.join(", ")
     );
@@ -967,13 +967,13 @@ fn execute_merge(
             let mut values: Vec<String> = Vec::new();
 
             for (key, value) in &item_map {
-                columns.push(sanitize_identifier(key));
+        columns.push(sanitize_identifier(key).to_lowercase());
                 values.push(format!("'{}'", sanitize_sql_value(&value.to_string())));
             }
 
             let insert_query = format!(
                 "INSERT INTO {} ({}) VALUES ({})",
-                sanitize_identifier(table),
+                sanitize_identifier(table).to_lowercase(),
                 columns.join(", "),
                 values.join(", ")
             );

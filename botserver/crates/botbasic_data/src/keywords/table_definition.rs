@@ -379,10 +379,10 @@ pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> Strin
 
     for field in &table.fields {
         let sql_type = map_type_to_sql(field, driver);
-        let mut col_def = format!("    {} {}", sanitize_identifier(&field.name), sql_type);
+        let mut col_def = format!("    {} {}", sanitize_identifier(&field.name).to_lowercase(), sql_type);
 
         if field.is_key {
-            primary_keys.push(sanitize_identifier(&field.name));
+            primary_keys.push(sanitize_identifier(&field.name).to_lowercase());
         }
 
         if !field.is_nullable {
