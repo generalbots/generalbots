@@ -5,8 +5,9 @@ use log::warn;
 pub fn sanitize_identifier(name: &str) -> String {
     let sanitized: String = name.chars()
         .filter(|c| c.is_alphanumeric() || *c == '_')
-        .collect();
-    if sanitized != name {
+        .collect::<String>()
+        .to_lowercase();
+    if sanitized != name.to_lowercase() {
         warn!("Identifier '{}' sanitized to '{}'", name, sanitized);
     }
     sanitized
