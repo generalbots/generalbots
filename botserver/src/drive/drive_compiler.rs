@@ -207,27 +207,24 @@ impl DriveCompiler {
         // Caminho do .bas no work
         let work_bas_path = work_dir.join(format!("{}.bas", tool_name));
 
-        // Check if file exists in work dir
-        if !work_bas_path.exists() {
-            // File doesn't exist in work dir - need to download from S3
-            // This should be done by DriveMonitor, but we can try to fetch it here
-            info!("File {} not found in work dir, attempting to download from S3", work_bas_path.display());
-            
-            // Download in separate task to avoid Send issues
-            let download_result = download_from_s3(fp, &self.state).await;
-            
-            match download_result {
-                Ok(content) => {
-                    if let Err(e) = std::fs::write(&work_bas_path, content) {
-                        warn!("Failed to write {} to work dir: {}", work_bas_path.display(), e);
-                        return Err(format!("Failed to write file: {}", e).into());
-                    }
-                    info!("Downloaded {} to {}", fp, work_bas_path.display());
+        // Always download latest from S3 to ensure work dir is in sync
+        info!("Downloading {} from S3 to work dir", fp);
+        let download_result = download_from_s3(fp, &self.state).await;
+        
+        match download_result {
+            Ok(content) => {
+                if let Err(e) = std::fs::write(&work_bas_path, content) {
+                    warn!("Failed to write {} to work dir: {}", work_bas_path.display(), e);
+                    return Err(format!("Failed to write file: {}", e).into());
                 }
-                Err(e) => {
-                    info!("Failed to download {} from S3: {}", fp, e);
+                info!("Downloaded {} to {}", fp, work_bas_path.display());
+            }
+            Err(e) => {
+                if !work_bas_path.exists() {
+                    info!("Failed to download {} from S3 and no local copy: {}", fp, e);
                     return Err(format!("File not found in S3: {}", fp).into());
                 }
+                info!("Failed to download {} from S3, using existing work copy: {}", fp, e);
             }
         }
 
