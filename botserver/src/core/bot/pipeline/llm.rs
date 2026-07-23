@@ -301,10 +301,31 @@ pub async fn stream_llm_response(
             }
 
             if has_tool_call {
-                super::tool_exec::run_llm_tool_call(
-                    sink, state, bot_uuid, session_id, user_id, bot_name,
-                    &full_response, rx, user_text,
-                ).await;
+                if super::tool_exec::is_generic_greeting(user_text) && !content_buffer.is_empty() {
+                    log::info!("Greeting guard: skipping tool_call, sending buffered content instead");
+                    let final_resp = botlib::models::BotResponse {
+                        bot_id: bot_uuid_s.clone(),
+                        user_id: user_id.to_string(),
+                        session_id: session_id_s.clone(),
+                        channel: "web".to_string(),
+                        content: content_buffer.clone(),
+                        message_type: botlib::message_types::MessageType::BOT_RESPONSE,
+                        stream_token: None,
+                        is_complete: true,
+                        suggestions: Vec::new(),
+                        switchers: Vec::new(),
+                        context_name: None,
+                        context_length: 0,
+                        context_max_length: 0,
+                        reasoning: reasoning_accumulated.trim().to_string(),
+                    };
+                    let _ = sink.send_bot_response(&final_resp).await;
+                } else {
+                    super::tool_exec::run_llm_tool_call(
+                        sink, state, bot_uuid, session_id, user_id, bot_name,
+                        &full_response, rx, user_text,
+                    ).await;
+                }
             }
 
             if !has_tool_call && content_buffer.is_empty() {

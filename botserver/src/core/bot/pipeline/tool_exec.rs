@@ -56,7 +56,7 @@ pub async fn run_tool_exec(
     }
 }
 
-fn is_generic_greeting(text: &str) -> bool {
+pub fn is_generic_greeting(text: &str) -> bool {
     let trimmed = text.trim().to_lowercase();
     let greetings = [
         "ola", "oi", "hey", "hello", "hi", "bom dia", "boa tarde", "boa noite",
