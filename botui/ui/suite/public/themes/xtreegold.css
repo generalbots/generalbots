@@ -35,6 +35,9 @@
   
   /* Interactive Elements */
   --border: 60 100% 70%;                /* Yellow border lines */
+  --win-border-width: 2px;
+  --win-border-color: rgba(255,255,0,0.3);
+  --win-border-active: #00ffff;
   --input: 240 100% 14%;                /* Dark blue input fields */
   --ring: 180 100% 70%;                 /* Cyan focus ring */
   

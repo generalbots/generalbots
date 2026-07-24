@@ -17,6 +17,9 @@
   --destructive: 0 100% 50%;            /* Red for destructive */
   --destructive-foreground: 0 0% 100%;  /* White */
   --border: 240 100% 27%;               /* Blue borders */
+  --win-border-width: 2px;
+  --win-border-color: rgba(0,0,0,0.4);
+  --win-border-active: #4169e1;
   --input: 0 0% 100%;                   /* White input */
   --ring: 240 100% 27%;                 /* Blue ring/focus */
   --radius: 0.125rem;                   /* Small radius, almost square */

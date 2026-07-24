@@ -1,0 +1,46 @@
+:root {
+  /* Paper — warm light, ink text, hairline borders, terracotta accent, accessible */
+  --background: 40 20% 93%;
+  --foreground: 30 10% 20%;
+  --card: 40 15% 96%;
+  --card-foreground: 30 10% 20%;
+  --primary: 12 60% 55%;
+  --primary-foreground: 0 0% 100%;
+  --border: 30 12% 80%;
+
+  --bg: #f4f1eb;
+  --surface: #faf8f4;
+  --text: #3c3530;
+  --text-secondary: #8a8078;
+  --accent: #c7553b;
+  --primary: #c7553b;
+
+  --win-bg: rgba(253,251,247,0.92);
+  --win-blur: blur(12px);
+  --win-radius: 12px;
+  --win-border-width: 1px;
+  --win-border-color: rgba(200,190,178,0.5);
+  --win-border-active: #c7553b;
+  --win-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03), 0 12px 32px rgba(0,0,0,0.04);
+  --win-shadow-active: 0 2px 4px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.05), 0 20px 48px rgba(0,0,0,0.06), 0 0 0 1px rgba(199,85,59,0.2);
+  --win-titlebar-bg: rgba(250,248,244,0.9);
+  --win-titlebar-text: #6e645c;
+  --win-titlebar-sep: rgba(200,190,178,0.3);
+  --win-caption-hover: rgba(60,53,48,0.04);
+
+  --shell-bg: rgba(250,248,244,0.75);
+  --shell-border: rgba(200,190,178,0.3);
+  --shell-radius: 16px;
+  --shell-margin: 10px;
+  --shell-blur: blur(20px) saturate(120%);
+  --shell-shadow: 0 2px 12px rgba(0,0,0,0.04);
+
+  --wall: linear-gradient(135deg, #f4f1eb 0%, #faf8f4 40%, #f0ece5 100%);
+  --wall-vignette: radial-gradient(ellipse at 20% 30%, rgba(199,85,59,0.02) 0%, transparent 50%);
+
+  --sentient-bg-primary: #faf8f4;
+  --sentient-text-primary: #3c3530;
+  --sentient-accent: #c7553b;
+  --sentient-border: #d8d2c4;
+  --sentient-surface: #f5f2ec;
+}

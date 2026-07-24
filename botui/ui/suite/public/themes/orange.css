@@ -17,6 +17,9 @@
     --destructive: 0 85% 60%; /* #e81123 - Office red */
     --destructive-foreground: 0 0% 100%; /* White */
     --border: 0 0% 85%; /* #d2d0ce - light border */
+    --win-border-width: 1.5px;
+    --win-border-color: rgba(0,0,0,0.18);
+    --win-border-active: #ff6b00;
     --input: 0 0% 100%; /* White */
     --ring: 207 90% 54%; /* #0078d4 */
     --radius: 0.25rem; /* Slightly less rounded */

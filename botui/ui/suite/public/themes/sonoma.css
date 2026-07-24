@@ -1,0 +1,46 @@
+:root {
+  /* Sonoma — macOS Sonoma light, soft gray-violet, graphite accents */
+  --background: 240 5% 96%;
+  --foreground: 240 4% 16%;
+  --card: 0 0% 99%;
+  --card-foreground: 240 4% 16%;
+  --primary: 238 40% 52%;
+  --primary-foreground: 0 0% 100%;
+  --border: 240 6% 88%;
+
+  --bg: #f0eef3;
+  --surface: #ffffff;
+  --text: #2c2c33;
+  --text-secondary: #8e8e98;
+  --accent: #5c5fc7;
+  --primary: #5c5fc7;
+
+  --win-bg: rgba(255,255,255,0.88);
+  --win-blur: blur(24px) saturate(130%);
+  --win-radius: 12px;
+  --win-border-width: 1px;
+  --win-border-color: rgba(0,0,0,0.18);
+  --win-border-active: #5c5fc7;
+  --win-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.04), 0 16px 40px rgba(0,0,0,0.05);
+  --win-shadow-active: 0 2px 4px rgba(0,0,0,0.08), 0 10px 24px rgba(0,0,0,0.07), 0 24px 60px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(92,95,199,0.3);
+  --win-titlebar-bg: rgba(255,255,255,0.85);
+  --win-titlebar-text: #55555f;
+  --win-titlebar-sep: rgba(0,0,0,0.06);
+  --win-caption-hover: rgba(0,0,0,0.03);
+
+  --shell-bg: rgba(255,255,255,0.65);
+  --shell-border: rgba(0,0,0,0.08);
+  --shell-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  --shell-radius: 16px;
+  --shell-margin: 10px;
+  --shell-blur: blur(24px) saturate(140%);
+
+  --wall: linear-gradient(135deg, #f0eef3 0%, #f5f4f8 40%, #eceaf2 100%);
+  --wall-vignette: radial-gradient(ellipse at 20% 30%, rgba(92,95,199,0.03) 0%, transparent 50%);
+
+  --sentient-bg-primary: #ffffff;
+  --sentient-text-primary: #2c2c33;
+  --sentient-accent: #5c5fc7;
+  --sentient-border: #e2e0e8;
+  --sentient-surface: #f8f7fa;
+}

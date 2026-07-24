@@ -23,6 +23,11 @@
     --border-light: #222222;
     --border-accent: rgba(212, 245, 5, 0.3);
 
+    /* Window Borders */
+    --win-border-width: 1.5px;
+    --win-border-color: rgba(42, 42, 42, 0.5);
+    --win-border-active: #d4f505;
+
     /* Text Colors */
     --text: #ffffff;
     --text-secondary: #888888;
