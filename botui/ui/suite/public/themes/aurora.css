@@ -1,0 +1,51 @@
+:root {
+  /* Aurora — deep slate, teal-violet mesh, mint accent, visible borders */
+  --background: 228 36% 8%;
+  --foreground: 210 20% 98%;
+  --card: 228 24% 12%;
+  --card-foreground: 210 20% 98%;
+  --primary: 170 72% 52%;
+  --primary-foreground: 0 0% 0%;
+  --border: 228 12% 22%;
+
+  --bg: #0b0f17;
+  --surface: #111827;
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --accent: #5eead4;
+  --primary: #5eead4;
+
+  /* Window tokens */
+  --win-bg: rgba(17,24,39,0.72);
+  --win-blur: blur(20px) saturate(160%);
+  --win-radius: 14px;
+  --win-border-width: 1.5px;
+  --win-border-color: rgba(148,163,184,0.25);
+  --win-border-active: #5eead4;
+  --win-shadow: 0 1px 2px rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.20), 0 24px 64px rgba(0,0,0,0.24);
+  --win-shadow-active: 0 2px 4px rgba(0,0,0,0.30), 0 12px 32px rgba(0,0,0,0.28), 0 32px 80px rgba(0,0,0,0.38), 0 0 0 1px rgba(94,234,212,0.15);
+  --win-titlebar-bg: rgba(17,24,39,0.65);
+  --win-titlebar-text: #94a3b8;
+  --win-titlebar-sep: rgba(148,163,184,0.15);
+  --win-caption-hover: rgba(148,163,184,0.10);
+
+  /* Shell tokens */
+  --shell-bg: rgba(15,23,42,0.60);
+  --shell-border: rgba(148,163,184,0.18);
+  --shell-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  --shell-radius: 18px;
+  --shell-margin: 10px;
+  --shell-blur: blur(24px) saturate(170%);
+
+  /* Wallpaper tokens */
+  --wall: linear-gradient(135deg, #0b0f17 0%, #111827 40%, #0f172a 100%);
+  --wall-vignette: radial-gradient(ellipse at 20% 30%, rgba(94,234,212,0.06) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 70%, rgba(139,92,246,0.05) 0%, transparent 50%);
+
+  /* Sentient bridge (required for app compatibility) */
+  --sentient-bg-primary: #0b0f17;
+  --sentient-text-primary: #e2e8f0;
+  --sentient-accent: #5eead4;
+  --sentient-border: #1e293b;
+  --sentient-surface: #111827;
+}

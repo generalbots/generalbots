@@ -1,0 +1,47 @@
+:root {
+  /* Nord — arctic, frost palette, calm low contrast, visible cool borders */
+  --background: 220 16% 22%;
+  --foreground: 219 25% 88%;
+  --card: 222 16% 28%;
+  --card-foreground: 219 25% 88%;
+  --primary: 193 43% 67%;
+  --primary-foreground: 220 16% 22%;
+  --border: 220 12% 36%;
+
+  --bg: #2e3440;
+  --surface: #3b4252;
+  --text: #e5e9f0;
+  --text-secondary: #81a1c1;
+  --accent: #88c0d0;
+  --primary: #88c0d0;
+
+  --win-bg: rgba(59,66,82,0.68);
+  --win-blur: blur(20px) saturate(150%);
+  --win-radius: 14px;
+  --win-border-width: 1px;
+  --win-border-color: rgba(76,86,106,0.6);
+  --win-border-active: #88c0d0;
+  --win-shadow: 0 1px 2px rgba(0,0,0,0.20), 0 6px 20px rgba(0,0,0,0.18), 0 20px 56px rgba(0,0,0,0.20);
+  --win-shadow-active: 0 2px 4px rgba(0,0,0,0.26), 0 10px 28px rgba(0,0,0,0.24), 0 28px 72px rgba(0,0,0,0.30), 0 0 0 1px rgba(136,192,208,0.2);
+  --win-titlebar-bg: rgba(46,52,64,0.7);
+  --win-titlebar-text: #81a1c1;
+  --win-titlebar-sep: rgba(76,86,106,0.4);
+  --win-caption-hover: rgba(76,86,106,0.3);
+
+  --shell-bg: rgba(46,52,64,0.55);
+  --shell-border: rgba(76,86,106,0.4);
+  --shell-shadow: 0 4px 20px rgba(0,0,0,0.30);
+  --shell-radius: 16px;
+  --shell-margin: 10px;
+  --shell-blur: blur(24px) saturate(160%);
+
+  --wall: linear-gradient(135deg, #2e3440 0%, #3b4252 40%, #2e3440 100%);
+  --wall-vignette: radial-gradient(ellipse at 20% 30%, rgba(136,192,208,0.04) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 70%, rgba(143,188,187,0.03) 0%, transparent 50%);
+
+  --sentient-bg-primary: #2e3440;
+  --sentient-text-primary: #e5e9f0;
+  --sentient-accent: #88c0d0;
+  --sentient-border: #4c566a;
+  --sentient-surface: #3b4252;
+}

@@ -1,0 +1,50 @@
+:root {
+  /* Mica — Windows 11 Fluent inspired, light acrylic, blue accent */
+  --background: 0 0% 95%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 98%;
+  --card-foreground: 222 47% 11%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --border: 214 32% 84%;
+
+  --bg: #f3f3f3;
+  --surface: #f9f9f9;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --accent: #2563eb;
+  --primary: #2563eb;
+
+  /* Window tokens */
+  --win-bg: rgba(249,249,249,0.82);
+  --win-blur: blur(28px) saturate(140%);
+  --win-radius: 12px;
+  --win-border-width: 1px;
+  --win-border-color: rgba(0,0,0,0.10);
+  --win-border-active: #2563eb;
+  --win-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05), 0 12px 32px rgba(0,0,0,0.06);
+  --win-shadow-active: 0 2px 4px rgba(0,0,0,0.10), 0 8px 20px rgba(0,0,0,0.08), 0 20px 48px rgba(0,0,0,0.10), 0 0 0 1px rgba(37,99,235,0.25);
+  --win-titlebar-bg: rgba(249,249,249,0.75);
+  --win-titlebar-text: #334155;
+  --win-titlebar-sep: rgba(0,0,0,0.06);
+  --win-caption-hover: rgba(0,0,0,0.04);
+
+  /* Shell tokens */
+  --shell-bg: rgba(243,243,243,0.70);
+  --shell-border: rgba(0,0,0,0.08);
+  --shell-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  --shell-radius: 16px;
+  --shell-margin: 10px;
+  --shell-blur: blur(28px) saturate(140%);
+
+  /* Wallpaper tokens — soft acrylic light */
+  --wall: linear-gradient(135deg, #f3f3f3 0%, #f8fafc 40%, #f1f5f9 100%);
+  --wall-vignette: radial-gradient(ellipse at 20% 30%, rgba(37,99,235,0.03) 0%, transparent 50%);
+
+  /* Sentient bridge */
+  --sentient-bg-primary: #ffffff;
+  --sentient-text-primary: #1e293b;
+  --sentient-accent: #2563eb;
+  --sentient-border: #e2e8f0;
+  --sentient-surface: #fafafa;
+}

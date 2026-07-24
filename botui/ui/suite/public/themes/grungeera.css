@@ -17,6 +17,9 @@
   --destructive: 0 85% 60%;
   --destructive-foreground: 0 0% 98%;
   --border: 30 10% 20%;
+  --win-border-width: 1.5px;
+  --win-border-color: rgba(0,0,0,0.3);
+  --win-border-active: #8b4513;
   --input: 30 10% 20%;
   --ring: 10 70% 50%;
   --radius: 0.5rem;

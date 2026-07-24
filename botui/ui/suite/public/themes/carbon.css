@@ -1,0 +1,46 @@
+:root {
+  /* Carbon — true OLED #000, graphite mesh, no blur (perf), lime accent, stark borders */
+  --background: 0 0% 0%;
+  --foreground: 0 0% 88%;
+  --card: 0 0% 4%;
+  --card-foreground: 0 0% 88%;
+  --primary: 120 100% 50%;
+  --primary-foreground: 0 0% 0%;
+  --border: 0 0% 15%;
+
+  --bg: #000000;
+  --surface: #080808;
+  --text: #e0e0e0;
+  --text-secondary: #666666;
+  --accent: #39ff14;
+  --primary: #39ff14;
+
+  --win-bg: #0d0d0d;
+  --win-blur: none;
+  --win-radius: 12px;
+  --win-border-width: 1px;
+  --win-border-color: #2a2a2a;
+  --win-border-active: #39ff14;
+  --win-shadow: 0 1px 2px rgba(0,0,0,0.6), 0 6px 20px rgba(0,0,0,0.5), 0 16px 48px rgba(0,0,0,0.4);
+  --win-shadow-active: 0 2px 4px rgba(0,0,0,0.7), 0 10px 28px rgba(0,0,0,0.6), 0 24px 64px rgba(0,0,0,0.5);
+  --win-titlebar-bg: #0a0a0a;
+  --win-titlebar-text: #888888;
+  --win-titlebar-sep: #1a1a1a;
+  --win-caption-hover: rgba(255,255,255,0.04);
+
+  --shell-bg: #0a0a0a;
+  --shell-border: #222222;
+  --shell-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  --shell-radius: 16px;
+  --shell-margin: 10px;
+  --shell-blur: none;
+
+  --wall: #000000;
+  --wall-vignette: radial-gradient(ellipse at 50% 50%, rgba(57,255,20,0.015) 0%, transparent 60%);
+
+  --sentient-bg-primary: #000000;
+  --sentient-text-primary: #e0e0e0;
+  --sentient-accent: #39ff14;
+  --sentient-border: #1a1a1a;
+  --sentient-surface: #0a0a0a;
+}
