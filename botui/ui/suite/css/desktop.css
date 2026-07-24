@@ -36,7 +36,7 @@
 /* Window Manager Core Styles (replacing missing Tailwind classes) */
 .window-element {
     position: absolute;
-    width: 700px;
+    width: 1000px;
     height: 500px;
     background-color: var(--surface, white);
     border-radius: 8px;
@@ -102,7 +102,7 @@
 }
 
 .w-\[700px\] {
-    width: 700px;
+    width: 1000px;
 }
 .h-\[500px\] {
     height: 500px;
@@ -868,7 +868,7 @@ select.theme-dropdown {
 
 .window-element-glass {
     position: absolute;
-    width: 700px;
+    width: 1000px;
     height: 500px;
     background: var(--glass-bg, rgba(20, 22, 35, 0.78));
     backdrop-filter: var(--glass-backdrop, blur(20px) saturate(180%));

@@ -90,13 +90,13 @@
     }
 }
 
-/* Chat Layout - 50% width centered */
+/* Chat Layout - full width */
 .chat-layout {
     display: flex;
     flex-direction: column;
     position: relative;
-    width: 75%;
-    max-width: 1200px;
+    width: 100%;
+    max-width: 1400px;
     min-width: 600px;
     height: 100%;
     margin: 0 auto;

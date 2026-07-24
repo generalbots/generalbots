@@ -52,8 +52,6 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>' },
     { id: "research", title: "Research", category: "ai", color: "#8b5cf6", hxGet: "/suite/research/research.html",
       icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
-    { id: "gb-office", title: "Beat MS", category: "office", color: "#10b981", hxGet: "/suite/beat-microsoft.html",
-      icon: '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>' },
     { id: "people", title: "People", category: "business", color: "#3b82f6", hxGet: "/suite/people/people.html",
       icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
     { id: "tickets", title: "Tickets", category: "business", color: "#ef4444", hxGet: "/suite/tickets/tickets.html",
@@ -269,8 +267,17 @@ if (typeof window.WindowManager === "undefined") {
     focus(id) {
       this.activeWindowId = id;
       const el = document.getElementById(`window-${id}`);
-      if (el) el.style.zIndex = this.zIndexCounter++;
-      
+      if (el) {
+        el.style.zIndex = this.zIndexCounter++;
+        el.classList.add("window-focused");
+      }
+      this.openWindows.forEach((w) => {
+        if (w.id !== id) {
+          const other = document.getElementById(`window-${w.id}`);
+          if (other) other.classList.remove("window-focused");
+        }
+      });
+
       const obj = this.openWindows.find((w) => w.id === id);
       if (obj) document.title = `${obj.title} - General Bots`;
       this._updateDockActive();
