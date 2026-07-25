@@ -254,7 +254,6 @@ pub async fn get_bot_config(
     axum::extract::State(state): axum::extract::State<Arc<botcore::shared::state::AppState>>,
     axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
 ) -> Result<axum::Json<serde_json::Value>, crate::security::SafeErrorResponse> {
-    use botcore::shared::models::schema::bot_configuration::dsl::*;
     use botcore::shared::models::schema::bots;
 
     let mut conn = state.conn.get().map_err(|e| {
@@ -262,36 +261,26 @@ pub async fn get_bot_config(
         crate::security::SafeErrorResponse::internal_error()
     })?;
 
-    let bot_uuid = if let Some(name) = params.get("bot_name") {
-        bots::table
+    let cfg = botcore::config::ConfigManager::new(state.conn.clone());
+
+    let sensitive_prefixes = ["llm-key", "llm-url", "llm-server", "secret", "token", "password", "api-key"];
+    let mut map: HashMap<String, String> = if let Some(name) = params.get("bot_name") {
+        let bot_uuid = bots::table
             .filter(bots::name.eq(name))
             .select(bots::id)
             .first::<Uuid>(&mut conn)
-            .ok()
+            .ok();
+        if let Some(bid) = bot_uuid {
+            cfg.get_all_config(&bid)
+        } else {
+            HashMap::new()
+        }
     } else {
-        None
-    };
-
-    let rows: Vec<(String, String)> = if let Some(bid) = bot_uuid {
-        bot_configuration
-            .select((config_key, config_value))
-            .filter(bot_id.eq(bid))
-            .load(&mut conn)
-    } else {
-        bot_configuration
-            .select((config_key, config_value))
-            .load(&mut conn)
+        HashMap::new()
     }
-    .map_err(|e| {
-        log::error!("DB query error in get_bot_config: {}", e);
-        crate::security::SafeErrorResponse::internal_error()
-    })?;
-
-    let sensitive_prefixes = ["llm-key", "llm-url", "llm-server", "secret", "token", "password", "api-key"];
-    let mut map: HashMap<String, String> = rows
-        .into_iter()
-        .filter(|(k, _)| !sensitive_prefixes.iter().any(|prefix| k.to_lowercase().contains(prefix)))
-        .collect();
+    .into_iter()
+    .filter(|(k, _)| !sensitive_prefixes.iter().any(|prefix| k.to_lowercase().contains(prefix)))
+    .collect();
 
     if let Some(name) = params.get("bot_name") {
         let is_public_val: bool = bots::table

@@ -1,10 +1,10 @@
 use botsecurity::command_guard::SafeCommand;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use diesel::prelude::*;
 use log::{trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[derive(Default)]
@@ -115,58 +115,39 @@ impl Default for SandboxConfig {
 }
 
 impl SandboxConfig {
-    pub fn from_bot_config(state: &dyn BasicRuntime, bot_id: Uuid) -> Self {
+    pub fn from_bot_config(_state: &dyn BasicRuntime, bot_id: Uuid) -> Self {
         let mut config = Self::default();
 
-        if let Ok(mut conn) = state.db_pool().get() {
-            #[derive(QueryableByName)]
-            struct ConfigRow {
-                #[diesel(sql_type = diesel::sql_types::Text)]
-                config_key: String,
-                #[diesel(sql_type = diesel::sql_types::Text)]
-                config_value: String,
-            }
-
-            let configs: Vec<ConfigRow> = diesel::sql_query(
-                "SELECT config_key, config_value FROM bot_configuration \
-                 WHERE bot_id = $1 AND config_key LIKE 'sandbox-%'",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .load(&mut conn)
-            .unwrap_or_default();
-
-            for row in configs {
-                match row.config_key.as_str() {
+        if let Some(vault_configs) = read_bot_config_from_vault(&bot_id) {
+            for (config_key, config_value) in vault_configs {
+                match config_key.as_str() {
                     "sandbox-enabled" => {
-                        config.enabled = row.config_value.to_lowercase() == "true";
+                        config.enabled = config_value.to_lowercase() == "true";
                     }
                     "sandbox-runtime" => {
-                        config.runtime = SandboxRuntime::from(row.config_value.as_str());
+                        config.runtime = SandboxRuntime::from(config_value.as_str());
                     }
                     "sandbox-timeout" => {
-                        config.timeout_seconds = row.config_value.parse().unwrap_or(30);
+                        config.timeout_seconds = config_value.parse().unwrap_or(30);
                     }
-
                     "sandbox-memory-mb" | "sandbox-memory-limit" => {
-                        config.memory_limit_mb = row.config_value.parse().unwrap_or(256);
+                        config.memory_limit_mb = config_value.parse().unwrap_or(256);
                     }
                     "sandbox-cpu-percent" | "sandbox-cpu-limit" => {
-                        config.cpu_limit_percent = row.config_value.parse().unwrap_or(50);
+                        config.cpu_limit_percent = config_value.parse().unwrap_or(50);
                     }
                     "sandbox-network" | "sandbox-network-enabled" => {
-                        config.network_enabled = row.config_value.to_lowercase() == "true";
+                        config.network_enabled = config_value.to_lowercase() == "true";
                     }
                     "sandbox-python-packages" => {
-                        config.python_packages = row
-                            .config_value
+                        config.python_packages = config_value
                             .split(',')
                             .map(|s| s.trim().to_string())
                             .filter(|s| !s.is_empty())
                             .collect();
                     }
                     "sandbox-allowed-paths" => {
-                        config.allowed_paths = row
-                            .config_value
+                        config.allowed_paths = config_value
                             .split(',')
                             .map(|s| s.trim().to_string())
                             .filter(|s| !s.is_empty())
@@ -860,8 +841,30 @@ lxc.mount.entry = tmpfs tmp tmpfs defaults 0 0
     .to_string()
 }
 
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::timeout;
 use uuid::Uuid;
+
+fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<std::collections::HashMap<String, String>> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().ok()?;
+    if !sm.is_enabled() {
+        return None;
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let sm_clone = sm.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move { sm_clone.get_secret(&path).await.ok() })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten()
+}

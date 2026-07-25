@@ -50,12 +50,10 @@
 
 
 
-use diesel::prelude::*;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
-
-use botcore::shared::utils::DbPool;
 
 
 
@@ -103,59 +101,36 @@ impl Bm25Config {
 
 
 
-    pub fn from_bot_config(pool: &DbPool, target_bot_id: &Uuid) -> Self {
+    pub fn from_bot_config(target_bot_id: &Uuid) -> Self {
         let mut config = Self::default();
 
-        let mut conn = match pool.get() {
-            Ok(c) => c,
-            Err(e) => {
-                warn!("Failed to get database connection for BM25 config: {}", e);
-                return config;
-            }
-        };
-
-        #[derive(QueryableByName)]
-        struct ConfigRow {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            config_key: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            config_value: String,
-        }
-
-        let configs: Vec<ConfigRow> = diesel::sql_query(
-            "SELECT config_key, config_value FROM bot_configuration \
-             WHERE bot_id = $1 AND config_key LIKE 'bm25-%'",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(target_bot_id)
-        .load(&mut conn)
-        .unwrap_or_default();
-
-        for row in configs {
-            match row.config_key.as_str() {
-                "bm25-enabled" => {
-                    config.enabled = row.config_value.to_lowercase() == "true";
-                    debug!("BM25 enabled: {}", config.enabled);
+        if let Some(vault_configs) = read_bot_config_from_vault(target_bot_id) {
+            for (config_key, config_value) in vault_configs {
+                match config_key.as_str() {
+                    "bm25-enabled" => {
+                        config.enabled = config_value.to_lowercase() == "true";
+                        debug!("BM25 enabled: {}", config.enabled);
+                    }
+                    "bm25-k1" => {
+                        config.k1 = config_value.parse().unwrap_or(1.2);
+                        debug!("BM25 k1: {}", config.k1);
+                    }
+                    "bm25-b" => {
+                        config.b = config_value.parse().unwrap_or(0.75);
+                        debug!("BM25 b: {}", config.b);
+                    }
+                    "bm25-stemming" => {
+                        config.stemming = config_value.to_lowercase() == "true";
+                        debug!("BM25 stemming: {}", config.stemming);
+                    }
+                    "bm25-stopwords" => {
+                        config.stopwords = config_value.to_lowercase() == "true";
+                        debug!("BM25 stopwords: {}", config.stopwords);
+                    }
+                    _ => {}
                 }
-                "bm25-k1" => {
-                    config.k1 = row.config_value.parse().unwrap_or(1.2);
-                    debug!("BM25 k1: {}", config.k1);
-                }
-                "bm25-b" => {
-                    config.b = row.config_value.parse().unwrap_or(0.75);
-                    debug!("BM25 b: {}", config.b);
-                }
-                "bm25-stemming" => {
-                    config.stemming = row.config_value.to_lowercase() == "true";
-                    debug!("BM25 stemming: {}", config.stemming);
-                }
-                "bm25-stopwords" => {
-                    config.stopwords = row.config_value.to_lowercase() == "true";
-                    debug!("BM25 stopwords: {}", config.stopwords);
-                }
-                _ => {}
             }
         }
-
 
         config.validate();
         config
@@ -242,4 +217,27 @@ pub const DEFAULT_STOPWORDS: &[&str] = &[
 
 pub fn is_stopword(word: &str) -> bool {
     DEFAULT_STOPWORDS.contains(&word.to_lowercase().as_str())
+}
+
+fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().ok()?;
+    if !sm.is_enabled() {
+        return None;
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let sm_clone = sm.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move { sm_clone.get_secret(&path).await.ok() })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten()
 }

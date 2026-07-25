@@ -15,6 +15,7 @@ mail = []
 anyhow = { workspace = true }
 argon2 = { workspace = true }
 axum = { workspace = true }
+botcoresecrets = { workspace = true }
 chrono = { workspace = true, features = ["clock", "std"] }
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables", "extras"] }
 log = { workspace = true }

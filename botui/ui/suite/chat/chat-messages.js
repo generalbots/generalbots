@@ -113,6 +113,41 @@ function renderThinkingSection(reasoning) {
 
 /* v3-indicator-fixed */
 
+function convertNumberedLists(html) {
+  var lines = html.split('\n');
+  var result = [];
+  var group = null;
+
+  for (var i = 0; i < lines.length; i++) {
+    var trimmed = lines[i].trim();
+    var m = trimmed.match(/^(\d+)\.\s+([\s\S]*)/);
+
+    if (m) {
+      if (!group) group = [];
+      group.push({ num: parseInt(m[1], 10), content: m[2] });
+    } else {
+      if (group) {
+        if (group.length >= 2) flushGroup();
+        else result.push(group.map(function(g) { return g.num + '. ' + g.content; }).join('\n'));
+        group = null;
+      }
+      result.push(lines[i]);
+    }
+  }
+  if (group) {
+    if (group.length >= 2) flushGroup();
+    else result.push(group.map(function(g) { return g.num + '. ' + g.content; }).join('\n'));
+  }
+
+  function flushGroup() {
+    var startAttr = group[0].num !== 1 ? ' start="' + group[0].num + '"' : '';
+    var lis = group.map(function(it) { return '<li>' + it.content.trim() + '</li>'; }).join('');
+    result.push('<ol' + startAttr + '>' + lis + '</ol>');
+  }
+
+  return result.join('\n');
+}
+
 function addMessage(sender, content, msgId, reasoning) {
   var messages = document.getElementById("messages");
   if (!messages) return;
@@ -134,6 +169,7 @@ function addMessage(sender, content, msgId, reasoning) {
       var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
       parsed = hasHtmlTags ? cleanContent : escapeHtml(cleanContent);
     }
+    parsed = convertNumberedLists(parsed);
     parsed = renderMentionInMessage(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
   }
@@ -172,6 +208,7 @@ function updateStreaming(content) {
     var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
     parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
   }
+  parsed = convertNumberedLists(parsed);
   parsed = renderMentionInMessage(parsed);
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
   msgContent.innerHTML = thinkingHtml + parsed;

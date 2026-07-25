@@ -1,0 +1,33 @@
+/* ============================================ */
+/* GB FLUENT — Wallpaper (per-theme mesh gradient) */
+/* ============================================ */
+
+:root {
+  --wall: linear-gradient(135deg,
+    #0a0a0a 0%,
+    hsla(210, 80%, 60%, 0.04) 30%,
+    hsla(160, 70%, 50%, 0.03) 60%,
+    #0a0a0a 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 20% 50%, hsla(210, 80%, 60%, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, hsla(160, 70%, 50%, 0.06) 0%, transparent 50%);
+}
+
+.workspace-v15 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--wall);
+  position: relative;
+  padding-bottom: 72px;
+}
+
+.workspace-v15::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--wall-vignette);
+  pointer-events: none;
+  z-index: 0;
+}

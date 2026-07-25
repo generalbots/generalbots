@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAPISpec {
@@ -439,33 +440,15 @@ impl ApiToolGenerator {
     }
 
     fn get_api_configs(&self) -> Result<Vec<(String, String)>, String> {
-        let mut conn = self
-            .state
-            .db_pool()
-            .get()
-            .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
+        let vault_configs = read_bot_config_from_vault(&self.bot_id)
+            .ok_or_else(|| "Failed to read bot config from Vault".to_string())?;
 
-        #[derive(QueryableByName)]
-        struct ConfigRow {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            config_key: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            config_value: String,
-        }
-
-        let configs: Vec<ConfigRow> = diesel::sql_query(
-            "SELECT config_key, config_value FROM bot_configuration \
-             WHERE bot_id = $1 AND config_key LIKE '%-api-server'",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
-        .load(&mut conn)
-        .map_err(|e| format!("Failed to query API configs: {}", e))?;
-
-        let result: Vec<(String, String)> = configs
+        let result: Vec<(String, String)> = vault_configs
             .into_iter()
-            .map(|c| {
-                let api_name = c.config_key.trim_end_matches("-api-server").to_string();
-                (api_name, c.config_value)
+            .filter(|(key, _)| key.ends_with("-api-server"))
+            .map(|(key, value)| {
+                let api_name = key.trim_end_matches("-api-server").to_string();
+                (api_name, value)
             })
             .collect();
 
@@ -663,7 +646,6 @@ impl SyncResult {
     }
 }
 
-use std::collections::HashMap;
 use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -671,3 +653,26 @@ use botbasic_types::UserSession;
 use rhai::Engine;
 
 pub fn register_api_tool_keywords(_state: Arc<dyn BasicRuntime>, _user: UserSession, _engine: &mut Engine) {}
+
+fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().ok()?;
+    if !sm.is_enabled() {
+        return None;
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let sm_clone = sm.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move { sm_clone.get_secret(&path).await.ok() })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten()
+}

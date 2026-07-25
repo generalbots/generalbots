@@ -17,25 +17,19 @@ pub struct SecurityComponents {
 }
 
 pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
-    use diesel::prelude::*;
-    use diesel::QueryDsl;
-    use botcore::shared::models::schema::bot_configuration::dsl::*;
+    use botcore::config::ConfigManager;
 
-    if let Ok(mut conn) = app_state.conn.get() {
-        if let Ok(origins_str) = bot_configuration
-            .filter(config_key.eq("cors-allowed-origins"))
-            .select(config_value)
-            .first::<String>(&mut conn)
-        {
-            let origins: Vec<String> = origins_str
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
-            if !origins.is_empty() {
-                info!("Loaded {} CORS allowed origins from config", origins.len());
-                crate::security::set_cors_allowed_origins(origins);
-            }
+    let cfg = ConfigManager::new(app_state.conn.clone());
+    let origins_str = cfg.get_config(&uuid::Uuid::nil(), "cors-allowed-origins", None).unwrap_or_default();
+    if !origins_str.is_empty() {
+        let origins: Vec<String> = origins_str
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !origins.is_empty() {
+            info!("Loaded {} CORS allowed origins from config", origins.len());
+            crate::security::set_cors_allowed_origins(origins);
         }
     }
 

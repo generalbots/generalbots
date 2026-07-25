@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use log::{info, trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -182,46 +183,29 @@ impl Default for ReflectionConfig {
 }
 
 impl ReflectionConfig {
-    pub fn from_bot_config(state: &Arc<dyn BasicRuntime>, bot_id: Uuid) -> Self {
+    pub fn from_bot_config(_state: &Arc<dyn BasicRuntime>, bot_id: Uuid) -> Self {
         let mut config = Self::default();
 
-        if let Ok(mut conn) = state.db_pool().get() {
-            #[derive(QueryableByName)]
-            struct ConfigRow {
-                #[diesel(sql_type = diesel::sql_types::Text)]
-                config_key: String,
-                #[diesel(sql_type = diesel::sql_types::Text)]
-                config_value: String,
-            }
-
-            let configs: Vec<ConfigRow> = diesel::sql_query(
-                "SELECT config_key, config_value FROM bot_configuration \
-                 WHERE bot_id = $1 AND config_key LIKE 'bot-reflection-%' OR config_key LIKE 'bot-improvement-%'",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .load(&mut conn)
-            .unwrap_or_default();
-
-            for row in configs {
-                match row.config_key.as_str() {
+        if let Some(vault_configs) = read_bot_config_from_vault(&bot_id) {
+            for (config_key, config_value) in vault_configs {
+                match config_key.as_str() {
                     "bot-reflection-enabled" => {
-                        config.enabled = row.config_value.to_lowercase() == "true";
+                        config.enabled = config_value.to_lowercase() == "true";
                     }
                     "bot-reflection-interval" => {
-                        config.interval = row.config_value.parse().unwrap_or(10);
+                        config.interval = config_value.parse().unwrap_or(10);
                     }
                     "bot-reflection-prompt" => {
-                        config.custom_prompt = Some(row.config_value);
+                        config.custom_prompt = Some(config_value);
                     }
                     "bot-improvement-auto-apply" => {
-                        config.auto_apply = row.config_value.to_lowercase() == "true";
+                        config.auto_apply = config_value.to_lowercase() == "true";
                     }
                     "bot-improvement-threshold" => {
-                        config.improvement_threshold = row.config_value.parse().unwrap_or(6.0);
+                        config.improvement_threshold = config_value.parse().unwrap_or(6.0);
                     }
                     "bot-reflection-types" => {
-                        config.reflection_types = row
-                            .config_value
+                        config.reflection_types = config_value
                             .split(';')
                             .map(|s| ReflectionType::from(s.trim()))
                             .collect();
@@ -610,44 +594,21 @@ impl ReflectionEngine {
     }
 
     fn get_llm_config(&self) -> Result<(String, String, String), String> {
-        let mut conn = self
-            .state
-            .db_pool()
-            .get()
-            .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
+        let vault_configs = read_bot_config_from_vault(&self.bot_id)
+            .ok_or_else(|| "Failed to read bot config from Vault".to_string())?;
 
-        #[derive(QueryableByName)]
-        struct ConfigRow {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            config_key: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            config_value: String,
-        }
-
-        let configs: Vec<ConfigRow> = diesel::sql_query(
-            "SELECT config_key, config_value FROM bot_configuration \
-             WHERE bot_id = $1 AND config_key IN ('llm-url', 'llm-model', 'llm-key')",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
-        .load(&mut conn)
-        .unwrap_or_default();
-
-        let mut llm_url: Option<String> = None;
-        let mut llm_model: Option<String> = None;
-        let mut llm_key: Option<String> = None;
-
-        for config in configs {
-            match config.config_key.as_str() {
-                "llm-url" => llm_url = Some(config.config_value),
-                "llm-model" => llm_model = Some(config.config_value),
-                "llm-key" => llm_key = Some(config.config_value),
-                _ => {}
-            }
-        }
-
-        let llm_url = llm_url.ok_or_else(|| "LLM URL not configured".to_string())?;
-        let llm_model = llm_model.ok_or_else(|| "LLM model not configured".to_string())?;
-        let llm_key = llm_key.ok_or_else(|| "LLM key not configured".to_string())?;
+        let llm_url = vault_configs
+            .get("llm-url")
+            .cloned()
+            .ok_or_else(|| "LLM URL not configured".to_string())?;
+        let llm_model = vault_configs
+            .get("llm-model")
+            .cloned()
+            .ok_or_else(|| "LLM model not configured".to_string())?;
+        let llm_key = vault_configs
+            .get("llm-key")
+            .cloned()
+            .ok_or_else(|| "LLM key not configured".to_string())?;
 
         Ok((llm_url, llm_model, llm_key))
     }
@@ -984,26 +945,9 @@ pub fn get_reflection_insights_keyword(
 }
 
 fn set_reflection_enabled(state: &Arc<dyn BasicRuntime>, bot_id: Uuid, enabled: bool) -> Result<String, String> {
-    let mut conn = state
-        .db_pool()
-        .get()
-        .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
-
-    let now = chrono::Utc::now();
-    let new_id = Uuid::new_v4();
     let value = if enabled { "true" } else { "false" };
-
-    diesel::sql_query(
-        "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type, created_at, updated_at) \
-         VALUES ($1, $2, 'bot-reflection-enabled', $3, 'boolean', $4, $4) \
-         ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $3, updated_at = $4",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(new_id)
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .bind::<diesel::sql_types::Text, _>(value)
-    .bind::<diesel::sql_types::Timestamptz, _>(now)
-    .execute(&mut conn)
-    .map_err(|e| format!("Failed to set reflection enabled: {}", e))?;
+    write_bot_config_to_vault(&bot_id, "bot-reflection-enabled", &value)
+        .map_err(|e| format!("Failed to set reflection enabled: {}", e))?;
 
     Ok(format!(
         "Bot reflection {}",
@@ -1013,3 +957,56 @@ fn set_reflection_enabled(state: &Arc<dyn BasicRuntime>, bot_id: Uuid, enabled: 
 
 use std::sync::Arc;
 use uuid::Uuid;
+
+fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().ok()?;
+    if !sm.is_enabled() {
+        return None;
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let sm_clone = sm.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move { sm_clone.get_secret(&path).await.ok() })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten()
+}
+
+fn write_bot_config_to_vault(bot_id: &Uuid, key: &str, value: &str) -> Result<(), String> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().map_err(|e| format!("Vault not available: {}", e))?;
+    if !sm.is_enabled() {
+        return Err("Vault is not enabled".into());
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let sm_clone = sm.clone();
+    let path_owned = path;
+    let key_owned = key.to_string();
+    let value_owned = value.to_string();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move {
+                let mut data = sm_clone.get_secret(&path_owned).await.unwrap_or_default();
+                data.insert(key_owned.clone(), value_owned.clone());
+                sm_clone.put_secret(&path_owned, data).await.ok()
+            })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten().ok_or_else(|| "Failed to write config to Vault".into())
+}

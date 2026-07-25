@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelConfig {
@@ -132,18 +133,10 @@ impl ModelRouter {
 }
 
 fn load_model_config(
-    conn: &mut diesel::PgConnection,
+    _conn: &mut diesel::PgConnection,
     bot_id: Uuid,
     model_name: &str,
 ) -> Option<ModelConfig> {
-    #[derive(QueryableByName)]
-    struct ConfigRow {
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        config_key: String,
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        config_value: String,
-    }
-
     let suffix = if model_name == "default" {
         "".to_string()
     } else {
@@ -154,30 +147,11 @@ fn load_model_config(
     let url_key = format!("llm-url{}", suffix);
     let key_key = format!("llm-key{}", suffix);
 
-    let configs: Vec<ConfigRow> = diesel::sql_query(
-        "SELECT config_key, config_value FROM bot_configuration \
-         WHERE bot_id = $1 AND config_key IN ($2, $3, $4)",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .bind::<diesel::sql_types::Text, _>(&model_key)
-    .bind::<diesel::sql_types::Text, _>(&url_key)
-    .bind::<diesel::sql_types::Text, _>(&key_key)
-    .load(conn)
-    .ok()?;
+    let vault_configs = read_bot_config_from_vault(&bot_id)?;
 
-    let mut model_path = String::new();
-    let mut url = String::new();
-    let mut api_key = None;
-
-    for config in configs {
-        if config.config_key == model_key {
-            model_path = config.config_value;
-        } else if config.config_key == url_key {
-            url = config.config_value;
-        } else if config.config_key == key_key && config.config_value != "none" {
-            api_key = Some(config.config_value);
-        }
-    }
+    let model_path = vault_configs.get(&model_key).cloned().unwrap_or_default();
+    let url = vault_configs.get(&url_key).cloned().unwrap_or_default();
+    let api_key = vault_configs.get(&key_key).cloned().filter(|v| v != "none");
 
     if model_path.is_empty() && url.is_empty() {
         return None;
@@ -435,7 +409,7 @@ fn get_session_model_sync(
         return Ok(pref.preference_value);
     }
 
-    // 2. No session preference - get bot's configured model
+    // 2. No session preference - get bot's configured model from Vault
     // Need to get bot_id from session first
     #[derive(QueryableByName)]
     struct SessionBot {
@@ -454,43 +428,23 @@ fn get_session_model_sync(
     if let Some(session_bot) = bot_result {
         let bot_id = session_bot.bot_id;
 
-        // Get bot's llm-model config
-        #[derive(QueryableByName)]
-        struct ConfigValue {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            config_value: String,
-        }
-
-        let bot_model: Option<ConfigValue> = diesel::sql_query(
-            "SELECT config_value FROM bot_configuration \
-             WHERE bot_id = $1 AND config_key = 'llm-model' LIMIT 1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(bot_id)
-        .get_result(conn)
-        .optional()
-        .map_err(|e| format!("Failed to get bot model: {}", e))?;
-
-        if let Some(model) = bot_model {
-            if !model.config_value.is_empty() && model.config_value != "true" {
-                return Ok(model.config_value);
+        // Get bot's llm-model config from Vault
+        if let Some(vault_configs) = read_bot_config_from_vault(&bot_id) {
+            if let Some(model) = vault_configs.get("llm-model") {
+                if !model.is_empty() && model != "true" {
+                    return Ok(model.clone());
+                }
             }
         }
 
-    // 3. Bot has no model configured - fall back to default bot's model
+    // 3. Bot has no model configured - fall back to default bot's model from Vault
     let default_bot_uuid: uuid::Uuid = uuid::Uuid::nil();
 
-    let default_model: Option<ConfigValue> = diesel::sql_query(
-        "SELECT config_value FROM bot_configuration \
-         WHERE bot_id = $1 AND config_key = 'llm-model' LIMIT 1",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(default_bot_uuid)
-        .get_result(conn)
-        .optional()
-        .map_err(|e| format!("Failed to get default bot model: {}", e))?;
-
-        if let Some(model) = default_model {
-            if !model.config_value.is_empty() && model.config_value != "true" {
-                return Ok(model.config_value);
+        if let Some(vault_configs) = read_bot_config_from_vault(&default_bot_uuid) {
+            if let Some(model) = vault_configs.get("llm-model") {
+                if !model.is_empty() && model != "true" {
+                    return Ok(model.clone());
+                }
             }
         }
     }
@@ -500,34 +454,20 @@ fn get_session_model_sync(
 }
 
 fn list_available_models_sync(
-    conn: &mut diesel::PgConnection,
+    _conn: &mut diesel::PgConnection,
     bot_id: Uuid,
 ) -> Result<Vec<String>, String> {
-    #[derive(QueryableByName)]
-    struct ConfigRow {
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        config_value: String,
+    if let Some(vault_configs) = read_bot_config_from_vault(&bot_id) {
+        if let Some(config_value) = vault_configs.get("llm-models") {
+            return Ok(config_value
+                .split(';')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect());
+        }
     }
 
-    let result: Option<ConfigRow> = diesel::sql_query(
-        "SELECT config_value FROM bot_configuration \
-         WHERE bot_id = $1 AND config_key = 'llm-models' LIMIT 1",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .get_result(conn)
-    .optional()
-    .map_err(|e| format!("Failed to list models: {}", e))?;
-
-    if let Some(config) = result {
-        Ok(config
-            .config_value
-            .split(';')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect())
-    } else {
-        Ok(vec!["default".to_string()])
-    }
+    Ok(vec!["default".to_string()])
 }
 
 pub fn get_session_model(state: &Arc<dyn BasicRuntime>, session_id: Uuid) -> String {
@@ -571,6 +511,28 @@ pub fn get_session_routing_strategy(state: &Arc<dyn BasicRuntime>, session_id: U
     }
 }
 
-use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
+
+fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<std::collections::HashMap<String, String>> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().ok()?;
+    if !sm.is_enabled() {
+        return None;
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let sm_clone = sm.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move { sm_clone.get_secret(&path).await.ok() })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten()
+}

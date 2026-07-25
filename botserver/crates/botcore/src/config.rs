@@ -2,37 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::shared::utils::DbPool;
-use diesel::prelude::*;
-use botsecurity_crypto::encryption::{encrypt_field, decrypt_field, derive_scope_key, load_master_encryption_key};
+use botcoresecrets::manager::SecretsManager;
 use botsecurity_crypto::secrets::is_sensitive_key;
-
-#[derive(Debug, Clone, QueryableByName)]
-struct ConfigRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    config_value: String,
-}
-
-#[derive(Debug, Clone, QueryableByName)]
-struct ExistsRow {
-    #[diesel(sql_type = diesel::sql_types::Bool)]
-    exists: bool,
-}
-
-fn is_placeholder_value(val: &str) -> bool {
-    let lower = val.trim().to_lowercase();
-    lower.is_empty() || lower == "none" || lower == "null" || lower == "n/a"
-}
-
-fn is_local_file_path(val: &str) -> bool {
-    let lower = val.to_lowercase();
-    val.starts_with("../")
-        || val.starts_with("./")
-        || val.starts_with('/')
-        || val.starts_with('~')
-        || lower.ends_with(".gguf")
-        || lower.ends_with(".bin")
-        || lower.ends_with(".safetensors")
-}
+use diesel::prelude::*;
 
 /// Application configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,176 +138,279 @@ pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
 }
 }
 
-/// Configuration manager for runtime config updates
+#[derive(Debug, Clone, QueryableByName)]
+struct ConfigRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    config_value: String,
+}
+
+#[derive(Debug, Clone, QueryableByName)]
+struct ConfigRowPair {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    config_key: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    config_value: String,
+}
+
+#[derive(Debug, Clone, QueryableByName)]
+struct BotIdentityRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: uuid::Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: uuid::Uuid,
+}
+
+fn is_placeholder_value(val: &str) -> bool {
+    let lower = val.trim().to_lowercase();
+    lower.is_empty() || lower == "none" || lower == "null" || lower == "n/a"
+}
+
+/// Configuration manager for runtime config updates.
+/// Sensitive keys (tokens, passwords, API keys) → Vault at `gbo/bot/{org_id}/{branch_id}/{bot_id}`.
+/// Non-sensitive keys → `bot_configuration` database table.
 pub struct ConfigManager {
     pool: Arc<DbPool>,
-    master_key: Vec<u8>,
-    has_branch_id: bool,
 }
 
 impl ConfigManager {
     pub fn new(pool: DbPool) -> Self {
-        let master_key = load_master_encryption_key();
-        let has_branch_id = Self::check_has_branch_id(&pool);
-        Self { pool: Arc::new(pool), master_key, has_branch_id }
+        Self { pool: Arc::new(pool) }
     }
 
-    fn check_has_branch_id(pool: &DbPool) -> bool {
-        if let Ok(mut conn) = pool.get() {
-            diesel::sql_query(
-                "SELECT EXISTS (SELECT 1 FROM information_schema.columns \
-                 WHERE table_name='bot_configuration' AND column_name='branch_id') AS exists"
+    fn resolve_bot_identity(&self, bot_id: &uuid::Uuid) -> (uuid::Uuid, uuid::Uuid) {
+        if bot_id == &uuid::Uuid::nil() {
+            return (uuid::Uuid::nil(), uuid::Uuid::nil());
+        }
+        if let Ok(mut conn) = self.pool.get() {
+            if let Ok(row) = diesel::sql_query(
+                "SELECT org_id, branch_id FROM bots WHERE id = $1"
             )
-            .get_result::<ExistsRow>(&mut conn)
-            .ok()
-            .map(|r| r.exists)
-            .unwrap_or(false)
-        } else {
-            false
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .get_result::<BotIdentityRow>(&mut conn)
+            {
+                return (row.org_id, row.branch_id);
+            }
         }
+        (uuid::Uuid::nil(), uuid::Uuid::nil())
     }
 
-    fn config_key(&self, bot_id: &uuid::Uuid) -> Vec<u8> {
-        derive_scope_key(&self.master_key, "config", bot_id)
+    fn vault_path(org_id: &uuid::Uuid, branch_id: &uuid::Uuid, bot_id: &uuid::Uuid) -> String {
+        format!("gbo/bot/{}/{}/{}", org_id, branch_id, bot_id)
     }
 
-    fn get_query(&self) -> &'static str {
-        if self.has_branch_id {
-            "SELECT config_value FROM bot_configuration \
-             WHERE branch_id = $1 AND bot_id = $2 AND config_key = $3 LIMIT 1"
-        } else {
-            "SELECT config_value FROM bot_configuration \
-             WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+    // ── Vault helpers (for sensitive keys) ──────────────────────────
+
+    fn read_vault_value(path: &str, key: &str) -> Option<String> {
+        let sm = SecretsManager::get_clone().ok()?;
+        if !sm.is_enabled() { return None; }
+        let sm_clone = sm.clone();
+        let path_owned = path.to_string();
+        let key_owned = key.to_string();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async move { sm_clone.get_value(&path_owned, &key_owned).await.ok() })
+            } else { None };
+            let _ = tx.send(result);
+        });
+        rx.recv().ok().flatten()
+    }
+
+    fn read_vault_all(path: &str) -> Option<std::collections::HashMap<String, String>> {
+        let sm = SecretsManager::get_clone().ok()?;
+        if !sm.is_enabled() { return None; }
+        let sm_clone = sm.clone();
+        let path_owned = path.to_string();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async move { sm_clone.get_secret(&path_owned).await.ok() })
+            } else { None };
+            let _ = tx.send(result);
+        });
+        rx.recv().ok().flatten()
+    }
+
+    fn write_vault_value(path: &str, key: &str, value: &str) -> Result<(), String> {
+        let sm = SecretsManager::get_clone().map_err(|e| format!("Vault not available: {}", e))?;
+        if !sm.is_enabled() { return Err("Vault is not enabled".into()); }
+        let sm_clone = sm.clone();
+        let path_owned = path.to_string();
+        let key_owned = key.to_string();
+        let value_owned = value.to_string();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async move {
+                    let mut data = sm_clone.get_secret(&path_owned).await.unwrap_or_default();
+                    data.insert(key_owned.clone(), value_owned.clone());
+                    sm_clone.put_secret(&path_owned, data).await.ok()
+                })
+            } else { None };
+            let _ = tx.send(result);
+        });
+        rx.recv().ok().flatten().ok_or_else(|| "Failed to write config to Vault".into())
+    }
+
+    // ── DB helpers (for non-sensitive keys) ─────────────────────────
+
+    fn read_db_value(&self, bot_id: &uuid::Uuid, key: &str) -> Option<String> {
+        if let Ok(mut conn) = self.pool.get() {
+            let row: Option<ConfigRow> = diesel::sql_query(
+                "SELECT config_value FROM bot_configuration \
+                 WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<diesel::sql_types::Text, _>(key)
+            .get_result(&mut conn).ok();
+            if let Some(r) = row {
+                if !is_placeholder_value(&r.config_value) {
+                    return Some(r.config_value);
+                }
+            }
+            // fallback: nil bot default
+            let row: Option<ConfigRow> = diesel::sql_query(
+                "SELECT config_value FROM bot_configuration \
+                 WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
+            .bind::<diesel::sql_types::Text, _>(key)
+            .get_result(&mut conn).ok();
+            if let Some(r) = row {
+                if !is_placeholder_value(&r.config_value) {
+                    return Some(r.config_value);
+                }
+            }
         }
+        None
     }
 
+    fn read_db_all(&self, bot_id: &uuid::Uuid) -> std::collections::HashMap<String, String> {
+        let mut map = std::collections::HashMap::new();
+        if let Ok(mut conn) = self.pool.get() {
+            if let Ok(rows) = diesel::sql_query(
+                "SELECT config_key, config_value FROM bot_configuration \
+                 WHERE bot_id = $1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .load::<ConfigRowPair>(&mut conn)
+            {
+                for row in rows {
+                    if !is_placeholder_value(&row.config_value) {
+                        map.insert(row.config_key, row.config_value);
+                    }
+                }
+            }
+            // also get nil-bot defaults (not overwriting bot-specific)
+            if let Ok(rows) = diesel::sql_query(
+                "SELECT config_key, config_value FROM bot_configuration \
+                 WHERE bot_id = $1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
+            .load::<ConfigRowPair>(&mut conn)
+            {
+                for row in rows {
+                    if !is_placeholder_value(&row.config_value) && !map.contains_key(&row.config_key) {
+                        map.insert(row.config_key, row.config_value);
+                    }
+                }
+            }
+        }
+        map
+    }
+
+    fn write_db_value(&self, bot_id: &uuid::Uuid, key: &str, value: &str) -> Result<(), Box<dyn std::error::Error>> {
+        if let Ok(mut conn) = self.pool.get() {
+            diesel::sql_query(
+                "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $4, NOW(), NOW()) \
+                 ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, updated_at = NOW()"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<diesel::sql_types::Text, _>(key)
+            .bind::<diesel::sql_types::Text, _>(value)
+            .execute(&mut conn)?;
+        }
+        Ok(())
+    }
+
+    // ── public API ────────────────────────────────────────────────
+
+    /// Read a config value.
+    /// Sensitive keys → Vault, fallback DB, fallback env, fallback default.
+    /// Non-sensitive keys → DB, fallback env, fallback default.
     pub fn get_config(
         &self,
         bot_id: &uuid::Uuid,
         key: &str,
         default: Option<&str>,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        if let Ok(mut conn) = self.pool.get() {
-            let mut bot_val = if self.has_branch_id {
-                diesel::sql_query(self.get_query())
-                    .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
-                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                    .bind::<diesel::sql_types::Text, _>(key)
-                    .get_result::<ConfigRow>(&mut conn).ok()
-            } else {
-                diesel::sql_query(self.get_query())
-                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                    .bind::<diesel::sql_types::Text, _>(key)
-                    .get_result::<ConfigRow>(&mut conn).ok()
-            };
-
-            // Fallback: if branch_id filter returned nothing, try without branch_id
-            if bot_val.is_none() && self.has_branch_id {
-                bot_val = diesel::sql_query(
-                    "SELECT config_value FROM bot_configuration \
-                     WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
-                )
-                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                    .bind::<diesel::sql_types::Text, _>(key)
-                    .get_result::<ConfigRow>(&mut conn).ok();
+        if is_sensitive_key(key) {
+            let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
+            let path = Self::vault_path(&org_id, &branch_id, bot_id);
+            if let Some(value) = Self::read_vault_value(&path, key) {
+                return Ok(value);
             }
-
-            if let Some(r) = bot_val {
-                if !is_placeholder_value(&r.config_value) && !is_local_file_path(&r.config_value) {
-                    let val = r.config_value;
-                    if is_sensitive_key(key) {
-                        let key_bytes = self.config_key(bot_id);
-                        if let Ok(decrypted) = decrypt_field(&val, &key_bytes) {
-                            return Ok(decrypted);
-                        }
-                    }
-                    return Ok(val);
-                }
+            // fallback: try DB (legacy data)
+            if let Some(value) = self.read_db_value(bot_id, key) {
+                return Ok(value);
             }
-
-            if self.has_branch_id {
-                if let Some(r) = diesel::sql_query(
-                    "SELECT config_value FROM bot_configuration \
-                     WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
-                )
-                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                    .bind::<diesel::sql_types::Text, _>(key)
-                    .get_result::<ConfigRow>(&mut conn).ok()
-                {
-                    if !is_placeholder_value(&r.config_value) {
-                        let val = r.config_value;
-                        if is_sensitive_key(key) {
-                            let key_bytes = self.config_key(bot_id);
-                            if let Ok(decrypted) = decrypt_field(&val, &key_bytes) {
-                                return Ok(decrypted);
-                            }
-                        }
-                        return Ok(val);
-                    }
-                }
-            }
-
-            let default_val = if self.has_branch_id {
-                diesel::sql_query(self.get_query())
-                    .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
-                    .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
-                    .bind::<diesel::sql_types::Text, _>(key)
-                    .get_result::<ConfigRow>(&mut conn).ok()
-            } else {
-                diesel::sql_query(self.get_query())
-                    .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
-                    .bind::<diesel::sql_types::Text, _>(key)
-                    .get_result::<ConfigRow>(&mut conn).ok()
-            };
-
-            if let Some(r) = default_val {
-                if !is_placeholder_value(&r.config_value) {
-                    let val = r.config_value;
-                    if is_sensitive_key(key) {
-                        let key_bytes = self.config_key(&uuid::Uuid::nil());
-                        if let Ok(decrypted) = decrypt_field(&val, &key_bytes) {
-                            return Ok(decrypted);
-                        }
-                    }
-                    return Ok(val);
-                }
+        } else {
+            if let Some(value) = self.read_db_value(bot_id, key) {
+                return Ok(value);
             }
         }
+
+        let env_key = key.to_uppercase().replace('-', "_");
+        if let Ok(val) = std::env::var(&env_key) {
+            if !val.is_empty() {
+                return Ok(val);
+            }
+        }
+
         Ok(default.unwrap_or("").to_string())
     }
 
+    /// Same as get_config but returns error instead of default on miss.
     pub fn get_bot_config_value(
         &self,
         bot_id: &uuid::Uuid,
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        if let Ok(mut conn) = self.pool.get() {
-            if self.has_branch_id {
-                if let Some(r) = diesel::sql_query(
-                    "SELECT config_value FROM bot_configuration \
-                     WHERE branch_id = $1 AND bot_id = $2 AND config_key = $3 LIMIT 1"
-                )
-                .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::nil())
-                .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                .bind::<diesel::sql_types::Text, _>(key)
-                .get_result::<ConfigRow>(&mut conn).ok()
-                {
-                    return Ok(r.config_value);
-                }
-            }
-
-            if let Some(r) = diesel::sql_query(
-                "SELECT config_value FROM bot_configuration \
-                 WHERE bot_id = $1 AND config_key = $2 LIMIT 1"
-            )
-                .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                .bind::<diesel::sql_types::Text, _>(key)
-                .get_result::<ConfigRow>(&mut conn).ok()
-            {
-                return Ok(r.config_value);
+        if is_sensitive_key(key) {
+            let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
+            let path = Self::vault_path(&org_id, &branch_id, bot_id);
+            if let Some(value) = Self::read_vault_value(&path, key) {
+                return Ok(value);
             }
         }
-        Err("Config key not found".into())
+        self.read_db_value(bot_id, key)
+            .ok_or_else(|| "Config key not found".into())
+    }
+
+    /// Return all config (Vault sensitive + DB non-sensitive) for a bot.
+    pub fn get_all_config(
+        &self,
+        bot_id: &uuid::Uuid,
+    ) -> std::collections::HashMap<String, String> {
+        let mut map = self.read_db_all(bot_id);
+
+        // overlay vault values for sensitive keys (vault takes precedence)
+        let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
+        let path = Self::vault_path(&org_id, &branch_id, bot_id);
+        if let Some(vault_data) = Self::read_vault_all(&path) {
+            for (k, v) in vault_data {
+                if is_sensitive_key(&k) {
+                    map.insert(k, v);
+                }
+            }
+        }
+
+        map
     }
 
     pub fn set_config(
@@ -347,50 +422,23 @@ impl ConfigManager {
         self.set_config_with_branch(bot_id, key, value, None)
     }
 
+    /// Write a config value.
+    /// Sensitive keys → Vault. Non-sensitive keys → bot_configuration table.
     pub fn set_config_with_branch(
         &self,
         bot_id: &uuid::Uuid,
         key: &str,
         value: &str,
-        branch_id: Option<uuid::Uuid>,
+        _branch_id: Option<uuid::Uuid>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let is_sensitive = is_sensitive_key(key);
-        let key_bytes = self.config_key(bot_id);
-
-        let final_value = if is_sensitive {
-            encrypt_field(value, &key_bytes).unwrap_or_else(|_| value.to_string())
+        if is_sensitive_key(key) {
+            let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
+            let path = Self::vault_path(&org_id, &branch_id, bot_id);
+            Self::write_vault_value(&path, key, value)
+                .map_err(|e| Box::new(std::io::Error::other(e)) as Box<dyn std::error::Error>)
         } else {
-            value.to_string()
-        };
-
-        if let Ok(mut conn) = self.pool.get() {
-            if self.has_branch_id {
-                let bid = branch_id.unwrap_or(uuid::Uuid::nil());
-                diesel::sql_query(
-                    "INSERT INTO bot_configuration (id, branch_id, bot_id, config_key, config_value, created_at, updated_at) \
-                     VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) \
-                     ON CONFLICT (branch_id, bot_id, config_key) DO UPDATE SET config_value = $5, updated_at = NOW()"
-                )
-                .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
-                .bind::<diesel::sql_types::Uuid, _>(bid)
-                .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                .bind::<diesel::sql_types::Text, _>(key)
-                .bind::<diesel::sql_types::Text, _>(final_value)
-                .execute(&mut conn)?;
-            } else {
-                diesel::sql_query(
-                    "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, created_at, updated_at) \
-                     VALUES ($1, $2, $3, $4, NOW(), NOW()) \
-                     ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, updated_at = NOW()"
-                )
-                .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
-                .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                .bind::<diesel::sql_types::Text, _>(key)
-                .bind::<diesel::sql_types::Text, _>(final_value)
-                .execute(&mut conn)?;
-            }
+            self.write_db_value(bot_id, key, value)
         }
-        Ok(())
     }
 }
 

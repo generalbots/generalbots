@@ -57,25 +57,8 @@ impl ConfigManager {
         if let Some(v) = self.values.get(key) {
             return Ok(v.clone());
         }
-        if let Some(pool) = &self.pool {
-            if let Ok(mut conn) = pool.get() {
-                use diesel::prelude::*;
-                use diesel::sql_query;
-                use diesel::sql_types::Text;
-                #[derive(diesel::QueryableByName)]
-                struct ConfigRow {
-                    #[diesel(sql_type = Text)]
-                    config_value: String,
-                }
-                let result = sql_query(
-                    "SELECT config_value FROM bot_configuration WHERE config_key = $1 LIMIT 1"
-                )
-                .bind::<Text, _>(key)
-                .get_result::<ConfigRow>(&mut conn);
-                if let Ok(row) = result {
-                    return Ok(row.config_value);
-                }
-            }
+        if let Ok(value) = read_vault_value(key) {
+            return Ok(value);
         }
         Err(format!("Config key '{}' not found", key))
     }
@@ -85,4 +68,31 @@ impl std::fmt::Debug for ConfigManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConfigManager").field("values_count", &self.values.len()).finish()
     }
+}
+
+fn read_vault_value(key: &str) -> Result<String, String> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().map_err(|e| format!("SecretsManager unavailable: {}", e))?;
+    if !sm.is_enabled() {
+        return Err("Vault not enabled".to_string());
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+    let sm_clone = sm.clone();
+    let key_owned = key.to_string();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move { sm_clone.get_value(&path, &key_owned).await.ok() })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv()
+        .ok()
+        .flatten()
+        .ok_or_else(|| format!("Config key '{}' not found in Vault", key))
 }

@@ -1,0 +1,267 @@
+"use strict";
+
+/* ============================================ */
+/* GB FLUENT — Window Chrome                    */
+/* Design token contract + visible borders      */
+/* ============================================ */
+
+/* ── Token Contract (each theme MUST set these) ── */
+/* Fallbacks cascade: new token → glass token → sentient → system defaults */
+
+:root {
+  --win-bg: var(--glass-bg, var(--surface, #161616));
+  --win-blur: var(--glass-backdrop, blur(16px) saturate(150%));
+  --win-radius: 14px;
+  --win-border-width: 1.5px;
+  --win-border-color: var(--glass-border-color, rgba(80,80,90,0.35));
+  --win-border-active: var(--primary, var(--accent, #84d669));
+  --win-shadow:
+    0 1px 2px rgba(0,0,0,.18),
+    0 6px 16px rgba(0,0,0,.16),
+    0 16px 40px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.04);
+  --win-shadow-active:
+    0 2px 4px rgba(0,0,0,.26),
+    0 10px 28px rgba(0,0,0,.24),
+    0 28px 72px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.06);
+  --win-titlebar-bg: var(--glass-bg, rgba(24,24,30,0.7));
+  --win-titlebar-text: var(--text-secondary, #999);
+  --win-caption-hover: rgba(255,255,255,0.08);
+  --win-titlebar-sep: var(--glass-border-color, var(--border, #2a2a2a));
+
+  --win-open-timing: cubic-bezier(0.2,0,0,1);
+  --win-open-dur: 220ms;
+}
+
+/* ── Window Element (modern fluid glass + visible border) ── */
+
+.window-element-glass {
+  position: absolute;
+  width: 1000px;
+  height: 500px;
+  background: var(--win-bg);
+  backdrop-filter: var(--win-blur);
+  -webkit-backdrop-filter: var(--win-blur);
+  border-radius: var(--win-radius);
+  box-shadow: var(--win-shadow);
+  display: flex;
+  flex-direction: column;
+  border: var(--win-border-width) solid var(--win-border-color);
+  overflow: hidden;
+  z-index: 100;
+  animation: winOpenIn var(--win-open-dur) var(--win-open-timing);
+  transition:
+    border-color 180ms var(--win-open-timing),
+    box-shadow 200ms var(--win-open-timing),
+    filter 180ms var(--win-open-timing);
+}
+
+@keyframes winOpenIn {
+  from { transform: scale(0.94); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes winCloseOut {
+  from { transform: scale(1);    opacity: 1; }
+  to   { transform: scale(0.94); opacity: 0; }
+}
+
+.window-element-glass.closing {
+  animation: winCloseOut 180ms var(--win-open-timing) forwards;
+}
+
+/* ── Focused (active) window — accent border + elevated shadow ── */
+
+.window-element-glass.window-focused {
+  border-color: var(--win-border-active);
+  box-shadow: var(--win-shadow-active);
+  filter: none;
+}
+
+.window-element-glass:not(.window-focused) {
+  filter: brightness(0.96) saturate(0.92);
+}
+
+/* ── Legacy solid window (kept for backwards compat; matches glass geometry) ── */
+
+.window-element {
+  position: absolute;
+  width: 1000px;
+  height: 500px;
+  background: var(--surface, #ffffff);
+  border-radius: var(--win-radius);
+  box-shadow: var(--win-shadow);
+  display: flex;
+  flex-direction: column;
+  border: var(--win-border-width) solid var(--win-border-color);
+  overflow: hidden;
+  z-index: 100;
+  transition:
+    border-color 180ms var(--win-open-timing),
+    box-shadow 200ms var(--win-open-timing),
+    filter 180ms var(--win-open-timing);
+}
+
+.window-element.window-focused {
+  border-color: var(--win-border-active);
+  box-shadow: var(--win-shadow-active);
+  filter: none;
+}
+
+.window-element:not(.window-focused) {
+  filter: brightness(0.96) saturate(0.92);
+}
+
+
+/* ── Titlebar (modern, 40px, minimal) ── */
+
+.window-header-glass {
+  height: 40px;
+  background: var(--win-titlebar-bg);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--win-titlebar-sep);
+  user-select: none;
+  cursor: move;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.window-header-glass .window-dot-controls {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.window-header-glass .window-title {
+  flex: 1;
+  text-align: center;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--win-titlebar-text);
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Traffic-light caption dots (glyphs on hover) ── */
+
+.window-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 150ms var(--win-open-timing);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.window-dot::after {
+  content: "";
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  transition: opacity 120ms var(--win-open-timing);
+}
+
+.window-dot-close          { background: #ff5f57; }
+.window-dot-close:hover    { background: #ff3b30; }
+.window-dot-close::after   { content: "✕"; color: #4a0000; font-size: 8px; font-weight: 700; line-height: 1; }
+
+.window-dot-minimize       { background: #febc2e; }
+.window-dot-minimize:hover { background: #f5a623; }
+.window-dot-minimize::after{ content: "–"; color: #6b4000; font-size: 10px; font-weight: 700; line-height: 1; }
+
+.window-dot-maximize       { background: #28c840; }
+.window-dot-maximize:hover { background: #1da830; }
+.window-dot-maximize::after{ content: "▢"; color: #003a00; font-size: 8px; font-weight: 700; line-height: 1; }
+
+.window-header-glass:hover .window-dot::after,
+.window-header-glass:hover .window-dot::after {
+  opacity: 1;
+}
+
+/* ── Legacy window header (kept for non-glass fallback) ── */
+
+.window-header {
+  height: 40px;
+  background: var(--win-titlebar-bg);
+  border-bottom: 1px solid var(--win-titlebar-sep);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  user-select: none;
+  cursor: move;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Window body ── */
+
+.window-body-glass {
+  flex: 1;
+  overflow-y: auto;
+  background: transparent;
+  padding: 0;
+  position: relative;
+}
+
+.window-body {
+  position: relative;
+  flex: 1 1 0%;
+  overflow-y: auto;
+  background: var(--bg, #fafdfa);
+  padding: 16px;
+}
+
+/* ── Maximized overrides (existing rules preserved) ── */
+
+body.window-maximized .window-element-glass,
+body.window-maximized .window-element {
+  z-index: 9998 !important;
+  top: 0 !important;
+  height: calc(100vh - 56px) !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+}
+
+/* ── Resize grip (bottom-right affordance) ── */
+
+.window-element-glass::after,
+.window-element::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  opacity: 0.25;
+  background:
+    linear-gradient(135deg, transparent 30%, var(--win-border-color) 30%, var(--win-border-color) 40%, transparent 40%),
+    linear-gradient(135deg, transparent 48%, var(--win-border-color) 48%, var(--win-border-color) 58%, transparent 58%),
+    linear-gradient(135deg, transparent 66%, var(--win-border-color) 66%, var(--win-border-color) 76%, transparent 76%);
+}
+
+/* ── Reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .window-element-glass,
+  .window-element,
+  .window-dot {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -175,7 +175,11 @@ pub fn get_default_bot(state: &std::sync::Arc<dyn botbasic_types::BasicRuntime>)
 }
 
 pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn std::error::Error + Send + Sync>> {
-    let parts: Vec<&str> = filter_str.splitn(2, '=').collect();
+    let trimmed = filter_str.trim();
+    if trimmed == "1=1" {
+        return Ok(("TRUE".to_string(), vec![]));
+    }
+    let parts: Vec<&str> = trimmed.splitn(2, '=').collect();
     if parts.len() != 2 {
         return Err("Invalid filter format. Expected 'KEY=VALUE'".into());
     }

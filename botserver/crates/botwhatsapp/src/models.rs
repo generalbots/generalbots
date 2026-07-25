@@ -3,11 +3,10 @@ use diesel::{Insertable, Queryable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::schema::{bot_configuration, bots, message_history, user_sessions, users};
+use crate::schema::{bots, message_history, user_sessions, users};
 
 const _: () = {
     let _ = (bots::table);
-    let _ = (bot_configuration::table);
     let _ = (user_sessions::table);
     let _ = (users::table);
 };

@@ -2610,17 +2610,13 @@ struct ByokSaveBody {
 
 /// `POST /api/cloud/tenant/settings/byok`
 ///
-/// Receives BYOK API keys from the frontend and stores them encrypted
-/// in the `bot_configuration` table using AES-256-GCM.
+/// Receives BYOK API keys from the frontend and stores them in Vault.
 async fn handle_save_byok(
     State(service): State<Arc<SaasService>>,
     headers: HeaderMap,
     Json(body): Json<ByokSaveBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    use sha2::Digest;
-    use botsecurity_crypto::encryption::{encrypt_field, derive_key_from_password};
-
-    let user_email = headers.get("authorization")
+    let _user_email = headers.get("authorization")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
         .and_then(|token| {
@@ -2633,31 +2629,35 @@ async fn handle_save_byok(
         })
         .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    let mut conn = service.pool().get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
-
-    let salt: [u8; 32] = sha2::Sha256::digest(user_email.as_bytes()).into();
-    let key_bytes = derive_key_from_password(&service.config.jwt_secret, &salt)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Key derivation: {e}")))?;
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+    let sm = botcoresecrets::manager::SecretsManager::get_clone()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Vault: {e}")))?;
 
     let mut saved_count = 0u32;
     for (provider_id, api_key) in &body.keys {
         if api_key.trim().is_empty() {
             continue;
         }
-        let encrypted = encrypt_field(api_key, &key_bytes)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Encryption failed for {provider_id}: {e}")))?;
-
         let config_key = format!("byok_{provider_id}");
-        diesel::sql_query(
-            r#"INSERT INTO bot_configuration (bot_id, key, value, is_encrypted, created_at, updated_at)
-               VALUES ('00000000-0000-0000-0000-000000000000', $1, $2, true, NOW(), NOW())
-               ON CONFLICT (bot_id, key) DO UPDATE SET value = $2, is_encrypted = true, updated_at = NOW()"#,
-        )
-        .bind::<diesel::sql_types::Text, _>(&config_key)
-        .bind::<diesel::sql_types::Text, _>(&encrypted)
-        .execute(&mut conn)
-        .map_err(|e| format!("DB upsert: {e}"))
+        let sm_clone = sm.clone();
+        let path_clone = path.clone();
+        let key_clone = config_key.clone();
+        let value_clone = api_key.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .map_err(|e| format!("Runtime: {e}"))?;
+            rt.block_on(async move {
+                let mut data = sm_clone.get_secret(&path_clone).await.unwrap_or_default();
+                data.insert(key_clone, value_clone);
+                sm_clone.put_secret(&path_clone, data).await
+            })
+            .map_err(|e| format!("Vault write: {e}"))
+        })
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Task join: {e}")))?
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
         saved_count += 1;

@@ -1,0 +1,236 @@
+/* ============================================ */
+/* GB FLUENT — Floating Dock Taskbar             */
+/* ============================================ */
+
+:root {
+  --shell-bg: var(--glass-bg, rgba(20,22,35,0.68));
+  --shell-border: var(--glass-border-color, rgba(255,255,255,0.12));
+  --shell-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --shell-radius: 18px;
+  --shell-margin: 10px;
+  --shell-blur: blur(24px) saturate(170%);
+}
+
+/* Main wrapper adjusts so workspace flows under the floating dock */
+.main-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dock wrapper — absolutely positioned strip, centered dock */
+.toolbar-v15 {
+  position: absolute;
+  bottom: var(--shell-margin);
+  left: 0;
+  right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0 auto;
+  pointer-events: none;
+  z-index: 2000;
+}
+
+/* The actual visible dock pill */
+.toolbar-v15::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: 0 auto;
+  width: fit-content;
+  min-width: 420px;
+  max-width: 92vw;
+  height: 100%;
+  background: var(--shell-bg);
+  backdrop-filter: var(--shell-blur);
+  -webkit-backdrop-filter: var(--shell-blur);
+  border: 1px solid var(--shell-border);
+  border-radius: var(--shell-radius);
+  box-shadow: var(--shell-shadow);
+  pointer-events: auto;
+  z-index: -1;
+}
+
+.toolbar-v15 .taskbar-center,
+.toolbar-v15 .taskbar-right,
+#startBtn {
+  pointer-events: auto;
+}
+
+.toolbar-v15 .taskbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+}
+
+/* ---------------------------------------- */
+/* Dock items                               */
+/* ---------------------------------------- */
+
+.toolbar-v15 .taskbar-dock-item {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 180ms var(--ease-spring, cubic-bezier(0.2,0,0,1));
+  position: relative;
+}
+
+.toolbar-v15 .taskbar-dock-item:hover {
+  background: var(--win-caption-hover, rgba(255,255,255,0.08));
+  transform: scale(1.12);
+}
+
+.toolbar-v15 .taskbar-dock-item.active::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--primary, var(--accent, #84d669));
+  box-shadow: 0 0 8px var(--primary, var(--accent, #84d669));
+}
+
+.toolbar-v15 .taskbar-dock-item svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--text-secondary, #aaa);
+  transition: all 150ms;
+}
+
+.toolbar-v15 .taskbar-dock-item:hover svg {
+  stroke: var(--text, #eee);
+}
+
+.toolbar-v15 .taskbar-dock-item.active svg {
+  stroke: var(--primary, var(--accent, #84d669));
+}
+
+/* ---------------------------------------- */
+/* Right zone (clock / login / theme)       */
+/* ---------------------------------------- */
+
+.toolbar-v15 .taskbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-right: 8px;
+}
+
+.toolbar-v15 .taskbar-clock {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-secondary, #999);
+  text-align: right;
+  line-height: 1.3;
+  padding: 0 8px;
+  user-select: none;
+}
+
+.toolbar-v15 .taskbar-widget {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 150ms;
+  color: var(--text-secondary, #888);
+  gap: 4px;
+}
+
+.toolbar-v15 .taskbar-widget:hover {
+  background: var(--win-caption-hover, rgba(255,255,255,0.08));
+  color: var(--text, #eee);
+}
+
+.toolbar-v15 .taskbar-widget svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+/* ---------------------------------------- */
+/* Start button                             */
+/* ---------------------------------------- */
+
+#startBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 180ms var(--ease-spring, cubic-bezier(0.2,0,0,1));
+  background: rgba(255,255,255,0.06);
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+#startBtn:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.15);
+}
+
+#startBtn svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--text, #eee);
+  transition: stroke 180ms;
+}
+
+#startBtn:hover svg {
+  stroke: var(--primary, var(--accent, #84d669));
+}
+
+.start-menu-open #startBtn {
+  background: rgba(255,255,255,0.15);
+  border-color: var(--primary, var(--accent, #84d669));
+}
+
+.start-menu-open #startBtn svg {
+  stroke: var(--primary, var(--accent, #84d669));
+}
+
+/* ---------------------------------------- */
+/* Legacy toolbar compat (hidden)           */
+/* ---------------------------------------- */
+
+.toolbar {
+  display: none;
+}
+
+/* ---------------------------------------- */
+/* Maximized window clears dock             */
+/* ---------------------------------------- */
+
+body.window-maximized .window-element-glass,
+body.window-maximized .window-element {
+  top: 0 !important;
+  height: calc(100vh - 56px - var(--shell-margin)) !important;
+  width: 100% !important;
+}
+
+/* ---------------------------------------- */
+/* Fix theme dropdown bg                   */
+/* ---------------------------------------- */
+
+#themeDropdown,
+select.theme-dropdown {
+  background: var(--surface) !important;
+}

@@ -1,7 +1,6 @@
 use botcore::shared::state::AppState;
 use botbasic_comms::keywords::universal_messaging::register_universal_messaging;
 use botbasic_comms::keywords::send_mail::send_mail_keyword;
-use diesel::prelude::*;
 use log::{info, warn};
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 pub use botcore::shared::UserSession;
@@ -9,13 +8,6 @@ pub use botcore::shared::UserSession;
 pub use botbasic_compiler as compiler;
 pub mod keywords;
 
-#[derive(QueryableByName)]
-struct ParamConfigRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    config_key: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    config_value: String,
-}
 
 #[derive(Debug)]
 pub struct ScriptService {
@@ -74,20 +66,15 @@ impl ScriptService {
     }
 
     pub fn load_bot_config_params(&mut self, state: &AppState, bot_id: uuid::Uuid) {
-        if let Ok(mut conn) = state.conn.get() {
-            let result = diesel::sql_query(
-                "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = $1 AND config_key LIKE 'param-%'"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .load::<ParamConfigRow>(&mut conn);
-
-            if let Ok(params) = result {
-                let config_vars: HashMap<String, String> = params
-                    .into_iter()
-                    .map(|row| (row.config_key, row.config_value))
-                    .collect();
-                self.inject_config_variables(config_vars);
-            }
+        use botcore::config::ConfigManager;
+        let cfg = ConfigManager::new(state.conn.clone());
+        let all = cfg.get_all_config(&bot_id);
+        let params: HashMap<String, String> = all
+            .into_iter()
+            .filter(|(k, _)| k.starts_with("param-"))
+            .collect();
+        if !params.is_empty() {
+            self.inject_config_variables(params);
         }
     }
 
