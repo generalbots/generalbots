@@ -117,6 +117,7 @@ error-llm-rate-limit = AI rate limit exceeded. Please wait before trying again.
 error-llm-content-filter = Content was filtered by safety guidelines.
 error-llm-context-length = Input is too long. Please shorten your message.
 error-llm-invalid-response = Received invalid response from AI service.
+error-llm-empty-response = Sorry, I could not process your message right now. Please try again in a few seconds.
 
 # =============================================================================
 # Email Errors
