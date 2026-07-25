@@ -196,7 +196,7 @@ impl ConfigManager {
     }
 
     fn vault_path(org_id: &uuid::Uuid, branch_id: &uuid::Uuid, bot_id: &uuid::Uuid) -> String {
-        format!("gbo/bot/{}/{}/{}", org_id, branch_id, bot_id)
+        format!("gbo/{}/{}/{}", org_id, branch_id, bot_id)
     }
 
     // ── Vault helpers (for sensitive keys) ──────────────────────────

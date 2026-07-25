@@ -166,8 +166,8 @@ impl SecretsManager {
     }
 
     pub fn get_email_config_for_bot_sync(&self, bot_id: &Uuid) -> (String, u16, String, String, String) {
-        let bot_path = format!("gbo/bots/{}/email", bot_id);
-        let default_path = "gbo/bots/default/email".to_string();
+        let bot_path = format!("gbo/{}/email", bot_id);
+        let default_path = "gbo/email".to_string();
         let paths = vec![bot_path, default_path, SecretPaths::EMAIL.to_string()];
 
         let self_owned = self.clone();

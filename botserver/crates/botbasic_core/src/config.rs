@@ -76,7 +76,7 @@ fn read_vault_value(key: &str) -> Result<String, String> {
     if !sm.is_enabled() {
         return Err("Vault not enabled".to_string());
     }
-    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+    let path = format!("gbo/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
     let sm_clone = sm.clone();
     let key_owned = key.to_string();
     let (tx, rx) = std::sync::mpsc::channel();
