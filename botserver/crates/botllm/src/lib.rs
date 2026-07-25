@@ -559,7 +559,7 @@ impl LLMProvider for OpenAIClient {
             "model": model,
             "messages": messages,
             "stream": use_stream,
-            token_key: if self.base_url.contains("groq") { 4096 } else { 65536 },
+            token_key: if self.base_url.contains("groq") || self.base_url.contains("opencode.ai") { 8192 } else { 65536 },
             "temperature": 1.0,
             "top_p": 1.0
         });
