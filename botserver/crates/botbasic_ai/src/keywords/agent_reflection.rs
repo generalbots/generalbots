@@ -964,7 +964,7 @@ fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> 
     if !sm.is_enabled() {
         return None;
     }
-    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let path = format!("gbo/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
     let sm_clone = sm.clone();
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
@@ -987,7 +987,7 @@ fn write_bot_config_to_vault(bot_id: &Uuid, key: &str, value: &str) -> Result<()
     if !sm.is_enabled() {
         return Err("Vault is not enabled".into());
     }
-    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let path = format!("gbo/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
     let sm_clone = sm.clone();
     let path_owned = path;
     let key_owned = key.to_string();

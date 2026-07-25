@@ -2629,7 +2629,7 @@ async fn handle_save_byok(
         })
         .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+    let path = format!("gbo/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
     let sm = botcoresecrets::manager::SecretsManager::get_clone()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Vault: {e}")))?;
 

@@ -184,7 +184,7 @@ fn read_hear_timeout_from_vault() -> Option<u64> {
     if !sm.is_enabled() {
         return None;
     }
-    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+    let path = format!("gbo/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
     let sm_clone = sm.clone();
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {

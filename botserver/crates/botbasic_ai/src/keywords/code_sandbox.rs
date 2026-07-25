@@ -852,7 +852,7 @@ fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<std::collections::HashMap
     if !sm.is_enabled() {
         return None;
     }
-    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let path = format!("gbo/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
     let sm_clone = sm.clone();
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {

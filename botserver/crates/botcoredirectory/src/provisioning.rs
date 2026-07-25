@@ -203,7 +203,7 @@ impl UserProvisioningService {
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect();
 
-        let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+        let path = format!("gbo/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
         let sm = SecretsManager::get()
             .map_err(|e| anyhow::anyhow!("Failed to get SecretsManager: {}", e))?;
 
