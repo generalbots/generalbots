@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::shared::utils::DbPool;
 use botcoresecrets::manager::SecretsManager;
+use botsecurity_crypto::encryption::{decrypt_field, derive_scope_key, load_master_encryption_key};
 use botsecurity_crypto::secrets::is_sensitive_key;
 use diesel::prelude::*;
 
@@ -353,6 +354,13 @@ impl ConfigManager {
             let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
             let path = Self::vault_path(&org_id, &branch_id, bot_id);
             if let Some(value) = Self::read_vault_value(&path, key) {
+                if value.starts_with("1:") {
+                    let master_key = load_master_encryption_key();
+                    let key_bytes = derive_scope_key(&master_key, "config", bot_id);
+                    if let Ok(decrypted) = decrypt_field(&value, &key_bytes) {
+                        return Ok(decrypted);
+                    }
+                }
                 return Ok(value);
             }
             // fallback: try DB (legacy data)
@@ -385,6 +393,13 @@ impl ConfigManager {
             let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
             let path = Self::vault_path(&org_id, &branch_id, bot_id);
             if let Some(value) = Self::read_vault_value(&path, key) {
+                if value.starts_with("1:") {
+                    let master_key = load_master_encryption_key();
+                    let key_bytes = derive_scope_key(&master_key, "config", bot_id);
+                    if let Ok(decrypted) = decrypt_field(&value, &key_bytes) {
+                        return Ok(decrypted);
+                    }
+                }
                 return Ok(value);
             }
         }
@@ -398,14 +413,20 @@ impl ConfigManager {
         bot_id: &uuid::Uuid,
     ) -> std::collections::HashMap<String, String> {
         let mut map = self.read_db_all(bot_id);
+        let master_key = load_master_encryption_key();
 
-        // overlay vault values for sensitive keys (vault takes precedence)
         let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
         let path = Self::vault_path(&org_id, &branch_id, bot_id);
         if let Some(vault_data) = Self::read_vault_all(&path) {
             for (k, v) in vault_data {
                 if is_sensitive_key(&k) {
-                    map.insert(k, v);
+                    let val = if v.starts_with("1:") {
+                        let key_bytes = derive_scope_key(&master_key, "config", bot_id);
+                        decrypt_field(&v, &key_bytes).unwrap_or(v.clone())
+                    } else {
+                        v
+                    };
+                    map.insert(k, val);
                 }
             }
         }
