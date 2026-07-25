@@ -190,37 +190,33 @@ impl UserProvisioningService {
     }
 
     fn setup_oauth_config(&self, _user_id: &str, account: &UserAccount) -> Result<()> {
-        use schema::bot_configuration;
-        use diesel::prelude::*;
+        use botcoresecrets::manager::SecretsManager;
+        use std::collections::HashMap;
 
-        let services = vec![
+        let services: HashMap<String, String> = [
             ("oauth-drive-enabled", "true"),
             ("oauth-email-enabled", "true"),
             ("oauth-git-enabled", "true"),
             ("oauth-provider", "zitadel"),
-        ];
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
 
-        let mut conn = self
-            .db_pool
-            .get()
-            .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
+        let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+        let sm = SecretsManager::get()
+            .map_err(|e| anyhow::anyhow!("Failed to get SecretsManager: {}", e))?;
 
-        for (key, value) in services {
-            diesel::insert_into(bot_configuration::table)
-                .values((
-                    bot_configuration::bot_id.eq(Uuid::nil()),
-                    bot_configuration::config_key.eq(key),
-                    bot_configuration::config_value.eq(value),
-                    bot_configuration::is_encrypted.eq(false),
-                    bot_configuration::config_type.eq("string"),
-                    bot_configuration::created_at.eq(chrono::Utc::now()),
-                    bot_configuration::updated_at.eq(chrono::Utc::now()),
-                ))
-                .on_conflict((bot_configuration::bot_id, bot_configuration::config_key))
-                .do_update()
-                .set(bot_configuration::config_value.eq(value))
-                .execute(&mut conn)?;
-        }
+        let sm_clone = sm.clone();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
+
+        rt.block_on(async move {
+            sm_clone.put_secret(&path, services).await
+                .map_err(|e| anyhow::anyhow!("Failed to write OAuth config to Vault: {}", e))
+        })?;
 
         log::info!("Setup OAuth configuration for user: {}", account.username);
         Ok(())

@@ -885,10 +885,10 @@ match x {
 - ❌ **NEVER** run `cargo check` synchronously - always `nohup cargo check > /tmp/<crate>_check.log 2>&1 &`
 - ❌ **NEVER** compile directly for production - ALWAYS use push + CI/CD pipeline
 - ❌ **NEVER** use `scp` or manual transfer to deploy - ONLY CI/CD ensures correct deployment
-- ❌ **NEVER** manually copy binaries to production system container - ALWAYS push to ALM and let CI/CD build and deploy
-- ❌ **NEVER** SSH into system container to deploy binaries - CI workflow handles build, transfer, and restart via alm-ci SSH
-- ✅ **ALWAYS** push code to ALM → CI builds on alm-ci → CI deploys to system container via SSH from alm-ci
-- ✅ **CI deploy path**: alm-ci builds at `/opt/gbo/data/botserver/target/debug/botserver` → tar+gzip via SSH → `/opt/gbo/bin/botserver` on system container → restart
+- ❌ **NEVER** manually copy binaries to production bot container - ALWAYS push to ALM and let CI/CD build and deploy
+- ❌ **NEVER** SSH into bot container to deploy binaries - CI workflow handles build, transfer, and restart via alm-ci SSH
+- ✅ **ALWAYS** push code to ALM → CI builds on alm-ci → CI deploys to bot container via SSH from alm-ci
+- ✅ **CI deploy path**: alm-ci builds at `/opt/gbo/data/botserver/target/debug/botserver` → tar+gzip via SSH → `/opt/gbo/bin/botserver` on bot container → restart
 
 
 - ❌ **NEVER** change git branches for any reason without explicit user approval
@@ -2095,7 +2095,7 @@ Continue on gb/ workspace. Follow AGENTS.md strictly:
 
 | Container | Service | Port | Notes |
 |-----------|---------|------|-------|
-| system | BotServer | 8080 | Main API server |
+| bot | BotServer | 5858/8080 | Main API server (internal/external) |
 | vault | Vault | 8200 | Secrets management (isolated) |
 | tables | PostgreSQL | 5432 | Database |
 | cache | Valkey | 6379 | Cache |
@@ -2147,7 +2147,7 @@ Continue on gb/ workspace. Follow AGENTS.md strictly:
 | **proxy** | Caddy | 80/443 | Reverse proxy, TLS termination |
 | **tables** | PostgreSQL | 5432 | Primary database |
 | **email** | Stalwart | 993/465/587 | Mail server (IMAPS, SMTPS, Submission) |
-| **system** | BotServer + Valkey | 8080/6379 | Main API + cache |
+| **bot** | BotServer | 5858/8080 | Main API + cache (Valkey in separate cache container) |
 | **webmail** | Roundcube | behind proxy | PHP-FPM webmail frontend |
 | **alm** | Forgejo | 4747 | Git/ALM server (NOT 3000!) |
 | **alm-ci** | Forgejo Runner | - | CI/CD runner |
@@ -2387,8 +2387,8 @@ curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /tmp/mc && chmod 
 - **Workspace:** `/opt/gbo/data/` (NOT `/opt/gbo/ci/`)
 - **Cargo cache:** `/home/gbuser/.cargo/` (registry + git db)
 - **Rustup:** `/home/gbuser/.rustup/`
-- **SSH keys:** `/home/gbuser/.ssh/id_ed25519` (for deploy to system container)
-- **Deploy mechanism:** CI builds binary → tar+gzip via SSH → `/opt/gbo/bin/botserver` on system container
+- **SSH keys:** `/home/gbuser/.ssh/id_ed25519` (for deploy to bot container)
+- **Deploy mechanism:** CI builds binary → tar+gzip via SSH → `/opt/gbo/bin/botserver` on bot container
 
 ### Backup & Recovery
 

@@ -4,8 +4,6 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use uuid::Uuid;
 
-use botcore::shared::state::AppState;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HybridSearchConfig {
     pub dense_weight: f32,
@@ -41,53 +39,35 @@ impl Default for HybridSearchConfig {
 }
 
 impl HybridSearchConfig {
-    pub fn from_bot_config(state: &AppState, bot_id: Uuid) -> Self {
-        use diesel::prelude::*;
-
+    pub fn from_bot_config(_state: &(), bot_id: Uuid) -> Self {
         let mut config = Self::default();
 
-        if let Ok(mut conn) = state.conn.get() {
-            #[derive(QueryableByName)]
-            struct ConfigRow {
-                #[diesel(sql_type = diesel::sql_types::Text)]
-                config_key: String,
-                #[diesel(sql_type = diesel::sql_types::Text)]
-                config_value: String,
-            }
-
-            let configs: Vec<ConfigRow> = diesel::sql_query(
-                "SELECT config_key, config_value FROM bot_configuration \
-                 WHERE bot_id = $1 AND (config_key LIKE 'rag-%' OR config_key LIKE 'bm25-%')",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .load(&mut conn)
-            .unwrap_or_default();
-
-            for row in configs {
-                match row.config_key.as_str() {
+        if let Some(vault_configs) = read_bot_config_from_vault(&bot_id) {
+            for (config_key, config_value) in vault_configs {
+                match config_key.as_str() {
                     "rag-dense-weight" => {
-                        config.dense_weight = row.config_value.parse().unwrap_or(0.7);
+                        config.dense_weight = config_value.parse().unwrap_or(0.7);
                     }
                     "rag-sparse-weight" => {
-                        config.sparse_weight = row.config_value.parse().unwrap_or(0.3);
+                        config.sparse_weight = config_value.parse().unwrap_or(0.3);
                     }
                     "rag-reranker-enabled" => {
-                        config.reranker_enabled = row.config_value.to_lowercase() == "true";
+                        config.reranker_enabled = config_value.to_lowercase() == "true";
                     }
                     "rag-reranker-model" => {
-                        config.reranker_model = row.config_value;
+                        config.reranker_model = config_value;
                     }
                     "rag-max-results" => {
-                        config.max_results = row.config_value.parse().unwrap_or(10);
+                        config.max_results = config_value.parse().unwrap_or(10);
                     }
                     "rag-min-score" => {
-                        config.min_score = row.config_value.parse().unwrap_or(0.0);
+                        config.min_score = config_value.parse().unwrap_or(0.0);
                     }
                     "rag-rrf-k" => {
-                        config.rrf_k = row.config_value.parse().unwrap_or(60);
+                        config.rrf_k = config_value.parse().unwrap_or(60);
                     }
                     "bm25-enabled" => {
-                        config.bm25_enabled = row.config_value.to_lowercase() == "true";
+                        config.bm25_enabled = config_value.to_lowercase() == "true";
                     }
                     _ => {}
                 }
@@ -763,4 +743,27 @@ impl QueryDecomposer {
 
         synthesis
     }
+}
+
+fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().ok()?;
+    if !sm.is_enabled() {
+        return None;
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let sm_clone = sm.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move { sm_clone.get_secret(&path).await.ok() })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten()
 }

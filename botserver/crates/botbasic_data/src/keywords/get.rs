@@ -191,7 +191,7 @@ fn execute_get_from(
     let safe_table = sanitize_identifier(table);
     let (where_clause, params) = parse_filter(filter).map_err(|e| e.to_string())?;
     let query = format!(
-        "SELECT row_to_json(t)::text as row_data FROM (SELECT * FROM {safe_table} WHERE {where_clause} LIMIT 1) t"
+        "SELECT row_to_json(t)::text as row_data FROM (SELECT * FROM {safe_table} WHERE {where_clause}) t"
     );
 
     let mut conn = pool.get().map_err(|e| format!("DB error: {e}"))?;

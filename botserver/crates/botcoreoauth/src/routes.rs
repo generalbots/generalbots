@@ -276,33 +276,53 @@ async fn oauth_callback(
 
 async fn get_bot_config(state: &OAuthState_) -> HashMap<String, String> {
     let conn = state.conn.clone();
-    match tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().ok()?;
+    let active_bot_id: Uuid = match tokio::task::spawn_blocking(move || {
         use diesel::prelude::*;
-        use crate::schema::{bots, bot_configuration};
+        use crate::schema::bots;
 
-        let bot_result: Option<Uuid> = bots::dsl::bots
+        let mut db_conn = conn.get().ok()?;
+        bots::dsl::bots
             .filter(bots::dsl::is_active.eq(true))
             .select(bots::dsl::id)
             .first(&mut db_conn)
             .optional()
-            .ok()?;
-
-        let active_bot_id = bot_result?;
-
-        let configs: Vec<(String, String)> = bot_configuration::dsl::bot_configuration
-            .filter(bot_configuration::dsl::bot_id.eq(active_bot_id))
-            .select((bot_configuration::dsl::config_key, bot_configuration::dsl::config_value))
-            .load(&mut db_conn)
-            .ok()?;
-
-        Some(configs.into_iter().collect::<HashMap<_, _>>())
+            .ok()?
     })
     .await
     {
-        Ok(Some(config)) => config,
-        _ => HashMap::new(),
+        Ok(Some(id)) => id,
+        _ => return HashMap::new(),
+    };
+
+    if let Some(vault_configs) = read_bot_config_from_vault(&active_bot_id) {
+        vault_configs
+    } else {
+        HashMap::new()
     }
+}
+
+fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().ok()?;
+    if !sm.is_enabled() {
+        return None;
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id);
+    let sm_clone = sm.clone();
+    let path_clone = path.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move { sm_clone.get_secret(&path_clone).await.ok() })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten()
 }
 
 async fn create_or_get_oauth_user(

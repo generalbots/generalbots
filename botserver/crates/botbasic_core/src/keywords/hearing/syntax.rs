@@ -1,6 +1,5 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use diesel::prelude::*;
 use log::trace;
 use rhai::{Dynamic, Engine, EvalAltResult};
 use serde_json::json;
@@ -52,16 +51,7 @@ fn hear_block(state: &Arc<dyn BasicRuntime>, session_id: uuid::Uuid, variable_na
 
     trace!("HEAR {variable_name}: blocking thread, waiting for user input");
 
-    let timeout_secs: u64 = state.db_pool().get().ok()
-        .and_then(|mut conn| {
-            #[derive(diesel::QueryableByName)]
-            struct Row { #[diesel(sql_type = diesel::sql_types::Text)] config_value: String }
-            diesel::sql_query(
-                "SELECT config_value FROM bot_configuration WHERE config_key = 'hear-timeout-secs' LIMIT 1"
-            ).load::<Row>(&mut conn).ok()
-                .and_then(|rows| rows.into_iter().next())
-                .and_then(|r| r.config_value.parse().ok())
-        })
+    let timeout_secs: u64 = read_hear_timeout_from_vault()
         .unwrap_or(3600);
 
     match rx.recv_timeout(std::time::Duration::from_secs(timeout_secs)) {
@@ -167,7 +157,7 @@ fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
             ["HEAR", "$expr$", "as", "$ident$"],
             true,
             move |context, inputs| {
-                let variable_name = inputs[1]
+                    let variable_name = inputs[1]
                     .get_string_value()
                     .ok_or_else(|| Box::new(EvalAltResult::ErrorRuntime(
                         "Expected identifier for variable".into(),
@@ -186,4 +176,29 @@ fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
             },
         )
         .expect("valid syntax registration");
+}
+
+fn read_hear_timeout_from_vault() -> Option<u64> {
+    use botcoresecrets::manager::SecretsManager;
+    let sm = SecretsManager::get_clone().ok()?;
+    if !sm.is_enabled() {
+        return None;
+    }
+    let path = format!("gbo/bot/{}/{}/{}", uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+    let sm_clone = sm.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move {
+                sm_clone.get_value(&path, "hear-timeout-secs").await.ok()
+            })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv().ok().flatten()?.parse().ok()
 }

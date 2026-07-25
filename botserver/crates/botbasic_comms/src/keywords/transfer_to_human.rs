@@ -269,7 +269,7 @@ pub async fn execute_transfer(
             assigned_to: None,
             assigned_to_name: None,
             estimated_wait_seconds: None,
-            message: "CRM features are not enabled. Add 'crm-enabled,true' to config.csv"
+            message: "CRM features are not enabled. Set 'crm-enabled' to 'true' in the bot configuration database"
                 .to_string(),
         };
     }

@@ -63,17 +63,9 @@ impl ChannelSink for WABufferedSink {
 }
 
 fn load_wa_config(pool: &DbPool, bot_id: &Uuid, key: &str) -> Option<String> {
-    if let Ok(mut conn) = pool.get_timeout(std::time::Duration::from_secs(3)) {
-        #[derive(diesel::QueryableByName)]
-        struct Cv {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            v: String,
-        }
-        diesel::sql_query("SELECT config_value v FROM bot_configuration WHERE bot_id = $1 AND config_key = $2 LIMIT 1")
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .bind::<diesel::sql_types::Text, _>(key)
-            .get_result::<Cv>(&mut conn).ok().map(|r| r.v)
-    } else { None }
+    use botcore::config::ConfigManager;
+    let cfg = ConfigManager::new(pool.clone());
+    cfg.get_config(bot_id, key, None).ok().filter(|v| !v.is_empty())
 }
 
 pub fn configure(app_state: &Arc<AppState>) -> Router<()> {

@@ -20,3 +20,4 @@ a.tmp
 opencode.json
 work/
 .github/workflows/boteval.yml
+.cache/

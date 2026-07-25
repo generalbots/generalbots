@@ -5,6 +5,7 @@
 .message-content ol {
     margin: 16px 0 !important;
     padding-left: 28px !important;
+    display: block !important;
 }
 
 /* Extra space between list container edge and bullets */
@@ -32,7 +33,7 @@
 
 /* Bullet points with better visual weight */
 .message-content ul li {
-    list-style-type: disc;
+    list-style-type: disc !important;
     font-weight: 400;
 }
 
@@ -62,7 +63,8 @@
 
 /* Numbered lists with better styling */
 .message-content ol li {
-    list-style-type: decimal;
+    list-style-type: decimal !important;
+    display: list-item !important;
     font-weight: 500;
 }
 

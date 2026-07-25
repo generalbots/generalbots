@@ -3,6 +3,7 @@ use botcore::shared::utils::current_org_id;
 use crate::drive_files::DriveFileRepository;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::KnowledgeBaseManager;
+use botsecurity_crypto::secrets::is_sensitive_key;
 use chrono::Utc;
 use diesel::RunQueryDsl;
 use std::path::PathBuf;
@@ -377,6 +378,10 @@ impl DriveMonitor {
                 let key = key.trim();
                 let value = value.trim();
                 if key.is_empty() {
+                    continue;
+                }
+                if is_sensitive_key(key) {
+                    log::info!("Ignoring sensitive key '{}' from config.csv for bot {} — secrets must be configured via database", key, bot_name);
                     continue;
                 }
                 if let Err(e) = config_manager.set_config_with_branch(&self.bot_id, key, value, branch_id) {

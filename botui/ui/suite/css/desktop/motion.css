@@ -1,0 +1,20 @@
+/* ============================================ */
+/* GB FLUENT — Motion & Reduced-Motion Support   */
+/* ============================================ */
+
+:root {
+  --ease-spring: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur-med: 220ms;
+  --dur-slow: 320ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

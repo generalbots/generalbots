@@ -326,7 +326,7 @@ impl crate::ChannelAdapter for TeamsAdapter {
         response: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if !self.is_configured() {
-            log::error!("Teams adapter not configured. Please set teams-app-id and teams-app-password in config.csv");
+            log::error!("Teams adapter not configured. Please set teams-app-id and teams-app-password in the bot configuration database");
             return Err("Teams not configured".into());
         }
 

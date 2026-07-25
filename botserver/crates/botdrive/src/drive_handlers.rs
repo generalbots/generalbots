@@ -575,7 +575,7 @@ pub async fn create_bot(
     ];
     for path in &seed_paths {
         let content = if path.ends_with("config.csv") {
-            "llm-url,\nllm-server,\nllm-key,\nllm-model,\nllm-provider,\nsystem-prompt,\nhistory-limit,6\n".as_bytes().to_vec()
+            "system-prompt,\nhistory-limit,6\n".as_bytes().to_vec()
         } else {
             Vec::new()
         };

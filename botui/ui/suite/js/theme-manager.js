@@ -6,7 +6,7 @@ const ThemeManager = (() => {
   // Bot ID to theme mapping (configured via config.csv theme-base field)
   const botThemeMap = {
     // Default bot uses light theme with brown accents
-    default: "light",
+    default: "aurora",
     // Cristo bot uses typewriter theme (classic typewriter style)
     cristo: "typewriter",
     // Salesianos bot uses light theme with blue accents
@@ -25,6 +25,12 @@ const ThemeManager = (() => {
   }
 
   const themes = [
+    { id: "aurora", name: "🌌 Aurora", file: "aurora.css", category: "fluent" },
+    { id: "mica", name: "🪟 Mica", file: "mica.css", category: "fluent" },
+    { id: "sonoma", name: "🍏 Sonoma", file: "sonoma.css", category: "fluent" },
+    { id: "nord", name: "🧊 Nord", file: "nord.css", category: "fluent" },
+    { id: "carbon", name: "🖤 Carbon", file: "carbon.css", category: "fluent" },
+    { id: "paper", name: "📄 Paper", file: "paper.css", category: "fluent" },
     { id: "default", name: "🎨 Default", file: "light.css" },
     { id: "light", name: "☀️ Light", file: "light.css" },
     { id: "minimal-organico", name: "🌿 Minimal Organic", file: "minimal-organico.css", category: "v15" },
@@ -325,7 +331,7 @@ const ThemeManager = (() => {
     let saved = localStorage.getItem(`gb-theme-${botId}`);
     if (!saved || !themes.find((t) => t.id === saved)) {
       // No user preference, try bot-specific theme
-      saved = botThemeMap[botId] || "light";
+      saved = botThemeMap[botId] || "aurora";
       // Save to localStorage so it persists
       localStorage.setItem(`gb-theme-${botId}`, saved);
     }
