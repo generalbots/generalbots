@@ -340,8 +340,9 @@ pub async fn stream_llm_response(
                     let _ = sink.send_bot_response(&final_resp).await;
                 }
 
-                if has_tool_call {
-                    if super::tool_exec::is_generic_greeting(user_text) {
+            if has_tool_call {
+                let is_deep = messages.as_array().map(|a| a.len() > 3).unwrap_or(false);
+                if !is_deep && super::tool_exec::is_generic_greeting(user_text) {
                         if !content_buffer.is_empty() {
                             log::info!("Greeting guard: skipping tool_call, sending buffered content instead");
                             let final_resp = botlib::models::BotResponse {
