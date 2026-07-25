@@ -117,6 +117,7 @@ error-llm-rate-limit = Limite de requisições de IA excedido. Por favor, aguard
 error-llm-content-filter = Conteúdo foi filtrado pelas diretrizes de segurança.
 error-llm-context-length = Entrada muito longa. Por favor, encurte sua mensagem.
 error-llm-invalid-response = Resposta inválida recebida do serviço de IA.
+error-llm-empty-response = Desculpe, não consegui processar sua mensagem agora. Tente novamente em alguns segundos.
 
 # =============================================================================
 # Erros de E-mail
