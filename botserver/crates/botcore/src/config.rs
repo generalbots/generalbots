@@ -352,16 +352,23 @@ impl ConfigManager {
     ) -> Result<String, Box<dyn std::error::Error>> {
         if is_sensitive_key(key) {
             let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
-            let path = Self::vault_path(&org_id, &branch_id, bot_id);
-            if let Some(value) = Self::read_vault_value(&path, key) {
-                if value.starts_with("1:") {
+            let nil = uuid::Uuid::nil();
+            let paths = [
+                Self::vault_path(&org_id, &branch_id, bot_id),
+                Self::vault_path(&nil, &nil, bot_id),
+            ];
+            for path in &paths {
+                if let Some(value) = Self::read_vault_value(path, key) {
+                    if !value.starts_with("1:") {
+                        return Ok(value);
+                    }
                     let master_key = load_master_encryption_key();
                     let key_bytes = derive_scope_key(&master_key, "config", bot_id);
                     if let Ok(decrypted) = decrypt_field(&value, &key_bytes) {
                         return Ok(decrypted);
                     }
+                    log::warn!("Failed to decrypt legacy value for '{}' in Vault for bot {}", key, bot_id);
                 }
-                return Ok(value);
             }
             // fallback: try DB (legacy data)
             if let Some(value) = self.read_db_value(bot_id, key) {
@@ -391,16 +398,23 @@ impl ConfigManager {
     ) -> Result<String, Box<dyn std::error::Error>> {
         if is_sensitive_key(key) {
             let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
-            let path = Self::vault_path(&org_id, &branch_id, bot_id);
-            if let Some(value) = Self::read_vault_value(&path, key) {
-                if value.starts_with("1:") {
+            let nil = uuid::Uuid::nil();
+            let paths = [
+                Self::vault_path(&org_id, &branch_id, bot_id),
+                Self::vault_path(&nil, &nil, bot_id),
+            ];
+            for path in &paths {
+                if let Some(value) = Self::read_vault_value(path, key) {
+                    if !value.starts_with("1:") {
+                        return Ok(value);
+                    }
                     let master_key = load_master_encryption_key();
                     let key_bytes = derive_scope_key(&master_key, "config", bot_id);
                     if let Ok(decrypted) = decrypt_field(&value, &key_bytes) {
                         return Ok(decrypted);
                     }
+                    log::warn!("Failed to decrypt legacy value for '{}' in Vault for bot {}", key, bot_id);
                 }
-                return Ok(value);
             }
         }
         self.read_db_value(bot_id, key)
@@ -415,18 +429,25 @@ impl ConfigManager {
         let mut map = self.read_db_all(bot_id);
         let master_key = load_master_encryption_key();
 
+        let nil = uuid::Uuid::nil();
         let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
-        let path = Self::vault_path(&org_id, &branch_id, bot_id);
-        if let Some(vault_data) = Self::read_vault_all(&path) {
-            for (k, v) in vault_data {
-                if is_sensitive_key(&k) {
-                    let val = if v.starts_with("1:") {
-                        let key_bytes = derive_scope_key(&master_key, "config", bot_id);
-                        decrypt_field(&v, &key_bytes).unwrap_or(v.clone())
-                    } else {
-                        v
-                    };
-                    map.insert(k, val);
+        let paths = [
+            Self::vault_path(&org_id, &branch_id, bot_id),
+            Self::vault_path(&nil, &nil, bot_id),
+        ];
+        for path in &paths {
+            if let Some(vault_data) = Self::read_vault_all(path) {
+                for (k, v) in vault_data {
+                    if is_sensitive_key(&k) && !map.contains_key(&k) {
+                        if v.starts_with("1:") {
+                            let key_bytes = derive_scope_key(&master_key, "config", bot_id);
+                            if let Ok(decrypted) = decrypt_field(&v, &key_bytes) {
+                                map.insert(k, decrypted);
+                            }
+                        } else {
+                            map.insert(k, v);
+                        }
+                    }
                 }
             }
         }
