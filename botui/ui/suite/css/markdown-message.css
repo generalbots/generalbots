@@ -8,6 +8,11 @@
     display: block !important;
 }
 
+.message-content ul br,
+.message-content ol br {
+    display: none !important;
+}
+
 /* Extra space between list container edge and bullets */
 .message-content ul li,
 .message-content ol li {
