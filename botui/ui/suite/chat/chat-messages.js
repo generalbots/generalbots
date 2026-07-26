@@ -162,8 +162,6 @@ function addMessage(sender, content, msgId, reasoning) {
   } else {
     var thinkingHtml = renderThinkingSection(reasoning);
     var cleanContent = stripMarkdownBlocks(content);
-    cleanContent = cleanContent.replace(/^([\s]*[-*+]\s.*)\n[\s]*\n(?=[\s]*[-*+]\s)/gm, '$1\n');
-    cleanContent = cleanContent.replace(/^(\s*\d+\.\s.*)\n[\s]*\n(?=\s*\d+\.\s)/gm, '$1\n');
     var parsed;
     if (typeof marked !== "undefined" && marked.parse) {
       parsed = marked.parse(cleanContent);
@@ -172,6 +170,7 @@ function addMessage(sender, content, msgId, reasoning) {
       parsed = hasHtmlTags ? cleanContent : escapeHtml(cleanContent);
     }
     parsed = convertNumberedLists(parsed);
+    parsed = parsed.replace(/<ul>(<br>\s*)+/gi, '<ul>').replace(/(<\/li>)(<br>\s*)+/gi, '$1').replace(/(<br>\s*)+<\/ul>/gi, '</ul>');
     parsed = renderMentionInMessage(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
   }
@@ -203,8 +202,6 @@ function updateStreaming(content) {
 
   var msgContent = el.querySelector(".message-content");
   var cleanContent = stripMarkdownBlocks(content);
-  cleanContent = cleanContent.replace(/^([\s]*[-*+]\s.*)\n[\s]*\n(?=[\s]*[-*+]\s)/gm, '$1\n');
-  cleanContent = cleanContent.replace(/^(\s*\d+\.\s.*)\n[\s]*\n(?=\s*\d+\.\s)/gm, '$1\n');
   var parsed;
   if (typeof marked !== "undefined" && marked.parse) {
     parsed = marked.parse(cleanContent);
@@ -213,6 +210,7 @@ function updateStreaming(content) {
     parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
   }
   parsed = convertNumberedLists(parsed);
+  parsed = parsed.replace(/<ul>(<br>\s*)+/gi, '<ul>').replace(/(<\/li>)(<br>\s*)+/gi, '$1').replace(/(<br>\s*)+<\/ul>/gi, '</ul>');
   parsed = renderMentionInMessage(parsed);
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
   msgContent.innerHTML = thinkingHtml + parsed;
