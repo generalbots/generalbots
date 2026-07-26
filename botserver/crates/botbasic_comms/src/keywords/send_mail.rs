@@ -568,7 +568,7 @@ fn save_email_draft(
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let draft_id = Uuid::new_v4();
-    let user_id_str = user.user_id.to_string();
+    let user_id = &user.user_id;
     let now = Utc::now();
 
     let query = diesel::sql_query(
@@ -576,7 +576,7 @@ fn save_email_draft(
          VALUES ($1, $2, $3, $4, $5, $6, $7)"
     )
     .bind::<diesel::sql_types::Uuid, _>(&draft_id)
-    .bind::<diesel::sql_types::Text, _>(&user_id_str)
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Text, _>(to)
     .bind::<diesel::sql_types::Text, _>(subject)
     .bind::<diesel::sql_types::Text, _>(body);
