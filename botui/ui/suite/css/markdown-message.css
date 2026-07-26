@@ -3,8 +3,8 @@
 /* Lists in message content */
 .message-content ul,
 .message-content ol {
-    margin: 16px 0 !important;
-    padding-left: 28px !important;
+    margin: 0 !important;
+    padding-left: 20px !important;
     display: block !important;
 }
 
@@ -16,8 +16,8 @@
 
 /* List items with better spacing */
 .message-content li {
-    margin: 10px 0;
-    line-height: 1.8;
+    margin: 0;
+    line-height: 1.4;
     position: relative;
     padding-left: 6px;
 }
@@ -27,8 +27,8 @@
 .message-content ol ol,
 .message-content ul ol,
 .message-content ol ul {
-    margin: 12px 0;
-    padding-left: 32px;
+    margin: 0;
+    padding-left: 24px;
 }
 
 /* Bullet points with better visual weight */
@@ -118,26 +118,13 @@
 
 /* Paragraphs in messages */
 .message-content p {
-    margin: 10px 0;
-    line-height: 1.75;
+    margin: 0;
+    line-height: 1.4;
 }
 
-/* First and last paragraph spacing */
-.message-content p:first-child {
-    margin-top: 0;
-}
 
-.message-content p:last-child {
-    margin-bottom: 0;
-}
 
-/* Lists with better visual separation from paragraphs */
-.message-content ul + p,
-.message-content ol + p,
-.message-content p + ul,
-.message-content p + ol {
-    margin-top: 14px;
-}
+
 
 /* Headings in messages */
 .message-content h1,
@@ -146,7 +133,7 @@
 .message-content h4,
 .message-content h5,
 .message-content h6 {
-    margin: 18px 0 10px 0;
+    margin: 10px 0 5px 0;
     font-weight: 600;
     line-height: 1.3;
     letter-spacing: -0.01em;
@@ -173,8 +160,8 @@
 
 /* Code blocks */
 .message-content pre {
-    margin: 12px 0;
-    padding: 14px;
+    margin: 6px 0;
+    padding: 10px;
     background: rgba(0, 0, 0, 0.15);
     border-radius: 8px;
     overflow-x: auto;
@@ -205,15 +192,15 @@
 
 /* Blockquotes */
 .message-content blockquote {
-    margin: 12px 0;
-    padding-left: 16px;
+    margin: 6px 0;
+    padding-left: 12px;
     border-left: 3px solid var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
     font-style: italic;
 }
 
 /* Horizontal rules */
 .message-content hr {
-    margin: 16px 0;
+    margin: 8px 0;
     border: none;
     border-top: 1px solid rgba(128, 128, 128, 0.3);
 }

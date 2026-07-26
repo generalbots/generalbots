@@ -162,7 +162,7 @@ function addMessage(sender, content, msgId, reasoning) {
   } else {
     var thinkingHtml = renderThinkingSection(reasoning);
     var cleanContent = stripMarkdownBlocks(content);
-    cleanContent = cleanContent.replace(/\n\n/g, '\u0000').replace(/\n/g, '<br>\n').replace(/\u0000/g, '\n\n');
+    cleanContent = cleanContent.replace(/\n\n/g, '\u0000').replace(/\u0000/g, '\n\n');
     var parsed;
     if (typeof marked !== "undefined" && marked.parse) {
       parsed = marked.parse(cleanContent);
