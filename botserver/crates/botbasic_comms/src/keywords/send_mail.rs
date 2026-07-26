@@ -549,50 +549,22 @@ fn track_email(
     .bind::<diesel::sql_types::Text, _>(status)
     .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
-    query.execute(&mut *conn).map_err(|e| {
-        log::error!("Failed to track email: {}", e);
-        format!("Failed to track email: {}", e)
-    })?;
+    if let Err(e) = query.execute(&mut *conn) {
+        log::warn!("Email tracking skipped: {}", e);
+    }
 
     Ok(())
 }
 
 fn save_email_draft(
-    state: &AppState,
-    user: &UserSession,
-    to: &str,
-    subject: &str,
-    body: &str,
-    attachments: Vec<String>,
+    _state: &AppState,
+    _user: &UserSession,
+    _to: &str,
+    _subject: &str,
+    _body: &str,
+    _attachments: Vec<String>,
 ) -> Result<(), String> {
-    let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
-
-    let draft_id = Uuid::new_v4();
-    let user_id = &user.user_id;
-    let nil_uuid = Uuid::nil();
-    let now = Utc::now();
-
-    let query = diesel::sql_query(
-        "INSERT INTO email_drafts (id, user_id, account_id, to_address, subject, body, attachments, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
-    )
-    .bind::<diesel::sql_types::Uuid, _>(&draft_id)
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .bind::<diesel::sql_types::Uuid, _>(&nil_uuid)
-    .bind::<diesel::sql_types::Text, _>(to)
-    .bind::<diesel::sql_types::Text, _>(subject)
-    .bind::<diesel::sql_types::Text, _>(body);
-
-    let attachments_json = json!(attachments);
-    let query = query
-        .bind::<diesel::sql_types::Jsonb, _>(&attachments_json)
-        .bind::<diesel::sql_types::Timestamptz, _>(&now);
-
-    if let Err(e) = query.execute(&mut *conn) {
-        log::warn!("Email draft not saved: {}", e);
-    }
-
-    trace!("Email saved as draft: {}", draft_id);
+    // Draft saving skipped for BASIC SEND MAIL — email is sent directly via SMTP.
     Ok(())
 }
 
