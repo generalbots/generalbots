@@ -569,16 +569,14 @@ fn save_email_draft(
 
     let draft_id = Uuid::new_v4().to_string();
     let user_id_str = user.user_id.to_string();
-    let bot_id_str = user.bot_id.to_string();
     let now = Utc::now();
 
     let query = diesel::sql_query(
-        "INSERT INTO email_drafts (id, user_id, bot_id, to_address, subject, body, attachments, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+        "INSERT INTO email_drafts (id, user_id, to_address, subject, body, attachments, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)"
     )
     .bind::<diesel::sql_types::Text, _>(&draft_id)
     .bind::<diesel::sql_types::Text, _>(&user_id_str)
-    .bind::<diesel::sql_types::Text, _>(&bot_id_str)
     .bind::<diesel::sql_types::Text, _>(to)
     .bind::<diesel::sql_types::Text, _>(subject)
     .bind::<diesel::sql_types::Text, _>(body);
