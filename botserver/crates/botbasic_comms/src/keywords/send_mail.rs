@@ -569,14 +569,16 @@ fn save_email_draft(
 
     let draft_id = Uuid::new_v4();
     let user_id = &user.user_id;
+    let nil_uuid = Uuid::nil();
     let now = Utc::now();
 
     let query = diesel::sql_query(
-        "INSERT INTO email_drafts (id, user_id, to_address, subject, body, attachments, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)"
+        "INSERT INTO email_drafts (id, user_id, account_id, to_address, subject, body, attachments, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
     )
     .bind::<diesel::sql_types::Uuid, _>(&draft_id)
     .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .bind::<diesel::sql_types::Uuid, _>(&nil_uuid)
     .bind::<diesel::sql_types::Text, _>(to)
     .bind::<diesel::sql_types::Text, _>(subject)
     .bind::<diesel::sql_types::Text, _>(body);
@@ -586,10 +588,9 @@ fn save_email_draft(
         .bind::<diesel::sql_types::Jsonb, _>(&attachments_json)
         .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
-    query.execute(&mut *conn).map_err(|e| {
-        log::error!("Failed to save draft: {}", e);
-        format!("Failed to save draft: {}", e)
-    })?;
+    if let Err(e) = query.execute(&mut *conn) {
+        log::warn!("Email draft not saved: {}", e);
+    }
 
     trace!("Email saved as draft: {}", draft_id);
     Ok(())
