@@ -170,7 +170,7 @@ function addMessage(sender, content, msgId, reasoning) {
       parsed = hasHtmlTags ? cleanContent : escapeHtml(cleanContent);
     }
     parsed = convertNumberedLists(parsed);
-    parsed = parsed.replace(/<ul>(<br>\s*)+/gi, '<ul>').replace(/(<\/li>)(<br>\s*)+/gi, '$1').replace(/(<br>\s*)+<\/ul>/gi, '</ul>');
+    parsed = parsed.replace(/<br\s*\/?>/gi, '');
     parsed = renderMentionInMessage(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
   }
@@ -210,7 +210,7 @@ function updateStreaming(content) {
     parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
   }
   parsed = convertNumberedLists(parsed);
-  parsed = parsed.replace(/<ul>(<br>\s*)+/gi, '<ul>').replace(/(<\/li>)(<br>\s*)+/gi, '$1').replace(/(<br>\s*)+<\/ul>/gi, '</ul>');
+  parsed = parsed.replace(/<br\s*\/?>/gi, '');
   parsed = renderMentionInMessage(parsed);
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
   msgContent.innerHTML = thinkingHtml + parsed;
