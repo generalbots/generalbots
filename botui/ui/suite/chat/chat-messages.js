@@ -162,7 +162,8 @@ function addMessage(sender, content, msgId, reasoning) {
   } else {
     var thinkingHtml = renderThinkingSection(reasoning);
     var cleanContent = stripMarkdownBlocks(content);
-    cleanContent = cleanContent.replace(/\n\n/g, '\u0000').replace(/\u0000/g, '\n\n');
+    cleanContent = cleanContent.replace(/^([\s]*[-*+]\s.*)\n[\s]*\n(?=[\s]*[-*+]\s)/gm, '$1\n');
+    cleanContent = cleanContent.replace(/^(\s*\d+\.\s.*)\n[\s]*\n(?=\s*\d+\.\s)/gm, '$1\n');
     var parsed;
     if (typeof marked !== "undefined" && marked.parse) {
       parsed = marked.parse(cleanContent);
@@ -202,6 +203,8 @@ function updateStreaming(content) {
 
   var msgContent = el.querySelector(".message-content");
   var cleanContent = stripMarkdownBlocks(content);
+  cleanContent = cleanContent.replace(/^([\s]*[-*+]\s.*)\n[\s]*\n(?=[\s]*[-*+]\s)/gm, '$1\n');
+  cleanContent = cleanContent.replace(/^(\s*\d+\.\s.*)\n[\s]*\n(?=\s*\d+\.\s)/gm, '$1\n');
   var parsed;
   if (typeof marked !== "undefined" && marked.parse) {
     parsed = marked.parse(cleanContent);
