@@ -17,7 +17,7 @@ pub async fn process_incoming_message(
 
     log::info!("Processing message from {}: {}", formatted_phone, content);
 
-    let (bot_id, _bot_name) = if let Some(ref pni) = phone_number_id {
+    let (bot_id, bot_name) = if let Some(ref pni) = phone_number_id {
         (state.find_bot)(pni)
     } else {
         let mut conn = state
@@ -44,6 +44,7 @@ pub async fn process_incoming_message(
         formatted_phone.clone(),
         content.to_string(),
         session_id.to_string(),
+        bot_name,
     )
     .await
     {

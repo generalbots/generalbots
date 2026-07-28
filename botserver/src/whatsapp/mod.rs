@@ -1,27 +1,70 @@
 pub use botwhatsapp::*;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::Router;
 use botcore::shared::state::AppState;
 use botcore::shared::utils::DbPool;
+use botcoresecrets::manager::SecretsManager;
 use uuid::Uuid;
 
 use diesel::RunQueryDsl;
 use crate::core::bot::pipeline::{self, ChannelSink, PipelineError, PipelineResult};
 
-fn get_default_bot_id_simple(pool: &DbPool) -> Uuid {
-    if let Ok(mut conn) = pool.get_timeout(std::time::Duration::from_secs(2)) {
-        #[derive(diesel::QueryableByName)]
-        struct BotRow {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            id: Uuid,
+#[derive(diesel::QueryableByName)]
+struct BotLookupRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    name: String,
+}
+
+fn find_bot_by_phone_number_id(pool: &DbPool, phone_number_id: &str) -> Option<(Uuid, String)> {
+    let mut conn = pool.get_timeout(std::time::Duration::from_secs(2)).ok()?;
+    diesel::sql_query(
+        "SELECT b.id, b.name FROM bots b \
+         JOIN bot_configuration bc ON bc.bot_id = b.id \
+         WHERE bc.config_key = 'whatsapp-phone-number-id' \
+         AND bc.config_value = $1 \
+         AND b.is_active = true \
+         LIMIT 1"
+    )
+    .bind::<diesel::sql_types::Text, _>(phone_number_id)
+    .get_result::<BotLookupRow>(&mut conn)
+    .ok()
+    .map(|r| (r.id, r.name))
+}
+
+fn find_first_active_bot(pool: &DbPool) -> Option<(Uuid, String)> {
+    let mut conn = pool.get_timeout(std::time::Duration::from_secs(2)).ok()?;
+    diesel::sql_query(
+        "SELECT id, name FROM bots WHERE is_active = true ORDER BY created_at ASC LIMIT 1"
+    )
+    .get_result::<BotLookupRow>(&mut conn)
+    .ok()
+    .map(|r| (r.id, r.name))
+}
+
+fn strip_html(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let mut in_tag = false;
+    for c in s.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => result.push(c),
+            _ => {}
         }
-        diesel::sql_query("SELECT id FROM bots WHERE name = 'cristo' ORDER BY created_at ASC LIMIT 1")
-            .get_result::<BotRow>(&mut conn).ok().map(|r| r.id).unwrap_or_default()
-    } else {
-        Uuid::nil()
     }
+    let decoded = result.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+        .replace("&quot;", "\"").replace("&#39;", "'").replace("&nbsp;", " ");
+    let cleaned = decoded.lines()
+        .map(|l| l.trim())
+        .filter(|l| !l.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    cleaned
 }
 
 struct WABufferedSink {
@@ -35,7 +78,8 @@ struct WABufferedSink {
 impl ChannelSink for WABufferedSink {
     async fn send_bot_response(&self, response: &botlib::models::BotResponse) -> PipelineResult<()> {
         let mut buf = self.buffer.lock().await;
-        buf.push_str(&response.content);
+        let clean = strip_html(&response.content);
+        buf.push_str(&clean);
         if response.is_complete {
             let full = std::mem::take(&mut *buf);
             if !full.is_empty() {
@@ -48,7 +92,8 @@ impl ChannelSink for WABufferedSink {
 
     async fn send_error(&self, _session_id: &str, message: &str) -> PipelineResult<()> {
         let mut buf = self.buffer.lock().await;
-        buf.push_str(message);
+        let clean = strip_html(message);
+        buf.push_str(&clean);
         let full = std::mem::take(&mut *buf);
         if !full.is_empty() {
             (self.send_msg)(&self.phone, &full, &self.bot_name).await
@@ -68,16 +113,58 @@ fn load_wa_config(pool: &DbPool, bot_id: &Uuid, key: &str) -> Option<String> {
     cfg.get_config(bot_id, key, None).ok().filter(|v| !v.is_empty())
 }
 
+fn load_wa_config_from_vault(bot_id: &Uuid) -> Option<HashMap<String, String>> {
+    if let Ok(sm) = SecretsManager::get() {
+        if sm.is_enabled() {
+            let vault_path = format!("gbo/00000000-0000-0000-0000-000000000000/{}/whatsapp", bot_id);
+            let vault_path_for_log = vault_path.clone();
+            let self_owned = sm.clone();
+            let (tx, rx) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+                let result = if let Ok(rt) = rt {
+                    rt.block_on(async move {
+                        self_owned.get_secret(&vault_path).await.ok()
+                    })
+                } else { None };
+                let _ = tx.send(result);
+            });
+            if let Ok(Some(secrets)) = rx.recv_timeout(std::time::Duration::from_secs(5)) {
+                log::info!("WhatsApp config loaded from Vault path: {}", vault_path_for_log);
+                return Some(secrets);
+            }
+        }
+    }
+    None
+}
+
 pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
     let pool = app_state.conn.clone();
-    let bot_id = get_default_bot_id_simple(&pool);
-    log::info!("WhatsApp module: using bot_id={}", bot_id);
+    let default_bot = find_first_active_bot(&pool)
+        .unwrap_or_else(|| (Uuid::nil(), "default".to_string()));
+    log::info!("WhatsApp module: default bot_id={} name='{}'", default_bot.0, default_bot.1);
 
-    let cfg_phone_number_id = load_wa_config(&pool, &bot_id, "whatsapp-phone-number-id").unwrap_or_default();
-    let cfg_api_key = load_wa_config(&pool, &bot_id, "whatsapp-api-key").unwrap_or_default();
-    let cfg_verify_token = load_wa_config(&pool, &bot_id, "whatsapp-verify-token").unwrap_or_default();
-    let cfg_business_account_id = load_wa_config(&pool, &bot_id, "whatsapp-business-account-id").unwrap_or_default();
-    let cfg_api_url = load_wa_config(&pool, &bot_id, "whatsapp-api-url")
+    let vault_wa = load_wa_config_from_vault(&default_bot.0);
+
+    let cfg_phone_number_id = vault_wa.as_ref()
+        .and_then(|m| m.get("whatsapp_phone_number_id").cloned())
+        .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-phone-number-id"))
+        .unwrap_or_default();
+    let cfg_api_key = vault_wa.as_ref()
+        .and_then(|m| m.get("whatsapp_api_key").cloned())
+        .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-api-key"))
+        .unwrap_or_default();
+    let cfg_verify_token = vault_wa.as_ref()
+        .and_then(|m| m.get("whatsapp_verify_token").cloned())
+        .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-verify-token"))
+        .unwrap_or_default();
+    let cfg_business_account_id = vault_wa.as_ref()
+        .and_then(|m| m.get("whatsapp_business_account_id").cloned())
+        .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-business-account-id"))
+        .unwrap_or_default();
+    let cfg_api_url = vault_wa.as_ref()
+        .and_then(|m| m.get("whatsapp_api_url").cloned())
+        .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-api-url"))
         .unwrap_or_else(|| "https://graph.facebook.com/v18.0".to_string());
 
     let sm_pni = cfg_phone_number_id.clone();
@@ -135,12 +222,23 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
     let sc_ak = cfg_api_key.clone();
 
     let wa_state = Arc::new(WhatsAppState {
-        pool,
+        pool: pool.clone(),
         send_message: send_message_fn,
-        get_default_bot: Arc::new(move |_c: &mut diesel::PgConnection| {
-            (bot_id, "default".to_string())
-        }),
-        find_bot: Arc::new(move |_phone: &str| (bot_id, "default".to_string())),
+        get_default_bot: {
+            let pool_for_default = pool.clone();
+            Arc::new(move |_c: &mut diesel::PgConnection| {
+                find_first_active_bot(&pool_for_default)
+                    .unwrap_or_else(|| (Uuid::nil(), "default".to_string()))
+            })
+        },
+        find_bot: {
+            let pool_for_find = pool.clone();
+            Arc::new(move |phone_number_id: &str| {
+                find_bot_by_phone_number_id(&pool_for_find, phone_number_id)
+                    .or_else(|| find_first_active_bot(&pool_for_find))
+                    .unwrap_or_else(|| (Uuid::nil(), "default".to_string()))
+            })
+        },
         get_config: {
             Arc::new(move |key: &str| -> Result<String, String> {
                 match key {
@@ -166,17 +264,17 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
         process_message: {
             let app_state = app_state.clone();
             let sm_fn = sm_for_process.clone();
-            Arc::new(move |bot_id_str: String, phone: String, content: String, session_id_str: String| {
+            Arc::new(move |bot_id_str: String, phone: String, content: String, session_id_str: String, bot_name: String| {
                 let state = app_state.clone();
                 let sm = sm_fn.clone();
                 Box::pin(async move {
-                    log::info!("WhatsApp process msg from {} for bot '{}': {}", phone, bot_id_str, content);
+                    log::info!("WhatsApp process msg from {} for bot '{}' (name={}): {}", phone, bot_id_str, bot_name, content);
 
                     let session_id = Uuid::parse_str(&session_id_str).unwrap_or_else(|_| Uuid::new_v4());
                     let user_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa:{}", phone).as_bytes());
 
                     let msg = botlib::models::UserMessage::text(
-                        bot_id_str.clone(), user_id.to_string(), session_id.to_string(),
+                        bot_name, user_id.to_string(), session_id.to_string(),
                         "whatsapp", &content,
                     );
 

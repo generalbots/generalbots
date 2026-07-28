@@ -7,6 +7,10 @@ use uuid::Uuid;
 use super::sink::ChannelSink;
 use super::types::PipelineResult;
 
+fn is_web_channel(sink: &dyn ChannelSink) -> bool {
+    sink.channel_type() == "web"
+}
+
 const LLM_RETRY_MAX: u32 = 3;
 const LLM_RETRY_DELAY: u64 = 3;
 
@@ -40,6 +44,7 @@ pub async fn stream_llm_response(
         if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
         if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
         if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }
+        log::info!("BOT {} LLM CONFIG: url=[{}] key_len=[{}] model=[{}]", bot_uuid, llm_url, llm_key.len(), llm_model);
         if !llm_url.is_empty() {
             let provider = crate::llm::create_llm_provider_from_url(
                 &llm_url,
@@ -53,6 +58,7 @@ pub async fn stream_llm_response(
                 llm_key, llm_model,
             ))
         } else {
+            log::warn!("CRISTO BOT: llm-url is EMPTY, falling back to global provider");
             None
         }
     };
@@ -342,7 +348,7 @@ pub async fn stream_llm_response(
 
             if has_tool_call {
                 let is_deep = messages.as_array().map(|a| a.len() > 3).unwrap_or(false);
-                if !is_deep && super::tool_exec::is_generic_greeting(user_text) {
+                if is_web_channel(sink) && !is_deep && super::tool_exec::is_generic_greeting(user_text) {
                         if !content_buffer.is_empty() {
                             log::info!("Greeting guard: skipping tool_call, sending buffered content instead");
                             let final_resp = botlib::models::BotResponse {

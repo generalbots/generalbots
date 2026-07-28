@@ -199,6 +199,11 @@ pub async fn process_message_internal(
     } else {
         base_system_prompt
     };
+    let system_prompt = if channel == "whatsapp" {
+        format!("{system_prompt}\n\nIMPORTANT: This conversation is via WhatsApp. Respond ONLY in plain text. Do NOT use HTML tags, markdown formatting, bold, italic, lists, or any markup. Output clean plain text only.")
+    } else {
+        system_prompt
+    };
 
     let session_context = {
         let sm = state.session_manager.lock().await;
@@ -305,10 +310,11 @@ pub async fn run_pipeline_for_channel(
 
     let bot_uuid = resolve_bot_uuid(&state.conn, &bot_name).await;
 
+    let response_key = format!("{}_{}", session_id, Uuid::new_v4());
     let (tx_internal, mut rx_internal) = tokio::sync::mpsc::channel::<botlib::models::BotResponse>(100);
     {
         let mut channels = state.response_channels.lock().await;
-        channels.insert(session_id.to_string(), tx_internal);
+        channels.insert(response_key.clone(), tx_internal);
     }
 
     let json_msg = serde_json::json!({
@@ -326,13 +332,16 @@ pub async fn run_pipeline_for_channel(
 
     {
         let mut channels = state.response_channels.lock().await;
-        channels.remove(&session_id.to_string());
+        channels.remove(&response_key);
     }
 
     result
 }
 
 async fn resolve_bot_uuid(pool: &botcore::shared::utils::DbPool, bot_name: &str) -> uuid::Uuid {
+    if let Ok(uuid) = uuid::Uuid::parse_str(bot_name) {
+        return uuid;
+    }
     use diesel::RunQueryDsl;
     if let Ok(mut conn) = pool.get_timeout(std::time::Duration::from_secs(3)) {
         #[derive(diesel::QueryableByName)]

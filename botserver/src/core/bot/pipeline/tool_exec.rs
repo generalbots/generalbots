@@ -56,6 +56,40 @@ pub async fn run_tool_exec(
     }
 }
 
+pub fn is_placeholder_value(value: &str) -> bool {
+    let lower = value.trim().to_lowercase();
+    if lower.is_empty() { return true; }
+    let placeholders = [
+        "seu nome", "sua data", "seu telefone", "seu email",
+        "nome completo", "nome da crianca", "nome do responsavel",
+        "data preferencial", "data de nascimento", "endereco completo",
+        "nao informado", "não informado", "nao informada",
+        "coloque", "informe", "digite",
+    ];
+    for p in &placeholders {
+        if lower.contains(p) { return true; }
+    }
+    if lower.starts_with("seu ") || lower.starts_with("sua ") { return true; }
+    false
+}
+
+fn all_args_are_placeholder(args: &str) -> bool {
+    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args) {
+        if let Some(obj) = parsed.as_object() {
+            if obj.is_empty() { return true; }
+            let total = obj.len();
+            let placeholder_count = obj.values().filter(|v| {
+                match v {
+                    serde_json::Value::String(s) => is_placeholder_value(s),
+                    _ => true,
+                }
+            }).count();
+            return placeholder_count > total / 2;
+        }
+    }
+    false
+}
+
 pub fn is_generic_greeting(text: &str) -> bool {
     let trimmed = text.trim().to_lowercase();
     let greetings = [
@@ -95,6 +129,17 @@ pub async fn run_llm_tool_call(
         let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
         log::info!("LLM tool_call: executing tool '{raw_tool_name}' with args: {tool_args}");
         if raw_tool_name.is_empty() { return; }
+
+        if all_args_are_placeholder(tool_args) {
+            log::info!("All tool args are placeholder - asking user for real data instead of executing");
+            let msg = format!("Para agendar o servico, preciso de algumas informacoes. Por favor, me diga os dados solicitados um de cada vez.");
+            let resp = botlib::models::BotResponse::new(
+                &bot_uuid.to_string(), &session_id.to_string(),
+                &user_id.to_string(), &msg, "whatsapp",
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return;
+        }
 
         if is_generic_greeting(user_text) {
             log::info!("Blocking tool '{raw_tool_name}' on short generic user message: '{user_text}'");
@@ -163,7 +208,8 @@ pub async fn run_llm_tool_call(
                         injected_param_names.insert(key.clone());
                         match value {
                             serde_json::Value::String(s) => {
-                                let _ = svc.set_variable(&key, s);
+                                let clean_val = if is_placeholder_value(&s) { String::new() } else { s.clone() };
+                                let _ = svc.set_variable(&key, &clean_val);
                             }
                             serde_json::Value::Number(n) => {
                                 let _ = svc.set_variable(&key, &n.to_string());
