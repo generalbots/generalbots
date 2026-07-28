@@ -200,7 +200,7 @@ pub async fn process_message_internal(
         base_system_prompt
     };
     let system_prompt = if channel == "whatsapp" {
-        format!("{system_prompt}\n\nIMPORTANT: This conversation is via WhatsApp. Respond ONLY in plain text. Do NOT use HTML tags, markdown formatting, bold, italic, lists, or any markup. Output clean plain text only.")
+        format!("{system_prompt}\n\n---\nEsta conversa esta acontecendo no WhatsApp.")
     } else {
         system_prompt
     };
