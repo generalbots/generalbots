@@ -20,7 +20,7 @@ pub type TranscribeAudioFn = Arc<
 >;
 
 pub type ProcessMessageFn = Arc<
-    dyn Fn(String, String, String, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> + Send + Sync,
+    dyn Fn(String, String, String, String, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> + Send + Sync,
 >;
 
 pub type UserLookupFn = Arc<

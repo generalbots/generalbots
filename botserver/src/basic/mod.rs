@@ -261,8 +261,18 @@ impl BasicRuntime for AppStateBasicRuntime {
             }
         } else {
             let keys: Vec<&String> = guard.keys().collect();
-            warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
-                sid, count, keys);
+            let matched_key = keys.iter().find(|k| k.starts_with(&format!("{}_", sid)));
+            if let Some(key) = matched_key {
+                if let Some(tx) = guard.get(*key) {
+                    info!("send_message: FOUND channel via prefix match for session {} (key={})", sid, key);
+                    if let Err(e) = tx.try_send(resp) {
+                        warn!("send_message: try_send failed for session {}: {}", sid, e);
+                    }
+                }
+            } else {
+                warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
+                    sid, count, keys);
+            }
         }
         Ok(())
     }

@@ -5,11 +5,17 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
+use std::collections::HashSet;
 use std::sync::Arc;
+use std::sync::LazyLock;
+use tokio::sync::Mutex;
 
 use crate::models::WhatsAppWebhookPayload;
 use crate::state::WhatsAppState;
 use crate::message_processing::process_incoming_message;
+
+static DEDUP_CACHE: LazyLock<Mutex<HashSet<String>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
 
 #[derive(Deserialize)]
 pub struct VerifyParams {
@@ -99,6 +105,17 @@ pub async fn handle_webhook(
                             continue;
                         }
                     };
+
+                    if let Some(ref msg_id) = message.id {
+                        let mut dedup = DEDUP_CACHE.lock().await;
+                        if !dedup.insert(msg_id.clone()) {
+                            log::info!("Dedup: skipping already processed message {}", msg_id);
+                            continue;
+                        }
+                        if dedup.len() > 1000 {
+                            dedup.clear();
+                        }
+                    }
 
                     let state_clone = state.clone();
                     let pn = phone_number.clone();
