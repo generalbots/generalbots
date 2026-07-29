@@ -302,6 +302,9 @@ fn inner_build_sub_router(
     #[cfg(feature = "whatsapp")]
     { sub_router = sub_router.merge(crate::whatsapp::configure(app_state)); }
 
+    #[cfg(feature = "facebook")]
+    { sub_router = sub_router.merge(crate::facebook::configure(app_state)); }
+
     #[cfg(feature = "marketing")]
     { sub_router = sub_router.merge(super::feature_routers::make_marketing_router(app_state)); }
 

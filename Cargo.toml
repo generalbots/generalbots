@@ -99,6 +99,7 @@ members = [
 "botserver/crates/botvideo",
   "botserver/crates/botweba",
   "botserver/crates/botwhatsapp",
+  "botserver/crates/botfacebook",
   "botserver/crates/botworkspaces",
   "botserver/crates/botdesktop",
   "botserver/crates/botvision",
@@ -202,6 +203,7 @@ botvideo = { path = "botserver/crates/botvideo" }
 botvibe = { path = "botserver/crates/botvibe" }
 botweba = { path = "botserver/crates/botweba" }
 botwhatsapp = { path = "botserver/crates/botwhatsapp" }
+botfacebook = { path = "botserver/crates/botfacebook" }
 botworkspaces = { path = "botserver/crates/botworkspaces" }
 botdesktop = { path = "botserver/crates/botdesktop" }
 botinstagram = { path = "botserver/crates/botinstagram" }

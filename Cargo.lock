@@ -2030,6 +2030,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "botfacebook"
+version = "6.3.1"
+dependencies = [
+ "axum 0.7.9",
+ "chrono",
+ "diesel",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "botfraud"
 version = "6.3.1"
 dependencies = [
@@ -2837,6 +2851,7 @@ dependencies = [
  "boteditor",
  "botemail",
  "boterp",
+ "botfacebook",
  "botfraud",
  "botgit",
  "botgl",
