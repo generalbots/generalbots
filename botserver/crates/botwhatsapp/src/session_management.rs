@@ -12,7 +12,7 @@ pub async fn find_or_create_session(
     state: &Arc<WhatsAppState>,
     phone_number: &str,
     bot_id: &Uuid,
-) -> Result<Uuid, String> {
+) -> Result<(Uuid, Uuid), String> {
     let user_id = find_or_create_user(state, phone_number).await?;
 
     let mut conn = state
@@ -22,7 +22,7 @@ pub async fn find_or_create_session(
 
     let user_id_str = user_id.to_string();
     let existing_session: Option<Uuid> = user_sessions::table
-        .filter(user_sessions::user_id.eq(Some(&user_id_str)))
+        .filter(user_sessions::user_id.eq(&user_id_str))
         .filter(user_sessions::bot_id.eq(*bot_id))
         .order(user_sessions::id.desc())
         .select(user_sessions::id)
@@ -30,7 +30,7 @@ pub async fn find_or_create_session(
         .ok();
 
     if let Some(session_id) = existing_session {
-        return Ok(session_id);
+        return Ok((session_id, user_id));
     }
 
     let new_session_id = Uuid::new_v4();
@@ -38,12 +38,17 @@ pub async fn find_or_create_session(
     diesel::insert_into(user_sessions::table)
         .values((
             user_sessions::id.eq(new_session_id),
-            user_sessions::branch_id.eq(Uuid::nil()),
+            user_sessions::user_id.eq(user_id_str),
             user_sessions::bot_id.eq(*bot_id),
-            user_sessions::session_id.eq(new_session_id.to_string()),
-            user_sessions::user_id.eq(Some(&user_id_str)),
+            user_sessions::title.eq(""),
+            user_sessions::answer_mode.eq(0),
+            user_sessions::context_data.eq(serde_json::json!({"channel": "whatsapp"})),
+            user_sessions::message_count.eq(0),
+            user_sessions::total_tokens.eq(0),
             user_sessions::created_at.eq(now),
             user_sessions::updated_at.eq(now),
+            user_sessions::last_activity.eq(now),
+            user_sessions::session_id.eq(new_session_id.to_string()),
         ))
         .execute(&mut conn)
         .map_err(|e| format!("Insert session error: {}", e))?;
@@ -53,7 +58,7 @@ pub async fn find_or_create_session(
         new_session_id, user_id, bot_id
     );
 
-    Ok(new_session_id)
+    Ok((new_session_id, user_id))
 }
 
 async fn find_or_create_user(
@@ -66,17 +71,18 @@ async fn find_or_create_user(
         return Ok(parsed);
     }
 
-    match (state.user_create)(phone_number, "WhatsApp", "User", Some(phone_number)).await {
+    let zitadel_id = match (state.user_create)(phone_number, "WhatsApp", "User", Some(phone_number)).await {
         Ok(zitadel_user_id) => {
             let parsed = Uuid::parse_str(&zitadel_user_id)
                 .map_err(|e| format!("Invalid Zitadel user ID format: {}", e))?;
             info!("Created Zitadel user {} for phone {}", parsed, phone_number);
-            return Ok(parsed);
+            parsed
         }
         Err(e) => {
             log::warn!("Failed to create Zitadel user for phone {}: {}. Falling back to local database.", phone_number, e);
+            Uuid::nil()
         }
-    }
+    };
 
     let mut conn = state
         .pool
@@ -93,21 +99,23 @@ async fn find_or_create_user(
         return Ok(user_id);
     }
 
-    let new_user_id = Uuid::new_v4();
+    let new_user_id = if zitadel_id.is_nil() { Uuid::new_v4() } else { zitadel_id };
+    let now = chrono::Utc::now();
     diesel::insert_into(users::table)
         .values((
             users::id.eq(new_user_id),
             users::username.eq(phone_number),
             users::phone_number.eq(Some(phone_number)),
-            users::email.eq(None::<String>),
-            users::display_name.eq(None::<String>),
+            users::email.eq(""),
             users::password_hash.eq(""),
             users::is_active.eq(true),
+            users::created_at.eq(now),
+            users::updated_at.eq(now),
         ))
         .execute(&mut conn)
         .map_err(|e| format!("Insert user error: {}", e))?;
 
-    info!("Created new local user {} for phone {} (Zitadel unavailable)", new_user_id, phone_number);
+    info!("Created local user {} for phone {}", new_user_id, phone_number);
 
     Ok(new_user_id)
 }
@@ -153,26 +161,6 @@ pub fn get_user_by_phone(
         .filter(users::phone_number.eq(phone_number))
         .first::<User>(&mut conn)
         .optional()
-        .map_err(|e| format!("Query error: {}", e))
-}
-
-pub fn get_recent_messages(
-    state: &Arc<WhatsAppState>,
-    msg_phone: &str,
-    limit: i64,
-) -> Result<Vec<crate::models::MessageHistory>, String> {
-    use crate::schema::message_history::dsl::*;
-
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| format!("Pool error: {}", e))?;
-
-    message_history
-        .filter(phone_number.eq(msg_phone))
-        .order(created_at.desc())
-        .limit(limit)
-        .load::<crate::models::MessageHistory>(&mut conn)
         .map_err(|e| format!("Query error: {}", e))
 }
 

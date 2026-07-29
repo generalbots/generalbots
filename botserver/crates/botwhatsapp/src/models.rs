@@ -3,13 +3,7 @@ use diesel::{Insertable, Queryable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::schema::{bots, message_history, user_sessions, users};
-
-const _: () = {
-    let _ = (bots::table);
-    let _ = (user_sessions::table);
-    let _ = (users::table);
-};
+use crate::schema::message_history;
 
 #[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
 #[diesel(table_name = bots)]
@@ -27,57 +21,55 @@ pub struct BotConfiguration {
     pub value: String,
 }
 
-#[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
-pub struct MessageHistory {
-    pub id: Uuid,
-    pub bot_id: Uuid,
-    pub user_id: Option<Uuid>,
-    pub session_id: Option<Uuid>,
-    pub phone_number: Option<String>,
-    pub direction: String,
-    pub content: String,
-    pub message_type: Option<String>,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Clone, Insertable)]
 #[diesel(table_name = message_history)]
 pub struct NewMessage {
     pub id: Uuid,
-    pub bot_id: Uuid,
-    pub user_id: Option<Uuid>,
-    pub session_id: Option<Uuid>,
-    pub phone_number: Option<String>,
-    pub direction: String,
-    pub content: String,
-    pub message_type: Option<String>,
+    pub session_id: Uuid,
+    pub user_id: Uuid,
+    pub role: i32,
+    pub content_encrypted: String,
+    pub message_type: i32,
+    pub media_url: Option<String>,
+    pub token_count: i32,
+    pub processing_time_ms: Option<i32>,
+    pub llm_model: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub message_index: i32,
 }
 
 #[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
 pub struct UserSession {
     pub id: Uuid,
-    pub branch_id: Uuid,
+    pub user_id: String,
     pub bot_id: Uuid,
-    pub session_id: String,
-    pub user_id: Option<String>,
-    pub data: Option<serde_json::Value>,
-    pub expires_at: Option<DateTime<Utc>>,
+    pub title: String,
+    pub answer_mode: i32,
+    pub context_data: serde_json::Value,
+    pub current_tool: Option<String>,
+    pub message_count: i32,
+    pub total_tokens: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub last_activity: DateTime<Utc>,
+    pub tenant_id: Option<Uuid>,
+    pub active_email_account_id: Option<Uuid>,
+    pub branch_id: Option<Uuid>,
+    pub session_id: Option<String>,
+    pub data: Option<serde_json::Value>,
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
 pub struct User {
     pub id: Uuid,
     pub username: String,
-    pub email: Option<String>,
-    pub phone_number: Option<String>,
-    pub display_name: Option<String>,
+    pub email: String,
     pub password_hash: String,
-    pub is_active: bool,
+    pub phone_number: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub is_active: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::models::SendMessageRequest;
 use crate::state::WhatsAppState;
 use crate::message_processing::{process_outbound_message, send_outbound_message};
-use crate::session_management::{find_or_create_session, get_bot_for_phone};
+use crate::session_management::get_bot_for_phone;
 use crate::utils::format_phone_number;
 
 pub async fn handle_send_message(
@@ -34,17 +34,10 @@ pub async fn handle_send_message(
         }
     };
 
-    let session_id = match find_or_create_session(&state, &formatted_phone, &bot_id).await {
-        Ok(id) => id,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": e})),
-            );
-        }
-    };
+    let user_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa:{}", formatted_phone).as_bytes());
+    let session_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa-session:{}", formatted_phone).as_bytes());
 
-    process_outbound_message(&state, &bot_id, &formatted_phone, &session_id, &payload.message);
+    process_outbound_message(&state, &bot_id, &user_id, &session_id, &payload.message);
 
     match send_outbound_message(&state, &bot_id, &formatted_phone, &payload.message).await {
         Ok(()) => (

@@ -37,14 +37,23 @@ diesel::table! {
 diesel::table! {
     user_sessions (id) {
         id -> Uuid,
-        branch_id -> Uuid,
+        user_id -> Varchar,
         bot_id -> Uuid,
-        session_id -> Varchar,
-        user_id -> Nullable<Varchar>,
-        data -> Nullable<Jsonb>,
-        expires_at -> Nullable<Timestamptz>,
+        title -> Varchar,
+        answer_mode -> Integer,
+        context_data -> Jsonb,
+        current_tool -> Nullable<Varchar>,
+        message_count -> Int4,
+        total_tokens -> Int4,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        last_activity -> Timestamptz,
+        tenant_id -> Nullable<Uuid>,
+        active_email_account_id -> Nullable<Uuid>,
+        branch_id -> Nullable<Uuid>,
+        session_id -> Nullable<Varchar>,
+        data -> Nullable<Jsonb>,
+        expires_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -52,27 +61,29 @@ diesel::table! {
     users (id) {
         id -> Uuid,
         username -> Varchar,
-        email -> Nullable<Varchar>,
+        email -> Varchar,
+        password_hash -> Varchar,
         phone_number -> Nullable<Varchar>,
-        display_name -> Nullable<Varchar>,
-        password_hash -> Text,
-        is_active -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        is_active -> Nullable<Bool>,
     }
 }
 
 diesel::table! {
     message_history (id) {
         id -> Uuid,
-        bot_id -> Uuid,
-        user_id -> Nullable<Uuid>,
-        session_id -> Nullable<Uuid>,
-        phone_number -> Nullable<Varchar>,
-        direction -> Varchar,
-        content -> Text,
-        message_type -> Nullable<Varchar>,
+        session_id -> Uuid,
+        user_id -> Uuid,
+        role -> Integer,
+        content_encrypted -> Text,
+        message_type -> Integer,
+        media_url -> Nullable<Text>,
+        token_count -> Integer,
+        processing_time_ms -> Nullable<Integer>,
+        llm_model -> Nullable<Varchar>,
         created_at -> Timestamptz,
+        message_index -> Integer,
     }
 }
 

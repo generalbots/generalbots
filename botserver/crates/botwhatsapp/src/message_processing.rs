@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use diesel::prelude::*;
+use uuid::Uuid;
 use crate::models::WhatsAppMessage;
 use crate::state::WhatsAppState;
-use crate::session_management::find_or_create_session;
 use crate::utils::{format_phone_number, is_list_message, split_long_message};
 
 pub async fn process_incoming_message(
@@ -17,6 +17,10 @@ pub async fn process_incoming_message(
 
     log::info!("Processing message from {}: {}", formatted_phone, content);
 
+    if is_list_message(content) {
+        log::info!("List message detected from {}", formatted_phone);
+    }
+
     let (bot_id, bot_name) = if let Some(ref pni) = phone_number_id {
         (state.find_bot)(pni)
     } else {
@@ -29,15 +33,7 @@ pub async fn process_incoming_message(
         result
     };
 
-    let session_id = find_or_create_session(state, &formatted_phone, &bot_id).await?;
-
-    if let Err(e) = save_incoming_message(state, &bot_id, &formatted_phone, &session_id, content) {
-        log::warn!("Could not save incoming message (non-fatal): {}", e);
-    }
-
-    if is_list_message(content) {
-        log::info!("List message detected from {}", formatted_phone);
-    }
+    let session_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa-session:{}", formatted_phone).as_bytes());
 
     match (state.process_message)(
         bot_id.to_string(),
@@ -65,7 +61,7 @@ pub async fn process_incoming_message(
 fn save_incoming_message(
     state: &Arc<WhatsAppState>,
     msg_bot_id: &uuid::Uuid,
-    msg_phone: &str,
+    msg_user_id: &uuid::Uuid,
     msg_session_id: &uuid::Uuid,
     msg_content: &str,
 ) -> Result<(), String> {
@@ -78,14 +74,17 @@ fn save_incoming_message(
 
     let new_msg = NewMessage {
         id: uuid::Uuid::new_v4(),
-        bot_id: *msg_bot_id,
-        user_id: None,
-        session_id: Some(*msg_session_id),
-        phone_number: Some(msg_phone.to_string()),
-        direction: "inbound".to_string(),
-        content: msg_content.to_string(),
-        message_type: Some("text".to_string()),
+        session_id: *msg_session_id,
+        user_id: *msg_user_id,
+        role: 1,
+        content_encrypted: msg_content.to_string(),
+        message_type: 0,
+        media_url: None,
+        token_count: 0,
+        processing_time_ms: None,
+        llm_model: None,
         created_at: chrono::Utc::now(),
+        message_index: 0,
     };
 
     diesel::insert_into(crate::schema::message_history::table)
@@ -99,7 +98,7 @@ fn save_incoming_message(
 pub fn process_outbound_message(
     state: &Arc<WhatsAppState>,
     msg_bot_id: &uuid::Uuid,
-    msg_phone: &str,
+    msg_user_id: &uuid::Uuid,
     msg_session_id: &uuid::Uuid,
     msg_content: &str,
 ) {
@@ -115,14 +114,17 @@ pub fn process_outbound_message(
 
     let new_msg = NewMessage {
         id: uuid::Uuid::new_v4(),
-        bot_id: *msg_bot_id,
-        user_id: None,
-        session_id: Some(*msg_session_id),
-        phone_number: Some(msg_phone.to_string()),
-        direction: "outbound".to_string(),
-        content: msg_content.to_string(),
-        message_type: Some("text".to_string()),
+        session_id: *msg_session_id,
+        user_id: *msg_user_id,
+        role: 2,
+        content_encrypted: msg_content.to_string(),
+        message_type: 0,
+        media_url: None,
+        token_count: 0,
+        processing_time_ms: None,
+        llm_model: None,
         created_at: chrono::Utc::now(),
+        message_index: 0,
     };
 
     if let Err(e) = diesel::insert_into(crate::schema::message_history::table)

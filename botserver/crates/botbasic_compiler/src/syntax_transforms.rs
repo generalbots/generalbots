@@ -328,7 +328,7 @@ pub fn convert_if_then_syntax(script: &str) -> String {
                 || upper.starts_with("PRINT ")
                 || upper.starts_with("MERGE ")
                 || upper.starts_with("UPDATE ");
-            let ends_with_block_brace = trimmed.ends_with('}') && !is_keyword_stmt;
+            let ends_with_block_brace = trimmed.ends_with('}') && !is_keyword_stmt && !trimmed.contains("#{");
             let needs_semicolon = !trimmed.ends_with(';')
                 && !trimmed.ends_with('{')
                 && !ends_with_block_brace
@@ -694,7 +694,7 @@ pub fn convert_multiword_keywords(script: &str) -> String {
                 // skip comment/blank lines entirely — Rhai doesn't understand ' as comment
             } else if is_decl || is_control {
                 result.push_str(line);
-            } else if trimmed_line.ends_with(';') || trimmed_line.ends_with('{') || trimmed_line.ends_with('}') || trimmed_line.ends_with(':') {
+            } else if trimmed_line.ends_with(';') || trimmed_line.ends_with('{') || (trimmed_line.ends_with('}') && !trimmed_line.contains("#{")) || trimmed_line.ends_with(':') {
                 result.push_str(line);
             } else {
                 result.push_str(line);
