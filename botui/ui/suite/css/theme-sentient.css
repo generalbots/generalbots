@@ -1043,7 +1043,7 @@
 
 [data-theme="sentient"] .message-user {
     background: var(--accent);
-    color: #000000;
+    color: var(--chat-fg1, var(--text, #ffffff));
 }
 
 [data-theme="sentient"] .message-bot {

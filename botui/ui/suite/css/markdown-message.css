@@ -153,14 +153,14 @@
 .message.user .message-content h1,
 .message.user .message-content h2,
 .message.user .message-content h3 {
-    color: #ffffff;
+    color: var(--chat-fg1, var(--text, #ffffff));
 }
 
 /* Headings in bot messages */
 .message.bot .message-content h1,
 .message.bot .message-content h2,
 .message.bot .message-content h3 {
-    color: #1a1a1a;
+    color: var(--text, #1a1a1a);
 }
 
 /* Code blocks */
