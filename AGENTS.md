@@ -365,7 +365,22 @@ sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
 **🚨 MANDATORY RULE: ALL bot tests MUST be done via browser (Chrome CDP port 9222).**
 **❌ FORBIDDEN to use WebSocket (node wscat, direct WS scripts) to test bots** — only the browser reflects the real state of the chat, suggestions, buttons and network errors.
 
-**Use remote Chrome on port 9222 for visual debugging.** The agent starts and controls the browser via CDP, opening one tab per subject/use case.
+**Use remote Chrome on port 9222 for visual debugging.** The agent starts and controls the browser via CDP, opening one tab per subject/use case, up to **max 10 tabs**.
+
+**Reusing local machine Chrome profile for persistent sessions:**
+To avoid re-scanning WhatsApp Web QR code on every restart, copy the machine's existing Chrome profile to a persistent temp directory and use it with `--user-data-dir`. Chrome enforces that `--remote-debugging-port` requires a non-default data directory, so the original profile cannot be used directly — a copy must be made.
+
+```bash
+# Copy existing profile (preserves WhatsApp Web session, cookies, logins)
+cp -a ~/.config/google-chrome /tmp/chrome-persistent-profile
+
+# Start with copied profile, max 10 tabs
+export DISPLAY=:1
+google-chrome --no-sandbox --disable-gpu --remote-debugging-port=9222 \
+  --remote-allow-origins=* \
+  --user-data-dir=/tmp/chrome-persistent-profile \
+  --start-maximized &
+```
 
 **Required workflow:**
 
@@ -373,16 +388,11 @@ sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
    ```bash
    ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep
    ```
-   If not running, start:
-   ```bash
-   export DISPLAY=:1
-   google-chrome --no-sandbox --remote-debugging-port=9222 --remote-allow-origins=* \
-     --user-data-dir=/tmp/chrome-debug --start-maximized &
-   ```
+   If not running, copy the profile and start (see above).
 
-2. **Each use case = a separate tab.** NEVER reuse tabs. Open a new tab via CDP:
+2. **Each use case = a separate tab** (max 10 total). NEVER reuse tabs. Open a new tab via CDP:
    ```bash
-   python3 -c "import requests; requests.put('http://localhost:9222/json/new?URL')"
+   python3 -c "import requests; requests.put('http://127.0.0.1:9222/json/new?URL')"
    ```
    Or manually in the already-open Chrome.
 

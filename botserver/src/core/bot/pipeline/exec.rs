@@ -200,7 +200,7 @@ pub async fn process_message_internal(
         base_system_prompt
     };
     let system_prompt = if channel == "whatsapp" {
-        format!("{system_prompt}\n\n---\nEsta conversa esta acontecendo no WhatsApp.")
+        format!("{system_prompt}\n\n---\nThis conversation is on WhatsApp.")
     } else {
         system_prompt
     };

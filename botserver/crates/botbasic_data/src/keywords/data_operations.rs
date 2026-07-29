@@ -1236,9 +1236,10 @@ fn execute_group_by(data: &Dynamic, field: &str) -> Result<Dynamic, Box<rhai::Ev
 fn dynamic_to_map(value: &Dynamic) -> HashMap<String, Dynamic> {
     let mut result = HashMap::new();
 
-    if let Some(map) = value.clone().try_cast::<Map>() {
-        for (k, v) in map {
-            result.insert(k.to_string(), v);
+    if value.is_map() {
+        let map = value.clone().cast::<Map>();
+        for (k, v) in map.iter() {
+            result.insert(k.to_string(), v.clone());
         }
     }
 
@@ -1246,7 +1247,11 @@ fn dynamic_to_map(value: &Dynamic) -> HashMap<String, Dynamic> {
 }
 
 fn dynamic_to_rhai_map(value: &Dynamic) -> Map {
-    value.clone().try_cast::<Map>().unwrap_or_default()
+    if value.is_map() {
+        value.clone().cast::<Map>()
+    } else {
+        Map::new()
+    }
 }
 
 fn parse_filter_clause(filter: &str) -> Result<String, Box<dyn Error + Send + Sync>> {

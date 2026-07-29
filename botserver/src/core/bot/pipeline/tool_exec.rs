@@ -96,11 +96,7 @@ pub fn is_generic_greeting(text: &str) -> bool {
         "ola", "oi", "hey", "hello", "hi", "bom dia", "boa tarde", "boa noite",
         "olá", "oie", "bem-vindo", "e ai", "e aí", "tudo bem", "td bem",
     ];
-    if greetings.contains(&trimmed.as_str()) {
-        return true;
-    }
-    let word_count = trimmed.split_whitespace().count();
-    word_count <= 2
+    greetings.contains(&trimmed.as_str())
 }
 
 pub async fn run_llm_tool_call(
