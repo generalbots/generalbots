@@ -10,7 +10,7 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "security", "deployment", "saas", "products", "sheet", "whatsapp"]
+default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "security", "deployment", "saas", "products", "sheet", "whatsapp", "facebook"]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
@@ -85,6 +85,7 @@ security = ["automation", "drive", "cache", "dep:botsecurity"]
 settings = ["automation", "drive", "cache"]
 
 whatsapp = ["automation", "drive", "cache", "dep:botwhatsapp"]
+facebook = ["automation", "drive", "cache", "dep:botfacebook"]
 telegram = ["automation", "drive", "cache", "dep:bottelegram"]
 instagram = ["automation", "drive", "cache", "dep:botinstagram"]
 msteams = ["automation", "drive", "cache", "dep:botmsteams"]
@@ -345,6 +346,7 @@ botsources = { workspace = true, optional = true }
 botpaper = { workspace = true, optional = true }
 bottasks = { workspace = true, optional = true }
 botwhatsapp = { workspace = true, optional = true }
+botfacebook = { workspace = true, optional = true }
 botattendance = { workspace = true, optional = true }
 bottelegram = { workspace = true, optional = true }
 botmsteams = { workspace = true, optional = true }
