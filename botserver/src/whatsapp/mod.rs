@@ -38,6 +38,13 @@ fn find_bot_by_phone_number_id(pool: &DbPool, phone_number_id: &str) -> Option<(
 
 fn find_first_active_bot(pool: &DbPool) -> Option<(Uuid, String)> {
     let mut conn = pool.get_timeout(std::time::Duration::from_secs(2)).ok()?;
+    // Prefer cristo bot if it exists and is active
+    if let Ok(row) = diesel::sql_query(
+        "SELECT id, name FROM bots WHERE name = 'cristo' AND is_active = true LIMIT 1"
+    ).get_result::<BotLookupRow>(&mut conn) {
+        return Some((row.id, row.name));
+    }
+    // Fallback to first active bot
     diesel::sql_query(
         "SELECT id, name FROM bots WHERE is_active = true ORDER BY created_at ASC LIMIT 1"
     )
