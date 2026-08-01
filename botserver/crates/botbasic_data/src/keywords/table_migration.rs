@@ -72,14 +72,14 @@ pub fn sync_table_schema(
 
     let table_name = sanitize_identifier(&table.name);
     let defined_col_names: std::collections::HashSet<String> =
-        table.fields.iter().map(|f| f.name.clone()).collect();
+        table.fields.iter().map(|f| f.name.to_lowercase()).collect();
     let existing_col_names: std::collections::HashSet<String> =
-        existing_columns.iter().map(|c| c.name.clone()).collect();
+        existing_columns.iter().map(|c| c.name.to_lowercase()).collect();
 
     // Add missing columns
     let mut missing_columns: Vec<&FieldDefinition> = Vec::new();
     for field in &table.fields {
-        if !existing_col_names.contains(&field.name) {
+        if !existing_col_names.contains(&field.name.to_lowercase()) {
             missing_columns.push(field);
         }
     }
@@ -96,7 +96,7 @@ pub fn sync_table_schema(
             let column_sql = format!(
                 "ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {}",
                 &table_name,
-                sanitize_identifier(&field.name),
+                sanitize_identifier(&field.name.to_lowercase()),
                 sql_type
             );
 
@@ -132,7 +132,8 @@ pub fn sync_table_schema(
     // Drop columns that were removed from definition (with protection)
     let mut orphaned_columns: Vec<&DbColumn> = Vec::new();
     for col in existing_columns {
-        if !defined_col_names.contains(&col.name) && !PROTECTED_COLUMNS.contains(&col.name.as_str())
+        if !defined_col_names.contains(&col.name.to_lowercase())
+            && !PROTECTED_COLUMNS.contains(&col.name.as_str())
         {
             orphaned_columns.push(col);
         }
@@ -287,11 +288,11 @@ pub fn validate_table_schema(
 ) -> Result<bool, Box<dyn Error + Send + Sync>> {
     let existing_columns = get_table_columns(table_name, conn)?;
     let existing_col_names: std::collections::HashSet<String> =
-        existing_columns.iter().map(|c| c.name.clone()).collect();
+        existing_columns.iter().map(|c| c.name.to_lowercase()).collect();
 
     let mut missing = Vec::new();
     for field in required_fields {
-        if !existing_col_names.contains(&field.name) {
+        if !existing_col_names.contains(&field.name.to_lowercase()) {
             missing.push(field.name.clone());
         }
     }

@@ -504,4 +504,38 @@
     if (t) return t;
     return localStorage.getItem("gb-refresh-token") || null;
   };
+
+  // Cross-tab logout synchronization.
+  //
+  // The `storage` event fires ONLY in OTHER tabs when this tab writes to
+  // localStorage. The tab performing logout writes `gb-logout-signal`
+  // (a timestamp) and then navigates to /login itself. Every other tab
+  // hears the event and redirects to the login page, ensuring a logout in
+  // one tab logs everyone out.
+  var LOGOUT_SIGNAL_KEY = "gb-logout-signal";
+  var redirectingToLogin = false;
+
+  function forceRedirectToLogin() {
+    if (redirectingToLogin) return;
+    redirectingToLogin = true;
+    sessionStorage.setItem("gb-signed-out", "true");
+    window.location.replace(window.GB_LOGIN_URL || "/login");
+  }
+
+  window.addEventListener("storage", function (event) {
+    if (event.key === LOGOUT_SIGNAL_KEY && event.newValue) {
+      console.log("[GBSecurity] Logout signal detected from another tab");
+      GBSecurity.clearTokens();
+      forceRedirectToLogin();
+    }
+  });
+
+  // Broadcast a logout signal so other tabs close their sessions.
+  GBSecurity.broadcastLogout = function () {
+    try {
+      localStorage.setItem(LOGOUT_SIGNAL_KEY, String(Date.now()));
+    } catch (e) {
+      console.warn("[GBSecurity] Failed to broadcast logout signal:", e);
+    }
+  };
 })(window, document);

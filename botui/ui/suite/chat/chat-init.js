@@ -49,13 +49,14 @@ window.getChatSessionInfo = function () {
 function proceedWithChatInit() {
   var botName = window.__INITIAL_BOT_NAME__ || "default";
   var storageKey = "gb_chat_" + botName;
-  var stored = {};
-  try { stored = JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch (e) {}
 
   var authUrl = "/api/auth?bot_name=" + encodeURIComponent(botName);
-  if (stored.user_id) authUrl += "&user_id=" + encodeURIComponent(stored.user_id);
 
-  fetch(authUrl)
+  var authHeaders = {};
+  var gbToken = window.getGBAccessToken ? window.getGBAccessToken() : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token"));
+  if (gbToken) authHeaders["Authorization"] = "Bearer " + gbToken;
+
+  fetch(authUrl, { headers: authHeaders })
     .then(function (response) { return response.json(); })
     .then(function (auth) {
       ChatState.currentUserId = auth.user_id;

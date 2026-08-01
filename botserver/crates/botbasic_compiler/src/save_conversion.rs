@@ -58,6 +58,13 @@ impl BasicCompiler {
 
         let parts = self.parse_save_statement(content)?;
 
+        // If the SAVE uses an inline map literal (#{...}) as the data argument,
+        // do NOT convert — let the SAVE keyword handler process the map directly.
+        // Converting would split the map on commas and produce an empty #{}.
+        if parts.len() >= 2 && parts[1].trim_start().starts_with("#{") {
+            return Ok(None);
+        }
+
         if parts.len() <= 2 {
             return Ok(None);
         }

@@ -228,15 +228,9 @@ pub async fn process_message_internal(
             .ok().and_then(|v| v.parse().ok()).unwrap_or(10)
     };
 
-    // Detect if user is requesting a NEW service — if so, ignore old conversation data
-    let user_text_lower = user_text.to_lowercase();
-    let service_keywords = ["agendar", "novo batizado", "outro", "marcar", "quero um"];
-    let is_new_service = service_keywords.iter().any(|kw| user_text_lower.contains(kw));
-
     {
         let mut sm = state.session_manager.lock().await;
-        let effective_limit = if is_new_service { 0 } else { history_limit };
-        if let Ok(history) = sm.get_conversation_history(session_id, user_id, Some(effective_limit)) {
+        if let Ok(history) = sm.get_conversation_history(session_id, user_id, Some(history_limit)) {
             for (role, content) in history.iter() {
                 let api_role = match role.as_str() {
                     "user" => "user",

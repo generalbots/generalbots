@@ -1286,6 +1286,10 @@ document.addEventListener("DOMContentLoaded", () => {
           localStorage.removeItem("gb-refresh-token");
           localStorage.removeItem("gb-user-data");
           sessionStorage.removeItem("gb-access-token");
+          var i = 0, keys = [];
+          for (i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("gb_chat_") === 0) keys.push(k); }
+          keys.forEach(function (k) { localStorage.removeItem(k); });
+          if (window.GBSecurity && window.GBSecurity.broadcastLogout) window.GBSecurity.broadcastLogout();
           window.location.href = window.GB_LOGIN_URL || "/login";
         });
       };

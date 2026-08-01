@@ -33,6 +33,14 @@ pub async fn run_tool_exec(
     let ast_content = tool_content.unwrap_or_default();
 
     if !ast_content.is_empty() {
+        let work_path_obj = std::path::Path::new(&work_path);
+        let admin_only = crate::security::user_role::tool_is_admin_only(
+            work_path_obj, bot_name, tool_name,
+        );
+        if admin_only && !crate::security::user_role::is_user_admin(&state.conn, user_id) {
+            log::info!("TOOL_EXEC: admin-only tool '{tool_name}' blocked for user {user_id}");
+            return;
+        }
         let state_for_tool = state.clone();
         let tool_name_clone = tool_name.to_string();
         let channel_name = channel.to_string();
@@ -154,6 +162,22 @@ pub async fn run_llm_tool_call(
         let rel_tool_path = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
         if !verify_path_within_workdir(&rel_tool_path) {
             log::error!("Path traversal detected in LLM tool_call for tool: {tool_name}");
+            return;
+        }
+
+        let work_path_obj = std::path::Path::new(&work_path);
+        let admin_only = crate::security::user_role::tool_is_admin_only(
+            work_path_obj, bot_name, &tool_name,
+        );
+        if admin_only && !crate::security::user_role::is_user_admin(&state.conn, user_id) {
+            log::info!("LLM tool_call: admin-only tool '{tool_name}' blocked for user {user_id}");
+            let resp = botlib::models::BotResponse::new(
+                &bot_uuid.to_string(), &session_id.to_string(),
+                &user_id.to_string(),
+                "<p>Acesso restrito a administradores. Esta ferramenta requer role admin.</p>",
+                sink.channel_type(),
+            );
+            let _ = sink.send_bot_response(&resp).await;
             return;
         }
 

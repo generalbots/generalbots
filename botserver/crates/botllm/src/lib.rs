@@ -585,7 +585,7 @@ impl LLMProvider for OpenAIClient {
                     info!("First tool: name={:?}", first_tool.get("name"));
                 }
 
-                if model.contains("deepseek") {
+                if model.contains("deepseek") && !self.base_url.contains("opencode.ai") {
                     let legacy_functions: Vec<Value> = tools_value
                         .iter()
                         .filter_map(|t| t.get("function").cloned())
