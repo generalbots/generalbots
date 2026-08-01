@@ -17,17 +17,29 @@ pub async fn get_answer_mode(state: &Arc<AppState>, session_id: &Uuid) -> Answer
         let key = format!("answer_mode:{session_id}");
         let mut conn = match cache.get_multiplexed_async_connection().await {
             Ok(c) => c,
-            Err(_) => return AnswerMode::Default,
+            Err(e) => {
+                log::debug!("answer_mode: cache conn failed for {session_id}: {e}");
+                return AnswerMode::Default;
+            }
         };
         let result: Result<String, _> = redis::cmd("GET")
             .arg(&key)
             .query_async(&mut conn)
             .await;
         return match result {
-            Ok(mode_str) => mode_str.parse::<AnswerMode>().unwrap_or(AnswerMode::Default),
-            Err(_) => AnswerMode::Default,
+            Ok(mode_str) => {
+                let parsed = mode_str.parse::<AnswerMode>().unwrap_or(AnswerMode::Default);
+                log::debug!("answer_mode: session {session_id} -> mode '{mode_str}' parsed={:?}", parsed);
+                parsed
+            }
+            Err(e) => {
+                log::debug!("answer_mode: cache GET failed for {session_id}: {e}");
+                AnswerMode::Default
+            }
         };
     }
+    #[cfg(not(feature = "cache"))]
+    log::debug!("answer_mode: cache feature disabled, returning Default for {session_id}");
     AnswerMode::Default
 }
 
@@ -173,7 +185,10 @@ pub async fn generate_chart_response(
          4. Use single quotes for string literals\n\
          5. Table and column names should be lowercase\n\
          6. If using COUNT, SUM, AVG, MIN, MAX or any aggregate function, you MUST include GROUP BY for all non-aggregated columns in SELECT\n\
-         7. Always include GROUP BY when counting or aggregating by a column\n\n\
+         7. Always include GROUP BY when counting or aggregating by a column\n\
+         8. DATE GROUPING: when grouping by a date column, ALWAYS format it for humans. Use EXTRACT(YEAR FROM <datecol>) or EXTRACT(MONTH FROM <datecol>) or TO_CHAR(<datecol>, 'YYYY-MM') and ALIAS the extracted value with a clear label (ex: 'mes', 'ano', 'periodo'). Never group by the raw date column when the user asks by month/year.\n\
+         9. NEVER return null or empty labels. If a date/aggregate column can be null, wrap it with COALESCE({{col}}, 'Sem registro') or filter it out with WHERE {{col}} IS NOT NULL.\n\
+         10. Do not fabricate data — if no rows match, the query still returns empty.\n\n\
          SQL:"
     );
 

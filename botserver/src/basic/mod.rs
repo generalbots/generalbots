@@ -13,6 +13,7 @@ pub mod keywords;
 pub struct ScriptService {
     pub engine: Engine,
     pub scope: Scope<'static>,
+    pub role: String,
 }
 
 impl ScriptService {
@@ -24,6 +25,8 @@ impl ScriptService {
         let scope = Scope::new();
         engine.set_allow_anonymous_fn(true);
         engine.set_allow_looping(true);
+
+        let role = crate::security::user_role::resolve_user_role(&state.conn, user.user_id);
 
         let state_for_local = state.clone();
         let runtime: Arc<dyn BasicRuntime> = Arc::new(AppStateBasicRuntime(state));
@@ -40,7 +43,7 @@ impl ScriptService {
         register_universal_messaging(state_for_local.clone(), user.clone(), &mut engine);
         send_mail_keyword(state_for_local, user, &mut engine);
 
-        Self { engine, scope }
+        Self { engine, scope, role }
     }
 
     pub fn inject_config_variables(&mut self, config_vars: HashMap<String, String>) {
@@ -79,6 +82,8 @@ impl ScriptService {
     }
 
     pub fn run(&mut self, ast_content: &str) -> Result<Dynamic, Box<EvalAltResult>> {
+        self.scope.set_or_push("ROLE", Dynamic::from(self.role.clone()));
+        self.scope.set_or_push("role", Dynamic::from(self.role.clone()));
         if let Err(e) = std::fs::write("/tmp/run_ast_input.txt", ast_content) {
             log::warn!("Failed to write /tmp/run_ast_input.txt: {}", e);
         }

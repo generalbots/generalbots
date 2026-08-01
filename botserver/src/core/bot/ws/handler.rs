@@ -90,7 +90,7 @@ pub async fn websocket_handler(
     Query(params): Query<WsQuery>,
 ) -> axum::response::Response {
     let session_id = params.session_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
-    let user_id = params.user_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
+    let user_id = params.user_id.as_deref().map(crate::security::user_role::derive_stable_user_uuid).unwrap_or_else(Uuid::new_v4);
     let raw_bot_name = params.bot_name.clone().unwrap_or_else(|| "default".to_string());
     let bot_name = match validate_bot_name(&raw_bot_name) {
         Ok(name) => name,
@@ -130,7 +130,7 @@ pub async fn websocket_handler_with_bot(
     };
     params.bot_name = Some(bot_name.clone());
 
-    let user_id = params.user_id.as_ref().and_then(|s| Uuid::parse_str(s).ok()).unwrap_or_else(Uuid::new_v4);
+    let user_id = params.user_id.as_deref().map(crate::security::user_role::derive_stable_user_uuid).unwrap_or_else(Uuid::new_v4);
 
     if let Err(e) = check_bot_access(&state, &bot_name, user_id).await {
         warn!("WS access denied for bot {}: {}", bot_name, e);

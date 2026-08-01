@@ -846,7 +846,7 @@ async fn handle_login(
     }
 
     // Try Zitadel v2 sessions API for password verification
-    let zitadel_ok = match (&service.config.directory_api_url, &service.config.directory_service_token) {
+    let zitadel_user_id = match (&service.config.directory_api_url, &service.config.directory_service_token) {
         (Some(dir_url), Some(dir_token)) => {
             let client = reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(5))
@@ -864,14 +864,23 @@ async fn handle_login(
                     if let Some(host) = &service.config.directory_external_domain {
                         rb = rb.header("Host", host);
                     }
-                    matches!(rb.send().await, Ok(r) if r.status().is_success())
+                    match rb.send().await {
+                        Ok(r) if r.status().is_success() => {
+                            r.json::<serde_json::Value>().await
+                                .ok()
+                                .and_then(|v| v.get("factors").cloned())
+                                .and_then(|f| f.get("user").cloned())
+                                .and_then(|u| u.get("userId").cloned())
+                                .and_then(|uid| uid.as_str().map(|s| s.to_string()))
+                        }
+                        _ => None,
+                    }
                 }
-                None => false,
+                None => None,
             }
         }
-        _ => false,
+        _ => None,
     };
-    // If Zitadel failed, fall through to dev mode (no password verification)
 
     // Look up user in CRM contacts for JWT claims
     let mut conn = service.pool().get()
@@ -892,9 +901,13 @@ async fn handle_login(
         .as_secs() + 86400 * 7; // 7 days
 
     let header  = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
+    let sub = zitadel_user_id
+        .or_else(|| contact_opt.as_ref().map(|c| c.0.to_string()))
+        .or_else(|| lookup_admin_credentials_user_id(&body.email))
+        .unwrap_or_else(|| "guest".to_string());
     let payload_body = format!(
         "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
-        contact_opt.as_ref().map(|c| c.0.to_string()).unwrap_or_else(|| "guest".to_string()),
+        sub,
         body.email,
         exp
     );
@@ -934,6 +947,28 @@ fn base64_url_encode(input: &[u8]) -> String {
             if chunk.len() > 2 { chars[(n & 63) as usize] as char } else { '=' });
     }
     out
+}
+
+/// Fallback for local dev: resolves the Zitadel user_id for the bootstrap admin
+/// from `admin-credentials.json` when the Zitadel sessions API is unavailable.
+fn lookup_admin_credentials_user_id(email: &str) -> Option<String> {
+    let base = std::env::current_dir().ok()?;
+    let candidates = [
+        base.join("botserver-stack/conf/directory/admin-credentials.json"),
+        base.join("../botserver-stack/conf/directory/admin-credentials.json"),
+    ];
+    for candidate in candidates {
+        let content = std::fs::read_to_string(&candidate).ok()?;
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            let cred_email = json.get("email").and_then(|v| v.as_str()).unwrap_or("");
+            if cred_email.eq_ignore_ascii_case(email) {
+                if let Some(user_id) = json.get("user_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+                    return Some(user_id.to_string());
+                }
+            }
+        }
+    }
+    None
 }
 
 fn jwt_sign(header: &str, payload: &str, secret: &[u8]) -> Result<String, String> {

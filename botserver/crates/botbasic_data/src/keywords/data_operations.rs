@@ -645,7 +645,11 @@ fn execute_save(
         let sanitized_key = sanitize_identifier(key).to_lowercase();
         let value_str = value.to_string();
         let converted_value = convert_date_to_iso_format(&value_str);
-        let sanitized_value = format!("'{}'", sanitize_sql_value(&converted_value));
+        let sanitized_value = if converted_value.trim().is_empty() {
+            "NULL".to_string()
+        } else {
+            format!("'{}'", sanitize_sql_value(&converted_value))
+        };
         columns.push(sanitized_key.clone());
         values.push(sanitized_value.clone());
         update_sets.push(format!("{} = {}", sanitized_key, sanitized_value));
@@ -788,7 +792,11 @@ fn execute_insert(
         columns.push(sanitize_identifier(key));
         let value_str = value.to_string();
         let converted_value = convert_date_to_iso_format(&value_str);
-        values.push(format!("'{}'", sanitize_sql_value(&converted_value)));
+        if converted_value.trim().is_empty() {
+            values.push("NULL".to_string());
+        } else {
+            values.push(format!("'{}'", sanitize_sql_value(&converted_value)));
+        }
     }
 
     let query = format!(
@@ -843,11 +851,15 @@ fn execute_update(
     for (key, value) in &data_map {
         let value_str = value.to_string();
         let converted_value = convert_date_to_iso_format(&value_str);
-        update_sets.push(format!(
-            "{} = '{}'",
-            sanitize_identifier(key),
-            sanitize_sql_value(&converted_value)
-        ));
+        if converted_value.trim().is_empty() {
+            update_sets.push(format!("{} = NULL", sanitize_identifier(key)));
+        } else {
+            update_sets.push(format!(
+                "{} = '{}'",
+                sanitize_identifier(key),
+                sanitize_sql_value(&converted_value)
+            ));
+        }
     }
 
     let query = format!(
