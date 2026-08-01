@@ -98,7 +98,7 @@ pub fn get_store() -> &'static PlanStore {
 
 pub fn configure_plan_routes() -> Router {
     Router::new()
-        .route("/ws/plan/{plan_id}", get(handle_plan_websocket))
+        .route("/ws/plan/:plan_id", get(handle_plan_websocket))
         .route(
             "/api/plan/{plan_id}/collaborators",
             get(handle_get_plan_collaborators),
@@ -107,8 +107,8 @@ pub fn configure_plan_routes() -> Router {
             "/api/plan/{plan_id}/presence",
             get(handle_get_plan_presence),
         )
-        .route("/api/plan/{plan_id}/typing", get(handle_get_plan_typing))
-        .route("/api/plan/{plan_id}", get(handle_get_plan))
+        .route("/api/plan/:plan_id/typing", get(handle_get_plan_typing))
+        .route("/api/plan/:plan_id", get(handle_get_plan))
         .route("/api/plan/task", post(handle_create_task))
         .route("/api/plan/task/update", post(handle_update_task))
         .route("/api/plan/task/delete", post(handle_delete_task))

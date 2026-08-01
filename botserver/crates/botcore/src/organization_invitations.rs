@@ -616,12 +616,12 @@ impl InvitationService {
 
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/organizations/{org_id}/invitations", get(list_invitations))
+        .route("/organizations/:org_id/invitations", get(list_invitations))
         .route(
             "/organizations/{org_id}/invitations",
             post(create_invitation),
         )
-        .route("/organizations/{org_id}/invitations/bulk", post(bulk_invite))
+        .route("/organizations/:org_id/invitations/bulk", post(bulk_invite))
         .route(
             "/organizations/{org_id}/invitations/{invitation_id}",
             get(get_invitation),
@@ -636,7 +636,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         )
         .route("/invitations/accept", post(accept_invitation))
         .route("/invitations/decline", post(decline_invitation))
-        .route("/invitations/validate/{token}", get(validate_invitation))
+        .route("/invitations/validate/:token", get(validate_invitation))
 }
 
 async fn list_invitations(

@@ -54,35 +54,22 @@ END IF
 
 This hides private suggestions from non-admins and prevents the tools from being associated with non-admin sessions.
 
-### Marking Tools Admin-Only (defense in depth)
+### Execution Gate (declarative, no hardcoding)
 
-Add `"admin_only": true` to the tool's `.mcp.json`:
+The execution gate is **fully declarative** — there is no `admin_only` flag, no name-based convention, and no hardcoded list in the server. The server only executes a tool when the bot script associated it with the current session via `USE TOOL`:
 
-```json
-{
-  "name": "chart-batizados",
-  "description": "CONSULTA DE DADOS e ESTATISTICAS de batizados",
-  "input_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  },
-  "admin_only": true
-}
-```
+- `USE TOOL` writes the tool into `session_tool_associations` (see `botbasic_ai/src/keywords/use_tool.rs`)
+- Before executing any tool, both `run_llm_tool_call` and `run_tool_exec` (TOOL_EXEC / message_type 6) verify `is_tool_associated_with_session()` — if the script never associated the tool with that session, the call is skipped and logged
+- Because the script only runs `USE TOOL` inside `IF role = "admin"`, non-admin sessions never get the association, so the tool is neither offered to the LLM nor executable
 
-Even if a non-admin session somehow obtains the tool name, the execution gate blocks it:
-- `run_llm_tool_call` — blocks admin-only tools for non-admin users
-- `run_tool_exec` (TOOL_EXEC / message_type 6) — same check
-
-Tools whose name ends in `_update` are admin-only by convention (no `admin_only` flag required).
+This means the bot script (`.bas`) is the single source of truth for tool authorization — no server-side configuration required.
 
 ## Behavior Summary
 
 | Scenario | Role | Admin tools associated? | Private suggestions visible? | Admin tool execution |
 |----------|------|-------------------------|------------------------------|----------------------|
-| Anonymous web visitor | `user` | No | No | Blocked |
-| Logged-in non-admin | `user` | No | No | Blocked |
+| Anonymous web visitor | `user` | No | No | Skipped (not associated) |
+| Logged-in non-admin | `user` | No | No | Skipped (not associated) |
 | Admin (web login or WhatsApp admin number) | `admin` | Yes | Yes | Allowed |
 
 ## Related

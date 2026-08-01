@@ -13,11 +13,11 @@ use super::sync_types::*;
 pub fn external_sync_routes() -> Router<Arc<crate::CrateState>> {
     Router::new()
         .route("/sync/accounts", get(list_accounts_handler).post(connect_account_handler))
-        .route("/sync/accounts/{account_id}", get(get_account_handler).delete(disconnect_account_handler))
-        .route("/sync/accounts/{account_id}/sync", post(start_sync_handler))
-        .route("/sync/accounts/{account_id}/history", get(get_sync_history_handler))
-        .route("/sync/accounts/{account_id}/conflicts", get(get_conflicts_handler))
-        .route("/sync/mappings/{mapping_id}/resolve", post(resolve_conflict_handler))
+        .route("/sync/accounts/:account_id", get(get_account_handler).delete(disconnect_account_handler))
+        .route("/sync/accounts/:account_id/sync", post(start_sync_handler))
+        .route("/sync/accounts/:account_id/history", get(get_sync_history_handler))
+        .route("/sync/accounts/:account_id/conflicts", get(get_conflicts_handler))
+        .route("/sync/mappings/:mapping_id/resolve", post(resolve_conflict_handler))
 }
 
 fn make_service(_state: &crate::CrateState) -> ExternalSyncService {

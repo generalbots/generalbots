@@ -9,5 +9,5 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .route("/api/pos/products", post(handlers::create_product))
         .route("/api/pos/orders", get(handlers::list_orders))
         .route("/api/pos/orders", post(handlers::create_order))
-        .route("/api/pos/orders/{id}", get(handlers::get_order))
+        .route("/api/pos/orders/:id", get(handlers::get_order))
 }

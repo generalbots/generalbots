@@ -471,7 +471,7 @@ pub fn start_llm_server(
 
     let mut args_vec = vec![
         "-m", &model_path,
-        "--host", "0.0.0.0",
+        "--host", "127.0.0.1",
         "--port", port,
         "--top_p", "0.95",
         "--temp", "0.6",
@@ -574,7 +574,7 @@ pub async fn start_embedding_server(
 
     let mut args_vec = vec![
         "-m", &full_model_path,
-        "--host", "0.0.0.0",
+        "--host", "127.0.0.1",
         "--port", port,
         "--embeddings",
         "--pooling", "mean",

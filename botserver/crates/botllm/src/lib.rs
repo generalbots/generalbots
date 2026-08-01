@@ -414,8 +414,6 @@ impl LLMProvider for OpenAIClient {
         if let Some(msg_array) = messages.as_array() {
             trace!(" Messages: {} messages", msg_array.len());
         }
-        trace!(" API Key First 8 chars: '{}...'", &key.chars().take(8).collect::<String>());
-        trace!(" API Key Last 8 chars: '...{}'", &key.chars().rev().take(8).collect::<String>());
 
         let body = serde_json::json!({
             "model": model,
@@ -504,7 +502,11 @@ impl LLMProvider for OpenAIClient {
 
         let raw_messages =
             if messages.is_array() && !messages.as_array().unwrap_or(&vec![]).is_empty() {
-                info!("Using provided messages: {:?}", messages);
+                info!(
+                    "Using provided messages: {} messages ({} bytes)",
+                    messages.as_array().map(|a| a.len()).unwrap_or(0),
+                    messages.to_string().len()
+                );
                 messages
             } else {
                 &default_messages
@@ -708,8 +710,9 @@ impl LLMProvider for OpenAIClient {
 
         info!("LLM stream starting for model: {}", model);
 
-        let idle_timeout = std::time::Duration::from_secs(60);
-        loop {
+    let idle_timeout = std::time::Duration::from_secs(60);
+    const MAX_SSE_LINE_BUFFER: usize = 4 * 1024 * 1024;
+    loop {
             let chunk_result = match tokio::time::timeout(idle_timeout, chunk_rx.recv()).await {
                 Ok(Some(Ok(chunk))) => chunk,
                 Ok(Some(Err(e))) => return Err(format!("Stream error: {}", e).into()),
@@ -729,6 +732,14 @@ impl LLMProvider for OpenAIClient {
 
             // Accumulate lines across chunks to handle SSE fragmentation
             line_buffer.push_str(&chunk_str);
+            if line_buffer.len() > MAX_SSE_LINE_BUFFER {
+                log::error!(
+                    "LLM SSE line buffer exceeded {} bytes without newline, dropping partial line",
+                    MAX_SSE_LINE_BUFFER
+                );
+                line_buffer.clear();
+                continue;
+            }
             let mut pos = 0;
             while let Some(newline) = line_buffer[pos..].find('\n') {
                 let end = pos + newline;
@@ -874,7 +885,7 @@ impl LLMProvider for OpenAIClient {
             info!("LLM tool_call accumulated: {} with {} bytes args", tool_call_name, tool_call_args.len());
         }
 
-        info!("LLM stream done: size={} bytes, content_sent={}, reasoning={}B, first={:?}, last={}",
+        trace!("LLM stream done: size={} bytes, content_sent={}, reasoning={}B, first={:?}, last={}",
             total_size, content_sent, total_reasoning.len(), first_bytes, last_bytes);
 
         Ok(())

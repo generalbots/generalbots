@@ -145,16 +145,16 @@ pub struct ListQuery {
 pub fn configure_routes(state: Arc<WebaState>) -> Router {
     Router::new()
         .route("/apps", get(list_apps).post(create_app))
-        .route("/apps/{id}", get(get_app).put(update_app).delete(delete_app))
-        .route("/apps/{id}/pages", get(list_pages).post(create_page))
+        .route("/apps/:id", get(get_app).put(update_app).delete(delete_app))
+        .route("/apps/:id/pages", get(list_pages).post(create_page))
         .route(
             "/apps/{id}/pages/{page_id}",
             get(get_page).put(update_page).delete(delete_page),
         )
-        .route("/apps/{id}/publish", post(publish_app))
-        .route("/apps/{id}/preview", get(preview_app))
-        .route("/render/{slug}", get(render_app))
-        .route("/render/{slug}/*path", get(render_page))
+        .route("/apps/:id/publish", post(publish_app))
+        .route("/apps/:id/preview", get(preview_app))
+        .route("/render/:slug", get(render_app))
+        .route("/render/:slug/*path", get(render_page))
         .with_state(state)
 }
 

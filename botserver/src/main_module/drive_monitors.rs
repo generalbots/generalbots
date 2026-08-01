@@ -28,6 +28,9 @@ pub(crate) async fn start_drive_monitors(
     // Bootstrap: ensure branches table schema (migration 9.15) if diesel pipeline was blocked
     ensure_org_branches_schema(_pool);
 
+    // Bootstrap: ensure cloud_workspaces unique index (migration 6.5.31) if pipeline was blocked
+    ensure_cloud_workspaces_schema(_pool);
+
     // Bootstrap: ensure default tenant/org/branch/bot exist
     if let Err(e) = ensure_bootstrap_defaults(_pool) {
         error!("Bootstrap defaults failed: {}", e);
@@ -289,6 +292,53 @@ fn ensure_org_branches_schema(pool: &botcore::shared::utils::DbPool) {
     }
 }
 
+/// Ensure the cloud_workspaces unique index on branch_id exists (migration 6.5.31).
+/// One cloud workspace per Drive branch (.gbai prefix), so drive_monitor can
+/// upsert workspace rows and keep the cloud UI equal to Drive.
+fn ensure_cloud_workspaces_schema(pool: &botcore::shared::utils::DbPool) {
+    use diesel::sql_query;
+    if let Ok(mut conn) = pool.get() {
+        if let Err(e) = sql_query(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_workspaces_branch \
+             ON cloud_workspaces(branch_id)"
+        ).execute(&mut conn) {
+            warn!("ensure_cloud_workspaces_schema: failed to create unique index: {}", e);
+        }
+        trace!("ensure_cloud_workspaces_schema: unique index on cloud_workspaces(branch_id) ensured");
+    }
+}
+
+/// Upsert a cloud_workspaces row for a Drive branch (.gbai prefix) so the
+/// SaaS cloud UI lists every workspace that exists in Drive.
+fn ensure_cloud_workspace(
+    pool: &botcore::shared::utils::DbPool,
+    org_id: Uuid,
+    branch_id: Uuid,
+    branch_slug: &str,
+) -> Result<(), String> {
+    use diesel::sql_query;
+    let mut conn = pool.get().map_err(|e| e.to_string())?;
+
+    let ws_id = Uuid::new_v4();
+    sql_query(
+        "INSERT INTO cloud_workspaces (id, org_id, branch_id, name, description, icon, created_at, updated_at) \
+         VALUES ($1, $2, $3, $4, $5, 'default', NOW(), NOW()) \
+         ON CONFLICT (branch_id) DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(ws_id)
+    .bind::<diesel::sql_types::Uuid, _>(org_id)
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .bind::<diesel::sql_types::Text, _>(branch_slug)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(
+        Some(format!("Default workspace for {}", branch_slug)),
+    )
+    .execute(&mut conn)
+    .map_err(|e| format!("Failed to upsert cloud workspace '{}': {}", branch_slug, e))?;
+
+    info!("Cloud workspace '{}' ensured (org: {}, branch: {})", branch_slug, org_id, branch_id);
+    Ok(())
+}
+
 /// Sync tables.bas for a bot within a .gborg bucket structure.
 async fn sync_tables_for_org_bot(
     state: &Arc<AppState>,
@@ -372,6 +422,16 @@ async fn process_org_bucket(
                         continue;
                     }
                     let branch_slug = prefix.strip_suffix(".gbai/").unwrap_or(&prefix).to_string();
+
+                    // Ensure branch record + cloud workspace row (mirrors Drive in cloud UI)
+                    match ensure_branch_exists(pool, &branch_slug, org_id, tenant_id) {
+                        Ok(branch_id) => {
+                            if let Err(e) = ensure_cloud_workspace(pool, org_id, branch_id, &branch_slug) {
+                                warn!("Failed to ensure cloud workspace for branch '{}': {}", branch_slug, e);
+                            }
+                        }
+                        Err(e) => warn!("Failed to ensure branch '{}': {}", branch_slug, e),
+                    }
 
                     // Discover bot names within this branch
                     discover_and_create_bots(
@@ -497,7 +557,11 @@ async fn scan_org_bucket(
                 continue;
             }
 
-            ensure_branch_exists(pool, &branch_slug, org_id, tenant_id)?;
+            // Ensure branch + cloud workspace row mirror this Drive branch
+            let branch_id = ensure_branch_exists(pool, &branch_slug, org_id, tenant_id)?;
+            if let Err(e) = ensure_cloud_workspace(pool, org_id, branch_id, &branch_slug) {
+                warn!("Failed to ensure cloud workspace for branch '{}': {}", branch_slug, e);
+            }
 
             // Discover bots within branch
             discover_and_create_bots(

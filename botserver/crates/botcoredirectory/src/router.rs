@@ -15,15 +15,15 @@ pub fn configure() -> Router<Arc<AppState>> {
         // --- Organizations ---
         .route("/organizations/list", get(organizations::list_organizations))
         .route("/organizations/create", post(organizations::create_organization))
-        .route("/organizations/{org_id}", get(organizations::get_organization))
+        .route("/organizations/:org_id", get(organizations::get_organization))
         // --- Users CRUD ---
         .route("/users/create", post(users::create_user))
-        .route("/users/{user_id}/update", put(users::update_user))
-        .route("/users/{user_id}/delete", delete(users::delete_user))
+        .route("/users/:user_id/update", put(users::update_user))
+        .route("/users/:user_id/delete", delete(users::delete_user))
         .route("/users/list", get(users::list_users))
         .route("/users/search", get(users::list_users))
-        .route("/users/{user_id}/profile", get(users::get_user_profile))
-        .route("/users/{user_id}/profile/update", put(users::update_user))
+        .route("/users/:user_id/profile", get(users::get_user_profile))
+        .route("/users/:user_id/profile/update", put(users::update_user))
         // --- Users organization ---
         .route(
             "/users/{user_id}/organization",
@@ -42,12 +42,12 @@ pub fn configure() -> Router<Arc<AppState>> {
             get(users::get_user_memberships),
         )
         // --- Users settings / permissions / roles ---
-        .route("/users/{user_id}/settings", get(users::get_user_profile))
-        .route("/users/{user_id}/permissions", get(users::get_user_permissions))
-        .route("/users/{user_id}/roles", get(users::get_user_memberships))
-        .route("/users/{user_id}/status", get(users::get_user_profile))
-        .route("/users/{user_id}/presence", get(users::get_user_presence))
-        .route("/users/{user_id}/activity", get(users::get_user_activity))
+        .route("/users/:user_id/settings", get(users::get_user_profile))
+        .route("/users/:user_id/permissions", get(users::get_user_permissions))
+        .route("/users/:user_id/roles", get(users::get_user_memberships))
+        .route("/users/:user_id/status", get(users::get_user_profile))
+        .route("/users/:user_id/presence", get(users::get_user_presence))
+        .route("/users/:user_id/activity", get(users::get_user_activity))
         // --- Users security ---
         .route(
             "/users/{user_id}/security/2fa/enable",
@@ -72,12 +72,12 @@ pub fn configure() -> Router<Arc<AppState>> {
         )
         // --- Groups CRUD ---
         .route("/groups/create", post(groups::create_group))
-        .route("/groups/{group_id}/update", put(groups::update_group))
-        .route("/groups/{group_id}/delete", delete(groups::delete_group))
+        .route("/groups/:group_id/update", put(groups::update_group))
+        .route("/groups/:group_id/delete", delete(groups::delete_group))
         .route("/groups/list", get(groups::list_groups))
         .route("/groups/search", get(groups::list_groups))
         // --- Groups members ---
-        .route("/groups/{group_id}/members", get(groups::get_group_members))
+        .route("/groups/:group_id/members", get(groups::get_group_members))
         .route(
             "/groups/{group_id}/members/add",
             post(groups::add_group_member),
@@ -87,10 +87,10 @@ pub fn configure() -> Router<Arc<AppState>> {
             post(groups::update_group_member_roles),
         )
         // --- Groups KBs ---
-        .route("/groups/{group_id}/kbs", get(groups::get_group_kbs))
-        .route("/groups/{group_id}/kbs/toggle/{kb_id}", post(groups::toggle_group_kb))
+        .route("/groups/:group_id/kbs", get(groups::get_group_kbs))
+        .route("/groups/:group_id/kbs/toggle/:kb_id", post(groups::toggle_group_kb))
         // --- Groups info ---
-        .route("/groups/{group_id}/settings", get(groups::get_group_settings))
+        .route("/groups/:group_id/settings", get(groups::get_group_settings))
         .route(
             "/groups/{group_id}/permissions",
             get(groups::get_group_permissions),

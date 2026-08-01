@@ -8,7 +8,7 @@ pub fn configure_video_ui_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/suite/video", get(handle_video_list_page))
         .route("/suite/video/upload", get(handle_video_upload_page))
-        .route("/suite/video/{id}", get(handle_video_detail_page))
+        .route("/suite/video/:id", get(handle_video_detail_page))
 }
 
 pub async fn handle_video_list_page(

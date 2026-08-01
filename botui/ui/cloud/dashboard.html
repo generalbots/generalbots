@@ -184,9 +184,9 @@
   async function loadDashboard() {
     try {
       const [orgRes, svcRes, invRes] = await Promise.all([
-        fetch('/api/cloud/organizations', { headers: authHeaders }),
-        fetch('/api/cloud/services', { headers: authHeaders }),
-        fetch('/api/cloud/invoices', { headers: authHeaders }),
+        cloudFetch('/api/cloud/organizations'),
+        cloudFetch('/api/cloud/services'),
+        cloudFetch('/api/cloud/invoices'),
       ]);
 
       const orgs = orgRes.ok ? (await orgRes.json()).organizations || [] : [];
@@ -253,6 +253,11 @@
         if (storageNote) storageNote.textContent = 'Pool storage across all workspaces.';
         if (wsNote) wsNote.textContent = 'Shared max: 5. Private Cloud: unlimited.';
         if (orgNote) orgNote.textContent = 'Shared max: 5 orgs. Private Cloud: unlimited.';
+      } else if (currentPlan === 'private-cloud') {
+        if (msgsNote) msgsNote.textContent = 'Tenant admin: unlimited.';
+        if (storageNote) storageNote.textContent = 'Tenant admin: unlimited storage.';
+        if (wsNote) wsNote.textContent = 'Tenant admin: unlimited workspaces.';
+        if (orgNote) orgNote.textContent = 'Tenant admin: unlimited organizations.';
       }
 
       // Usage bars with plan-aware limits
@@ -263,16 +268,16 @@
       // Load plan limits
       let planLimits = { messages: 'Unlimited', storage: 50, workspaces: 5, orgs: 5 };
       try {
-        const plansRes = await fetch('/api/cloud/plans', { headers: authHeaders });
+        const plansRes = await cloudFetch('/api/cloud/plans');
         if (plansRes.ok) {
           const plansData = await plansRes.json();
           const planDef = plansData.plans && plansData.plans[currentPlan];
           if (planDef && planDef.limits) {
             planLimits = {
-              messages: planDef.limits.messages_per_day === 0 ? 'Unlimited' : String(planDef.limits.messages_per_day),
-              storage: planDef.limits.storage_mb / 1024 || 50,
-              workspaces: planDef.limits.bots || 5,
-              orgs: planDef.limits.users || 5,
+              messages: planDef.limits.messages_per_day == null || planDef.limits.messages_per_day === 0 ? 'Unlimited' : String(planDef.limits.messages_per_day),
+              storage: planDef.limits.storage_mb == null ? 'Unlimited' : String(planDef.limits.storage_mb / 1024),
+              workspaces: planDef.limits.bots == null ? 'Unlimited' : planDef.limits.bots,
+              orgs: planDef.limits.users == null ? 'Unlimited' : planDef.limits.users,
             };
           }
         }
@@ -283,18 +288,18 @@
       document.getElementById('usage-msgs-bar').style.width = '5%';
       document.getElementById('usage-msgs-bar').className = 'usage-bar-fill';
 
-      document.getElementById('usage-storage-label').textContent = storageGB + ' GB / ' + planLimits.storage + ' GB';
-      const storagePct = Math.min((storageGB / planLimits.storage) * 100, 100);
+      document.getElementById('usage-storage-label').textContent = planLimits.storage === 'Unlimited' ? '0 GB / Unlimited' : '0 GB / ' + planLimits.storage + ' GB';
+      const storagePct = planLimits.storage === 'Unlimited' ? 0 : Math.min((storageGB / planLimits.storage) * 100, 100);
       document.getElementById('usage-storage-bar').style.width = storagePct + '%';
       document.getElementById('usage-storage-bar').className = 'usage-bar-fill' + (storagePct > 80 ? ' warning' : '');
 
-      document.getElementById('usage-ws-label').textContent = wsCount + ' / ' + planLimits.workspaces;
-      const wsPct = Math.min((wsCount / planLimits.workspaces) * 100, 100);
+      document.getElementById('usage-ws-label').textContent = planLimits.workspaces === 'Unlimited' ? '0 / Unlimited' : wsCount + ' / ' + planLimits.workspaces;
+      const wsPct = planLimits.workspaces === 'Unlimited' ? 0 : Math.min((wsCount / planLimits.workspaces) * 100, 100);
       document.getElementById('usage-ws-bar').style.width = wsPct + '%';
       document.getElementById('usage-ws-bar').className = 'usage-bar-fill' + (wsPct > 80 ? ' warning' : '');
 
-      document.getElementById('usage-org-label').textContent = orgCount + ' / ' + planLimits.orgs;
-      const orgPct = Math.min((orgCount / planLimits.orgs) * 100, 100);
+      document.getElementById('usage-org-label').textContent = planLimits.orgs === 'Unlimited' ? orgCount + ' / Unlimited' : orgCount + ' / ' + planLimits.orgs;
+      const orgPct = planLimits.orgs === 'Unlimited' ? 0 : Math.min((orgCount / planLimits.orgs) * 100, 100);
       document.getElementById('usage-org-bar').style.width = orgPct + '%';
       document.getElementById('usage-org-bar').className = 'usage-bar-fill' + (orgPct > 80 ? ' warning' : '');
 
@@ -318,7 +323,7 @@
   // Load user's bots with chat links
   async function loadBots() {
     try {
-      const res = await fetch('/api/cloud/bots', { headers: authHeaders });
+      const res = await cloudFetch('/api/cloud/bots');
       if (!res.ok) { document.getElementById('bots-grid').textContent = 'Could not load bots'; return; }
       const data = await res.json();
       const bots = data.bots || [];

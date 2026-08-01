@@ -30,21 +30,21 @@ const RES_ITEMS = {
 async function loadOrgs() {
   const token = requireAuth();
   try {
-    const res = await fetch(API + '/organizations', { headers: { 'Authorization': 'Bearer ' + token } });
+    const res = await cloudFetch(API + '/organizations', );
     if (!res.ok) { return renderOrgs(); }
     const data = await res.json();
     orgs = data.organizations || [];
     // Fetch workspace counts per org
     for (const o of orgs) {
       try {
-        const wr = await fetch(API + '/organizations/' + o.id + '/workspaces', { headers: { 'Authorization': 'Bearer ' + token } });
+        const wr = await cloudFetch(API + '/organizations/' + o.id + '/workspaces', );
         if (!wr.ok) continue;
         const wd = await wr.json();
         o.wsCount = (wd.workspaces || []).length;
         o.resCount = 0;
         for (const ws of (wd.workspaces || [])) {
           try {
-            const rr = await fetch(API + '/organizations/' + o.id + '/workspaces/' + ws.id + '/resources', { headers: { 'Authorization': 'Bearer ' + token } });
+            const rr = await cloudFetch(API + '/organizations/' + o.id + '/workspaces/' + ws.id + '/resources', );
             if (!rr.ok) continue;
             const rd = await rr.json();
             o.resCount += (rd.resources || []).length;
@@ -65,7 +65,7 @@ function renderOrgs() {
   el.innerHTML = orgs.map(o => `
     <div class="org-card" onclick="showOrgDetail('${o.id}')">
       <div class="org-card-icon">${(o.name||'O')[0].toUpperCase()}</div>
-      <div class="org-card-name">${esc(o.name)}</div>
+      <div class="org-card-name">${esc(o.name)}<span class="org-card-suffix">.gborg</span></div>
       <div class="org-card-plan">${o.plan || 'free'} plan</div>
       <div class="org-card-stats">
         <div class="org-card-stat"><div class="org-card-stat-num">${o.wsCount || 0}</div><div class="org-card-stat-label">Workspaces</div></div>
@@ -85,10 +85,10 @@ async function createOrg() {
   if (!name) return alert('Enter a name');
 
   const token = requireAuth();
-  const res = await fetch(API + '/organizations', {
+  const res = await cloudFetch(API + '/organizations', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-    body: JSON.stringify({ name, plan }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, plan })
   });
   const data = await res.json();
   if (!res.ok) return alert(data.detail || 'Failed to create');
@@ -113,10 +113,10 @@ async function updateOrg() {
   if (!orgId) return alert('No organization selected');
 
   const token = requireAuth();
-  const res = await fetch(API + '/organizations/' + orgId, {
+  const res = await cloudFetch(API + '/organizations/' + orgId, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-    body: JSON.stringify({ name }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
   });
   if (!res.ok) { const d = await res.json(); return alert(d.detail || 'Failed to update'); }
   hideEditOrg();
@@ -128,7 +128,7 @@ async function updateOrg() {
 async function deleteOrg(orgId, name) {
   if (!confirm(`Delete organization "${name}"?\n\nThis will also remove all workspaces and resources. This action cannot be undone.`)) return;
   const token = requireAuth();
-  const res = await fetch(API + '/organizations/' + orgId, {
+  const res = await cloudFetch(API + '/organizations/' + orgId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
   });
   if (!res.ok) { const d = await res.json(); return alert(d.detail || 'Failed to delete'); }
@@ -143,7 +143,7 @@ async function showOrgDetail(orgId) {
   const safeName = jesc(org.name);
   document.getElementById('org-detail-header').innerHTML = `
     <div class="org-detail-icon">${(org.name||'O')[0].toUpperCase()}</div>
-    <div><div class="org-detail-name">${esc(org.name)}</div><div class="org-detail-plan">${org.plan || 'free'} plan</div>
+    <div><div class="org-detail-name">${esc(org.name)}<span class="org-detail-suffix" style="color:var(--muted)">.gborg</span></div><div class="org-detail-plan">${org.plan || 'free'} plan</div>
     <div class="org-detail-meta">ID: ${orgId}</div></div>
     <div class="org-detail-actions">
       <button class="btn btn-secondary btn-sm" onclick="showEditOrg('${orgId}','${safeName}')">Edit</button>
@@ -157,6 +157,8 @@ async function showOrgDetail(orgId) {
 
   // store org_id for create workspace
   document.getElementById('ws-list').setAttribute('data-org-id', orgId);
+  const bcOrg = document.getElementById('org-breadcrumb-name');
+  if (bcOrg) bcOrg.textContent = esc(org.name) + '.gborg';
   await loadWorkspaces(orgId);
 }
 
@@ -173,7 +175,7 @@ async function loadWorkspaces(orgId) {
   const el = document.getElementById('ws-list');
   if (!el) return;
   try {
-    const res = await fetch(API + '/organizations/' + orgId + '/workspaces', { headers: { 'Authorization': 'Bearer ' + token } });
+    const res = await cloudFetch(API + '/organizations/' + orgId + '/workspaces', );
     if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);padding:1rem">Failed to load workspaces.</div>'; return; }
     const data = await res.json();
     const wss = data.workspaces || [];
@@ -184,7 +186,7 @@ async function loadWorkspaces(orgId) {
     // Fetch resource counts per workspace
     for (const ws of wss) {
       try {
-        const rr = await fetch(API + '/organizations/' + orgId + '/workspaces/' + ws.id + '/resources', { headers: { 'Authorization': 'Bearer ' + token } });
+        const rr = await cloudFetch(API + '/organizations/' + orgId + '/workspaces/' + ws.id + '/resources', );
         if (!rr.ok) continue;
         const rd = await rr.json();
         ws.resCount = (rd.resources || []).length;
@@ -195,7 +197,7 @@ async function loadWorkspaces(orgId) {
       return `<div class="ws-card">
         <div class="ws-card-header">
           <div class="ws-card-icon">${ws.icon || '⊞'}</div>
-          <div class="ws-card-name">${esc(ws.name)}</div>
+          <div class="ws-card-name">${esc(ws.name)}<span class="ws-card-suffix" style="color:var(--muted)">.gbai</span></div>
         </div>
         <div class="ws-card-desc">${ws.description ? esc(ws.description) : 'No description'}</div>
         <div class="ws-card-footer">
@@ -220,10 +222,10 @@ async function createWorkspace() {
   if (!currentOrgId) return alert('No organization selected');
 
   const token = requireAuth();
-  const res = await fetch(API + '/organizations/' + currentOrgId + '/workspaces', {
+  const res = await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-    body: JSON.stringify({ name, description: desc || null }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, description: desc || null })
   });
   const data = await res.json();
   if (!res.ok) return alert(data.detail || 'Failed');
@@ -236,42 +238,57 @@ async function createWorkspace() {
 // ── Workspace detail / resources ──
 async function showWsDetail(wsId, wsName) {
   currentWsId = wsId;
-  document.getElementById('ws-detail-title').textContent = wsName;
-  document.getElementById('delete-ws-btn').onclick = () => deleteWorkspace(wsId);
-  await loadResources(wsId);
-  document.getElementById('ws-detail-modal').classList.add('open');
+  const titleEl = document.getElementById('ws-detail-title');
+  if (titleEl) titleEl.textContent = wsName + '.gbai';
+  const org = orgs.find(o => o.id === currentOrgId) || {};
+  const bcOrg = document.getElementById('ws-breadcrumb-org');
+  const bcName = document.getElementById('ws-breadcrumb-name');
+  if (bcOrg) bcOrg.textContent = (org.name || 'org') + '.gborg';
+  if (bcName) bcName.textContent = wsName + '.gbai';
+  const delBtn = document.getElementById('delete-ws-btn');
+  if (delBtn) delBtn.onclick = () => deleteWorkspace(wsId);
+  // Open the modal first so a slow/failed resources fetch never blocks the UI
+  const modal = document.getElementById('ws-detail-modal');
+  if (modal) modal.classList.add('open');
+  try { await loadResources(wsId); } catch (_) { /* resources render separately */ }
 }
 
 function hideWsDetail() { document.getElementById('ws-detail-modal').classList.remove('open'); currentWsId = null; }
 
 async function loadResources(wsId) {
-  const token = requireAuth();
-  const res = await fetch(API + '/organizations/' + currentOrgId + '/workspaces/' + wsId + '/resources', { headers: { 'Authorization': 'Bearer ' + token } });
-  const data = await res.json();
-  const resources = data.resources || [];
   const el = document.getElementById('ws-resources');
-  if (!resources.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">No resources assigned yet.</div>';
-    return;
+  if (!el) return;
+  try {
+    const res = await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + wsId + '/resources', );
+    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Could not load resources.</div>'; return; }
+    const data = await res.json();
+    const resources = data.resources || [];
+    if (!resources.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">No resources assigned yet.</div>';
+      return;
+    }
+    el.innerHTML = resources.map(r => {
+      const typeClass = r.resource_type === 'compute' ? 'compute' : r.resource_type === 'storage' ? 'storage' : r.resource_type === 'phone' ? 'phone' : 'comms';
+      const statusClass = r.status === 'active' ? 'active' : 'provisioning';
+      const typeLabel = r.resource_type === 'compute' ? '⚡' : r.resource_type === 'storage' ? '💾' : r.resource_type === 'phone' ? '📞' : '🌐';
+      return `<div class="res-row">
+        <div class="res-icon ${typeClass}">${typeLabel}</div>
+        <div class="res-info"><div class="res-name">${esc(r.name)}</div><div class="res-meta">${r.resource_type} · ${r.store_item_id}</div></div>
+        <span class="res-status ${statusClass}">${r.status}</span>
+        <button class="btn btn-ghost btn-sm" onclick="removeResource('${r.id}')">✕</button>
+      </div>`;
+    }).join('');
+    const assignModal = document.getElementById('assign-res-modal');
+    if (assignModal) assignModal.setAttribute('data-ws-id', wsId);
+  } catch (_) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Could not load resources.</div>';
   }
-  el.innerHTML = resources.map(r => {
-    const typeClass = r.resource_type === 'compute' ? 'compute' : r.resource_type === 'storage' ? 'storage' : r.resource_type === 'phone' ? 'phone' : 'comms';
-    const statusClass = r.status === 'active' ? 'active' : 'provisioning';
-    const typeLabel = r.resource_type === 'compute' ? '⚡' : r.resource_type === 'storage' ? '💾' : r.resource_type === 'phone' ? '📞' : '🌐';
-    return `<div class="res-row">
-      <div class="res-icon ${typeClass}">${typeLabel}</div>
-      <div class="res-info"><div class="res-name">${esc(r.name)}</div><div class="res-meta">${r.resource_type} · ${r.store_item_id}</div></div>
-      <span class="res-status ${statusClass}">${r.status}</span>
-      <button class="btn btn-ghost btn-sm" onclick="removeResource('${r.id}')">✕</button>
-    </div>`;
-  }).join('');
-  document.getElementById('assign-res-modal').setAttribute('data-ws-id', wsId);
 }
 
 async function removeResource(resId) {
   if (!confirm('Remove this resource?')) return;
   const token = requireAuth();
-  await fetch(API + '/organizations/' + currentOrgId + '/workspaces/' + currentWsId + '/resources/' + resId, {
+  await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + currentWsId + '/resources/' + resId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
   });
   await loadResources(currentWsId);
@@ -280,7 +297,7 @@ async function removeResource(resId) {
 async function deleteWorkspace(wsId) {
   if (!confirm('Delete this workspace and all its resources?')) return;
   const token = requireAuth();
-  await fetch(API + '/organizations/' + currentOrgId + '/workspaces/' + wsId, {
+  await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + wsId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
   });
   hideWsDetail();
@@ -305,10 +322,10 @@ async function confirmAssignResource() {
   const storeItemId = document.getElementById('assign-res-item').value;
   const name = document.getElementById('assign-res-name').value.trim() || null;
   const token = requireAuth();
-  const res = await fetch(API + '/organizations/' + currentOrgId + '/workspaces/' + currentWsId + '/resources', {
+  const res = await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + currentWsId + '/resources', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-    body: JSON.stringify({ store_item_id: storeItemId, name }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ store_item_id: storeItemId, name })
   });
   if (!res.ok) { const d = await res.json(); return alert(d.detail || 'Failed'); }
   hideAssignResource();

@@ -17,7 +17,7 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/query", axum::routing::post(handle_query_knowledge_base))
         .route("/reindex", axum::routing::post(handle_reindex_sources))
         .route("/stats", get(handle_get_stats))
-        .route("/{id}", get(handle_get_source).delete(handle_delete_source));
+        .route("/:id", get(handle_get_source).delete(handle_delete_source));
 
     let mcp_routes = Router::new()
         .route(
@@ -33,9 +33,9 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
                 .put(handle_update_mcp_server)
                 .delete(handle_delete_mcp_server),
         )
-        .route("/{name}/test", axum::routing::post(handle_test_mcp_server))
-        .route("/{name}/tools", get(handle_list_mcp_server_tools))
-        .route("/{name}/enable", axum::routing::post(handle_enable_mcp_server))
+        .route("/:name/test", axum::routing::post(handle_test_mcp_server))
+        .route("/:name/tools", get(handle_list_mcp_server_tools))
+        .route("/:name/enable", axum::routing::post(handle_enable_mcp_server))
         .route(
             "/{name}/disable",
             axum::routing::post(handle_disable_mcp_server),
@@ -62,19 +62,19 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/mentions", get(handle_mentions_autocomplete))
         .route("/api-keys", get(handle_list_api_keys))
         .route("/api-keys", axum::routing::post(handle_add_api_key))
-        .route("/api-keys/{id}", axum::routing::delete(handle_delete_api_key))
+        .route("/api-keys/:id", axum::routing::delete(handle_delete_api_key))
         .route("/accounts", get(accounts_handlers::handle_list_accounts_htmx))
         .route("/accounts/add", post(accounts_handlers::handle_add_imap_account))
-        .route("/accounts/{id}/remove", delete(accounts_handlers::handle_delete_account));
+        .route("/accounts/:id/remove", delete(accounts_handlers::handle_delete_account));
 
     let integrations_routes = Router::new()
         .route("/connectors", get(integrations_handlers::handle_list_connectors).post(integrations_handlers::handle_connect_connector))
-        .route("/connectors/{id}/connect", post(integrations_handlers::handle_connect_connector))
-        .route("/connectors/{id}/sync", post(integrations_handlers::handle_sync_connector))
-        .route("/connectors/{id}/disconnect", delete(integrations_handlers::handle_disconnect_connector))
+        .route("/connectors/:id/connect", post(integrations_handlers::handle_connect_connector))
+        .route("/connectors/:id/sync", post(integrations_handlers::handle_sync_connector))
+        .route("/connectors/:id/disconnect", delete(integrations_handlers::handle_disconnect_connector))
         .route("/etl", get(integrations_handlers::handle_list_etl_jobs).post(integrations_handlers::handle_create_etl_job))
-        .route("/etl/{id}/run", post(integrations_handlers::handle_run_etl_job))
-        .route("/etl/{id}", delete(integrations_handlers::handle_delete_etl_job));
+        .route("/etl/:id/run", post(integrations_handlers::handle_run_etl_job))
+        .route("/etl/:id", delete(integrations_handlers::handle_delete_etl_job));
 
     Router::new()
         .nest(API_SOURCES_KB, kb_routes)

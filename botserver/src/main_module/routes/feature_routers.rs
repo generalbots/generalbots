@@ -205,7 +205,7 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                         let j = |key: &str| json.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
                         (
                             j("saas_base_url").unwrap_or_default(),
-                            j("saas_jwt_secret").unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                            j("saas_jwt_secret").unwrap_or_else(crate::main_module::directory_setup::resolve_saas_jwt_secret),
                             j("bot_templates_dir").unwrap_or_else(|| "work/templates/bots".to_string()),
                             j("mc_path").unwrap_or_else(|| "/tmp/mc".to_string()),
                             j("mc_alias").unwrap_or_else(|| "local".to_string()),
@@ -214,11 +214,11 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                             j("external_domain"),
                         )
                     }
-                    Err(_) => (String::new(), uuid::Uuid::new_v4().to_string(), "work/templates/bots".to_string(),
+                    Err(_) => (String::new(), crate::main_module::directory_setup::resolve_saas_jwt_secret(), "work/templates/bots".to_string(),
                               "/tmp/mc".to_string(), "local".to_string(), None, None, None),
                 }
             }
-            Err(_) => (String::new(), uuid::Uuid::new_v4().to_string(), "work/templates/bots".to_string(),
+            Err(_) => (String::new(), crate::main_module::directory_setup::resolve_saas_jwt_secret(), "work/templates/bots".to_string(),
                       "/tmp/mc".to_string(), "local".to_string(), None, None, None),
         }
     };

@@ -11,5 +11,5 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .route("/api/banking/reports", get(handlers::get_report))
         .route("/api/banking/reconcile/pairs", get(handlers::list_reconcile_pairs))
         .route("/api/banking/reconcile/match", post(handlers::manual_match))
-        .route("/api/banking/platforms/{id}/sync", put(handlers::sync_platform))
+        .route("/api/banking/platforms/:id/sync", put(handlers::sync_platform))
 }

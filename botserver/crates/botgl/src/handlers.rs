@@ -17,7 +17,7 @@ pub struct GlState {
 pub fn configure_gl_routes() -> Router<Arc<GlState>> {
     Router::new()
         .route("/api/erp/gl/accounts", get(list_accounts).post(create_account))
-        .route("/api/erp/gl/accounts/{id}", get(get_account))
+        .route("/api/erp/gl/accounts/:id", get(get_account))
         .route("/api/erp/gl/entries", get(list_entries).post(create_entry))
         .route("/api/erp/gl/trial-balance", get(trial_balance))
         .route("/api/erp/gl/income-statement", get(income_statement))

@@ -16,7 +16,7 @@ where
     S: Clone + Send + Sync + 'static,
 {
     Router::new()
-        .route("/api/products/inventory/quote/{id}", post(price_quote))
+        .route("/api/products/inventory/quote/:id", post(price_quote))
         .route("/api/pos/sales", post(create_sale))
         .route("/api/pos/sales/validate-stock", post(validate_stock))
         .route("/api/products/inventory/build", post(build_product))

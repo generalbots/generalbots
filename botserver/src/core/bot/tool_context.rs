@@ -6,6 +6,28 @@ use log::{debug, info, warn};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
+/// Returns `true` when the given tool was associated with the session via
+/// `USE TOOL` in the bot script (e.g. inside `IF role = "admin"`).
+///
+/// This is the declarative execution gate: a tool is only executable when
+/// the bot script itself made it available for that session.
+pub fn is_tool_associated_with_session(
+    db_pool: &DbPool,
+    session_id: &Uuid,
+    tool_name: &str,
+) -> bool {
+    let Ok(mut conn) = db_pool.get() else {
+        log::warn!("is_tool_associated_with_session: DB pool error");
+        return false;
+    };
+    session_tool_associations::table
+        .filter(session_tool_associations::session_id.eq(&session_id.to_string()))
+        .filter(session_tool_associations::tool_name.eq(tool_name))
+        .select(session_tool_associations::tool_name)
+        .first::<String>(&mut conn)
+        .is_ok()
+}
+
 pub fn get_session_tools(
     db_pool: &DbPool,
     bot_name: &str,

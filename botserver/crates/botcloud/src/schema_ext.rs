@@ -71,6 +71,7 @@ diesel::table! {
 diesel::table! {
     cloud_workspaces (id) {
         id -> Uuid,
+        org_id -> Uuid,
         branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
@@ -84,7 +85,7 @@ diesel::table! {
     workspace_resources (id) {
         id -> Uuid,
         workspace_id -> Uuid,
-        branch_id -> Uuid,
+        org_id -> Uuid,
         store_item_id -> Varchar,
         name -> Varchar,
         resource_type -> Varchar,

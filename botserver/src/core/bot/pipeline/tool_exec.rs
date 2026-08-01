@@ -33,12 +33,14 @@ pub async fn run_tool_exec(
     let ast_content = tool_content.unwrap_or_default();
 
     if !ast_content.is_empty() {
-        let work_path_obj = std::path::Path::new(&work_path);
-        let admin_only = crate::security::user_role::tool_is_admin_only(
-            work_path_obj, bot_name, tool_name,
-        );
-        if admin_only && !crate::security::user_role::is_user_admin(&state.conn, user_id) {
-            log::info!("TOOL_EXEC: admin-only tool '{tool_name}' blocked for user {user_id}");
+        // Declarative gate: only execute tools the bot script associated
+        // with this session via USE TOOL (e.g. inside IF role = "admin").
+        if !crate::core::bot::tool_context::is_tool_associated_with_session(
+            &state.conn, &session_id, tool_name,
+        ) {
+            log::info!(
+                "TOOL_EXEC: tool '{tool_name}' not associated with session {session_id}, skipping"
+            );
             return;
         }
         let state_for_tool = state.clone();
@@ -165,22 +167,6 @@ pub async fn run_llm_tool_call(
             return;
         }
 
-        let work_path_obj = std::path::Path::new(&work_path);
-        let admin_only = crate::security::user_role::tool_is_admin_only(
-            work_path_obj, bot_name, &tool_name,
-        );
-        if admin_only && !crate::security::user_role::is_user_admin(&state.conn, user_id) {
-            log::info!("LLM tool_call: admin-only tool '{tool_name}' blocked for user {user_id}");
-            let resp = botlib::models::BotResponse::new(
-                &bot_uuid.to_string(), &session_id.to_string(),
-                &user_id.to_string(),
-                "<p>Acesso restrito a administradores. Esta ferramenta requer role admin.</p>",
-                sink.channel_type(),
-            );
-            let _ = sink.send_bot_response(&resp).await;
-            return;
-        }
-
         let ast_path = format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
         let ast_content = match tokio::fs::read_to_string(&ast_path).await {
             Ok(c) if !c.is_empty() => c,
@@ -191,6 +177,16 @@ pub async fn run_llm_tool_call(
         };
 
         if !ast_content.is_empty() {
+            // Declarative gate: only execute tools the bot script associated
+            // with this session via USE TOOL (e.g. inside IF role = "admin").
+            if !crate::core::bot::tool_context::is_tool_associated_with_session(
+                &state.conn, &session_id, &tool_name,
+            ) {
+                log::info!(
+                    "LLM tool_call: tool '{tool_name}' not associated with session {session_id}, skipping"
+                );
+                return;
+            }
             let state_for_tool = state.clone();
             let tool_name_cl = tool_name.clone();
             let work_path_for_mcp = work_path.clone();

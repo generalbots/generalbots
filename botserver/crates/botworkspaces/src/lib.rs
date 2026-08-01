@@ -1468,12 +1468,12 @@ pub fn configure_workspaces_routes() -> Router<Arc<WorkspacesState>> {
             "/api/workspaces/{workspace_id}/pages",
             get(list_pages).post(create_page),
         )
-        .route("/api/workspaces/{workspace_id}/members", post(add_member))
+        .route("/api/workspaces/:workspace_id/members", post(add_member))
         .route(
             "/api/workspaces/{workspace_id}/members/{user_id}",
             delete(remove_member),
         )
-        .route("/api/workspaces/{workspace_id}/search", get(search_pages))
+        .route("/api/workspaces/:workspace_id/search", get(search_pages))
         .route(
             "/api/pages/{page_id}",
             get(get_page).put(update_page).delete(delete_page),
@@ -3852,14 +3852,14 @@ pub fn configure_workspaces_ui_routes() -> Router<Arc<WorkspacesState>> {
         .route("/api/ui/workspaces/cards", get(workspace_cards))
         .route("/api/ui/workspaces/count", get(workspace_count))
         .route("/api/ui/workspaces/new", get(new_workspace_form))
-        .route("/api/ui/workspaces/{workspace_id}", get(workspace_detail))
-        .route("/api/ui/workspaces/{workspace_id}/pages", get(ui_workspace_pages).post(workspace_ui_create_page))
-        .route("/api/ui/workspaces/{workspace_id}/pages/new", get(new_page_form))
-        .route("/api/ui/workspaces/{workspace_id}/members", get(ui_workspace_members))
-        .route("/api/ui/workspaces/{workspace_id}/members/add", get(add_member_form))
-        .route("/api/ui/workspaces/{workspace_id}/settings", get(workspace_settings))
-        .route("/api/ui/workspaces/{workspace_id}/search", get(search_results))
-        .route("/api/ui/pages/{page_id}", get(page_detail))
+        .route("/api/ui/workspaces/:workspace_id", get(workspace_detail))
+        .route("/api/ui/workspaces/:workspace_id/pages", get(ui_workspace_pages).post(workspace_ui_create_page))
+        .route("/api/ui/workspaces/:workspace_id/pages/new", get(new_page_form))
+        .route("/api/ui/workspaces/:workspace_id/members", get(ui_workspace_members))
+        .route("/api/ui/workspaces/:workspace_id/members/add", get(add_member_form))
+        .route("/api/ui/workspaces/:workspace_id/settings", get(workspace_settings))
+        .route("/api/ui/workspaces/:workspace_id/search", get(search_results))
+        .route("/api/ui/pages/:page_id", get(page_detail))
         .route("/api/ui/workspaces/current", get(workspace_current_detail))
         .route("/api/ui/workspaces/current/pages", get(workspace_current_pages).post(workspace_current_page_create))
         .route("/api/ui/workspaces/current/pages/new", get(workspace_current_page_new))

@@ -24,7 +24,7 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .route("/api/timeclock/forms/break-end", post(break_end))
         .route("/api/timeclock/forms/justification", post(submit_justification))
         .route("/api/timeclock/forms/overtime", post(submit_overtime))
-        .route("/api/timeclock/forms/overtime/{id}/approve", post(approve_overtime))
+        .route("/api/timeclock/forms/overtime/:id/approve", post(approve_overtime))
 }
 
 async fn dashboard() -> Result<Html<String>, (StatusCode, String)> {

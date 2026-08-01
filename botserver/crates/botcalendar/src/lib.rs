@@ -1133,9 +1133,9 @@ pub fn configure_calendar_routes() -> Router<Arc<DbPool>> {
             "/api/calendar/calendars/{id}",
             get(get_calendar).put(update_calendar).delete(delete_calendar),
         )
-        .route("/api/calendar/calendars/{id}/share", post(share_calendar))
-        .route("/api/calendar/calendars/{id}/export", get(export_ical))
-        .route("/api/calendar/calendars/{id}/import", post(import_ical))
+        .route("/api/calendar/calendars/:id/share", post(share_calendar))
+        .route("/api/calendar/calendars/:id/export", get(export_ical))
+        .route("/api/calendar/calendars/:id/import", post(import_ical))
         .route(API_CALENDAR_EVENTS, get(list_events).post(create_event))
         .route(
             API_CALENDAR_EVENT_BY_ID,
@@ -1229,7 +1229,7 @@ pub fn create_caldav_router() -> Router<Arc<DbPool>> {
         .route("/caldav", get(caldav_root))
         .route("/caldav/principals", get(caldav_principals))
         .route("/caldav/calendars", get(caldav_calendars))
-        .route("/caldav/calendars/{calendar_id}", get(caldav_calendar))
+        .route("/caldav/calendars/:calendar_id", get(caldav_calendar))
         .route(
             "/caldav/calendars/{calendar_id}/{event_id}.ics",
             get(caldav_event).put(caldav_put_event),
@@ -2252,7 +2252,7 @@ pub fn configure_calendar_ui_routes() -> Router<Arc<DbPool>> {
         .route("/api/ui/calendar/events", get(ui_events_list))
         .route("/api/ui/calendar/events/count", get(ui_events_count))
         .route("/api/ui/calendar/events/today", get(ui_today_events_count))
-        .route("/api/ui/calendar/events/{id}", get(ui_event_detail))
+        .route("/api/ui/calendar/events/:id", get(ui_event_detail))
         .route("/api/ui/calendar/calendars", get(ui_calendars_sidebar))
         .route("/api/ui/calendar/upcoming", get(ui_upcoming_events))
         .route("/api/ui/calendar/month", get(ui_month_view))

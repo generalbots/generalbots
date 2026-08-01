@@ -25,10 +25,10 @@ pub fn configure_fraud_routes() -> Router<Arc<FraudState>> {
         .route("/api/fraud/assess", axum::routing::post(assess))
         .route("/api/fraud/transactions", get(list_transactions).post(create_transaction))
         .route("/api/fraud/rules", get(list_rules).post(create_rule))
-        .route("/api/fraud/rules/{id}", axum::routing::put(toggle_rule))
+        .route("/api/fraud/rules/:id", axum::routing::put(toggle_rule))
         .route("/api/fraud/events", get(list_events))
         .route("/api/fraud/blocklist", get(list_blocklist).post(add_blocklist))
-        .route("/api/fraud/blocklist/{id}", axum::routing::delete(remove_blocklist))
+        .route("/api/fraud/blocklist/:id", axum::routing::delete(remove_blocklist))
         .route("/api/fraud/stats", get(stats))
 }
 

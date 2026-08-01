@@ -34,33 +34,33 @@ pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
                 .delete(handlers::delete_group),
         )
         .route("/api/rbac/users", get(handlers::list_users_with_roles))
-        .route("/api/rbac/users/{user_id}/roles", get(handlers::get_user_roles))
+        .route("/api/rbac/users/:user_id/roles", get(handlers::get_user_roles))
         .route(
             "/api/rbac/users/{user_id}/roles/{role_id}",
             post(handlers::assign_role_to_user).delete(handlers::remove_role_from_user),
         )
-        .route("/api/rbac/users/{user_id}/groups", get(handlers::get_user_groups))
+        .route("/api/rbac/users/:user_id/groups", get(handlers::get_user_groups))
         .route(
             "/api/rbac/users/{user_id}/groups/{group_id}",
             post(handlers::add_user_to_group).delete(handlers::remove_user_from_group),
         )
-        .route("/api/rbac/groups/{group_id}/roles", get(handlers::get_group_roles))
+        .route("/api/rbac/groups/:group_id/roles", get(handlers::get_group_roles))
         .route(
             "/api/rbac/groups/{group_id}/roles/{role_id}",
             post(handlers::assign_role_to_group).delete(handlers::remove_role_from_group),
         )
-        .route("/api/rbac/users/{user_id}/permissions", get(handlers::get_effective_permissions))
+        .route("/api/rbac/users/:user_id/permissions", get(handlers::get_effective_permissions))
         .route("/api/rbac/check", post(handlers::check_permission))
         .route("/api/rbac/my-permissions", get(handlers::my_permissions))
         .route("/settings/rbac", get(rbac_settings_page))
         .route("/settings/rbac/users", get(rbac_users_list))
         .route("/settings/rbac/roles", get(rbac_roles_list))
         .route("/settings/rbac/groups", get(rbac_groups_list))
-        .route("/settings/rbac/users/{user_id}/assignment", get(user_assignment_panel))
-        .route("/settings/rbac/users/{user_id}/available-roles", get(available_roles_for_user))
-        .route("/settings/rbac/users/{user_id}/assigned-roles", get(assigned_roles_for_user))
-        .route("/settings/rbac/users/{user_id}/available-groups", get(available_groups_for_user))
-        .route("/settings/rbac/users/{user_id}/assigned-groups", get(assigned_groups_for_user))
+        .route("/settings/rbac/users/:user_id/assignment", get(user_assignment_panel))
+        .route("/settings/rbac/users/:user_id/available-roles", get(available_roles_for_user))
+        .route("/settings/rbac/users/:user_id/assigned-roles", get(assigned_roles_for_user))
+        .route("/settings/rbac/users/:user_id/available-groups", get(available_groups_for_user))
+        .route("/settings/rbac/users/:user_id/assigned-groups", get(assigned_groups_for_user))
 }
 
 #[derive(Debug, Serialize, Deserialize)]

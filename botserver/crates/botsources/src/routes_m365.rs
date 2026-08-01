@@ -16,8 +16,8 @@ pub fn configure_m365_api_routes() -> Router<Arc<crate::AppState>> {
         .route("/api/m365/auth/url", post(build_auth_url))
         .route("/api/m365/auth/exchange", post(exchange_code))
         .route("/api/m365/sites", get(list_sites))
-        .route("/api/m365/drives/{site_id}", get(list_drives))
-        .route("/api/m365/items/{drive_id}", get(list_items))
+        .route("/api/m365/drives/:site_id", get(list_drives))
+        .route("/api/m365/items/:drive_id", get(list_items))
         .route("/api/m365/mail", get(list_messages))
         .route("/api/m365/calendar", get(list_calendar))
 }

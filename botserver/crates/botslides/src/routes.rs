@@ -31,7 +31,7 @@ pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<
         .route("/api/slides/delete", post(handle_delete_presentation::<D>))
         .route("/api/slides/new", get(handle_new_presentation::<D>))
         .route("/api/slides/ai", post(handle_slides_ai::<D>))
-        .route("/api/slides/{id}", get(handle_get_presentation_by_id::<D>))
+        .route("/api/slides/:id", get(handle_get_presentation_by_id::<D>))
         .route(
             "/api/slides/{id}/collaborators",
             get(handle_get_collaborators),

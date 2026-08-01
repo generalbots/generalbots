@@ -69,11 +69,11 @@ RETURN result
 
 ## Admin-Only Tools (Role Gate)
 
-Tools can be restricted to administrators by marking them `admin_only` in their `.mcp.json` file. When a tool is admin-only:
+Tools can be restricted to administrators declaratively through the bot script itself — the `USE TOOL` keyword is the authorization point:
 
-- The `USE TOOL` keyword only associates it when the session user has role `admin`
-- The tool is not offered to the LLM for non-admin sessions
-- Direct `TOOL_EXEC` (message_type 6) attempts are blocked at execution time
+- `USE TOOL` associates the tool with the current session (`session_tool_associations`)
+- The server only executes a tool when it was associated with that session — `run_llm_tool_call` and `run_tool_exec` (TOOL_EXEC / message_type 6) both verify the association before running
+- There is no `admin_only` flag and no hardcoded tool list on the server; the script is the single source of truth
 
 ### Runtime `role` Variable
 
@@ -96,24 +96,9 @@ IF role = "admin" THEN
 END IF
 ```
 
-### Marking a Tool Admin-Only
+### Why this is secure
 
-Add `"admin_only": true` to the tool's `.mcp.json`:
-
-```json
-{
-  "name": "chart-batizados",
-  "description": "CONSULTA DE DADOS e ESTATISTICAS de batizados",
-  "input_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  },
-  "admin_only": true
-}
-```
-
-Tools whose name ends in `_update` (e.g. `batizados_update`) are admin-only by convention.
+Even if a non-admin session somehow sends a `TOOL_EXEC` message with an admin tool name, the server checks `session_tool_associations` first: since `start.bas` only ran `USE TOOL` for admins, the tool is not associated with the non-admin session and the execution is skipped (logged as `tool '...' not associated with session ...`).
 
 ## Related
 

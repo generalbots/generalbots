@@ -253,7 +253,7 @@ pub async fn prices_json(
 pub fn configure_catalog_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/catalog/products", get(list_products))
-        .route("/api/catalog/products/{sku}", get(get_product_by_sku))
+        .route("/api/catalog/products/:sku", get(get_product_by_sku))
         .route("/api/catalog/plans", get(list_plans))
         .route("/api/catalog/prices.json", get(prices_json))
 }

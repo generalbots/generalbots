@@ -629,7 +629,7 @@ pub fn create_bot_bucket(
     template: Option<&str>,
 ) -> Result<(), String> {
     let alias = &config.mc_alias;
-    let org_bucket = format!("{alias}/{org_slug}-gborg");
+    let org_bucket = format!("{alias}/{org_slug}.gborg");
 
     let mb = SafeCommand::new("mc")
         .and_then(|c| c.arg("mb"))

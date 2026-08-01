@@ -143,26 +143,26 @@ pub async fn track_email_click(
 pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/crm/campaigns", get(crate::campaigns::list_campaigns).post(crate::campaigns::create_campaign))
-        .route("/api/crm/campaigns/{id}", get(crate::campaigns::get_campaign).put(crate::campaigns::update_campaign).delete(crate::campaigns::delete_campaign))
-        .route("/api/crm/campaigns/{id}/send", post(crate::campaigns::send_campaign))
+        .route("/api/crm/campaigns/:id", get(crate::campaigns::get_campaign).put(crate::campaigns::update_campaign).delete(crate::campaigns::delete_campaign))
+        .route("/api/crm/campaigns/:id/send", post(crate::campaigns::send_campaign))
 
         .route("/api/crm/lists", get(crate::lists::list_lists).post(crate::lists::create_list))
-        .route("/api/crm/lists/{id}", get(crate::lists::get_list).put(crate::lists::update_list).delete(crate::lists::delete_list))
-        .route("/api/crm/lists/{id}/refresh", post(crate::lists::refresh_marketing_list))
+        .route("/api/crm/lists/:id", get(crate::lists::get_list).put(crate::lists::update_list).delete(crate::lists::delete_list))
+        .route("/api/crm/lists/:id/refresh", post(crate::lists::refresh_marketing_list))
 
         .route("/api/crm/templates", get(crate::templates::list_templates).post(crate::templates::create_template))
-        .route("/api/crm/templates/{id}", get(crate::templates::get_template).put(crate::templates::update_template).delete(crate::templates::delete_template))
+        .route("/api/crm/templates/:id", get(crate::templates::get_template).put(crate::templates::update_template).delete(crate::templates::delete_template))
 
         .route("/api/crm/email/track/open", post(crate::triggers::track_email_open))
-        .route("/api/marketing/track/open/{token}", get(track_email_open_pixel))
-        .route("/api/marketing/track/click/{id}/*destination", get(track_email_click))
+        .route("/api/marketing/track/open/:token", get(track_email_open_pixel))
+        .route("/api/marketing/track/click/:id/*destination", get(track_email_click))
         .route("/api/crm/email/send", post(crate::email::send_email_api))
 
         .route("/api/crm/whatsapp/send", post(crate::whatsapp::send_whatsapp_api))
 
-        .route("/api/crm/metrics/campaign/{id}", get(crate::metrics_api::get_campaign_metrics_api))
-        .route("/api/crm/metrics/campaign/{id}/channels", get(crate::metrics_api::get_campaign_channel_breakdown_api))
-        .route("/api/crm/metrics/campaign/{id}/timeseries/{interval}", get(crate::metrics_api::get_campaign_timeseries_api))
+        .route("/api/crm/metrics/campaign/:id", get(crate::metrics_api::get_campaign_metrics_api))
+        .route("/api/crm/metrics/campaign/:id/channels", get(crate::metrics_api::get_campaign_channel_breakdown_api))
+        .route("/api/crm/metrics/campaign/:id/timeseries/:interval", get(crate::metrics_api::get_campaign_timeseries_api))
         .route("/api/crm/metrics/aggregate", get(crate::metrics_api::get_aggregate_metrics_api))
 
         .route("/api/crm/ai/generate", post(crate::ai::generate_content_api))

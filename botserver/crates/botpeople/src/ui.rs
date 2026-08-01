@@ -92,7 +92,7 @@ pub fn configure_people_ui_routes() -> Router<Arc<PeopleState>> {
         .route("/api/ui/people/active-count", get(handle_active_count))
         .route("/api/ui/people/cards", get(handle_people_cards))
         .route("/api/ui/people/search", get(handle_people_search))
-        .route("/api/ui/people/{id}", get(handle_person_detail))
+        .route("/api/ui/people/:id", get(handle_person_detail))
         .route("/api/ui/people/departments", get(handle_departments_list))
         .route("/api/ui/people/teams", get(handle_teams_list))
         .route("/api/ui/people/time-off", get(handle_time_off_list))

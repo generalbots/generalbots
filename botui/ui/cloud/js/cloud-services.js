@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadServices(token) {
   try {
-    const res = await fetch(`${API_BASE}/services`, {
+    const res = await cloudFetch(`${API_BASE}/services`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!res.ok) { showError('Failed to load services'); return; }
@@ -39,7 +39,7 @@ function renderServices(services) {
       </div>
       <div class="service-actions">
         ${s.dashboard_url ? `<a href="${s.dashboard_url}" class="btn-secondary" target="_blank">Open</a>` : ''}
-        ${s.status === 'active' ? `<button class="btn-text" onclick="cancelService('${s.id}')">Cancel</button>` : ''}
+        ${s.status === 'active' && !s.is_base_system ? `<button class="btn-text" onclick="cancelService('${s.id}')">Cancel</button>` : ''}
       </div>
     </div>
   `).join('');
@@ -49,7 +49,7 @@ async function cancelService(id) {
   if (!confirm('Are you sure you want to cancel this service?')) return;
   const token = requireAuth();
   try {
-    const res = await fetch(`${API_BASE}/services/${id}/cancel`, {
+    const res = await cloudFetch(`${API_BASE}/services/${id}/cancel`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
     });

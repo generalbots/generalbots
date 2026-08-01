@@ -1274,7 +1274,7 @@ pub fn configure_canvas_routes() -> Router<Arc<CanvasState>> {
             "/api/canvas/{canvas_id}/elements/{element_id}",
             put(update_element).delete(delete_element),
         )
-        .route("/api/canvas/{canvas_id}/export", post(export_canvas))
+        .route("/api/canvas/:canvas_id/export", post(export_canvas))
         .route(
             "/api/canvas/{canvas_id}/collaborators",
             get(list_collaborators).post(add_collaborator),
@@ -2017,8 +2017,8 @@ pub fn configure_canvas_ui_routes() -> Router<Arc<CanvasState>> {
         .route("/api/ui/canvas/count", get(canvas_count))
         .route("/api/ui/canvas/templates/count", get(canvas_templates_count))
         .route("/api/ui/canvas/new", get(new_canvas_form))
-        .route("/api/ui/canvas/{canvas_id}", get(canvas_detail))
-        .route("/api/ui/canvas/{canvas_id}/editor", get(canvas_editor))
-        .route("/api/ui/canvas/{canvas_id}/elements", get(canvas_elements_svg))
-        .route("/api/ui/canvas/{canvas_id}/settings", get(canvas_settings))
+        .route("/api/ui/canvas/:canvas_id", get(canvas_detail))
+        .route("/api/ui/canvas/:canvas_id/editor", get(canvas_editor))
+        .route("/api/ui/canvas/:canvas_id/elements", get(canvas_elements_svg))
+        .route("/api/ui/canvas/:canvas_id/settings", get(canvas_settings))
 }
