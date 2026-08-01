@@ -198,6 +198,6 @@ pub fn configure_campaign_routes() -> axum::Router<Arc<ChannelState>> {
  axum::Router::new()
  .route("/api/instagram/campaigns", get(list_campaigns))
  .route("/api/instagram/campaigns/create", post(create_campaign))
- .route("/api/instagram/campaigns/{campaign_id}/images/{image_id}", get(get_campaign_media))
- .route("/api/instagram/campaigns/{campaign_id}/publish", post(publish_campaign))
+ .route("/api/instagram/campaigns/:campaign_id/images/:image_id", get(get_campaign_media))
+ .route("/api/instagram/campaigns/:campaign_id/publish", post(publish_campaign))
 }

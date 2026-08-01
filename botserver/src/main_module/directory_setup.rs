@@ -5,6 +5,53 @@ use log::{info, warn};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Resolve a stable SaaS JWT secret for cloud API tokens.
+/// Priority: `directory_config.json` → env `SAAS_JWT_SECRET` → env `JWT_SECRET` →
+/// development default. The resolved value is persisted into
+/// `directory_config.json` so cloud tokens survive botserver restarts.
+pub(crate) fn resolve_saas_jwt_secret() -> String {
+    let stack_path = get_stack_path();
+    let config_path = format!("{}/conf/system/directory_config.json", stack_path);
+
+    if let Ok(content) = std::fs::read_to_string(&config_path) {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(secret) = json
+                .get("saas_jwt_secret")
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+            {
+                return secret.to_string();
+            }
+        }
+    }
+
+    let secret = std::env::var("SAAS_JWT_SECRET")
+        .or_else(|_| std::env::var("JWT_SECRET"))
+        .unwrap_or_else(|_| {
+            info!("SAAS_JWT_SECRET not set, using development default secret");
+            "dev-secret-key-change-in-production-minimum-32-chars".to_string()
+        });
+
+    if let Ok(content) = std::fs::read_to_string(&config_path) {
+        if let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&content) {
+            if json.get("saas_jwt_secret").is_none() {
+                json["saas_jwt_secret"] = serde_json::Value::String(secret.clone());
+                match std::fs::File::create(&config_path) {
+                    Ok(mut file) => {
+                        use std::io::Write;
+                        if let Ok(pretty) = serde_json::to_string_pretty(&json) {
+                            let _ = writeln!(&mut file, "{pretty}");
+                        }
+                    }
+                    Err(e) => warn!("Failed to persist saas_jwt_secret: {e}"),
+                }
+            }
+        }
+    }
+
+    secret
+}
+
 
 pub(crate) fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>, crate::directory::ZitadelConfig), std::io::Error> {
     let zitadel_config = {

@@ -306,6 +306,36 @@ async function devAutoLogin() {
   } catch (_) { /* silent */ }
 }
 
+// Self-healing fetch: re-authenticate on stale/expired tokens (401) and retry once.
+// In production, stale tokens redirect to the login server instead.
+async function cloudFetch(url, options) {
+  options = options || {};
+  const attempt = async (allowRetry) => {
+    let token = getToken();
+    if (!token) {
+      await devAutoLogin();
+      token = getToken();
+    }
+    const headers = Object.assign({}, options.headers || {});
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(url, Object.assign({}, options, { headers }));
+    if (res.status === 401 && allowRetry) {
+      localStorage.removeItem('management_token');
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        await devAutoLogin();
+        token = getToken();
+        if (token) return attempt(false);
+      } else {
+        const loginUrl = (window.GB_LOGIN_URL || '/login') + '?return=' + encodeURIComponent(location.pathname + location.search);
+        window.location.href = loginUrl;
+        return res;
+      }
+    }
+    return res;
+  };
+  return attempt(true);
+}
+
 // ── Calculator: scroll to calc-panel if on store page, else navigate to store ──
 function openCalculator() {
   var p = window.location.pathname;

@@ -232,17 +232,10 @@ pub async fn handle_unified_login(
 }
 
 /// Load SAAS_JWT_SECRET from directory_config.json (written from Vault),
-/// falling back to the env var for backward compatibility.
+/// falling back to env vars; same resolution as the SaaS config so all
+/// consumers share one stable secret.
 fn get_saas_jwt_secret() -> String {
-    let config_path = format!("{}/conf/system/directory_config.json", botcore::shared::utils::get_stack_path());
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(secret) = json.get("saas_jwt_secret").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
-                return secret.to_string();
-            }
-        }
-    }
-    std::env::var("SAAS_JWT_SECRET").unwrap_or_default()
+    crate::main_module::directory_setup::resolve_saas_jwt_secret()
 }
 
 /// HMAC-SHA256 sign a message and return the base64url-encoded signature.

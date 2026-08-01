@@ -263,16 +263,16 @@ pub fn configure_itsm_routes() -> Router<Arc<ItsmState>> {
     Router::new()
         // Incident routes
         .route("/api/itsm/incidents", get(list_incidents).post(create_incident))
-        .route("/api/itsm/incidents/{id}", get(get_incident).put(update_incident).delete(delete_incident))
-        .route("/api/itsm/incidents/{id}/sla", get(check_incident_sla))
+        .route("/api/itsm/incidents/:id", get(get_incident).put(update_incident).delete(delete_incident))
+        .route("/api/itsm/incidents/:id/sla", get(check_incident_sla))
         // CMDB routes
         .route("/api/itsm/cmdb", get(list_cis).post(create_ci))
-        .route("/api/itsm/cmdb/{id}", get(get_ci).put(update_ci).delete(delete_ci))
-        .route("/api/itsm/cmdb/{id}/relationships", get(get_ci_relationships))
-        .route("/api/itsm/cmdb/{id}/impact", get(impact_analysis))
+        .route("/api/itsm/cmdb/:id", get(get_ci).put(update_ci).delete(delete_ci))
+        .route("/api/itsm/cmdb/:id/relationships", get(get_ci_relationships))
+        .route("/api/itsm/cmdb/:id/impact", get(impact_analysis))
         .route("/api/itsm/cmdb/relationships", get(list_relationships).post(create_relationship))
         // Knowledge base routes
         .route("/api/itsm/knowledge", get(search_articles).post(create_article))
-        .route("/api/itsm/knowledge/{id}", get(get_article).put(update_article))
-        .route("/api/itsm/knowledge/{id}/approve", put(approve_article))
+        .route("/api/itsm/knowledge/:id", get(get_article).put(update_article))
+        .route("/api/itsm/knowledge/:id/approve", put(approve_article))
 }

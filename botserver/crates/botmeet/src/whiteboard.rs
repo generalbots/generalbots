@@ -715,8 +715,8 @@ impl Clone for WhiteboardState {
 
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/whiteboard/{id}/ws", get(whiteboard_websocket))
-        .route("/whiteboard/create/{conversation_id}", get(create_whiteboard))
+        .route("/whiteboard/:id/ws", get(whiteboard_websocket))
+        .route("/whiteboard/create/:conversation_id", get(create_whiteboard))
 }
 
 async fn create_whiteboard(

@@ -52,8 +52,8 @@ pub struct ProviderInfo {
 pub fn configure(state: Arc<OAuthState_>) -> Router {
     Router::new()
         .route("/auth/oauth/providers", get(list_providers))
-        .route("/auth/oauth/{provider}", get(start_oauth))
-        .route("/auth/oauth/{provider}/callback", get(oauth_callback))
+        .route("/auth/oauth/:provider", get(start_oauth))
+        .route("/auth/oauth/:provider/callback", get(oauth_callback))
         .with_state(state)
 }
 

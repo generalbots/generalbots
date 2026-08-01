@@ -12,11 +12,11 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
         .route("/api/manifest", get(super::product_handlers::get_workspace_manifest))
         .route("/api/client-errors", post(crate::receive_client_errors))
         .route("/api/bot/config", get(crate::core::bot::get_bot_config))
-        .route("/api/bots/{bot_name}/access", get(crate::core::bot::check_access_handler))
+        .route("/api/bots/:bot_name/access", get(crate::core::bot::check_access_handler))
         .route(ApiUrls::SESSIONS, post(crate::core::session::create_session))
         .route(ApiUrls::SESSION_START, post(crate::core::session::start_session))
         .route(ApiUrls::WS, get(crate::core::bot::websocket_handler))
-        .route("/ws/{bot_name}", get(crate::core::bot::websocket_handler_with_bot));
+        .route("/ws/:bot_name", get(crate::core::bot::websocket_handler_with_bot));
 
     #[cfg(feature = "drive")]
     {

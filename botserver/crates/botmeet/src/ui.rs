@@ -654,5 +654,5 @@ pub fn configure_meet_ui_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/suite/meet", get(handle_meet_list_page))
         .route("/suite/meet/schedule", get(handle_meet_schedule_page))
-        .route("/suite/meet/room/{id}", get(handle_meet_room_page))
+        .route("/suite/meet/room/:id", get(handle_meet_room_page))
 }

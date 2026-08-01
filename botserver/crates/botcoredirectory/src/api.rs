@@ -57,9 +57,9 @@ pub struct ServiceStatusResponse {
 pub fn configure_user_routes() -> Router<Arc<DirectoryApiState>> {
     Router::new()
         .route("/api/directory/users", get(list_users_handler))
-        .route("/api/directory/users/{id}", get(get_user_handler))
+        .route("/api/directory/users/:id", get(get_user_handler))
         .route("/api/directory/users/provision", post(provision_user_handler))
-        .route("/api/directory/users/{id}/deprovision", delete(deprovision_user_handler))
+        .route("/api/directory/users/:id/deprovision", delete(deprovision_user_handler))
         .route("/api/directory/services/status", get(check_services_status))
 }
 

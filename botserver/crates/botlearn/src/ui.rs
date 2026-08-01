@@ -451,5 +451,5 @@ where
     Router::new()
         .route("/suite/learn", get(handle_learn_list_page))
         .route("/suite/learn/create", get(handle_learn_create_page))
-        .route("/suite/learn/{id}", get(handle_learn_course_page))
+        .route("/suite/learn/:id", get(handle_learn_course_page))
 }

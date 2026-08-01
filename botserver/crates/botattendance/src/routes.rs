@@ -24,22 +24,22 @@ pub fn configure_attendance_routes() -> Router<Arc<AttendanceConfig>> {
         .route("/api/attendance/assign-by-skill", post(crate::queue_handlers::assign_by_skill))
         .route("/api/attendance/transfer", post(crate::queue_handlers::transfer_conversation))
         .route("/api/attendance/resolve", post(crate::queue_handlers::resolve_conversation))
-        .route("/api/attendance/insights/{session_id}", get(crate::queue_handlers::get_insights))
+        .route("/api/attendance/insights/:session_id", get(crate::queue_handlers::get_insights))
         .route("/api/attendance/kanban", get(crate::queue_handlers::get_kanban))
         .route("/api/attendance/respond", post(attendant_respond))
         .route("/api/attendance/ws", get(attendant_websocket_handler))
         .route("/api/attendance/webhooks", get(crate::webhooks::list_webhooks).post(crate::webhooks::create_webhook))
-        .route("/api/attendance/webhooks/{id}", get(crate::webhooks::get_webhook).put(crate::webhooks::update_webhook).delete(crate::webhooks::delete_webhook))
-        .route("/api/attendance/webhooks/{id}/test", post(crate::webhooks::test_webhook));
+        .route("/api/attendance/webhooks/:id", get(crate::webhooks::get_webhook).put(crate::webhooks::update_webhook).delete(crate::webhooks::delete_webhook))
+        .route("/api/attendance/webhooks/:id/test", post(crate::webhooks::test_webhook));
 
     #[cfg(feature = "llm")]
     let router = router
         .route("/api/attendance/llm-assist/tips", post(crate::llm_assist_handlers::generate_tips))
         .route("/api/attendance/llm-assist/polish", post(crate::llm_assist_handlers::polish_message))
         .route("/api/attendance/llm-assist/replies", post(crate::llm_assist_handlers::generate_smart_replies))
-        .route("/api/attendance/llm-assist/summary/{session_id}", get(crate::llm_assist_handlers::generate_summary))
+        .route("/api/attendance/llm-assist/summary/:session_id", get(crate::llm_assist_handlers::generate_summary))
         .route("/api/attendance/llm-assist/sentiment", post(crate::llm_assist_handlers::analyze_sentiment))
-        .route("/api/attendance/llm-assist/config/{bot_id}", get(crate::llm_assist_handlers::get_llm_config));
+        .route("/api/attendance/llm-assist/config/:bot_id", get(crate::llm_assist_handlers::get_llm_config));
 
     router
 }

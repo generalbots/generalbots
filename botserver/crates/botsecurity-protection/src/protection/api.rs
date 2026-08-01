@@ -78,13 +78,13 @@ pub fn configure_protection_routes() -> Router<Arc<AppState>> {
             "/api/security/protection/{tool}/status",
             get(get_tool_status),
         )
-        .route("/api/security/protection/{tool}/install", post(install_tool))
+        .route("/api/security/protection/:tool/install", post(install_tool))
         .route(
             "/api/security/protection/{tool}/uninstall",
             post(uninstall_tool),
         )
-        .route("/api/security/protection/{tool}/start", post(start_service))
-        .route("/api/security/protection/{tool}/stop", post(stop_service))
+        .route("/api/security/protection/:tool/start", post(start_service))
+        .route("/api/security/protection/:tool/stop", post(stop_service))
         .route(
             "/api/security/protection/{tool}/enable",
             post(enable_service),
@@ -93,13 +93,13 @@ pub fn configure_protection_routes() -> Router<Arc<AppState>> {
             "/api/security/protection/{tool}/disable",
             post(disable_service),
         )
-        .route("/api/security/protection/{tool}/run", post(run_scan))
-        .route("/api/security/protection/{tool}/report", get(get_report))
+        .route("/api/security/protection/:tool/run", post(run_scan))
+        .route("/api/security/protection/:tool/report", get(get_report))
         .route(
             "/api/security/protection/{tool}/update",
             post(update_definitions),
         )
-        .route("/api/security/protection/{tool}/auto", post(toggle_auto))
+        .route("/api/security/protection/:tool/auto", post(toggle_auto))
         .route(
             "/api/security/protection/clamav/quarantine",
             get(get_quarantine),

@@ -17,10 +17,10 @@ pub struct InventoryState {
 pub fn configure_inventory_routes() -> Router<Arc<InventoryState>> {
     Router::new()
         .route("/api/erp/inventory/items", get(list_items).post(create_item))
-        .route("/api/erp/inventory/items/{id}", get(get_item))
+        .route("/api/erp/inventory/items/:id", get(get_item))
         .route("/api/erp/inventory/movements", get(list_movements).post(create_movement))
         .route("/api/erp/inventory/purchase-orders", get(list_pos).post(create_po))
-        .route("/api/erp/inventory/purchase-orders/{id}", get(get_po))
+        .route("/api/erp/inventory/purchase-orders/:id", get(get_po))
 }
 
 async fn list_items(

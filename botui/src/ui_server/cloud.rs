@@ -115,7 +115,10 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
                     bytes
                 };
                 (
-                    [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
+                    [
+                        (axum::http::header::CONTENT_TYPE, mime.as_ref()),
+                        (axum::http::header::CACHE_CONTROL, "no-store"),
+                    ],
                     data,
                 )
                     .into_response()

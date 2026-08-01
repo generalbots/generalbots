@@ -23,49 +23,6 @@ pub fn derive_stable_user_uuid(user_id: &str) -> Uuid {
     }
 }
 
-pub fn is_admin_role(role: &str) -> bool {
-    role.eq_ignore_ascii_case(ROLE_ADMIN)
-}
-
-pub fn is_user_admin(pool: &DbPool, user_id: Uuid) -> bool {
-    is_admin_role(&resolve_user_role(pool, user_id))
-}
-
-pub fn tool_is_admin_only(work_path: &std::path::Path, bot_name: &str, tool_name: &str) -> bool {
-    let mcp_rel = format!(
-        "{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.mcp.json"
-    );
-    let mcp_path = work_path.join(&mcp_rel);
-    if !mcp_path.exists() {
-        return is_management_tool_by_name(tool_name);
-    }
-    match std::fs::read_to_string(&mcp_path) {
-        Ok(content) => match serde_json::from_str::<serde_json::Value>(&content) {
-            Ok(val) => val
-                .get("admin_only")
-                .and_then(|v| v.as_bool())
-                .unwrap_or_else(|| is_management_tool_by_name(tool_name)),
-            Err(_) => is_management_tool_by_name(tool_name),
-        },
-        Err(_) => is_management_tool_by_name(tool_name),
-    }
-}
-
-fn is_management_tool_by_name(tool_name: &str) -> bool {
-    let lower = tool_name.to_lowercase();
-    if lower.ends_with("_update") || lower.ends_with("-update") {
-        return true;
-    }
-    matches!(
-        lower.as_str(),
-        "pendencias"
-            | "revisar-pendencias"
-            | "chart-batizados"
-            | "chart-mode"
-            | "02-gerente-batizados"
-    )
-}
-
 pub fn resolve_user_role(pool: &DbPool, user_id: Uuid) -> String {
     let mut conn = match pool.get() {
         Ok(c) => c,

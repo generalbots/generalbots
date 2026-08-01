@@ -21,7 +21,7 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .route("/suite/brazil/fragments/events", get(events))
         .route("/suite/brazil/fragments/alerts", get(alerts))
         .route("/api/brazil/forms/nfe", post(create_nfe_form))
-        .route("/api/brazil/forms/nfe/{id}/authorize", post(authorize_nfe_form))
+        .route("/api/brazil/forms/nfe/:id/authorize", post(authorize_nfe_form))
         .route("/api/brazil/forms/cte", post(create_cte_form))
         .route("/api/brazil/forms/nfse", post(create_nfse_form))
         .route("/api/brazil/forms/validate", post(validate))

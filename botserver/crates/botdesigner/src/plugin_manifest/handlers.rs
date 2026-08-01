@@ -305,8 +305,8 @@ pub async fn handle_plugins_page(
 pub fn configure_plugin_routes() -> Router<Arc<DesignerState>> {
     Router::new()
         .route("/api/ui/plugins", get(handle_list_plugins))
-        .route("/api/ui/plugins/{id}/toggle", post(handle_toggle_plugin))
-        .route("/api/ui/plugins/{id}", delete(handle_remove_plugin))
+        .route("/api/ui/plugins/:id/toggle", post(handle_toggle_plugin))
+        .route("/api/ui/plugins/:id", delete(handle_remove_plugin))
         .route("/api/ui/plugins/upload", post(handle_upload_manifest))
         .route("/suite/plugins", get(handle_plugins_page))
 }

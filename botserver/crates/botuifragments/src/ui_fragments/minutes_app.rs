@@ -17,12 +17,12 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .route("/suite/minutes/fragments/actions", get(actions))
         .route("/suite/minutes/fragments/templates", get(templates))
         .route("/suite/minutes/fragments/signatures", get(signatures))
-        .route("/suite/minutes/fragments/attendance/{id}", get(attendance))
+        .route("/suite/minutes/fragments/attendance/:id", get(attendance))
         .route("/api/minutes/forms/meeting", post(schedule_meeting))
         .route("/api/minutes/forms/action", post(create_action))
-        .route("/api/minutes/forms/action/{id}/done", post(complete_action))
-        .route("/api/minutes/forms/document/{id}", post(update_document))
-        .route("/api/minutes/forms/sign/{id}", post(sign_document))
+        .route("/api/minutes/forms/action/:id/done", post(complete_action))
+        .route("/api/minutes/forms/document/:id", post(update_document))
+        .route("/api/minutes/forms/sign/:id", post(sign_document))
 }
 
 async fn upcoming() -> Result<Html<String>, (StatusCode, String)> {

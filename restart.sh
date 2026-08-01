@@ -3,8 +3,9 @@
 echo "=== Fast Restart: botserver + botui + botmodels ==="
 
 killall -9 botserver botui uvicorn 2>/dev/null || true
-pkill -f "botserver" || true
-pkill -f "botui" || true
+pkill -x botserver || true
+pkill -x botui || true
+pkill -f "target/debug/botserver" || true
 pkill -f "botmodels" || true
 pkill -f "uvicorn.*src.main" || true
 sleep 1

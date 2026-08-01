@@ -85,6 +85,21 @@
   </main>
 </div>
 <script src="/cloud/js/cloud.js"></script>
-<script src="/cloud/js/cloud-plans.js"></script>
-</body>
-</html>
+ <script src="/cloud/js/cloud-plans.js"></script>
+ <script>
+ // Tenant admin (private-cloud) has no plan tiers to purchase — go to Store.
+ (async function() {
+   try {
+     const res = await cloudFetch('/api/cloud/organizations');
+     if (res.ok) {
+       const data = await res.json();
+       const orgs = data.organizations || [];
+       if (orgs.length && (orgs[0].plan || 'free') === 'private-cloud') {
+         window.location.replace('/store');
+       }
+     }
+   } catch(e) { /* keep plans page on failure */ }
+ })();
+ </script>
+ </body>
+ </html>

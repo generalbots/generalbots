@@ -135,13 +135,13 @@ impl CachedLLMProvider {
         }
     }
 
-    fn generate_cache_key(&self, prompt: &str, messages: &Value, model: &str) -> String {
+    fn generate_cache_key(&self, prompt: &str, messages: &Value, model: &str, bot_id: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(prompt.as_bytes());
         hasher.update(messages.to_string().as_bytes());
         hasher.update(model.as_bytes());
         let hash = hasher.finalize();
-        format!("{}:{}:{}", self.config.key_prefix, model, hex::encode(hash))
+        format!("{}:{}:{}:{}", self.config.key_prefix, bot_id, model, hex::encode(hash))
     }
 
     async fn is_cache_enabled(&self, bot_id: &str) -> bool {
@@ -238,6 +238,7 @@ impl CachedLLMProvider {
         prompt: &str,
         messages: &Value,
         model: &str,
+        bot_id: &str,
     ) -> Option<CachedResponse> {
         let mut conn = match self.cache.get_multiplexed_async_connection().await {
             Ok(conn) => conn,
@@ -253,7 +254,7 @@ impl CachedLLMProvider {
             messages
         };
 
-        let cache_key = self.generate_cache_key(prompt, actual_messages, model);
+        let cache_key = self.generate_cache_key(prompt, actual_messages, model, bot_id);
 
         if let Ok(cached_json) = conn.get::<_, String>(&cache_key).await {
             if let Ok(mut cached) = serde_json::from_str::<CachedResponse>(&cached_json) {
@@ -275,7 +276,7 @@ impl CachedLLMProvider {
         }
 
         if self.config.semantic_matching && self.embedding_service.is_some() {
-            if let Some(similar) = self.find_similar_cached(prompt, messages, model, self.config.similarity_threshold).await {
+            if let Some(similar) = self.find_similar_cached(prompt, messages, model, self.config.similarity_threshold, bot_id).await {
                 info!(
                     "Cache hit (semantic match) for prompt: ~{} tokens",
                     estimate_token_count(prompt)
@@ -297,6 +298,7 @@ impl CachedLLMProvider {
         messages: &Value,
         model: &str,
         threshold: f32,
+        bot_id: &str,
     ) -> Option<CachedResponse> {
         let embedding_service = self.embedding_service.as_ref()?;
 
@@ -332,11 +334,11 @@ impl CachedLLMProvider {
             format!("{}\n{}", prompt, latest_user_question)
         };
 
-        // Debug: log the text being sent for embedding
+        // Debug: log the text being sent for embedding (truncated, no full user content)
         debug!(
-            "Embedding request text (len={}, using latest user question): {}",
+            "Embedding request text (len={}, using latest user question, first {} chars)",
             semantic_query.len(),
-            &semantic_query.chars().take(200).collect::<String>()
+            semantic_query.chars().take(80).count()
         );
 
         let prompt_embedding = match embedding_service.get_embedding(&semantic_query).await {
@@ -355,7 +357,7 @@ impl CachedLLMProvider {
             }
         };
 
-        let pattern = format!("{}:{}:*", self.config.key_prefix, model);
+        let pattern = format!("{}:{}:{}:*", self.config.key_prefix, bot_id, model);
         let keys: Vec<String> = match conn.keys(pattern).await {
             Ok(k) => k,
             Err(e) => {
@@ -390,7 +392,7 @@ impl CachedLLMProvider {
 
             cached.hit_count += 1;
             let cache_key =
-                self.generate_cache_key(&cached.prompt, &cached.messages, &cached.model);
+                self.generate_cache_key(&cached.prompt, &cached.messages, &cached.model, bot_id);
             let _ = conn
                 .set_ex::<_, _, ()>(
                     &cache_key,
@@ -404,14 +406,14 @@ impl CachedLLMProvider {
         None
     }
 
-    async fn cache_response(&self, prompt: &str, messages: &Value, model: &str, response: &str) {
+    async fn cache_response(&self, prompt: &str, messages: &Value, model: &str, response: &str, bot_id: &str) {
         let actual_messages = if messages.get("messages").is_some() {
             messages.get("messages").unwrap_or(messages)
         } else {
             messages
         };
 
-        let cache_key = self.generate_cache_key(prompt, actual_messages, model);
+        let cache_key = self.generate_cache_key(prompt, actual_messages, model, bot_id);
 
         let mut conn = match self.cache.get_multiplexed_async_connection().await {
             Ok(conn) => conn,
@@ -521,7 +523,7 @@ impl CachedLLMProvider {
         let mut conn = self.cache.get_multiplexed_async_connection().await?;
 
         let pattern = if let Some(m) = model {
-            format!("{}:{}:*", self.config.key_prefix, m)
+            format!("{}:*:{}:*", self.config.key_prefix, m)
         } else {
             format!("{}:*", self.config.key_prefix)
         };
@@ -568,13 +570,13 @@ impl LLMProvider for CachedLLMProvider {
 
         let bot_cache_config = self.get_bot_cache_config(bot_id);
 
-        if let Some(cached) = self.get_cached_response(prompt, messages, model).await {
+        if let Some(cached) = self.get_cached_response(prompt, messages, model, bot_id).await {
             info!("Cache hit (exact match) for bot {}", bot_id);
             return Ok(cached.response);
         }
 
         if bot_cache_config.semantic_matching && self.embedding_service.is_some() {
-            if let Some(cached) = self.find_similar_cached(prompt, messages, model, bot_cache_config.similarity_threshold).await {
+            if let Some(cached) = self.find_similar_cached(prompt, messages, model, bot_cache_config.similarity_threshold, bot_id).await {
                 info!(
                     "Cache hit (semantic match) for bot {} with similarity threshold {}",
                     bot_id, bot_cache_config.similarity_threshold
@@ -586,7 +588,7 @@ impl LLMProvider for CachedLLMProvider {
         debug!("Cache miss for bot {}, generating new response", bot_id);
         let response = self.provider.generate(prompt, messages, model, key).await?;
 
-        self.cache_response(prompt, messages, model, &response)
+        self.cache_response(prompt, messages, model, &response, bot_id)
             .await;
 
         Ok(response)
@@ -601,7 +603,10 @@ impl LLMProvider for CachedLLMProvider {
         key: &str,
         tools: Option<&Vec<Value>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let bot_id = "default";
+        let bot_id = messages
+            .get("bot_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("default");
         if !self.is_cache_enabled(bot_id).await {
             trace!("Cache disabled for streaming, bypassing");
             return self
@@ -610,7 +615,7 @@ impl LLMProvider for CachedLLMProvider {
                 .await;
         }
 
-        if let Some(cached) = self.get_cached_response(prompt, messages, model).await {
+        if let Some(cached) = self.get_cached_response(prompt, messages, model, bot_id).await {
             for chunk in cached.response.chars().collect::<Vec<_>>().chunks(50) {
                 let chunk_str: String = chunk.iter().collect();
                 if tx.send(chunk_str).await.is_err() {
@@ -640,7 +645,7 @@ impl LLMProvider for CachedLLMProvider {
             .await?;
 
         let full_response = forward_task.await?;
-        self.cache_response(prompt, messages, model, &full_response)
+        self.cache_response(prompt, messages, model, &full_response, bot_id)
             .await;
 
         Ok(())

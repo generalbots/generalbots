@@ -12,14 +12,14 @@ use super::tasks_types::*;
 
 pub fn tasks_integration_routes() -> Router<Arc<crate::CrateState>> {
     Router::new()
-        .route("/tasks/{task_id}/contacts", get(get_task_contacts_handler).post(assign_contact_handler))
-        .route("/tasks/{task_id}/contacts/bulk", post(bulk_assign_contacts_handler))
-        .route("/tasks/{task_id}/contacts/{contact_id}", delete(unassign_contact_handler).post(update_task_contact_handler))
-        .route("/tasks/{task_id}/contacts/suggestions", get(get_task_suggestions_handler))
-        .route("/contacts/{contact_id}/tasks", get(get_contact_tasks_handler))
-        .route("/contacts/{contact_id}/tasks/stats", get(get_contact_task_stats_handler))
-        .route("/contacts/{contact_id}/tasks/workload", get(get_contact_workload_handler))
-        .route("/contacts/{contact_id}/tasks/create", post(create_task_for_contact_handler))
+        .route("/tasks/:task_id/contacts", get(get_task_contacts_handler).post(assign_contact_handler))
+        .route("/tasks/:task_id/contacts/bulk", post(bulk_assign_contacts_handler))
+        .route("/tasks/:task_id/contacts/:contact_id", delete(unassign_contact_handler).post(update_task_contact_handler))
+        .route("/tasks/:task_id/contacts/suggestions", get(get_task_suggestions_handler))
+        .route("/contacts/:contact_id/tasks", get(get_contact_tasks_handler))
+        .route("/contacts/:contact_id/tasks/stats", get(get_contact_task_stats_handler))
+        .route("/contacts/:contact_id/tasks/workload", get(get_contact_workload_handler))
+        .route("/contacts/:contact_id/tasks/create", post(create_task_for_contact_handler))
 }
 
 async fn get_task_contacts_handler(

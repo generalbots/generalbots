@@ -284,7 +284,8 @@ textarea.form-control {
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-.mgmt-backdrop.active {
+.mgmt-backdrop.active,
+.mgmt-backdrop.open {
   opacity: 1;
   visibility: visible;
 }
@@ -299,7 +300,8 @@ textarea.form-control {
   pointer-events: none;
 }
 
-.mgmt-modal.active {
+.mgmt-modal.active,
+.mgmt-modal.open {
   pointer-events: auto;
 }
 
@@ -331,7 +333,8 @@ textarea.form-control {
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
-.mgmt-modal.active .mgmt-modal-box {
+.mgmt-modal.active .mgmt-modal-box,
+.mgmt-modal.open .mgmt-modal-box {
   transform: translateY(0) scale(1);
   opacity: 1;
 }

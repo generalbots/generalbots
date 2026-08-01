@@ -15,6 +15,7 @@
     .org-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-accent); }
     .org-card-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; margin-bottom: .75rem; }
     .org-card-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .org-card-suffix { font-weight: 400; font-size: .85rem; color: var(--muted); margin-left: .15rem; }
     .org-card-plan { font-size: .72rem; color: var(--muted); margin-top: .25rem; letter-spacing: .04em; text-transform: uppercase; }
     .org-card-stats { display: flex; gap: 1rem; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
     .org-card-stat { text-align: center; }
@@ -89,6 +90,7 @@
         </div>
       </div>
       <div style="padding:2rem">
+        <div class="org-breadcrumb" id="org-breadcrumb" style="font-size:.8rem;color:var(--muted);margin-bottom:.75rem"><a href="#" onclick="showOrgList()" style="color:var(--accent);text-decoration:none">Organizations</a> / <span id="org-breadcrumb-name"></span></div>
         <div class="org-detail-header" id="org-detail-header"></div>
         <div class="mgmt-section-header">
           <div>
@@ -115,9 +117,9 @@
       <div class="form-group">
         <label class="form-label">Plan</label>
         <select id="org-plan-select" class="form-control">
-          <option value="free">Free</option>
-          <option value="personal" selected>Personal — $9/mo</option>
-          <option value="business">Business — $49/mo</option>
+          <option value="free" selected>Free</option>
+          <option value="shared">Shared — $3.99/mo</option>
+          <option value="private-cloud">Private Cloud — custom</option>
         </select>
       </div>
       <div class="mgmt-modal-actions">
@@ -171,7 +173,8 @@
 <!-- Workspace Detail Modal -->
 <div class="mgmt-modal" id="ws-detail-modal">
   <div class="mgmt-backdrop" onclick="hideWsDetail()"></div>
-  <div class="mgmt-modal-box" style="max-width:640px">
+    <div class="mgmt-modal-box" style="max-width:640px">
+    <div class="org-breadcrumb" id="ws-breadcrumb" style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem"><a href="#" onclick="hideWsDetail()" style="color:var(--accent);text-decoration:none" id="ws-breadcrumb-org"></a> / <span id="ws-breadcrumb-name"></span></div>
     <div class="mgmt-modal-title" id="ws-detail-title">Workspace</div>
     <div id="ws-detail-body">
       <div class="mgmt-section-title" style="font-size:.9rem;margin-bottom:.75rem">Assigned Resources</div>
@@ -217,7 +220,7 @@
   </div>
 </div>
 
-<script src="/cloud/js/cloud-orgs.js"></script>
-<script src="/cloud/js/cloud.js"></script>
+<script src="/cloud/js/cloud-orgs.js?v=20260801-2"></script>
+<script src="/cloud/js/cloud.js?v=20260801-2"></script>
 </body>
 </html>

@@ -164,24 +164,24 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/checkout", post(handle_checkout))
         .route("/api/cloud/checkout/success", get(checkout_success))
         .route("/api/cloud/plans", get(list_plans))
-        .route("/api/cloud/plans/{plan_id}", get(get_plan_detail))
+        .route("/api/cloud/plans/:plan_id", get(get_plan_detail))
         // Organizations
         .route("/api/cloud/organizations", get(list_organizations).post(create_organization))
-        .route("/api/cloud/organizations/{org_id}", get(get_organization).put(update_organization).delete(delete_organization))
-        .route("/api/cloud/organizations/{org_id}/billing", get(org_billing_portal))
+        .route("/api/cloud/organizations/:org_id", get(get_organization).put(update_organization).delete(delete_organization))
+        .route("/api/cloud/organizations/:org_id/billing", get(org_billing_portal))
         // Branches per organization
-        .route("/api/cloud/organizations/{org_id}/branches", get(list_branches).post(create_branch_handler))
-        .route("/api/cloud/organizations/{org_id}/branches/{branch_id}", put(update_branch_handler).delete(delete_branch_handler))
+        .route("/api/cloud/organizations/:org_id/branches", get(list_branches).post(create_branch_handler))
+        .route("/api/cloud/organizations/:org_id/branches/:branch_id", put(update_branch_handler).delete(delete_branch_handler))
         // Workspaces per organization
-        .route("/api/cloud/organizations/{org_id}/workspaces", get(list_workspaces).post(create_workspace))
-        .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}", put(update_workspace).delete(delete_workspace))
+        .route("/api/cloud/organizations/:org_id/workspaces", get(list_workspaces).post(create_workspace))
+        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id", put(update_workspace).delete(delete_workspace))
         // Resources per workspace
-        .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources", get(list_workspace_resources).post(assign_resource))
-        .route("/api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources/{res_id}", delete(remove_resource))
+        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id/resources", get(list_workspace_resources).post(assign_resource))
+        .route("/api/cloud/organizations/:org_id/workspaces/:ws_id/resources/:res_id", delete(remove_resource))
         // Services (purchased add-ons)
         .route("/api/cloud/bots", get(list_bots))
         .route("/api/cloud/services", get(list_services))
-        .route("/api/cloud/services/{id}/cancel", post(cancel_service))
+        .route("/api/cloud/services/:id/cancel", post(cancel_service))
         // Invoices
         .route("/api/cloud/invoices", get(list_invoices))
         // Vouchers
@@ -210,7 +210,7 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/admin/server-capacity", get(get_server_capacity))
         // Domains (CRUD — admin only, all require JWT)
         .route("/api/cloud/domains", get(crate::domains::list_domains).post(crate::domains::create_domain))
-        .route("/api/cloud/domains/{id}", put(crate::domains::update_domain).delete(crate::domains::delete_domain))
+        .route("/api/cloud/domains/:id", put(crate::domains::update_domain).delete(crate::domains::delete_domain))
         // Domain resolution (public — no JWT required)
         .route("/api/domains/resolve", get(crate::domains::resolve_domain))
         // JWT auth middleware — protects all routes except /api/cloud/auth/*
@@ -1149,7 +1149,9 @@ async fn list_organizations(
     "#;
 
     let orgs: Vec<OrgWithCounts> = if admin {
-        diesel::sql_query(format!("{base_query} GROUP BY o.org_id, o.name ORDER BY o.name"))
+        diesel::sql_query(format!(
+            "{base_query} WHERE o.org_id <> '00000000-0000-0000-0000-000000000000' GROUP BY o.org_id, o.name ORDER BY o.name"
+        ))
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
     } else if let Some(bid) = user_branch_id {
@@ -1158,17 +1160,23 @@ async fn list_organizations(
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
     } else {
-        diesel::sql_query(format!("{base_query} GROUP BY o.org_id, o.name ORDER BY o.name"))
+        diesel::sql_query(format!(
+            "{base_query} WHERE o.org_id <> '00000000-0000-0000-0000-000000000000' GROUP BY o.org_id, o.name ORDER BY o.name"
+        ))
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
     };
 
     let result: Vec<serde_json::Value> = orgs.into_iter().map(|r| {
-        let plan = r.plan_name.as_deref()
-            .and_then(|d| d.split_once(" - ").map(|(p, _)| p).or(Some(d)))
-            .map(|p| p.to_lowercase().replace(' ', "-"))
-            .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
-            .unwrap_or_else(|| "free".to_string());
+        let plan = if admin {
+            "private-cloud".to_string()
+        } else {
+            r.plan_name.as_deref()
+                .and_then(|d| d.split_once(" - ").map(|(p, _)| p).or(Some(d)))
+                .map(|p| p.to_lowercase().replace(' ', "-"))
+                .filter(|p| p == "free" || p == "shared" || p == "private-cloud")
+                .unwrap_or_else(|| "free".to_string())
+        };
         serde_json::json!({
             "id": r.id,
             "name": r.name,
@@ -1195,7 +1203,7 @@ async fn create_organization(
     let org_id = integration::create_organization(service.pool(), &body.name, body.domain.as_deref())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let plan = body.plan.unwrap_or_else(|| "personal".to_string());
+    let plan = body.plan.unwrap_or_else(|| "free".to_string());
     let period = body.period.unwrap_or_else(|| "monthly".to_string());
     let storage = body.storage_gb.unwrap_or(5.0);
 
@@ -1261,7 +1269,7 @@ async fn get_organization(
     Ok(Json(serde_json::json!({
         "id": org.id,
         "name": org.name,
-        "plan": "personal",
+        "plan": "free",
         "status": "active",
     })))
 }
@@ -1312,10 +1320,12 @@ async fn delete_organization(
         .map(|r| r.id);
 
     if let Some(bid) = branch_id {
-        use crate::schema_ext::workspace_resources::dsl as wr;
-        diesel::delete(wr::workspace_resources.filter(wr::branch_id.eq(bid)))
-            .execute(&mut conn)
-            .ok();
+        diesel::sql_query(
+            "DELETE FROM workspace_resources WHERE workspace_id IN (SELECT id FROM cloud_workspaces WHERE branch_id = $1)"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bid)
+        .execute(&mut conn)
+        .ok();
 
         use crate::schema_ext::cloud_workspaces::dsl as cw;
         diesel::delete(cw::cloud_workspaces.filter(cw::branch_id.eq(bid)))
@@ -1378,10 +1388,10 @@ async fn list_workspaces(
     let rows = cw::cloud_workspaces
         .filter(cw::branch_id.eq(branch_id))
         .order(cw::created_at.desc())
-        .load::<(Uuid, Uuid, String, Option<String>, Option<String>, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(&mut conn)
+        .load::<(Uuid, Uuid, Uuid, String, Option<String>, Option<String>, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
 
-    let result: Vec<serde_json::Value> = rows.into_iter().map(|(wid, _, wname, wdesc, wicon, _, _)| {
+    let result: Vec<serde_json::Value> = rows.into_iter().map(|(wid, _, _, wname, wdesc, wicon, _, _)| {
         serde_json::json!({
             "id": wid,
             "name": wname,
@@ -1419,6 +1429,7 @@ async fn create_workspace(
     diesel::insert_into(cw::cloud_workspaces)
         .values((
             cw::id.eq(ws_id),
+            cw::org_id.eq(org_id_param),
             cw::branch_id.eq(branch_id),
             cw::name.eq(body.name.trim()),
             cw::description.eq(body.description),
@@ -1567,7 +1578,7 @@ async fn assign_resource(
         .values((
             wr::id.eq(res_id),
             wr::workspace_id.eq(ws_id_param),
-            wr::branch_id.eq(branch_id),
+            wr::org_id.eq(org_id_param),
             wr::store_item_id.eq(&body.store_item_id),
             wr::name.eq(body.name.unwrap_or_else(|| body.store_item_id.clone())),
             wr::resource_type.eq(restype),
@@ -1906,6 +1917,7 @@ async fn list_bots(
 
     let user_branch_id = get_branch_id_from_jwt(&headers, &mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let admin = is_super_admin(&headers, &mut conn).unwrap_or(false);
 
     #[derive(QueryableByName, Debug)]
     struct BotRow {
@@ -1921,7 +1933,11 @@ async fn list_bots(
         is_active: bool,
     }
 
-    let rows: Vec<BotRow> = if let Some(bid) = user_branch_id {
+    let rows: Vec<BotRow> = if admin {
+        diesel::sql_query("SELECT id, name, slug, description, is_active FROM bots ORDER BY name")
+            .load(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?
+    } else if let Some(bid) = user_branch_id {
         diesel::sql_query(
             "SELECT id, name, slug, description, is_active FROM bots WHERE branch_id = $1 ORDER BY name"
         )
@@ -1954,6 +1970,7 @@ async fn list_services(
 
     let user_branch_id = get_branch_id_from_jwt(&headers, &mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let admin = is_super_admin(&headers, &mut conn).unwrap_or(false);
 
     use crate::schema_ext::billing_recurring::dsl::*;
     let mut query = billing_recurring
@@ -1991,6 +2008,61 @@ async fn list_services(
             "expires_at": sdate,
         })
     }).collect();
+
+    let mut result = result;
+
+    // When accessing the cloud for the default org (base system), the host that
+    // runs the entire stack is itself the VPS — surface it as a service.
+    #[derive(QueryableByName)]
+    struct DefaultBranchRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        value: Uuid,
+    }
+    let default_branch_id: Option<Uuid> = diesel::sql_query(
+        "SELECT b.id AS value FROM branches b JOIN organizations o ON o.org_id = b.org_id \
+         WHERE o.slug = 'default' LIMIT 1"
+    )
+    .get_result::<DefaultBranchRow>(&mut conn)
+    .optional()
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Default branch query: {e}")))?
+    .map(|r| r.value);
+
+    let is_default_access = admin
+        || user_branch_id.is_none()
+        || (user_branch_id.is_some() && default_branch_id == user_branch_id);
+
+    if is_default_access {
+        let scheme = headers
+            .get("x-forwarded-proto")
+            .and_then(|v| v.to_str().ok())
+            .filter(|s| !s.is_empty())
+            .unwrap_or("http");
+        let host = headers
+            .get("host")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_string();
+        let dashboard_url = if !host.is_empty() {
+            Some(format!("{scheme}://{host}"))
+        } else if !service.config.base_url.is_empty() {
+            Some(service.config.base_url.clone())
+        } else {
+            None
+        };
+        result.insert(0, serde_json::json!({
+            "id": Uuid::nil(),
+            "name": "Base System VPS (Own Host)",
+            "description": "The host that runs the General Bots base system",
+            "status": "active",
+            "amount": "0",
+            "currency": "USD",
+            "period": "monthly",
+            "created_at": chrono::Utc::now().to_rfc3339(),
+            "expires_at": null,
+            "is_base_system": true,
+            "dashboard_url": dashboard_url,
+        }));
+    }
 
     Ok(Json(serde_json::json!({ "services": result })))
 }

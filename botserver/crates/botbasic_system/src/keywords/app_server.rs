@@ -219,9 +219,9 @@ pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
     #[cfg(not(feature = "vibe"))]
     let router = router
         // Legacy app serving (removed under vibe feature — apps/sites served by Caddy/Incus)
-        .route("/apps/{app_name}", get(serve_app_index))
-        .route("/apps/{app_name}/", get(serve_app_index))
-        .route("/apps/{app_name}/*file_path", get(serve_app_file))
+        .route("/apps/:app_name", get(serve_app_index))
+        .route("/apps/:app_name/", get(serve_app_index))
+        .route("/apps/:app_name/*file_path", get(serve_app_file))
         .route("/apps", get(list_all_apps));
 
     router

@@ -11,17 +11,17 @@ pub fn extract_think_tags(content: &str) -> (String, String) {
 
     while pos < chars.len() {
         if !in_think {
-            if pos + 7 <= chars.len() && chars[pos..pos+7].iter().collect::<String>() == " thinking" {
+            if pos + 9 <= chars.len() && chars[pos..pos+9].iter().collect::<String>() == " thinking" {
                 in_think = true;
-                pos += 7;
+                pos += 9;
                 continue;
             }
             result.push(chars[pos]);
             pos += 1;
         } else {
-            if pos + 8 <= chars.len() && chars[pos..pos+8].iter().collect::<String>() == " response" {
+            if pos + 9 <= chars.len() && chars[pos..pos+9].iter().collect::<String>() == " response" {
                 in_think = false;
-                pos += 8;
+                pos += 9;
                 continue;
             }
             reasoning.push(chars[pos]);

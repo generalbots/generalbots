@@ -26,13 +26,13 @@ impl axum::response::IntoResponse for CalendarIntegrationError {
 
 pub fn calendar_integration_routes() -> Router<Arc<crate::CrateState>> {
     Router::new()
-        .route("/events/{event_id}/contacts", get(get_event_contacts_handler).post(link_contact_handler))
-        .route("/events/{event_id}/contacts/bulk", post(bulk_link_contacts_handler))
-        .route("/events/{event_id}/contacts/{contact_id}", delete(unlink_contact_handler).post(update_event_contact_handler))
-        .route("/events/{event_id}/contacts/suggestions", get(get_suggestions_handler))
-        .route("/contacts/{contact_id}/events", get(get_contact_events_handler))
-        .route("/events/{event_id}/find-contacts", post(find_contacts_handler))
-        .route("/events/{event_id}/create-contacts", post(create_contacts_from_attendees_handler))
+        .route("/events/:event_id/contacts", get(get_event_contacts_handler).post(link_contact_handler))
+        .route("/events/:event_id/contacts/bulk", post(bulk_link_contacts_handler))
+        .route("/events/:event_id/contacts/:contact_id", delete(unlink_contact_handler).post(update_event_contact_handler))
+        .route("/events/:event_id/contacts/suggestions", get(get_suggestions_handler))
+        .route("/contacts/:contact_id/events", get(get_contact_events_handler))
+        .route("/events/:event_id/find-contacts", post(find_contacts_handler))
+        .route("/events/:event_id/create-contacts", post(create_contacts_from_attendees_handler))
 }
 
 async fn get_event_contacts_handler(
