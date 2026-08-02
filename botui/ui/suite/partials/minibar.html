@@ -194,6 +194,32 @@
             }
         });
 
+        // Bind logout IMMEDIATELY (the /api/auth/me lookup below is async and
+        // may fail, which previously left the Sign out button dead).
+        var authAction = document.getElementById("authAction");
+        if (authAction) {
+            authAction.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                sessionStorage.setItem('gb-signed-out', 'true');
+                fetch("/api/auth/logout", {
+                    method: "POST",
+                }).finally(function () {
+                    localStorage.removeItem("gb-access-token");
+                    sessionStorage.removeItem("gb-access-token");
+                    localStorage.removeItem("management_token");
+                    localStorage.removeItem("management_email");
+                    localStorage.removeItem("management_name");
+                    localStorage.removeItem("management_is_admin");
+                    var i = 0, keys = [];
+                    for (i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("gb_chat_") === 0) keys.push(k); }
+                    keys.forEach(function (k) { localStorage.removeItem(k); });
+                    if (window.GBSecurity && window.GBSecurity.broadcastLogout) window.GBSecurity.broadcastLogout();
+                    window.location.href = window.GB_LOGIN_URL || "/login";
+                });
+            });
+        }
+
         // Trigger manual load or UI sync since minibar loads asynchronously via HTMX
         setTimeout(function () {
             var token = window.getGBAccessToken && window.getGBAccessToken();
@@ -218,22 +244,6 @@
                             "Sign out";
                         document.getElementById("authIcon").innerHTML =
                             '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>';
-
-                        btn.onclick = function (e) {
-                            e.preventDefault();
-                            sessionStorage.setItem('gb-signed-out', 'true');
-                            fetch("/api/auth/logout", {
-                                method: "POST",
-                            }).finally(function () {
-                                localStorage.removeItem("gb-access-token");
-                                sessionStorage.removeItem("gb-access-token");
-                                var i = 0, keys = [];
-                                for (i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("gb_chat_") === 0) keys.push(k); }
-                                keys.forEach(function (k) { localStorage.removeItem(k); });
-                                if (window.GBSecurity && window.GBSecurity.broadcastLogout) window.GBSecurity.broadcastLogout();
-                                window.location.href = window.GB_LOGIN_URL || "/login";
-                            });
-                        };
 
                         var initial = (
                             user.display_name ||

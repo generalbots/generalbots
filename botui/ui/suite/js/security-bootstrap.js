@@ -148,6 +148,19 @@
         sessionStorage.removeItem(AUTH_KEYS[key]);
       });
       sessionStorage.removeItem("gb-persistent");
+      // Cloud management tokens must also go — otherwise the chat
+      // re-authenticates as the previous user after logout.
+      localStorage.removeItem("management_token");
+      localStorage.removeItem("management_email");
+      localStorage.removeItem("management_name");
+      localStorage.removeItem("management_is_admin");
+      // Clear per-bot chat session caches
+      var i = 0, keys = [];
+      for (i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf("gb_chat_") === 0) keys.push(k);
+      }
+      keys.forEach(function (k) { localStorage.removeItem(k); });
     },
 
     buildAuthHeaders: function (existingHeaders) {
