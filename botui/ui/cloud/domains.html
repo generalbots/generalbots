@@ -49,14 +49,16 @@
               <input type="text" id="domain" name="domain" placeholder="chat.example.com" required>
             </div>
             <div class="form-group">
-              <label for="bot_id">Bot ID</label>
-              <input type="text" id="bot_id" name="bot_id" placeholder="UUID of the bot" required>
+              <label for="bot_id">Bot</label>
+              <select id="bot_id" name="bot_id" required>
+                <option value="">Loading bots...</option>
+              </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="display:none">
               <label for="org_id">Org ID (optional)</label>
               <input type="text" id="org_id" name="org_id" placeholder="UUID of organization">
             </div>
-            <div class="form-group">
+            <div class="form-group" style="display:none">
               <label for="branch_id">Branch ID (optional)</label>
               <input type="text" id="branch_id" name="branch_id" placeholder="UUID of branch">
             </div>
@@ -101,6 +103,28 @@
 (async function() {
   const token = await requireAuth();
 
+  // Load the user's bots for the mapping dropdown (pick by name, not UUID)
+  async function loadBots() {
+    const select = document.getElementById('bot_id');
+    try {
+      const res = await fetch('/api/cloud/bots', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      const bots = data.bots || [];
+      if (!bots.length) {
+        select.innerHTML = '<option value="">No bots available</option>';
+        return;
+      }
+      select.innerHTML = bots.map(b =>
+        `<option value="${b.id}">${escapeHtml(b.name)}</option>`
+      ).join('');
+    } catch (e) {
+      select.innerHTML = '<option value="">Failed to load bots</option>';
+    }
+  }
+
   async function loadDomains() {
     try {
       const res = await fetch('/api/cloud/domains', {
@@ -144,6 +168,13 @@
     const bot_id = document.getElementById('bot_id').value.trim();
     const org_id = document.getElementById('org_id').value.trim() || null;
     const branch_id = document.getElementById('branch_id').value.trim() || null;
+
+    if (!bot_id) {
+      const msg = document.getElementById('create-message');
+      msg.style.color = '#ef4444';
+      msg.textContent = 'Select a bot to map the domain to.';
+      return;
+    }
 
     const msg = document.getElementById('create-message');
     msg.style.color = 'var(--muted)';
@@ -198,6 +229,7 @@
     }
   };
 
+  await loadBots();
   await loadDomains();
 })();
 </script>

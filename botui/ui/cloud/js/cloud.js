@@ -156,16 +156,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const signupBtn = document.getElementById('sidebar-signup');
     if (signupBtn) signupBtn.style.display = '';
 
-    // Anonymous: show subtle sign-up prompt only on account pages
-    const isAccountPage = location.pathname.match(/^\/(dashboard|invoices|services|profile|settings|payment|organizations)/);
+    // Anonymous: invite to create an account on account pages — content stays
+    // visible for browsing (same pattern as the organizations page)
+    const isAccountPage = location.pathname.match(/^\/(dashboard|services|invoices|payment-cards|profile|settings|organizations|machines|llm|domains)(\/|$)/);
     if (isAccountPage) {
       const main = document.querySelector('.mgmt-main');
       if (main && !main.querySelector('.anon-cta-banner')) {
         const banner = document.createElement('div');
         banner.className = 'anon-cta-banner';
+        const loginBase = window.GB_LOGIN_URL || '/login';
         banner.innerHTML = '<div class="anon-cta-content">' +
-          '<span>Sign in to access your account.</span>' +
-          '<a href="' + (window.GB_LOGIN_URL || '/login') + '" class="anon-cta-btn">Sign In</a>' +
+          '<span>Browse freely — <strong>create a free account</strong> to manage bots, domains and services.</span>' +
+          '<a href="' + loginBase + '?redirect=' + encodeURIComponent(location.pathname) + '" class="anon-cta-btn">Sign In</a>' +
+          '<a href="' + loginBase + '/signup' + '" class="anon-cta-btn" style="background:var(--accent2, #00d4aa);color:#04241c !important">Create Free Account</a>' +
           '</div>';
         main.insertBefore(banner, main.firstChild);
       }
@@ -335,6 +338,7 @@ async function devAutoLogin() {
 async function cloudFetch(url, options) {
   options = options || {};
   const attempt = async (allowRetry) => {
+    const hadToken = !!getToken();
     let token = getToken();
     if (!token) {
       await devAutoLogin();
@@ -349,7 +353,9 @@ async function cloudFetch(url, options) {
         await devAutoLogin();
         token = getToken();
         if (token) return attempt(false);
-      } else {
+      } else if (hadToken) {
+        // Expired session: re-authenticate. Never-logged-in users browse
+        // anonymously and are invited via the CTA banner instead.
         const loginUrl = (window.GB_LOGIN_URL || '/login') + '?return=' + encodeURIComponent(location.pathname + location.search);
         window.location.href = loginUrl;
         return res;
