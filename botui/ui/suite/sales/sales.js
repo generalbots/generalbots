@@ -244,5 +244,5 @@ const SalesApp = {
     esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 };
 
-document.addEventListener('DOMContentLoaded', () => SalesApp.init());
+(function(){ var __cb = () => SalesApp.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 })();

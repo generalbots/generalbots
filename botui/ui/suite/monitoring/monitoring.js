@@ -56,7 +56,7 @@
   }
 
   // Initialize
-  document.addEventListener("DOMContentLoaded", function () {
+  (function(){ var __cb = function () {
     // Restore time range preference
     const savedRange = localStorage.getItem("monitoring-time-range");
     if (savedRange) {
@@ -67,7 +67,7 @@
     // Set auto-refresh button state
     const autoRefreshBtn = document.getElementById("auto-refresh-btn");
     if (autoRefreshBtn) autoRefreshBtn.classList.toggle("active", autoRefresh);
-  });
+  }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
   // Handle HTMX events for loading states
   document.body.addEventListener("htmx:beforeRequest", function (evt) {
@@ -147,7 +147,7 @@
   window.exportData = exportData;
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initMonitoring);
+    (function(){ var __cb = initMonitoring; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     initMonitoring();
   }

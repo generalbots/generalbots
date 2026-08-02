@@ -691,7 +691,7 @@
     },
   };
 
-  document.addEventListener("DOMContentLoaded", function () {
+  (function(){ var __cb = function () {
     if (authService.isAuthenticated()) {
       authService.fetchCurrentUser().then(function (user) {
         if (user) {
@@ -702,5 +702,5 @@
         }
       });
     }
-  });
+  }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 })(window);

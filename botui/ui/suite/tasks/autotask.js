@@ -25,9 +25,9 @@ const AutoTaskState = {
 // INITIALIZATION
 // =============================================================================
 
-document.addEventListener("DOMContentLoaded", function () {
+(function(){ var __cb = function () {
   initAutoTask();
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 function initAutoTask() {
   // Initialize WebSocket for real-time updates

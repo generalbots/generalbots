@@ -43,9 +43,9 @@ const LEARN_API = "/api/learn";
 // INITIALIZATION
 // ============================================================================
 
-document.addEventListener("DOMContentLoaded", () => {
+(function(){ var __cb = () => {
   initLearn();
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 function initLearn() {
   loadUserStats();

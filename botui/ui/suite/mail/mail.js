@@ -930,7 +930,7 @@
   window.initEmailExtras = initEmailExtras;
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initMail);
+    (function(){ var __cb = initMail; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     initMail();
   }

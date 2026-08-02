@@ -286,13 +286,19 @@
      * Update source counts in sidebar
      */
     function updateSourceCounts() {
-        if (typeof htmx !== 'undefined') {
-            htmx.ajax('GET', '/api/ui/research/source-counts', {
-                swap: 'none'
-            }).then(response => {
-                // Update counts in sidebar if response contains them
-            });
-        }
+        fetch('/api/ui/research/source-counts', { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                const set = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = value !== undefined ? value : 0;
+                };
+                set('count-all', data.all);
+                set('count-web', data.web);
+                set('count-docs', data.docs);
+                set('count-kb', data.kb);
+            })
+            .catch(() => {});
     }
 
     /**
@@ -323,7 +329,7 @@
 
     // Initialize on DOM ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        (function(){ var __cb = init; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
     } else {
         init();
     }

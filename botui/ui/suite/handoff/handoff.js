@@ -246,5 +246,5 @@ const HandoffApp = {
     esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 };
 
-document.addEventListener('DOMContentLoaded', () => HandoffApp.init());
+(function(){ var __cb = () => HandoffApp.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 })();

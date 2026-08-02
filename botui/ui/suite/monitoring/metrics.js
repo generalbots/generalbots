@@ -44,11 +44,11 @@ function filterByCategory(category) {
 }
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
+(function(){ var __cb = function() {
     // Restore time range preference
     const savedRange = localStorage.getItem('metrics-time-range');
     if (savedRange) {
         const select = document.getElementById('metrics-time-range');
         if (select) select.value = savedRange;
     }
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();

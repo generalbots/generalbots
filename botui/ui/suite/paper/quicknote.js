@@ -496,4 +496,4 @@ function hideAllModals() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', init);
+(function(){ var __cb = init; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();

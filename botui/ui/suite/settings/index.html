@@ -641,6 +641,15 @@
             <!-- Layout Preferences -->
             <div class="setting-card">
                 <div class="card-header">
+                    <h2>Desktop Wallpaper</h2>
+                    <p>Choose the background displayed on your desktop</p>
+                </div>
+                <div class="wallpaper-grid" id="wallpaper-grid"></div>
+            </div>
+
+            <!-- Layout Preferences -->
+            <div class="setting-card">
+                <div class="card-header">
                     <h2>Layout Preferences</h2>
                 </div>
                 <div class="setting-row">
@@ -2440,6 +2449,63 @@
             document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
             this.classList.add('active');
         });
+    });
+
+    // Desktop wallpaper picker
+    var WALLPAPERS = [
+        { id: 'default', name: 'Default', css: 'linear-gradient(135deg, #0a0a0a 0%, #1a2338 50%, #0a0a0a 100%)' },
+        { id: 'mountains', name: 'Mountains', css: 'linear-gradient(180deg, #7ea8d8 0%, #b8d4ef 35%, #6b96c9 70%, #3b5a8c 100%)' },
+        { id: 'clean', name: 'Clean', css: 'linear-gradient(160deg, #f5f7fa 0%, #e8ecf1 55%, #d6dde6 100%)' },
+        { id: 'ocean', name: 'Ocean', css: 'linear-gradient(180deg, #0a2e4d 0%, #0d4470 45%, #061c30 100%)' },
+        { id: 'forest', name: 'Forest', css: 'linear-gradient(180deg, #102b1a 0%, #1d4d2e 40%, #081a0f 100%)' },
+        { id: 'sunset', name: 'Sunset', css: 'radial-gradient(circle at 50% 85%, #ffd166 0%, #ef476f 48%, #2d2440 100%)' },
+        { id: 'night', name: 'Night Sky', css: 'linear-gradient(180deg, #0b1026 0%, #131a3a 50%, #0a0e22 100%)' },
+        { id: 'aurora', name: 'Aurora', css: 'linear-gradient(180deg, #060a1a 0%, #0d1530 55%, #0a0e22 100%)' },
+        { id: 'retro', name: 'Retro', css: 'linear-gradient(180deg, #f72585 0%, #7209b7 45%, #190c38 100%)' },
+        { id: 'paper', name: 'Paper', css: 'linear-gradient(180deg, #fbfaf6 0%, #f4f1e8 60%, #eae5d8 100%)' }
+    ];
+
+    function getWallpaper() {
+        return localStorage.getItem('gb-wallpaper') || 'default';
+    }
+
+    function applyWallpaper(name) {
+        document.body.setAttribute('data-wallpaper', name);
+        var grid = document.getElementById('wallpaper-grid');
+        if (grid) {
+            Array.prototype.forEach.call(grid.querySelectorAll('.wallpaper-option'), function (opt) {
+                opt.classList.toggle('active', opt.dataset.wallpaper === name);
+            });
+        }
+    }
+
+    window.setWallpaper = function (name) {
+        localStorage.setItem('gb-wallpaper', name);
+        applyWallpaper(name);
+        showToast('Wallpaper updated');
+    };
+
+    function initWallpapers() {
+        var grid = document.getElementById('wallpaper-grid');
+        if (!grid) return;
+        var current = getWallpaper();
+        grid.innerHTML = WALLPAPERS.map(function (w) {
+            var check = '<span class="wallpaper-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>';
+            return '<button type="button" class="wallpaper-option' + (w.id === current ? ' active' : '') + '" data-wallpaper="' + w.id + '" onclick="setWallpaper(\'' + w.id + '\')" title="' + w.name + '">' +
+                '<span class="wallpaper-thumb" style="--wall:' + w.css + ';--wall-vignette:transparent"></span>' +
+                check +
+                '<span class="wallpaper-name">' + w.name + '</span></button>';
+        }).join('');
+    }
+
+    initWallpapers();
+    applyWallpaper(getWallpaper());
+
+    // Live-update desktop wallpaper when changed in another tab
+    window.addEventListener('storage', function (e) {
+        if (e.key === 'gb-wallpaper' && e.newValue) {
+            applyWallpaper(e.newValue);
+        }
     });
 
     // Versions tab - load when shown

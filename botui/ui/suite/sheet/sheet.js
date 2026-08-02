@@ -823,7 +823,7 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bootSheet);
+    (function(){ var __cb = bootSheet; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     bootSheet();
   }

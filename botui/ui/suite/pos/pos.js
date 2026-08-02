@@ -172,5 +172,5 @@ const PosApp = {
     esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 };
 
-document.addEventListener('DOMContentLoaded', () => PosApp.init());
+(function(){ var __cb = () => PosApp.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 })();

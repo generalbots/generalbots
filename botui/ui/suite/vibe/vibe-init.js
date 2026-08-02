@@ -65,7 +65,7 @@ connectVibeWs();
 }
 
 if (document.readyState === "loading") {
-document.addEventListener("DOMContentLoaded", initVibe);
+(function(){ var __cb = initVibe; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 } else {
 initVibe();
 }

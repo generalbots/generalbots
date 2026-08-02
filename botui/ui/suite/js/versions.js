@@ -128,7 +128,7 @@ function checkUpdate(componentId, btn) {
 // Load versions when the panel is shown
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadVersions);
+    (function(){ var __cb = loadVersions; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     loadVersions();
   }

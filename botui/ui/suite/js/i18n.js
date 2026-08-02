@@ -263,10 +263,10 @@
     console.log(`i18n: Initialization complete, current locale: ${currentLocale}`);
 
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => {
+      (function(){ var __cb = () => {
         translatePage();
         setupBodyListeners();
-      });
+      }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
     } else {
       translatePage();
       setupBodyListeners();

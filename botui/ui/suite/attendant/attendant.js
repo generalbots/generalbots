@@ -451,10 +451,10 @@
             // =====================================================================
             // Initialization
             // =====================================================================
-            document.addEventListener("DOMContentLoaded", async () => {
+            (function(){ var __cb = async () => {
                 await checkCRMEnabled();
                 setupEventListeners();
-            });
+            }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
             async function checkCRMEnabled() {
                 // CRM is now enabled by default

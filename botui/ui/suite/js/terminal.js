@@ -139,7 +139,7 @@ const botCoderTerminal = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => botCoderTerminal.init());
+(function(){ var __cb = () => botCoderTerminal.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     botCoderTerminal.init();
 }

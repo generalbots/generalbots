@@ -24,12 +24,12 @@ if (typeof TasksState === "undefined") {
 // INITIALIZATION
 // =============================================================================
 
-document.addEventListener("DOMContentLoaded", function () {
+(function(){ var __cb = function () {
   // Only init if tasks app is visible
   if (document.querySelector(".tasks-app")) {
     initTasksApp();
   }
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 // Reinitialize when tasks page is loaded via HTMX
 document.body.addEventListener("htmx:afterSwap", function (evt) {
@@ -3055,7 +3055,7 @@ function updateFilterCounts() {
 }
 
 // Call updateFilterCounts on load
-document.addEventListener("DOMContentLoaded", updateFilterCounts);
+(function(){ var __cb = updateFilterCounts; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 document.body.addEventListener("taskCreated", updateFilterCounts);
 
 // =============================================================================

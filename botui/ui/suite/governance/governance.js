@@ -48,10 +48,10 @@
       });
   };
 
-  document.addEventListener("DOMContentLoaded", function () {
+  (function(){ var __cb = function () {
     var dashboardEl = document.querySelector(".governance-metrics-grid");
     if (dashboardEl) {
       htmx.process(dashboardEl);
     }
-  });
+  }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 })();

@@ -252,5 +252,5 @@ const BankingApp = {
     esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 };
 
-document.addEventListener('DOMContentLoaded', () => BankingApp.init());
+(function(){ var __cb = () => BankingApp.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 })();

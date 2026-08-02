@@ -6,11 +6,11 @@ let connectorsData = [];
 let connectedData = [];
 let etlData = [];
 
-document.addEventListener('DOMContentLoaded', () => {
+(function(){ var __cb = () => {
 initTabs();
 initEvents();
 loadTab(currentTab);
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 function initTabs() {
 document.querySelectorAll('.tab').forEach(tab => {

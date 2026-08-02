@@ -154,13 +154,13 @@ const nodeTemplates = {
 };
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+(function(){ var __cb = () => {
     initDragAndDrop();
     initCanvasInteraction();
     initKeyboardShortcuts();
     initContextMenu();
     updateStatusBar();
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 // Drag and Drop from Toolbox
 function initDragAndDrop() {

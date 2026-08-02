@@ -234,7 +234,7 @@ function escapeHtml(str) {
 }
 
 // Register HTMX event handlers
-document.addEventListener('DOMContentLoaded', function() {
+(function(){ var __cb = function() {
     // Auto-load campaigns when campaigns view becomes active
     const campaignsView = document.getElementById('campaigns-view');
     if (campaignsView) {
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 // Make functions globally accessible for HTML onclick handlers
 window.CampaignsAPI = CampaignsAPI;

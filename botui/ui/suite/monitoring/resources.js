@@ -49,6 +49,6 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
 });
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
+(function(){ var __cb = function() {
     updateUsageColors();
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
