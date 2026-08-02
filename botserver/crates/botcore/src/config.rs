@@ -215,7 +215,7 @@ impl ConfigManager {
             } else { None };
             let _ = tx.send(result);
         });
-        rx.recv().ok().flatten()
+        rx.recv_timeout(std::time::Duration::from_secs(5)).ok().flatten()
     }
 
     fn read_vault_all(path: &str) -> Option<std::collections::HashMap<String, String>> {
@@ -231,7 +231,7 @@ impl ConfigManager {
             } else { None };
             let _ = tx.send(result);
         });
-        rx.recv().ok().flatten()
+        rx.recv_timeout(std::time::Duration::from_secs(5)).ok().flatten()
     }
 
     fn write_vault_value(path: &str, key: &str, value: &str) -> Result<(), String> {
@@ -253,7 +253,7 @@ impl ConfigManager {
             } else { None };
             let _ = tx.send(result);
         });
-        rx.recv().ok().flatten().ok_or_else(|| "Failed to write config to Vault".into())
+        rx.recv_timeout(std::time::Duration::from_secs(5)).ok().flatten().ok_or_else(|| "Failed to write config to Vault".into())
     }
 
     // ── DB helpers (for non-sensitive keys) ─────────────────────────
