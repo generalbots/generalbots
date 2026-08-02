@@ -5,7 +5,43 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadServices(token);
 });
 
+const PLAN_INCLUDED = {
+  free: {
+    label: 'Free Plan',
+    price: '$0/mo',
+    items: ['1 bot', '20 MB storage', '10 messages/day', 'Unlimited apps'],
+    cta: { text: 'See what Shared includes', href: '/plans' }
+  },
+  shared: {
+    label: 'Shared Plan',
+    price: '$3.99/mo',
+    items: ['5 bots / workspaces', '50 GB storage', 'Phone numbers', 'Domains', 'LLM model access'],
+    cta: { text: 'Upgrade to Private Cloud', href: '/plans' }
+  },
+  'private-cloud': {
+    label: 'Private Cloud',
+    price: 'custom',
+    items: ['Dedicated VPS included', 'Unlimited workspaces', 'GPU computing', 'Own branding', 'Full LLM catalog'],
+    cta: { text: 'View store', href: '/store' }
+  }
+};
+
+let currentPlan = 'free';
+
 async function loadServices(token) {
+  // Resolve the current plan for the included-services summary
+  try {
+    const orgRes = await cloudFetch(`${API_BASE}/organizations`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (orgRes.ok) {
+      const orgData = await orgRes.json();
+      const orgs = orgData.organizations || [];
+      if (orgs.length) currentPlan = orgs[0].plan || 'free';
+    }
+  } catch (_) {}
+  renderPlanSummary();
+
   try {
     const res = await cloudFetch(`${API_BASE}/services`, {
       headers: { 'Authorization': `Bearer ${token}` },
@@ -22,14 +58,67 @@ async function loadServices(token) {
   }
 }
 
-function renderServices(services) {
+function renderPlanSummary() {
   const container = document.getElementById('services-list');
-  if (services.length === 0) {
-    container.innerHTML = '<div class="saas-loading">No active services. Visit the Store to purchase one.</div>';
+  if (!container) return;
+  const plan = PLAN_INCLUDED[currentPlan] || PLAN_INCLUDED.free;
+  const planCard = document.createElement('div');
+  planCard.className = 'service-plan-card';
+  planCard.innerHTML = `
+    <div class="service-plan-head">
+      <div>
+        <div class="service-plan-name">${escapeHtml(plan.label)}</div>
+        <div class="service-plan-price">${escapeHtml(plan.price)}</div>
+      </div>
+      <div class="service-plan-items">
+        ${plan.items.map(i => `<span class="service-plan-item">✓ ${escapeHtml(i)}</span>`).join('')}
+      </div>
+      <a href="${plan.cta.href}" class="btn-secondary btn-sm service-plan-cta">${escapeHtml(plan.cta.text)}</a>
+    </div>
+  `;
+  container.insertBefore(planCard, container.firstChild);
+}
+
+function renderServices(services) {
+  window.__allServices = services.filter(s => !s.is_base_system);
+  window.__activeFilter = 'all';
+  renderFilteredServices();
+}
+
+function filterServices(btn, filter) {
+  window.__activeFilter = filter;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.toggle('active', p === btn));
+  renderFilteredServices();
+}
+
+function renderFilteredServices() {
+  const container = document.getElementById('services-list');
+  if (!container) return;
+  const planCard = container.querySelector('.service-plan-card');
+  container.innerHTML = '';
+  if (planCard) container.appendChild(planCard);
+
+  const filter = window.__activeFilter || 'all';
+  const all = window.__allServices || [];
+  const keyword = { compute: ['vps', 'gpu', 'virtual machine'], storage: ['storage', 'gb'], number: ['number', 'phone'], domain: ['domain', 'com'] };
+  const list = filter === 'all' ? all : all.filter(s => {
+    const hay = ((s.name || '') + ' ' + (s.description || '')).toLowerCase();
+    return (keyword[filter] || []).some(k => hay.includes(k));
+  });
+
+  if (list.length === 0) {
+    const addon = document.createElement('div');
+    addon.className = 'saas-loading';
+    addon.textContent = filter === 'all'
+      ? 'No extra services yet. Add VPS, GPU, storage, phone numbers or domains from the Store.'
+      : 'Nothing in this category yet. Visit the Store to add it.';
+    container.appendChild(addon);
     return;
   }
-  container.innerHTML = services.map(s => `
-    <div class="service-card">
+  list.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'service-card';
+    card.innerHTML = `
       <div class="service-header">
         <h3>${escapeHtml(s.name)}</h3>
         <span class="service-badge ${s.status}">${s.status}</span>
@@ -43,10 +132,11 @@ function renderServices(services) {
       </div>
       <div class="service-actions">
         ${s.dashboard_url ? `<a href="${s.dashboard_url}" class="btn-secondary" target="_blank">Open</a>` : ''}
-        ${s.status === 'active' && !s.is_base_system ? `<button class="btn-text" onclick="cancelService('${s.id}')">Cancel</button>` : ''}
+        ${s.status === 'active' ? `<button class="btn-text" onclick="cancelService('${s.id}')">Cancel</button>` : ''}
       </div>
-    </div>
-  `).join('');
+    `;
+    container.appendChild(card);
+  });
 }
 
 async function cancelService(id) {
