@@ -520,6 +520,127 @@
   flex-shrink: 0;
 }
 
+/* ── Services page: plan summary + purchased services ── */
+.service-plan-card {
+  background: linear-gradient(135deg, var(--accent-dim) 0%, var(--card) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.service-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.service-plan-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.service-plan-price {
+  font-size: .78rem;
+  color: var(--muted);
+  margin-top: .15rem;
+}
+
+.service-plan-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.service-plan-item {
+  font-size: .72rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: .25rem .7rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.service-plan-cta {
+  white-space: nowrap;
+}
+
+.service-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: .75rem;
+}
+
+.service-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.service-header h3 {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.service-badge {
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .2rem .6rem;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.service-badge.active {
+  background: rgba(0, 212, 170, .12);
+  color: var(--accent2);
+}
+
+.service-badge.trialing {
+  background: rgba(255, 180, 0, .12);
+  color: #ffb400;
+}
+
+.service-body p {
+  font-size: .8rem;
+  color: var(--muted);
+  margin: .6rem 0;
+}
+
+.service-meta {
+  font-size: .72rem;
+  color: var(--muted);
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.service-actions {
+  margin-top: .9rem;
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: .78rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* ----------------------------------------------------------
    8. STATUS BADGES
    ---------------------------------------------------------- */
