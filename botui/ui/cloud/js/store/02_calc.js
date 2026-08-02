@@ -64,11 +64,12 @@ function calcUpdate() {
   const storage = sel('calc-storage');
   const phone   = sel('calc-phone');
   const domain  = sel('calc-domain');
+  const users   = sel('calc-users');
 
-  const total = vps.price + gpu.price + storage.price + phone.price + domain.price + selectedLLMPrice;
+  const total = vps.price + gpu.price + storage.price + phone.price + domain.price + users.price + selectedLLMPrice;
 
   document.querySelectorAll('.calc-vps-btn, .calc-addon-btn').forEach(o => o.classList.remove('selected'));
-  [vps, gpu, storage, phone, domain].forEach(s => { if (s.labelEl) s.labelEl.classList.add('selected'); });
+  [vps, gpu, storage, phone, domain, users].forEach(s => { if (s.labelEl) s.labelEl.classList.add('selected'); });
 
   let freeMsgs = 0;
   if (phone.val === '1') freeMsgs = 1000;

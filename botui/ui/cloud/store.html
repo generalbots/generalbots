@@ -407,11 +407,41 @@
             </div>
           </div>
 
-          <!-- Step 3+4: Add-ons -->
+          <!-- Step 3: Users -->
+          <div class="calc-step">
+            <div class="calc-step-header">
+              <span class="calc-step-num">3</span>
+              <span class="calc-step-label">Users</span>
+            </div>
+            <div class="calc-storage-options">
+              <label class="calc-addon-btn selected" data-price="0">
+                <input type="radio" name="calc-users" value="10" checked onchange="calcUpdate()" hidden>
+                10 <small>Incl.</small>
+              </label>
+              <label class="calc-addon-btn" data-price="4.99">
+                <input type="radio" name="calc-users" value="20" onchange="calcUpdate()" hidden>
+                20 <small>$4.99</small>
+              </label>
+              <label class="calc-addon-btn" data-price="9.99">
+                <input type="radio" name="calc-users" value="50" onchange="calcUpdate()" hidden>
+                50 <small>$9.99</small>
+              </label>
+              <label class="calc-addon-btn" data-price="19.99">
+                <input type="radio" name="calc-users" value="100" onchange="calcUpdate()" hidden>
+                100 <small>$19.99</small>
+              </label>
+              <label class="calc-addon-btn" data-price="39.99">
+                <input type="radio" name="calc-users" value="200" onchange="calcUpdate()" hidden>
+                200 <small>$39.99</small>
+              </label>
+            </div>
+          </div>
+
+          <!-- Step 4: Storage -->
           <div class="calc-row-group">
             <div class="calc-step calc-step-compact">
               <div class="calc-step-header">
-                <span class="calc-step-num">3</span>
+                <span class="calc-step-num">4</span>
                 <span class="calc-step-label">Storage</span>
               </div>
               <div class="calc-storage-options">
@@ -435,7 +465,7 @@
             </div>
             <div class="calc-step calc-step-compact">
               <div class="calc-step-header">
-                <span class="calc-step-num">4</span>
+                <span class="calc-step-num">5</span>
                 <span class="calc-step-label">GPU</span>
               </div>
               <div class="calc-gpu-options">
@@ -513,7 +543,7 @@
           <!-- Step 5: LLM -->
           <div class="calc-step">
             <div class="calc-step-header">
-              <span class="calc-step-num">5</span>
+              <span class="calc-step-num">6</span>
               <span class="calc-step-label">LLM Tokens</span>
               <span class="calc-recommend">No BYOK needed</span>
             </div>
