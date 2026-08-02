@@ -18,9 +18,11 @@ async function handleLogin(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch (_) { data = { detail: text }; }
     if (!res.ok) {
-      errEl.textContent = data.detail || data || 'Login failed. Check your credentials.';
+      errEl.textContent = data.detail || 'Login failed. Check your credentials.';
       errEl.style.display = 'block';
       return;
     }
@@ -65,9 +67,11 @@ async function handleSignup(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, name, bot_name: botName, password, plan, template }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch (_) { data = { detail: text }; }
     if (!res.ok) {
-      errEl.textContent = data.detail || data || 'Signup failed.';
+      errEl.textContent = data.detail || 'Signup failed.';
       errEl.style.display = 'block';
       return;
     }

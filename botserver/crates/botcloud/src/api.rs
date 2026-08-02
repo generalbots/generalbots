@@ -913,7 +913,12 @@ async fn handle_login(
     // NEVER fall back to an unverified CRM contact row.
     let sub = zitadel_session_id
         .or_else(|| lookup_admin_credentials_user_id(&body.email, &body.password))
-        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Invalid credentials".to_string()))?;
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                serde_json::json!({ "detail": "Invalid credentials" }).to_string(),
+            )
+        })?;
     let payload_body = format!(
         "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
         sub,
