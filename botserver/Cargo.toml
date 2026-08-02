@@ -10,7 +10,8 @@ features = ["database", "i18n"]
 
 [features]
 # ===== DEFAULT =====
-default = ["chat", "automation", "cache", "llm", "vectordb", "crawler", "drive", "directory", "security", "deployment", "saas", "products", "sheet", "whatsapp"]
+# All apps except docs/slides (the two OOXML SDK consumers) — see allbutooxmlsdk
+default = ["allbutooxmlsdk"]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
@@ -44,7 +45,7 @@ calendar = ["automation", "drive", "cache", "dep:botcalendar"]
 tasks = ["automation", "drive", "cache", "dep:cron", "dep:bottasks"]
 project = ["automation", "drive", "cache", "dep:botproject"]
 plan = ["automation", "drive", "cache", "dep:botplan"]
-goals = ["automation", "drive", "cache"]
+goals = ["automation", "drive", "cache", "analytics", "botanalytics/goals"]
 workspaces = ["automation", "drive", "cache", "dep:botworkspaces"]
 tickets = ["automation", "drive", "cache", "dep:bottickets"]
 billing = ["automation", "drive", "cache", "dep:botbilling"]

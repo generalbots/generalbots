@@ -2,7 +2,7 @@ use super::{log_panel::init_logger, ActivePanel, ChatPanel, FileTree, StatusPane
 use crate::core::shared::state::AppState;
 use color_eyre::Result;
 use crossterm::{
-    event::{self, Event, KeyCode},
+    event::{self, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };

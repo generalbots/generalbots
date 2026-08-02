@@ -23,7 +23,7 @@ pub struct ObjectiveRecord {
     pub progress: BigDecimal,
     pub visibility: String,
     pub weight: BigDecimal,
-    pub tags: Vec<Option<String>>,
+    pub tags: Vec<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -456,7 +456,7 @@ pub(crate) fn record_to_objective(record: ObjectiveRecord) -> Objective {
         progress: record.progress.to_f32().unwrap_or(0.0),
         visibility: Visibility::from_str(&record.visibility),
         weight: record.weight.to_f32().unwrap_or(1.0),
-        tags: record.tags.into_iter().flatten().collect(),
+        tags: record.tags,
         created_at: record.created_at,
         updated_at: record.updated_at,
     }

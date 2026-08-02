@@ -62,17 +62,15 @@ pub struct ProductConfig {
 impl Default for ProductConfig {
     fn default() -> Self {
         let mut apps = HashSet::new();
-        // All apps enabled by default
+        // All apps enabled by default (docs/slides excluded — OOXML SDK gate)
         for app in &[
             "chat",
             "mail",
             "calendar",
             "drive",
             "tasks",
-            "docs",
             "paper",
             "sheet",
-            "slides",
             "meet",
             "research",
             "sources",
@@ -80,6 +78,50 @@ impl Default for ProductConfig {
             "admin",
             "monitoring",
             "settings",
+            "attendant",
+            "tools",
+            "video",
+            "player",
+            "canvas",
+            "social",
+            "people",
+            "crm",
+            "tickets",
+            "billing",
+            "products",
+            "designer",
+            "workspace",
+            "project",
+            "goals",
+            "editor",
+            "learn",
+            "vibe",
+            "campaigns",
+            "lists",
+            "templates",
+            "terminal",
+            "browser",
+            "database",
+            "plan",
+            "compliance",
+            "tax",
+            "vision",
+            "fraud",
+            "erp",
+            "integrations",
+            "itsm",
+            "hr",
+            "banking",
+            "sales",
+            "pos",
+            "retail",
+            "handoff",
+            "kyc",
+            "biometry",
+            "timeclock",
+            "m365",
+            "office365",
+            "minutes",
         ] {
             apps.insert(app.to_string());
         }
@@ -344,13 +386,14 @@ pub fn get_product_config_json() -> serde_json::Value {
     // Get current config
     let config = PRODUCT_CONFIG.read().ok();
 
-    // Determine effective apps (intersection of enabled + compiled)
+    // Effective apps come straight from the .product file. The runtime guard
+    // (app_gate_middleware) still rejects routes whose feature is not compiled,
+    // so the frontend menu may show every configured app.
     let effective_apps: Vec<String> = config
         .as_ref()
         .map(|c| c.get_enabled_apps())
         .unwrap_or_default()
         .into_iter()
-        .filter(|app| compiled.contains(&app.as_str()) || app == "settings" || app == "auth" || app == "admin") // Always allow core features
         .collect();
 
     match config {

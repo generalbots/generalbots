@@ -58,46 +58,8 @@ pub async fn process_incoming_message(
     }
 }
 
-fn save_incoming_message(
-    state: &Arc<WhatsAppState>,
-    msg_bot_id: &uuid::Uuid,
-    msg_user_id: &uuid::Uuid,
-    msg_session_id: &uuid::Uuid,
-    msg_content: &str,
-) -> Result<(), String> {
-    use crate::models::NewMessage;
-
-    let mut conn = state
-        .pool
-        .get()
-        .map_err(|e| format!("Pool error: {}", e))?;
-
-    let new_msg = NewMessage {
-        id: uuid::Uuid::new_v4(),
-        session_id: *msg_session_id,
-        user_id: *msg_user_id,
-        role: 1,
-        content_encrypted: msg_content.to_string(),
-        message_type: 0,
-        media_url: None,
-        token_count: 0,
-        processing_time_ms: None,
-        llm_model: None,
-        created_at: chrono::Utc::now(),
-        message_index: 0,
-    };
-
-    diesel::insert_into(crate::schema::message_history::table)
-        .values(&new_msg)
-        .execute(&mut conn)
-        .map_err(|e| format!("Insert error: {}", e))?;
-
-    Ok(())
-}
-
 pub fn process_outbound_message(
     state: &Arc<WhatsAppState>,
-    msg_bot_id: &uuid::Uuid,
     msg_user_id: &uuid::Uuid,
     msg_session_id: &uuid::Uuid,
     msg_content: &str,

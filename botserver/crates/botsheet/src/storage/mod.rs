@@ -5,7 +5,6 @@ pub mod import;
 pub mod xlsx_read;
 pub mod xlsx_write;
 
-pub use drive_ops::*;
 pub use import::*;
 pub use xlsx_read::load_xlsx_from_bytes;
 pub use xlsx_write::{apply_umya_style, convert_to_xlsx, extract_cell_style, get_col_letter};

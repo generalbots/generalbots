@@ -284,10 +284,6 @@ struct EventRow {
     action_taken: String,
     #[diesel(sql_type = diesel::sql_types::Jsonb)]
     details: serde_json::Value,
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-    reviewed_by: Option<Uuid>,
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
-    reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
     created_at: chrono::DateTime<chrono::Utc>,
 }

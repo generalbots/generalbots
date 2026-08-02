@@ -49,81 +49,79 @@ diesel::table! {
 diesel::table! {
     okr_objectives (id) {
         id -> Uuid,
+        org_id -> Uuid,
         branch_id -> Uuid,
+        owner_id -> Uuid,
+        parent_id -> Nullable<Uuid>,
         title -> Varchar,
         description -> Nullable<Text>,
-        owner_id -> Nullable<Uuid>,
-        cycle -> Nullable<Varchar>,
-        status -> Nullable<Varchar>,
-        progress -> Nullable<Int4>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-        parent_id -> Nullable<Uuid>,
         period -> Varchar,
         period_start -> Nullable<Date>,
         period_end -> Nullable<Date>,
+        status -> Varchar,
+        progress -> Numeric,
         visibility -> Varchar,
         weight -> Numeric,
-        tags -> Text,
+        tags -> Array<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     okr_key_results (id) {
         id -> Uuid,
+        org_id -> Uuid,
         branch_id -> Uuid,
         objective_id -> Uuid,
+        owner_id -> Uuid,
         title -> Varchar,
-        start_value -> Nullable<Numeric>,
-        target_value -> Numeric,
-        current_value -> Nullable<Numeric>,
-        unit -> Nullable<Varchar>,
-        owner_id -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
         description -> Nullable<Text>,
         metric_type -> Varchar,
+        start_value -> Numeric,
+        target_value -> Numeric,
+        current_value -> Numeric,
+        unit -> Nullable<Varchar>,
         weight -> Numeric,
         status -> Varchar,
         due_date -> Nullable<Date>,
         scoring_type -> Varchar,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     okr_checkins (id) {
         id -> Uuid,
+        org_id -> Uuid,
         branch_id -> Uuid,
         key_result_id -> Uuid,
-        value -> Numeric,
-        confidence -> Nullable<Int4>,
-        notes -> Nullable<Text>,
-        checked_in_by -> Nullable<Uuid>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
         user_id -> Uuid,
         previous_value -> Nullable<Numeric>,
         new_value -> Numeric,
         note -> Nullable<Text>,
+        confidence -> Nullable<Varchar>,
         blockers -> Nullable<Text>,
+        created_at -> Timestamptz,
     }
 }
 
 diesel::table! {
     okr_templates (id) {
         id -> Uuid,
+        org_id -> Uuid,
         branch_id -> Uuid,
         name -> Varchar,
         description -> Nullable<Text>,
-        structure -> Nullable<Jsonb>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
         category -> Nullable<Varchar>,
         objective_template -> Jsonb,
         key_result_templates -> Jsonb,
         is_system -> Bool,
-        usage_count -> Int4,
+        usage_count -> Integer,
         created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 

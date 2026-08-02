@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 impl XtreeUI {
-    fn render(&mut self, f: &mut Frame, cursor_blink: bool) {
+    pub(super) fn render(&mut self, f: &mut Frame, cursor_blink: bool) {
         let bg = Color::Rgb(0, 30, 100);
         let border_focused = Color::Rgb(85, 255, 255);
         let border_dim = Color::Rgb(170, 170, 170);

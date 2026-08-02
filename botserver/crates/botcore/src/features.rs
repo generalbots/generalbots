@@ -76,6 +76,86 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "attendant", 
     #[cfg(feature = "automation")]
     "tools",
+    #[cfg(feature = "erp")]
+    "erp",
+    #[cfg(feature = "hr")]
+    "hr",
+    #[cfg(feature = "sales")]
+    "sales",
+    #[cfg(feature = "banking")]
+    "banking",
+    #[cfg(feature = "pos")]
+    "pos",
+    #[cfg(feature = "retail")]
+    "retail",
+    #[cfg(feature = "fraud")]
+    "fraud",
+    #[cfg(feature = "inventory")]
+    "inventory",
+    #[cfg(feature = "gl")]
+    "gl",
+    #[cfg(feature = "integrations")]
+    "integrations",
+    #[cfg(feature = "itsm")]
+    "itsm",
+    #[cfg(feature = "handoff")]
+    "handoff",
+    #[cfg(feature = "kyc")]
+    "kyc",
+    #[cfg(feature = "timeclock")]
+    "timeclock",
+    #[cfg(feature = "m365")]
+    "m365",
+    #[cfg(feature = "tax")]
+    "tax",
+    #[cfg(feature = "vision")]
+    "vision",
+    #[cfg(feature = "compliance")]
+    "compliance",
+    #[cfg(feature = "plan")]
+    "plan",
+    #[cfg(feature = "legal")]
+    "legal",
+    #[cfg(feature = "database")]
+    "database",
+    #[cfg(feature = "browser")]
+    "browser",
+    #[cfg(feature = "terminal")]
+    "terminal",
+    #[cfg(feature = "templates")]
+    "templates",
+    #[cfg(feature = "campaigns")]
+    "campaigns",
+    #[cfg(feature = "lists")]
+    "lists",
+    #[cfg(feature = "minutes")]
+    "minutes",
+    #[cfg(feature = "marketing")]
+    "marketing",
+    #[cfg(feature = "vibe")]
+    "vibe",
+    #[cfg(feature = "whatsapp")]
+    "whatsapp",
+    #[cfg(feature = "telegram")]
+    "telegram",
+    #[cfg(feature = "instagram")]
+    "instagram",
+    #[cfg(feature = "msteams")]
+    "msteams",
+    #[cfg(feature = "contacts")]
+    "contacts",
+    #[cfg(feature = "search")]
+    "search",
+    #[cfg(feature = "multimodal")]
+    "multimodal",
+    #[cfg(feature = "attendance")]
+    "attendance",
+    #[cfg(feature = "workspace")]
+    "workspace",
+    #[cfg(feature = "biometry")]
+    "biometry",
+    #[cfg(feature = "office365")]
+    "office365",
 ];
 
 /// Check if a feature is compiled into the binary

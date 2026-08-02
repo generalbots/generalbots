@@ -4,7 +4,7 @@ use botcore::shared::state::AppState;
 use uuid::Uuid;
 
 use super::sink::ChannelSink;
-use super::types::{PipelineError, PipelineResult};
+use super::types::PipelineResult;
 
 pub type PipelineFn = std::sync::Arc<
     dyn Fn(

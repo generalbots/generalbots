@@ -340,12 +340,4 @@ pub(super) fn make_attendant_router(app_state: &Arc<AppState>) -> Router<()> {
             broadcast_notification: None,
             save_message: None,
         })))
-        .merge(crate::attendant::configure_attendant_routes().with_state(Arc::new(botattendant::AttendantConfig {
-            pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
-        })))
-        .merge(crate::attendant::configure_attendant_ui_routes().with_state(Arc::new(botattendant::AttendantConfig {
-            pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
-        })))
 }

@@ -16,7 +16,8 @@ features = ["http-client"]
 workspace = true
 
 [features]
-default = ["ui-server", "chat", "drive", "tasks", "admin"]
+# All apps except docs/slides (OOXML SDK consumers) — mirrors botserver allbutooxmlsdk
+default = ["ui-server", "chat", "drive", "tasks", "admin", "mail", "calendar", "meet", "paper", "sheet", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "settings", "attendant", "tools", "video", "player", "canvas", "social", "people", "tickets", "billing", "products", "designer", "workspace", "project", "goals", "editor"]
 ui-server = []
 embed-ui = ["rust-embed"]
 

@@ -37,7 +37,7 @@ pub async fn handle_send_message(
     let user_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa:{}", formatted_phone).as_bytes());
     let session_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa-session:{}", formatted_phone).as_bytes());
 
-    process_outbound_message(&state, &bot_id, &user_id, &session_id, &payload.message);
+    process_outbound_message(&state, &user_id, &session_id, &payload.message);
 
     match send_outbound_message(&state, &bot_id, &formatted_phone, &payload.message).await {
         Ok(()) => (

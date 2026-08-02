@@ -5,7 +5,7 @@ use crossterm::{
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::Write as FmtWrite;
-use std::io::{self, Write};
+use std::io;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -123,9 +123,9 @@ impl Default for WizardConfig {
 
 #[derive(Debug)]
 pub struct StartupWizard {
-    config: WizardConfig,
-    current_step: usize,
-    total_steps: usize,
+    pub(super) config: WizardConfig,
+    pub(super) current_step: usize,
+    pub(super) total_steps: usize,
 }
 
 impl Default for StartupWizard {

@@ -18,5 +18,4 @@ pub mod zitadel_auth;
 
 pub use auth::*;
 #[cfg(feature = "directory")]
-pub use auth_api::*;
 pub use auth_provider::*;

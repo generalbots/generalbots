@@ -9,7 +9,6 @@ use uuid::Uuid;
 use crate::core::bot::ws::handler::validate_bot_name;
 use crate::core::bot::ws::handler::verify_path_within_workdir;
 use crate::core::bot::ws::message::load_bot_styles_css;
-use botcore::shared::utils::current_org_id;
 
 pub async fn process_llm_response(
     ws_sender: &mut futures_util::stream::SplitSink<WebSocket, Message>,
