@@ -867,10 +867,38 @@ async fn handle_login(
                     match rb.send().await {
                         Ok(r) if r.status().is_success() => {
                             // v2 sessions response carries sessionId/sessionToken, not factors.user.userId
-                            r.json::<serde_json::Value>().await
-                                .ok()
+                            let session = r.json::<serde_json::Value>().await.ok();
+                            let session_id = session.as_ref()
                                 .and_then(|v| v.get("sessionId").cloned())
-                                .and_then(|sid| sid.as_str().map(|s| s.to_string()))
+                                .and_then(|sid| sid.as_str().map(|s| s.to_string()));
+                            let session_token = session.as_ref()
+                                .and_then(|v| v.get("sessionToken").cloned())
+                                .and_then(|st| st.as_str().map(|s| s.to_string()));
+                            // Resolve the real Zitadel user id from the session so JWT
+                            // subjects are stable (RBAC derives UUIDv5 from them).
+                            let user_id = match (&session_id, &session_token) {
+                                (Some(sid), Some(stok)) => {
+                                    let mut grb = c.get(format!("{dir_url}/v2/sessions/{sid}"))
+                                        .header("Authorization", format!("Bearer {dir_token}"))
+                                        .header("sessionToken", stok);
+                                    if let Some(host) = &service.config.directory_external_domain {
+                                        grb = grb.header("Host", host);
+                                    }
+                                    match grb.send().await {
+                                        Ok(gr) if gr.status().is_success() => {
+                                            gr.json::<serde_json::Value>().await.ok()
+                                                .and_then(|v| v.get("session").cloned())
+                                                .and_then(|s| s.get("factors").cloned())
+                                                .and_then(|f| f.get("user").cloned())
+                                                .and_then(|u| u.get("id").or_else(|| u.get("userId")).cloned())
+                                                .and_then(|uid| uid.as_str().map(|s| s.to_string()))
+                                        }
+                                        _ => None,
+                                    }
+                                }
+                                _ => None,
+                            };
+                            user_id.or(session_id)
                         }
                         Ok(_) => {
                             tracing::warn!("Zitadel session check rejected credentials for {}", body.email);
@@ -2456,9 +2484,9 @@ async fn list_offers() -> Result<Json<serde_json::Value>, (StatusCode, String)> 
             "description": "Shared + 1 .com domain. Ideal for professional web presence.",
             "base": "shared",
             "addons": ["domain_com"],
-            "monthly_price": 5.49,
+            "monthly_price": 5.82,
             "original_price": 5.82,
-            "savings_percent": 6,
+            "savings_percent": 0,
             "highlight": false,
         },
         {
@@ -2489,9 +2517,9 @@ async fn list_offers() -> Result<Json<serde_json::Value>, (StatusCode, String)> 
             "description": "The essential combo: professional domain + extra storage + Shared.",
             "base": "shared",
             "addons": ["domain_com", "storage_50gb"],
-            "monthly_price": 13.99,
+            "monthly_price": 15.81,
             "original_price": 15.81,
-            "savings_percent": 12,
+            "savings_percent": 0,
             "highlight": false,
         },
         {
@@ -2528,49 +2556,49 @@ async fn list_llm_providers() -> Result<Json<serde_json::Value>, (StatusCode, St
             {
                 "id": "zhipu", "name": "GLM (Zhipu AI)",
                 "description": "Chinese models from Zhipu AI with excellent reasoning performance and long context.",
-                "website": "https://open.bigmodel.cn", "requires_byok": true, "icon": "glm",
+                "website": "https://open.bigmodel.cn", "requires_byok": false, "icon": "glm",
                 "models": [
-                    {"id": "glm-5.2", "name": "GLM-5.2", "context": 262144, "description": "Flagship model with deep reasoning and agentic capabilities", "pricing": "pay-per-token", "capabilities": ["chat","tools","vision"]},
-                    {"id": "glm-5.2-air", "name": "GLM-5.2-Air", "context": 131072, "description": "Lightweight and fast for chatbots", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
+                    {"id": "glm-5.2", "name": "GLM-5.2", "context": 262144, "description": "Flagship model with deep reasoning and agentic capabilities", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision"]},
+                    {"id": "glm-5.2-air", "name": "GLM-5.2-Air", "context": 131072, "description": "Lightweight and fast for chatbots", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]},
                     {"id": "glm-4-flash", "name": "GLM-4-Flash", "context": 131072, "description": "Free tier with high request rate", "pricing": "free-tier", "capabilities": ["chat"]}
                 ]
             },
             {
                 "id": "alibaba", "name": "Qwen (Alibaba Cloud)",
                 "description": "Alibaba's Qwen 3.6 family — latest-generation open models with breakthrough performance.",
-                "website": "https://tongyi.aliyun.com", "requires_byok": true, "icon": "qwen",
+                "website": "https://tongyi.aliyun.com", "requires_byok": false, "icon": "qwen",
                 "models": [
-                    {"id": "qwen-3.6-max", "name": "Qwen 3.6-Max", "context": 262144, "description": "Most powerful in the 3.6 family", "pricing": "pay-per-token", "capabilities": ["chat","tools","reasoning"]},
-                    {"id": "qwen-3.6-plus", "name": "Qwen 3.6-Plus", "context": 131072, "description": "Performance-cost balance", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
-                    {"id": "qwen-3.6-turbo", "name": "Qwen 3.6-Turbo", "context": 131072, "description": "Fast and economical", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                    {"id": "qwen-3.6-max", "name": "Qwen 3.6-Max", "context": 262144, "description": "Most powerful in the 3.6 family", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","reasoning"]},
+                    {"id": "qwen-3.6-plus", "name": "Qwen 3.6-Plus", "context": 131072, "description": "Performance-cost balance", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]},
+                    {"id": "qwen-3.6-turbo", "name": "Qwen 3.6-Turbo", "context": 131072, "description": "Fast and economical", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat"]}
                 ]
             },
             {
                 "id": "deepseek", "name": "DeepSeek",
                 "description": "Deep reasoning models from DeepSeek (深度求索).",
-                "website": "https://platform.deepseek.com", "requires_byok": true, "icon": "deepseek",
+                "website": "https://platform.deepseek.com", "requires_byok": false, "icon": "deepseek",
                 "models": [
-                    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "context": 131072, "description": "Latest generation — fast and powerful reasoning model", "pricing": "pay-per-token", "capabilities": ["chat","tools","reasoning"]},
-                    {"id": "deepseek-r1", "name": "DeepSeek-R1", "context": 65536, "description": "Reasoning with chain-of-thought", "pricing": "pay-per-token", "capabilities": ["chat","reasoning"]},
-                    {"id": "deepseek-v3", "name": "DeepSeek-V3", "context": 65536, "description": "Previous gen — still available for cost savings", "pricing": "pay-per-token", "capabilities": ["chat","tools"]}
+                    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "context": 131072, "description": "Latest generation — fast and powerful reasoning model", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","reasoning"]},
+                    {"id": "deepseek-r1", "name": "DeepSeek-R1", "context": 65536, "description": "Reasoning with chain-of-thought", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","reasoning"]},
+                    {"id": "deepseek-v3", "name": "DeepSeek-V3", "context": 65536, "description": "Previous gen — still available for cost savings", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]}
                 ]
             },
             {
                 "id": "minimax", "name": "MiniMax",
                 "description": "Chinese models with up to 1M token context.",
-                "website": "https://www.minimaxi.com", "requires_byok": true, "icon": "minimax",
+                "website": "https://www.minimaxi.com", "requires_byok": false, "icon": "minimax",
                 "models": [
-                    {"id": "minimax-text-01", "name": "MiniMax-Text-01", "context": 1048576, "description": "1M token context", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
-                    {"id": "minimax-abab-6.5", "name": "MiniMax-abab6.5", "context": 131072, "description": "Efficient for conversation", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                    {"id": "minimax-text-01", "name": "MiniMax-Text-01", "context": 1048576, "description": "1M token context", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]},
+                    {"id": "minimax-abab-6.5", "name": "MiniMax-abab6.5", "context": 131072, "description": "Efficient for conversation", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat"]}
                 ]
             },
             {
                 "id": "yi", "name": "Yi (01.AI)",
                 "description": "Models from 01.AI (Kai-Fu Lee) with multilingual performance.",
-                "website": "https://www.lingyiwanwu.com", "requires_byok": true, "icon": "yi",
+                "website": "https://www.lingyiwanwu.com", "requires_byok": false, "icon": "yi",
                 "models": [
-                    {"id": "yi-lightning", "name": "Yi-Lightning", "context": 131072, "description": "Flagship with advanced reasoning", "pricing": "pay-per-token", "capabilities": ["chat","tools"]},
-                    {"id": "yi-lightning-fast", "name": "Yi-Lightning-Fast", "context": 32768, "description": "Optimized for low latency", "pricing": "pay-per-token", "capabilities": ["chat"]}
+                    {"id": "yi-lightning", "name": "Yi-Lightning", "context": 131072, "description": "Flagship with advanced reasoning", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]},
+                    {"id": "yi-lightning-fast", "name": "Yi-Lightning-Fast", "context": 32768, "description": "Optimized for low latency", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat"]}
                 ]
             },
             {

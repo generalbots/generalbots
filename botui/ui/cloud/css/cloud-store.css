@@ -414,6 +414,24 @@
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+.calc-vps-btn.recommended {
+  border-color: var(--accent2, #00d4aa);
+  box-shadow: 0 0 0 1px var(--accent2, #00d4aa);
+}
+
+.calc-rec-badge {
+  display: inline-block;
+  margin-top: .35rem;
+  padding: .12rem .5rem;
+  border-radius: 99px;
+  background: var(--accent2, #00d4aa);
+  color: #04241c;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
 .calc-vps-btn strong {
   display: block;
   font-size: 1.05rem;

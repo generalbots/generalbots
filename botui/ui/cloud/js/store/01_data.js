@@ -70,6 +70,15 @@ function getFallbackProducts() {
 
 const GB_ICON = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="16"/><circle cx="24" cy="24" r="6"/><line x1="24" y1="4" x2="24" y2="10"/><line x1="24" y1="38" x2="24" y2="44"/><line x1="4" y1="24" x2="10" y2="24"/><line x1="38" y1="24" x2="44" y2="24"/><line x1="10.5" y1="10.5" x2="14.5" y2="14.5"/><line x1="33.5" y1="33.5" x2="37.5" y2="37.5"/><line x1="37.5" y1="10.5" x2="33.5" y2="14.5"/><line x1="14.5" y1="33.5" x2="10.5" y2="37.5"/></svg>';
 
+const STORE_ICONS = {
+  vps: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h6M9 19h6"/><circle cx="12" cy="7" r="1" fill="currentColor"/></svg>',
+  gpu: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="10" cy="12" r="2.2"/><circle cx="17" cy="11" r="1"/><path d="M10 16v2M14 16v2"/></svg>',
+  storage: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/><path d="M12 5v1"/></svg>',
+  domain: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z"/></svg>',
+  llm: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>',
+};
+
 function buildCatalogue(items) {
   const C = {};
 
@@ -117,7 +126,7 @@ function buildCatalogue(items) {
   }
 
   addGroup(['vps-small','vps-medium','vps-large','vps-xl'], {
-    tag: 'Virtual Machine', icon: GB_ICON,
+    tag: 'Virtual Machine', icon: STORE_ICONS.vps,
     title: 'Virtual Machines', cat: 'compute',
     desc: 'Linux VMs with full root access, NVMe SSD, DDoS protection.',
     bullets: ['Full root SSH access','NVMe SSD storage','DDoS protection','Hourly snapshots','Upgradeable anytime'],
@@ -129,7 +138,7 @@ function buildCatalogue(items) {
   });
 
   addGroup(['gpu-basic','gpu-pro','gpu-enterprise'], {
-    tag: 'GPU Computing', icon: GB_ICON,
+    tag: 'GPU Computing', icon: STORE_ICONS.gpu,
     title: 'GPU Computing', cat: 'gpu',
     desc: 'Dedicated NVIDIA GPUs for AI inference and LLM fine-tuning.',
     bullets: ['Dedicated NVIDIA GPU','CUDA 12 pre-installed','Persistent storage','Upgradeable anytime','Cancel independently'],
@@ -141,7 +150,7 @@ function buildCatalogue(items) {
   });
 
   addGroup(['storage-50','storage-250','storage-1tb','storage-10tb'], {
-    tag: 'Object Storage', icon: GB_ICON,
+    tag: 'Object Storage', icon: STORE_ICONS.storage,
     title: 'Object Storage', cat: 'storage',
     desc: 'S3-compatible storage for bot data, backups and media.',
     bullets: ['S3-compatible API','Versioning & lifecycle rules','End-to-end encryption','Zero-egress option','Upgrade anytime'],
@@ -153,7 +162,7 @@ function buildCatalogue(items) {
   });
 
   addGroup(['number-local','number-global','number-business'], {
-    tag: 'Phone Numbers', icon: GB_ICON,
+    tag: 'Phone Numbers', icon: STORE_ICONS.phone,
     title: 'Virtual Phone Numbers', cat: 'comms',
     desc: 'Virtual numbers for WhatsApp, SMS and voice.',
     bullets: ['150+ countries','WhatsApp Business ready','SMS + Voice','Instant activation','Cancel any number'],
@@ -167,7 +176,7 @@ function buildCatalogue(items) {
   // Domain search (not a plan group — uses search UI + TLD cards)
   C['domain-search'] = {
     type: 'domain-search',
-    tag: 'Domains', icon: GB_ICON,
+    tag: 'Domains', icon: STORE_ICONS.domain,
     title: 'Domain Names',
     cat: 'apps',
     desc: 'Register and manage domains with free WHOIS privacy and managed DNS.',
@@ -306,6 +315,7 @@ function getCatalogProduct(sku) {
 const PROFILE_RECS = {
   whatsapp: {
     label: 'WhatsApp',
+    rec: 'vps-medium',
     vps: {
       small: 'Good fit for up to 5k contacts/day',
       medium: 'Recommended: handles 15k+ contacts/day',
@@ -317,6 +327,7 @@ const PROFILE_RECS = {
   },
   llm: {
     label: 'AI / LLM',
+    rec: 'vps-medium',
     vps: {
       small: 'Suitable for API-based LLM calls',
       medium: 'Recommended for self-hosted small models',
@@ -328,6 +339,7 @@ const PROFILE_RECS = {
   },
   webapp: {
     label: 'Web Apps',
+    rec: 'vps-medium',
     vps: {
       small: 'Great for static sites and small APIs',
       medium: 'Recommended for most web apps',
@@ -339,6 +351,7 @@ const PROFILE_RECS = {
   },
   enterprise: {
     label: 'Enterprise',
+    rec: 'vps-large',
     vps: {
       small: 'Development and testing only',
       medium: 'Staging and QA environments',
@@ -352,11 +365,11 @@ const PROFILE_RECS = {
 
 // ── Store landing page ──
 const STORE_CATEGORIES = [
-  { key: 'compute', icon: '\uD83D\uDDA5\uFE0F', name: 'Virtual Machines', desc: 'Linux VPS with NVMe SSD, hourly snapshots, DDoS protection. Starts at $7.99/mo.' },
-  { key: 'gpu', icon: '\u26A1', name: 'GPU Computing', desc: 'Dedicated NVIDIA GPUs for AI inference, rendering, and HPC workloads.' },
-  { key: 'storage', icon: '\uD83D\uDCBE', name: 'Object Storage', desc: 'S3-compatible storage with versioning, encryption, and zero-egress option.' },
-  { key: 'comms', icon: '\uD83D\uDCDE', name: 'Phone Numbers', desc: 'Virtual numbers with SMS, voice, and WhatsApp Business API support.' },
-  { key: 'apps', icon: '\uD83C\uDF10', name: 'Domains', desc: 'Register domains with free WHOIS privacy, managed DNS, and auto-renew.' }
+  { key: 'compute', icon: STORE_ICONS.vps, name: 'Virtual Machines', desc: 'Linux VPS with NVMe SSD, hourly snapshots, DDoS protection. Starts at $7.99/mo.' },
+  { key: 'gpu', icon: STORE_ICONS.gpu, name: 'GPU Computing', desc: 'Dedicated NVIDIA GPUs for AI inference, rendering, and HPC workloads.' },
+  { key: 'storage', icon: STORE_ICONS.storage, name: 'Object Storage', desc: 'S3-compatible storage with versioning, encryption, and zero-egress option.' },
+  { key: 'comms', icon: STORE_ICONS.phone, name: 'Phone Numbers', desc: 'Virtual numbers with SMS, voice, and WhatsApp Business API support.' },
+  { key: 'apps', icon: STORE_ICONS.domain, name: 'Domains', desc: 'Register domains with free WHOIS privacy, managed DNS, and auto-renew.' }
 ];
 
 function renderStoreLanding() {
