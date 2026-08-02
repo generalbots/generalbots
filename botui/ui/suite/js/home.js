@@ -137,11 +137,11 @@
   setupKeyboardShortcuts();
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
+    (function(){ var __cb = function () {
       if (isHomeVisible()) {
         initHome();
       }
-    });
+    }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     if (isHomeVisible()) {
       initHome();

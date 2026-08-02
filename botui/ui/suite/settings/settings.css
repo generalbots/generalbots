@@ -503,3 +503,67 @@
         padding: 16px;
     }
 }
+
+/* Desktop wallpaper picker */
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.wallpaper-option {
+  position: relative;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.wallpaper-option:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+}
+.wallpaper-option.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+.wallpaper-thumb {
+  display: block;
+  height: 84px;
+  background: var(--wall);
+  position: relative;
+}
+.wallpaper-thumb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--wall-vignette);
+  pointer-events: none;
+}
+.wallpaper-name {
+  display: block;
+  padding: 8px 6px;
+  font-size: 13px;
+  color: #e5e7eb;
+}
+.wallpaper-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  z-index: 2;
+}
+.wallpaper-option.active .wallpaper-check {
+  opacity: 1;
+}

@@ -706,7 +706,7 @@ const Omnibox = {
 };
 
 // Initialize Omnibox when DOM is ready
-document.addEventListener("DOMContentLoaded", () => {
+(function(){ var __cb = () => {
   // Detect bot name from pathname (e.g., /bot/cristo -> bot_name = "cristo", /edu -> bot_name = "edu")
   const detectBotFromPath = () => {
     const pathname = window.location.pathname;
@@ -1242,7 +1242,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
     }
   });
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 // User Profile Loading
 (function () {
@@ -1421,7 +1421,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Always fetch fresh user data
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", loadUserProfile);
+    (function(){ var __cb = loadUserProfile; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     loadUserProfile();
   }

@@ -21,6 +21,7 @@ pub const ROUTE_RESEARCH_RECENT: &str = "/api/ui/research/recent";
 pub const ROUTE_RESEARCH_TRENDING: &str = "/api/ui/research/trending";
 pub const ROUTE_RESEARCH_PROMPTS: &str = "/api/ui/research/prompts";
 pub const ROUTE_RESEARCH_EXPORT_CITATIONS: &str = "/api/ui/research/export/citations";
+pub const ROUTE_RESEARCH_SOURCE_COUNTS: &str = "/api/ui/research/source-counts";
 
 pub trait ResearchState: Send + Sync + std::fmt::Debug + 'static {
     fn db_pool(&self) -> &DbPool;
@@ -72,6 +73,22 @@ pub struct CollectionRow {
     pub description: String,
 }
 
+#[derive(Debug, QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct RecentSearchRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub query: String,
+}
+
+#[derive(Debug, QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct TrendingTagRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub query: String,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    pub n: i64,
+}
+
 pub fn configure_research_routes<S: ResearchState>() -> Router<Arc<S>> {
     Router::new()
         .merge(web_search::configure_web_search_routes::<S>())
@@ -89,6 +106,54 @@ pub fn configure_research_routes<S: ResearchState>() -> Router<Arc<S>> {
             ROUTE_RESEARCH_EXPORT_CITATIONS,
             get(handle_export_citations::<S>),
         )
+        .route(ROUTE_RESEARCH_SOURCE_COUNTS, get(handle_source_counts::<S>))
+}
+
+#[derive(Debug, QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct SourceCountRow {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    pub n: i64,
+}
+
+pub async fn handle_source_counts<S: ResearchState>(
+    State(state): State<Arc<S>>,
+) -> impl IntoResponse {
+    let conn = state.db_pool().clone();
+
+    let (all, web) = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("DB connection error: {}", e);
+                return (0i64, 0i64);
+            }
+        };
+
+        let total: i64 = diesel::sql_query("SELECT COUNT(*) AS n FROM kb_documents")
+            .get_result::<SourceCountRow>(&mut db_conn)
+            .map(|r| r.n)
+            .unwrap_or(0);
+
+        let web_count: i64 = diesel::sql_query(
+            "SELECT COUNT(*) AS n FROM kb_documents WHERE LOWER(source_path) LIKE 'http%'",
+        )
+        .get_result::<SourceCountRow>(&mut db_conn)
+        .map(|r| r.n)
+        .unwrap_or(0);
+
+        (total, web_count)
+    })
+    .await
+    .unwrap_or((0, 0));
+
+    let docs = all.saturating_sub(web);
+    Json(serde_json::json!({
+        "all": all,
+        "web": web,
+        "docs": docs,
+        "kb": all,
+    }))
 }
 
 pub async fn handle_list_collections<S: ResearchState>(
@@ -101,7 +166,7 @@ pub async fn handle_list_collections<S: ResearchState>(
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {}", e);
-                return get_default_collections();
+                return Vec::new();
             }
         };
 
@@ -111,15 +176,18 @@ pub async fn handle_list_collections<S: ResearchState>(
         .load(&mut db_conn);
 
         match result {
-            Ok(colls) if !colls.is_empty() => colls
+            Ok(colls) => colls
                 .into_iter()
                 .map(|c| (c.id, c.name, c.description))
                 .collect(),
-            _ => get_default_collections(),
+            Err(e) => {
+                log::error!("Failed to load research collections: {}", e);
+                Vec::new()
+            }
         }
     })
     .await
-    .unwrap_or_else(|_| get_default_collections());
+    .unwrap_or_default();
 
     let mut html = String::new();
 
@@ -147,30 +215,11 @@ pub async fn handle_list_collections<S: ResearchState>(
     if collections.is_empty() {
         html.push_str("<div class=\"empty-state\">");
         html.push_str("<p>No collections yet</p>");
+        html.push_str("<p class=\"hint\">Create a collection to organize your knowledge base</p>");
         html.push_str("</div>");
     }
 
     Html(html)
-}
-
-fn get_default_collections() -> Vec<(String, String, String)> {
-    vec![
-        (
-            "general".to_string(),
-            "General Knowledge".to_string(),
-            "Default knowledge base".to_string(),
-        ),
-        (
-            "docs".to_string(),
-            "Documentation".to_string(),
-            "Product documentation".to_string(),
-        ),
-        (
-            "faq".to_string(),
-            "FAQ".to_string(),
-            "Frequently asked questions".to_string(),
-        ),
-    ]
 }
 
 pub async fn handle_create_collection<S: ResearchState>(
@@ -305,6 +354,11 @@ pub async fn handle_search<S: ResearchState>(
             }
         };
 
+        // Record the real search so Recent/Trending reflect actual activity.
+        let _ = diesel::sql_query("INSERT INTO research_searches (query) VALUES ($1)")
+            .bind::<diesel::sql_types::Text, _>(&query)
+            .execute(&mut db_conn);
+
         let search_pattern = format!("%{}%", query.to_lowercase());
 
         let docs: Vec<KbDocumentRow> = if let Some(coll) = collection {
@@ -395,15 +449,28 @@ fn format_search_result(id: &str, title: &str, content: &str, source: &str) -> S
 }
 
 pub async fn handle_recent_searches<S: ResearchState>(
-    State(_state): State<Arc<S>>,
+    State(state): State<Arc<S>>,
 ) -> impl IntoResponse {
-    let recent_searches = vec![
-        "How to get started",
-        "API documentation",
-        "Configuration guide",
-        "Best practices",
-        "Troubleshooting",
-    ];
+    let conn = state.db_pool().clone();
+
+    let recent_searches: Vec<String> = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("DB connection error: {}", e);
+                return Vec::new();
+            }
+        };
+
+        diesel::sql_query(
+            "SELECT query FROM research_searches WHERE query <> '' ORDER BY created_at DESC LIMIT 8",
+        )
+        .load::<RecentSearchRow>(&mut db_conn)
+        .map(|rows| rows.into_iter().map(|r| r.query).collect())
+        .unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default();
 
     let mut html = String::new();
 
@@ -422,7 +489,7 @@ pub async fn handle_recent_searches<S: ResearchState>(
 
     if recent_searches.is_empty() {
         html.push_str("<div class=\"empty-state small\">");
-        html.push_str("<p>No recent searches</p>");
+        html.push_str("<p>No recent searches yet</p>");
         html.push_str("</div>");
     }
 
@@ -430,18 +497,28 @@ pub async fn handle_recent_searches<S: ResearchState>(
 }
 
 pub async fn handle_trending_tags<S: ResearchState>(
-    State(_state): State<Arc<S>>,
+    State(state): State<Arc<S>>,
 ) -> impl IntoResponse {
-    let tags = vec![
-        ("getting-started", 42),
-        ("api", 38),
-        ("integration", 25),
-        ("configuration", 22),
-        ("deployment", 18),
-        ("security", 15),
-        ("performance", 12),
-        ("troubleshooting", 10),
-    ];
+    let conn = state.db_pool().clone();
+
+    let tags: Vec<(String, i64)> = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("DB connection error: {}", e);
+                return Vec::new();
+            }
+        };
+
+        diesel::sql_query(
+            "SELECT query, COUNT(*) AS n FROM research_searches WHERE query <> '' GROUP BY query ORDER BY n DESC, MAX(created_at) DESC LIMIT 8",
+        )
+        .load::<TrendingTagRow>(&mut db_conn)
+        .map(|rows| rows.into_iter().map(|r| (r.query, r.n)).collect())
+        .unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default();
 
     let mut html = String::new();
     html.push_str("<div class=\"trending-tags-list\">");
@@ -505,13 +582,54 @@ pub async fn handle_prompts<S: ResearchState>(
 }
 
 pub async fn handle_export_citations<S: ResearchState>(
-    State(_state): State<Arc<S>>,
+    State(state): State<Arc<S>>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    Html(
-        "<script>alert('Citations exported. Download will begin shortly.');</script>".to_string(),
-    )
-}
+    let query = params.get("q").cloned().unwrap_or_default();
 
+    if query.trim().is_empty() {
+        return Html(
+            "<script>alert('No search results to export. Run a search first.');</script>"
+                .to_string(),
+        );
+    }
+
+    let conn = state.db_pool().clone();
+    let search_pattern = format!("%{}%", query.to_lowercase());
+
+    let docs = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("DB connection error: {e}");
+                return Vec::new();
+            }
+        };
+
+        diesel::sql_query(
+            "SELECT id, title, content, collection_id, source_path FROM kb_documents WHERE LOWER(title) LIKE $1 OR LOWER(content) LIKE $1 ORDER BY title ASC LIMIT 20",
+        )
+        .bind::<diesel::sql_types::Text, _>(&search_pattern)
+        .load::<KbDocumentRow>(&mut db_conn)
+        .unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default();
+
+    let mut bibtex = String::new();
+    for (i, doc) in docs.iter().enumerate() {
+        bibtex.push_str(&format!("@misc{{research_{},\n", i));
+        bibtex.push_str(&format!("  title = {{{}}},\n", doc.title));
+        bibtex.push_str(&format!("  note = {{{}}},\n", doc.source_path));
+        bibtex.push_str("}\n\n");
+    }
+
+    Html(format!(
+        "<script>navigator.clipboard.writeText({:?}).then(function(){{alert('BibTeX for {} results copied to clipboard');}});</script>",
+        bibtex,
+        docs.len()
+    ))
+}
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")

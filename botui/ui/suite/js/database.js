@@ -427,7 +427,7 @@ const DB = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => DB.init());
+(function(){ var __cb = () => DB.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     DB.init();
 }

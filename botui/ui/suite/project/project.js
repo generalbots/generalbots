@@ -311,10 +311,10 @@ async function loadProjectList(query) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+(function(){ var __cb = function() {
     generateTimelineHeaders();
     loadProjectList();
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 function generateTimelineHeaders() {
     const header = document.getElementById('gantt-timeline-header');

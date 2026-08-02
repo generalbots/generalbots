@@ -154,7 +154,7 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initNavigationTracking);
+        (function(){ var __cb = initNavigationTracking; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
     } else {
         initNavigationTracking();
     }

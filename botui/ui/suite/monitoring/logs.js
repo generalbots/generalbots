@@ -349,9 +349,9 @@ function closeLogDetail() {
 }
 
 // Initialize on page load
-document.addEventListener("DOMContentLoaded", function () {
+(function(){ var __cb = function () {
   // Initialize WebSocket connection if on logs page
   if (document.getElementById("log-stream")) {
     initLogsWebSocket();
   }
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();

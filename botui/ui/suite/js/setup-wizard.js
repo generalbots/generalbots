@@ -353,7 +353,7 @@ window.handleSetupFileSelect = handleSetupFileSelect;
 // Auto-check setup status on load
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkSetupStatus);
+    (function(){ var __cb = checkSetupStatus; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     checkSetupStatus();
   }

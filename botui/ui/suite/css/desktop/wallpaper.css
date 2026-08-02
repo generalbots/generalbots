@@ -31,3 +31,167 @@
   pointer-events: none;
   z-index: 0;
 }
+
+/* ============================================ */
+/* Wallpaper presets (selected via Settings -> Desktop) */
+/* body[data-wallpaper="..."] drives the desktop background. */
+/* ============================================ */
+
+body[data-wallpaper="mountains"] .workspace-v15 {
+  --wall:
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMjAwIDUwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0nbm9uZSc+PHBhdGggZD0nTTAsNTAwIEwwLDMzMCBMMTYwLDE1MCBMMzQwLDMwMCBMNTIwLDEyMCBMNzAwLDI4MCBMODgwLDE3MCBMMTA2MCwyOTAgTDEyMDAsMjMwIEwxMjAwLDUwMCBaJyBmaWxsPScjMzQ0OTZlJy8+PHBhdGggZD0nTTAsNTAwIEwwLDM4MCBMMjIwLDI2MCBMNDAwLDM2MCBMNTgwLDI0MCBMNzgwLDM1MCBMMTAwMCwyNzAgTDEyMDAsMzUwIEwxMjAwLDUwMCBaJyBmaWxsPScjMmIzYjVlJy8+PHBhdGggZD0nTTAsNTAwIEwwLDQzMCBMMTgwLDM0MCBMMzgwLDQxMCBMNjIwLDMzMCBMODYwLDQyMCBMMTA0MCwzNjAgTDEyMDAsNDEwIEwxMjAwLDUwMCBaJyBmaWxsPScjMWUyYjQ3Jy8+PC9zdmc+") center bottom / 100% 60% no-repeat,
+    linear-gradient(180deg, #7ea8d8 0%, #b8d4ef 35%, #6b96c9 70%, #3b5a8c 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.25) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 55%, rgba(10, 16, 32, 0.4) 100%);
+}
+
+body[data-wallpaper="clean"] .workspace-v15 {
+  --wall: linear-gradient(160deg, #f5f7fa 0%, #e8ecf1 55%, #d6dde6 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.9) 0%, transparent 65%),
+    radial-gradient(ellipse at 80% 80%, rgba(90, 120, 160, 0.12) 0%, transparent 55%);
+}
+
+body[data-wallpaper="ocean"] .workspace-v15 {
+  --wall:
+    radial-gradient(ellipse at 50% 120%, rgba(20, 80, 140, 0.55) 0%, transparent 60%),
+    linear-gradient(180deg, #0a2e4d 0%, #0d4470 45%, #0a2e4d 80%, #061c30 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 20% 20%, rgba(120, 190, 240, 0.18) 0%, transparent 50%),
+    linear-gradient(180deg, transparent 70%, rgba(0, 10, 20, 0.5) 100%);
+}
+
+body[data-wallpaper="forest"] .workspace-v15 {
+  --wall:
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMjAwIDUwMCcgcHJlc2VydmVBc3BlY3RSYXRpbz0nbm9uZSc+PHBhdGggZD0nTTAsNTAwIEwwLDM2MCBMMTIwLDMyMCBMMjAwLDIxMCBMMzAwLDMzMCBMNDMwLDI0MCBMNTYwLDM0MCBMNjgwLDI1MCBMODIwLDMzMCBMOTUwLDIzMCBMMTA4MCwzMjAgTDEyMDAsMjcwIEwxMjAwLDUwMCBaJyBmaWxsPScjMWQ0ZDJlJy8+PHBhdGggZD0nTTAsNTAwIEwwLDQxMCBMMTgwLDM2MCBMMzIwLDQzMCBMNDgwLDM2MCBMNjQwLDQyMCBMODAwLDM1MCBMOTgwLDQzMCBMMTIwMCwzODAgTDEyMDAsNTAwIFonIGZpbGw9JyMxNjNkMjQnLz48L3N2Zz4=") center bottom / 100% 55% no-repeat,
+    linear-gradient(180deg, #102b1a 0%, #1d4d2e 40%, #0f2a19 75%, #081a0f 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 0%, rgba(120, 220, 160, 0.12) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 60%, rgba(0, 15, 6, 0.5) 100%);
+}
+
+body[data-wallpaper="sunset"] .workspace-v15 {
+  --wall:
+    radial-gradient(circle at 50% 85%, #ffd166 0%, #ff9e5e 22%, #ef476f 48%, #6a4c93 75%, #2d2440 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 80%, rgba(255, 220, 150, 0.35) 0%, transparent 40%),
+    linear-gradient(180deg, transparent 65%, rgba(30, 20, 50, 0.45) 100%);
+}
+
+body[data-wallpaper="night"] .workspace-v15 {
+  --wall:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 34% 40%, rgba(255, 255, 255, 0.7) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 15%, rgba(255, 255, 255, 0.8) 0 1px, transparent 2px),
+    radial-gradient(circle at 84% 32%, rgba(255, 255, 255, 0.6) 0 1px, transparent 2px),
+    radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
+    radial-gradient(circle at 12% 70%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
+    radial-gradient(circle at 92% 60%, rgba(255, 255, 255, 0.45) 0 1px, transparent 2px),
+    linear-gradient(180deg, #0b1026 0%, #131a3a 50%, #0a0e22 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 30%, rgba(90, 120, 220, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, transparent 70%, rgba(0, 0, 10, 0.55) 100%);
+}
+
+body[data-wallpaper="aurora"] .workspace-v15 {
+  --wall:
+    radial-gradient(ellipse at 30% 20%, rgba(72, 255, 168, 0.35) 0%, transparent 45%),
+    radial-gradient(ellipse at 70% 30%, rgba(56, 189, 248, 0.3) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 90%, rgba(167, 139, 250, 0.22) 0%, transparent 55%),
+    linear-gradient(180deg, #060a1a 0%, #0d1530 55%, #0a0e22 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 15%, rgba(120, 255, 200, 0.15) 0%, transparent 50%),
+    linear-gradient(180deg, transparent 70%, rgba(0, 0, 10, 0.5) 100%);
+}
+
+body[data-wallpaper="retro"] .workspace-v15 {
+  --wall:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 14px, transparent 14px 28px),
+    linear-gradient(180deg, #f72585 0%, #7209b7 45%, #3a0ca3 75%, #190c38 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 150, 220, 0.2) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 60%, rgba(10, 4, 30, 0.5) 100%);
+}
+
+body[data-wallpaper="paper"] .workspace-v15 {
+  --wall:
+    radial-gradient(circle at 25% 25%, rgba(0, 0, 0, 0.045) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 70% 40%, rgba(0, 0, 0, 0.04) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 40% 70%, rgba(0, 0, 0, 0.035) 0 1px, transparent 1.5px),
+    linear-gradient(180deg, #fbfaf6 0%, #f4f1e8 60%, #eae5d8 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.8) 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 85%, rgba(150, 120, 60, 0.1) 0%, transparent 55%);
+}
+
+/* Wallpaper picker (used inside the Settings window) */
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.wallpaper-option {
+  position: relative;
+  border: 2px solid var(--border-color, #334155);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.wallpaper-option:hover {
+  border-color: var(--primary, #3b82f6);
+  transform: translateY(-2px);
+}
+
+.wallpaper-option.active {
+  border-color: var(--primary, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+.wallpaper-thumb {
+  height: 84px;
+  background: var(--wall);
+}
+
+.wallpaper-thumb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  height: 84px;
+  background: var(--wall-vignette);
+  pointer-events: none;
+}
+
+.wallpaper-name {
+  display: block;
+  padding: 8px 6px;
+  font-size: 13px;
+  color: var(--text, #e5e7eb);
+}
+
+.wallpaper-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary, #3b82f6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  z-index: 2;
+}
+
+.wallpaper-option.active .wallpaper-check {
+  opacity: 1;
+}

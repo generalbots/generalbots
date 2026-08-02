@@ -974,12 +974,12 @@ select.theme-dropdown {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: linear-gradient(135deg,
+    background: var(--wall, linear-gradient(135deg,
         var(--bg, #0a0a0a) 0%,
         hsla(210, 80%, 60%, 0.04) 30%,
         hsla(160, 70%, 50%, 0.03) 60%,
         var(--bg, #0a0a0a) 100%
-    );
+    ));
     position: relative;
 }
 
@@ -987,9 +987,7 @@ select.theme-dropdown {
     content: '';
     position: absolute;
     inset: 0;
-    background:
-        radial-gradient(ellipse at 20% 50%, hsla(210, 80%, 60%, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 50%, hsla(160, 70%, 50%, 0.06) 0%, transparent 50%);
+    background: var(--wall-vignette, radial-gradient(ellipse at 20% 50%, hsla(210, 80%, 60%, 0.08) 0%, transparent 50%));
     pointer-events: none;
     z-index: 0;
 }
@@ -1002,4 +1000,38 @@ select.theme-dropdown {
     .start-menu { width: 100vw; max-height: 70vh; border-radius: 20px 20px 0 0; margin-top: auto; }
     .chat-sidebar { width: 100%; height: auto; position: absolute; bottom: 56px; z-index: 300; border-radius: 16px 16px 0 0; }
     .chat-sidebar.collapsed { width: 51px; border-radius: 16px 0 0 16px; }
+}
+
+/* Desktop right-click context menu */
+.desktop-context-menu {
+  position: fixed;
+  z-index: 100000;
+  min-width: 180px;
+  background: var(--surface, #1a1a24);
+  border: 1px solid var(--border, #333);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(20px);
+}
+
+.desktop-context-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text, #e5e7eb);
+  transition: background 0.15s;
+}
+
+.desktop-context-item:hover {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.desktop-context-item svg {
+  flex-shrink: 0;
+  color: var(--text-secondary, #94a3b8);
 }

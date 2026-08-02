@@ -214,10 +214,10 @@ window.showChatApp = showChatApp;
 // Wait for DOM to be ready before initializing
 if (typeof document !== 'undefined') {
 if (document.readyState === 'loading') {
-document.addEventListener('DOMContentLoaded', function() {
+(function(){ var __cb = function() {
 setupEventHandlers();
 initChat();
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 } else {
 setupEventHandlers();
 initChat();

@@ -351,7 +351,7 @@
   window.saveAutoResponder = saveAutoResponder;
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initEmail);
+    (function(){ var __cb = initEmail; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     initEmail();
   }

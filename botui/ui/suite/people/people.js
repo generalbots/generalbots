@@ -76,10 +76,16 @@
             return null;
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
+        function init() {
             bindAdvancedSearch();
             loadContacts();
-        });
+        }
+
+        if (document.readyState === "loading") {
+            (function(){ var __cb = init; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
+        } else {
+            init();
+        }
 
         async function loadContacts() {
             try {

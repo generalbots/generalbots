@@ -295,7 +295,7 @@
     };
 
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initAgentMode);
+        (function(){ var __cb = initAgentMode; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
     } else {
         initAgentMode();
     }

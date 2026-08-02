@@ -97,9 +97,9 @@ const vibeMcp = {
 };
 
 // Initialize when the script loads
-document.addEventListener('DOMContentLoaded', () => {
+(function(){ var __cb = () => {
     vibeMcp.init();
-});
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 // Since HTMX loads this dynamically, also invoke init right away if DOM is already ready
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
