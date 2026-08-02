@@ -10,7 +10,11 @@ async function loadServices(token) {
     const res = await cloudFetch(`${API_BASE}/services`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { showError('Failed to load services'); return; }
+    if (!res.ok) {
+      // Anonymous: show the empty state (CTA banner invites sign-in)
+      renderServices([]);
+      return;
+    }
     const data = await res.json();
     renderServices(data.services || []);
   } catch (err) {
@@ -62,7 +66,10 @@ async function cancelService(id) {
 
 function requireAuth() {
   const token = localStorage.getItem('management_token');
-  if (!token) window.location.href = (window.GB_LOGIN_URL || '/login');
+  if (!token) {
+    // Anonymous browsing allowed — the CTA banner invites sign-in
+    return null;
+  }
   return token;
 }
 
