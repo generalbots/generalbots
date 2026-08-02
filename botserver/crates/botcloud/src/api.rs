@@ -846,10 +846,10 @@ async fn handle_login(
     }
 
     // Try Zitadel v2 sessions API for password verification
-    let zitadel_user_id = match (&service.config.directory_api_url, &service.config.directory_service_token) {
+    let zitadel_session_id = match (&service.config.directory_api_url, &service.config.directory_service_token) {
         (Some(dir_url), Some(dir_token)) => {
             let client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(5))
+                .timeout(std::time::Duration::from_secs(8))
                 .build().ok();
             match client {
                 Some(c) => {
@@ -866,14 +866,20 @@ async fn handle_login(
                     }
                     match rb.send().await {
                         Ok(r) if r.status().is_success() => {
+                            // v2 sessions response carries sessionId/sessionToken, not factors.user.userId
                             r.json::<serde_json::Value>().await
                                 .ok()
-                                .and_then(|v| v.get("factors").cloned())
-                                .and_then(|f| f.get("user").cloned())
-                                .and_then(|u| u.get("userId").cloned())
-                                .and_then(|uid| uid.as_str().map(|s| s.to_string()))
+                                .and_then(|v| v.get("sessionId").cloned())
+                                .and_then(|sid| sid.as_str().map(|s| s.to_string()))
                         }
-                        _ => None,
+                        Ok(_) => {
+                            tracing::warn!("Zitadel session check rejected credentials for {}", body.email);
+                            None
+                        }
+                        Err(e) => {
+                            tracing::warn!("Zitadel session check failed for {}: {}", body.email, e);
+                            None
+                        }
                     }
                 }
                 None => None,
@@ -901,10 +907,13 @@ async fn handle_login(
         .as_secs() + 86400 * 7; // 7 days
 
     let header  = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
-    let sub = zitadel_user_id
-        .or_else(|| contact_opt.as_ref().map(|c| c.0.to_string()))
-        .or_else(|| lookup_admin_credentials_user_id(&body.email))
-        .unwrap_or_else(|| "guest".to_string());
+    // Auth gate: a token is only issued after password verification.
+    // 1) Zitadel v2 session check succeeded (sessionId), or
+    // 2) dev-only bootstrap admin (admin-credentials.json, present only in dev).
+    // NEVER fall back to an unverified CRM contact row.
+    let sub = zitadel_session_id
+        .or_else(|| lookup_admin_credentials_user_id(&body.email, &body.password))
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Invalid credentials".to_string()))?;
     let payload_body = format!(
         "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
         sub,
@@ -951,7 +960,9 @@ fn base64_url_encode(input: &[u8]) -> String {
 
 /// Fallback for local dev: resolves the Zitadel user_id for the bootstrap admin
 /// from `admin-credentials.json` when the Zitadel sessions API is unavailable.
-fn lookup_admin_credentials_user_id(email: &str) -> Option<String> {
+/// Requires the password to match the file (or the dev bootstrap password for
+/// admin@localhost) — never an email-only match.
+fn lookup_admin_credentials_user_id(email: &str, password: &str) -> Option<String> {
     let base = std::env::current_dir().ok()?;
     let candidates = [
         base.join("botserver-stack/conf/directory/admin-credentials.json"),
@@ -962,8 +973,12 @@ fn lookup_admin_credentials_user_id(email: &str) -> Option<String> {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
             let cred_email = json.get("email").and_then(|v| v.as_str()).unwrap_or("");
             if cred_email.eq_ignore_ascii_case(email) {
-                if let Some(user_id) = json.get("user_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
-                    return Some(user_id.to_string());
+                let file_pw = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
+                let dev_pw_ok = email.eq_ignore_ascii_case("admin@localhost") && password == "dev";
+                if (password == file_pw) || dev_pw_ok {
+                    if let Some(user_id) = json.get("user_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+                        return Some(user_id.to_string());
+                    }
                 }
             }
         }
