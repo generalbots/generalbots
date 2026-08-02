@@ -1112,7 +1112,33 @@ Continue on gb/ workspace. Follow AGENTS.md strictly:
    sleep 2
    ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 <PROD_HOST> "sudo incus exec system -- bash -c 'cd /opt/gbo/bin && RUST_LOG=info nohup ./botserver --noconsole > /opt/gbo/logs/stdout.log 2>&1 &'"
    ```
-4. **Verify deployment:** wait ~2 min for bootstrap → `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health` (via `sudo incus exec system`) → `tail -30 /opt/gbo/logs/stdout.log`.
+ 4. **Verify deployment:** wait ~2 min for bootstrap → `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health` (via `sudo incus exec system`) → `tail -30 /opt/gbo/logs/stdout.log`.
+
+### Manual Deploy (CI offline — see `~/.prod` for credentials)
+
+When the alm-ci runner is offline, deploy manually (documented in `~/.prod` — read it from home, never commit it):
+
+```bash
+PASS=$(grep "^SRV1_PASS=" ~/.prod | cut -d= -f2-)
+# 1. Transfer binary via gzip pipe (fast, no scp of 228MB raw)
+gzip -c target/debug/botserver | sshpass -p "$PASS" ssh root@<SRV1_HOST> 'gunzip > /opt/gbo/bin/botserver.new'
+# 2. STOP the service BEFORE replacing the binary ("text file busy" otherwise)
+sshpass -p "$PASS" ssh root@<SRV1_HOST> "sudo incus exec bot -- systemctl stop botserver && \
+  sudo incus file push /opt/gbo/bin/botserver.new bot/opt/gbo/bin/botserver && \
+  sudo incus exec bot -- bash -c 'chmod +x /opt/gbo/bin/botserver && systemctl start botserver'"
+# 3. Verify: sudo incus exec bot -- curl -s http://localhost:5858/health
+```
+
+**Gotchas learned (2026-08 session):**
+- **Stop before push** — `incus file push` over a running binary fails with `text file busy`.
+- **Vault sealed blocks bootstrap** — botserver retries forever ("Database pool creation failed … connection refused"); the old binary keeps working because credentials are cached in memory. Unseal: pull keys from the vault container `init.json`, run 3× `vault operator unseal <key>` with `VAULT_SKIP_VERIFY=true` (progress must reach 3/3; do it in one SSH session to keep the nonce, and DON'T chain the unseal with a failing SQL statement — a transaction rollback discards the group insert).
+- **BotUI static files** — prod serves from `/opt/gbo/bin/ui/` (botui WorkingDirectory); push files there, NO botui restart needed (ServeDir reads per request).
+- **JWT secret stability** — `saas_jwt_secret` is persisted into `conf/system/directory_config.json` (`resolve_saas_jwt_secret`); once set, cloud tokens survive botserver restarts. If the file lacks it, the old code generated a random UUID per boot → all tokens invalid after every restart.
+- **Cloud login MUST verify passwords** — `handle_login` issues a token ONLY after Zitadel v2 sessions check (or the dev `admin-credentials.json` fallback with matching password). Never fall back to an unverified `crm_contacts` row. JWT `sub` = the Zitadel user id (resolve via `GET /v2/sessions/{sessionId}` → `session.factors.user.id` — NOT `userId`).
+- **Chat admin sessions** — `/api/auth` accepts the cloud JWT (HMAC verified with the SaaS secret); the chat page captures `?token=` from the login redirect into `localStorage` (`chat-init.js`) and sends it. RBAC: `resolve_user_role` checks `rbac_user_groups` → group name containing "admin"; the user must exist in `users` (FK) with id = `UUIDv5("zitadel:{zitadel_user_id}")`.
+- **Admin-only suggestions/tools** — gate in `start.bas` with `IF role = "admin" THEN … USE TOOL … / ADD SUGGESTION … END IF` (the `ROLE`/`role` scope variable comes from `resolve_user_role`); `tool_exec` only runs tools associated with the session.
+- **prod DB cleanup** — Drive-discovered orgs get `cloud_workspaces` rows auto-created by `drive_monitors` (migration 6.5.31 adds a unique index on `branch_id`); older prod had a NON-unique index → `ON CONFLICT (branch_id)` fails → `ensure_cloud_workspace` falls back to select-then-upsert.
+- **Always run the botserver via systemctl** inside the container (`sudo incus exec bot -- systemctl restart botserver`); health at `http://localhost:5858/health`.
 
 ### Production Container Architecture
 | Container | Service | Port | Notes |

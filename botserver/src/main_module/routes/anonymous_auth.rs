@@ -107,12 +107,72 @@ fn resolve_session_user(
         Ok(c) => c,
         Err(_) => return (String::new(), Vec::new(), false),
     };
-    match cache.get(&token) {
-        Some(user_data) => (
+    if let Some(user_data) = cache.get(&token) {
+        return (
             user_data.user_id.clone(),
             user_data.roles.clone(),
             true,
-        ),
-        None => (String::new(), Vec::new(), false),
+        );
     }
+    drop(cache);
+
+    // Not an SSO-session token — try the cloud management JWT (signed with the
+    // SaaS secret, subject = Zitadel user id). Verified signature required;
+    // roles are resolved later through RBAC group membership.
+    resolve_cloud_jwt_user(&token)
+}
+
+/// Validates a cloud management JWT (HMAC-SHA256, SaaS secret) and returns
+/// the verified subject (Zitadel user id) as the chat user identity.
+fn resolve_cloud_jwt_user(token: &str) -> (String, Vec<String>, bool) {
+    let secret = crate::main_module::directory_setup::resolve_saas_jwt_secret();
+
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return (String::new(), Vec::new(), false);
+    }
+    let signing_input = format!("{}.{}", parts[0], parts[1]);
+    let expected = match base64_url_decode_impl(parts[2]) {
+        Some(sig) => sig,
+        None => return (String::new(), Vec::new(), false),
+    };
+
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    type HmacSha256 = Hmac<Sha256>;
+    let mut mac = match HmacSha256::new_from_slice(secret.as_bytes()) {
+        Ok(m) => m,
+        Err(_) => return (String::new(), Vec::new(), false),
+    };
+    mac.update(signing_input.as_bytes());
+    let sig = mac.finalize().into_bytes();
+    if sig.as_slice() != expected.as_slice() {
+        return (String::new(), Vec::new(), false);
+    }
+
+    let payload_json = match base64_url_decode_impl(parts[1]) {
+        Some(bytes) => bytes,
+        None => return (String::new(), Vec::new(), false),
+    };
+    let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&payload_json) else {
+        return (String::new(), Vec::new(), false);
+    };
+    let sub = payload.get("sub").and_then(|v| v.as_str()).unwrap_or("");
+    if sub.is_empty() {
+        return (String::new(), Vec::new(), false);
+    }
+    info!("Cloud JWT verified for chat session: sub={}...", &sub[..sub.len().min(24)]);
+    (sub.to_string(), Vec::new(), true)
+}
+
+fn base64_url_decode_impl(input: &str) -> Option<Vec<u8>> {
+    use base64::{Engine as _, engine::general_purpose};
+    let raw = input.replace('-', "+").replace('_', "/");
+    let raw = match raw.len() % 4 {
+        2 => format!("{raw}=="),
+        3 => format!("{raw}="),
+        0 => raw,
+        _ => return None,
+    };
+    general_purpose::STANDARD.decode(raw).ok()
 }

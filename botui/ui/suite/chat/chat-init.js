@@ -50,10 +50,23 @@ function proceedWithChatInit() {
   var botName = window.__INITIAL_BOT_NAME__ || "default";
   var storageKey = "gb_chat_" + botName;
 
+  // Capture auth token passed back from the login server (?token=...) —
+  // localStorage is origin-scoped, so the login domain's storage is not
+  // visible here. Consume the param and persist for this origin.
+  try {
+    var urlTok = new URLSearchParams(window.location.search).get("token");
+    if (urlTok) {
+      localStorage.setItem("management_token", urlTok);
+      var u = new URL(window.location.href);
+      u.search = "";
+      window.history.replaceState({}, "", u);
+    }
+  } catch (e) {}
+
   var authUrl = "/api/auth?bot_name=" + encodeURIComponent(botName);
 
   var authHeaders = {};
-  var gbToken = window.getGBAccessToken ? window.getGBAccessToken() : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token"));
+  var gbToken = window.getGBAccessToken ? window.getGBAccessToken() : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
   if (gbToken) authHeaders["Authorization"] = "Bearer " + gbToken;
 
   fetch(authUrl, { headers: authHeaders })

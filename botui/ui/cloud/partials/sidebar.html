@@ -1,3 +1,7 @@
+  <button class="mgmt-menu-fab" id="mgmt-menu-fab" aria-label="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+  </button>
+  <div class="mgmt-sidebar-backdrop" id="mgmt-sidebar-backdrop"></div>
   <nav class="mgmt-sidebar" id="mgmt-sidebar">
     <div class="mgmt-logo">
       <a href="/" class="product-logo">
@@ -108,3 +112,24 @@
       </div>
     </div>
   </nav>
+  <script>
+    (function () {
+      var fab = document.getElementById('mgmt-menu-fab');
+      var sidebar = document.getElementById('mgmt-sidebar');
+      var backdrop = document.getElementById('mgmt-sidebar-backdrop');
+      if (!fab || !sidebar) return;
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+      }
+      fab.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var isOpen = sidebar.classList.toggle('open');
+        if (backdrop) backdrop.classList.toggle('open', isOpen);
+      });
+      if (backdrop) backdrop.addEventListener('click', closeSidebar);
+      sidebar.addEventListener('click', function (e) {
+        if (e.target.closest('a')) closeSidebar();
+      });
+    })();
+  </script>

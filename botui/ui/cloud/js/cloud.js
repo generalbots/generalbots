@@ -54,10 +54,34 @@ async function loadSidebar() {
     if (html) {
       const temp = document.createElement('div');
       temp.innerHTML = html;
-      const sidebar = temp.querySelector('.mgmt-sidebar') || temp.firstElementChild;
-      if (sidebar) shell.insertBefore(sidebar, shell.firstChild);
+      // Insert all sidebar partial children (menu FAB, backdrop, sidebar nav)
+      Array.from(temp.children).forEach(child => shell.insertBefore(child, shell.firstChild));
+      const sidebar = shell.querySelector('.mgmt-sidebar');
+      if (!sidebar && temp.firstElementChild) shell.insertBefore(temp.firstElementChild, shell.firstChild);
+      initMobileSidebar();
     }
   } catch (_) { /* sidebar unavailable, page still works */ }
+}
+
+// Mobile floating menu button: toggles the off-canvas sidebar + backdrop
+function initMobileSidebar() {
+  const fab = document.getElementById('mgmt-menu-fab');
+  const sidebar = document.getElementById('mgmt-sidebar');
+  const backdrop = document.getElementById('mgmt-sidebar-backdrop');
+  if (!fab || !sidebar) return;
+  const closeSidebar = () => {
+    sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('open');
+  };
+  fab.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = sidebar.classList.toggle('open');
+    if (backdrop) backdrop.classList.toggle('open', isOpen);
+  });
+  if (backdrop) backdrop.addEventListener('click', closeSidebar);
+  sidebar.addEventListener('click', e => {
+    if (e.target.closest('a')) closeSidebar();
+  });
 }
 
 function initNavActive(sidebar) {

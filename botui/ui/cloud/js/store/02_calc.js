@@ -4,6 +4,20 @@ let selectedLLMPrice = 0;
 function selectProfile(profile) {
   currentProfile = profile;
   document.querySelectorAll('.calc-prof-btn').forEach(b => b.classList.toggle('active', b.dataset.profile === profile));
+  // Estimator: auto-select + mark the recommended server size for this profile
+  const p = PROFILE_RECS[profile];
+  const rec = p && p.rec;
+  document.querySelectorAll('.calc-vps-btn').forEach(btn => {
+    btn.classList.remove('recommended');
+    const badge = btn.querySelector('.calc-rec-badge');
+    if (badge) badge.remove();
+    if (rec && btn.dataset.value === rec) {
+      btn.classList.add('recommended');
+      const input = btn.querySelector('input[name="calc-vps"]');
+      if (input && !input.checked) input.checked = true;
+      btn.insertAdjacentHTML('beforeend', '<span class="calc-rec-badge">Recommended</span>');
+    }
+  });
   calcUpdate();
 }
 
