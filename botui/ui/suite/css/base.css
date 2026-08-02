@@ -51,8 +51,8 @@
     --surface: #ffffff;
     --surface-hover: #f1f5f9;
     --border: #e2e8f0;
-        --win-border-width: 1px;
-        --win-border-color: rgba(0,0,0,0.12);
+        --win-border-width: 2px;
+        --win-border-color: rgba(15, 23, 42, 0.72);
         --win-border-active: #2563eb;
     --border-light: #cbd5e1;
     --border-hover: #94a3b8;
