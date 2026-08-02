@@ -845,8 +845,6 @@ pub async fn list_canned_responses(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
-
     let responses: Vec<TicketCannedResponse> = ticket_canned_responses::table
         .filter(ticket_canned_responses::is_active.eq(true))
         .order(ticket_canned_responses::title.asc())
@@ -895,8 +893,6 @@ pub async fn list_categories(
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
-
-    let branch_id = get_bot_context(&state);
 
     let categories: Vec<TicketCategory> = ticket_categories::table
         .filter(ticket_categories::is_active.eq(true))
@@ -952,8 +948,6 @@ pub async fn list_sla_policies(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
-
     let policies: Vec<TicketSlaPolicy> = ticket_sla_policies::table
         .filter(ticket_sla_policies::is_active.eq(true))
         .order(ticket_sla_policies::priority.asc())
@@ -969,8 +963,6 @@ pub async fn list_tags(
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
-
-    let branch_id = get_bot_context(&state);
 
     let tags: Vec<TicketTag> = ticket_tags::table
         .order(ticket_tags::name.asc())

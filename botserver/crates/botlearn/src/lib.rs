@@ -1,6 +1,7 @@
 pub mod certification;
 pub mod course;
 pub mod gamification;
+pub use gamification::GamificationService;
 pub mod models;
 pub mod routes_learn;
 pub mod schema;

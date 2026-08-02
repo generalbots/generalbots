@@ -8,4 +8,5 @@ pub mod telemetry;
 
 pub use types::*;
 pub use engine::FraudEngine;
+pub use handlers::FraudState;
 pub use handlers::configure_fraud_routes;

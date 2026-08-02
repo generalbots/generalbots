@@ -73,7 +73,7 @@ pub async fn create_objective(
     let owner_name = Some(user.username.clone());
     let now = Utc::now();
 
-    let tags: Vec<Option<String>> = req.tags.unwrap_or_default().into_iter().map(Some).collect();
+    let tags: Vec<String> = req.tags.unwrap_or_default();
 
     let new_objective = ObjectiveRecord {
         id: Uuid::new_v4(),
@@ -173,7 +173,7 @@ pub async fn update_objective(
             objective.period_end = Some(period_end);
         }
         if let Some(tags) = req.tags {
-            objective.tags = tags.into_iter().map(Some).collect();
+            objective.tags = tags;
         }
         objective.updated_at = Utc::now();
 
@@ -677,7 +677,7 @@ mod tests {
             progress: BigDecimal::from(0),
             visibility: "team".to_string(),
             weight: BigDecimal::from(1),
-            tags: vec![Some("test".to_string())],
+            tags: vec!["test".to_string()],
             created_at: now,
             updated_at: now,
         };

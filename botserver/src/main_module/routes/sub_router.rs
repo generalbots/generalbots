@@ -51,7 +51,9 @@ fn inner_build_sub_router(
     #[cfg(feature = "erp")]
     { *api_router = api_router.clone().merge(boterp::configure()); }
 
-    #[cfg(feature = "integrations")]
+    // botintegrations and botsources both expose /api/integrations/* — sources owns the
+    // namespace when both are compiled (its handlers are the superset: sync, run, create).
+    #[cfg(all(feature = "integrations", not(feature = "sources")))]
     { *api_router = api_router.clone().merge(botintegrations::configure()); }
 
     #[cfg(feature = "hr")]
@@ -196,7 +198,7 @@ fn inner_build_sub_router(
         );
         sub_router = sub_router.merge(
             crate::monitoring::governance::configure_routes(
-                Arc::new(app_state.metrics_collector.clone())
+                Arc::new(crate::monitoring::MetricsCollector::new())
             )
         );
     }
@@ -222,7 +224,7 @@ fn inner_build_sub_router(
     {
         let goals_pool = Arc::new(app_state.conn.clone());
         let goals_bot_context: crate::analytics::GetBotContextFn = Arc::new(|| (uuid::Uuid::nil(), uuid::Uuid::nil()));
-        let goals_default_bot: crate::analytics::GetDefaultBotFn = Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string()));
+        let goals_default_bot: crate::analytics::GetDefaultBotFn = Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil());
         sub_router = sub_router.merge(crate::analytics::goals::configure_goals_routes().with_state((goals_pool.clone(), goals_bot_context)));
         sub_router = sub_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes().with_state((goals_pool, goals_default_bot)));
     }
@@ -302,9 +304,6 @@ fn inner_build_sub_router(
     #[cfg(feature = "whatsapp")]
     { sub_router = sub_router.merge(crate::whatsapp::configure(app_state)); }
 
-    #[cfg(feature = "facebook")]
-    { sub_router = sub_router.merge(crate::facebook::configure(app_state)); }
-
     #[cfg(feature = "marketing")]
     { sub_router = sub_router.merge(super::feature_routers::make_marketing_router(app_state)); }
 
@@ -320,20 +319,7 @@ fn inner_build_sub_router(
     #[cfg(feature = "sources")]
     {
         let sources_state = crate::sources::make_sources_state(app_state.conn.clone());
-        sub_router = sub_router.merge(crate::sources::configure_sources_api_routes().with_state(sources_state.clone()));
-        sub_router = sub_router.merge(crate::sources::configure_sources_ui_routes().with_state(sources_state));
-    }
-
-    #[cfg(feature = "mail")]
-    {
-        use diesel::PgConnection;
-        let pb = app_state.conn.clone();
-        let email_state = Arc::new(crate::email::models::AppState {
-            pool: Arc::new(pb),
-            get_default_bot: Arc::new(|_c: &mut PgConnection| uuid::Uuid::nil()),
-            secrets_provider: Arc::new(|_key: &str| Ok(String::new())),
-        });
-        sub_router = sub_router.merge(crate::email::routes::configure(email_state));
+        sub_router = sub_router.merge(crate::sources::configure_sources_api_routes().with_state(sources_state));
     }
 
     #[cfg(feature = "attendant")]

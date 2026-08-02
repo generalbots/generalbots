@@ -13,7 +13,7 @@ name=General Bots
 #                 meet, research, sources, analytics, admin, monitoring, settings,
 #                 products, billing, people, tickets, social, compliance
 # Only listed apps will be visible in the UI and have their APIs enabled.
-apps=chat,drive
+apps=chat,mail,calendar,drive,tasks,paper,sheet,meet,research,sources,analytics,admin,monitoring,settings,attendant,tools,video,player,canvas,social,people,crm,tickets,billing,products,designer,workspace,project,goals,editor,learn,vibe,campaigns,lists,templates,terminal,browser,database,plan,compliance,tax,vision,fraud,erp,integrations,itsm,hr,banking,sales,pos,retail,handoff,kyc,biometry,timeclock,m365,office365,minutes
 
 # Sidebar visibility
 # Controls whether the left sidebar is shown in the suite

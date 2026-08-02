@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 impl XtreeUI {
-    fn render_file_tree(
+    pub(super) fn render_file_tree(
         &self,
         f: &mut Frame,
         area: Rect,
@@ -64,7 +64,7 @@ impl XtreeUI {
         }
     }
 
-    fn render_status(
+    pub(super) fn render_status(
         &mut self,
         f: &mut Frame,
         area: Rect,
@@ -114,7 +114,7 @@ impl XtreeUI {
         f.render_widget(paragraph, area);
     }
 
-    fn render_chat(
+    pub(super) fn render_chat(
         &self,
         f: &mut Frame,
         area: Rect,
@@ -163,7 +163,7 @@ impl XtreeUI {
         }
     }
 
-    fn render_logs(
+    pub(super) fn render_logs(
         &self,
         f: &mut Frame,
         area: Rect,

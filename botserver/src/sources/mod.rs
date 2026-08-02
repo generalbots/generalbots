@@ -1,6 +1,5 @@
 pub use botsources::*;
 
-use botsources::state::ConfigManagerOps;
 use std::sync::Arc;
 
 pub struct SourcesConfigManager {
@@ -28,12 +27,11 @@ impl ConfigManagerOps for SourcesConfigManager {
 }
 
 pub fn make_sources_state(conn: diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>) -> Arc<botsources::state::AppState> {
+    let config_manager = botcore::config::ConfigManager::new(conn.clone());
     Arc::new(botsources::state::AppState {
         conn,
         config_manager: Arc::new(SourcesConfigManager {
-            inner: botcore::config::ConfigManager::new(
-                conn.clone(),
-            ),
+            inner: config_manager,
         }),
         get_default_bot: None,
         get_work_path: None,

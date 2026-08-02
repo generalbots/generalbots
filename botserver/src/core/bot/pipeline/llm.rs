@@ -161,7 +161,7 @@ pub async fn stream_llm_response(
             let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
 
             let mut full_response = String::new();
-            let mut reasoning_accumulated = String::new();
+            let reasoning_accumulated: String;
 
             for attempt in 0..=LLM_RETRY_MAX {
                 full_response.clear();

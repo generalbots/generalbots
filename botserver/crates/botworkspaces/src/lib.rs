@@ -705,6 +705,7 @@ fn db_to_page(db: DbWorkspacePage, children: Vec<Uuid>) -> Page {
         }),
         _ => None,
     };
+
     let blocks: Vec<Block> = serde_json::from_value(db.content).unwrap_or_default();
     let properties: HashMap<String, PropertyValue> =
         serde_json::from_value(db.properties).unwrap_or_default();
@@ -3273,7 +3274,6 @@ pub async fn workspace_cards(
         return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
     };
 
-    let branch_id = ui_get_bot_context(&state);
 
     let mut q = aiworkspaces::table
         .into_boxed();
@@ -3332,6 +3332,7 @@ pub async fn workspace_count(State(state): State<Arc<WorkspacesState>>) -> Html<
     };
 
     let branch_id = ui_get_bot_context(&state);
+
 
     let count: i64 = aiworkspaces::table
         .filter(aiworkspaces::branch_id.eq(branch_id))

@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-pub fn init_task_scheduler(_app_state: &Arc<botcore::shared::state::AppState>) {
+pub fn init_task_scheduler(app_state: &Arc<botcore::shared::state::AppState>) {
+    #[cfg(not(feature = "tasks"))]
+    let _ = app_state;
     #[cfg(feature = "tasks")]
     {
         let tasks_state = Arc::new(crate::tasks::TasksState {

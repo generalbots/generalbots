@@ -179,6 +179,8 @@ fn build_base_router(
     oauth_state: Arc<botcoreoauth::routes::OAuthState_>,
     site_path: &str,
 ) -> Router {
+    #[cfg(feature = "vibe")]
+    let _ = site_path;
     #[cfg(feature = "deployment")]
     let base_router = {
         Router::new()

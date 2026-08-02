@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use axum::Router;
 use botcore::shared::state::AppState;
-use botcore::shared::utils::DbPool;
 use botcoresecrets::manager::SecretsManager;
 use uuid::Uuid;
 

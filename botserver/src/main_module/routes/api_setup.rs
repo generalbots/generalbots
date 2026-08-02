@@ -20,7 +20,7 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
 
     #[cfg(feature = "drive")]
     {
-        use axum::routing::{get as axum_get, post as axum_post, delete as axum_delete};
+        use axum::routing::{get as axum_get, post as axum_post};
         use crate::security::require_admin_middleware;
 
         // Admin-only drive routes (bot management)

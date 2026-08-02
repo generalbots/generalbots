@@ -200,7 +200,7 @@
       document.getElementById('stat-spend').textContent = '$' + totalSpend.toFixed(2);
 
       const orgName = orgs.length ? orgs[0].name : 'No organization';
-      document.getElementById('stat-org').innerHTML = orgName + (orgs.length > 1 ? ' <small style="color:var(--muted)">+' + (orgs.length-1) + '</small>' : '');
+      document.getElementById('stat-org').innerHTML = '<a href="/organizations" style="color:var(--text);text-decoration:none" title="Manage organizations">' + orgName + (orgs.length > 1 ? ' <small style="color:var(--muted)">+' + (orgs.length-1) + '</small>' : '') + '</a>';
 
       // Plan badge
       const currentPlan = orgs.length ? (orgs[0].plan || 'free') : 'free';

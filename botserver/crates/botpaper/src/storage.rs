@@ -181,12 +181,12 @@ pub async fn delete_document_from_drive(
 ) -> Result<(), String> {
     let base_path = get_user_papers_path(user_identifier);
     let current_path = format!("{}/current/{}.md", base_path, doc_id);
-    let _ = ((state.s3_delete)(&state.bucket_name, &current_path).await);
+    let _ = (state.s3_delete)(&state.bucket_name, &current_path).await;
 
     let named_prefix = format!("{}/named/{}/", base_path, doc_id);
     if let Ok(keys) = (state.s3_list)(&state.bucket_name, &named_prefix).await {
         for key in keys {
-            let _ = ((state.s3_delete)(&state.bucket_name, &key).await);
+            let _ = (state.s3_delete)(&state.bucket_name, &key).await;
         }
     }
 

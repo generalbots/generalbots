@@ -1092,6 +1092,7 @@ name = "botanalytics"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "base64 0.22.1",
  "bigdecimal",
  "chrono",
  "diesel",

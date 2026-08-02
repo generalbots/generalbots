@@ -799,7 +799,6 @@ pub fn register_reflection_keywords(state: Arc<dyn BasicRuntime>, user: UserSess
 
 pub fn set_bot_reflection_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let _ = (&state, &user); // Mark as intentionally unused in registration
-    let state_clone = Arc::clone(&state);
     let user_clone = user;
 
     engine
@@ -820,7 +819,6 @@ pub fn set_bot_reflection_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
                     user_clone.bot_id
                 );
 
-                let state_for_task = Arc::clone(&state_clone);
                 let bot_id = user_clone.bot_id;
 
                 let (tx, rx) = std::sync::mpsc::channel();
@@ -833,7 +831,7 @@ pub fn set_bot_reflection_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
                             return;
                         }
                     };
-                    let result = set_reflection_enabled(&state_for_task, bot_id, enabled);
+                    let result = set_reflection_enabled(bot_id, enabled);
                     let _ = tx.send(result);
                 });
 
@@ -944,7 +942,7 @@ pub fn get_reflection_insights_keyword(
     });
 }
 
-fn set_reflection_enabled(state: &Arc<dyn BasicRuntime>, bot_id: Uuid, enabled: bool) -> Result<String, String> {
+fn set_reflection_enabled(bot_id: Uuid, enabled: bool) -> Result<String, String> {
     let value = if enabled { "true" } else { "false" };
     write_bot_config_to_vault(&bot_id, "bot-reflection-enabled", &value)
         .map_err(|e| format!("Failed to set reflection enabled: {}", e))?;

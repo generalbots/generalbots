@@ -1432,6 +1432,7 @@ async fn list_workspaces(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
         .id;
 
+
     use crate::schema_ext::cloud_workspaces::dsl as cw;
     let rows = cw::cloud_workspaces
         .filter(cw::branch_id.eq(branch_id))
@@ -1469,6 +1470,7 @@ async fn create_workspace(
         .get_result::<BranchIdRow>(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
         .id;
+
 
     let now = chrono::Utc::now();
     let ws_id = Uuid::new_v4();
@@ -1510,6 +1512,7 @@ async fn update_workspace(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
         .id;
 
+
     use crate::schema_ext::cloud_workspaces::dsl as cw;
     let filter = cw::id.eq(ws_id_param).and(cw::branch_id.eq(branch_id));
 
@@ -1542,6 +1545,7 @@ async fn delete_workspace(
         .get_result::<BranchIdRow>(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
         .id;
+
 
     // Remove resources first
     use crate::schema_ext::workspace_resources::dsl as wr;
@@ -1612,11 +1616,6 @@ async fn assign_resource(
         "other"
     };
 
-    let branch_id: Uuid = diesel::sql_query("SELECT id FROM branches WHERE org_id = $1 LIMIT 1")
-        .bind::<diesel::sql_types::Uuid, _>(org_id_param)
-        .get_result::<BranchIdRow>(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Branch lookup: {e}")))?
-        .id;
 
     let now = chrono::Utc::now();
     let res_id = Uuid::new_v4();
@@ -2767,7 +2766,6 @@ struct ByokSaveBody {
 ///
 /// Receives BYOK API keys from the frontend and stores them in Vault.
 async fn handle_save_byok(
-    State(service): State<Arc<SaasService>>,
     headers: HeaderMap,
     Json(body): Json<ByokSaveBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {

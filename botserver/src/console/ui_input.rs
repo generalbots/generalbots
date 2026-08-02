@@ -3,7 +3,7 @@ use color_eyre::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
 
 impl XtreeUI {
-    async fn handle_input(&mut self, key: KeyCode, modifiers: KeyModifiers) -> Result<()> {
+    pub(super) async fn handle_input(&mut self, key: KeyCode, modifiers: KeyModifiers) -> Result<()> {
         if modifiers.contains(KeyModifiers::CONTROL) {
             match key {
                 KeyCode::Char('c' | 'q') => {
@@ -253,7 +253,7 @@ impl XtreeUI {
         Ok(())
     }
 
-    async fn update_data(&mut self) -> Result<()> {
+    pub(super) async fn update_data(&mut self) -> Result<()> {
         if let Some(status_panel) = &mut self.status_panel {
             status_panel.update()?;
         }

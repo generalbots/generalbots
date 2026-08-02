@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use botcore::shared::state::AppState;
 use futures_util::{SinkExt, StreamExt};
-use log::{error, info, warn};
+use log::{error, info};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
