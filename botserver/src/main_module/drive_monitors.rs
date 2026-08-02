@@ -310,6 +310,8 @@ fn ensure_cloud_workspaces_schema(pool: &botcore::shared::utils::DbPool) {
 
 /// Upsert a cloud_workspaces row for a Drive branch (.gbai prefix) so the
 /// SaaS cloud UI lists every workspace that exists in Drive.
+/// Prefers ON CONFLICT (branch_id); falls back to select-then-upsert when the
+/// database has no unique constraint on branch_id (older deployments).
 fn ensure_cloud_workspace(
     pool: &botcore::shared::utils::DbPool,
     org_id: Uuid,
@@ -320,7 +322,7 @@ fn ensure_cloud_workspace(
     let mut conn = pool.get().map_err(|e| e.to_string())?;
 
     let ws_id = Uuid::new_v4();
-    sql_query(
+    let insert_result = sql_query(
         "INSERT INTO cloud_workspaces (id, org_id, branch_id, name, description, icon, created_at, updated_at) \
          VALUES ($1, $2, $3, $4, $5, 'default', NOW(), NOW()) \
          ON CONFLICT (branch_id) DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()",
@@ -332,10 +334,60 @@ fn ensure_cloud_workspace(
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(
         Some(format!("Default workspace for {}", branch_slug)),
     )
-    .execute(&mut conn)
-    .map_err(|e| format!("Failed to upsert cloud workspace '{}': {}", branch_slug, e))?;
+    .execute(&mut conn);
 
-    info!("Cloud workspace '{}' ensured (org: {}, branch: {})", branch_slug, org_id, branch_id);
+    match insert_result {
+        Ok(_) => {
+            info!("Cloud workspace '{}' ensured (org: {}, branch: {})", branch_slug, org_id, branch_id);
+            return Ok(());
+        }
+        Err(e) => {
+            trace!("ON CONFLICT upsert unavailable for branch '{}' ({}), falling back to select-then-upsert", branch_slug, e);
+        }
+    }
+
+    // Fallback for databases without a unique constraint on branch_id
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct WsIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    let existing: Option<Uuid> = sql_query(
+        "SELECT id FROM cloud_workspaces WHERE branch_id = $1 LIMIT 1"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .get_result::<WsIdRow>(&mut conn)
+    .ok()
+    .map(|r| r.id);
+
+    match existing {
+        Some(existing_id) => {
+            sql_query("UPDATE cloud_workspaces SET name = $2, updated_at = NOW() WHERE id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(existing_id)
+                .bind::<diesel::sql_types::Text, _>(branch_slug)
+                .execute(&mut conn)
+                .map_err(|e| format!("Failed to update cloud workspace '{}': {}", branch_slug, e))?;
+            info!("Cloud workspace '{}' updated (org: {}, branch: {})", branch_slug, org_id, branch_id);
+        }
+        None => {
+            sql_query(
+                "INSERT INTO cloud_workspaces (id, org_id, branch_id, name, description, icon, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $4, $5, 'default', NOW(), NOW())",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(ws_id)
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .bind::<diesel::sql_types::Text, _>(branch_slug)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(
+                Some(format!("Default workspace for {}", branch_slug)),
+            )
+            .execute(&mut conn)
+            .map_err(|e| format!("Failed to insert cloud workspace '{}': {}", branch_slug, e))?;
+            info!("Cloud workspace '{}' ensured (org: {}, branch: {})", branch_slug, org_id, branch_id);
+        }
+    }
+
     Ok(())
 }
 
