@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
     response::{Html, IntoResponse},
-    routing::get,
+    routing::{get, post},
     Router,
 };
 
@@ -16,6 +16,9 @@ use crate::{get_bot_context, support_tickets, ticket_comments, SupportTicket, Ti
 #[derive(Debug, Deserialize)]
 pub struct StatusQuery {
     pub status: Option<String>,
+    pub priority: Option<String>,
+    pub category: Option<String>,
+    pub record_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -153,6 +156,11 @@ pub fn configure_tickets_ui_routes() -> Router<Arc<TicketsState>> {
         .route("/api/ui/tickets/stats/by-status", get(handle_stats_by_status))
         .route("/api/ui/tickets/stats/by-priority", get(handle_stats_by_priority))
         .route("/api/ui/tickets/stats/avg-resolution", get(handle_avg_resolution))
+        .route("/api/ui/tickets/stats/open", get(handle_stats_open))
+        .route("/api/ui/tickets/stats/urgent", get(handle_stats_urgent))
+        .route("/api/ui/tickets/stats/resolved-today", get(handle_stats_resolved_today))
+        .route("/api/ui/tickets/stats/ai-resolved", get(handle_stats_ai_resolved))
+        .route("/api/ui/tickets/ai-suggest", post(handle_ai_suggest))
 }
 
 async fn handle_tickets_list(
@@ -172,6 +180,21 @@ async fn handle_tickets_list(
     if let Some(status) = query.status {
         if status != "all" {
             q = q.filter(support_tickets::status.eq(status));
+        }
+    }
+    if let Some(priority) = query.priority {
+        if priority != "all" {
+            q = q.filter(support_tickets::priority.eq(priority));
+        }
+    }
+    if let Some(category) = query.category {
+        if category != "all" {
+            q = q.filter(support_tickets::category.eq(category));
+        }
+    }
+    if let Some(record_type) = query.record_type {
+        if record_type != "all" {
+            q = q.filter(support_tickets::record_type.eq(record_type));
         }
     }
 
@@ -723,4 +746,134 @@ async fn handle_avg_resolution(State(state): State<Arc<TicketsState>>) -> impl I
     } else {
         Html(format!("{:.1}d", avg_hours / 24.0))
     }
+}
+
+async fn handle_stats_open(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+    let Ok(mut conn) = state.pool.get() else {
+        return Html("0".to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let count: i64 = support_tickets::table
+        .filter(support_tickets::branch_id.eq(branch_id))
+        .filter(support_tickets::status.ne("closed"))
+        .filter(support_tickets::status.ne("resolved"))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+
+    Html(count.to_string())
+}
+
+async fn handle_stats_urgent(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+    let Ok(mut conn) = state.pool.get() else {
+        return Html("0".to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let count: i64 = support_tickets::table
+        .filter(support_tickets::branch_id.eq(branch_id))
+        .filter(support_tickets::status.ne("closed"))
+        .filter(support_tickets::status.ne("resolved"))
+        .filter(
+            support_tickets::priority
+                .eq("urgent")
+                .or(support_tickets::priority.eq("critical"))
+                .or(support_tickets::priority.eq("high")),
+        )
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+
+    Html(count.to_string())
+}
+
+async fn handle_stats_resolved_today(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+    let Ok(mut conn) = state.pool.get() else {
+        return Html("0".to_string());
+    };
+    let branch_id = get_bot_context(&state);
+    let today = ChronoUtc::now().date_naive();
+
+    let count: i64 = support_tickets::table
+        .filter(support_tickets::branch_id.eq(branch_id))
+        .filter(support_tickets::resolved_at.is_not_null())
+        .filter(support_tickets::resolved_at.ge(today.and_hms_opt(0, 0, 0).unwrap()))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+
+    Html(count.to_string())
+}
+
+async fn handle_stats_ai_resolved(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+    let Ok(mut conn) = state.pool.get() else {
+        return Html("0".to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let count: i64 = support_tickets::table
+        .filter(support_tickets::branch_id.eq(branch_id))
+        .filter(support_tickets::resolved_at.is_not_null())
+        .filter(support_tickets::source.eq("ai"))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+
+    Html(count.to_string())
+}
+
+#[derive(Deserialize)]
+pub struct AiSuggestForm {
+    pub subject: Option<String>,
+    pub description: Option<String>,
+}
+
+/// `/api/ui/tickets/ai-suggest` — analyze a draft description and suggest
+/// a category, priority and probable solution before the ticket is created.
+async fn handle_ai_suggest(
+    axum::extract::Form(form): axum::extract::Form<AiSuggestForm>,
+) -> impl IntoResponse {
+    let text = format!(
+        "{} {}",
+        form.subject.as_deref().unwrap_or(""),
+        form.description.as_deref().unwrap_or("")
+    );
+    let lower = text.to_lowercase();
+
+    if text.trim().is_empty() {
+        return Html(String::new());
+    }
+
+    let (category, priority, hint) = suggest_category(&lower);
+
+    Html(format!(
+        r#"<div class="ai-suggestion">
+    <div class="ai-suggestion-category"><span class="ai-label">Suggested category</span><strong>{category}</strong></div>
+    <div class="ai-suggestion-priority"><span class="ai-label">Suggested priority</span><strong class="priority-{prio_class}">{priority}</strong></div>
+    <div class="ai-suggestion-hint"><span class="ai-label">Likely solution</span><span>{hint}</span></div>
+</div>"#,
+        prio_class = priority.to_lowercase()
+    ))
+}
+
+fn suggest_category(text: &str) -> (&'static str, &'static str, &'static str) {
+    let rules: &[(&[&str], &str, &str, &str)] = &[
+        (&["login", "password", "sign in", "authentication", "otp", "2fa"], "Authentication", "High", "Reset credentials or check the authentication service; verify token expiry and 2FA status."),
+        (&["payment", "charge", "invoice", "billing", "refund"], "Billing", "High", "Verify the payment transaction and billing subscription status; check for charge failures."),
+        (&["email", "not receiving", "spam", "delivery"], "Email", "Medium", "Check email delivery logs, SPF/DKIM records and the mail queue for the affected address."),
+        (&["slow", "lag", "timeout", "performance"], "Performance", "High", "Inspect server load, database latency and network; review recent deploys and metrics."),
+        (&["crash", "error", "exception", "bug", "fails"], "Bug", "Medium", "Collect the stack trace and reproduce steps; check recent code changes and service logs."),
+        (&["install", "setup", "configure", "integration"], "Onboarding", "Low", "Follow the installation checklist; verify environment variables and service connectivity."),
+        (&["virus", "phishing", "security", "breach", "malware"], "Security", "Critical", "Isolate the affected system, revoke exposed credentials and review access logs immediately."),
+        (&["chat", "bot", "conversation", "suggestion"], "Chat Bot", "Medium", "Review the bot knowledge base and script logs; test the conversation flow in a staging session."),
+    ];
+
+    for (keywords, category, priority, hint) in rules {
+        if keywords.iter().any(|k| text.contains(k)) {
+            return (category, priority, hint);
+        }
+    }
+
+    ("General", "Low", "Review the issue details and route to the appropriate team for triage.")
 }

@@ -19,7 +19,7 @@ pub use storage::{
 pub use llm::call_llm;
 pub use handlers::{
     handle_autosave, handle_delete_document, handle_get_document, handle_list_documents,
-    handle_new_document, handle_save_document, handle_search_documents,
+    handle_new_document, handle_paper_import, handle_save_document, handle_search_documents,
 };
 pub use templates::{
     handle_template_blank, handle_template_letter, handle_template_meeting,
@@ -27,7 +27,7 @@ pub use templates::{
 };
 pub use ai_handlers::{
     handle_ai_custom, handle_ai_expand, handle_ai_improve, handle_ai_simplify,
-    handle_ai_summarize, handle_ai_translate,
+    handle_ai_summarize, handle_ai_tone, handle_ai_translate,
 };
 pub use export::{
     handle_export_docx, handle_export_html, handle_export_md, handle_export_pdf,
@@ -48,6 +48,7 @@ pub const PAPER_LIST: &str = "/api/ui/paper/list";
 pub const PAPER_SEARCH: &str = "/api/ui/paper/search";
 pub const PAPER_SAVE: &str = "/api/ui/paper/save";
 pub const PAPER_AUTOSAVE: &str = "/api/ui/paper/autosave";
+pub const PAPER_IMPORT: &str = "/api/ui/paper/import";
 pub const PAPER_BY_ID: &str = "/api/ui/paper/{id}";
 pub const PAPER_DELETE: &str = "/api/ui/paper/delete/{id}";
 pub const PAPER_TEMPLATE_BLANK: &str = "/api/ui/paper/template/blank";
@@ -61,6 +62,7 @@ pub const PAPER_AI_EXPAND: &str = "/api/ui/paper/ai/expand";
 pub const PAPER_AI_IMPROVE: &str = "/api/ui/paper/ai/improve";
 pub const PAPER_AI_SIMPLIFY: &str = "/api/ui/paper/ai/simplify";
 pub const PAPER_AI_TRANSLATE: &str = "/api/ui/paper/ai/translate";
+pub const PAPER_AI_TONE: &str = "/api/ui/paper/ai/tone";
 pub const PAPER_AI_CUSTOM: &str = "/api/ui/paper/ai/custom";
 pub const PAPER_EXPORT_PDF: &str = "/api/ui/paper/export/pdf";
 pub const PAPER_EXPORT_DOCX: &str = "/api/ui/paper/export/docx";
@@ -75,6 +77,7 @@ pub fn configure_paper_routes() -> Router<Arc<PaperState>> {
         .route(PAPER_SEARCH, get(handle_search_documents))
         .route(PAPER_SAVE, post(handle_save_document))
         .route(PAPER_AUTOSAVE, post(handle_autosave))
+        .route(PAPER_IMPORT, post(handle_paper_import))
         .route(PAPER_BY_ID, get(handle_get_document))
         .route(PAPER_DELETE, post(handle_delete_document))
         .route(PAPER_TEMPLATE_BLANK, post(handle_template_blank))
@@ -88,6 +91,7 @@ pub fn configure_paper_routes() -> Router<Arc<PaperState>> {
         .route(PAPER_AI_IMPROVE, post(handle_ai_improve))
         .route(PAPER_AI_SIMPLIFY, post(handle_ai_simplify))
         .route(PAPER_AI_TRANSLATE, post(handle_ai_translate))
+        .route(PAPER_AI_TONE, post(handle_ai_tone))
         .route(PAPER_AI_CUSTOM, post(handle_ai_custom))
         .route(PAPER_EXPORT_PDF, get(handle_export_pdf))
         .route(PAPER_EXPORT_DOCX, get(handle_export_docx))

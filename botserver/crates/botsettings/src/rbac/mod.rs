@@ -1,4 +1,5 @@
 pub mod handlers;
+pub mod search;
 pub mod utils;
 
 use axum::{
@@ -52,6 +53,9 @@ pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
         .route("/api/rbac/users/:user_id/permissions", get(handlers::get_effective_permissions))
         .route("/api/rbac/check", post(handlers::check_permission))
         .route("/api/rbac/my-permissions", get(handlers::my_permissions))
+        .route("/api/rbac/roles/search", get(search::search_roles))
+        .route("/api/rbac/groups/search", get(search::search_groups))
+        .route("/api/rbac/users/search", get(search::search_users))
         .route("/settings/rbac", get(rbac_settings_page))
         .route("/settings/rbac/users", get(rbac_users_list))
         .route("/settings/rbac/roles", get(rbac_roles_list))

@@ -1,0 +1,127 @@
+<link rel="stylesheet" href="/suite/o365/o365.css">
+<script src="/suite/o365/o365.js"></script>
+
+<div class="o365-container">
+    <header class="o365-header">
+        <h1>o365 Integration</h1>
+        <div class="o365-header-actions">
+            <button class="o365-btn" onclick="window._o365.loadAll()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="o365-stats">
+        <div class="o365-stat-card"><span class="o365-stat-label">SP Sites</span><span class="o365-stat-value blue" id="stat-sites">0</span></div>
+        <div class="o365-stat-card"><span class="o365-stat-label">Calendar Events</span><span class="o365-stat-value green" id="stat-events">0</span></div>
+        <div class="o365-stat-card"><span class="o365-stat-label">Drive Files</span><span class="o365-stat-value purple" id="stat-files">0</span></div>
+        <div class="o365-stat-card"><span class="o365-stat-label">Chats</span><span class="o365-stat-value orange" id="stat-teams">0</span></div>
+    </div>
+
+    <nav class="o365-tabs">
+        <button class="o365-tab active" data-tab="sharepoint" onclick="window._o365.switchTab('sharepoint',this)">SP</button>
+        <button class="o365-tab" data-tab="calendar" onclick="window._o365.switchTab('calendar',this)">Calendar</button>
+        <button class="o365-tab" data-tab="onedrive" onclick="window._o365.switchTab('onedrive',this)">Drive</button>
+        <button class="o365-tab" data-tab="settings" onclick="window._o365.switchTab('settings',this)">Settings</button>
+    </nav>
+
+    <div class="o365-content">
+        <div class="o365-panel active" id="panel-sharepoint">
+            <div class="o365-grid" id="sharepoint-grid">
+                <div class="o365-empty"><div class="o365-empty-icon">📁</div><h3>Loading...</h3><p>Fetching SP sites</p></div>
+            </div>
+            <div id="sharepoint-items" style="margin-top:16px"></div>
+        </div>
+
+        <div class="o365-panel" id="panel-calendar">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <h3 style="font-size:16px;font-weight:600;margin:0">Upcoming Meetings</h3>
+                <button class="o365-btn o365-btn-primary" onclick="window._o365.showCreateMeeting()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Create Meeting
+                </button>
+            </div>
+            <div class="o365-grid" id="calendar-grid">
+                <div class="o365-empty"><div class="o365-empty-icon">📅</div><h3>Loading...</h3><p>Fetching calendar events</p></div>
+            </div>
+        </div>
+
+        <div class="o365-panel" id="panel-onedrive">
+            <div class="o365-breadcrumb" id="onedrive-breadcrumb">
+                <button class="o365-breadcrumb-item" onclick="window._o365.navigateFolder('root')">Root</button>
+            </div>
+            <div class="o365-table-wrapper">
+                <table class="o365-table">
+                    <thead><tr><th>Name</th><th>Type</th><th>Modified</th><th>Size</th><th>Action</th></tr></thead>
+                    <tbody id="onedrive-tbody"><tr><td colspan="5" class="o365-empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="o365-panel" id="panel-settings">
+            <div class="o365-settings-card">
+                <h3>Account Status</h3>
+                <div class="o365-settings-row">
+                    <div><div class="o365-settings-label">o365 Account</div><div class="o365-settings-desc" id="settings-account">Not connected</div></div>
+                    <span class="o365-badge disconnected" id="settings-status">Disconnected</span>
+                </div>
+                <div class="o365-settings-row">
+                    <div><div class="o365-settings-label">Last Sync</div><div class="o365-settings-desc" id="settings-sync">Never</div></div>
+                    <button class="o365-btn" onclick="window._o365.syncNow()">Sync Now</button>
+                </div>
+            </div>
+            <div class="o365-settings-card">
+                <h3>Sync Frequency</h3>
+                <div class="o365-settings-row">
+                    <div><div class="o365-settings-label">Calendar Sync</div><div class="o365-settings-desc">Sync calendar events</div></div>
+                    <select id="sync-calendar" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._o365.updateSync('calendar',this.value)">
+                        <option value="5">Every 5 min</option>
+                        <option value="15" selected>Every 15 min</option>
+                        <option value="30">Every 30 min</option>
+                        <option value="60">Every hour</option>
+                    </select>
+                </div>
+                <div class="o365-settings-row">
+                    <div><div class="o365-settings-label">Drive Sync</div><div class="o365-settings-desc">Sync Drive files</div></div>
+                    <select id="sync-onedrive" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._o365.updateSync('onedrive',this.value)">
+                        <option value="5">Every 5 min</option>
+                        <option value="15">Every 15 min</option>
+                        <option value="30" selected>Every 30 min</option>
+                        <option value="60">Every hour</option>
+                    </select>
+                </div>
+            </div>
+            <div class="o365-settings-card">
+                <h3>Actions</h3>
+                <div class="o365-settings-row">
+                    <div><div class="o365-settings-label">Connect Account</div><div class="o365-settings-desc">Link your o365 account</div></div>
+                    <button class="o365-btn o365-btn-primary" onclick="window._o365.connectAccount()">Connect</button>
+                </div>
+                <div class="o365-settings-row">
+                    <div><div class="o365-settings-label">Disconnect Account</div><div class="o365-settings-desc">Remove o365 integration</div></div>
+                    <button class="o365-btn o365-btn-danger" onclick="window._o365.disconnectAccount()">Disconnect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="o365-modal-overlay" id="meeting-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
+    <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:500px">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
+            <h3 style="font-size:15px;font-weight:600;margin:0">Create Meeting</h3>
+            <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._o365.hideModal('meeting-modal')">&times;</button>
+        </div>
+        <div style="padding:16px">
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">Subject</label><input type="text" id="meeting-subject" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">Start</label><input type="datetime-local" id="meeting-start" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">End</label><input type="datetime-local" id="meeting-end" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">Attendees</label><input type="text" id="meeting-attendees" placeholder="email1, email2" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--border-color,#334155);margin-top:12px">
+                <button class="o365-btn" onclick="window._o365.hideModal('meeting-modal')">Cancel</button>
+                <button class="o365-btn o365-btn-primary" onclick="window._o365.createMeeting()">Create</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -5,7 +5,6 @@
 <div class="min-container">
     <header class="min-header">
         <h1>Meeting Minutes</h1>
-        <p>Agendamento, transcrições, atas, ações e assinaturas — toda a lógica é servida pelo Rust via fragmentos HTMX em <code>botserver/ui_fragments/minutes_app</code>.</p>
         <div class="min-header-actions">
             <button class="min-btn" hx-get="/suite/minutes/fragments/upcoming" hx-target="#min-content" hx-swap="innerHTML">Atualizar</button>
         </div>

@@ -23,6 +23,10 @@ log = { workspace = true }
 anyhow = { workspace = true }
 lettre = { workspace = true, optional = true }
 tracing = { workspace = true }
+redis = { workspace = true }
+argon2 = { workspace = true }
+rand = { workspace = true }
+bigdecimal = { workspace = true }
 
 [lints]
 workspace = true

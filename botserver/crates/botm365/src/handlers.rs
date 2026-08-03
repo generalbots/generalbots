@@ -61,8 +61,10 @@ pub async fn list_sharepoint() -> Result<Json<Vec<SharePointItem>>, (StatusCode,
         #[diesel(sql_type = diesel::sql_types::Timestamptz)] last_modified: chrono::DateTime<Utc>,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, site_name, list_name, item_count, last_modified
-         FROM m365_sharepoint_items ORDER BY last_modified DESC LIMIT 500",
+        "SELECT id, COALESCE(site_id, '') AS site_name, COALESCE(list_id, '') AS list_name, \
+         (CASE WHEN fields IS NULL THEN 0 ELSE 1 END)::bigint AS item_count, \
+         COALESCE(modified_at, synced_at) AS last_modified
+         FROM m365_sharepoint_items ORDER BY synced_at DESC LIMIT 500",
     )
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
@@ -133,20 +135,19 @@ pub async fn get_settings() -> Result<Json<Option<M365Settings>>, (StatusCode, S
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Text)] tenant_id: String,
         #[diesel(sql_type = diesel::sql_types::Text)] client_id: String,
-        #[diesel(sql_type = diesel::sql_types::Jsonb)] scopes: serde_json::Value,
-        #[diesel(sql_type = diesel::sql_types::Bool)] connected: bool,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)] last_sync_at: Option<chrono::DateTime<Utc>>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)] last_sync: Option<chrono::DateTime<Utc>>,
     }
     let row: Option<Row> = diesel::sql_query(
-        "SELECT tenant_id, client_id, scopes, connected, last_sync_at FROM oauth_microsoft_settings LIMIT 1",
+        "SELECT tenant_id, client_id, last_sync FROM oauth_microsoft_settings LIMIT 1",
     )
     .get_result(&mut conn)
     .optional()
     .map_err(db::map_diesel_err)?;
     Ok(Json(row.map(|r| M365Settings {
-        tenant_id: r.tenant_id, client_id: r.client_id,
-        connected: r.connected,
-        scopes: r.scopes.as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default(),
-        last_sync: r.last_sync_at,
+        tenant_id: r.tenant_id,
+        client_id: r.client_id,
+        connected: r.last_sync.is_some(),
+        scopes: Vec::new(),
+        last_sync: r.last_sync,
     })))
 }

@@ -1,4 +1,5 @@
 pub mod ui;
+pub mod itsm;
 
 use axum::{
     extract::{Path, Query, State},
@@ -44,6 +45,7 @@ diesel::table! {
         resolved_at -> Nullable<Timestamptz>,
         closed_at -> Nullable<Timestamptz>,
         satisfaction_rating -> Nullable<Int4>,
+        record_type -> Varchar,
         tags -> Array<Text>,
         custom_fields -> Jsonb,
         created_at -> Timestamptz,
@@ -142,6 +144,7 @@ pub struct SupportTicket {
     pub resolved_at: Option<DateTime<Utc>>,
     pub closed_at: Option<DateTime<Utc>>,
     pub satisfaction_rating: Option<i32>,
+    pub record_type: String,
     pub tags: Vec<String>,
     pub custom_fields: serde_json::Value,
     pub created_at: DateTime<Utc>,
@@ -228,6 +231,7 @@ pub struct CreateTicketRequest {
     pub requester_name: Option<String>,
     pub assignee_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
+    pub record_type: Option<String>,
     pub due_date: Option<String>,
 }
 
@@ -245,7 +249,8 @@ pub struct UpdateTicketRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct AssignTicketRequest {
-    pub assignee_id: Uuid,
+    pub assignee_id: Option<Uuid>,
+    pub assignee: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -311,26 +316,21 @@ pub struct TicketWithComments {
 diesel::table! {
     bots (id) {
         id -> Uuid,
+        org_id -> Uuid,
         branch_id -> Uuid,
-        bot_id -> Uuid,
         name -> Varchar,
         slug -> Varchar,
-        org_id -> Uuid,
-        tenant_id -> Nullable<Uuid>,
-        is_default_for_branch -> Nullable<Bool>,
         description -> Nullable<Text>,
-        is_public -> Nullable<Bool>,
-        is_active -> Nullable<Bool>,
-        avatar_url -> Nullable<Varchar>,
-        settings -> Nullable<Jsonb>,
-        metadata -> Nullable<Jsonb>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
         llm_provider -> Varchar,
         llm_config -> Jsonb,
         context_provider -> Varchar,
         context_config -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        is_active -> Nullable<Bool>,
         database_name -> Nullable<Varchar>,
+        is_public -> Bool,
+        is_default_for_branch -> Bool,
     }
 }
 
@@ -340,6 +340,7 @@ fn get_bot_context(state: &Arc<TicketsState>) -> Uuid {
     };
     let bid: Uuid = bots::table
         .filter(bots::is_default_for_branch.eq(true))
+        .order(bots::created_at.asc())
         .select(bots::branch_id)
         .first(&mut conn)
         .unwrap_or(Uuid::nil());
@@ -393,6 +394,7 @@ pub async fn create_ticket(
         resolved_at: None,
         closed_at: None,
         satisfaction_rating: None,
+        record_type: req.record_type.clone().unwrap_or_else(|| "ticket".to_string()),
         tags: req.tags.unwrap_or_default(),
         custom_fields: serde_json::json!({}),
         created_at: now,
@@ -567,17 +569,56 @@ pub async fn assign_ticket(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let assignee_id = if let Some(assignee_id) = req.assignee_id {
+        assignee_id
+    } else if let Some(assignee) = req.assignee {
+        let value = assignee.trim();
+        if value.is_empty() {
+            return Err((StatusCode::BAD_REQUEST, "assignee cannot be empty".to_string()));
+        }
+        resolve_user_id(&mut conn, value)?
+    } else {
+        return Err((StatusCode::BAD_REQUEST, "assignee_id or assignee required".to_string()));
+    };
+
     let now = Utc::now();
 
     diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
         .set((
-            support_tickets::assignee_id.eq(Some(req.assignee_id)),
+            support_tickets::assignee_id.eq(Some(assignee_id)),
             support_tickets::updated_at.eq(now),
         ))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     get_ticket(State(state), Path(id)).await
+}
+
+fn resolve_user_id(conn: &mut diesel::PgConnection, value: &str) -> Result<Uuid, (StatusCode, String)> {
+    use diesel::prelude::*;
+
+    #[derive(diesel::QueryableByName)]
+    struct UserIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+
+    let value_like = format!("%{value}%");
+    let row: Result<UserIdRow, diesel::result::Error> = diesel::sql_query(
+        "SELECT id FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1) OR LOWER(username) LIKE LOWER($2) LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(value)
+    .bind::<diesel::sql_types::Text, _>(&value_like)
+    .get_result(conn);
+
+    match row {
+        Ok(row) => Ok(row.id),
+        Err(diesel::result::Error::NotFound) => Err((
+            StatusCode::NOT_FOUND,
+            format!("No user found matching '{value}'. Use an existing user email or username."),
+        )),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))),
+    }
 }
 
 pub async fn change_status(

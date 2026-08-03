@@ -122,7 +122,7 @@ Would you like me to send these for signature approval?
 
 ## Related Pages
 
-- [M365](m365.md) — Calendar integration for meeting sync
+- [o365](o365.md) — Calendar integration for meeting sync
 - [Transcripts](../transcripts.md) — Full transcript management
 - [Signatures](../signatures.md) — Digital signature workflow
 - [Reports](../reports.md) — Meeting analytics and reports

@@ -17,6 +17,20 @@ fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
+fn default_bot_id(state: &CrateState) -> Uuid {
+    use crate::schema::bots::dsl::{bots, id, is_default_for_branch};
+    use diesel::prelude::*;
+
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Uuid::nil();
+    };
+    bots
+        .filter(is_default_for_branch.eq(true))
+        .select(id)
+        .first::<Uuid>(&mut conn)
+        .unwrap_or(Uuid::nil())
+}
+
 pub async fn create_lead_form(
     State(state): State<Arc<CrateState>>,
     Json(req): Json<CreateLeadForm>,
@@ -41,6 +55,8 @@ pub async fn create_lead_form(
 
     let lead = CrmDeal {
         id,
+        org_id: effective_branch_id,
+        bot_id: default_bot_id(&state),
         branch_id: effective_branch_id,
         contact_id: None,
         account_id: None,
@@ -97,6 +113,8 @@ pub async fn create_lead(
 
     let lead = CrmDeal {
         id,
+        org_id: branch_id,
+        bot_id: default_bot_id(&state),
         branch_id,
         contact_id: req.contact_id,
         account_id: req.account_id,
@@ -323,6 +341,8 @@ pub async fn convert_lead_to_opportunity(
 
     let opportunity = CrmDeal {
         id: opp_id,
+        org_id: lead.org_id,
+        bot_id: lead.bot_id,
         branch_id: lead.branch_id,
         lead_id: Some(lead.id),
         account_id: lead.account_id,

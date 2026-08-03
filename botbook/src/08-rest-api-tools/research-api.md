@@ -541,6 +541,52 @@ curl /api/ui/research/collections/uuid \
 
 ---
 
+## RAG-Powered Search with Real KB Data
+
+The research app now runs **real RAG** against the bot's knowledge base
+(`kb_documents`/`kb_collections`) and synthesizes answers with the configured LLM.
+Search results are scoped to the active bot (`bots.is_default_for_branch`).
+
+### Search (form-encoded)
+
+```http
+POST /api/ui/research/search
+Content-Type: application/x-www-form-urlencoded
+
+query=How does billing work&collection=my-collection
+```
+
+When an LLM provider is configured the response contains an `#answer-content`
+block (synthesized answer with citations) followed by the matching documents.
+
+### Source Counts & Sources
+
+```http
+GET /api/ui/research/source-counts      # { all, web, docs, kb }
+GET /api/ui/research/sources?category=  # { sources: [...] }
+```
+
+### Collections
+
+```http
+GET  /api/ui/research/collections
+POST /api/ui/research/collections/new   # { name, description }
+GET  /api/ui/research/collections/:id
+POST /api/ui/research/collections/save  # save prompt to a collection
+```
+
+### Export & Paper Bridge
+
+```http
+GET  /api/ui/research/export/citations?q=<query>   # BibTeX via clipboard
+POST /api/ui/paper/import                            # { title, content } -> Paper
+```
+
+Recent searches and trending tags are real aggregates over `research_searches`;
+search history reads real rows instead of placeholders.
+
+---
+
 ## See Also
 
 - [Docs API](docs-api.md) - Word processor documents

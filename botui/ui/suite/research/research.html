@@ -1668,7 +1668,7 @@
         document.querySelectorAll(".source-category").forEach((cat) => {
             cat.addEventListener("click", function () {
                 const category = this.dataset.category;
-                htmx.ajax("GET", `/api/research/sources?category=${category}`, {
+                htmx.ajax("GET", `/api/ui/research/sources?category=${category}`, {
                     target: "#sources-list",
                 });
                 sourcesPanel.classList.remove("hidden");
@@ -1685,8 +1685,6 @@
         });
 
         function updateSourceCounts() {
-            // This would typically come from the API response
-            // For now, we'll use placeholder logic
             htmx.ajax("GET", "/api/ui/research/source-counts", {
                 swap: "none",
             }).then((response) => {
@@ -1699,7 +1697,7 @@
             const collectionItem = e.target.closest(".collection-item");
             if (collectionItem) {
                 const collectionId = collectionItem.dataset.id;
-                htmx.ajax("GET", `/api/research/collections/${collectionId}`, {
+                htmx.ajax("GET", `/api/ui/research/collections/${collectionId}`, {
                     target: "#main-results",
                 });
             }

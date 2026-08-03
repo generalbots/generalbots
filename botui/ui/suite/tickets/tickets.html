@@ -93,6 +93,26 @@
     <!-- Search Results -->
     <div id="tickets-search-results" class="tickets-search-results"></div>
 
+    <!-- ITSM Navigation (CMDB / KB / Records) -->
+    <nav class="tickets-itsm-tabs">
+        <button class="tickets-tab itsm-tab" data-view="tickets" data-i18n="tickets-all" onclick="showItSmSection('tickets', this)">
+            Cases
+        </button>
+        <button class="tickets-tab itsm-tab" data-view="problems" onclick="showItSmSection('problems', this)">
+            Problems
+        </button>
+        <button class="tickets-tab itsm-tab" data-view="changes" onclick="showItSmSection('changes', this)">
+            Changes
+        </button>
+        <button class="tickets-tab itsm-tab" data-view="cis" onclick="showItSmSection('cis', this)">
+            CMDB
+        </button>
+        <button class="tickets-tab itsm-tab" data-view="kb" onclick="showItSmSection('kb', this)">
+            KB Articles
+        </button>
+    </nav>
+    <div id="itsm-content"></div>
+
     <!-- Summary Cards -->
     <div class="tickets-summary">
         <div class="summary-card">
@@ -215,10 +235,10 @@
             <div class="tickets-list-header">
                 <div class="list-filters">
                     <select
-                        hx-get="/api/tickets"
+                        hx-get="/api/ui/tickets"
                         hx-trigger="change"
                         hx-target="#tickets-list-body"
-                        hx-include="this"
+                        hx-include="closest .list-filters"
                         name="priority"
                     >
                         <option value="all" data-i18n="tickets-priority-all">
@@ -244,10 +264,10 @@
                         </option>
                     </select>
                     <select
-                        hx-get="/api/tickets"
+                        hx-get="/api/ui/tickets"
                         hx-trigger="change"
                         hx-target="#tickets-list-body"
-                        hx-include="this"
+                        hx-include="closest .list-filters"
                         name="category"
                     >
                         <option value="all" data-i18n="tickets-category-all">
@@ -283,7 +303,7 @@
             <div
                 id="tickets-list-body"
                 class="tickets-list-body"
-                hx-get="/api/tickets"
+                hx-get="/api/ui/tickets"
                 hx-trigger="load"
             >
                 <!-- Tickets loaded via HTMX -->

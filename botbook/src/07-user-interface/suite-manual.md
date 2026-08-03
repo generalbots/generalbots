@@ -45,8 +45,15 @@ Click the **nine-dot grid** (⋮⋮⋮) in the top right to see all applications
 | 📅 | **Calendar** | Schedule meetings and events |
 | 🎥 | **Meet** | Video calls and meetings |
 | 📝 | **Paper** | Write documents with AI help |
-| 🔍 | **Research** | AI-powered search |
+| 🔍 | **Research** | AI-powered knowledge-base search with real RAG answers |
 | 📊 | **Analytics** | View reports and statistics |
+| 🎫 | **Tickets** | Support cases, SLA, plus CMDB & KB articles (ITSM) |
+| 💰 | **Billing** | Invoices, payments, quotes + Inventory, GL and Procurement (ERP) |
+| 👥 | **People** | Contact and CRM records |
+
+> **Note:** The former **ITSM** app is folded into **Tickets** (CMDB, knowledge base,
+> Problems/Changes as record types). The former **ERP** app is folded into **Billing**
+> (Inventory, GL and Procurement tabs).
 
 ---
 

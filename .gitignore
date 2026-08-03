@@ -21,3 +21,4 @@ opencode.json
 work/
 .github/workflows/boteval.yml
 .cache/
+dump.rdb

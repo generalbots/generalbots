@@ -71,12 +71,12 @@ pub fn add_base_api_routes(api_router: Router<Arc<AppState>>) -> Router<Arc<AppS
     use super::cloud_sso_handler::{handle_cloud_sso, handle_suite_sso, handle_unified_login};
 
     api_router
-        .nest("/api/directory", crate::directory::router::configure())
         .nest("/api/auth", crate::directory::auth_routes::configure())
         .route("/api/auth/suite-sso", get(handle_suite_sso))
         .route("/api/auth/cloud-sso", post(handle_cloud_sso))
         .route("/api/auth/unified-login", post(handle_unified_login))
         .route("/api/organizations/current", get(handle_get_organization).put(handle_update_organization).post(handle_update_organization).delete(handle_delete_organization))
+        .route("/api/organizations", post(handle_create_organization))
         .route("/api/organizations/current/settings", get(handle_get_org_settings))
         .route("/api/organizations/current/stats", get(handle_get_org_stats))
         .route("/api/organizations/current/contact", post(handle_update_organization_contact))

@@ -61,6 +61,16 @@ pub fn configure_user_routes() -> Router<Arc<DirectoryApiState>> {
         .route("/api/directory/users/provision", post(provision_user_handler))
         .route("/api/directory/users/:id/deprovision", delete(deprovision_user_handler))
         .route("/api/directory/services/status", get(check_services_status))
+        .route(
+            "/api/directory/users/create",
+            axum::routing::post(crate::ui_fragments::create_user),
+        )
+        .route(
+            "/api/directory/users/:id",
+            axum::routing::put(crate::ui_fragments::update_user),
+        )
+        .merge(crate::ui_fragments::configure_directory_ui_routes())
+        .merge(crate::ui_api::configure_directory_api_routes())
 }
 
 pub async fn provision_user_handler(

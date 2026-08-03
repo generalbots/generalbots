@@ -5,6 +5,7 @@ use axum::Router;
 use crate::handlers::*;
 use crate::handlers_activity::*;
 use crate::handlers_charts::*;
+use crate::handlers_dashboard::*;
 use crate::{DbPool, GetBotContextFn, GetDefaultBotFn};
 
 pub fn create_analytics_router(pool: Arc<DbPool>) -> Router {
@@ -22,6 +23,22 @@ pub fn create_analytics_router(pool: Arc<DbPool>) -> Router {
         .route("/api/analytics/activity/recent", axum::routing::get(handle_recent_activity))
         .route("/api/analytics/queries/top", axum::routing::get(handle_top_queries))
         .route("/api/analytics/chat", axum::routing::post(handle_analytics_chat))
+        .route("/api/ui/analytics/messages/count", axum::routing::get(handle_message_count))
+        .route("/api/ui/analytics/sessions/active", axum::routing::get(handle_active_sessions))
+        .route("/api/ui/analytics/response/avg", axum::routing::get(handle_avg_response_time))
+        .route("/api/ui/analytics/llm/tokens", axum::routing::get(handle_llm_tokens))
+        .route("/api/ui/analytics/storage/usage", axum::routing::get(handle_storage_usage))
+        .route("/api/ui/analytics/errors/count", axum::routing::get(handle_errors_count))
+        .route("/api/ui/analytics/timeseries/messages", axum::routing::get(handle_timeseries_messages))
+        .route("/api/ui/analytics/timeseries/response_time", axum::routing::get(handle_timeseries_response))
+        .route("/api/ui/analytics/channels/distribution", axum::routing::get(handle_channels_distribution))
+        .route("/api/ui/analytics/bots/performance", axum::routing::get(handle_bots_performance))
+        .route("/api/ui/analytics/activity/recent", axum::routing::get(handle_recent_activity))
+        .route("/api/ui/analytics/queries/top", axum::routing::get(handle_top_queries))
+        .route("/api/ui/analytics/chat", axum::routing::post(handle_analytics_chat))
+        .route("/api/ui/analytics/dashboard", axum::routing::get(handle_dashboard_cards))
+        .route("/api/ui/analytics/metric", axum::routing::get(handle_metric_chart))
+        .route("/api/ui/analytics/metrics/list", axum::routing::get(handle_metrics_list))
         .with_state(pool)
 }
 

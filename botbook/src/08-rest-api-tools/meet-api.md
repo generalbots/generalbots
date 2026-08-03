@@ -647,6 +647,14 @@ Creates a new whiteboard session linked to a conversation.
 
 ---
 
+## Room Join & Controls (HTMX)
+
+```http
+POST /api/meet/join        # form { user_name, meeting_code, join_video, join_audio } -> room fragment
+POST /api/meet/mute-all    # form { room_id }
+POST /api/voice/toggle     # toggle local microphone state
+```
+
 ## See Also
 
 - [Conversations API](conversations-api.md) — session and chat management

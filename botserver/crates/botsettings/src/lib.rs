@@ -1,12 +1,14 @@
+pub mod admin_dashboard;
 pub mod audit_log;
 pub mod menu_config;
+pub mod ops;
 pub mod permission_inheritance;
 pub mod rbac;
-
 #[cfg(feature = "rbac")]
 pub mod rbac_kb;
 pub mod rbac_ui;
 pub mod security_admin;
+pub mod settings_api;
 
 use axum::{
 extract::State,
@@ -14,6 +16,7 @@ response::{Html, Json},
 routing::{get, post},
 Router,
 };
+use diesel::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -41,6 +44,9 @@ post(revoke_all_sessions),
 .route("/api/ops/health", get(get_ops_health))
 .merge(rbac::configure_rbac_routes())
 .merge(security_admin::configure_security_admin_routes())
+.merge(admin_dashboard::configure_admin_dashboard_routes())
+.merge(settings_api::configure_settings_api_routes())
+.merge(ops::configure_ops_routes())
 }
 
 async fn get_accounts_social(State(_state): State<Arc<AppState>>) -> Html<String> {
@@ -80,17 +86,56 @@ Json(serde_json::json!({
 }))
 }
 
-async fn get_ops_health(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-Json(serde_json::json!({
-"status": "healthy",
-"services": {
-"api": {"status": "up", "latency_ms": 12},
-"database": {"status": "up", "latency_ms": 5},
-"cache": {"status": "up", "latency_ms": 1},
-"storage": {"status": "up", "latency_ms": 8}
-},
-"timestamp": chrono::Utc::now().to_rfc3339()
-}))
+async fn get_ops_health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    use std::time::Instant;
+
+    let db_ok = state
+        .conn
+        .get()
+        .ok()
+        .and_then(|mut c| {
+            #[derive(diesel::QueryableByName)]
+            #[diesel(check_for_backend(diesel::pg::Pg))]
+            struct DbCheck {
+                #[diesel(sql_type = diesel::sql_types::Int4)]
+                result: i32,
+            }
+            diesel::sql_query("SELECT 1 as result")
+                .get_result::<DbCheck>(&mut c)
+                .ok()
+                .map(|r| r.result == 1)
+        })
+        .unwrap_or(false);
+
+    let cache_ok = state
+        .cache
+        .as_ref()
+        .map(|c| {
+            c.get_connection_with_timeout(std::time::Duration::from_millis(750))
+                .and_then(|mut conn| redis::cmd("PING").query::<String>(&mut conn))
+                .map(|reply| reply.to_uppercase() == "PONG")
+                .unwrap_or(false)
+        })
+        .unwrap_or(false);
+
+    let drive_ok = state.drive.is_some();
+
+    let db_latency = {
+        let start = Instant::now();
+        let _ = state.conn.get();
+        start.elapsed().as_millis()
+    };
+
+    Json(serde_json::json!({
+        "status": if db_ok && cache_ok { "healthy" } else { "degraded" },
+        "services": {
+            "api": {"status": "up", "latency_ms": db_latency},
+            "database": {"status": if db_ok { "up" } else { "down" }, "latency_ms": db_latency},
+            "cache": {"status": if cache_ok { "up" } else { "down" }, "latency_ms": 0},
+            "storage": {"status": if drive_ok { "up" } else { "down" }, "latency_ms": 0}
+        },
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    }))
 }
 
 

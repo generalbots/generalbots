@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Anonymous: invite to create an account on account pages — content stays
     // visible for browsing (same pattern as the organizations page)
-    const isAccountPage = location.pathname.match(/^\/(dashboard|services|invoices|payment-cards|profile|settings|organizations|machines|llm|domains)(\/|$)/);
+    const isAccountPage = location.pathname.match(/^\/(dashboard|services|invoices|payment-cards|profile|settings|organizations|machines|print3d|llm|domains)(\/|$)/);
     if (isAccountPage) {
       const main = document.querySelector('.mgmt-main');
       if (main && !main.querySelector('.anon-cta-banner')) {

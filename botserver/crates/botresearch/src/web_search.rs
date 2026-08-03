@@ -153,7 +153,7 @@ pub async fn handle_web_search<S: ResearchState>(
 }
 
 pub async fn handle_summarize<S: ResearchState>(
-    State(_state): State<Arc<S>>,
+    State(state): State<Arc<S>>,
     Json(payload): Json<SummarizeRequest>,
 ) -> impl IntoResponse {
     if payload.results.is_empty() {
@@ -168,7 +168,7 @@ pub async fn handle_summarize<S: ResearchState>(
     let mut citations = Vec::new();
 
     for (idx, result) in payload.results.iter().enumerate() {
-        let _ = writeln!(combined_text, "[{}] {}", idx + 1, result.snippet);
+        let _ = writeln!(combined_text, "[{}] {}\n{}", idx + 1, result.title, result.snippet);
         citations.push(Citation {
             index: idx + 1,
             title: result.title.clone(),
@@ -178,14 +178,37 @@ pub async fn handle_summarize<S: ResearchState>(
     }
 
     let max_len = payload.max_length.unwrap_or(500);
-    let summary = if combined_text.len() > max_len {
+
+    // Use the real LLM when available to synthesize the summary from the snippets.
+    let summary = if let Some(llm) = state.llm_provider() {
+        let prompt = format!(
+            "Summarize the following search results about the query. Be concise and factual, \
+             cite sources by their bracketed number [N] inline.\n\n{combined_text}"
+        );
+        match llm.generate_simple(&prompt).await {
+            Ok(answer) => {
+                let mut truncated = answer.trim().to_string();
+                if truncated.chars().count() > max_len * 2 {
+                    truncated = truncated.chars().take(max_len * 2).collect::<String>();
+                    truncated.push_str("...");
+                }
+                truncated
+            }
+            Err(e) => {
+                log::error!("Research summarize LLM call failed: {e}");
+                let mut truncated = combined_text.chars().take(max_len).collect::<String>();
+                if let Some(last_period) = truncated.rfind(". ") {
+                    truncated.truncate(last_period + 1);
+                }
+                truncated
+            }
+        }
+    } else {
         let mut truncated = combined_text.chars().take(max_len).collect::<String>();
         if let Some(last_period) = truncated.rfind(". ") {
             truncated.truncate(last_period + 1);
         }
         truncated
-    } else {
-        combined_text
     };
 
     let confidence = (payload.results.len() as f32 / 10.0).min(1.0);
@@ -198,7 +221,7 @@ pub async fn handle_summarize<S: ResearchState>(
 }
 
 pub async fn handle_deep_research<S: ResearchState>(
-    State(_state): State<Arc<S>>,
+    State(state): State<Arc<S>>,
     Json(payload): Json<DeepResearchRequest>,
 ) -> impl IntoResponse {
     let start_time = std::time::Instant::now();
@@ -261,7 +284,41 @@ pub async fn handle_deep_research<S: ResearchState>(
         });
     }
 
-    let answer = if answer_parts.is_empty() {
+    // Use the real LLM when available to synthesize a deep research answer.
+    let answer = if let Some(llm) = state.llm_provider() {
+        if answer_parts.is_empty() {
+            format!("No results found for: {}", payload.query)
+        } else {
+            let sources_block = all_results
+                .iter()
+                .enumerate()
+                .map(|(i, r)| format!("[{}] {} — {}", i + 1, r.title, r.snippet))
+                .collect::<Vec<_>>()
+                .join("\n");
+            let prompt = format!(
+                "Perform deep research on the question. Synthesize a structured, factual answer \
+                 using ONLY the sources below, citing them inline as [N].\n\n\
+                 Question: {}\n\nSources:\n{}",
+                payload.query, sources_block
+            );
+            match llm.generate_simple(&prompt).await {
+                Ok(a) => a,
+                Err(e) => {
+                    log::error!("Research deep LLM call failed: {e}");
+                    if answer_parts.is_empty() {
+                        format!("No results found for: {}", payload.query)
+                    } else {
+                        format!(
+                            "Based on {} sources about \"{}\":\n\n{}",
+                            all_results.len(),
+                            payload.query,
+                            answer_parts.join("\n\n")
+                        )
+                    }
+                }
+            }
+        }
+    } else if answer_parts.is_empty() {
         format!("No results found for: {}", payload.query)
     } else {
         format!(
@@ -288,26 +345,58 @@ pub async fn handle_deep_research<S: ResearchState>(
 }
 
 pub async fn handle_search_history<S: ResearchState>(
-    State(_state): State<Arc<S>>,
+    State(state): State<Arc<S>>,
     Query(params): Query<SearchHistoryQuery>,
 ) -> impl IntoResponse {
-    let _page = params.page.unwrap_or(1).max(1);
-    let _per_page = params.per_page.unwrap_or(20).min(100);
+    let page = params.page.unwrap_or(1).max(1);
+    let per_page = params.per_page.unwrap_or(20).min(100);
+    let offset = ((page - 1) * per_page) as i64;
 
-    let history: Vec<SearchHistoryEntry> = vec![
-        SearchHistoryEntry {
-            id: "1".to_string(),
-            query: "Example search 1".to_string(),
-            results_count: 10,
-            timestamp: Utc::now(),
-        },
-        SearchHistoryEntry {
-            id: "2".to_string(),
-            query: "Example search 2".to_string(),
-            results_count: 8,
-            timestamp: Utc::now(),
-        },
-    ];
+    use diesel::prelude::*;
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct HistoryRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        pub query: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        pub n: i64,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+        pub created_at: chrono::DateTime<Utc>,
+    }
+
+    let conn = state.db_pool().clone();
+    let history: Vec<SearchHistoryEntry> = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("DB connection error: {}", e);
+                return Vec::new();
+            }
+        };
+
+        diesel::sql_query(
+            "SELECT query, COUNT(*) AS n, MAX(created_at) AS created_at FROM research_searches \
+             WHERE query <> '' GROUP BY query ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+        )
+        .bind::<diesel::sql_types::BigInt, _>(per_page as i64)
+        .bind::<diesel::sql_types::BigInt, _>(offset)
+        .load::<HistoryRow>(&mut db_conn)
+        .map(|rows| {
+            rows.into_iter()
+                .enumerate()
+                .map(|(i, r)| SearchHistoryEntry {
+                    id: format!("{i}"),
+                    query: r.query,
+                    results_count: r.n as usize,
+                    timestamp: r.created_at,
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default();
 
     let mut html = String::new();
     html.push_str("<div class=\"search-history\">");

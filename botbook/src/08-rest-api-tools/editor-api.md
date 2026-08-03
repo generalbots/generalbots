@@ -169,6 +169,25 @@ await fetch('/api/editor/file/examples/test.rs', {
 
 ---
 
+## Editor Session Endpoints
+
+```http
+GET  /api/editor/files              # workspace file list
+GET  /api/editor/file/*path         # read file
+POST /api/editor/file/*path         # save file (JSON { content })
+POST /api/editor/save               # save form (path + content)
+GET  /api/editor/save-as            # save-as dialog fragment
+POST /api/editor/undo               # undo (form content)
+POST /api/editor/redo               # redo (form content)
+POST /api/editor/format             # pretty-print JSON (form content)
+POST /api/editor/magic              # { code } -> { improved_code, explanation } (LLM)
+POST /api/files/write               # { path, content (base64), bucket }
+GET  /api/files/list                # explorer file grid (HTML)
+GET  /api/files/download            # download file
+```
+
+Files are stored under `/tmp/gb-editor/{bucket}` on the server workspace.
+
 ## See Also
 
 - [Files API](files-api.md) — Upload, download, and manage bot files

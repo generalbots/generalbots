@@ -84,6 +84,7 @@ This page tracks which Suite applications have documentation in the botbook and 
 | 19 | **vibe** | ✅ | ✅ | 🟢 Done | — |
 | 20 | **compliance** | — | ✅ | 🟢 Done | — |
 | 21 | **compliance-api** | — | ✅ | 🟢 Done | — |
+| 22 | **o365** | ✅ | ✅ | 🟢 Done | — |
 | 22 | **admin** | ✅ | ❌ | 🔴 Missing | 🔴 High |
 | 23 | **settings** | ✅ | ❌ | 🔴 Missing | 🔴 High |
 | 24 | **monitoring** | ✅ | ❌ | 🔴 Missing | 🔴 High |

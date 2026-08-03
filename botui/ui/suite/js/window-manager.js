@@ -68,11 +68,9 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' },
     { id: "fraud", title: "Anti-Fraud", category: "business", color: "#ef4444", hxGet: "/suite/fraud/fraud.html",
       icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="12" x2="15" y2="12"/>' },
-    { id: "erp", title: "ERP", category: "business", color: "#3b82f6", hxGet: "/suite/erp/erp.html",
-      icon: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
     { id: "integrations", title: "Integrations", category: "dev", color: "#8b5cf6", hxGet: "/suite/integrations/integrations.html",
       icon: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' },
-    { id: "itsm", title: "ITSM", category: "dev", color: "#06b6d4", hxGet: "/suite/itsm/itsm.html",
+    { id: "itsm", title: "ITSM", category: "dev", color: "#06b6d4", hxGet: "/suite/tickets/tickets.html",
       icon: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>' },
     { id: "hr", title: "HR", category: "business", color: "#ec4899", hxGet: "/suite/hr/hr.html",
       icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
@@ -92,10 +90,8 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5"/>' },
     { id: "timeclock", title: "Time Clock", category: "office", color: "#f59e0b", hxGet: "/suite/timeclock/timeclock.html",
       icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
-    { id: "m365", title: "M365", category: "office", color: "#3b82f6", hxGet: "/suite/m365/m365.html",
+    { id: "o365", title: "o365", category: "office", color: "#3b82f6", hxGet: "/suite/o365/o365.html",
       icon: '<rect x="2" y="2" width="9" height="9"/><rect x="13" y="2" width="9" height="9"/><rect x="2" y="13" width="9" height="9"/><rect x="13" y="13" width="9" height="9"/>' },
-    { id: "office365", title: "Office 365", category: "office", color: "#ef4444", hxGet: "/suite/office365/office365.html",
-      icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>' },
     { id: "learn", title: "Learn", category: "ai", color: "#84d669", hxGet: "/suite/learn/learn-app.html",
       icon: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' },
     { id: "minutes", title: "Minutes", category: "office", color: "#8b5cf6", hxGet: "/suite/minutes/minutes.html",
@@ -105,6 +101,31 @@ if (typeof window.WindowManager === "undefined") {
   ];
 
   window.APPS_REGISTRY = APPS_REGISTRY;
+
+  // Load the authoritative catalog from the backend and keep the embedded
+  // registry as an offline fallback. Launchers read window.APPS_REGISTRY.
+  (function loadAppsCatalog() {
+    fetch("/api/apps/catalog")
+      .then(function (r) { if (!r.ok) throw new Error("catalog unavailable"); return r.json(); })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.apps) || !data.apps.length) return;
+        window.APPS_REGISTRY = data.apps
+          .filter(function (a) { return a.enabled !== false && a.compiled !== false; })
+          .map(function (a) {
+            return {
+              id: a.id,
+              title: a.title,
+              category: a.category,
+              color: a.color,
+              hxGet: a.url,
+              description: a.description,
+              icon: a.icon,
+            };
+          });
+      })
+      .catch(function () { /* keep embedded fallback */ });
+  })();
+
 
   const CATEGORY_LABELS = {
     ai: "AI & Assistants",
@@ -140,7 +161,7 @@ if (typeof window.WindowManager === "undefined") {
     }
 
     getIconSvg(id) {
-      const app = APPS_REGISTRY.find((a) => a.id === id);
+      const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === id);
       if (app) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${app.icon}</svg>`;
       return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>';
     }
@@ -232,7 +253,7 @@ if (typeof window.WindowManager === "undefined") {
     _addTaskbarDockItem(id) {
       const center = this.getTaskbarCenter();
       if (!center) return;
-      const app = APPS_REGISTRY.find((a) => a.id === id);
+      const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === id);
       const dockItem = document.createElement("div");
       dockItem.id = `dock-item-${id}`;
       dockItem.className = "taskbar-dock-item";
@@ -256,7 +277,7 @@ if (typeof window.WindowManager === "undefined") {
       try {
         const recent = JSON.parse(localStorage.getItem("gb-recent-apps") || "[]");
         return recent.map((r) => {
-          const app = APPS_REGISTRY.find((a) => a.id === r.id);
+          const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === r.id);
           return app || { id: r.id, title: r.title, category: "recent", color: "#666", icon: "", hxGet: "" };
         });
       } catch (e) {
@@ -480,7 +501,7 @@ if (typeof window.WindowManager === "undefined") {
       }
 
       categories.forEach(function (cat) {
-        var apps = APPS_REGISTRY.filter(function (a) { return a.category === cat; });
+        var apps = (window.APPS_REGISTRY || APPS_REGISTRY).filter(function (a) { return a.category === cat; });
         if (enabledApps) {
           apps = apps.filter(function (a) { return enabledApps.has(a.id); });
         }

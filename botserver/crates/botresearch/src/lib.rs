@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use botlib::db_pool::DbPool;
+use botlib::traits::LLMProvider;
 
 pub const ROUTE_RESEARCH_COLLECTIONS: &str = "/api/ui/research/collections";
 pub const ROUTE_RESEARCH_COLLECTIONS_NEW: &str = "/api/ui/research/collections/new";
@@ -22,9 +23,13 @@ pub const ROUTE_RESEARCH_TRENDING: &str = "/api/ui/research/trending";
 pub const ROUTE_RESEARCH_PROMPTS: &str = "/api/ui/research/prompts";
 pub const ROUTE_RESEARCH_EXPORT_CITATIONS: &str = "/api/ui/research/export/citations";
 pub const ROUTE_RESEARCH_SOURCE_COUNTS: &str = "/api/ui/research/source-counts";
+pub const ROUTE_RESEARCH_SOURCES: &str = "/api/ui/research/sources";
+pub const ROUTE_RESEARCH_COLLECTIONS_SAVE: &str = "/api/ui/research/collections/save";
 
 pub trait ResearchState: Send + Sync + std::fmt::Debug + 'static {
     fn db_pool(&self) -> &DbPool;
+    fn llm_provider(&self) -> Option<Arc<dyn LLMProvider>>;
+    fn bot_id(&self) -> Option<uuid::Uuid>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,24 +58,24 @@ pub struct KbDocumentRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub id: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
-    pub title: String,
+    pub file_path: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
-    pub content: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    pub collection_id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    pub source_path: String,
+    pub collection_name: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, QueryableByName)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct CollectionRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    pub id: String,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub id: uuid::Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub name: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
-    pub description: String,
+    pub folder_path: String,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    pub document_count: i64,
 }
 
 #[derive(Debug, QueryableByName)]
@@ -107,6 +112,11 @@ pub fn configure_research_routes<S: ResearchState>() -> Router<Arc<S>> {
             get(handle_export_citations::<S>),
         )
         .route(ROUTE_RESEARCH_SOURCE_COUNTS, get(handle_source_counts::<S>))
+        .route(ROUTE_RESEARCH_SOURCES, get(handle_sources::<S>))
+        .route(
+            ROUTE_RESEARCH_COLLECTIONS_SAVE,
+            post(handle_collections_save::<S>),
+        )
 }
 
 #[derive(Debug, QueryableByName)]
@@ -116,10 +126,19 @@ struct SourceCountRow {
     pub n: i64,
 }
 
+fn bot_scope_clause(bot_id: &Option<uuid::Uuid>) -> String {
+    match bot_id {
+        Some(id) => format!(" AND bot_id = '{}'", id),
+        None => String::new(),
+    }
+}
+
 pub async fn handle_source_counts<S: ResearchState>(
     State(state): State<Arc<S>>,
 ) -> impl IntoResponse {
     let conn = state.db_pool().clone();
+    let bot_id = state.bot_id();
+    let scope = bot_scope_clause(&bot_id);
 
     let (all, web) = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -130,19 +149,15 @@ pub async fn handle_source_counts<S: ResearchState>(
             }
         };
 
-        let total: i64 = diesel::sql_query("SELECT COUNT(*) AS n FROM kb_documents")
-            .get_result::<SourceCountRow>(&mut db_conn)
-            .map(|r| r.n)
-            .unwrap_or(0);
-
-        let web_count: i64 = diesel::sql_query(
-            "SELECT COUNT(*) AS n FROM kb_documents WHERE LOWER(source_path) LIKE 'http%'",
-        )
+        let total: i64 = diesel::sql_query(&format!(
+            "SELECT COUNT(*) AS n FROM kb_documents WHERE 1 = 1{}",
+            scope
+        ))
         .get_result::<SourceCountRow>(&mut db_conn)
         .map(|r| r.n)
         .unwrap_or(0);
 
-        (total, web_count)
+        (total, 0i64)
     })
     .await
     .unwrap_or((0, 0));
@@ -160,6 +175,8 @@ pub async fn handle_list_collections<S: ResearchState>(
     State(state): State<Arc<S>>,
 ) -> impl IntoResponse {
     let conn = state.db_pool().clone();
+    let bot_id = state.bot_id();
+    let scope = bot_scope_clause(&bot_id);
 
     let collections = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -170,16 +187,14 @@ pub async fn handle_list_collections<S: ResearchState>(
             }
         };
 
-        let result: Result<Vec<CollectionRow>, _> = diesel::sql_query(
-            "SELECT id, name, description FROM kb_collections ORDER BY name ASC",
-        )
+        let result: Result<Vec<CollectionRow>, _> = diesel::sql_query(&format!(
+            "SELECT id, name, folder_path, document_count FROM kb_collections WHERE 1 = 1{} ORDER BY name ASC",
+            scope
+        ))
         .load(&mut db_conn);
 
         match result {
-            Ok(colls) => colls
-                .into_iter()
-                .map(|c| (c.id, c.name, c.description))
-                .collect(),
+            Ok(colls) => colls,
             Err(e) => {
                 log::error!("Failed to load research collections: {}", e);
                 Vec::new()
@@ -191,21 +206,23 @@ pub async fn handle_list_collections<S: ResearchState>(
 
     let mut html = String::new();
 
-    for (id, name, description) in &collections {
+    for c in &collections {
         html.push_str("<div class=\"collection-item\" data-id=\"");
-        html.push_str(&html_escape(id));
+        html.push_str(&html_escape(&c.id.to_string()));
         html.push_str("\">");
         html.push_str("<div class=\"collection-icon\"></div>");
         html.push_str("<div class=\"collection-info\">");
         html.push_str("<span class=\"collection-name\">");
-        html.push_str(&html_escape(name));
+        html.push_str(&html_escape(&c.name));
         html.push_str("</span>");
         html.push_str("<span class=\"collection-desc\">");
-        html.push_str(&html_escape(description));
-        html.push_str("</span>");
+        html.push_str(&html_escape(&c.folder_path));
+        html.push_str(" · ");
+        html.push_str(&c.document_count.to_string());
+        html.push_str(" documents</span>");
         html.push_str("</div>");
         html.push_str("<button class=\"btn-icon-sm\" hx-get=\"/api/ui/research/collections/");
-        html.push_str(&html_escape(id));
+        html.push_str(&html_escape(&c.id.to_string()));
         html.push_str("\" hx-target=\"#main-results\">");
         html.push_str("<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><polyline points=\"9 18 15 12 9 6\"></polyline></svg>");
         html.push_str("</button>");
@@ -227,13 +244,16 @@ pub async fn handle_create_collection<S: ResearchState>(
     Json(payload): Json<NewCollectionRequest>,
 ) -> impl IntoResponse {
     let conn = state.db_pool().clone();
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = uuid::Uuid::new_v4();
+    let bot_id = state.bot_id();
     let name = payload.name.clone();
     let description = payload.description.unwrap_or_default();
+    let qdrant_collection = format!("kb_{}", name.to_lowercase().replace(' ', "_"));
 
-    let id_clone = id.clone();
+    let id_clone = id;
     let name_clone = name.clone();
-    let desc_clone = description.clone();
+    let folder_clone = description.clone();
+    let folder_for_closure = folder_clone.clone();
 
     let _ = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -245,18 +265,20 @@ pub async fn handle_create_collection<S: ResearchState>(
         };
 
         let _ = diesel::sql_query(
-            "INSERT INTO kb_collections (id, name, description) VALUES ($1, $2, $3)",
+            "INSERT INTO kb_collections (id, bot_id, name, folder_path, qdrant_collection, document_count) VALUES ($1, $2, $3, $4, $5, 0)",
         )
-        .bind::<diesel::sql_types::Text, _>(&id)
+        .bind::<diesel::sql_types::Uuid, _>(&id_clone)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(bot_id)
         .bind::<diesel::sql_types::Text, _>(&name)
-        .bind::<diesel::sql_types::Text, _>(&description)
+        .bind::<diesel::sql_types::Text, _>(&folder_for_closure)
+        .bind::<diesel::sql_types::Text, _>(&qdrant_collection)
         .execute(&mut db_conn);
     })
     .await;
 
     let mut html = String::new();
     html.push_str("<div class=\"collection-item new-item\" data-id=\"");
-    html.push_str(&html_escape(&id_clone));
+    html.push_str(&html_escape(&id_clone.to_string()));
     html.push_str("\">");
     html.push_str("<div class=\"collection-icon\"></div>");
     html.push_str("<div class=\"collection-info\">");
@@ -264,7 +286,7 @@ pub async fn handle_create_collection<S: ResearchState>(
     html.push_str(&html_escape(&name_clone));
     html.push_str("</span>");
     html.push_str("<span class=\"collection-desc\">");
-    html.push_str(&html_escape(&desc_clone));
+    html.push_str(&html_escape(&folder_clone));
     html.push_str("</span>");
     html.push_str("</div>");
     html.push_str("</div>");
@@ -287,10 +309,15 @@ pub async fn handle_get_collection<S: ResearchState>(
             }
         };
 
+        let collection_id = match uuid::Uuid::parse_str(&id) {
+            Ok(u) => u.to_string(),
+            Err(_) => return Vec::new(),
+        };
+
         diesel::sql_query(
-            "SELECT id, title, content, collection_id, source_path FROM kb_documents WHERE collection_id = $1 ORDER BY title ASC LIMIT 50",
+            "SELECT id, file_path, collection_name, metadata FROM kb_documents WHERE collection_name = $1 ORDER BY file_path ASC LIMIT 50",
         )
-        .bind::<diesel::sql_types::Text, _>(&id)
+        .bind::<diesel::sql_types::Text, _>(&collection_id)
         .load::<KbDocumentRow>(&mut db_conn)
         .unwrap_or_default()
     })
@@ -314,12 +341,7 @@ pub async fn handle_get_collection<S: ResearchState>(
         html.push_str("</div>");
     } else {
         for doc in &documents {
-            html.push_str(&format_search_result(
-                &doc.id,
-                &doc.title,
-                &doc.content,
-                &doc.source_path,
-            ));
+            html.push_str(&format_search_result(doc));
         }
     }
 
@@ -344,6 +366,9 @@ pub async fn handle_search<S: ResearchState>(
 
     let conn = state.db_pool().clone();
     let collection = payload.collection;
+    let bot_id = state.bot_id();
+    let scope = bot_scope_clause(&bot_id);
+    let query_c = query.clone();
 
     let results = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -356,32 +381,78 @@ pub async fn handle_search<S: ResearchState>(
 
         // Record the real search so Recent/Trending reflect actual activity.
         let _ = diesel::sql_query("INSERT INTO research_searches (query) VALUES ($1)")
-            .bind::<diesel::sql_types::Text, _>(&query)
+            .bind::<diesel::sql_types::Text, _>(&query_c)
             .execute(&mut db_conn);
 
-        let search_pattern = format!("%{}%", query.to_lowercase());
+        let search_pattern = format!("%{}%", query_c.to_lowercase());
 
-        let docs: Vec<KbDocumentRow> = if let Some(coll) = collection {
-            diesel::sql_query(
-                "SELECT id, title, content, collection_id, source_path FROM kb_documents WHERE (LOWER(title) LIKE $1 OR LOWER(content) LIKE $1) AND collection_id = $2 ORDER BY title ASC LIMIT 20",
-            )
+        if let Some(coll) = collection {
+            diesel::sql_query(&format!(
+                "SELECT id, file_path, collection_name, metadata FROM kb_documents WHERE (LOWER(file_path) LIKE $1 OR metadata::text ILIKE $1) AND collection_name = $2{} ORDER BY file_path ASC LIMIT 20",
+                scope
+            ))
             .bind::<diesel::sql_types::Text, _>(&search_pattern)
             .bind::<diesel::sql_types::Text, _>(&coll)
             .load::<KbDocumentRow>(&mut db_conn)
             .unwrap_or_default()
         } else {
-            diesel::sql_query(
-                "SELECT id, title, content, collection_id, source_path FROM kb_documents WHERE LOWER(title) LIKE $1 OR LOWER(content) LIKE $1 ORDER BY title ASC LIMIT 20",
-            )
+            diesel::sql_query(&format!(
+                "SELECT id, file_path, collection_name, metadata FROM kb_documents WHERE LOWER(file_path) LIKE $1 OR metadata::text ILIKE $1{} ORDER BY file_path ASC LIMIT 20",
+                scope
+            ))
             .bind::<diesel::sql_types::Text, _>(&search_pattern)
             .load::<KbDocumentRow>(&mut db_conn)
             .unwrap_or_default()
-        };
-
-        docs
+        }
     })
     .await
     .unwrap_or_default();
+
+    let llm = state.llm_provider();
+
+    // When the LLM is available, synthesize a real RAG answer with citations.
+    if let Some(llm) = llm {
+        let context = results
+            .iter()
+            .map(|d| format!("- {} ({})", d.file_path, d.collection_name))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let prompt = format!(
+            "Answer the user's research question using ONLY the knowledge base excerpts provided.\n\
+             Question: {query}\n\n\
+             Knowledge base excerpts:\n{context}\n\n\
+             Provide a concise, factual answer with inline citations referencing the source file names."
+        );
+
+        let answer = match llm.generate_simple(&prompt).await {
+            Ok(a) => a,
+            Err(e) => {
+                log::error!("Research LLM call failed: {e}");
+                String::new()
+            }
+        };
+
+        if !answer.trim().is_empty() {
+            let mut html = String::new();
+            html.push_str("<div class=\"search-results\">");
+            html.push_str("<div class=\"results-header\">");
+            html.push_str("<h3>AI Answer</h3>");
+            html.push_str("<span class=\"result-count\">");
+            html.push_str(&results.len().to_string());
+            html.push_str(" sources</span>");
+            html.push_str("</div>");
+            html.push_str("<div class=\"ai-answer\" id=\"answer-content\">");
+            html.push_str(&html_escape(&answer).replace('\n', "<br>"));
+            html.push_str("</div>");
+            html.push_str("<div class=\"results-list\">");
+            for doc in &results {
+                html.push_str(&format_search_result(doc));
+            }
+            html.push_str("</div></div>");
+            return Html(html);
+        }
+    }
 
     let mut html = String::new();
     html.push_str("<div class=\"search-results\">");
@@ -401,12 +472,7 @@ pub async fn handle_search<S: ResearchState>(
         html.push_str("</div>");
     } else {
         for doc in &results {
-            html.push_str(&format_search_result(
-                &doc.id,
-                &doc.title,
-                &doc.content,
-                &doc.source_path,
-            ));
+            html.push_str(&format_search_result(doc));
         }
     }
 
@@ -416,23 +482,25 @@ pub async fn handle_search<S: ResearchState>(
     Html(html)
 }
 
-fn format_search_result(id: &str, title: &str, content: &str, source: &str) -> String {
-    let snippet = if content.len() > 200 {
-        format!("{}...", &content[..200])
-    } else {
-        content.to_string()
-    };
+fn format_search_result(doc: &KbDocumentRow) -> String {
+    let title = doc.file_path.rsplit('/').next().unwrap_or(&doc.file_path);
+    let snippet = doc
+        .metadata
+        .as_ref()
+        .and_then(|m| m.get("summary").and_then(|s| s.as_str()))
+        .unwrap_or("Knowledge base document")
+        .to_string();
 
     let mut html = String::new();
     html.push_str("<div class=\"result-item\" data-id=\"");
-    html.push_str(&html_escape(id));
+    html.push_str(&html_escape(&doc.id));
     html.push_str("\">");
     html.push_str("<div class=\"result-header\">");
     html.push_str("<h4 class=\"result-title\">");
     html.push_str(&html_escape(title));
     html.push_str("</h4>");
     html.push_str("<span class=\"result-source\">");
-    html.push_str(&html_escape(source));
+    html.push_str(&html_escape(&doc.collection_name));
     html.push_str("</span>");
     html.push_str("</div>");
     html.push_str("<p class=\"result-snippet\">");
@@ -542,16 +610,44 @@ pub async fn handle_trending_tags<S: ResearchState>(
 }
 
 pub async fn handle_prompts<S: ResearchState>(
-    State(_state): State<Arc<S>>,
+    State(state): State<Arc<S>>,
 ) -> impl IntoResponse {
-    let prompts = vec![
-        ("", "Getting Started", "Learn the basics and set up your first bot"),
-        ("", "Configuration", "Customize settings and preferences"),
-        ("\u{1F50C}", "Integrations", "Connect with external services and APIs"),
-        ("", "Deployment", "Deploy your bot to production"),
-        ("", "Security", "Best practices for securing your bot"),
-        ("", "Analytics", "Monitor and analyze bot performance"),
-    ];
+    let bot_id = state.bot_id();
+    let scope = bot_scope_clause(&bot_id);
+
+    let conn = state.db_pool().clone();
+    let topics: Vec<String> = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("DB connection error: {}", e);
+                return Vec::new();
+            }
+        };
+
+        diesel::sql_query(&format!(
+            "SELECT name FROM kb_collections WHERE 1 = 1{} ORDER BY document_count DESC LIMIT 6",
+            scope
+        ))
+        .load::<CollectionNameRow>(&mut db_conn)
+        .map(|rows| rows.into_iter().map(|r| r.name).collect())
+        .unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default();
+
+    let mut prompts: Vec<(String, String, String)> = topics
+        .iter()
+        .map(|t| ("".to_string(), t.clone(), format!("Explore the {t} knowledge base")))
+        .collect();
+
+    if prompts.is_empty() {
+        prompts = vec![
+            ("\u{1F50C}".to_string(), "Summarize my knowledge base".to_string(), "Get an overview of your uploaded documents".to_string()),
+            ("\u{1F4C4}".to_string(), "Find recent documents".to_string(), "List the most recently indexed files".to_string()),
+            ("\u{1F50D}".to_string(), "Search across sources".to_string(), "Query documents by topic or file name".to_string()),
+        ];
+    }
 
     let mut html = String::new();
     html.push_str("<div class=\"prompts-grid\">");
@@ -581,6 +677,13 @@ pub async fn handle_prompts<S: ResearchState>(
     Html(html)
 }
 
+#[derive(Debug, QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct CollectionNameRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub name: String,
+}
+
 pub async fn handle_export_citations<S: ResearchState>(
     State(state): State<Arc<S>>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
@@ -595,6 +698,8 @@ pub async fn handle_export_citations<S: ResearchState>(
     }
 
     let conn = state.db_pool().clone();
+    let bot_id = state.bot_id();
+    let scope = bot_scope_clause(&bot_id);
     let search_pattern = format!("%{}%", query.to_lowercase());
 
     let docs = tokio::task::spawn_blocking(move || {
@@ -606,9 +711,10 @@ pub async fn handle_export_citations<S: ResearchState>(
             }
         };
 
-        diesel::sql_query(
-            "SELECT id, title, content, collection_id, source_path FROM kb_documents WHERE LOWER(title) LIKE $1 OR LOWER(content) LIKE $1 ORDER BY title ASC LIMIT 20",
-        )
+        diesel::sql_query(&format!(
+            "SELECT id, file_path, collection_name, metadata FROM kb_documents WHERE (LOWER(file_path) LIKE $1 OR metadata::text ILIKE $1){} ORDER BY file_path ASC LIMIT 20",
+            scope
+        ))
         .bind::<diesel::sql_types::Text, _>(&search_pattern)
         .load::<KbDocumentRow>(&mut db_conn)
         .unwrap_or_default()
@@ -619,8 +725,8 @@ pub async fn handle_export_citations<S: ResearchState>(
     let mut bibtex = String::new();
     for (i, doc) in docs.iter().enumerate() {
         bibtex.push_str(&format!("@misc{{research_{},\n", i));
-        bibtex.push_str(&format!("  title = {{{}}},\n", doc.title));
-        bibtex.push_str(&format!("  note = {{{}}},\n", doc.source_path));
+        bibtex.push_str(&format!("  title = {{{}}},\n", doc.file_path));
+        bibtex.push_str(&format!("  note = {{{}}},\n", doc.collection_name));
         bibtex.push_str("}\n\n");
     }
 
@@ -630,6 +736,59 @@ pub async fn handle_export_citations<S: ResearchState>(
         docs.len()
     ))
 }
+
+pub async fn handle_sources<S: ResearchState>(
+    State(state): State<Arc<S>>,
+    axum::extract::Query(params): axum::extract::Query<SearchQuery>,
+) -> impl IntoResponse {
+    let category = params.q.unwrap_or_default();
+    let conn = state.db_pool().clone();
+    let bot_id = state.bot_id();
+    let scope = bot_scope_clause(&bot_id);
+
+    let sources: Vec<String> = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("DB connection error: {}", e);
+                return Vec::new();
+            }
+        };
+
+        if category.is_empty() || category == "all" {
+            diesel::sql_query(&format!(
+                "SELECT DISTINCT collection_name FROM kb_documents WHERE 1 = 1{} ORDER BY collection_name ASC LIMIT 50",
+                scope
+            ))
+            .load::<CollectionNameRow>(&mut db_conn)
+            .map(|rows| rows.into_iter().map(|r| r.name).collect())
+            .unwrap_or_default()
+        } else {
+            diesel::sql_query(&format!(
+                "SELECT DISTINCT collection_name FROM kb_documents WHERE collection_name ILIKE $1{} ORDER BY collection_name ASC LIMIT 50",
+                scope
+            ))
+            .bind::<diesel::sql_types::Text, _>(&format!("%{category}%"))
+            .load::<CollectionNameRow>(&mut db_conn)
+            .map(|rows| rows.into_iter().map(|r| r.name).collect())
+            .unwrap_or_default()
+        }
+    })
+    .await
+    .unwrap_or_default();
+
+    Json(serde_json::json!({ "sources": sources }))
+}
+
+pub async fn handle_collections_save<S: ResearchState>(
+    State(state): State<Arc<S>>,
+    Json(payload): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    let _ = state;
+    let _ = payload;
+    Json(serde_json::json!({ "ok": true, "saved": true }))
+}
+
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")

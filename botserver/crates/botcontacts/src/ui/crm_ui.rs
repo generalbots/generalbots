@@ -2,6 +2,7 @@ use axum::{
     extract::{Query, State},
     response::{Html, IntoResponse},
 };
+use diesel::dsl::sum;
 use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -222,5 +223,297 @@ pub async fn handle_crm_deals(
         ));
     }
 
+    Html(html)
+}
+
+/// `/api/crm/search?q=` — global CRM search across deals, contacts and accounts.
+pub async fn handle_crm_search(
+    State(state): State<Arc<CrateState>>,
+    Query(query): Query<SearchQuery>,
+) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html(r#"<div class="search-empty"><p>No results</p></div>"#.to_string());
+    };
+
+    let branch_id = get_bot_context(&state);
+    let q = query.q.unwrap_or_default().trim().to_lowercase();
+    if q.is_empty() {
+        return Html(r#"<div class="search-empty"><p>Type to search deals, contacts and accounts</p></div>"#.to_string());
+    }
+
+    let pattern = format!("%{q}%");
+
+    let deals: Vec<CrmDeal> = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .filter(
+            crm_deals::title
+                .like(&pattern)
+                .or(crm_deals::name.like(&pattern)),
+        )
+        .order(crm_deals::updated_at.desc())
+        .limit(8)
+        .load(&mut conn)
+        .unwrap_or_default();
+
+    let contacts: Vec<crate::models::CrmContact> = crm_contacts::table
+        .filter(crm_contacts::branch_id.eq(branch_id))
+        .filter(
+            crm_contacts::first_name
+                .like(&pattern)
+                .or(crm_contacts::last_name.like(&pattern))
+                .or(crm_contacts::email.like(&pattern)),
+        )
+        .order(crm_contacts::updated_at.desc())
+        .limit(8)
+        .load(&mut conn)
+        .unwrap_or_default();
+
+    let accounts: Vec<crate::models::CrmAccount> = crm_accounts::table
+        .filter(crm_accounts::branch_id.eq(branch_id))
+        .filter(crm_accounts::name.like(&pattern))
+        .order(crm_accounts::updated_at.desc())
+        .limit(8)
+        .load(&mut conn)
+        .unwrap_or_default();
+
+    if deals.is_empty() && contacts.is_empty() && accounts.is_empty() {
+        return Html(format!(
+            r#"<div class="search-empty"><p>No results for "{q}"</p></div>"#
+        ));
+    }
+
+    let mut html = String::new();
+    if !deals.is_empty() {
+        html.push_str(r#"<div class="search-group"><div class="search-group-title">Deals</div>"#);
+        for deal in deals {
+            let title = deal.title.as_deref().unwrap_or(&deal.name);
+            html.push_str(&format!(
+                r#"<a class="search-result" href="/crm#/deals/{}"><span class="search-result-name">{}</span><span class="search-result-meta">{}</span></a>"#,
+                deal.id,
+                html_escape(title),
+                deal.value.map(|v| format!("${v}")).unwrap_or_default()
+            ));
+        }
+        html.push_str("</div>");
+    }
+    if !contacts.is_empty() {
+        html.push_str(r#"<div class="search-group"><div class="search-group-title">Contacts</div>"#);
+        for contact in contacts {
+            let name = format!(
+                "{} {}",
+                contact.first_name.as_str(),
+                contact.last_name.as_deref().unwrap_or("")
+            )
+            .trim()
+            .to_string();
+            html.push_str(&format!(
+                r#"<a class="search-result" href="/crm#/contacts/{}"><span class="search-result-name">{}</span><span class="search-result-meta">{}</span></a>"#,
+                contact.id,
+                html_escape(&name),
+                html_escape(contact.email.as_deref().unwrap_or(""))
+            ));
+        }
+        html.push_str("</div>");
+    }
+    if !accounts.is_empty() {
+        html.push_str(r#"<div class="search-group"><div class="search-group-title">Accounts</div>"#);
+        for account in accounts {
+            html.push_str(&format!(
+                r#"<a class="search-result" href="/crm#/accounts/{}"><span class="search-result-name">{}</span><span class="search-result-meta">{}</span></a>"#,
+                account.id,
+                html_escape(&account.name),
+                html_escape(account.industry.as_deref().unwrap_or(""))
+            ));
+        }
+        html.push_str("</div>");
+    }
+
+    Html(html)
+}
+
+/// `/api/crm/stats/pipeline-value` — sum of open deal values.
+pub async fn handle_crm_stats_pipeline_value(State(state): State<Arc<CrateState>>) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html("$0".to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let total: Option<f64> = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .filter(crm_deals::won.ne(true))
+        .select(sum(crm_deals::value))
+        .get_result(&mut conn)
+        .unwrap_or(None);
+
+    Html(match total {
+        Some(v) => format!("${v:.2}"),
+        None => "$0".to_string(),
+    })
+}
+
+/// `/api/crm/stats/conversion-rate` — percentage of won deals.
+pub async fn handle_crm_stats_conversion_rate(State(state): State<Arc<CrateState>>) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html("0%".to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let total: i64 = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+
+    let won: i64 = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .filter(crm_deals::won.eq(true))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+
+    let rate = if total > 0 { (won as f64 / total as f64) * 100.0 } else { 0.0 };
+    Html(format!("{rate:.0}%"))
+}
+
+/// `/api/crm/stats/avg-deal` — average deal value.
+pub async fn handle_crm_stats_avg_deal(State(state): State<Arc<CrateState>>) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html("$0".to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let avg_value = {
+        let total: Option<f64> = crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .select(sum(crm_deals::value))
+            .get_result(&mut conn)
+            .unwrap_or(None);
+        let count: i64 = crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .count()
+            .get_result(&mut conn)
+            .unwrap_or(0);
+        match total {
+            Some(t) if count > 0 => t / count as f64,
+            _ => 0.0,
+        }
+    };
+
+    Html(format!("${avg_value:.2}"))
+}
+
+/// `/api/crm/stats/won-month` — value of deals won this month.
+pub async fn handle_crm_stats_won_month(State(state): State<Arc<CrateState>>) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html("$0".to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let total: Option<f64> = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .filter(crm_deals::won.eq(true))
+        .filter(crm_deals::closed_at.ge(chrono::Utc::now() - chrono::Duration::days(31)))
+        .select(sum(crm_deals::value))
+        .get_result(&mut conn)
+        .unwrap_or(None);
+
+    Html(match total {
+        Some(v) => format!("${v:.2}"),
+        None => "$0".to_string(),
+    })
+}
+
+/// `/api/crm/accounts/search?q=` — account `<option>` list for form selects.
+pub async fn handle_crm_accounts_search(
+    State(state): State<Arc<CrateState>>,
+    Query(query): Query<SearchQuery>,
+) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html(r#"<option value="">No accounts</option>"#.to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let accounts: Vec<crate::models::CrmAccount> = match query.q.as_deref() {
+        Some(q) if !q.trim().is_empty() => {
+            let pattern = format!("%{}%", q.trim());
+            crm_accounts::table
+                .filter(crm_accounts::branch_id.eq(branch_id))
+                .filter(crm_accounts::name.like(&pattern))
+                .order(crm_accounts::name)
+                .limit(50)
+                .load(&mut conn)
+                .unwrap_or_default()
+        }
+        _ => crm_accounts::table
+            .filter(crm_accounts::branch_id.eq(branch_id))
+            .order(crm_accounts::name)
+            .limit(50)
+            .load(&mut conn)
+            .unwrap_or_default(),
+    };
+
+    if accounts.is_empty() {
+        return Html(r#"<option value="">No accounts available</option>"#.to_string());
+    }
+
+    let mut html = String::new();
+    for account in accounts {
+        html.push_str(&format!(
+            r#"<option value="{}">{}</option>"#,
+            account.id,
+            html_escape(&account.name)
+        ));
+    }
+    Html(html)
+}
+
+/// `/api/crm/opportunities/search?q=` — opportunity `<option>` list for form selects.
+pub async fn handle_crm_opportunities_search(
+    State(state): State<Arc<CrateState>>,
+    Query(query): Query<SearchQuery>,
+) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html(r#"<option value="">No opportunities</option>"#.to_string());
+    };
+    let branch_id = get_bot_context(&state);
+
+    let opportunities: Vec<CrmDeal> = match query.q.as_deref() {
+        Some(q) if !q.trim().is_empty() => {
+            let pattern = format!("%{}%", q.trim());
+            crm_deals::table
+                .filter(crm_deals::branch_id.eq(branch_id))
+                .filter(crm_deals::won.ne(true))
+                .filter(
+                    crm_deals::title
+                        .like(&pattern)
+                        .or(crm_deals::name.like(&pattern)),
+                )
+                .order(crm_deals::name)
+                .limit(50)
+                .load(&mut conn)
+                .unwrap_or_default()
+        }
+        _ => crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .filter(crm_deals::won.ne(true))
+            .order(crm_deals::name)
+            .limit(50)
+            .load(&mut conn)
+            .unwrap_or_default(),
+    };
+
+    if opportunities.is_empty() {
+        return Html(r#"<option value="">No open opportunities</option>"#.to_string());
+    }
+
+    let mut html = String::new();
+    for opp in opportunities {
+        let title = opp.title.as_deref().unwrap_or(&opp.name);
+        html.push_str(&format!(
+            r#"<option value="{}">{}</option>"#,
+            opp.id,
+            html_escape(title)
+        ));
+    }
     Html(html)
 }

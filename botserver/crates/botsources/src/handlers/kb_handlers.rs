@@ -14,6 +14,30 @@ use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// Resolve the default bot id for the current deployment. `knowledge_sources`
+/// and `knowledge_chunks` scope by `bot_id`, so every read must filter by it to
+/// enforce data isolation between branches/tenants.
+fn resolve_bot_id(pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>) -> Uuid {
+    let Ok(mut conn) = pool.get() else {
+        return Uuid::nil();
+    };
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct BotIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    diesel::sql_query(
+        "SELECT id FROM bots WHERE is_default_for_branch = TRUE ORDER BY created_at ASC LIMIT 1",
+    )
+    .get_result::<BotIdRow>(&mut conn)
+    .map(|r| r.id)
+    .unwrap_or_else(|e| {
+        log::error!("Failed to resolve default bot id: {e}");
+        Uuid::nil()
+    })
+}
+
 pub async fn handle_upload_document(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
@@ -79,6 +103,7 @@ pub async fn handle_upload_document(
     let content_hash_clone = content_hash.clone();
     let collection_clone = collection.clone();
     let chunks_clone = chunks.clone();
+    let bot_id = resolve_bot_id(&conn);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -90,8 +115,8 @@ pub async fn handle_upload_document(
         };
 
         let insert_result = diesel::sql_query(
-            "INSERT INTO knowledge_sources (id, name, source_type, content_hash, chunk_count, status, collection, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, 'processing', $6, NOW(), NOW())
+            "INSERT INTO knowledge_sources (id, name, source_type, content_hash, chunk_count, status, collection, bot_id, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, 'processing', $6, $7, NOW(), NOW())
              ON CONFLICT (id) DO NOTHING"
         )
         .bind::<diesel::sql_types::Text, _>(&source_id_clone)
@@ -100,6 +125,7 @@ pub async fn handle_upload_document(
         .bind::<diesel::sql_types::Text, _>(&content_hash_clone)
         .bind::<diesel::sql_types::Integer, _>(chunk_count)
         .bind::<diesel::sql_types::Text, _>(&collection_clone)
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .execute(&mut db_conn);
 
         if let Err(e) = insert_result {
@@ -179,6 +205,7 @@ pub async fn handle_list_sources(
     let page = params.page.unwrap_or(1).max(1);
     let per_page = params.per_page.unwrap_or(20).min(100);
     let offset = (page - 1) * per_page;
+    let bot_id = resolve_bot_id(&conn);
 
     let sources = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -192,8 +219,9 @@ pub async fn handle_list_sources(
         let mut query = String::from(
             "SELECT id, name, source_type, file_path, url, content_hash, chunk_count, status,
              created_at::text, updated_at::text, indexed_at::text
-             FROM knowledge_sources WHERE 1=1",
+             FROM knowledge_sources WHERE bot_id = '",
         );
+        let _ = write!(query, "{}'", bot_id.to_string());
 
         if let Some(ref status) = status_filter {
             let _ = write!(query, " AND status = '{}'", status.replace('\'', "''"));
@@ -317,6 +345,7 @@ pub async fn handle_query_knowledge_base(
     let top_k = payload.top_k.unwrap_or(5).min(20);
     let min_score = payload.min_score.unwrap_or(0.0);
     let collection = payload.collection.clone();
+    let bot_id = resolve_bot_id(&conn);
 
     let results = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -328,6 +357,7 @@ pub async fn handle_query_knowledge_base(
         };
 
         let search_pattern = format!("%{}%", query.to_lowercase());
+        let bot_id_str = bot_id.to_string();
 
         let mut sql = String::from(
             "SELECT
@@ -340,7 +370,11 @@ pub async fn handle_query_knowledge_base(
              FROM knowledge_chunks kc
              JOIN knowledge_sources ks ON kc.source_id = ks.id
              WHERE ks.status = 'indexed'
-             AND (LOWER(kc.content) LIKE $2
+             AND ks.bot_id = '",
+        );
+        let _ = write!(sql, "{bot_id_str}'");
+        sql.push_str(
+            " AND (LOWER(kc.content) LIKE $2
              OR to_tsvector('english', kc.content) @@ plainto_tsquery('english', $1))",
         );
 
@@ -538,6 +572,8 @@ pub async fn handle_reindex_sources(
 
 pub async fn handle_get_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
+    let bot_id = resolve_bot_id(&conn);
+    let bot_id_str = bot_id.to_string();
 
     let stats = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -561,27 +597,29 @@ pub async fn handle_get_stats(State(state): State<Arc<AppState>>) -> impl IntoRe
             count: i64,
         }
 
-        let total_sources: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM knowledge_sources")
+        let total_sources: i64 = diesel::sql_query(&format!("SELECT COUNT(*) as count FROM knowledge_sources WHERE bot_id = '{bot_id_str}'"))
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);
 
-        let total_chunks: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM knowledge_chunks")
+        let total_chunks: i64 = diesel::sql_query(&format!(
+            "SELECT COUNT(*) as count FROM knowledge_chunks kc JOIN knowledge_sources ks ON kc.source_id = ks.id WHERE ks.bot_id = '{bot_id_str}'"
+        ))
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);
 
-        let indexed: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM knowledge_sources WHERE status = 'indexed'")
+        let indexed: i64 = diesel::sql_query(&format!("SELECT COUNT(*) as count FROM knowledge_sources WHERE status = 'indexed' AND bot_id = '{bot_id_str}'"))
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);
 
-        let pending: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM knowledge_sources WHERE status IN ('pending', 'processing', 'reindexing')")
+        let pending: i64 = diesel::sql_query(&format!("SELECT COUNT(*) as count FROM knowledge_sources WHERE status IN ('pending', 'processing', 'reindexing') AND bot_id = '{bot_id_str}'"))
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);
 
-        let failed: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM knowledge_sources WHERE status = 'failed'")
+        let failed: i64 = diesel::sql_query(&format!("SELECT COUNT(*) as count FROM knowledge_sources WHERE status = 'failed' AND bot_id = '{bot_id_str}'"))
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);

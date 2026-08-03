@@ -20,6 +20,7 @@ const DEFAULT_PAGE_SIZE: i64 = 100;
 pub struct PaginationParams {
     pub page: Option<i64>,
     pub page_size: Option<i64>,
+    pub limit: Option<i64>,
     pub sort: Option<String>,
     pub sort_order: Option<String>,
     pub filter_col: Option<String>,
@@ -36,13 +37,24 @@ pub struct QueryRequest {
 pub struct CreateTableRequest {
     pub name: String,
     pub columns: Vec<ColumnDef>,
+    #[serde(default)]
+    pub table_name: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub struct ColumnDef {
     pub name: String,
-    pub data_type: String,
+    #[serde(default)]
+    pub data_type: Option<String>,
+    #[serde(default, alias = "type")]
+    pub col_type: Option<String>,
+    #[serde(default)]
     pub nullable: Option<bool>,
+    #[serde(default)]
+    pub not_null: Option<bool>,
+    #[serde(default)]
+    pub primary_key: Option<bool>,
+    #[serde(default)]
     pub default: Option<String>,
 }
 
@@ -56,14 +68,27 @@ pub struct AlterTableRequest {
 #[derive(Deserialize)]
 pub struct AddColumnRequest {
     pub name: String,
-    pub data_type: String,
+    #[serde(default)]
+    pub data_type: Option<String>,
+    #[serde(default, alias = "type")]
+    pub col_type: Option<String>,
+    #[serde(default)]
     pub nullable: Option<bool>,
+    #[serde(default)]
+    pub not_null: Option<bool>,
+    #[serde(default)]
     pub default: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub struct InsertRowRequest {
     pub data: serde_json::Value,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateCellRequest {
+    pub column: String,
+    pub value: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
@@ -86,6 +111,7 @@ pub struct SchemaResponse {
 pub struct TableSchema {
     pub name: String,
     pub columns: Vec<ColumnInfo>,
+    pub column_count: usize,
     pub row_count: i64,
     pub table_size: String,
 }
@@ -103,16 +129,18 @@ pub struct ColumnInfo {
 #[derive(Serialize)]
 pub struct TableDataResponse {
     pub columns: Vec<String>,
-    pub rows: Vec<Vec<serde_json::Value>>,
+    pub rows: Vec<serde_json::Value>,
+    pub total: i64,
     pub total_rows: i64,
     pub page: i64,
     pub page_size: i64,
+    pub pk_column: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct QueryResult {
     pub columns: Vec<String>,
-    pub rows: Vec<Vec<serde_json::Value>>,
+    pub rows: Vec<serde_json::Value>,
     pub row_count: i64,
     pub is_mutation: bool,
     pub duration_ms: u128,
@@ -344,9 +372,11 @@ pub async fn get_schema(
             })
             .collect();
 
+        let column_count = table_columns.len();
         result_tables.push(TableSchema {
             name: table.table_name.clone(),
             columns: table_columns,
+            column_count,
             row_count: table.row_count,
             table_size: table.table_size.clone(),
         });
@@ -372,7 +402,11 @@ pub async fn get_table_data(
     let mut conn = get_bot_conn(&state, bot_id)?;
 
     let page = params.page.unwrap_or(1).max(1);
-    let page_size = params.page_size.unwrap_or(DEFAULT_PAGE_SIZE).min(1000);
+    let page_size = params
+        .page_size
+        .or(params.limit)
+        .unwrap_or(DEFAULT_PAGE_SIZE)
+        .min(1000);
     let offset = (page - 1) * page_size;
 
     let count_result: CountResult = sql_query(format!("SELECT COUNT(*)::bigint AS count FROM {safe_name}"))
@@ -389,13 +423,26 @@ pub async fn get_table_data(
 
     let col_names: Vec<String> = columns.iter().map(|c| c.column_name.clone()).collect();
 
+    let pk_column: Option<String> = sql_query(
+        "SELECT a.attname AS column_name
+         FROM pg_index i
+         JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+         WHERE i.indisprimary AND a.attrelid::regclass::text = $1",
+    )
+    .bind::<diesel::sql_types::Text, _>(&safe_name)
+    .get_results::<PkInfo>(&mut conn)
+    .ok()
+    .and_then(|rows| rows.first().map(|r| r.column_name.clone()));
+
     if col_names.is_empty() {
         return Ok(Json(TableDataResponse {
             columns: Vec::new(),
             rows: Vec::new(),
+            total: count_result.count,
             total_rows: count_result.count,
             page,
             page_size,
+            pk_column,
         }));
     }
 
@@ -468,21 +515,29 @@ pub async fn get_table_data(
             rows.into_iter().map(|r| vec![r.c1, r.c2, r.c3]).collect()
         }
         _ => {
-            return execute_via_postgres(state, &bot_id, &query, page, page_size, count_result.count, false).await;
+            return execute_via_postgres(state, &bot_id, &query, page, page_size, count_result.count, pk_column).await;
         }
     };
 
-    let rows: Vec<Vec<serde_json::Value>> = raw_text
+    let rows: Vec<serde_json::Value> = raw_text
         .into_iter()
-        .map(|row| row.into_iter().map(|cell| parse_cell(&cell)).collect())
+        .map(|row| {
+            let mut obj = serde_json::Map::new();
+            for (i, col) in col_names.iter().enumerate() {
+                obj.insert(col.clone(), parse_cell(&row[i]));
+            }
+            serde_json::Value::Object(obj)
+        })
         .collect();
 
     Ok(Json(TableDataResponse {
         columns: col_names,
         rows,
+        total: count_result.count,
         total_rows: count_result.count,
         page,
         page_size,
+        pk_column,
     }))
 }
 
@@ -508,7 +563,7 @@ fn parse_cell(opt: &Option<String>) -> serde_json::Value {
 fn execute_via_postgres_sync(
     db_url: &str,
     query: &str,
-) -> Result<(Vec<String>, Vec<Vec<serde_json::Value>>), String> {
+) -> Result<(Vec<String>, Vec<serde_json::Value>), String> {
     let mut client = postgres::Client::connect(db_url, postgres::NoTls)
         .map_err(|e| format!("Connection failed: {e}"))?;
 
@@ -524,15 +579,15 @@ fn execute_via_postgres_sync(
         }
     }
 
-    let result: Vec<Vec<serde_json::Value>> = rows
+    let result: Vec<serde_json::Value> = rows
         .iter()
         .map(|row| {
-            (0..row.len())
-                .map(|i| {
-                    let col = &row.columns()[i];
-                    pg_value_to_json(row, i, col.type_().name())
-                })
-                .collect()
+            let mut obj = serde_json::Map::new();
+            for i in 0..row.len() {
+                let col = &row.columns()[i];
+                obj.insert(col.name().to_string(), pg_value_to_json(row, i, col.type_().name()));
+            }
+            serde_json::Value::Object(obj)
         })
         .collect();
 
@@ -597,7 +652,7 @@ async fn execute_via_postgres(
     page: i64,
     page_size: i64,
     total_rows: i64,
-    _is_mutation: bool,
+    pk_column: Option<String>,
 ) -> Result<Json<TableDataResponse>, (StatusCode, Json<serde_json::Value>)> {
     let db_url = get_bot_database_url(&state, *bot_id)?;
     let query = query.to_string();
@@ -612,9 +667,11 @@ async fn execute_via_postgres(
             Ok(Json(TableDataResponse {
                 columns,
                 rows,
+                total: total_rows,
                 total_rows,
                 page,
                 page_size,
+                pk_column,
             }))
         }
         Err(e) => Err(internal_error(&e)),
@@ -698,7 +755,7 @@ pub async fn insert_row(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Path(name): Path<String>,
-    Json(payload): Json<InsertRowRequest>,
+    Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<ApiResult>, (StatusCode, Json<serde_json::Value>)> {
     let bot_id = extract_bot_id(&headers)?;
     let safe_name = sanitize_identifier(&name);
@@ -708,10 +765,19 @@ pub async fn insert_row(
 
     let mut conn = get_bot_conn(&state, bot_id)?;
 
-    let obj = payload
-        .data
-        .as_object()
-        .ok_or_else(|| error_response("Request body must be a JSON object"))?;
+    let obj = match payload {
+        serde_json::Value::Object(map) => {
+            if map.contains_key("data") {
+                map.get("data")
+                    .and_then(|d| d.as_object())
+                    .cloned()
+                    .ok_or_else(|| error_response("Request body must be a JSON object"))?
+            } else {
+                map
+            }
+        }
+        _ => return Err(error_response("Request body must be a JSON object")),
+    };
 
     if obj.is_empty() {
         return Err(error_response("Cannot insert empty row"));
@@ -801,8 +867,9 @@ pub async fn create_table(
     Json(payload): Json<CreateTableRequest>,
 ) -> Result<Json<ApiResult>, (StatusCode, Json<serde_json::Value>)> {
     let bot_id = extract_bot_id(&headers)?;
-    let safe_name = sanitize_identifier(&payload.name);
-    if safe_name != payload.name || safe_name.is_empty() {
+    let table_name = payload.table_name.clone().unwrap_or_else(|| payload.name.clone());
+    let safe_name = sanitize_identifier(&table_name);
+    if safe_name != table_name || safe_name.is_empty() {
         return Err(error_response("Invalid table name"));
     }
 
@@ -817,15 +884,27 @@ pub async fn create_table(
         .iter()
         .map(|col| {
             let col_name = sanitize_identifier(&col.name);
-            let nullable = if col.nullable.unwrap_or(true) { "" } else { " NOT NULL" };
+            let data_type = col
+                .data_type
+                .clone()
+                .or_else(|| col.col_type.clone())
+                .ok_or_else(|| error_response("Missing column data type"))?;
+            let nullable = col
+                .nullable
+                .or_else(|| col.not_null.map(|n| !n))
+                .unwrap_or(true);
+            let null_clause = if nullable { "" } else { " NOT NULL" };
+            let pk_clause = if col.primary_key.unwrap_or(false) { " PRIMARY KEY" } else { "" };
             let default = col
                 .default
                 .as_ref()
                 .map(|d| format!(" DEFAULT {d}"))
                 .unwrap_or_default();
-            format!("    {col_name} {}{nullable}{default}", col.data_type)
+            Ok::<String, (StatusCode, Json<serde_json::Value>)>(format!(
+                "    {col_name} {data_type}{null_clause}{pk_clause}{default}"
+            ))
         })
-        .collect();
+        .collect::<Result<Vec<String>, _>>()?;
 
     let sql = format!(
         "CREATE TABLE IF NOT EXISTS {safe_name} (\n{}\n)",
@@ -860,7 +939,16 @@ pub async fn alter_table(
     if let Some(add_cols) = &payload.add_columns {
         for col in add_cols {
             let col_name = sanitize_identifier(&col.name);
-            let nullable = if col.nullable.unwrap_or(true) { "" } else { " NOT NULL" };
+            let data_type = col
+                .data_type
+                .clone()
+                .or_else(|| col.col_type.clone())
+                .ok_or_else(|| error_response("Missing column data type"))?;
+            let nullable = col
+                .nullable
+                .or_else(|| col.not_null.map(|n| !n))
+                .unwrap_or(true);
+            let null_clause = if nullable { "" } else { " NOT NULL" };
             let default = col
                 .default
                 .as_ref()
@@ -868,8 +956,7 @@ pub async fn alter_table(
                 .unwrap_or_default();
 
             let sql = format!(
-                "ALTER TABLE {safe_name} ADD COLUMN IF NOT EXISTS {col_name} {}{nullable}{default}",
-                col.data_type
+                "ALTER TABLE {safe_name} ADD COLUMN IF NOT EXISTS {col_name} {data_type}{null_clause}{default}",
             );
             diesel::sql_query(sql)
                 .execute(&mut conn)
@@ -951,9 +1038,19 @@ pub async fn add_column(
         return Err(error_response("Invalid column name"));
     }
 
+    let data_type = payload
+        .data_type
+        .clone()
+        .or_else(|| payload.col_type.clone())
+        .ok_or_else(|| error_response("Missing column data type"))?;
+
     let mut conn = get_bot_conn(&state, bot_id)?;
 
-    let nullable = if payload.nullable.unwrap_or(true) { "" } else { " NOT NULL" };
+    let nullable = payload
+        .nullable
+        .or_else(|| payload.not_null.map(|n| !n))
+        .unwrap_or(true);
+    let null_clause = if nullable { "" } else { " NOT NULL" };
     let default = payload
         .default
         .as_ref()
@@ -961,8 +1058,7 @@ pub async fn add_column(
         .unwrap_or_default();
 
     let sql = format!(
-        "ALTER TABLE {safe_name} ADD COLUMN IF NOT EXISTS {col_name} {}{nullable}{default}",
-        payload.data_type
+        "ALTER TABLE {safe_name} ADD COLUMN IF NOT EXISTS {col_name} {data_type}{null_clause}{default}",
     );
 
     diesel::sql_query(sql)
@@ -1050,6 +1146,141 @@ pub async fn update_row(
         success: true,
         message: format!("Row updated in {safe_name}"),
     }))
+}
+
+fn json_literal(v: &serde_json::Value) -> String {
+    match v {
+        serde_json::Value::String(s) => format!("'{}'", s.replace('\'', "''")),
+        serde_json::Value::Null => "NULL".to_string(),
+        serde_json::Value::Number(n) => n.to_string(),
+        serde_json::Value::Bool(b) => {
+            if *b { "TRUE".to_string() } else { "FALSE".to_string() }
+        }
+        other => format!("'{}'", other.to_string().replace('\'', "''")),
+    }
+}
+
+pub async fn update_row_by_pk(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path((name, id)): Path<(String, String)>,
+    Json(payload): Json<UpdateCellRequest>,
+) -> Result<Json<ApiResult>, (StatusCode, Json<serde_json::Value>)> {
+    let bot_id = extract_bot_id(&headers)?;
+    let safe_name = sanitize_identifier(&name);
+    if safe_name != name {
+        return Err(error_response("Invalid table name"));
+    }
+
+    let column = sanitize_identifier(&payload.column);
+    if column != payload.column || column.is_empty() {
+        return Err(error_response("Invalid column name"));
+    }
+
+    let mut conn = get_bot_conn(&state, bot_id)?;
+
+    let pk_info: Vec<PkInfo> = sql_query(
+        "SELECT a.attrelid::regclass::text AS table_name,
+                a.attname AS column_name
+         FROM pg_index i
+         JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+         WHERE i.indisprimary AND a.attrelid::regclass::text = $1",
+    )
+    .bind::<diesel::sql_types::Text, _>(&safe_name)
+    .get_results(&mut conn)
+    .map_err(|e| internal_error(&format!("Failed to query primary keys: {e}")))?;
+
+    if pk_info.is_empty() {
+        return Err(error_response("Table has no primary key"));
+    }
+
+    let pk_col = sanitize_identifier(&pk_info[0].column_name);
+    let safe_id = id.replace('\'', "''");
+    let value = payload.value.as_ref().map(json_literal).unwrap_or_else(|| "NULL".to_string());
+
+    let sql = format!(
+        "UPDATE {safe_name} SET {column} = {value} WHERE {pk_col} = '{safe_id}'"
+    );
+
+    let affected = diesel::sql_query(sql)
+        .execute(&mut conn)
+        .map_err(|e| internal_error(&format!("Update failed: {e}")))?;
+
+    if affected == 0 {
+        return Err(error_response("Row not found"));
+    }
+
+    Ok(Json(ApiResult {
+        success: true,
+        message: format!("Row updated in {safe_name}"),
+    }))
+}
+
+pub async fn export_table_csv(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(name): Path<String>,
+) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
+    let bot_id = extract_bot_id(&headers)?;
+    let safe_name = sanitize_identifier(&name);
+    if safe_name != name {
+        return Err(error_response("Invalid table name"));
+    }
+
+    let db_url = get_bot_database_url(&state, bot_id)?;
+    let query = format!("SELECT * FROM {safe_name}");
+
+    let result = tokio::task::spawn_blocking(move || execute_via_postgres_sync(&db_url, &query))
+        .await
+        .map_err(|e| internal_error(&format!("Task join error: {e}")))
+        .map_err(|e: (StatusCode, Json<serde_json::Value>)| e)?
+        .map_err(|e| internal_error(&format!("Export failed: {e}")))?;
+
+    let (columns, rows) = result;
+
+    let mut csv = String::new();
+    csv.push_str(&columns.join(","));
+    csv.push('\n');
+
+    for row in rows {
+        let fields: Vec<String> = columns
+            .iter()
+            .map(|col| {
+                let value = row
+                    .get(col)
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null);
+                csv_escape(&value)
+            })
+            .collect();
+        csv.push_str(&fields.join(","));
+        csv.push('\n');
+    }
+
+    Ok(axum::response::Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "text/csv")
+        .header(
+            "Content-Disposition",
+            format!("attachment; filename=\"{safe_name}.csv\""),
+        )
+        .body(axum::body::Body::from(csv))
+        .map_err(|e| internal_error(&format!("Export failed: {e}")))?)
+}
+
+fn csv_escape(value: &serde_json::Value) -> String {
+    let text = match value {
+        serde_json::Value::Null => String::new(),
+        serde_json::Value::String(s) => s.clone(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        serde_json::Value::Number(n) => n.to_string(),
+        other => other.to_string(),
+    };
+    if text.contains(',') || text.contains('"') || text.contains('\n') || text.contains('\r') {
+        format!("\"{}\"", text.replace('"', "\"\""))
+    } else {
+        text
+    }
 }
 
 pub async fn batch_delete(

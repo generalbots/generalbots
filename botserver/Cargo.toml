@@ -159,7 +159,7 @@ allbutooxmlsdk = [
     "itsm", "pos", "handoff", "kyc", "timeclock",
     "fraud", "inventory", "gl", "retail",
     "security", "directory", "llm", "vectordb", "crawler", "console",
-    "saas",
+    "saas", "m365",
 ]
 
 [dependencies]

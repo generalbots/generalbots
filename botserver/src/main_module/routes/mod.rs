@@ -1,5 +1,7 @@
 pub mod anonymous_auth;
 pub mod api_setup;
+pub mod chat_handlers;
+pub mod misc_handlers;
 pub mod cloud_sso_handler;
 pub mod catalog;
 pub mod feature_routers;

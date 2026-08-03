@@ -328,6 +328,20 @@ impl MetricsCollector {
         rules.push(rule);
     }
 
+    pub async fn get_alert_rules(&self) -> Vec<AlertRule> {
+        let rules = self.alert_rules.read().await;
+        rules.clone()
+    }
+
+    pub async fn replace_alert_rule(&self, rule: AlertRule) {
+        let mut rules = self.alert_rules.write().await;
+        if let Some(existing) = rules.iter_mut().find(|r| r.id == rule.id) {
+            *existing = rule;
+        } else {
+            rules.push(rule);
+        }
+    }
+
     pub async fn remove_alert_rule(&self, rule_id: Uuid) -> bool {
         let mut rules = self.alert_rules.write().await;
         let initial_len = rules.len();

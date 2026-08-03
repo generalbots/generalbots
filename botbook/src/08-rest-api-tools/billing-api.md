@@ -766,6 +766,32 @@ Lists recurring billing schedules.
 
 ---
 
+## ERP Features (Inventory, GL, Procurement)
+
+Billing is the unified finance/ERP app. The suite exposes these HTMX fragments:
+
+```http
+GET /api/ui/billing/inventory                    # inventory table
+GET /api/ui/billing/gl/accounts                  # GL accounts
+GET /api/ui/billing/gl/balance-sheet             # balance sheet
+GET /api/ui/billing/gl/income-statement          # income statement
+GET /api/ui/billing/procurement                  # purchase orders
+GET /api/ui/billing/procurement/orders           # purchase orders alias
+```
+
+These read from the ERP data tables (`erp_inventory`, `erp_procurement`,
+`gl_accounts`, `gl_journal_entries`). The billing app shell shows tabs for
+Invoices, Payments, Quotes, Inventory, GL and Procurement.
+
+### Subscription Lifecycle (JSON)
+
+```http
+POST /api/billing/subscription/upgrade   # { plan_id: "shared" }
+POST /api/billing/subscription/cancel    # { reason: "..." }
+GET  /api/billing/invoices/export        # CSV download
+GET  /api/billing/invoices/unpaid        # <option> list for payment forms
+```
+
 ## See Also
 
 - [Admin API](./admin-api-full.md) — customer and user management
