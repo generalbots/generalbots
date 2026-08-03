@@ -224,3 +224,71 @@ Some features have implicit dependencies:
 | `full` | ~60 MB |
 
 *Sizes are approximate and vary based on platform and optimization level.*
+
+---
+
+## v1 Suite App Completeness (2026-08)
+
+All suite apps now have real, DB-backed backend contracts (no stubs/fake data).
+
+### App Unifications
+
+- **ITSM → Tickets:** The former `itsm` app is folded into **Tickets**. Tickets gained
+  CMDB (`ticket_cis`), knowledge-base articles (`ticket_kb_articles`) and a
+  `record_type` column (`ticket` | `problem` | `change`) on `support_tickets`.
+  The dead in-memory ITSM duplicate in `botattendant` was removed.
+- **ERP → Billing:** The former `erp` app is folded into **Billing**. Billing gained
+  Inventory, GL and Procurement tabs backed by the ERP data tables
+  (`erp_inventory`, `erp_procurement`, `gl_accounts`, `gl_journal_entries`).
+- Both `itsm` and `erp` were removed from the catalog (`.product` + `registry.rs`).
+
+### New Backend Endpoints
+
+- **Tickets:** `/api/tickets/cis`, `/api/tickets/kb`, `/api/ui/tickets/cis|kb`, plus
+  record-type filtering on `/api/ui/tickets`.
+- **Research:** real RAG search (KB + LLM), `/api/ui/research/sources`,
+  `/api/ui/research/collections/save`, `/api/ui/paper/import`, scoped to the bot.
+- **Billing:** `/api/billing/subscription/upgrade|cancel`, `/api/billing/invoices/export|unpaid`,
+  `/api/ui/billing/inventory|gl/*|procurement`.
+- **Compliance:** `/api/compliance/dashboard/*`, `/api/compliance/scan`, `/api/compliance/export`.
+- **Search:** `/api/search/settings|stats|reindex|entities|entity`.
+- **Editor:** full `/api/editor/*` + `/api/files/*` file workspace.
+- **Workspace:** `/api/pages/current`, `/api/ui/pages/current/blocks`, `/api/ui/workspaces/commands|current/invite`.
+- **Directory:** group/user update/delete/members/roles/invites JSON endpoints.
+- **Meet:** `/api/meet/join`, `/api/meet/mute-all`, `/api/voice/toggle`.
+- **Chat:** `/api/chat`, `/api/chat/message`, `/api/chat/context`, `/api/chat/sessions/new`,
+  `/api/sessions/current/message` (LLM-backed).
+- **Misc:** calendar event save, goals objective form, autotask create, services summary,
+  products pricelists, contacts search, DNS records CRUD (`dns_records` table),
+  user organizations, sandbox connection details.
+
+---
+
+## Cloud Store — 3D Printing Section
+
+The cloud store gained a dedicated **3D Printing** section (sidebar link under Cloud
+Services, mirroring the Machines page). It showcases:
+
+- **Online print-on-demand tiers** — FDM / SLA / SLS / MJF / Metal with per-cm³ pricing.
+- **Vetted print services** — proto & production, resin detail, engineering plastics,
+  metal additive, factory-direct, post-processing, fulfillment, certified printers.
+- **Printer manufacturers** — Prusa, Bambu Lab, Formlabs, Creality, Anycubic, Elegoo,
+  Raise3D / UltiMaker.
+- **Materials library** — PLA, PETG, ABS/ASA, TPU, resin, PA12, stainless steel, aluminum.
+
+**Files:** `botui/ui/cloud/print3d.html` · sidebar link in
+`botui/ui/cloud/partials/sidebar.html` (`/store/print3d` → redirects to `/print3d`).
+
+## o365 — Unified Office App
+
+The former **m365** and **office365** apps are unified into a single **o365** app
+(`/suite/o365/`), backed by the real `botm365` crate. Terms are vendor-neutral:
+**SP** instead of SharePoint, **Drive** instead of OneDrive, **o365** instead of
+Microsoft 365. The `/api/o365/*` namespace aliases `/api/m365/*`.
+
+## Sample Data
+
+`sample.sql` at the repo root populates every major app with realistic demo data
+scoped to the default branch + a dedicated sample user — CRM, People, Tickets,
+Billing (invoices/quotes/payments/subscriptions), Products, Tasks, Calendar,
+Research, Compliance, OKRs, Workspace, Social, Drive. Fully idempotent (safe to re-run).

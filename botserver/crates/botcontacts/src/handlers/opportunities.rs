@@ -13,6 +13,19 @@ use crate::requests::*;
 use crate::schema::crm_deals;
 use crate::CrateState;
 
+fn default_bot_id(state: &CrateState) -> Uuid {
+    use crate::schema::bots::dsl::{bots, id, is_default_for_branch};
+
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Uuid::nil();
+    };
+    bots
+        .filter(is_default_for_branch.eq(true))
+        .select(id)
+        .first::<Uuid>(&mut conn)
+        .unwrap_or(Uuid::nil())
+}
+
 pub async fn create_opportunity(
     State(state): State<Arc<CrateState>>,
     Json(req): Json<CreateOpportunityRequest>,
@@ -33,6 +46,8 @@ pub async fn create_opportunity(
 
     let opportunity = CrmDeal {
         id,
+        org_id: branch_id,
+        bot_id: default_bot_id(&state),
         branch_id,
         lead_id: req.lead_id,
         account_id: req.account_id,

@@ -83,6 +83,19 @@ fn inner_build_sub_router(
     #[cfg(feature = "timeclock")]
     { *api_router = api_router.clone().merge(bottimeclock::configure()); }
 
+    #[cfg(feature = "contacts")]
+    {
+        let contacts_state = Arc::new(crate::contacts::CrateState {
+            db_pool: app_state.conn.clone(),
+            get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil()),
+            trigger_contact_change: Arc::new(|_c: &mut diesel::PgConnection, _id: uuid::Uuid, _kind: &str, _by: uuid::Uuid| {}),
+            trigger_deal_stage_change: Arc::new(
+                |_c: &mut diesel::PgConnection, _id: uuid::Uuid, _old: &str, _new: &str, _by: uuid::Uuid| {},
+            ),
+        });
+        *api_router = api_router.clone().merge(crate::contacts::routes::configure_all_routes().with_state(contacts_state));
+    }
+
     sub_router = sub_router.merge(crate::core::i18n::configure_i18n_routes().with_state(app_state.clone()));
     sub_router = sub_router.merge(crate::security::configure_protection_routes().with_state(app_state.clone()));
     sub_router = sub_router.merge(crate::settings::configure_settings_routes().with_state(app_state.clone()));
@@ -98,10 +111,17 @@ fn inner_build_sub_router(
     #[cfg(feature = "git")]
     { sub_router = sub_router.merge(botgit::configure().with_state(app_state.clone())); }
     sub_router = sub_router.merge(crate::api::system::configure_system_routes().with_state(app_state.clone()));
-
     #[cfg(feature = "meet")]
-    { sub_router = sub_router.merge(crate::meet::configure().with_state(app_state.clone())); }
+    {
+        sub_router = sub_router.merge(crate::meet::configure().with_state(app_state.clone()));
+    }
 
+    #[cfg(feature = "chat")]
+    {
+        sub_router = sub_router.merge(super::chat_handlers::configure_chat_routes().with_state(app_state.clone()));
+    }
+
+    sub_router = sub_router.merge(super::misc_handlers::configure_misc_routes().with_state(app_state.clone()));
     #[cfg(feature = "tasks")]
     {
         sub_router = sub_router.merge(crate::tasks::configure_tasks_routes().with_state(Arc::new(bottasks::state::TasksState {
@@ -137,17 +157,59 @@ fn inner_build_sub_router(
     #[cfg(feature = "research")]
     {
         #[derive(Debug, Clone)]
-        struct ResearchAppState(diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>);
-
+        struct ResearchAppState {
+            pool: diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+            llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
+        }
         impl crate::research::ResearchState for ResearchAppState {
             fn db_pool(&self) -> &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>> {
-                &self.0
+                &self.pool
+            }
+            fn llm_provider(&self) -> Option<Arc<dyn botlib::traits::LLMProvider>> {
+                self.llm.clone()
+            }
+            fn bot_id(&self) -> Option<uuid::Uuid> {
+                self.resolve_bot_id()
             }
         }
 
-        let research_state = Arc::new(ResearchAppState(app_state.conn.clone()));
+        impl ResearchAppState {
+            fn resolve_bot_id(&self) -> Option<uuid::Uuid> {
+                use diesel::prelude::*;
+                let mut conn = match self.pool.get() {
+                    Ok(c) => c,
+                    Err(e) => {
+                        log::error!("Research bot_id DB connection error: {e}");
+                        return None;
+                    }
+                };
+                #[derive(diesel::QueryableByName)]
+                #[diesel(check_for_backend(diesel::pg::Pg))]
+                struct BotIdRow {
+                    #[diesel(sql_type = diesel::sql_types::Uuid)]
+                    id: uuid::Uuid,
+                }
+                diesel::sql_query(
+                    "SELECT id FROM bots WHERE is_default_for_branch = TRUE ORDER BY created_at ASC LIMIT 1",
+                )
+                .get_result::<BotIdRow>(&mut conn)
+                .ok()
+                .map(|r| r.id)
+            }
+        }
+
+        let research_state = Arc::new(ResearchAppState {
+            pool: app_state.conn.clone(),
+            llm: app_state.llm_provider.clone(),
+        });
         sub_router = sub_router.merge(crate::research::configure_research_routes().with_state(research_state.clone()));
         sub_router = sub_router.merge(crate::research::ui::configure_research_ui_routes().with_state(research_state));
+    }
+
+    #[cfg(feature = "search")]
+    {
+        let search_state = Arc::new(crate::search::SearchService::new(Arc::new(app_state.conn.clone()), None));
+        sub_router = sub_router.merge(crate::search::configure_search_routes().with_state(search_state));
     }
 
     #[cfg(any(feature = "research", feature = "llm"))]
@@ -179,27 +241,152 @@ fn inner_build_sub_router(
     {
         let compliance_pool = app_state.conn.clone();
         sub_router = sub_router.merge(crate::compliance::configure_compliance_routes().with_state(Arc::new(compliance_pool.clone())));
-        sub_router = sub_router.merge(crate::compliance::ui::configure_compliance_ui_routes().with_state(Arc::new(compliance_pool)));
+        sub_router = sub_router.merge(crate::compliance::ui::configure_compliance_ui_routes().with_state(Arc::new(compliance_pool.clone())));
+        sub_router = sub_router.merge(crate::compliance::dashboard::configure_dashboard_routes().with_state(Arc::new(compliance_pool)));
     }
 
     #[cfg(feature = "monitoring")]
     {
-        struct MonitoringAppState;
-
-        impl crate::monitoring::MonitoringState for MonitoringAppState {
-            fn active_session_count(&self) -> usize { 0 }
-            fn is_db_healthy(&self) -> bool { true }
+        struct MonitoringAppState {
+            app_state: Arc<AppState>,
+            collector: Arc<crate::monitoring::MetricsCollector>,
         }
 
-        let monitoring_state = Arc::new(MonitoringAppState);
+        impl crate::monitoring::MonitoringState for MonitoringAppState {
+            fn active_session_count(&self) -> usize {
+                use diesel::prelude::*;
+                let mut conn = match self.app_state.conn.get() {
+                    Ok(c) => c,
+                    Err(_) => return 0,
+                };
+
+                #[derive(diesel::QueryableByName)]
+                struct CountResult {
+                    #[diesel(sql_type = diesel::sql_types::BigInt)]
+                    count: i64,
+                }
+
+                diesel::sql_query(
+                    "SELECT COUNT(*) as count FROM user_sessions WHERE expires_at IS NULL OR expires_at > NOW()",
+                )
+                .get_result::<CountResult>(&mut conn)
+                .map(|r| r.count.max(0) as usize)
+                .unwrap_or(0)
+            }
+
+            fn is_db_healthy(&self) -> bool {
+                use diesel::prelude::*;
+                let mut conn = match self.app_state.conn.get() {
+                    Ok(c) => c,
+                    Err(_) => return false,
+                };
+                diesel::sql_query("SELECT 1").execute(&mut conn).is_ok()
+            }
+
+            fn metrics_collector(&self) -> Arc<crate::monitoring::MetricsCollector> {
+                self.collector.clone()
+            }
+
+            fn dependencies(&self) -> Vec<crate::monitoring::DependencyStatus> {
+                use std::time::Instant;
+                let mut deps = Vec::new();
+
+                // PostgreSQL
+                {
+                    let start = Instant::now();
+                    let healthy = self.is_db_healthy();
+                    let latency = start.elapsed().as_secs_f64() * 1000.0;
+                    deps.push(crate::monitoring::DependencyStatus {
+                        name: "PostgreSQL",
+                        host: "postgres".to_string(),
+                        healthy,
+                        latency_ms: latency,
+                    });
+                }
+
+                // Cache / Valkey
+                if let Some(cache) = self.app_state.cache.as_ref() {
+                    let start = Instant::now();
+                    let healthy = cache
+                        .get_connection_with_timeout(std::time::Duration::from_millis(750))
+                        .and_then(|mut conn| {
+                            redis::cmd("PING").query::<String>(&mut conn)
+                        })
+                        .map(|reply| reply.to_uppercase() == "PONG")
+                        .unwrap_or(false);
+                    let latency = start.elapsed().as_secs_f64() * 1000.0;
+                    deps.push(crate::monitoring::DependencyStatus {
+                        name: "Valkey",
+                        host: "cache".to_string(),
+                        healthy,
+                        latency_ms: latency,
+                    });
+                }
+
+                // MinIO / Drive
+                if let Some(drive) = self.app_state.drive.as_ref() {
+                    let start = Instant::now();
+                    let healthy = tokio::task::block_in_place(|| {
+                        futures::executor::block_on(drive.list_all_buckets())
+                            .map(|buckets| !buckets.is_empty())
+                            .unwrap_or(false)
+                    });
+                    let latency = start.elapsed().as_secs_f64() * 1000.0;
+                    deps.push(crate::monitoring::DependencyStatus {
+                        name: "MinIO",
+                        host: "drive".to_string(),
+                        healthy,
+                        latency_ms: latency,
+                    });
+                }
+
+                // LLM
+                {
+                    let url = std::env::var("LLM_URL")
+                        .or_else(|_| std::env::var("OLLAMA_HOST"))
+                        .ok();
+                    let start = Instant::now();
+                    let healthy = url
+                        .and_then(|u| crate::monitoring::host_port_from_url(&u, 8081))
+                        .map(|(host, port)| {
+                            use std::net::{SocketAddr, TcpStream};
+                            let addr: SocketAddr = format!("{host}:{port}").parse().ok()?;
+                            Some(TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(750)).is_ok())
+                        })
+                        .flatten()
+                        .unwrap_or(false);
+                    let latency = start.elapsed().as_secs_f64() * 1000.0;
+                    deps.push(crate::monitoring::DependencyStatus {
+                        name: "LLM",
+                        host: "llm".to_string(),
+                        healthy,
+                        latency_ms: latency,
+                    });
+                }
+
+                deps
+            }
+        }
+
+        let collector = Arc::new(crate::monitoring::MetricsCollector::new());
+        {
+            let c = collector.clone();
+            tokio::spawn(async move {
+                c.setup_default_alert_rules().await;
+                c.start_background_collection().await;
+            });
+        }
+
+        let monitoring_state = Arc::new(MonitoringAppState {
+            app_state: app_state.clone(),
+            collector: collector.clone(),
+        });
         sub_router = sub_router.merge(
             crate::monitoring::configure::<MonitoringAppState, crate::monitoring::DefaultMonitoringUrls>()
                 .with_state(monitoring_state)
         );
         sub_router = sub_router.merge(
-            crate::monitoring::governance::configure_routes(
-                Arc::new(crate::monitoring::MetricsCollector::new())
-            )
+            crate::monitoring::governance::configure_routes(collector)
         );
     }
 
@@ -227,6 +414,19 @@ fn inner_build_sub_router(
         let goals_default_bot: crate::analytics::GetDefaultBotFn = Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil());
         sub_router = sub_router.merge(crate::analytics::goals::configure_goals_routes().with_state((goals_pool.clone(), goals_bot_context)));
         sub_router = sub_router.merge(crate::analytics::goals_ui::configure_goals_ui_routes().with_state((goals_pool, goals_default_bot)));
+    }
+
+    #[cfg(feature = "analytics")]
+    {
+        let reports_default_bot: crate::analytics::GetDefaultBotFn =
+            Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil());
+        let reports_state = Arc::new(crate::analytics::reports::ReportsState {
+            pool: Arc::new(app_state.conn.clone()),
+            default_bot: Arc::new(reports_default_bot),
+        });
+        sub_router = sub_router.merge(
+            crate::analytics::reports::configure_reports_routes().with_state(reports_state),
+        );
     }
 
     #[cfg(feature = "sheet")]

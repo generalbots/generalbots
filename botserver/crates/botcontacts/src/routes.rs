@@ -23,6 +23,15 @@ pub fn configure_crm_api_routes() -> Router<Arc<CrateState>> {
         .route("/api/crm/activities", get(handlers::crm::list_activities).post(handlers::crm::create_activity))
         .route("/api/crm/pipeline/stages", get(handlers::crm::get_pipeline_stages))
         .route("/api/crm/stats", get(handlers::crm::get_crm_stats))
+        .route("/api/crm/search", get(ui::crm_ui::handle_crm_search))
+        .route("/api/crm/count", get(ui::crm_ui::handle_crm_count))
+        .route("/api/crm/pipeline", get(ui::crm_ui::handle_crm_pipeline))
+        .route("/api/crm/stats/pipeline-value", get(ui::crm_ui::handle_crm_stats_pipeline_value))
+        .route("/api/crm/stats/conversion-rate", get(ui::crm_ui::handle_crm_stats_conversion_rate))
+        .route("/api/crm/stats/avg-deal", get(ui::crm_ui::handle_crm_stats_avg_deal))
+        .route("/api/crm/stats/won-month", get(ui::crm_ui::handle_crm_stats_won_month))
+        .route("/api/crm/accounts/search", get(ui::crm_ui::handle_crm_accounts_search))
+        .route("/api/crm/opportunities/search", get(ui::crm_ui::handle_crm_opportunities_search))
 }
 
 pub fn configure_crm_ui_routes() -> Router<Arc<CrateState>> {

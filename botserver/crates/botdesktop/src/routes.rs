@@ -2,6 +2,7 @@ use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use serde::Deserialize;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
@@ -62,6 +63,73 @@ pub async fn create_connection(
                 Json(serde_json::json!({
                     "success": true,
                     "data": session.to_summary(),
+                })),
+            )
+        }
+        Err(SessionError::RateLimitExceeded { max, .. }) => (
+            StatusCode::TOO_MANY_REQUESTS,
+            Json(serde_json::json!({
+                "success": false,
+                "error": format!("maximum {max} concurrent connections per user"),
+            })),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "success": false,
+                "error": e.to_string(),
+            })),
+        ),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// POST /connect — create a persisted-style connection (maps to a proxy session)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectRequest {
+    pub name: String,
+    pub host: String,
+    pub port: u16,
+    pub protocol: Option<String>,
+    pub auth_type: Option<String>,
+}
+
+pub async fn handle_connect(
+    State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
+    Json(req): Json<ConnectRequest>,
+) -> impl IntoResponse {
+    let client_ip = extract_client_ip(&addr);
+    let user_id = Uuid::nil();
+
+    if req.host.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": "host is required" })),
+        );
+    }
+    if req.port == 0 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": "port must be between 1 and 65535" })),
+        );
+    }
+
+    let session = DesktopSession::new(user_id, req.host.clone(), req.port, client_ip);
+    let protocol = req.protocol.unwrap_or_else(|| "rdp".to_string());
+
+    match state.session_manager.register_session(session).await {
+        Ok(session) => {
+            info!("VDI connect created: {} -> {}:{}", req.name, req.host, req.port);
+            (
+                StatusCode::CREATED,
+                Json(serde_json::json!({
+                    "success": true,
+                    "data": session.to_summary(),
+                    "name": req.name,
+                    "protocol": protocol,
                 })),
             )
         }
@@ -200,6 +268,7 @@ pub fn router(state: AppState) -> axum::Router {
         .route(&format!("{PREFIX}/connections"), axum::routing::get(list_connections))
         .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::get(get_connection))
         .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::delete(delete_connection))
+        .route(&format!("{PREFIX}/connect"), axum::routing::post(handle_connect))
         .route(&format!("{PREFIX}/health"), axum::routing::get(health_check))
         .route(&format!("{PREFIX}/health/tcp"), axum::routing::post(health_check_tcp))
         .route(&format!("{PREFIX}/ws/proxy/{{session_id}}"), axum::routing::get(ws_proxy_handler))
@@ -228,6 +297,7 @@ pub fn configure_routes() -> axum::Router<Arc<AppState>> {
         .route(&format!("{PREFIX}/connections"), axum::routing::get(list_connections))
         .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::get(get_connection))
         .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::delete(delete_connection))
+        .route(&format!("{PREFIX}/connect"), axum::routing::post(handle_connect))
         .route(&format!("{PREFIX}/health"), axum::routing::get(health_check))
         .route(&format!("{PREFIX}/health/tcp"), axum::routing::post(health_check_tcp))
         .route(&format!("{PREFIX}/ws/proxy/{{session_id}}"), axum::routing::get(ws_proxy_handler))

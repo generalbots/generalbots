@@ -154,7 +154,7 @@ pub async fn handle_ai_custom(
     State(state): State<Arc<PaperState>>,
     Json(payload): Json<AiRequest>,
 ) -> impl IntoResponse {
-    let text = payload.selected_text.unwrap_or_default();
+    let text = payload.selected_text.clone().or_else(|| payload.text.clone()).unwrap_or_default();
     let prompt = payload.prompt.unwrap_or_default();
 
     if text.is_empty() || prompt.is_empty() {
@@ -175,6 +175,35 @@ pub async fn handle_ai_custom(
             Html(format_ai_response(&format!(
                 "[Custom '{}' applied]: {}",
                 prompt,
+                text.trim()
+            )))
+        }
+    }
+}
+
+pub async fn handle_ai_tone(
+    State(state): State<Arc<PaperState>>,
+    Json(payload): Json<AiRequest>,
+) -> impl IntoResponse {
+    let text = payload.selected_text.clone().or_else(|| payload.text.clone()).unwrap_or_default();
+    let tone = payload.tone.clone().unwrap_or_default();
+
+    if text.is_empty() {
+        return Html(format_ai_response("Please select some text to adjust."));
+    }
+
+    let system_prompt = format!(
+        "You are a helpful writing assistant. Rewrite the following text in a {} tone while preserving the original meaning. Provide only the rewritten text without any preamble.",
+        if tone.is_empty() { "neutral".to_string() } else { tone.clone() }
+    );
+
+    match call_llm(&state, &system_prompt, &text).await {
+        Ok(result) => Html(format_ai_response(&result)),
+        Err(e) => {
+            log::error!("LLM tone error: {}", e);
+            Html(format_ai_response(&format!(
+                "[{} tone applied]: {}",
+                tone,
                 text.trim()
             )))
         }

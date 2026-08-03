@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Form, Path, State},
     http::StatusCode,
     response::{Html, IntoResponse, Json},
     routing::{get, post},
@@ -165,6 +165,9 @@ pub fn configure() -> Router<Arc<AppState>> {
             post(dashboard::create_room_htmx),
         )
         .merge(minutes::handlers::minutes_routes())
+        .route("/api/meet/join", post(handle_meet_join_htmx))
+        .route("/api/meet/mute-all", post(handle_mute_all))
+        .route("/api/voice/toggle", post(handle_voice_toggle))
 }
 
 #[derive(Debug, Deserialize)]
@@ -405,6 +408,75 @@ pub async fn leave_room(
             Json(serde_json::json!({"error": "Room not found"})),
         ),
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MeetJoinHtmxRequest {
+    pub user_name: Option<String>,
+    pub meeting_code: Option<String>,
+    pub room_id: Option<String>,
+    pub join_video: Option<String>,
+    pub join_audio: Option<String>,
+}
+
+pub async fn handle_meet_join_htmx(
+    Form(payload): Form<MeetJoinHtmxRequest>,
+) -> impl IntoResponse {
+    let name = payload
+        .user_name
+        .unwrap_or_else(|| "Guest".to_string());
+    let room = payload
+        .room_id
+        .or(payload.meeting_code)
+        .unwrap_or_else(|| "default".to_string());
+    let escaped_name = name.replace('<', "&lt;").replace('>', "&gt;");
+    let escaped_room = room.replace('<', "&lt;").replace('>', "&gt;");
+
+    let html = format!(
+        r##"<div class="meeting-room" id="meeting-room">
+        <header class="room-header">
+            <div class="room-info">
+                <h2 id="room-title">Meeting Room</h2>
+                <span class="room-id">Room: {room}</span>
+                <span class="room-participant">Joined as {name}</span>
+            </div>
+            <div class="room-actions">
+                <button class="btn-secondary" hx-post="/api/meet/mute-all" hx-swap="none">Mute All</button>
+                <button class="btn-secondary" onclick="leaveMeeting()">Leave</button>
+            </div>
+        </header>
+        <div class="meeting-grid">
+            <div class="participant-tile local">
+                <video autoplay muted playsinline></video>
+                <span class="participant-name">{name}</span>
+            </div>
+        </div>
+        </div>"##,
+        room = escaped_room,
+        name = escaped_name,
+    );
+
+    Html(html)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MuteAllRequest {
+    pub room_id: Option<String>,
+}
+
+pub async fn handle_mute_all(
+    Form(payload): Form<MuteAllRequest>,
+) -> impl IntoResponse {
+    let room = payload.room_id.unwrap_or_else(|| "default".to_string());
+    info!("Muting all participants in room {room}");
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "status": "muted", "room_id": room })),
+    )
+}
+
+pub async fn handle_voice_toggle() -> impl IntoResponse {
+    Json(serde_json::json!({ "status": "toggled" }))
 }
 
 pub async fn start_transcription(

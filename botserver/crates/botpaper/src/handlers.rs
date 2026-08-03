@@ -226,6 +226,47 @@ pub async fn handle_save_document(
     }
 }
 
+pub async fn handle_paper_import(
+    State(state): State<Arc<PaperState>>,
+    headers: HeaderMap,
+    Json(payload): Json<SaveRequest>,
+) -> impl IntoResponse {
+    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
+        Ok(u) => u,
+        Err(e) => {
+            log::error!("Auth error: {}", e);
+            return Html(format_error("Authentication required"));
+        }
+    };
+
+    let doc_id = Uuid::new_v4().to_string();
+    let title = payload.title.unwrap_or_else(|| "Imported from Research".to_string());
+    let content = payload.content.unwrap_or_default();
+
+    match save_document_to_drive(
+        &state, &user_identifier, &doc_id, &title, &content, false,
+    )
+    .await
+    {
+        Ok(path) => {
+            log::info!("Document imported to Paper: {} at {}", doc_id, path);
+            let mut html = String::new();
+            html.push_str("<div class=\"paper-import-success\" data-id=\"");
+            html.push_str(&html_escape(&doc_id));
+            html.push_str("\">");
+            html.push_str("<script>");
+            html.push_str("htmx.trigger('#paper-list', 'refresh');");
+            html.push_str("</script>");
+            html.push_str("</div>");
+            Html(html)
+        }
+        Err(e) => {
+            log::error!("Failed to import document: {}", e);
+            Html(format_error("Failed to import document"))
+        }
+    }
+}
+
 pub async fn handle_autosave(
     State(state): State<Arc<PaperState>>,
     headers: HeaderMap,

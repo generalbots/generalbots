@@ -388,6 +388,8 @@ fn add_tickets_routes(r: Router, s: &Arc<AppState>) -> Router {
     });
     r.merge(crate::tickets::configure_tickets_routes().with_state(make_state()))
         .merge(crate::tickets::ui::configure_tickets_ui_routes().with_state(make_state()))
+        .merge(crate::tickets::itsm::configure_itsm_routes().with_state(make_state()))
+        .merge(crate::tickets::itsm::configure_itsm_ui_routes().with_state(make_state()))
 }
 
 #[cfg(feature = "people")]

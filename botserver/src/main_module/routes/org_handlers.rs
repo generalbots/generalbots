@@ -354,3 +354,51 @@ pub async fn handle_office365_migration(
         }
     }
 }
+
+#[derive(serde::Deserialize)]
+pub struct CreateOrgRequest {
+    pub name: Option<String>,
+    pub slug: Option<String>,
+}
+
+pub async fn handle_create_organization(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Form(form): axum::extract::Form<CreateOrgRequest>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let name = form.name.unwrap_or_default().trim().to_string();
+    if name.is_empty() {
+        return Err((axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({
+            "error": "Organization name is required"
+        }))));
+    }
+
+    let slug = form
+        .slug
+        .unwrap_or_else(|| name.to_lowercase().replace(' ', "-"));
+    let org_id = uuid::Uuid::new_v4();
+    let tenant_id = uuid::Uuid::nil();
+
+    let mut conn = state.conn.get().map_err(|e| {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+            "error": format!("Database unavailable: {e}")
+        })))
+    })?;
+
+    let _ = diesel::sql_query(
+        "INSERT INTO organizations (org_id, tenant_id, name, slug) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(&org_id)
+    .bind::<diesel::sql_types::Uuid, _>(&tenant_id)
+    .bind::<diesel::sql_types::Text, _>(&name)
+    .bind::<diesel::sql_types::Text, _>(&slug)
+    .execute(&mut conn);
+
+    append_audit_log("organization_created", &name);
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "org_id": org_id,
+        "name": name,
+        "slug": slug,
+    })))
+}

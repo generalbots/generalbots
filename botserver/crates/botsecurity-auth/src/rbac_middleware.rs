@@ -1373,6 +1373,26 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/ui/email/**", "GET", ""),
         RoutePermission::new("/api/ui/email/**", "POST", ""),
 
+        // Search (global FTS index) — any authenticated user
+        RoutePermission::new("/api/search/**", "GET", ""),
+        RoutePermission::new("/api/search/**", "POST", ""),
+
+        // DNS records (infrastructure) — any authenticated user
+        RoutePermission::new("/api/dns/**", "GET", ""),
+        RoutePermission::new("/api/dns/**", "POST", ""),
+        RoutePermission::new("/api/dns/**", "PUT", ""),
+
+        // o365 (unified office integration) — any authenticated user
+        RoutePermission::new("/api/o365/**", "GET", ""),
+        RoutePermission::new("/api/o365/**", "POST", ""),
+        RoutePermission::new("/api/o365/**", "PUT", ""),
+        RoutePermission::new("/api/m365/**", "GET", ""),
+        RoutePermission::new("/api/m365/**", "POST", ""),
+        RoutePermission::new("/api/m365/**", "PUT", ""),
+        RoutePermission::new("/api/meet/**", "GET", ""),
+        RoutePermission::new("/api/meet/**", "POST", ""),
+        RoutePermission::new("/api/voice/**", "POST", ""),
+
         // =====================================================================
         // ADMIN ROUTES (requires Admin or SuperAdmin role)
         // =====================================================================

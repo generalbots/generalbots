@@ -2,8 +2,10 @@ pub mod analytics_types;
 pub mod handlers;
 pub mod handlers_activity;
 pub mod handlers_charts;
+pub mod handlers_dashboard;
 pub mod insights;
 pub mod insights_types;
+pub mod reports;
 pub mod routes;
 pub mod schema;
 

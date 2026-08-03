@@ -9,6 +9,7 @@ pub mod access_review;
 pub mod audit;
 pub mod backup_verification;
 pub mod code_scanner;
+pub mod dashboard;
 pub mod evidence_collection;
 pub mod handlers;
 pub mod incident_response;

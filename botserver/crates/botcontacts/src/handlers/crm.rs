@@ -13,6 +13,19 @@ use crate::requests::*;
 use crate::schema::{crm_deals, crm_activities, crm_pipeline_stages, crm_contacts, crm_accounts};
 use crate::CrateState;
 
+fn default_bot_id(state: &CrateState) -> Uuid {
+    use crate::schema::bots::dsl::{bots, id, is_default_for_branch};
+
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Uuid::nil();
+    };
+    bots
+        .filter(is_default_for_branch.eq(true))
+        .select(id)
+        .first::<Uuid>(&mut conn)
+        .unwrap_or(Uuid::nil())
+}
+
 pub async fn list_deals(
     State(state): State<Arc<CrateState>>,
     Query(query): Query<ListQuery>,
@@ -90,6 +103,8 @@ pub async fn create_deal(
 
     let deal = CrmDeal {
         id,
+        org_id: branch_id,
+        bot_id: default_bot_id(&state),
         branch_id,
         contact_id: req.contact_id,
         account_id: req.account_id,
@@ -113,7 +128,7 @@ pub async fn create_deal(
         deal_date: None,
         lost_reason: None,
         won: if stage == "won" { Some(true) } else if stage == "lost" { Some(false) } else { None },
-        tags: req.tags.map(|t| serde_json::to_string(&t).unwrap_or_else(|_| "[]".to_string())),
+        tags: req.tags,
         custom_fields: serde_json::json!({}),
         created_at: now,
         updated_at: now,
@@ -240,9 +255,8 @@ pub async fn update_deal(
     }
 
     if let Some(tags) = req.tags {
-        let tags_str = serde_json::to_string(&tags).unwrap_or_else(|_| "[]".to_string());
         diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
-            .set(crm_deals::tags.eq(Some(tags_str)))
+            .set(crm_deals::tags.eq(Some(tags)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }

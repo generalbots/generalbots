@@ -199,6 +199,20 @@ curl -X POST "http://localhost:8080/api/dns/register?hostname=${MY_HOSTNAME}&ip=
 
 ---
 
+## DNS Records (admin)
+
+```http
+GET  /api/dns/list                # table rows (HTML)
+GET  /api/dns/search?q=           # filtered rows (HTML)
+POST /api/dns/register            # form { hostname, record_type, target, ttl }
+POST /api/dns/remove              # form { id }
+GET  /api/dns/:id/edit            # edit form (HTML)
+```
+
+Records are stored in the `dns_records` table.
+
+---
+
 ## See Also
 
 - [Admin API](./admin-api.md) — System administration and configuration

@@ -1961,6 +1961,7 @@ name = "boteditor"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "base64 0.22.1",
  "botcore",
  "diesel",
  "log",
@@ -2638,6 +2639,7 @@ dependencies = [
 name = "botsearch"
 version = "6.3.1"
 dependencies = [
+ "axum 0.7.9",
  "botlib",
  "chrono",
  "diesel",
@@ -2979,7 +2981,9 @@ name = "botsettings"
 version = "6.3.1"
 dependencies = [
  "anyhow",
+ "argon2",
  "axum 0.7.9",
+ "bigdecimal",
  "botcore",
  "botschema",
  "botsecurity",
@@ -2987,6 +2991,8 @@ dependencies = [
  "diesel",
  "lettre",
  "log",
+ "rand 0.9.4",
+ "redis",
  "serde",
  "serde_json",
  "tokio",
@@ -3196,9 +3202,11 @@ dependencies = [
  "axum 0.7.9",
  "chrono",
  "diesel",
+ "log",
  "r2d2",
  "serde",
  "serde_json",
+ "tokio",
  "uuid",
 ]
 

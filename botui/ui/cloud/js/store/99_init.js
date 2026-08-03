@@ -23,6 +23,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    // 3D printing has its own dedicated page
+    if (cat === 'print3d') {
+      window.location.replace('/print3d');
+      return;
+    }
+
     // Update topbar label if category selected
     const catLabels = {
       compute: 'Virtual Machines',

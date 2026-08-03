@@ -1,102 +1,180 @@
 <div class="apps-menu" id="apps-menu">
-    <div class="apps-menu-header" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-        <h3 style="margin: 0;">Apps</h3>
-        <button class="btn btn-sm btn-primary" onclick="if(window.newProject) { window.newProject.open(); } else { alert('Project Wizard not loaded'); }" style="font-family: inherit; font-size: 11px; padding: 4px 8px; border: 1px solid var(--primary); background: var(--primary); color: white; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-weight: 600;">+ New Project</button>
+    <div class="apps-menu-header">
+        <div class="apps-menu-title-row">
+            <h3>Apps</h3>
+            <button class="apps-menu-close" onclick="AppsMenu.close()" aria-label="Close apps menu">&times;</button>
+        </div>
+        <div class="apps-menu-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="appsMenuSearch" placeholder="Search apps..." aria-label="Search apps">
+        </div>
     </div>
-    <div class="apps-grid">
-        {% for app in apps %}
-        <a href="{{ app.url }}" class="app-item{% if app.active %} active{% endif %}">
-            <div class="app-icon">
-                {{ app.icon|safe }}
-            </div>
-            <span class="app-name">{{ app.name }}</span>
-        </a>
-        {% endfor %}
-    </div>
+    <div class="apps-menu-categories" id="appsMenuCategories"></div>
+    <div class="apps-grid" id="appsMenuGrid"></div>
+    <div class="apps-menu-empty" id="appsMenuEmpty" style="display:none">No apps found</div>
 </div>
+
+<script>
+(function () {
+  "use strict";
+
+  if (window.AppsMenu) return;
+
+  function registry() {
+    return (window.APPS_REGISTRY && window.APPS_REGISTRY.length ? window.APPS_REGISTRY : [])
+      .slice()
+      .sort(function (a, b) { return (a.title || "").localeCompare(b.title || ""); });
+  }
+
+  function activeFilter() { return { query: "", category: "all" }; }
+  var state = activeFilter();
+
+  function catLabel(cat) {
+    var labels = { ai: "AI & Assistants", business: "Business", office: "Office & Productivity", dev: "Development", system: "System & Tools" };
+    return labels[cat] || cat;
+  }
+
+  function renderCategories() {
+    var el = document.getElementById("appsMenuCategories");
+    if (!el) return;
+    var cats = {};
+    registry().forEach(function (a) { cats[a.category] = true; });
+    var html = '<button class="apps-menu-cat active" data-cat="all">All</button>';
+    Object.keys(cats).forEach(function (c) {
+      html += '<button class="apps-menu-cat" data-cat="' + c + '">' + catLabel(c) + "</button>";
+    });
+    el.innerHTML = html;
+    el.querySelectorAll(".apps-menu-cat").forEach(function (btn) {
+      btn.onclick = function () {
+        el.querySelectorAll(".apps-menu-cat").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        state.category = btn.dataset.cat;
+        renderGrid();
+      };
+    });
+  }
+
+  function renderGrid() {
+    var grid = document.getElementById("appsMenuGrid");
+    var empty = document.getElementById("appsMenuEmpty");
+    if (!grid) return;
+    var q = state.query.toLowerCase();
+    var apps = registry().filter(function (a) {
+      var text = ((a.title || "") + " " + (a.keywords || "") + " " + (a.description || "")).toLowerCase();
+      if (q && text.indexOf(q) === -1) return false;
+      if (state.category !== "all" && a.category !== state.category) return false;
+      return true;
+    });
+    if (!apps.length) {
+      grid.innerHTML = "";
+      if (empty) empty.style.display = "block";
+      return;
+    }
+    if (empty) empty.style.display = "none";
+    grid.innerHTML = apps.map(function (a) {
+      var color = a.color || "#88ccff";
+      return '<a class="app-item" href="' + (a.url || a.hxGet || "#") + '" data-app="' + a.id + '" role="menuitem">' +
+        '<div class="app-icon" style="background:' + color + '22;color:' + color + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (a.icon || "") + '</svg></div>' +
+        '<span class="app-name">' + (a.title || a.id) + '</span>' +
+        "</a>";
+    }).join("");
+  }
+
+  window.AppsMenu = {
+    open: function () {
+      var menu = document.getElementById("apps-menu");
+      if (!menu) return;
+      menu.classList.add("open");
+      renderCategories();
+      renderGrid();
+      var input = document.getElementById("appsMenuSearch");
+      if (input) setTimeout(function () { input.focus(); }, 50);
+    },
+    close: function () {
+      var menu = document.getElementById("apps-menu");
+      if (menu) menu.classList.remove("open");
+    },
+    toggle: function () {
+      var menu = document.getElementById("apps-menu");
+      if (menu && menu.classList.contains("open")) AppsMenu.close(); else AppsMenu.open();
+    },
+    refresh: function () {
+      renderCategories();
+      renderGrid();
+    },
+  };
+
+  function init() {
+    var input = document.getElementById("appsMenuSearch");
+    if (input) {
+      input.addEventListener("input", function () {
+        state.query = input.value;
+        renderGrid();
+      });
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") AppsMenu.close();
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          var items = document.querySelectorAll("#appsMenuGrid .app-item");
+          if (!items.length) return;
+          e.preventDefault();
+          var idx = Array.prototype.indexOf.call(items, document.activeElement);
+          var next = e.key === "ArrowDown" ? Math.min(idx + 1, items.length - 1) : Math.max(idx - 1, 0);
+          items[next].focus();
+        }
+      });
+    }
+    document.addEventListener("click", function (e) {
+      var menu = document.getElementById("apps-menu");
+      if (menu && menu.classList.contains("open") && !menu.contains(e.target)) AppsMenu.close();
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
 
 <style>
     .apps-menu {
+        display: none;
         position: absolute;
-        top: 100%;
+        top: calc(100% + 8px);
         right: 0;
-        margin-top: 8px;
-        background: var(--surface);
-        border: 1px solid var(--border);
+        background: var(--surface, #1e1e2e);
+        border: 1px solid var(--border, #333);
         border-radius: 12px;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
         padding: 16px;
-        min-width: 280px;
-        z-index: 1000;
-        animation: fadeIn 0.15s ease;
+        min-width: 360px;
+        max-width: 440px;
+        z-index: 1200;
     }
+    .apps-menu.open { display: block; animation: appsMenuIn 0.15s ease; }
+    @keyframes appsMenuIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-8px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    .apps-menu-header { margin-bottom: 12px; }
+    .apps-menu-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .apps-menu-title-row h3 { margin: 0; font-size: 14px; color: var(--text-secondary, #999); }
+    .apps-menu-close { background: none; border: none; color: var(--text-secondary, #999); font-size: 20px; cursor: pointer; line-height: 1; padding: 0 4px; }
 
-    .apps-menu-header {
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--border);
-    }
+    .apps-menu-search { display: flex; align-items: center; gap: 8px; background: var(--bg, #151520); border: 1px solid var(--border, #333); border-radius: 8px; padding: 8px 12px; }
+    .apps-menu-search svg { width: 16px; height: 16px; color: var(--text-secondary, #999); }
+    .apps-menu-search input { border: none; background: none; outline: none; color: var(--text, #e5e5e5); font-size: 14px; width: 100%; }
 
-    .apps-menu-header h3 {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text-secondary);
-    }
+    .apps-menu-categories { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+    .apps-menu-cat { padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border, #333); background: transparent; color: var(--text-secondary, #999); font-size: 12px; cursor: pointer; transition: all 0.15s; }
+    .apps-menu-cat:hover { border-color: var(--primary, #88ccff); color: var(--text, #e5e5e5); }
+    .apps-menu-cat.active { background: var(--primary, #88ccff); border-color: var(--primary, #88ccff); color: #000; font-weight: 600; }
 
-    .apps-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
+    .apps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 340px; overflow-y: auto; }
+    .app-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 8px; text-decoration: none; color: var(--text, #e5e5e5); transition: background 0.15s; }
+    .app-item:hover, .app-item:focus { background: var(--surface-hover, #26263a); outline: none; }
+    .app-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+    .app-icon svg { width: 22px; height: 22px; }
+    .app-name { font-size: 11px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-    .app-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 8px;
-        border-radius: 8px;
-        text-decoration: none;
-        color: var(--text);
-        transition: all 0.15s;
-    }
-
-    .app-item:hover {
-        background: var(--surface-hover);
-    }
-
-    .app-item.active {
-        background: var(--primary-light);
-    }
-
-    .app-icon {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        background: var(--surface-hover);
-    }
-
-    .app-icon svg {
-        width: 24px;
-        height: 24px;
-        color: var(--primary);
-    }
-
-    .app-name {
-        font-size: 12px;
-        font-weight: 500;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-    }
+    .apps-menu-empty { text-align: center; color: var(--text-secondary, #999); padding: 24px; font-size: 13px; }
 </style>

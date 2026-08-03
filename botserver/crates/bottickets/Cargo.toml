@@ -10,7 +10,9 @@ repository = "https://github.com/GeneralBots/BotServer"
 axum = { workspace = true, features = ["ws", "multipart", "macros"] }
 chrono = { workspace = true, features = ["serde"] }
 diesel = { workspace = true, features = ["postgres", "r2d2", "serde_json", "uuid", "chrono"] }
+log = { workspace = true }
 r2d2 = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
 uuid = { workspace = true, features = ["v4", "serde"] }

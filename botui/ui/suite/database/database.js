@@ -9,6 +9,10 @@
     var tables = [];
     var columns = [];
     var editState = null;
+    var pkColumn = null;
+    var rowPks = [];
+    var sortColumn = null;
+    var sortOrder = 'asc';
 
     function sanitize(str) {
         var d = document.createElement('div');
@@ -67,14 +71,21 @@
         document.getElementById('db-current-table').textContent = tableName;
         var container = document.getElementById('db-grid-container');
 
+        var url = API + '/table/' + encodeURIComponent(tableName) + '/data?page=' + (currentPage + 1) + '&page_size=' + pageSize;
+        if (sortColumn) url += '&sort=' + encodeURIComponent(sortColumn) + '&sort_order=' + sortOrder;
+
         try {
-            var resp = await fetch(API + '/table/' + encodeURIComponent(tableName) + '/data?page=' + currentPage + '&limit=' + pageSize);
+            var resp = await fetch(url);
             if (!resp.ok) throw new Error('Failed to load data');
             var data = await resp.json();
 
             columns = data.columns || [];
             var rows = data.rows || [];
-            totalCount = data.total || rows.length;
+            totalCount = data.total !== undefined ? data.total : (data.total_rows || rows.length);
+            pkColumn = data.pk_column || null;
+            rowPks = rows.map(function(row, i) {
+                return pkColumn && row[pkColumn] !== undefined && row[pkColumn] !== null ? String(row[pkColumn]) : String(i);
+            });
 
             document.getElementById('db-row-count').textContent = totalCount + ' rows';
             document.getElementById('db-pagination').style.display = 'flex';
@@ -169,6 +180,12 @@
 
         sortBy: function(col) {
             if (!currentTable) return;
+            if (sortColumn === col) {
+                sortOrder = (sortOrder === 'asc') ? 'desc' : 'asc';
+            } else {
+                sortColumn = col;
+                sortOrder = 'asc';
+            }
             currentPage = 0;
             loadTableData(currentTable);
         },
@@ -195,12 +212,35 @@
         saveCellEdit: async function() {
             if (!editState || !currentTable) return;
             var val = document.getElementById('db-cell-edit-value').value;
+
+            if (editState.col === '_new_row') {
+                try {
+                    var data;
+                    try { data = JSON.parse(val); } catch (e) { alert('Invalid JSON for new row'); return; }
+                    await fetch(API + '/table/' + encodeURIComponent(currentTable) + '/row', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    DBApp.hideCellEdit();
+                    loadTableData(currentTable);
+                } catch (e) { alert('Error creating row: ' + e.message); }
+                return;
+            }
+
+            var pk = rowPks[editState.row];
+            if (pk === undefined) { alert('No primary key available for this row'); return; }
+
             try {
-                await fetch(API + '/table/' + encodeURIComponent(currentTable) + '/row/' + editState.row, {
+                var resp = await fetch(API + '/table/' + encodeURIComponent(currentTable) + '/row/' + encodeURIComponent(pk), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ column: editState.col, value: val })
                 });
+                if (!resp.ok) {
+                    var err = await resp.json().catch(function() { return {}; });
+                    throw new Error(err.error || ('HTTP ' + resp.status));
+                }
                 DBApp.hideCellEdit();
                 loadTableData(currentTable);
             } catch (e) { alert('Error saving: ' + e.message); }
@@ -214,8 +254,10 @@
 
         deleteRow: async function(row) {
             if (!confirm('Delete this row?')) return;
+            var pk = rowPks[row];
+            if (pk === undefined) { alert('No primary key available for this row'); return; }
             try {
-                await fetch(API + '/table/' + encodeURIComponent(currentTable) + '/row/' + row, { method: 'DELETE' });
+                await fetch(API + '/table/' + encodeURIComponent(currentTable) + '/row/' + encodeURIComponent(pk), { method: 'DELETE' });
                 loadTableData(currentTable);
             } catch (e) { alert('Error deleting: ' + e.message); }
         },
@@ -351,14 +393,14 @@
                 var colType = sel.value;
                 var pk = inputs[1] && inputs[1].checked;
                 var nn = inputs[2] && inputs[2].checked;
-                if (colName) cols.push({ name: colName, type: colType, primary_key: pk, not_null: nn });
+                if (colName) cols.push({ name: colName, data_type: colType, primary_key: pk, not_null: nn, nullable: !nn });
             });
             if (cols.length === 0) return;
             try {
                 await fetch(API + '/table', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ table_name: name, columns: cols })
+                    body: JSON.stringify({ name: name, columns: cols })
                 });
                 DBApp.hideNewTableModal();
                 loadSchema();

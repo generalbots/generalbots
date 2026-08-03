@@ -19,7 +19,6 @@ pub fn configure_m365_api_routes() -> Router<Arc<crate::AppState>> {
         .route("/api/m365/drives/:site_id", get(list_drives))
         .route("/api/m365/items/:drive_id", get(list_items))
         .route("/api/m365/mail", get(list_messages))
-        .route("/api/m365/calendar", get(list_calendar))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,7 +60,7 @@ pub struct ListItemsRequest {
     pub path: Option<String>,
 }
 
-pub use crate::outlook_handlers::{list_calendar, list_messages, ListCalendarRequest, ListMessagesRequest};
+pub use crate::outlook_handlers::{list_messages, ListMessagesRequest};
 
 async fn build_auth_url(
     Json(req): Json<BuildAuthUrlRequest>,

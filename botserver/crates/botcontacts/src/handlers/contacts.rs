@@ -17,6 +17,20 @@ fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
+fn default_bot_id(state: &CrateState) -> Uuid {
+    use crate::schema::bots::dsl::{bots, id, is_default_for_branch};
+    use diesel::prelude::*;
+
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Uuid::nil();
+    };
+    bots
+        .filter(is_default_for_branch.eq(true))
+        .select(id)
+        .first::<Uuid>(&mut conn)
+        .unwrap_or(Uuid::nil())
+}
+
 pub async fn create_contact(
     State(state): State<Arc<CrateState>>,
     Json(req): Json<CreateContactRequest>,
@@ -31,6 +45,8 @@ pub async fn create_contact(
 
     let contact = CrmContact {
         id,
+        org_id: branch_id,
+        bot_id: default_bot_id(&state),
         branch_id,
         first_name: req.first_name.unwrap_or_default(),
         last_name: req.last_name,
@@ -43,11 +59,6 @@ pub async fn create_contact(
         status: Some("active".to_string()),
         tags: req.tags.map(|t| serde_json::to_string(&t).unwrap_or_else(|_| "[]".to_string())),
         custom_fields: Some(serde_json::json!({})),
-        address_street: None,
-        address_city: None,
-        address_state: None,
-        address_country: None,
-        address_zip: None,
         notes: req.notes,
         owner_id: None,
         pass_hash: None,

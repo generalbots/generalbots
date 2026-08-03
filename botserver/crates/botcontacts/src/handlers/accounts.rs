@@ -17,6 +17,19 @@ fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
+fn default_bot_id(state: &CrateState) -> Uuid {
+    use crate::schema::bots::dsl::{bots, id, is_default_for_branch};
+
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Uuid::nil();
+    };
+    bots
+        .filter(is_default_for_branch.eq(true))
+        .select(id)
+        .first::<Uuid>(&mut conn)
+        .unwrap_or(Uuid::nil())
+}
+
 pub async fn create_account(
     State(state): State<Arc<CrateState>>,
     Json(req): Json<CreateAccountRequest>,
@@ -31,18 +44,14 @@ pub async fn create_account(
 
     let account = CrmAccount {
         id,
+        org_id: branch_id,
+        bot_id: default_bot_id(&state),
         branch_id,
         name: req.name,
         industry: req.industry,
         website: req.website,
         phone: req.phone,
         email: req.email,
-        address_street: None,
-        address_city: None,
-        address_state: None,
-        address_country: None,
-        address_zip: None,
-        notes: None,
         owner_id: None,
         created_at: now,
         updated_at: now,

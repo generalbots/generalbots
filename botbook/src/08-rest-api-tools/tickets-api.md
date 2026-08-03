@@ -800,3 +800,76 @@ Returns tickets that have exceeded their SLA or due date.
 - [Tasks API](../08-rest-api-tools/tasks-api.md) — Task management linked to tickets
 - [Notifications API](../08-rest-api-tools/notifications-api.md) — Ticket notification delivery
 - [Analytics API](../08-rest-api-tools/analytics-api.md) — Reporting and dashboards
+
+---
+
+## ITSM Concepts (CMDB, KB, Record Types)
+
+The Tickets app absorbs the former ITSM app. Every `support_tickets` row carries a
+`record_type` column (`ticket` | `problem` | `change`), enabling Problems/Changes to
+share the same lifecycle as tickets.
+
+> **⚠️ Migration required:** The `record_type` column plus the `ticket_cis` and
+> `ticket_kb_articles` tables come from migration
+> `6.5.33-tickets-itsm-unification`. If your database predates it, run
+> `botserver/migrations/6.5.33-tickets-itsm-unification/up.sql` — otherwise the
+> Tickets list will appear empty (the diesel model queries `record_type`).
+
+### Create/Update with Record Type
+
+```http
+POST /api/tickets
+Content-Type: application/json
+{
+  "subject": "Payment API returning 500s",
+  "record_type": "problem",
+  "priority": "high",
+  "category": "technical"
+}
+```
+
+### Configuration Items (CMDB)
+
+```http
+GET  /api/tickets/cis            # list CIs
+POST /api/tickets/cis            # create CI { name, ci_type, description, status }
+GET  /api/tickets/cis/:id
+PUT  /api/tickets/cis/:id
+DELETE /api/tickets/cis/:id
+```
+
+HTMX fragment: `GET /api/ui/tickets/cis`
+
+### Knowledge Base Articles
+
+```http
+GET  /api/tickets/kb            # list published articles
+POST /api/tickets/kb            # create article { title, body, category, tags, is_published }
+GET  /api/tickets/kb/:id
+PUT  /api/tickets/kb/:id
+DELETE /api/tickets/kb/:id
+```
+
+HTMX fragment: `GET /api/ui/tickets/kb`
+
+### List Fragment (with filters)
+
+The suite list view is served as HTML fragments:
+
+```http
+GET /api/ui/tickets?status=open
+GET /api/ui/tickets?priority=high
+GET /api/ui/tickets?category=billing
+GET /api/ui/tickets?record_type=problem
+GET /api/ui/tickets/:id                 # detail fragment
+GET /api/ui/tickets/:id/comments        # comments fragment
+```
+
+Assign by email/name or UUID:
+
+```http
+PUT /api/tickets/:id/assign
+Content-Type: application/json
+{ "assignee": "team@example.com" }   # or { "assignee_id": "<uuid>" }
+```
+

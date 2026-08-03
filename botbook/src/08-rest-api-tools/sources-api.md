@@ -778,6 +778,14 @@ DELETE /api/ui/sources/api-keys/key-002
 
 ---
 
+## Skills & Prompts
+
+```http
+POST /api/ui/skills/install              # { name, bot_id } install a skill
+POST /api/ui/sources/prompts/save        # form { prompt_id, collection, prompt }
+POST /api/ui/sources/mcp/add-from-catalog # form { server_id } add catalog MCP server
+```
+
 ## See Also
 
 - [MCP Format](../08-rest-api-tools/mcp-format.md) — Tool definition schema

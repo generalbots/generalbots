@@ -468,6 +468,16 @@ Returns available slash commands for workspace pages.
 
 ---
 
+## Current Workspace & Page Editing
+
+```http
+GET  /api/ui/workspaces/commands            # slash command list
+GET  /api/ui/workspaces/current/invite      # invite members modal
+GET  /api/pages/current                     # current page fragment
+PUT  /api/pages/current                     # { title } rename
+GET  /api/ui/pages/current/blocks           # block editor content
+```
+
 ## See Also
 
 - [Groups API](../08-rest-api-tools/groups-api.md) — User group management

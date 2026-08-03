@@ -524,6 +524,20 @@ notes: Full export from asset management system
 
 ---
 
+## Compliance Dashboard
+
+Server-rendered HTMX fragments for the admin compliance dashboard:
+
+```http
+GET /api/compliance/dashboard/overview          # score cards + counts
+GET /api/compliance/dashboard/tsc               # Trust Service Criteria grid
+GET /api/compliance/dashboard/failing-controls  # failing control list
+GET /api/compliance/dashboard/evidence          # evidence items
+GET /api/compliance/dashboard/audit-log         # recent audit events
+POST /api/compliance/scan                        # run compliance checks
+GET  /api/compliance/export                      # CSV report download
+```
+
 ## See Also
 
 - [Legal / LGPD API](./legal-api.md) — data protection and consent

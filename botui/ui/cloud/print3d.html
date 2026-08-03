@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Printing — General Bots Cloud</title>
+  <meta name="description" content="Online 3D printing on demand and certified manufacturers. Upload a model, choose a material, get it printed and shipped worldwide.">
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .print3d-page { flex: 1; overflow-y: auto; }
+
+    /* ── Hero ── */
+    .print3d-hero {
+      padding: 2.5rem 2rem 1.5rem;
+      background: linear-gradient(135deg, #0d0714 0%, #1a0a2e 60%, #0d0714 100%);
+    }
+    .print3d-hero-tag {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--accent); padding: .25rem .75rem; border-radius: 99px;
+      background: rgba(156,93,255,.12); border: 1px solid rgba(156,93,255,.25);
+    }
+    .print3d-hero-title {
+      font-size: 1.5rem; font-weight: 900; margin: .65rem 0 .4rem;
+      letter-spacing: -.02em; color: var(--text);
+    }
+    .print3d-hero-desc {
+      font-size: .84rem; color: var(--muted); line-height: 1.6; max-width: 640px;
+    }
+    .print3d-hero-stats {
+      display: flex; gap: 2rem; margin-top: 1.25rem; flex-wrap: wrap;
+    }
+    .print3d-hero-stat { text-align: center; }
+    .print3d-hero-stat-val {
+      font-size: 1.15rem; font-weight: 800; color: var(--text); display: block;
+    }
+    .print3d-hero-stat-lbl {
+      font-size: .62rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-top: 2px;
+    }
+
+    /* ── Tier cards grid ── */
+    .print3d-tiers-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 1rem; padding: 1.5rem 2rem;
+    }
+    .print3d-tier-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem;
+      display: flex; flex-direction: column; position: relative;
+      transition: all .18s;
+    }
+    .print3d-tier-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .print3d-tier-card.featured { border-color: var(--accent); background: var(--accent-dim); }
+    .print3d-tier-badge {
+      position: absolute; top: -.45rem; right: .75rem;
+      font-size: .58rem; font-weight: 700; text-transform: uppercase;
+      padding: .15rem .65rem; border-radius: 99px;
+      background: var(--accent); color: #000; letter-spacing: .06em;
+    }
+    .print3d-tier-label {
+      font-size: .6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+    }
+    .print3d-tier-name {
+      font-size: 1rem; font-weight: 800; color: var(--text);
+      margin: .3rem 0 .5rem;
+    }
+    .print3d-tier-price {
+      font-size: 1.35rem; font-weight: 900; color: var(--text);
+      margin-bottom: .75rem;
+    }
+    .print3d-tier-price-from {
+      font-size: .6rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em; display: block;
+    }
+    .print3d-tier-price sup { font-size: .65rem; font-weight: 600; vertical-align: super; }
+    .print3d-tier-specs {
+      list-style: none; margin: 0; padding: 0; flex: 1;
+    }
+    .print3d-tier-specs li {
+      font-size: .76rem; color: var(--muted); padding: .25rem 0;
+      border-bottom: 1px solid var(--border); line-height: 1.4;
+    }
+    .print3d-tier-specs li:last-child { border-bottom: none; }
+    .print3d-tier-specs li strong { color: var(--text); }
+    .plan-cta {
+      margin-top: 1rem; padding: .6rem; border-radius: 8px;
+      font-size: .82rem; font-weight: 700; font-family: inherit;
+      background: var(--bg3); color: var(--text); border: 1px solid var(--border);
+      cursor: pointer; transition: all .15s; text-align: center; text-decoration: none;
+    }
+    .plan-cta:hover { background: var(--accent-dim); border-color: var(--accent); }
+
+    /* ── Tier table ── */
+    .tier-table-wrap { overflow-x: auto; padding: 0 2rem 1.5rem; }
+    .tier-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    .tier-table th {
+      text-align: left; font-size: .65rem; font-weight: 700;
+      letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+      padding: .55rem 1rem; border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .tier-table td {
+      padding: .85rem 1rem; border-bottom: 1px solid var(--border);
+      font-size: .84rem; color: var(--text); vertical-align: middle;
+    }
+    .tier-table tr:hover td { background: rgba(156,93,255,.03); }
+    .tier-table .tier-chip {
+      font-size: .6rem; font-weight: 700; letter-spacing: .07em;
+      text-transform: uppercase; padding: .15rem .5rem;
+      border-radius: 99px; display: inline-block;
+    }
+    .tier-chip-entry  { background: rgba(156,93,255,.12); color: var(--accent); border: 1px solid rgba(156,93,255,.25); }
+    .tier-chip-mid    { background: rgba(100,150,255,.1); color: #64a0ff;    border: 1px solid rgba(100,150,255,.2); }
+    .tier-chip-pro    { background: rgba(255,180,0,.1);  color: #ffb400;     border: 1px solid rgba(255,180,0,.2); }
+    .tier-chip-server { background: rgba(255,107,107,.1); color: var(--accent3); border: 1px solid rgba(255,107,107,.2); }
+    .tier-table td.price-col { font-size: .92rem; font-weight: 800; color: var(--text); white-space: nowrap; }
+    .tier-table td.price-col small { font-size: .68rem; font-weight: 400; color: var(--muted); display: block; margin-top: 1px; }
+
+    /* ── Section titles ── */
+    .print3d-section-title {
+      font-size: .68rem; font-weight: 700; letter-spacing: .09em;
+      text-transform: uppercase; color: var(--muted);
+      padding: 1.25rem 2rem .6rem;
+    }
+
+    /* ── Partners / services strip ── */
+    .print3d-partners-strip {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: .75rem; padding: 0 2rem 1.5rem;
+    }
+    .print3d-partner-chip {
+      display: flex; align-items: center; gap: .65rem;
+      padding: .8rem 1rem; background: var(--card);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      text-decoration: none; color: var(--text); transition: all .15s;
+    }
+    .print3d-partner-chip:hover { border-color: var(--accent); }
+    .print3d-partner-chip div div { font-size: .85rem; }
+    .print3d-partner-chip div span { font-size: .65rem; color: var(--muted); }
+
+    /* ── Materials grid ── */
+    .print3d-materials-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: .75rem; padding: 0 2rem 1.5rem;
+    }
+    .print3d-material {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem;
+    }
+    .print3d-material-name { font-size: .88rem; font-weight: 800; color: var(--text); margin-bottom: .3rem; }
+    .print3d-material-desc { font-size: .73rem; color: var(--muted); line-height: 1.45; }
+    .print3d-material-tags { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .6rem; }
+    .print3d-material-tag {
+      font-size: .58rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; padding: .1rem .45rem; border-radius: 99px;
+      background: var(--bg3); border: 1px solid var(--border); color: var(--muted);
+    }
+
+    /* ── Process steps ── */
+    .print3d-proc-steps {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem; padding: 0 2rem 1.5rem;
+    }
+    .print3d-proc-step {
+      display: flex; gap: .75rem; align-items: flex-start;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem;
+    }
+    .print3d-proc-num {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--accent); color: #000; font-size: .78rem;
+      font-weight: 800; display: flex; align-items: center; justify-content: center;
+    }
+    .print3d-proc-title { font-size: .85rem; font-weight: 700; color: var(--text); margin-bottom: .15rem; }
+    .print3d-proc-desc { font-size: .73rem; color: var(--muted); line-height: 1.4; }
+
+    /* ── CTA strip ── */
+    .print3d-cta-strip {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap;
+      margin: 0 2rem 2rem; padding: 1.25rem 1.5rem;
+      background: var(--accent-dim); border: 1px solid var(--border-hover);
+      border-radius: var(--radius);
+    }
+    .print3d-cta-text { font-size: 1rem; font-weight: 800; color: var(--text); }
+    .print3d-cta-sub { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <!-- Sidebar injected by cloud.js -->
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">3D Printing</span>
+      <div class="mgmt-topbar-actions">
+        <a href="https:///contact" target="_blank" class="btn btn-primary btn-sm">Request a Print →</a>
+      </div>
+    </div>
+
+    <div class="print3d-page">
+
+      <!-- Hero -->
+      <div class="print3d-hero">
+        <div class="print3d-hero-tag">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Additive Manufacturing · On Demand
+        </div>
+        <div class="print3d-hero-title">Online 3D Printing, Ready When You Are</div>
+        <div class="print3d-hero-desc">
+          Upload your STL/OBJ, pick a material and a finish — get your part printed by vetted online services or
+          order a certified printer for your own workshop. From a single prototype to production runs, with
+          transparent per-cubic-centimeter pricing and worldwide shipping.
+        </div>
+        <div class="print3d-hero-stats">
+          <div class="print3d-hero-stat">
+            <span class="print3d-hero-stat-val">20+</span>
+            <span class="print3d-hero-stat-lbl">Materials</span>
+          </div>
+          <div class="print3d-hero-stat">
+            <span class="print3d-hero-stat-val">25µm</span>
+            <span class="print3d-hero-stat-lbl">Best resolution</span>
+          </div>
+          <div class="print3d-hero-stat">
+            <span class="print3d-hero-stat-val">9</span>
+            <span class="print3d-hero-stat-lbl">Print services</span>
+          </div>
+          <div class="print3d-hero-stat">
+            <span class="print3d-hero-stat-val">7</span>
+            <span class="print3d-hero-stat-lbl">Printer brands</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Print service tiers -->
+      <div class="print3d-tiers-grid">
+
+        <div class="print3d-tier-card">
+          <span class="print3d-tier-label">FDM / FFF</span>
+          <div class="print3d-tier-name">Prototype</div>
+          <div class="print3d-tier-price">
+            <span class="print3d-tier-price-from">from</span>
+            <sup>$</sup>0.08<span style="font-size:.7rem">/cm³</span>
+          </div>
+          <ul class="print3d-tier-specs">
+            <li><strong>PLA / PETG</strong> · 100–400 µm</li>
+            <li>Functional parts, jigs &amp; fixtures</li>
+            <li>3–7 day turnaround</li>
+            <li>File review before printing</li>
+            <li>Color + finishing options</li>
+          </ul>
+          <a href="https:///contact" target="_blank" class="plan-cta">Get a Quote</a>
+        </div>
+
+        <div class="print3d-tier-card featured">
+          <div class="print3d-tier-badge">Popular</div>
+          <span class="print3d-tier-label">Resin / SLA</span>
+          <div class="print3d-tier-name">Detail</div>
+          <div class="print3d-tier-price">
+            <span class="print3d-tier-price-from">from</span>
+            <sup>$</sup>0.35<span style="font-size:.7rem">/cm³</span>
+          </div>
+          <ul class="print3d-tier-specs">
+            <li><strong>Standard / ABS-like / Tough</strong> resin</li>
+            <li>25–100 µm · smooth surfaces</li>
+            <li>Miniatures, jewelry, dental</li>
+            <li>Support removal + UV cure included</li>
+            <li>Painting &amp; dyeing on request</li>
+          </ul>
+          <a href="https:///contact" target="_blank" class="plan-cta" style="background:var(--accent);color:#000;border-color:var(--accent)">Get a Quote</a>
+        </div>
+
+        <div class="print3d-tier-card">
+          <span class="print3d-tier-label">Nylon / PA</span>
+          <div class="print3d-tier-name">Engineering</div>
+          <div class="print3d-tier-price">
+            <span class="print3d-tier-price-from">from</span>
+            <sup>$</sup>0.55<span style="font-size:.7rem">/cm³</span>
+          </div>
+          <ul class="print3d-tier-specs">
+            <li><strong>PA12 · PA11 · PA-GF</strong></li>
+            <li>SLS / MJF · no supports needed</li>
+            <li>Enclosures, brackets, gears</li>
+            <li>Dyeing + vapor smoothing</li>
+            <li>Low-run production ready</li>
+          </ul>
+          <a href="https:///contact" target="_blank" class="plan-cta">Get a Quote</a>
+        </div>
+
+        <div class="print3d-tier-card">
+          <span class="print3d-tier-label">Metal</span>
+          <div class="print3d-tier-name">Production</div>
+          <div class="print3d-tier-price">
+            <span class="print3d-tier-price-from">from</span>
+            <sup>$</sup>3.00<span style="font-size:.7rem">/cm³</span>
+          </div>
+          <ul class="print3d-tier-specs">
+            <li><strong>SS316L · AlSi10Mg · Ti64</strong></li>
+            <li>SLM / DMLS · aerospace grade</li>
+            <li>CNC finishing + anodizing</li>
+            <li>Inspection &amp; certification</li>
+            <li>Production runs &amp; DFM help</li>
+          </ul>
+          <a href="https:///contact" target="_blank" class="plan-cta">Get a Quote</a>
+        </div>
+
+      </div><!-- /print3d-tiers-grid -->
+
+      <!-- Full pricing / options table -->
+      <div class="print3d-section-title" style="padding-top:0">Full Options &amp; Pricing</div>
+      <div class="tier-table-wrap">
+        <table class="tier-table">
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Process</th>
+              <th>Materials</th>
+              <th>Resolution</th>
+              <th>Lead time</th>
+              <th>Price (from)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tier-chip tier-chip-entry">FDM</span></td>
+              <td>FFF · Fused Filament</td>
+              <td>PLA, PETG, ABS, TPU, PC</td>
+              <td>100–400 µm</td>
+              <td>3–7 days</td>
+              <td class="price-col">$0.08/cm³<small>+ $3 setup</small></td>
+              <td><a href="https:///contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-entry">SLA</span></td>
+              <td>Resin · Stereolithography</td>
+              <td>Standard, ABS-like, Tough, Castable</td>
+              <td>25–100 µm</td>
+              <td>2–5 days</td>
+              <td class="price-col">$0.35/cm³<small>+ $5 setup</small></td>
+              <td><a href="https:///contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-mid">SLS</span></td>
+              <td>Powder bed · Selective Laser Sintering</td>
+              <td>PA12, PA11, PA-GF, TPU powder</td>
+              <td>100 µm</td>
+              <td>5–10 days</td>
+              <td class="price-col">$0.55/cm³<small>+ $10 setup</small></td>
+              <td><a href="https:///contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-pro">MJF</span></td>
+              <td>Multi Jet Fusion</td>
+              <td>PA12, PA12-GB, PA11</td>
+              <td>80 µm</td>
+              <td>5–10 days</td>
+              <td class="price-col">$0.60/cm³<small>+ $10 setup</small></td>
+              <td><a href="https:///contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-pro">DLP</span></td>
+              <td>Digital Light Processing</td>
+              <td>Rigid, Flexible, Dental, Castable</td>
+              <td>30–60 µm</td>
+              <td>2–5 days</td>
+              <td class="price-col">$0.40/cm³<small>+ $5 setup</small></td>
+              <td><a href="https:///contact" target="_blank" class="btn btn-secondary btn-sm">Quote</a></td>
+            </tr>
+            <tr>
+              <td><span class="tier-chip tier-chip-server">Metal</span></td>
+              <td>SLM / DMLS</td>
+              <td>SS316L, AlSi10Mg, Ti-6Al-4V</td>
+              <td>40–100 µm</td>
+              <td>7–15 days</td>
+              <td class="price-col">$3.00/cm³<small>+ DFM + finishing</small></td>
+              <td><a href="https:///contact" target="_blank" class="btn btn-primary btn-sm">Contact Sales</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Online print services / manufacturers -->
+      <div class="print3d-section-title">Vetted Online Print Services</div>
+      <div class="print3d-partners-strip">
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🧪</span>
+          <div>
+            <div style="font-weight:700">Proto &amp; Production</div>
+            <span>FDM · SLA · SLS · MJF · 30+ materials · instant quotes</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">💎</span>
+          <div>
+            <div style="font-weight:700">Detail &amp; Resin</div>
+            <span>High-resolution resin, painting, jewelry-grade finishes</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🛠️</span>
+          <div>
+            <div style="font-weight:700">Engineering Plastics</div>
+            <span>PA, PC, PEEK, ULTEM — strong, heat-resistant parts</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">⚙️</span>
+          <div>
+            <div style="font-weight:700">Metal Additive</div>
+            <span>SLM/DMLS with CNC finishing, inspection, certification</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🏭</span>
+          <div>
+            <div style="font-weight:700">Factory Direct</div>
+            <span>Asian MFG hubs — low-cost production at scale</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🧑‍🔬</span>
+          <div>
+            <div style="font-weight:700">Bioprinting &amp; R&amp;D</div>
+            <span>Specialized labs for medical and research prints</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🎨</span>
+          <div>
+            <div style="font-weight:700">Post-Processing</div>
+            <span>Vapor smoothing, dyeing, coating, painting</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">📦</span>
+          <div>
+            <div style="font-weight:700">Fullfilment Partners</div>
+            <span>Print-on-demand drop shipping for your store</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🔩</span>
+          <div>
+            <div style="font-weight:700">Certified Printers</div>
+            <span>Verified hardware resellers — buy a printer to own</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Printer manufacturers -->
+      <div class="print3d-section-title">Certified Printer Manufacturers</div>
+      <div class="print3d-partners-strip">
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🧬</span>
+          <div>
+            <div style="font-weight:700">Prusa Research</div>
+            <span>Open-source FDM — MK4, XL, ecosystem</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🚀</span>
+          <div>
+            <div style="font-weight:700">Bambu Lab</div>
+            <span>High-speed FDM — X1, P1, A1 series</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🦾</span>
+          <div>
+            <div style="font-weight:700">Formlabs</div>
+            <span>Professional SLA resin — Form 3/4, Fuse SLS</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🏗️</span>
+          <div>
+            <div style="font-weight:700">Creality</div>
+            <span>Budget FDM — Ender, K1, resin printers</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🧊</span>
+          <div>
+            <div style="font-weight:700">Anycubic</div>
+            <span>Resin + FDM value printers, large formats</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">⚡</span>
+          <div>
+            <div style="font-weight:700">Elegoo</div>
+            <span>Resin pioneers — Saturn, Mars, Neptune</span>
+          </div>
+        </a>
+        <a href="https:///contact" target="_blank" class="print3d-partner-chip">
+          <span style="font-size:1rem">🏭</span>
+          <div>
+            <div style="font-weight:700">Raise3D / UltiMaker</div>
+            <span>Industrial FDM for production environments</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Materials -->
+      <div class="print3d-section-title">Materials Library</div>
+      <div class="print3d-materials-grid">
+        <div class="print3d-material">
+          <div class="print3d-material-name">PLA</div>
+          <div class="print3d-material-desc">Easy to print, biodegradable, great for prototypes and visual models.</div>
+          <div class="print3d-material-tags"><span class="print3d-material-tag">FDM</span><span class="print3d-material-tag">$</span></div>
+        </div>
+        <div class="print3d-material">
+          <div class="print3d-material-name">PETG</div>
+          <div class="print3d-material-desc">Stronger, more durable than PLA with better chemical resistance.</div>
+          <div class="print3d-material-tags"><span class="print3d-material-tag">FDM</span><span class="print3d-material-tag">$$</span></div>
+        </div>
+        <div class="print3d-material">
+          <div class="print3d-material-name">ABS / ASA</div>
+          <div class="print3d-material-desc">Heat and impact resistant, UV-stable ASA for outdoor parts.</div>
+          <div class="print3d-material-tags"><span class="print3d-material-tag">FDM</span><span class="print3d-material-tag">$$</span></div>
+        </div>
+        <div class="print3d-material">
+          <div class="print3d-material-name">TPU</div>
+          <div class="print3d-material-desc">Flexible rubber-like material for gaskets, cases, dampeners.</div>
+          <div class="print3d-material-tags"><span class="print3d-material-tag">FDM</span><span class="print3d-material-tag">$$</span></div>
+        </div>
+        <div class="print3d-material">
+          <div class="print3d-material-name">Resin</div>
+          <div class="print3d-material-desc">High detail, smooth surfaces — standard, tough, castable variants.</div>
+          <div class="print3d-material-tags"><span class="print3d-material-tag">SLA</span><span class="print3d-material-tag">$$$</span></div>
+        </div>
+        <div class="print3d-material">
+          <div class="print3d-material-name">Nylon PA12</div>
+          <div class="print3d-material-desc">Durable, layer-free finish from SLS/MJF — no supports needed.</div>
+          <div class="print3d-material-tags"><span class="print3d-material-tag">SLS</span><span class="print3d-material-tag">$$$</span></div>
+        </div>
+        <div class="print3d-material">
+          <div class="print3d-material-name">Stainless Steel</div>
+          <div class="print3d-material-desc">316L for functional metal parts — brackets, housings, tools.</div>
+          <div class="print3d-material-tags"><span class="print3d-material-tag">Metal</span><span class="print3d-material-tag">$$$$</span></div>
+        </div>
+        <div class="print3d-material">
+          <div class="print3d-material-name">Aluminum</div>
+          <div class="print3d-material-desc">AlSi10Mg — lightweight, strong, ideal for mechanical parts.</div>
+          <div class="print3d-material-tags"><span class="print3d-material-tag">Metal</span><span class="print3d-material-tag">$$$$</span></div>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="print3d-section-title">How It Works</div>
+      <div class="print3d-proc-steps">
+        <div class="print3d-proc-step">
+          <div class="print3d-proc-num">1</div>
+          <div>
+            <div class="print3d-proc-title">Upload Your Model</div>
+            <div class="print3d-proc-desc">Send an STL, OBJ or STEP file — we review geometry, wall thickness and printability.</div>
+          </div>
+        </div>
+        <div class="print3d-proc-step">
+          <div class="print3d-proc-num">2</div>
+          <div>
+            <div class="print3d-proc-title">Choose Material &amp; Finish</div>
+            <div class="print3d-proc-desc">Pick from the options table — we return a firm quote with transparent per-cm³ pricing.</div>
+          </div>
+        </div>
+        <div class="print3d-proc-step">
+          <div class="print3d-proc-num">3</div>
+          <div>
+            <div class="print3d-proc-title">We Print &amp; Inspect</div>
+            <div class="print3d-proc-desc">Vetted services print and quality-check your part; photos sent before shipping.</div>
+          </div>
+        </div>
+        <div class="print3d-proc-step">
+          <div class="print3d-proc-num">4</div>
+          <div>
+            <div class="print3d-proc-title">Shipped Worldwide</div>
+            <div class="print3d-proc-desc">Packaged and delivered anywhere. Repeat orders re-use your settings for faster turnaround.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA strip -->
+      <div class="print3d-cta-strip">
+        <div>
+          <div class="print3d-cta-text">Ready to bring your idea into the physical world?</div>
+          <div class="print3d-cta-sub">A single prototype or a thousand production parts — we handle sourcing, printing and delivery.</div>
+        </div>
+        <div style="display:flex;gap:.65rem;flex-wrap:wrap">
+          <a href="https:///contact" target="_blank" class="btn btn-primary">Get a Print Quote →</a>
+          <a href="tel:+552140402160" class="btn btn-secondary">+55 21 4040-2160</a>
+        </div>
+      </div>
+
+    </div><!-- /print3d-page -->
+  </main>
+</div><!-- /mgmt-shell -->
+
+<div id="cloud-toast"></div>
+<script src="/cloud/js/cloud.js"></script>
+</body>
+</html>

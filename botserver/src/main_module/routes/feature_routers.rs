@@ -159,10 +159,28 @@ pub(super) fn make_social_router(app_state: &Arc<AppState>) -> Router<()> {
 pub(super) fn make_billing_router(app_state: &Arc<AppState>) -> Router<()> {
     let make_state = || Arc::new(botbilling::api::BillingApiState {
         pool: Arc::new(app_state.conn.clone()),
-        get_default_bot: Some((|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid),
+        get_default_bot: Some(
+            (|conn: &mut diesel::PgConnection| {
+                use diesel::prelude::*;
+                #[derive(diesel::QueryableByName)]
+                #[diesel(check_for_backend(diesel::pg::Pg))]
+                struct BranchRow {
+                    #[diesel(sql_type = diesel::sql_types::Uuid)]
+                    branch_id: uuid::Uuid,
+                }
+                diesel::sql_query(
+                    "SELECT branch_id FROM bots WHERE is_default_for_branch = TRUE ORDER BY created_at ASC LIMIT 1",
+                )
+                .get_result::<BranchRow>(conn)
+                .map(|r| r.branch_id)
+                .unwrap_or_else(|_| uuid::Uuid::nil())
+            }) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
+        ),
     });
     Router::new()
         .merge(crate::billing::billing_ui::configure_billing_routes().with_state(make_state()))
+        .merge(crate::billing::billing_admin::configure_admin_billing_routes().with_state(make_state()))
+        .merge(crate::billing::erp_ui::configure_erp_ui_routes().with_state(make_state()))
         .merge(crate::billing::api::configure_billing_api_routes().with_state(make_state()))
 }
 

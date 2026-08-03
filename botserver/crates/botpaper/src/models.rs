@@ -42,6 +42,10 @@ pub struct SaveRequest {
 pub struct AiRequest {
     #[serde(rename = "selected-text")]
     pub selected_text: Option<String>,
+    #[serde(rename = "selectedText")]
+    pub selected_text_alt: Option<String>,
+    pub text: Option<String>,
+    pub tone: Option<String>,
     pub prompt: Option<String>,
     #[serde(rename = "translate-lang")]
     pub translate_lang: Option<String>,

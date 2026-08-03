@@ -53,9 +53,11 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         )
         .route("/apps", get(handle_list_apps))
         .route("/prompts", get(handle_prompts))
+        .route("/prompts/save", post(handle_prompts_save))
         .route("/templates", get(handle_templates))
         .route("/news", get(handle_news))
         .route("/mcp-servers", get(handle_mcp_servers))
+        .route("/mcp/add-from-catalog", post(handle_add_from_catalog))
         .route("/llm-tools", get(handle_llm_tools))
         .route("/models", get(handle_models))
         .route("/search", get(handle_search))
@@ -77,6 +79,7 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/etl/:id", delete(integrations_handlers::handle_delete_etl_job));
 
     Router::new()
+        .route("/api/ui/skills/install", post(handle_install_skill))
         .nest(API_SOURCES_KB, kb_routes)
         .nest(API_SOURCES_MCP, mcp_routes)
         .nest(API_UI_SOURCES, ui_sources_routes)

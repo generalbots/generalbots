@@ -96,8 +96,8 @@ pub const SUITE_DIRS: &[&str] = &[
     // Additional Apps (static HTML - always included)
     "banking", "biometry", "brazil", "browser", "campaigns",
     "compliance", "database", "desktop", "email", "handoff", "hr",
-    "integrations", "erp", "itsm", "kyc", "lists", "m365", "minutes",
-    "office365", "plan", "plugins", "pos", "retail", "sales", "tax",
+    "integrations", "erp", "itsm", "kyc", "lists", "o365", "minutes",
+    "plan", "plugins", "pos", "retail", "sales", "tax",
     "templates", "templates-app", "terminal", "timeclock", "vision",
 ];
 

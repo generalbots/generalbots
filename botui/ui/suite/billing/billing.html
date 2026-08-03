@@ -30,6 +30,27 @@
                 >
                     Quotes
                 </button>
+                <button
+                    class="billing-tab"
+                    data-view="inventory"
+                    data-i18n="erp-inventory"
+                >
+                    Inventory
+                </button>
+                <button
+                    class="billing-tab"
+                    data-view="gl"
+                    data-i18n="erp-gl"
+                >
+                    GL
+                </button>
+                <button
+                    class="billing-tab"
+                    data-view="procurement"
+                    data-i18n="erp-procurement"
+                >
+                    Procurement
+                </button>
             </nav>
         </div>
         <div class="billing-header-right">
@@ -415,6 +436,74 @@
             ></tbody>
         </table>
     </div>
+
+    <!-- Inventory View -->
+    <div id="billing-inventory-view" class="billing-view">
+        <div class="billing-list-header">
+            <div class="list-filters">
+                <span class="billing-filter-label" data-i18n="erp-inventory">Inventory</span>
+            </div>
+        </div>
+        <div
+            id="inventory-content"
+            hx-get="/api/ui/billing/inventory"
+            hx-trigger="load"
+        >
+            <!-- Inventory loaded via HTMX -->
+        </div>
+    </div>
+
+    <!-- GL View -->
+    <div id="billing-gl-view" class="billing-view">
+        <div class="billing-list-header">
+            <div class="list-filters">
+                <button
+                    class="billing-tab gl-sub"
+                    data-gl="accounts"
+                    onclick="loadGlView('accounts', this)"
+                >
+                    Accounts
+                </button>
+                <button
+                    class="billing-tab gl-sub"
+                    data-gl="balance-sheet"
+                    onclick="loadGlView('balance-sheet', this)"
+                >
+                    Balance Sheet
+                </button>
+                <button
+                    class="billing-tab gl-sub"
+                    data-gl="income-statement"
+                    onclick="loadGlView('income-statement', this)"
+                >
+                    Income Statement
+                </button>
+            </div>
+        </div>
+        <div
+            id="gl-content"
+            hx-get="/api/ui/billing/gl/accounts"
+            hx-trigger="load"
+        >
+            <!-- GL loaded via HTMX -->
+        </div>
+    </div>
+
+    <!-- Procurement View -->
+    <div id="billing-procurement-view" class="billing-view">
+        <div class="billing-list-header">
+            <div class="list-filters">
+                <span class="billing-filter-label" data-i18n="erp-procurement">Purchase Orders</span>
+            </div>
+        </div>
+        <div
+            id="procurement-content"
+            hx-get="/api/ui/billing/procurement"
+            hx-trigger="load"
+        >
+            <!-- Procurement loaded via HTMX -->
+        </div>
+    </div>
 </div>
 
 <!-- Modal for forms -->
@@ -464,6 +553,18 @@
 
         window.closeBillingModal = function () {
             document.getElementById("billing-modal").classList.remove("open");
+        };
+
+        window.loadGlView = function (view, btn) {
+            document.querySelectorAll(".gl-sub").forEach(function (t) {
+                t.classList.remove("active");
+            });
+            if (btn) btn.classList.add("active");
+            htmx.ajax(
+                "GET",
+                "/api/ui/billing/gl/" + view,
+                "#gl-content"
+            );
         };
 
         // Keyboard shortcut: Escape to close modal

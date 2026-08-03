@@ -5,6 +5,8 @@ pub mod bootstrap;
 pub mod client;
 pub mod router;
 pub mod scim;
+pub mod ui_api;
+pub mod ui_fragments;
 pub mod users;
 pub mod groups;
 pub mod organizations;
