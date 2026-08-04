@@ -98,23 +98,37 @@ impl Scopes {
     }
 }
 
+/// Seed every domain. Each domain runs independently: a failure in one app
+/// (e.g. a legacy/missing table on an un-migrated prod schema) is logged and
+/// the remaining domains still seed.
 pub fn seed(conn: &mut diesel::PgConnection) -> Result<(), String> {
     let scopes = Scopes::new(conn)?;
     ensure_user(conn, &scopes)?;
-    seed_people(conn, &scopes)?;
-    seed_crm(conn, &scopes)?;
-    seed_tickets(conn, &scopes)?;
-    seed_billing(conn, &scopes)?;
-    seed_tasks(conn, &scopes)?;
-    seed_calendar(conn, &scopes)?;
-    seed_research(conn, &scopes)?;
-    seed_compliance(conn, &scopes)?;
-    seed_goals(conn, &scopes)?;
-    seed_workspaces(conn, &scopes)?;
-    seed_social(conn, &scopes)?;
-    seed_marketing(conn, &scopes)?;
-    seed_m365(conn, &scopes)?;
-    seed_drive(conn, &scopes)?;
+
+    let domains: Vec<(&str, fn(&mut diesel::PgConnection, &Scopes) -> Result<(), String>)> = vec![
+        ("people", seed_people),
+        ("crm", seed_crm),
+        ("tickets", seed_tickets),
+        ("billing", seed_billing),
+        ("tasks", seed_tasks),
+        ("calendar", seed_calendar),
+        ("research", seed_research),
+        ("compliance", seed_compliance),
+        ("goals", seed_goals),
+        ("workspaces", seed_workspaces),
+        ("social", seed_social),
+        ("marketing", seed_marketing),
+        ("o365", seed_m365),
+        ("drive", seed_drive),
+    ];
+
+    for (name, seed_fn) in domains {
+        match seed_fn(conn, &scopes) {
+            Ok(()) => log::info!("botsampledata: {name} seeded"),
+            Err(e) => log::error!("botsampledata: {name} seeding failed: {e}"),
+        }
+    }
+
     Ok(())
 }
 
