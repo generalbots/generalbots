@@ -157,7 +157,7 @@
     <div id="crm-deals-view" class="crm-view">
         <div class="crm-list-header">
             <div class="list-filters">
-                <select hx-get="/api/crm/deals" hx-trigger="change" hx-target="#deals-table-body" hx-include="this">
+                <select hx-get="/api/ui/crm/deals" hx-trigger="change" hx-target="#deals-table-body" hx-include="this">
                     <option value="all" data-i18n="crm-filter-all">All Deals</option>
                     <option value="new" data-i18n="crm-filter-new">New</option>
                     <option value="qualified" data-i18n="crm-filter-qualified">Qualified</option>
@@ -182,7 +182,7 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="deals-table-body" hx-get="/api/crm/deals" hx-trigger="load">
+            <tbody id="deals-table-body" hx-get="/api/ui/crm/deals" hx-trigger="load">
                 <!-- Deals loaded via HTMX -->
             </tbody>
         </table>
@@ -202,7 +202,7 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="accounts-table-body" hx-get="/api/crm/accounts" hx-trigger="load">
+            <tbody id="accounts-table-body" hx-get="/api/ui/crm/accounts" hx-trigger="load">
             </tbody>
         </table>
     </div>
@@ -220,7 +220,7 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="contacts-table-body" hx-get="/api/crm/contacts" hx-trigger="load">
+            <tbody id="contacts-table-body" hx-get="/api/ui/crm/contacts" hx-trigger="load">
             </tbody>
         </table>
     </div>
@@ -228,7 +228,7 @@
     <!-- Campaigns View -->
     <div id="crm-campaigns-view" class="crm-view">
         <div class="campaigns-grid" id="crmCampaignsList" 
-             hx-get="/api/crm/campaigns"
+             hx-get="/api/ui/crm/campaigns"
              hx-trigger="load"
              hx-swap="innerHTML">
             <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-secondary);">
