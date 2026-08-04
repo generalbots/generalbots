@@ -644,6 +644,10 @@ pub async fn open_file(
             "sheets".to_string(),
             format!("/suite/sheet/sheet.html?bucket={bucket}&path={path}"),
         ),
+        "docx" | "doc" | "odt" | "rtf" => (
+            "docs".to_string(),
+            format!("/suite/docs/?file={path}&bucket={bucket}"),
+        ),
         _ => ("preview".to_string(), format!("/suite/docs/?file={path}")),
     };
     Ok(Json(OpenFileResponse { app, url }))

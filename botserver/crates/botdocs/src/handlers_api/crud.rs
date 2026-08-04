@@ -176,3 +176,91 @@ pub async fn handle_delete_document(
         success: true,
     }))
 }
+
+/// Open an arbitrary file from the Drive (any bucket) inside the docs editor.
+///
+/// Reads the object bytes from MinIO/S3 and converts binary office formats
+/// (.docx/.doc/.odt/.rtf) to HTML so the content is editable. Plain text
+/// files (.txt/.md/.html) are used as-is.
+pub async fn handle_open_from_drive(
+    State(state): State<Arc<DocState>>,
+    Json(req): Json<crate::types::OpenFromDriveRequest>,
+) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
+    if req.bucket.is_empty() || req.path.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "bucket and path are required" })),
+        ));
+    }
+
+    let bytes = match state.drive.get_object(&req.bucket, &req.path).await {
+        Ok(b) => b,
+        Err(e) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": format!("File not found in drive: {e}") })),
+            ))
+        }
+    };
+
+    let file_name = req
+        .path
+        .rsplit('/')
+        .next()
+        .unwrap_or(&req.path)
+        .to_string();
+    let ext = file_name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase();
+
+    let content = match ext.as_str() {
+        "docx" | "doc" | "odt" | "rtf" => match crate::storage::convert_docx_to_html(&bytes) {
+            Ok(html) => html,
+            Err(e) => {
+                log::error!("Failed to convert {} to HTML: {}", req.path, e);
+                return Err((
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    Json(serde_json::json!({ "error": format!("Failed to convert document: {e}") })),
+                ));
+            }
+        },
+        "txt" | "md" | "html" | "htm" | "json" | "xml" | "csv" => {
+            String::from_utf8_lossy(&bytes).into_owned()
+        }
+        _ => {
+            return Err((
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": format!("Unsupported file type for docs editor: .{ext}") })),
+            ))
+        }
+    };
+
+    let now = chrono::Utc::now();
+    let title = file_name
+        .rsplit('.')
+        .next_back()
+        .map(|stem| file_name.trim_end_matches(&format!(".{stem}")).to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or(file_name.clone());
+
+    Ok(Json(Document {
+        id: format!("drive-{}", req.path.replace(['/', '.', ':'], "-")),
+        title,
+        content,
+        owner_id: get_current_user_id(),
+        storage_path: format!("{}/{}", req.bucket, req.path),
+        created_at: now,
+        updated_at: now,
+        collaborators: Vec::new(),
+        version: 1,
+        track_changes: None,
+        comments: None,
+        footnotes: None,
+        endnotes: None,
+        styles: None,
+        toc: None,
+        track_changes_enabled: false,
+    }))
+}

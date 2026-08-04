@@ -1648,3 +1648,58 @@ form.input-container {
 .quick-actions-container {
     display: none !important;
 }
+
+/* TTS speak button (issue #708) */
+.tts-speak-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    margin: 4px 0 0 8px;
+    padding: 0;
+    border: 1px solid rgba(120, 130, 150, 0.35);
+    border-radius: 50%;
+    background: rgba(120, 130, 150, 0.12);
+    color: #94a3b8;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+.tts-speak-btn:hover {
+    background: rgba(0, 212, 170, 0.18);
+    border-color: rgba(0, 212, 170, 0.6);
+    color: #00d4aa;
+}
+.tts-speak-btn:active {
+    transform: scale(0.92);
+}
+
+/* TTS auto-read toggle (issue #708) */
+.tts-toggle-btn {
+    position: fixed;
+    right: 24px;
+    bottom: 96px;
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(120, 130, 150, 0.35);
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.85);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.tts-toggle-btn:hover {
+    color: #00d4aa;
+    border-color: rgba(0, 212, 170, 0.6);
+}
+.tts-toggle-btn.active {
+    background: rgba(0, 212, 170, 0.18);
+    border-color: rgba(0, 212, 170, 0.7);
+    color: #00d4aa;
+}

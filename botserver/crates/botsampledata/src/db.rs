@@ -740,12 +740,13 @@ fn seed_social(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String
     Ok(())
 }
 
-fn seed_marketing(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
+fn seed_marketing(conn: &mut diesel::PgConnection, scopes: &Scopes) -> Result<(), String> {
     let nil = Uuid::nil();
+    let branch = &scopes.branch_str;
 
     let campaigns: &[(&str, &str)] = &[("Q3 Launch Campaign", "email"), ("WhatsApp Promo", "whatsapp")];
     for (name, ctype) in campaigns {
-        let n = count(conn, "SELECT count(*) AS n FROM marketing_campaigns WHERE branch_id::text = $1 AND name = $2", &["00000000-0000-0000-0000-000000000000", name])?;
+        let n = count(conn, "SELECT count(*) AS n FROM marketing_campaigns WHERE branch_id::text = $1 AND name = $2", &[branch, name])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO marketing_campaigns (id, branch_id, name, campaign_type, status, starts_at, ends_at, budget, metrics, created_at, updated_at)
@@ -761,7 +762,7 @@ fn seed_marketing(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), Str
     }
 
     for name in ["All Active Contacts", "Warm Leads"] {
-        let n = count(conn, "SELECT count(*) AS n FROM marketing_lists WHERE branch_id::text = $1 AND name = $2", &["00000000-0000-0000-0000-000000000000", name])?;
+        let n = count(conn, "SELECT count(*) AS n FROM marketing_lists WHERE branch_id::text = $1 AND name = $2", &[branch, name])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO marketing_lists (id, branch_id, name, list_type, description, query_text, member_count, contact_count, is_dynamic, criteria, created_at, updated_at)

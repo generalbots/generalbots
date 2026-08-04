@@ -1,6 +1,22 @@
 const API_BASE = '/api/cloud';
 
 // ── Login ──
+// When the login/signup form is embedded in another page (iframe, e.g. the
+// cloud store), notify the parent frame so it can close the modal and finish
+// the flow without a full-page redirect inside the iframe.
+function notifyParentSuccess(token, email, name) {
+  try {
+    if (window.self !== window.top) {
+      window.parent.postMessage({
+        type: 'GB_AUTH_SUCCESS',
+        token: token,
+        email: email || '',
+        name: name || '',
+      }, '*');
+    }
+  } catch (_) { /* parent may be cross-origin and unreachable */ }
+}
+
 async function handleLogin(e) {
   e.preventDefault();
   const btn   = document.getElementById('login-btn');
@@ -30,6 +46,7 @@ async function handleLogin(e) {
     localStorage.setItem('management_token', data.token);
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
+    notifyParentSuccess(data.token, data.email || email, data.name || '');
     var dest = (new URLSearchParams(window.location.search)).get('redirect') || (CLOUD_CONFIG.baseUrl + '/dashboard');
     window.location.href = dest + '?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
@@ -86,6 +103,7 @@ async function handleSignup(e) {
     localStorage.setItem('management_bot_id', data.bot_id || '');
     localStorage.setItem('management_bot_name', botName);
     localStorage.setItem('management_plan', data.plan || 'free');
+    notifyParentSuccess(token, emailOut, data.account?.name || name);
     // Private Server: redirect to Store VPS calculator instead of Dashboard
     var redir = (new URLSearchParams(window.location.search)).get('redirect');
     var dest = redir || (plan === 'private-cloud' ? CLOUD_CONFIG.baseUrl + '/store' : CLOUD_CONFIG.baseUrl + '/dashboard');

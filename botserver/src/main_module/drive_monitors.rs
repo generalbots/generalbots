@@ -62,6 +62,8 @@ pub(crate) async fn start_drive_monitors(
         let mut monitored_bots: std::collections::HashSet<String> = std::collections::HashSet::new();
 
         let mut last_list_error: Option<std::time::Instant> = None;
+        let mut consecutive_failures: u32 = 0;
+        let mut unhealthy_logged = false;
         let scan_state = app_state.clone();
         tokio::spawn(async move {
             register_thread("drive-scan", "drive");
@@ -69,6 +71,7 @@ pub(crate) async fn start_drive_monitors(
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(5u64);
+            const MAX_BACKOFF_SECS: u64 = 300; // 5 minutes
 
             loop {
                 tokio::time::sleep(std::time::Duration::from_secs(scan_interval)).await;
@@ -78,8 +81,16 @@ pub(crate) async fn start_drive_monitors(
                         Ok(buckets) => {
                             if last_list_error.is_some() {
                                 info!("Drive scan recovered — S3 buckets now accessible");
-                                last_list_error = None;
                             }
+                            if consecutive_failures > 0 {
+                                info!(
+                                    "Drive scan recovered after {} consecutive failures",
+                                    consecutive_failures
+                                );
+                            }
+                            consecutive_failures = 0;
+                            unhealthy_logged = false;
+                            last_list_error = None;
                             for bucket in buckets {
                                 if bucket.ends_with(".gborg") {
                                     if let Err(e) = scan_org_bucket(
@@ -92,6 +103,24 @@ pub(crate) async fn start_drive_monitors(
                             }
                         }
                         Err(e) => {
+                            consecutive_failures += 1;
+                            // Exponential backoff: grow the sleep after repeated failures
+                            // so a dead/unreachable drive does not burn CPU forever.
+                            if consecutive_failures > 1 {
+                                let backoff = scan_interval.saturating_mul(
+                                    1u64 << consecutive_failures.min(6)
+                                ).min(MAX_BACKOFF_SECS);
+                                tokio::time::sleep(std::time::Duration::from_secs(backoff)).await;
+                            }
+                            if consecutive_failures >= 10 && !unhealthy_logged {
+                                error!(
+                                    "Drive is UNHEALTHY after {} consecutive ListBuckets failures: {}. \
+                                     Check MinIO credentials (VAULT_TOKEN / MINIO_ACCESS_KEY / \
+                                     MINIO_SECRET_KEY). No further alerts until recovery.",
+                                    consecutive_failures, e
+                                );
+                                unhealthy_logged = true;
+                            }
                             let now = std::time::Instant::now();
                             let should_log = last_list_error.map_or(true, |t| now.duration_since(t).as_secs() > 120);
                             if should_log {

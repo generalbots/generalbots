@@ -178,6 +178,9 @@ function addMessage(sender, content, msgId, reasoning) {
     parsed = parsed.replace(/<br\s*\/?>/gi, '');
     parsed = renderMentionInMessage(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
+    if (content && content.trim() !== "") {
+      div.appendChild(createSpeakButton(content));
+    }
   }
 
   messages.appendChild(div);
@@ -199,6 +202,70 @@ function isTagBalanced(html) {
   var lastChevronClose = html.lastIndexOf('>');
   if (lastChevronOpen > lastChevronClose) return false;
   return true;
+}
+
+// ── TTS state + auto-read toggle (issue #708) ──
+var TTSState = {
+  autoSpeak: localStorage.getItem("gb_tts_auto") === "1"
+};
+
+function initTtsToggle() {
+  var btn = document.getElementById("ttsToggle");
+  if (!btn) return;
+  function refresh() {
+    btn.classList.toggle("active", TTSState.autoSpeak);
+    btn.title = TTSState.autoSpeak ? "Stop auto-reading bot replies" : "Auto-read bot replies (TTS)";
+  }
+  btn.addEventListener("click", function () {
+    TTSState.autoSpeak = !TTSState.autoSpeak;
+    localStorage.setItem("gb_tts_auto", TTSState.autoSpeak ? "1" : "0");
+    refresh();
+    if (!TTSState.autoSpeak && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  });
+  refresh();
+}
+
+document.addEventListener("DOMContentLoaded", initTtsToggle);
+
+// ── TTS (issue #708) — speak a bot message aloud ──
+function createSpeakButton(text) {
+  var btn = document.createElement("button");
+  btn.className = "tts-speak-btn";
+  btn.type = "button";
+  btn.title = "Listen (TTS)";
+  btn.setAttribute("aria-label", "Listen to this message");
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+  btn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    speakText(text);
+  });
+  return btn;
+}
+
+function speakText(text) {
+  try {
+    if (!("speechSynthesis" in window)) {
+      window.showToast && window.showToast("Text-to-speech is not supported in this browser", "warning");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    var clean = text.replace(/[*_#`~]/g, "").replace(/\s+/g, " ").trim();
+    if (!clean) return;
+    var utterance = new SpeechSynthesisUtterance(clean);
+    var preferred = "pt-BR";
+    var voices = window.speechSynthesis.getVoices();
+    if (voices.length) {
+      var match = voices.filter(function (v) { return v.lang === preferred; })[0] || voices[0];
+      utterance.voice = match;
+    }
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    console.error("TTS failed:", err);
+  }
 }
 
 function updateStreaming(content) {
@@ -248,8 +315,14 @@ function processMessage(data) {
     }
     if (data.content && data.content.trim() !== "") {
       addMessage("bot", data.content, null, data.reasoning || ChatState.currentReasoning);
+      if (TTSState.autoSpeak) {
+        speakText(data.content);
+      }
     } else if ((data.reasoning || ChatState.currentReasoning) && (data.reasoning || ChatState.currentReasoning).trim() !== "") {
       addMessage("bot", "", null, data.reasoning || ChatState.currentReasoning);
+      if (TTSState.autoSpeak) {
+        speakText(data.reasoning);
+      }
     }
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";
