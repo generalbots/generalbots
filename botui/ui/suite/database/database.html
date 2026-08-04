@@ -15,7 +15,7 @@
                 <div class="db-loading">Loading schema...</div>
             </div>
             <div class="db-sidebar-footer">
-                <button class="db-btn db-btn-primary" onclick="DBApp.showNewTableModal()">+ New Table</button>
+                <button class="db-btn db-btn-primary db-new-table" onclick="DBApp.showNewTableModal()">+ New Table</button>
             </div>
         </aside>
 
@@ -28,11 +28,11 @@
                     <span class="db-row-count" id="db-row-count"></span>
                 </div>
                 <div class="db-toolbar-right">
-                    <button class="db-btn" onclick="DBApp.showQueryBuilder()" title="SQL Query">SQL</button>
-                    <button class="db-btn" onclick="DBApp.exportTableCSV()" title="Export CSV">Export</button>
-                    <button class="db-btn" onclick="DBApp.importCSV()" title="Import CSV">Import</button>
-                    <button class="db-btn" onclick="DBApp.addNewRow()" title="Add Row">+ Row</button>
-                    <select id="db-page-size" onchange="DBApp.setPageSize(this.value)" class="db-select">
+                    <button class="db-btn" data-tool="sql" title="SQL Query">SQL</button>
+                    <button class="db-btn" data-tool="export" title="Export CSV">Export</button>
+                    <button class="db-btn" data-tool="import" title="Import CSV">Import</button>
+                    <button class="db-btn db-btn-primary" data-tool="add" title="Add Row">+ Row</button>
+                    <select id="db-page-size" class="db-select">
                         <option value="25">25 rows</option>
                         <option value="50" selected>50 rows</option>
                         <option value="100">100 rows</option>
@@ -41,11 +41,17 @@
                 </div>
             </div>
 
+            <!-- View Tabs (Grid / Fields) -->
+            <div class="db-view-tabs" id="db-view-tabs" style="display:none">
+                <div class="db-view-tab active" data-view="grid"><span class="db-view-icon">&#9638;</span> Grid</div>
+                <div class="db-view-tab" data-view="fields"><span class="db-view-icon">&#9675;</span> Fields</div>
+            </div>
+
             <!-- Column Filters -->
             <div class="db-filters" id="db-filters" style="display:none"></div>
 
             <!-- Data Grid -->
-            <div class="db-grid-container" id="db-grid-container">
+            <div class="db-grid-container" id="db-grid-container" tabindex="0">
                 <div class="db-empty-state">
                     <div class="db-empty-icon">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -56,11 +62,20 @@
                 </div>
             </div>
 
+            <!-- Selection Bar -->
+            <div class="db-selection-bar" id="db-selection-bar" hidden>
+                <span class="db-sel-count">0 selected</span>
+                <div class="db-selection-actions">
+                    <button class="db-btn db-btn-danger-outline" data-sel="delete">Delete</button>
+                    <button class="db-btn" data-sel="clear">Clear</button>
+                </div>
+            </div>
+
             <!-- Pagination -->
             <div class="db-pagination" id="db-pagination" style="display:none">
-                <button class="db-btn" id="db-prev-page" onclick="DBApp.prevPage()" disabled>&#8592; Previous</button>
+                <button class="db-btn" id="db-prev-page" disabled>&#8592; Previous</button>
                 <span class="db-page-info" id="db-page-info">Page 1 of 1</span>
-                <button class="db-btn" id="db-next-page" onclick="DBApp.nextPage()" disabled>Next &#8594;</button>
+                <button class="db-btn" id="db-next-page" disabled>Next &#8594;</button>
             </div>
 
             <!-- SQL Console (hidden by default) -->
@@ -117,29 +132,26 @@
                 <button class="db-btn" onclick="DBApp.addColumnRow()" style="margin-top:8px">+ Add Column</button>
             </div>
             <div class="db-form-actions">
-                <button class="db-btn" onclick="DBApp.hideNewTableModal()">Cancel</button>
-                <button class="db-btn db-btn-primary" onclick="DBApp.createTable()">Create Table</button>
+                <button class="db-btn db-cancel-btn">Cancel</button>
+                <button class="db-btn db-btn-primary db-create-btn">Create Table</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Cell Edit Modal -->
+<!-- Row Editor Modal -->
 <div id="db-cell-edit-modal" class="db-modal" style="display:none">
     <div class="db-modal-overlay" onclick="DBApp.hideCellEdit()"></div>
-    <div class="db-modal-content" style="max-width:400px">
+    <div class="db-modal-content" style="max-width:560px">
         <div class="db-modal-header">
-            <h2>Edit Cell</h2>
+            <h2 id="db-row-edit-title">Edit Row</h2>
             <button class="db-btn-icon" onclick="DBApp.hideCellEdit()">&times;</button>
         </div>
         <div style="padding:16px">
-            <div class="db-form-group">
-                <label id="db-cell-edit-label">Value</label>
-                <textarea id="db-cell-edit-value" class="db-input" rows="4"></textarea>
-            </div>
+            <div id="db-row-edit-body"></div>
             <div class="db-form-actions">
-                <button class="db-btn" onclick="DBApp.hideCellEdit()">Cancel</button>
-                <button class="db-btn db-btn-primary" onclick="DBApp.saveCellEdit()">Save</button>
+                <button class="db-btn db-cancel-btn" onclick="DBApp.hideCellEdit()">Cancel</button>
+                <button class="db-btn db-btn-primary db-save-btn">Save</button>
             </div>
         </div>
     </div>
@@ -159,11 +171,33 @@
                 <input type="file" id="db-import-file" accept=".csv" class="db-input">
             </div>
             <div class="db-form-actions">
-                <button class="db-btn" onclick="DBApp.hideImportModal()">Cancel</button>
-                <button class="db-btn db-btn-primary" onclick="DBApp.processImport()">Import</button>
+                <button class="db-btn db-import-cancel">Cancel</button>
+                <button class="db-btn db-btn-primary db-import-run">Import</button>
             </div>
         </div>
     </div>
 </div>
 
-<script src="/suite/database/database.js"></script>
+<script>
+// Sequential module loader — ensures scripts execute in order
+(function() {
+    var modules = [
+        '/suite/database/modules/01_state.js',
+        '/suite/database/modules/02_render.js',
+        '/suite/database/modules/03_actions.js',
+        '/suite/database/modules/04_actions.js',
+        '/suite/database/modules/99_init.js'
+    ];
+    var ts = Date.now();
+    function loadNext() {
+        if (modules.length === 0) return;
+        var src = modules.shift() + '?_=' + ts;
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = loadNext;
+        s.onerror = loadNext;
+        document.body.appendChild(s);
+    }
+    loadNext();
+})();
+</script>

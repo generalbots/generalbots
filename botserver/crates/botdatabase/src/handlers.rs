@@ -263,12 +263,39 @@ fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, 
         result.and_then(|r| r.database_name).ok_or_else(|| error_response("Bot database not configured"))?
     };
 
+    // A freshly-created per-bot database is empty. The schema browser already
+    // falls back to the main database in that case, so table-data loading must
+    // use the same database — otherwise clicking a table fails because the
+    // table does not exist in the empty per-bot database.
+    let main_url = state.database_url.clone();
     let base_url = state.database_url.clone();
     let base = base_url
         .rfind('/')
         .map(|pos| &base_url[..pos])
         .unwrap_or(&base_url);
-    Ok(format!("{base}/{db_name}"))
+    let bot_db_url = format!("{base}/{db_name}");
+
+    let empty = {
+        use postgres::NoTls;
+        let mut client = match postgres::Client::connect(&bot_db_url, NoTls) {
+            Ok(c) => c,
+            Err(_) => return Ok(main_url),
+        };
+        let row = match client.query_one(
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'",
+            &[],
+        ) {
+            Ok(r) => r,
+            Err(_) => return Ok(main_url),
+        };
+        let n: i64 = row.get(0);
+        n == 0
+    };
+    if empty {
+        return Ok(main_url);
+    }
+
+    Ok(bot_db_url)
 }
 
 #[derive(QueryableByName, Debug)]
@@ -491,7 +518,8 @@ pub async fn get_table_data(
 
     let cast_cols: Vec<String> = col_names
         .iter()
-        .map(|c| format!("{}::text", sanitize_identifier(c)))
+        .enumerate()
+        .map(|(i, c)| format!("{}::text AS c{}", sanitize_identifier(c), i + 1))
         .collect();
 
     let mut query = format!("SELECT {} FROM {safe_name}", cast_cols.join(", "));
