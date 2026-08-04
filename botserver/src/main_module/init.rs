@@ -242,6 +242,11 @@ pub async fn init_database(
                 info!("Database migrations completed successfully");
             }
 
+            #[cfg(feature = "sampledata")]
+            {
+                botsampledata::seed_all(&pool);
+            }
+
             #[cfg(feature = "saas")]
             {
                 if let Ok(mut conn) = pool.get() {

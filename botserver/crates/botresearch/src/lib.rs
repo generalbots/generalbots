@@ -188,7 +188,7 @@ pub async fn handle_list_collections<S: ResearchState>(
         };
 
         let result: Result<Vec<CollectionRow>, _> = diesel::sql_query(&format!(
-            "SELECT id, name, folder_path, document_count FROM kb_collections WHERE 1 = 1{} ORDER BY name ASC",
+            "SELECT id, name, folder_path, document_count::bigint AS document_count FROM kb_collections WHERE 1 = 1{} ORDER BY name ASC",
             scope
         ))
         .load(&mut db_conn);

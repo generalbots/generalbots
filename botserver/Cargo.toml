@@ -140,6 +140,7 @@ minimal-chat = ["chat", "automation", "cache"]  # No security at all
 lightweight = ["chat", "tasks", "people"]
 full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "cache", "compliance", "tax"]
 embed-ui = ["dep:rust-embed"]
+sampledata = ["dep:botsampledata"]
 
 allbutooxmlsdk = [
     "chat", "people", "mail", "meet", "social", "marketing",
@@ -160,6 +161,7 @@ allbutooxmlsdk = [
     "fraud", "inventory", "gl", "retail",
     "security", "directory", "llm", "vectordb", "crawler", "console",
     "saas", "m365",
+    "sampledata",
 ]
 
 [dependencies]
@@ -333,6 +335,7 @@ botattendant = { workspace = true, optional = true }
 botproducts = { workspace = true, optional = true }
 botcalendar = { workspace = true, optional = true }
 botcompliance = { workspace = true, optional = true }
+botsampledata = { workspace = true, optional = true }
 botdashboards = { workspace = true, optional = true }
 botanalytics = { workspace = true, optional = true }
 botdocs = { workspace = true, optional = true }

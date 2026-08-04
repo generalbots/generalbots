@@ -84,8 +84,9 @@ members = [
   "botserver/crates/botsecurity-auth",
   "botserver/crates/botsecurity-core",
   "botserver/crates/botsecurity-crypto",
-  "botserver/crates/botsecurity-protection",
-  "botserver/crates/botsettings",
+   "botserver/crates/botsecurity-protection",
+   "botserver/crates/botsampledata",
+   "botserver/crates/botsettings",
   "botserver/crates/botsheet",
  "botserver/crates/botsheet-core",
   "botserver/crates/botslides",
@@ -189,6 +190,8 @@ botsecurity-auth = { path = "botserver/crates/botsecurity-auth" }
 botsecurity-core = { path = "botserver/crates/botsecurity-core" }
 botsecurity-crypto = { path = "botserver/crates/botsecurity-crypto" }
 botsecurity-protection = { path = "botserver/crates/botsecurity-protection" }
+botsampledata = { path = "botserver/crates/botsampledata" }
+botschema = { path = "botschema" }
 botsheet = { path = "botserver/crates/botsheet" }
 botsheet-core = { path = "botserver/crates/botsheet-core" }
 botslides = { path = "botserver/crates/botslides" }
@@ -216,7 +219,6 @@ botbasic_comms = { path = "botserver/crates/botbasic_comms" }
 botbasic_ai = { path = "botserver/crates/botbasic_ai" }
 botbasic_system = { path = "botserver/crates/botbasic_system" }
 botbasic_compiler = { path = "botserver/crates/botbasic_compiler" }
-botschema = { path = "botschema" }
 botmodelsbridge = { path = "botserver/crates/botmodelsbridge" }
 botapi = { path = "botserver/crates/botapi" }
 botuifragments = { path = "botserver/crates/botuifragments" }

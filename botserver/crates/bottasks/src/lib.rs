@@ -16,6 +16,7 @@ use axum::{
 use std::sync::Arc;
 
 use task_api::handlers::*;
+use task_api::ui_fragments::*;
 
 pub const TASKS_LIST: &str = "/api/tasks";
 pub const TASKS_CREATE: &str = "/api/tasks";
@@ -40,4 +41,7 @@ pub fn configure_tasks_routes() -> Router<Arc<TasksState>> {
         .route(TASKS_CARDS, get(handle_get_cards))
         .route(TASKS_TERMINAL, get(handle_get_terminal))
         .route(TASKS_LOG, get(handle_get_log))
+        // HTMX fragment routes for the Tasks app UI
+        .route("/api/ui/tasks", get(handle_ui_tasks_list))
+        .route("/api/ui/tasks/stats", get(handle_ui_tasks_stats))
 }

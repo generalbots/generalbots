@@ -1044,6 +1044,8 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/product", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/bot/config", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/i18n/**", "GET", "").with_anonymous(true),
+        // App catalog drives every launcher — must be reachable by any user
+        RoutePermission::new("/api/apps/catalog", "GET", "").with_anonymous(true),
 
         // WhatsApp webhook - anonymous for Meta verification and message delivery
         RoutePermission::new("/webhook/whatsapp/{bot_id}", "GET", "").with_anonymous(true),
@@ -1516,6 +1518,13 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/people/**", "POST", ""),
         RoutePermission::new("/api/people/**", "PUT", ""),
         RoutePermission::new("/api/people/**", "DELETE", ""),
+
+        // Tax (Brazilian NF-e/CT-e/NFS-e/SPED)
+        RoutePermission::new("/api/tax/**", "GET", ""),
+        RoutePermission::new("/api/tax/**", "POST", ""),
+        RoutePermission::new("/api/tax/**", "PUT", ""),
+        RoutePermission::new("/api/tax/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/tax/**", "GET", ""),
 
         // Directory / Users & Groups management
         RoutePermission::new("/users/**", "GET", "")
