@@ -573,7 +573,8 @@ if (typeof window.WindowManager === "undefined") {
     launchFromMenu(id, title, hxGet) {
       this.closeStartMenu();
       this.open(id, title, "");
-      fetch(hxGet).then((r) => r.text()).then((html) => {
+      const sep = hxGet.indexOf("?") === -1 ? "?" : "&";
+      fetch(hxGet + sep + "_=" + Date.now()).then((r) => r.text()).then((html) => {
         const body = document.getElementById(`window-body-${id}`);
         if (body) this._injectBodyContent(id, html);
       }).catch(() => {

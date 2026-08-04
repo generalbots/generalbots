@@ -55,12 +55,12 @@ async function loadProjectData(projectId) {
     document.getElementById('add-task-btn').disabled = false;
 
     try {
-        const resp = await fetch(`/projects/${projectId}`);
+        const resp = await fetch(`/api/projects/${projectId}`);
         if (resp.ok) {
             currentProjectData = await resp.json();
         }
 
-        const tasksResp = await fetch(`/projects/${projectId}/tasks`);
+        const tasksResp = await fetch(`/api/projects/${projectId}/tasks`);
         let tasks = [];
         if (tasksResp.ok) tasks = await tasksResp.json();
 
@@ -259,7 +259,7 @@ async function createTask() {
     if (!name) { alert('Please enter a task name'); return; }
 
     try {
-        const resp = await fetch(`/projects/${currentProjectId}/tasks`, {
+        const resp = await fetch(`/api/projects/${currentProjectId}/tasks`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -285,7 +285,7 @@ async function loadProjectList(query) {
     if (!container) return;
 
     try {
-        const url = query ? `/projects?q=${encodeURIComponent(query)}` : '/projects';
+        const url = query ? `/api/projects?q=${encodeURIComponent(query)}` : '/api/projects';
         const resp = await fetch(url);
         if (!resp.ok) {
             container.innerHTML = '<div class="empty-state-inline">Failed to load projects</div>';

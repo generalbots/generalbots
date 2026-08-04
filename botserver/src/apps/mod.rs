@@ -24,6 +24,76 @@ pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
 /// `enabled` is driven strictly by the `.product` file's `apps=` list (or the
 /// default all-apps set when no `apps=` line is present). An app not listed
 /// there is never surfaced.
+/// Returns whether the app's backend routes are compiled into this build.
+///
+/// The app registry ids map to botserver cargo features (marketing provides
+/// campaigns/lists, m365 provides o365, and so on). botcore's feature list
+/// only covers library features, so this function checks botserver's own
+/// features to avoid hiding apps whose routes are actually registered.
+fn is_app_compiled(id: &str) -> bool {
+    match id {
+        "chat" => cfg!(feature = "chat"),
+        "vibe" => cfg!(feature = "vibe"),
+        "research" => cfg!(feature = "research"),
+        "video" => cfg!(feature = "video"),
+        "vision" => cfg!(feature = "vision"),
+        "learn" => cfg!(feature = "learn"),
+        "mail" => cfg!(feature = "mail"),
+        "calendar" => cfg!(feature = "calendar"),
+        "meet" => cfg!(feature = "meet"),
+        "docs" => cfg!(feature = "docs"),
+        "sheet" => cfg!(feature = "sheet"),
+        "slides" => cfg!(feature = "slides"),
+        "paper" => cfg!(feature = "paper"),
+        "tasks" => cfg!(feature = "tasks"),
+        "plan" => cfg!(feature = "plan"),
+        "goals" => cfg!(feature = "goals"),
+        "minutes" => cfg!(feature = "minutes"),
+        "timeclock" => cfg!(feature = "timeclock"),
+        "o365" => cfg!(feature = "m365"),
+        "templates" => cfg!(feature = "templates"),
+        "designer" => cfg!(feature = "designer"),
+        "crm" => cfg!(any(feature = "people", feature = "contacts")),
+        "people" => cfg!(feature = "people"),
+        "campaigns" | "lists" | "marketing" => cfg!(feature = "marketing"),
+        "billing" => cfg!(feature = "billing"),
+        "products" => cfg!(feature = "billing"),
+        "tickets" | "itsm" => cfg!(feature = "tickets"),
+        "hr" => cfg!(feature = "hr"),
+        "banking" => cfg!(feature = "banking"),
+        "sales" => cfg!(feature = "sales"),
+        "pos" => cfg!(feature = "pos"),
+        "retail" => cfg!(feature = "retail"),
+        "handoff" => cfg!(feature = "handoff"),
+        "kyc" => cfg!(feature = "kyc"),
+        "fraud" => cfg!(feature = "fraud"),
+        "compliance" => cfg!(feature = "compliance"),
+        "tax" => cfg!(feature = "tax"),
+        "social" => cfg!(feature = "social"),
+        "attendant" => cfg!(feature = "attendant"),
+        "editor" | "bas-editor" => true,
+        "database" => cfg!(feature = "database"),
+        "browser" => cfg!(feature = "browser"),
+        "versions" => true,
+        "integrations" => cfg!(feature = "integrations"),
+        "sources" => cfg!(feature = "sources"),
+        "tools" => cfg!(feature = "automation"),
+        "terminal" => cfg!(feature = "terminal"),
+        "canvas" => cfg!(feature = "canvas"),
+        "workspace" => cfg!(feature = "workspaces"),
+        "project" => cfg!(feature = "project"),
+        "analytics" => cfg!(feature = "analytics"),
+        "monitoring" => cfg!(feature = "monitoring"),
+        "admin" => true,
+        "settings" => true,
+        "drive" => cfg!(feature = "drive"),
+        "vdi" => true,
+        "biometry" => true,
+        "player" => cfg!(feature = "player"),
+        _ => false,
+    }
+}
+
 pub async fn catalog_handler() -> Json<serde_json::Value> {
     let apps = registry::all_apps();
 
@@ -36,7 +106,7 @@ pub async fn catalog_handler() -> Json<serde_json::Value> {
         .iter()
         .map(|a| {
             let id = a.id.as_str();
-            let compiled = botcore::features::is_feature_compiled(id) || CORE_APPS.contains(&id);
+            let compiled = is_app_compiled(id) || CORE_APPS.contains(&id);
             let is_enabled = enabled.contains(id) || CORE_APPS.contains(&id);
             json!({
                 "id": a.id,

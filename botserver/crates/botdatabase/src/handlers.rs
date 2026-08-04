@@ -175,11 +175,19 @@ fn internal_error(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
 }
 
 fn extract_bot_id(headers: &HeaderMap) -> Result<uuid::Uuid, (StatusCode, Json<serde_json::Value>)> {
-    headers
-        .get("X-Bot-Id")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| uuid::Uuid::parse_str(s).ok())
-        .ok_or_else(|| error_response("Missing or invalid X-Bot-Id header"))
+    if let Some(v) = headers.get("X-Bot-Id").and_then(|v| v.to_str().ok()) {
+        return uuid::Uuid::parse_str(v)
+            .map_err(|_| error_response("Invalid X-Bot-Id header"));
+    }
+
+    // Fall back to the default bot when no header is provided so the
+    // database app works without an explicit bot context.
+    let pool = db::pool().map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
+    let mut conn = pool
+        .get()
+        .map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
+    let (bot_id, _) = botcore::bot::get_default_bot(&mut conn);
+    Ok(bot_id)
 }
 
 fn get_bot_pool(

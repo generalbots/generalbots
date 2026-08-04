@@ -242,7 +242,7 @@ pub fn all_apps() -> Vec<AppDefinition> {
             "Connect external systems and webhooks.",
             "integrations api webhooks",
             "<circle cx=\"18\" cy=\"5\" r=\"3\"/><circle cx=\"6\" cy=\"12\" r=\"3\"/><circle cx=\"18\" cy=\"19\" r=\"3\"/><line x1=\"8.59\" y1=\"13.51\" x2=\"15.42\" y2=\"17.49\"/><line x1=\"15.41\" y1=\"6.51\" x2=\"8.59\" y2=\"10.49\"/>"),
-        app("sources", "Sources", "dev", "#06b6d4", "/suite/sources/sources.html",
+        app("sources", "Sources", "dev", "#06b6d4", "/suite/sources/index.html",
             "Connect data sources, models and MCP servers.",
             "sources models mcp data",
             "<path d=\"M4 7V5h16v2\"/><path d=\"M4 12V10h16v2\"/><path d=\"M4 17v-2h16v2\"/>"),

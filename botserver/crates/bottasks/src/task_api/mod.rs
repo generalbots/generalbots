@@ -3,6 +3,7 @@ pub mod engine_persist;
 pub mod handlers;
 pub mod html_renderers_cards;
 pub mod html_renderers_terminal;
+pub mod ui_fragments;
 pub mod utils;
 
 pub use engine::TaskEngine;
