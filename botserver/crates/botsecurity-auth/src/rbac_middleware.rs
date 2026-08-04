@@ -1354,6 +1354,7 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/ui/meet/**", "POST", ""),
         RoutePermission::new("/api/ui/research/**", "GET", ""),
         RoutePermission::new("/api/ui/research/**", "POST", ""),
+        RoutePermission::new("/api/ui/search", "GET", ""),
         RoutePermission::new("/api/ui/sources/**", "GET", ""),
         RoutePermission::new("/api/ui/sources/**", "POST", ""),
         RoutePermission::new("/api/ui/canvas/**", "GET", ""),

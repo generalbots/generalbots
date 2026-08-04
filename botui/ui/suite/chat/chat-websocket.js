@@ -109,6 +109,14 @@ ChatState.ws.onopen = function () {
         console.log("[WS] processMessage: complete=" + data.is_complete + " content_preview=" + contentPreview);
         processMessage(data);
       }
+
+      if (data.message_type === MessageType.UI_ACTION && data.plan) {
+        if (window.GBUiOrchestrator) {
+          window.GBUiOrchestrator.executePlan(data.plan);
+        } else {
+          console.warn("[WS] UI_ACTION received but GBUiOrchestrator not loaded");
+        }
+      }
     } catch (e) { console.error("[WS] onmessage error:", e); }
   };
 

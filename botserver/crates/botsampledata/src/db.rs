@@ -529,6 +529,37 @@ fn seed_research(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), Stri
         }
     }
 
+    // Seed documents inside the collections so the universal search endpoint
+    // has indexed knowledge-base content to return for the research app.
+    let docs: &[(&str, &str, &str)] = &[
+        ("Market Research", "/kb/market/enterprise-rag-2025.md", "Enterprise RAG adoption trends and budgets for 2025"),
+        ("Market Research", "/kb/market/on-prem-gpu-inference.md", "Cost analysis of on-premises GPU inference clusters"),
+        ("Market Research", "/kb/market/competitor-analysis-q2.md", "Competitor feature comparison for conversational AI platforms"),
+        ("Product Docs", "/kb/product/api-reference.md", "Complete REST API reference for the General Bots platform"),
+        ("Product Docs", "/kb/product/getting-started.md", "Quick start guide covering installation and first bot creation"),
+        ("Product Docs", "/kb/product/whatsapp-integration.md", "Connecting WhatsApp Business API to a bot in five steps"),
+    ];
+    for (collection, file_path, summary) in docs {
+        let n = count(
+            conn,
+            "SELECT count(*) AS n FROM kb_documents WHERE bot_id::text = $1 AND file_path = $2",
+            &[&s.bot_str, file_path],
+        )?;
+        if n == 0 {
+            sql_query(
+                "INSERT INTO kb_documents (id, bot_id, collection_name, file_path, file_size, file_hash, first_published_at, last_modified_at, fail_count, metadata, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, 2048, md5($4), NOW(), NOW(), 0, jsonb_build_object('summary', $5), NOW(), NOW())",
+            )
+                .bind::<SqlUuid, _>(Uuid::new_v4())
+                .bind::<SqlUuid, _>(bot)
+                .bind::<Text, _>(collection)
+                .bind::<Text, _>(file_path)
+                .bind::<Text, _>(summary)
+                .execute(conn)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+
     for query in ["enterprise rag adoption 2025", "on-prem gpu inference"] {
         let n = count(conn, "SELECT count(*) AS n FROM research_searches WHERE user_id::text = $1 AND query = $2", &[&s.user_str, query])?;
         if n == 0 {

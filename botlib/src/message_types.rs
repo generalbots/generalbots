@@ -20,6 +20,7 @@ impl MessageType {
  pub const TOOL_EXEC: Self = Self(6);
  pub const SYSTEM: Self = Self(7);
  pub const SWITCHER_TOGGLE: Self = Self(8);
+ pub const UI_ACTION: Self = Self(9);
 }
 
 impl From<i32> for MessageType {
@@ -52,6 +53,7 @@ impl std::fmt::Display for MessageType {
             6 => "TOOL_EXEC",
             7 => "SYSTEM",
             8 => "SWITCHER_TOGGLE",
+            9 => "UI_ACTION",
             _ => "UNKNOWN",
         };
         write!(f, "{name}")

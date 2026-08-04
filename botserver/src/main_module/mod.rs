@@ -17,6 +17,7 @@ mod types;
 pub mod security_cmd;
 pub mod constants;
 pub mod init_tasks;
+pub mod ui_plan;
 #[cfg(feature = "automation")]
 pub mod auto_service;
 

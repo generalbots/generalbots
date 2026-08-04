@@ -1,6 +1,7 @@
 use crate::collaboration::broadcast_sheet_change;
 use crate::formulas::evaluate_formula;
 use crate::state::{get_current_user_id, load_sheet_by_id, save_sheet_to_drive, SheetState};
+use crate::storage::import::create_new_spreadsheet;
 use crate::types::{
     CellData, CellUpdateRequest, FormatRequest, FormulaRequest, FormulaResult, FreezePanesRequest,
     MergeCellsRequest, MergedCell, RangeRequest, RangeResponse, SaveResponse, Worksheet,
@@ -29,10 +30,13 @@ pub async fn handle_update_cell(
     let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
         Ok(s) => s,
         Err(e) => {
-            return Err((
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
-            ))
+            log::info!(
+                "Sheet {} not found on drive, creating fresh sheet for cell update: {e}",
+                req.sheet_id
+            );
+            let mut fresh = create_new_spreadsheet();
+            fresh.id = req.sheet_id.clone();
+            fresh
         }
     };
 

@@ -55,9 +55,49 @@
 
 .toolbar-v15 .taskbar-center,
 .toolbar-v15 .taskbar-right,
+.toolbar-v15 .taskbar-search,
 #startBtn {
   pointer-events: auto;
 }
+
+/* ---------------------------------------- */
+/* Universal search box in taskbar          */
+/* ---------------------------------------- */
+
+.toolbar-v15 .taskbar-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  margin: 0 8px;
+  background: var(--surface, #26262b);
+  border: 1px solid var(--shell-border, #3a3a3f);
+  border-radius: 8px;
+  color: var(--muted, #888);
+  width: 240px;
+}
+
+.toolbar-v15 .taskbar-search:focus-within {
+  border-color: var(--accent, #84d669);
+  box-shadow: 0 0 0 3px rgba(132, 214, 105, 0.15);
+}
+
+.toolbar-v15 .taskbar-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text, #e8e8e8);
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+}
+
+.toolbar-v15 .taskbar-search input::placeholder {
+  color: var(--muted, #888);
+}
+
 
 .toolbar-v15 .taskbar-center {
   display: flex;
