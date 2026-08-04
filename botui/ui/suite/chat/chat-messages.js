@@ -76,13 +76,18 @@ function stripMarkdownBlocks(content) {
   var cleanContent = stripThinkTags(content);
   cleanContent = stripReasoningPrefix(cleanContent);
   cleanContent = stripSectorInfo(cleanContent);
-  cleanContent = cleanContent.replace(/^```(?:html|xml)?\s*/gi, "").replace(/\s*```$/gi, "");
+  // Unwrap markdown-language fences embedded in prose (before trailing-fence strip,
+  // which would otherwise remove the closing ``` and leave the block unwrapped)
+  cleanContent = cleanContent.replace(/(^|\n)```(?:markdown|md|text|plain)\s*\n([\s\S]*?)\n?```\s*(\n|$)/gi, "$1$2$3");
+  // Unwrap whole-message code fences (HTML/XML/markdown/text) so tables and markup
+  // render as HTML instead of displaying as raw markdown
+  cleanContent = cleanContent.replace(/^```(?:html|xml|markdown|md|text|plain)?\s*\n?/gi, "").replace(/\n?```\s*$/gi, "");
   var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
   if (hasHtmlTags) {
     cleanContent = stripSectorInfo(cleanContent);
     return cleanContent;
   }
-  var htmlMatch = cleanContent.match(/^```(?:html|xml)?\s*\n([\s\S]+?)\n?```$/i);
+  var htmlMatch = cleanContent.match(/^```(?:html|xml|markdown|md|text|plain)?\s*\n([\s\S]+?)\n?```$/i);
   if (htmlMatch) return htmlMatch[1];
   return cleanContent;
 }
