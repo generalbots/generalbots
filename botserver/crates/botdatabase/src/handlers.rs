@@ -205,8 +205,43 @@ fn get_bot_conn(
     bot_id: uuid::Uuid,
 ) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, (StatusCode, Json<serde_json::Value>)> {
     let pool = get_bot_pool(state, bot_id)?;
-    pool.get()
-        .map_err(|e| internal_error(&format!("Database connection error: {e}")))
+    let mut conn = pool
+        .get()
+        .map_err(|e| internal_error(&format!("Database connection error: {e}")))?;
+
+    // A freshly-created per-bot database starts empty. When that happens the
+    // schema browser and table explorer would show nothing useful, so fall
+    // back to the main database (where suite data actually lives) so the app
+    // stays usable out of the box.
+    let table_count: i64 = {
+        #[derive(QueryableByName)]
+        struct C {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            n: i64,
+        }
+        let q = sql_query(
+            "SELECT count(*) AS n FROM information_schema.tables \
+             WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
+        )
+        .get_result::<C>(&mut conn)
+        .map(|c| c.n)
+        .unwrap_or(0);
+        q
+    };
+
+    if table_count == 0 {
+        log::info!(
+            "botdatabase: bot {} database is empty, falling back to main database",
+            bot_id
+        );
+        let main_pool = db::pool()
+            .map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
+        return main_pool
+            .get()
+            .map_err(|e| internal_error(&format!("Main DB connection error: {e}")));
+    }
+
+    Ok(conn)
 }
 
 fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
