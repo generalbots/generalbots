@@ -210,6 +210,51 @@
     border-top: 1px solid rgba(128, 128, 128, 0.3);
 }
 
+/* Tables in messages — drawn as real HTML tables */
+.message-content table {
+    margin: 8px 0;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    line-height: 1.4;
+    border: 1px solid rgba(128, 128, 128, 0.28);
+}
+
+.message-content th,
+.message-content td {
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+    border-right: 1px solid rgba(128, 128, 128, 0.12);
+}
+
+.message-content th:last-child,
+.message-content td:last-child {
+    border-right: none;
+}
+
+.message-content thead th {
+    background: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    color: #ffffff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.message-content tbody tr:nth-child(even) {
+    background: rgba(128, 128, 128, 0.08);
+}
+
+.message-content tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.message-content td[align="right"],
+.message-content th[align="right"],
+.message-content td[style*="text-align:right"] {
+    text-align: right;
+}
+
 /* Links in messages */
 .message-content a {
     color: inherit;
