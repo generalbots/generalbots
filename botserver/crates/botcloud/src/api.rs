@@ -853,62 +853,74 @@ async fn handle_login(
                 .build().ok();
             match client {
                 Some(c) => {
-                    let mut rb = c.post(format!("{dir_url}/v2/sessions"))
-                        .header("Authorization", format!("Bearer {dir_token}"))
-                        .json(&serde_json::json!({
-                            "checks": {
-                                "user": { "loginName": body.email },
-                                "password": { "password": body.password }
-                            }
-                        }));
-                    if let Some(host) = &service.config.directory_external_domain {
-                        rb = rb.header("Host", host);
-                    }
-                    match rb.send().await {
-                        Ok(r) if r.status().is_success() => {
-                            // v2 sessions response carries sessionId/sessionToken, not factors.user.userId
-                            let session = r.json::<serde_json::Value>().await.ok();
-                            let session_id = session.as_ref()
-                                .and_then(|v| v.get("sessionId").cloned())
-                                .and_then(|sid| sid.as_str().map(|s| s.to_string()));
-                            let session_token = session.as_ref()
-                                .and_then(|v| v.get("sessionToken").cloned())
-                                .and_then(|st| st.as_str().map(|s| s.to_string()));
-                            // Resolve the real Zitadel user id from the session so JWT
-                            // subjects are stable (RBAC derives UUIDv5 from them).
-                            let user_id = match (&session_id, &session_token) {
-                                (Some(sid), Some(stok)) => {
-                                    let mut grb = c.get(format!("{dir_url}/v2/sessions/{sid}"))
-                                        .header("Authorization", format!("Bearer {dir_token}"))
-                                        .header("sessionToken", stok);
-                                    if let Some(host) = &service.config.directory_external_domain {
-                                        grb = grb.header("Host", host);
-                                    }
-                                    match grb.send().await {
-                                        Ok(gr) if gr.status().is_success() => {
-                                            gr.json::<serde_json::Value>().await.ok()
-                                                .and_then(|v| v.get("session").cloned())
-                                                .and_then(|s| s.get("factors").cloned())
-                                                .and_then(|f| f.get("user").cloned())
-                                                .and_then(|u| u.get("id").or_else(|| u.get("userId")).cloned())
-                                                .and_then(|uid| uid.as_str().map(|s| s.to_string()))
-                                        }
-                                        _ => None,
-                                    }
+                    // Zitadel matches `loginName` against a user's login names
+                    // (username + org-domain forms). For accounts created with a
+                    // bare username, sending the full email fails; try the email
+                    // first, then fall back to the username prefix.
+                    let username = body.email.split('@').next().unwrap_or(&body.email).to_string();
+                    let login_names = [body.email.clone(), username];
+
+                    let mut user_id: Option<String> = None;
+
+                    for login_name in &login_names {
+                        let mut rb = c.post(format!("{dir_url}/v2/sessions"))
+                            .header("Authorization", format!("Bearer {dir_token}"))
+                            .json(&serde_json::json!({
+                                "checks": {
+                                    "user": { "loginName": login_name },
+                                    "password": { "password": body.password }
                                 }
-                                _ => None,
-                            };
-                            user_id.or(session_id)
+                            }));
+                        if let Some(host) = &service.config.directory_external_domain {
+                            rb = rb.header("Host", host);
                         }
-                        Ok(_) => {
-                            tracing::warn!("Zitadel session check rejected credentials for {}", body.email);
-                            None
-                        }
-                        Err(e) => {
-                            tracing::warn!("Zitadel session check failed for {}: {}", body.email, e);
-                            None
+                        match rb.send().await {
+                            Ok(r) if r.status().is_success() => {
+                                // v2 sessions response carries sessionId/sessionToken, not factors.user.userId
+                                let session = r.json::<serde_json::Value>().await.ok();
+                                let session_id = session.as_ref()
+                                    .and_then(|v| v.get("sessionId").cloned())
+                                    .and_then(|sid| sid.as_str().map(|s| s.to_string()));
+                                let session_token = session.as_ref()
+                                    .and_then(|v| v.get("sessionToken").cloned())
+                                    .and_then(|st| st.as_str().map(|s| s.to_string()));
+                                // Resolve the real Zitadel user id from the session so JWT
+                                // subjects are stable (RBAC derives UUIDv5 from them).
+                                let resolved = match (&session_id, &session_token) {
+                                    (Some(sid), Some(stok)) => {
+                                        let mut grb = c.get(format!("{dir_url}/v2/sessions/{sid}"))
+                                            .header("Authorization", format!("Bearer {dir_token}"))
+                                            .header("sessionToken", stok);
+                                        if let Some(host) = &service.config.directory_external_domain {
+                                            grb = grb.header("Host", host);
+                                        }
+                                        match grb.send().await {
+                                            Ok(gr) if gr.status().is_success() => {
+                                                gr.json::<serde_json::Value>().await.ok()
+                                                    .and_then(|v| v.get("session").cloned())
+                                                    .and_then(|s| s.get("factors").cloned())
+                                                    .and_then(|f| f.get("user").cloned())
+                                                    .and_then(|u| u.get("id").or_else(|| u.get("userId")).cloned())
+                                                    .and_then(|uid| uid.as_str().map(|s| s.to_string()))
+                                            }
+                                            _ => None,
+                                        }
+                                    }
+                                    _ => None,
+                                };
+                                user_id = resolved.or(session_id);
+                                break;
+                            }
+                            Ok(_) => {
+                                tracing::warn!("Zitadel session check rejected credentials for loginName '{}'", login_name);
+                            }
+                            Err(e) => {
+                                tracing::warn!("Zitadel session check failed for loginName '{}': {}", login_name, e);
+                            }
                         }
                     }
+
+                    user_id
                 }
                 None => None,
             }

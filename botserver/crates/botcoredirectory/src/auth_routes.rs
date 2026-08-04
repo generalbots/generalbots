@@ -169,109 +169,143 @@ pub async fn login(
 
     // If we have an admin token, try Zitadel sessions API first
     if let Some(ref admin_token) = admin_token {
-        let session_url = format!("{}/v2/sessions", auth_service.api_url());
-        let session_body = serde_json::json!({
-            "checks": {
-                "user": {
-                    "loginName": req.email
-                },
-                "password": {
-                    "password": req.password
+        // Zitadel matches `loginName` against a user's login names, which are
+        // the username and its org-domain forms. When a demo/user account was
+        // created with a bare username (e.g. `sample`), sending the full email
+        // (`sample@example.com`) fails. Try the full email first, then fall
+        // back to the username prefix.
+        let username = req.email.split('@').next().unwrap_or(&req.email).to_string();
+        let login_names = [req.email.clone(), username];
+
+        let mut session_response: Option<reqwest::Response> = None;
+        let mut session_error: Option<String> = None;
+
+        for login_name in &login_names {
+            let session_url = format!("{}/v2/sessions", auth_service.api_url());
+            let session_body = serde_json::json!({
+                "checks": {
+                    "user": {
+                        "loginName": login_name
+                    },
+                    "password": {
+                        "password": req.password
+                    }
+                }
+            });
+
+            match http_client
+                .post(&session_url)
+                .bearer_auth(admin_token)
+                .json(&session_body)
+                .send()
+                .await
+            {
+                Ok(resp) if resp.status().is_success() => {
+                    session_response = Some(resp);
+                    break;
+                }
+                Ok(resp) => {
+                    let status = resp.status();
+                    let err = resp.text().await.unwrap_or_default();
+                    log::warn!(
+                        "Zitadel sessions API returned {} for loginName '{}': {}",
+                        status,
+                        login_name,
+                        err
+                    );
+                    session_error = Some(format!("{status} {err}"));
+                }
+                Err(e) => {
+                    log::warn!(
+                        "Zitadel sessions API request failed for loginName '{}': {}",
+                        login_name,
+                        e
+                    );
+                    session_error = Some(e.to_string());
                 }
             }
-        });
+        }
 
-        let session_response = http_client
-            .post(&session_url)
-            .bearer_auth(admin_token)
-            .json(&session_body)
-            .send()
-            .await;
+        if let Some(resp) = session_response {
+            let session_data: serde_json::Value = resp.json().await.map_err(|e| {
+                log::error!("Failed to parse session response: {}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "Invalid response from authentication server".to_string(),
+                        details: None,
+                    }),
+                )
+            })?;
 
-        match session_response {
-            Ok(resp) if resp.status().is_success() => {
-                let session_data: serde_json::Value = resp.json().await.map_err(|e| {
-                    log::error!("Failed to parse session response: {}", e);
+            let session_id = session_data
+                .get("sessionId")
+                .and_then(|s| s.as_str())
+                .map(String::from);
+
+            let session_token = session_data
+                .get("sessionToken")
+                .and_then(|s| s.as_str())
+                .map(String::from);
+
+            let user_id_str = session_data
+                .get("factors")
+                .and_then(|f| f.get("user"))
+                .and_then(|u| u.get("userId").or_else(|| u.get("id")))
+                .and_then(|v| v.as_str())
+                .map(String::from)
+                .ok_or_else(|| {
+                    log::error!("No user ID in session response for: {}", req.email);
                     (
-                        StatusCode::INTERNAL_SERVER_ERROR,
+                        StatusCode::UNAUTHORIZED,
                         Json(ErrorResponse {
-                            error: "Invalid response from authentication server".to_string(),
+                            error: "Invalid email or password".to_string(),
                             details: None,
                         }),
                     )
                 })?;
 
-                let session_id = session_data
-                    .get("sessionId")
-                    .and_then(|s| s.as_str())
-                    .map(String::from);
+            let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
 
-                let session_token = session_data
-                    .get("sessionToken")
-                    .and_then(|s| s.as_str())
-                    .map(String::from);
+            let session_user = SessionUserData {
+                user_id: user_id_str.clone(),
+                email: req.email.clone(),
+                username: req.email.split('@').next().unwrap_or("user").to_string(),
+                first_name: None,
+                last_name: None,
+                display_name: Some(req.email.split('@').next().unwrap_or("User").to_string()),
+                organization_id: None,
+                roles: vec!["admin".to_string()],
+                bucket: None,
+                created_at: chrono::Utc::now().timestamp(),
+            };
 
-                let user_id_str = session_data
-                    .get("factors")
-                    .and_then(|f| f.get("user"))
-                    .and_then(|u| u.get("userId").or_else(|| u.get("id")))
-                    .and_then(|v| v.as_str())
-                    .map(String::from)
-                    .ok_or_else(|| {
-                        log::error!("No user ID in session response for: {}", req.email);
-                        (
-                            StatusCode::UNAUTHORIZED,
-                            Json(ErrorResponse {
-                                error: "Invalid email or password".to_string(),
-                                details: None,
-                            }),
-                        )
-                    })?;
-
-                let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
-
-                let session_user = SessionUserData {
-                    user_id: user_id_str.clone(),
-                    email: req.email.clone(),
-                    username: req.email.split('@').next().unwrap_or("user").to_string(),
-                    first_name: None,
-                    last_name: None,
-                    display_name: Some(req.email.split('@').next().unwrap_or("User").to_string()),
-                    organization_id: None,
-                    roles: vec!["admin".to_string()],
-                    bucket: None,
-                    created_at: chrono::Utc::now().timestamp(),
-                };
-
-                {
-                    let mut cache = SESSION_CACHE.write().await;
-                    cache.insert(api_token.clone(), session_user.clone());
-                    info!("Session cached for user: {} with token: {}...", req.email, &api_token[..std::cmp::min(20, api_token.len())]);
-                }
-
-                info!("Login successful for: {} (user_id: {})", req.email, user_id_str);
-
-                return Ok(Json(LoginResponse {
-                    success: true,
-                    user_id: Some(user_id_str),
-                    session_id: session_id.clone(),
-                    access_token: Some(api_token),
-                    refresh_token: None,
-                    expires_in: Some(3600),
-                    requires_2fa: false,
-                    session_token,
-                    redirect: Some("/".to_string()),
-                    message: Some("Login successful".to_string()),
-                }));
+            {
+                let mut cache = SESSION_CACHE.write().await;
+                cache.insert(api_token.clone(), session_user.clone());
+                info!("Session cached for user: {} with token: {}...", req.email, &api_token[..std::cmp::min(20, api_token.len())]);
             }
-            Ok(resp) => {
-                let status = resp.status();
-                let error_text = resp.text().await.unwrap_or_default();
-                log::warn!("Zitadel sessions API returned {}: {} — falling back to local credential check", status, error_text);
-            }
-            Err(e) => {
-                log::warn!("Zitadel sessions API request failed: {} — falling back to local credential check", e);
-            }
+
+            info!("Login successful for: {} (user_id: {})", req.email, user_id_str);
+
+            return Ok(Json(LoginResponse {
+                success: true,
+                user_id: Some(user_id_str),
+                session_id: session_id.clone(),
+                access_token: Some(api_token),
+                refresh_token: None,
+                expires_in: Some(3600),
+                requires_2fa: false,
+                session_token,
+                redirect: Some("/".to_string()),
+                message: Some("Login successful".to_string()),
+            }));
+        } else {
+            log::warn!(
+                "Zitadel sessions API failed for {}: {} — falling back to local credential check",
+                req.email,
+                session_error.unwrap_or_default()
+            );
         }
     } else {
         log::info!("No admin token available, falling back to local credential check");
