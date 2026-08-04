@@ -122,6 +122,7 @@ fn inner_build_sub_router(
     }
 
     sub_router = sub_router.merge(super::misc_handlers::configure_misc_routes().with_state(app_state.clone()));
+    sub_router = sub_router.merge(super::unified_search::configure_unified_search_routes().with_state(app_state.clone()));
     #[cfg(feature = "tasks")]
     {
         sub_router = sub_router.merge(crate::tasks::configure_tasks_routes().with_state(Arc::new(bottasks::state::TasksState {

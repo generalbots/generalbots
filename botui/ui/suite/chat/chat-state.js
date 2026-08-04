@@ -39,6 +39,7 @@ var MessageType = {
   CONTEXT_CHANGE: 5,
   TOOL_EXEC: 6,
   SWITCHER_TOGGLE: 8,
+  UI_ACTION: 9,
 };
 
 var EntityTypes = {

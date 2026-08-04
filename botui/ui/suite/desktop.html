@@ -210,6 +210,10 @@
                     <div id="startBtn" onclick="window.WindowManager.toggleStartMenu()" title="Start">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
                     </div>
+                    <div class="taskbar-search" id="taskbarSearchWrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="search" id="taskbarSearch" placeholder="Search apps, people, products..." aria-label="Universal search" autocomplete="off">
+                    </div>
                     <div class="taskbar-center" id="taskbar-center">
                     </div>
                     <div class="taskbar-right">
@@ -776,6 +780,24 @@
         <script src="/suite/js/versions.js"></script>
         <script src="/suite/js/preview.js"></script>
         <script src="/suite/js/campaigns.js"></script>
+        <script src="/suite/js/ui-orchestrator.js"></script>
+        <script src="/suite/js/gb-search.js"></script>
+        <script>
+            // Bind the taskbar universal search (mount on first paint)
+            (function () {
+                var bindSearch = function () {
+                    var input = document.getElementById("taskbarSearch");
+                    if (input && window.GBUniversalSearch) {
+                        window.GBUniversalSearch.mount(input);
+                    }
+                };
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", bindSearch);
+                } else {
+                    bindSearch();
+                }
+            })();
+        </script>
         <script>
             // Carregar o modal New Project dinamicamente (Issue #524)
             fetch('/suite/partials/new-project.html')

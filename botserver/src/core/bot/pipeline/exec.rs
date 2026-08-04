@@ -201,6 +201,8 @@ pub async fn process_message_internal(
     };
     let system_prompt = if channel == "whatsapp" {
         format!("{system_prompt}\n\n---\nThis conversation is on WhatsApp.")
+    } else if channel == "web" {
+        format!("{system_prompt}\n\n{}", crate::main_module::ui_plan::ui_automation_instructions())
     } else {
         system_prompt
     };

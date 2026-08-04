@@ -244,6 +244,10 @@ pub async fn stream_llm_response(
                                         full_response.push_str(&chunk);
                                         continue;
                                     }
+                                    if chunk.contains(crate::main_module::ui_plan::UI_PLAN_TRIGGER) {
+                                        full_response.push_str(&chunk);
+                                        continue;
+                                    }
                                     full_response.push_str(&chunk);
                                     content_buffer.push_str(&chunk);
                                 }
@@ -271,7 +275,41 @@ pub async fn stream_llm_response(
                 }
 
                 let has_tool_call = full_response.contains("\"__tool_call__\":");
-                log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}", full_response.len(), content_buffer.len(), has_tool_call);
+                let has_ui_plan = full_response.contains(crate::main_module::ui_plan::UI_PLAN_TRIGGER);
+                log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan);
+
+                if has_ui_plan {
+                    content_buffer = crate::main_module::ui_plan::strip_plan_json(&content_buffer);
+                    if let Some(plan) = crate::main_module::ui_plan::extract_and_validate_plan(&full_response) {
+                        match plan {
+                            Ok(validated) => {
+                                log::info!(
+                                    "UI plan validated: {} steps for app {:?}",
+                                    validated.steps.len(),
+                                    validated.app
+                                );
+                                let plan_frame = serde_json::json!({
+                                    "bot_id": bot_uuid_s,
+                                    "user_id": user_id.to_string(),
+                                    "session_id": session_id_s,
+                                    "channel": "web",
+                                    "content": "",
+                                    "message_type": botlib::message_types::MessageType::UI_ACTION,
+                                    "plan": validated,
+                                    "is_complete": true,
+                                    "suggestions": [],
+                                    "switchers": [],
+                                    "context_length": 0,
+                                    "context_max_length": 0,
+                                });
+                                let _ = sink.send_raw_json(&plan_frame).await;
+                            }
+                            Err(e) => {
+                                log::warn!("Rejected UI plan: {e}");
+                            }
+                        }
+                    }
+                }
 
                 if !has_tool_call && content_buffer.is_empty() {
                     if attempt < LLM_RETRY_MAX {
