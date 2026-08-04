@@ -186,3 +186,9 @@ pub struct CompareDocumentsRequest {
 pub struct CompareDocumentsResponse {
     pub comparison: DocumentComparison,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenFromDriveRequest {
+    pub bucket: String,
+    pub path: String,
+}

@@ -180,14 +180,32 @@ fn get_work_path_default() -> String {
         return "/opt/gbo/work".to_string();
     }
 
-    // Dev fallback: resolve to absolute path to avoid CWD-dependent breakage
+    // Dev fallback: resolve to an absolute path to avoid CWD-dependent breakage.
+    // The path is resolved against the current directory at startup and stored
+    // once, so the runtime no longer depends on the process working directory.
     let dev_path = std::path::Path::new("./botserver-stack/data/system/work");
     if dev_path.exists() {
         std::fs::canonicalize(dev_path)
             .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "./botserver-stack/data/system/work".to_string())
+            .unwrap_or_else(|_| {
+                std::env::current_dir()
+                    .map(|cwd| {
+                        format!(
+                            "{}/botserver-stack/data/system/work",
+                            cwd.to_string_lossy()
+                        )
+                    })
+                    .unwrap_or_else(|_| "./botserver-stack/data/system/work".to_string())
+            })
     } else {
-        "./botserver-stack/data/system/work".to_string()
+        std::env::current_dir()
+            .map(|cwd| {
+                format!(
+                    "{}/botserver-stack/data/system/work",
+                    cwd.to_string_lossy()
+                )
+            })
+            .unwrap_or_else(|_| "./botserver-stack/data/system/work".to_string())
     }
 }
 
