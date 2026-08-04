@@ -29,6 +29,8 @@ pub fn seed_all(pool: &DbPool) {
         }
     };
 
+    // db::seed runs each domain independently (one app's legacy/missing table
+    // does not abort the rest of the demo data).
     match db::seed(&mut conn) {
         Ok(()) => log::info!("botsampledata: database demo data seeded"),
         Err(e) => log::error!("botsampledata: database seeding failed: {e}"),
