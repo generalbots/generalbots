@@ -41,6 +41,7 @@ pub fn configure_crm_ui_routes() -> Router<Arc<CrateState>> {
         .route("/api/ui/crm/contacts", get(ui::crm_ui::handle_crm_contacts))
         .route("/api/ui/crm/accounts", get(ui::crm_ui::handle_crm_accounts))
         .route("/api/ui/crm/deals", get(ui::crm_ui::handle_crm_deals))
+        .route("/api/ui/crm/campaigns", get(ui::crm_ui::handle_crm_campaigns))
 }
 
 #[cfg(feature = "calendar")]
