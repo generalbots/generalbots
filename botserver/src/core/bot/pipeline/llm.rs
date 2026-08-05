@@ -492,7 +492,7 @@ async fn handle_api_call(
     let compose = payload.get("compose").and_then(|v| v.as_bool()).unwrap_or(false);
     let channel = sink.channel_type().to_string();
 
-    match api_catalog::execute_command(state, bot_uuid, bot_name, &name, &params).await {
+    match api_catalog::execute_command(state, bot_uuid, bot_name, user_id, &name, &params).await {
         Ok(result) => {
             if compose {
                 let prompt = format!(

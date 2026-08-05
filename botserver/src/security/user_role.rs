@@ -60,3 +60,44 @@ pub fn resolve_user_role(pool: &DbPool, user_id: Uuid) -> String {
     debug!("resolve_user_role: user {user_id} groups={group_names:?}, role=user");
     ROLE_USER.to_string()
 }
+
+/// Whether a (method, path) endpoint is denied to non-admin users, per the
+/// `rbac_api_permissions` matrix. Admins are never denied.
+pub fn is_admin_only_endpoint(pool: &DbPool, user_id: Uuid, method: &str, path: &str) -> bool {
+    if resolve_user_role(pool, user_id) == ROLE_ADMIN {
+        return false;
+    }
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            debug!("is_admin_only_endpoint: DB pool error: {e}");
+            return false;
+        }
+    };
+    let patterns: Vec<String> = match diesel::sql_query(
+        "SELECT path_pattern FROM rbac_api_permissions \
+         WHERE group_name = 'admin' AND (method = '*' OR method = $1)",
+    )
+    .bind::<diesel::sql_types::Text, _>(method.to_uppercase())
+    .load::<PatternRow>(&mut conn)
+    {
+        Ok(rows) => rows.into_iter().map(|r| r.path_pattern).collect(),
+        Err(e) => {
+            debug!("is_admin_only_endpoint: query error: {e}");
+            return false;
+        }
+    };
+    for pattern in &patterns {
+        let base = pattern.trim_end_matches('%');
+        if path.starts_with(base) {
+            return true;
+        }
+    }
+    false
+}
+
+#[derive(diesel::QueryableByName)]
+struct PatternRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    path_pattern: String,
+}

@@ -199,21 +199,22 @@ pub async fn process_message_internal(
     } else {
         base_system_prompt
     };
+    let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
     let system_prompt = if channel == "web" {
         format!(
             "{system_prompt}\n\n{}\n\n{}",
-            crate::core::bot::api_catalog::api_command_instructions(),
+            crate::core::bot::api_catalog::api_command_instructions(&role),
             crate::main_module::ui_plan::ui_automation_instructions(),
         )
     } else if channel == "whatsapp" {
         format!(
             "{system_prompt}\n\n---\nThis conversation is on WhatsApp.\n\n{}",
-            crate::core::bot::api_catalog::api_command_instructions(),
+            crate::core::bot::api_catalog::api_command_instructions(&role),
         )
     } else {
         format!(
             "{system_prompt}\n\n{}",
-            crate::core::bot::api_catalog::api_command_instructions(),
+            crate::core::bot::api_catalog::api_command_instructions(&role),
         )
     };
 

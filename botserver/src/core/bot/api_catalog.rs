@@ -31,6 +31,8 @@ pub struct ApiCommand {
     pub name: &'static str,
     pub summary: &'static str,
     pub params: &'static [(&'static str, &'static str)],
+    /// When true only users with the admin role may invoke this command.
+    pub admin_only: bool,
 }
 
 pub struct ApiEndpoint {
@@ -43,12 +45,14 @@ const TAX_CMD: ApiCommand = ApiCommand {
     name: "service.tax",
     summary: "Compute Brazilian service taxes for a registered service (IRPJ, CSLL, PIS/COFINS, ISS).",
     params: &[("service", "service name or id"), ("value", "optional amount; defaults to the service price")],
+    admin_only: false,
 };
 
 const DIAGNOSIS_CMD: ApiCommand = ApiCommand {
     name: "banking.diagnosis",
     summary: "Cash-flow health of the account: revenue, expenses, net, pending reconciliation and tax rates.",
     params: &[("period", "optional YYYY-MM month filter")],
+    admin_only: false,
 };
 
 const DRIVE_WRITE_CMD: ApiCommand = ApiCommand {
@@ -58,24 +62,28 @@ const DRIVE_WRITE_CMD: ApiCommand = ApiCommand {
         ("path", "folder/file name, e.g. faturas/2026-08/fatura.pdf"),
         ("content_base64", "the file bytes in base64"),
     ],
+    admin_only: false,
 };
 
 const WEB_SEARCH_CMD: ApiCommand = ApiCommand {
     name: "web.search",
     summary: "Search the web (DuckDuckGo) for current facts, news or prices.",
     params: &[("query", "the search terms"), ("max_results", "optional 1-25")],
+    admin_only: false,
 };
 
 const APPS_FIND_CMD: ApiCommand = ApiCommand {
     name: "apps.find",
     summary: "Find a suite application by a description of what the user wants to do.",
     params: &[("query", "what the user wants to accomplish")],
+    admin_only: false,
 };
 
 const API_FIND_CMD: ApiCommand = ApiCommand {
     name: "api.find",
     summary: "Discover which backend command or endpoint matches a described need.",
     params: &[("query", "the described need")],
+    admin_only: false,
 };
 
 /// The stable command list rendered into the prompt and used by discovery.
@@ -154,8 +162,9 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
 }
 
 /// Compact system-prompt fragment teaching the `__api_call__` contract and
-/// the routing rule. Kept deliberately small so every channel can afford it.
-pub fn api_command_instructions() -> String {
+/// the routing rule, shortened to the current user's role so admin-only
+/// commands are never proposed to regular users.
+pub fn api_command_instructions(role: &str) -> String {
     let mut lines = Vec::with_capacity(24);
     lines.push("---".to_string());
     lines.push("## API Commands".to_string());
@@ -165,17 +174,26 @@ pub fn api_command_instructions() -> String {
          with no command."
             .to_string(),
     );
+    lines.push(format!("Your role: {role}. Only issue commands you are allowed to use."));
     lines.push("To call one, make the FIRST line of your reply exactly a JSON object:".to_string());
     lines.push("{\"__api_call__\": {\"name\": \"<command>\", \"params\": {<named params>}, \"compose\": true}}".to_string());
     lines.push("then add a short user-facing note after it. Available commands:".to_string());
     for cmd in commands_list() {
+        if cmd.admin_only && role != crate::security::user_role::ROLE_ADMIN {
+            continue;
+        }
         let params = cmd
             .params
             .iter()
             .map(|(n, d)| format!("{n}: {d}"))
             .collect::<Vec<_>>()
             .join("; ");
-        lines.push(format!("- {name}: {summary} (params: {params})", name = cmd.name, summary = cmd.summary));
+        lines.push(format!(
+            "- {name}: {summary} (params: {params}){admin}",
+            name = cmd.name,
+            summary = cmd.summary,
+            admin = if cmd.admin_only { " [admin only]" } else { "" },
+        ));
     }
     lines.push(
         "Rules: use compose=true when the answer needs prose from the data. If unsure which command fits, \
@@ -238,16 +256,20 @@ fn find_apps(query: &str) -> Vec<Value> {
         .collect()
 }
 
-/// Catalogued-command search: executable commands plus the full REST surface.
-fn find_api_entries(query: &str) -> Vec<Value> {
+/// Catalogued-command + endpoint search, filtered by the current user's role.
+fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str) -> Vec<Value> {
     let q = tokens_of(query);
     if q.is_empty() {
         return Vec::new();
     }
+    let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
     let mut out: Vec<Value> = Vec::new();
     let mut scored_cmds: Vec<(i32, &ApiCommand)> = commands_list()
         .iter()
         .filter_map(|cmd| {
+            if cmd.admin_only && role != crate::security::user_role::ROLE_ADMIN {
+                return None;
+            }
             let hay = format!("{} {}", cmd.name.to_lowercase(), cmd.summary.to_lowercase());
             let score = score_tokens(&hay, &q);
             if score > 0 {
@@ -263,12 +285,17 @@ fn find_api_entries(query: &str) -> Vec<Value> {
             "kind": "command",
             "name": cmd.name,
             "summary": cmd.summary,
+            "admin_only": cmd.admin_only,
             "params": cmd.params.iter().map(|(n, d)| json!({"name": n, "description": d})).collect::<Vec<_>>(),
         }));
     }
     let mut scored_ep: Vec<(i32, &ApiEndpoint)> = all_endpoints()
         .iter()
+        .chain(super::endpoint_inventory::ALL_ROUTES)
         .filter_map(|ep| {
+            if crate::security::user_role::is_admin_only_endpoint(&state.conn, user_id, ep.method, ep.path) {
+                return None;
+            }
             let hay = format!("{} {} {}", ep.method.to_lowercase(), ep.path.to_lowercase(), ep.summary.to_lowercase());
             let score = score_tokens(&hay, &q);
             if score > 0 {
@@ -278,8 +305,13 @@ fn find_api_entries(query: &str) -> Vec<Value> {
             }
         })
         .collect();
+    // first occurrence wins (curated list precedes the auto inventory)
     scored_ep.sort_by(|a, b| b.0.cmp(&a.0));
-    for (_, ep) in scored_ep.into_iter().take(5) {
+    let mut seen = std::collections::HashSet::new();
+    for (_, ep) in scored_ep.into_iter().take(6) {
+        if !seen.insert((ep.method, ep.path)) {
+            continue;
+        }
         out.push(json!({
             "kind": "endpoint",
             "method": ep.method,
@@ -298,14 +330,26 @@ fn normalize_drive_path(path: &str) -> Result<String, String> {
     Ok(trimmed)
 }
 
-/// Executes a catalog command in-process against the backend state.
+/// Executes a catalog command in-process against the backend state. Enforces
+/// the RBAC matrix: admin-only commands and admin-only endpoints are denied
+/// to non-admin users.
 pub async fn execute_command(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
     bot_name: &str,
+    user_id: Uuid,
     name: &str,
     params: &Value,
 ) -> Result<Value, String> {
+    let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
+    if role != crate::security::user_role::ROLE_ADMIN {
+        let denied = commands_list()
+            .iter()
+            .any(|c| c.name == name && c.admin_only);
+        if denied {
+            return Err(format!("command '{name}' requires the admin role"));
+        }
+    }
     let obj = match params {
         Value::Object(map) => map,
         _ => return Err("'params' must be a JSON object".to_string()),
@@ -346,7 +390,7 @@ pub async fn execute_command(
             }))
         }
         "apps.find" => Ok(json!({ "apps": find_apps(str_of("query").unwrap_or_default().as_str()) })),
-        "api.find" => Ok(json!({ "matches": find_api_entries(str_of("query").unwrap_or_default().as_str()) })),
+        "api.find" => Ok(json!({ "matches": find_api_entries(state, user_id, str_of("query").unwrap_or_default().as_str()) })),
         _ => Err(format!("unknown command '{name}'")),
     }
 }
