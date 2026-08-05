@@ -94,19 +94,19 @@
             </div>
             <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files"></div>
             <div class="sidebar-content" id="sidebar-panels" data-sidebar-content="panels" style="display:none;flex-direction:column;padding:8px;gap:6px;">
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/named-ranges" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📐 Ranges Nomeados</button>
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/charts" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📊 Gráficos</button>
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/validations" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">✓ Validações</button>
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/conditional-formats" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🎨 Formatação Condicional</button>
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/external-links" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔗 Links Externos</button>
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/comments" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">💬 Comentários</button>
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/protection" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔒 Proteção</button>
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/array-formulas" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔢 Fórmulas de Matriz</button>
-                <button class="sidebar-panel-btn" hx-get="/suite/sheet/fragments/advanced-ranges" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">⚙ Ações Avançadas</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('named-ranges')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📐 Ranges Nomeados</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('charts')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📊 Gráficos</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('validations')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">✓ Validações</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('conditional-formats')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🎨 Formatação Condicional</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('external-links')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔗 Links Externos</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('comments')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">💬 Comentários</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('protection')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔒 Proteção</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('array-formulas')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔢 Fórmulas de Matriz</button>
+                <button class="sidebar-panel-btn" onclick="openSheetPanel('advanced-ranges')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">⚙ Ações Avançadas</button>
             </div>
         </aside>
 
-        <div class="sheet-content" id="sheet-content" hx-post="/suite/sheet/fragments/tabs" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;background:#0f172a;">
+        <div class="sheet-content" id="sheet-content" style="flex:1;display:flex;flex-direction:column;background:#0f172a;">
         </div>
     </div>
 
@@ -158,6 +158,22 @@ function loadSidebar() {
     });
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function openSheetPanel(panel) {
+    var sheet = window.__LOADED_SHEET;
+    if (!sheet) {
+        var host = document.getElementById('sheet-content');
+        if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">Carregue uma planilha primeiro.</div>';
+        return;
+    }
+    var host = document.getElementById('sheet-content');
+    if (!host) return;
+    fetch('/suite/sheet/fragments/' + panel, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sheet)
+    }).then(function(r){ return r.text(); }).then(function(html){ host.innerHTML = html; })
+    .catch(function(){ host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">Erro ao carregar painel.</div>'; });
+}
 function loadSheet(id) {
     window.__SHEET_INITIAL_ID = id;
     var host = document.getElementById('sheet-content');

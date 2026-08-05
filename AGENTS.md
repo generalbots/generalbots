@@ -961,10 +961,25 @@ tail -f botserver.log | grep -i "new_feature"
 ```
 Integration test in `bottest/tests/new_feature_test.rs` (`#[tokio::test]`).
 
-### Step 5: Document
+### Step 5: Expose the feature to the LLM (UI + API automation)
+Every new/changed feature must be reachable by the LLM through **one of the two unified surfaces** — there is NO other way for chat/WhatsApp to act:
+
+| Surface | Mechanism | Where it is registered |
+|---------|-----------|------------------------|
+| **UI/web** (desktop app) | `__ui_plan__` plans actions over apps; frontend calls REST endpoints directly | `ui_automation_instructions()` (ui_plan.rs) reads the app registry `all_apps()` (src/apps/registry.rs) — add/update the `AppDefinition` there with `id`, `title`, `description` and list the apps it can drive |
+| **Chat/WhatsApp** (WS) | LLM uses BASIC keywords (`SEND MAIL`, `CREATE FILE`, …), `CALL "tool"` scripts, MCP tools via `.mcp.json`; raw REST is NOT reachable from chat | prompt files `PROMPT.md` / `PROMPT-{CHANNEL}.md` (load_system_prompt_for_channel in src/core/bot/ws/message.rs), `.mcp.json` in the bot's `.gbdialog/`, keyword registration |
+
+Requirements when adding/changing an endpoint or feature:
+1. **Register in the command catalog** so the LLM knows the call surface without a giant system prompt — add the endpoint to the compact catalog (api command catalog) with method, path, params, and the JSON it returns; never hardcode full schemas in prompts.
+2. **UI features** must appear in `ui_automation_instructions()` (web channel only) so `__ui_plan__` can orchestrate them.
+3. **Seed demo data** via `botsampledata` so the feature works end-to-end on a fresh drive (e.g. CSVs for cashflow imports, `billing_tax_rates` rows, sample product with `tax_rate`).
+4. **Structured, summarized responses**: machine-readable JSON over prose — the LLM turns the JSON into user-facing text/visuals (e.g. diagnosis must return summary + detail, NOT generated markdown files).
+5. If the feature is reachable only through an HTTP endpoint AND needs to be answerable in chat, register it in the **api command catalog** (declarative entry executed backend-side, results fed back to the LLM) — do not add a new BASIC keyword unless the operation is a chat-native primitive.
+
+### Step 6: Document
 Add to `botbook/src/features/` if user-facing; module README if developer-facing; inline comments; update API docs.
 
-### Step 6: Commit & Deploy
+### Step 7: Commit & Deploy
 ```bash
 git add .
 git commit -m "feat: Add NEW_FEATURE keyword

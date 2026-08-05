@@ -72,3 +72,17 @@ pub struct NewCTe {
     pub modality: String,
     pub total: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct NewSped {
+    pub period: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TaxCalculationRequest {
+    pub service_value: String,
+    pub branch_id: Option<String>,
+    pub bot_id: Option<String>,
+}
+

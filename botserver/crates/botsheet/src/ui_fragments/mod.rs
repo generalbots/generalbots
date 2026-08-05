@@ -119,7 +119,7 @@ async fn health() -> &'static str { "ok" }
 
 pub fn render_metadata_card(m: &SpreadsheetMetadata) -> String {
     format!(
-        r##"<div class="ss-metadata-card" hx-get="/suite/sheet/fragments/tabs" hx-vals='{{"id":"{id}"}}' hx-trigger="click" hx-target="#sheet-content" hx-swap="innerHTML" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">
+        r##"<div class="ss-metadata-card" onclick="loadSheet('{id}')" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">
 <div style="font-weight:600;color:#f8fafc;">{name}</div>
 <div style="font-size:12px;color:#94a3b8;margin-top:4px;">{worksheets} planilha(s) • Atualizado {updated}</div>
 </div>"##,

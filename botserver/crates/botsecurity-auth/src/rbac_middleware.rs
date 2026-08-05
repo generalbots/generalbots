@@ -1520,12 +1520,87 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/people/**", "PUT", ""),
         RoutePermission::new("/api/people/**", "DELETE", ""),
 
+        // HR
+        RoutePermission::new("/api/hr/**", "GET", ""),
+        RoutePermission::new("/api/hr/**", "POST", ""),
+        RoutePermission::new("/api/hr/**", "PUT", ""),
+        RoutePermission::new("/api/hr/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/hr/**", "GET", ""),
+
+        // Vision
+        RoutePermission::new("/api/vision/**", "GET", ""),
+        RoutePermission::new("/api/vision/**", "POST", ""),
+        RoutePermission::new("/api/ui/vision/**", "GET", ""),
+
+        // POS / Retail
+        RoutePermission::new("/api/pos/**", "GET", ""),
+        RoutePermission::new("/api/pos/**", "POST", ""),
+        RoutePermission::new("/api/pos/**", "PUT", ""),
+        RoutePermission::new("/api/pos/**", "DELETE", ""),
+        RoutePermission::new("/api/retail/**", "GET", ""),
+        RoutePermission::new("/api/retail/**", "POST", ""),
+        RoutePermission::new("/api/retail/**", "PUT", ""),
+        RoutePermission::new("/api/retail/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/pos/**", "GET", ""),
+        RoutePermission::new("/api/ui/retail/**", "GET", ""),
+
+        // Handoff (customer service)
+        RoutePermission::new("/api/handoff/**", "GET", ""),
+        RoutePermission::new("/api/handoff/**", "POST", ""),
+        RoutePermission::new("/api/handoff/**", "PUT", ""),
+        RoutePermission::new("/api/handoff/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/handoff/**", "GET", ""),
+
+        // KYC / Biometry
+        RoutePermission::new("/api/kyc/**", "GET", ""),
+        RoutePermission::new("/api/kyc/**", "POST", ""),
+        RoutePermission::new("/api/kyc/**", "PUT", ""),
+        RoutePermission::new("/api/kyc/**", "DELETE", ""),
+        RoutePermission::new("/api/biometry/**", "GET", ""),
+        RoutePermission::new("/api/biometry/**", "POST", ""),
+        RoutePermission::new("/api/biometry/**", "PUT", ""),
+        RoutePermission::new("/api/biometry/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/kyc/**", "GET", ""),
+        RoutePermission::new("/api/ui/biometry/**", "GET", ""),
+
+        // Fraud
+        RoutePermission::new("/api/fraud/**", "GET", ""),
+        RoutePermission::new("/api/fraud/**", "POST", ""),
+        RoutePermission::new("/api/fraud/**", "PUT", ""),
+        RoutePermission::new("/api/fraud/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/fraud/**", "GET", ""),
+
+        // Integrations
+        RoutePermission::new("/api/integrations/**", "GET", ""),
+        RoutePermission::new("/api/integrations/**", "POST", ""),
+        RoutePermission::new("/api/integrations/**", "PUT", ""),
+        RoutePermission::new("/api/integrations/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/integrations/**", "GET", ""),
+
+        // User self-service (profile, security, storage)
+        RoutePermission::new("/api/ui/user/**", "GET", ""),
+        RoutePermission::new("/api/ui/user/**", "POST", ""),
+        RoutePermission::new("/api/ui/user/**", "PUT", ""),
+        RoutePermission::new("/api/ui/user/**", "DELETE", ""),
+
+        // Workspace pages (blocks)
+        RoutePermission::new("/api/ui/pages/**", "GET", ""),
+        RoutePermission::new("/api/ui/pages/**", "POST", ""),
+        RoutePermission::new("/api/ui/pages/**", "PUT", ""),
+        RoutePermission::new("/api/ui/pages/**", "DELETE", ""),
+
         // Tax (Brazilian NF-e/CT-e/NFS-e/SPED)
         RoutePermission::new("/api/tax/**", "GET", ""),
         RoutePermission::new("/api/tax/**", "POST", ""),
         RoutePermission::new("/api/tax/**", "PUT", ""),
         RoutePermission::new("/api/tax/**", "DELETE", ""),
         RoutePermission::new("/api/ui/tax/**", "GET", ""),
+        RoutePermission::new("/api/fiscal/**", "GET", ""),
+        RoutePermission::new("/api/fiscal/**", "POST", ""),
+        RoutePermission::new("/api/banking/**", "GET", ""),
+        RoutePermission::new("/api/banking/**", "POST", ""),
+        RoutePermission::new("/api/banking/**", "PUT", ""),
+        RoutePermission::new("/api/banking/**", "DELETE", ""),
 
         // Directory / Users & Groups management
         RoutePermission::new("/users/**", "GET", "")

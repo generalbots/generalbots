@@ -4,12 +4,13 @@ pub mod pricing;
 pub mod routes;
 pub mod schema;
 pub mod seed;
+pub mod service_tax;
 
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse},
-    routing::{get, put},
+    routing::{get, post, put},
     Json, Router,
 };
 
@@ -1041,6 +1042,7 @@ pub fn configure_products_api_routes() -> Router<Arc<ProductsState>> {
         .route("/api/products/items/:id/movements", get(list_inventory_movements))
         .route("/api/products/services", get(list_services).post(create_service))
         .route("/api/products/services/:id", get(get_service).put(update_service).delete(delete_service))
+        .route("/api/products/services/:id/tax", post(service_tax::calculate_service_tax))
         .route("/api/products/categories", get(list_categories).post(create_category))
         .route("/api/products/price-lists", get(list_price_lists).post(create_price_list))
         .route("/api/products/stats", get(get_product_stats))

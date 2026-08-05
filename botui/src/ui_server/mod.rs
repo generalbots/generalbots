@@ -96,7 +96,14 @@ pub fn configure_router() -> Router {
         .nest("/apps", create_apps_router())
         .route("/", get(index))
         .route("/minimal", get(serve_minimal))
-        .route("/suite", get(serve_suite));
+        .route("/suite", get(serve_suite))
+        // Server-generated HTMX fragments live in botserver, not as static
+        // files — proxy them before the static /suite/{dir} ServeDir nests
+        // swallow the path and return 404.
+        .route("/suite/:dir/fragments/*path", any(proxy_api))
+        .route("/suite/:dir/modals/*path", any(proxy_api))
+        .route("/suite/:dir/forms/*path", any(proxy_api))
+        .route("/suite/:dir/partials/*path", any(proxy_api));
 
     router = add_static_routes(router, &suite_path);
 

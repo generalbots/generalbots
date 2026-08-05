@@ -67,3 +67,47 @@ pub fn parse_decimal(s: &str) -> Result<Decimal, (StatusCode, String)> {
     s.parse::<Decimal>()
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid decimal '{s}': {e}")))
 }
+
+/// Loads composite tax rates from the existing `billing_tax_rates` fiscal
+/// model (branch-scoped, active rows only). Rates are stored as percentages.
+/// A nil branch resolves to the default bot's branch so anonymous/bot-driven
+/// calls (chat tools) still pick up the seeded rates.
+pub fn load_rates_from_billing(
+    conn: &mut diesel::PgConnection,
+    branch_id: &uuid::Uuid,
+) -> Option<crate::calculator::TaxRates> {
+    #[derive(diesel::QueryableByName)]
+    struct RateRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+        #[diesel(sql_type = diesel::sql_types::Numeric)]
+        rate: Decimal,
+    }
+    let rows: Vec<RateRow> = if *branch_id == uuid::Uuid::nil() {
+        diesel::sql_query(
+            "SELECT name, rate FROM billing_tax_rates \
+             WHERE is_active = true AND ( \
+               branch_id = (SELECT branch_id FROM bots WHERE is_default_for_branch = true ORDER BY created_at ASC LIMIT 1) OR \
+               branch_id IS NULL)",
+        )
+        .load(conn)
+        .ok()?
+    } else {
+        diesel::sql_query(
+            "SELECT name, rate FROM billing_tax_rates \
+             WHERE is_active = true AND (branch_id = $1 OR branch_id IS NULL)",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .load(conn)
+        .ok()?
+    };
+
+    if rows.is_empty() {
+        return None;
+    }
+    let mut rates = crate::calculator::TaxRates::default();
+    for row in rows {
+        rates.set(&row.name, row.rate);
+    }
+    Some(rates)
+}

@@ -6,8 +6,8 @@ use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::db;
-use crate::models::{CTe, NFe, NFSe, NewCTe, NewNFe, NewNFSe, Sped};
-use crate::storage::{ensure_schema_sync, parse_decimal};
+use crate::models::{CTe, NFe, NFSe, NewCTe, NewNFe, NewNFSe, Sped, TaxCalculationRequest};
+use crate::storage::{ensure_schema_sync, load_rates_from_billing, parse_decimal};
 
 pub async fn list_nfe() -> Result<Json<Vec<NFe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
@@ -213,4 +213,26 @@ pub async fn list_sped() -> Result<Json<Vec<Sped>>, (StatusCode, String)> {
     Ok(Json(rows.into_iter().map(|r| Sped {
         id: r.id, period: r.period, kind: r.kind, status: r.status, created_at: r.created_at,
     }).collect()))
+}
+
+/// Calculates service taxes (issue #722). Rates come from `billing_tax_rates`
+/// when present for the branch, otherwise built-in defaults. The calculation
+/// is returned immediately — no records are persisted per calculation.
+pub async fn calculate_tax(
+    Json(req): Json<TaxCalculationRequest>,
+) -> Result<Json<crate::calculator::TaxBreakdown>, (StatusCode, String)> {
+    let service_value = parse_decimal(&req.service_value)?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+
+    let branch_id = req
+        .branch_id
+        .as_deref()
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .unwrap_or(Uuid::nil());
+
+    let loaded = load_rates_from_billing(&mut conn, &branch_id);
+    let rates = loaded.unwrap_or_default();
+    let breakdown = crate::calculator::calculate_service_tax(service_value, &rates);
+    Ok(Json(breakdown))
 }
