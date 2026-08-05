@@ -451,6 +451,40 @@ pub async fn handle_instant_answer<S: ResearchState>(
     }
 }
 
+/// Normalizes a search query for scraping-friendly engines: strips accents
+/// (DuckDuckGo/Mojeek serve anti-bot challenge pages for %20-encoded or
+/// accented queries) and joins words with '+' like a form submission.
+fn normalize_query(query: &str) -> String {
+    let mut out = String::with_capacity(query.len());
+    for c in query.chars() {
+        let mapped = match c {
+            'á' | 'à' | 'â' | 'ã' | 'ä' => 'a',
+            'é' | 'è' | 'ê' | 'ë' => 'e',
+            'í' | 'ì' | 'î' | 'ï' => 'i',
+            'ó' | 'ò' | 'ô' | 'õ' | 'ö' => 'o',
+            'ú' | 'ù' | 'û' | 'ü' => 'u',
+            'ç' => 'c',
+            'ñ' => 'n',
+            'Á' | 'À' | 'Â' | 'Ã' | 'Ä' => 'A',
+            'É' | 'È' | 'Ê' | 'Ë' => 'E',
+            'Í' | 'Ì' | 'Î' | 'Ï' => 'I',
+            'Ó' | 'Ò' | 'Ô' | 'Õ' | 'Ö' => 'O',
+            'Ú' | 'Ù' | 'Û' | 'Ü' => 'U',
+            'Ç' => 'C',
+            'Ñ' => 'N',
+            _ => c,
+        };
+        if mapped.is_whitespace() {
+            if !out.ends_with('+') {
+                out.push('+');
+            }
+        } else {
+            out.push(mapped);
+        }
+    }
+    out.trim_end_matches('+').to_string()
+}
+
 async fn search_duckduckgo(
     query: &str,
     max_results: usize,
@@ -461,7 +495,7 @@ async fn search_duckduckgo(
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()?;
 
-    let encoded_query = urlencoding::encode(query);
+    let encoded_query = normalize_query(query);
     let url = format!(
         "https://html.duckduckgo.com/html/?q={}&kl={}",
         encoded_query, region
@@ -484,15 +518,94 @@ async fn search_duckduckgo(
 }
 
 /// Public wrapper over the DuckDuckGo searcher so the LLM api-command catalog
-/// can answer from the web over any channel (e.g. WhatsApp).
+/// can answer from the web over any channel (e.g. WhatsApp). Falls back to
+/// Mojeek when DuckDuckGo returns no results (anti-bot challenge pages).
 pub async fn search_web(
     query: &str,
     max_results: usize,
     region: &str,
 ) -> Result<Vec<WebSearchResult>, String> {
-    search_duckduckgo(query, max_results, region)
+    let ddg = search_duckduckgo(query, max_results, region)
         .await
-        .map_err(|e| e.to_string())
+        .unwrap_or_default();
+    if !ddg.is_empty() {
+        return Ok(ddg);
+    }
+    search_mojeek(query, max_results).await
+}
+
+/// Mojeek HTML search — a scraping-friendly engine used as a fallback when
+/// DuckDuckGo serves its anti-bot challenge page (HTTP 202, zero results).
+async fn search_mojeek(
+    query: &str,
+    max_results: usize,
+) -> Result<Vec<WebSearchResult>, String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(15))
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let url = format!("https://www.mojeek.com/search?q={}", normalize_query(query));
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    let html = response.text().await.map_err(|e| e.to_string())?;
+
+    let mut results = Vec::new();
+    let mut pos = 0;
+    while results.len() < max_results {
+        let title_start = match html[pos..].find("<h2><a class=\"title\"") {
+            Some(i) => pos + i,
+            None => break,
+        };
+        let a_end = match html[title_start..].find("</a></h2>") {
+            Some(i) => title_start + i,
+            None => break,
+        };
+        let href_start = match html[title_start..].find("href=\"") {
+            Some(i) => title_start + i + 6,
+            None => break,
+        };
+        let href_end = match html[href_start..].find('"') {
+            Some(i) => href_start + i,
+            None => break,
+        };
+        let title_start_tag = match html[title_start..].find('>') {
+            Some(i) => title_start + i + 1,
+            None => break,
+        };
+        let url = html[href_start..href_end].to_string();
+        let title = html[title_start_tag..a_end].trim().to_string();
+
+        let mut snippet = String::new();
+        let snip_start = match html[a_end..].find("<p class=\"s\">") {
+            Some(i) => a_end + i + 13,
+            None => a_end,
+        };
+        if snip_start != a_end {
+            let snip_end = match html[snip_start..].find("</p>") {
+                Some(i) => snip_start + i,
+                None => snip_start,
+            };
+            snippet = html[snip_start..snip_end]
+                .replace("<b>", "")
+                .replace("</b>", "")
+                .trim()
+                .to_string();
+        }
+
+        results.push(WebSearchResult {
+            title,
+            url,
+            snippet,
+            source: "mojeek".to_string(),
+            favicon: None,
+            published_date: None,
+        });
+        pos = snip_start.max(a_end);
+    }
+
+    info!("Mojeek search for '{}' returned {} results", query, results.len());
+    Ok(results)
 }
 
 fn parse_duckduckgo_html(html: &str, max_results: usize) -> Vec<WebSearchResult> {
