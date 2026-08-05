@@ -55,12 +55,32 @@ const DIAGNOSIS_CMD: ApiCommand = ApiCommand {
     admin_only: false,
 };
 
+const IMPORT_CMD: ApiCommand = ApiCommand {
+    name: "banking.import",
+    summary: "Import a month's cash-flow sheet (CSV stored in the bot drive) into the financial model.",
+    params: &[
+        ("file_key", "drive path of the CSV, e.g. financeiro/fluxo-caixa-2026-08.csv"),
+        ("period", "optional YYYY-MM month filter"),
+    ],
+    admin_only: false,
+};
+
 const DRIVE_WRITE_CMD: ApiCommand = ApiCommand {
     name: "drive.write",
     summary: "Store a file (e.g. an invoice) in the bot drive under the given folder path.",
     params: &[
         ("path", "folder/file name, e.g. faturas/2026-08/fatura.pdf"),
         ("content_base64", "the file bytes in base64"),
+    ],
+    admin_only: false,
+};
+
+const DRIVE_FILE_CMD: ApiCommand = ApiCommand {
+    name: "drive.file",
+    summary: "Organize a stored drive file (e.g. an attached invoice from inbox) into its folder.",
+    params: &[
+        ("from", "current drive path, e.g. inbox/fatura.pdf"),
+        ("to", "destination folder path, e.g. faturas/2026-08/fatura.pdf"),
     ],
     admin_only: false,
 };
@@ -91,7 +111,9 @@ pub fn commands_list() -> Vec<&'static ApiCommand> {
     vec![
         &TAX_CMD,
         &DIAGNOSIS_CMD,
+        &IMPORT_CMD,
         &DRIVE_WRITE_CMD,
+        &DRIVE_FILE_CMD,
         &WEB_SEARCH_CMD,
         &APPS_FIND_CMD,
         &API_FIND_CMD,
@@ -365,10 +387,30 @@ pub async fn execute_command(
                     .map_err(|e| e.to_string())?;
             Ok(serde_json::to_value(resp).map_err(|e| e.to_string())?)
         }
+        "banking.import" => {
+            let file_key = str_of("file_key").ok_or_else(|| "params.file_key is required".to_string())?;
+            let period = str_of("period");
+            let resp = botbanking::cashflow::cashflow_import_inner(
+                &state.conn,
+                state.drive.as_ref(),
+                &bot_uuid,
+                Some(&file_key),
+                None,
+                period,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+            Ok(serde_json::to_value(resp).map_err(|e| e.to_string())?)
+        }
         "drive.write" => {
             let path = str_of("path").ok_or_else(|| "params.path is required".to_string())?;
             let content = str_of("content_base64").ok_or_else(|| "params.content_base64 is required".to_string())?;
             write_drive_file(state, bot_name, &path, &content).await
+        }
+        "drive.file" => {
+            let from = str_of("from").ok_or_else(|| "params.from is required".to_string())?;
+            let to = str_of("to").ok_or_else(|| "params.to is required".to_string())?;
+            move_drive_file(state, bot_name, &from, &to).await
         }
         "web.search" => {
             let query = str_of("query").ok_or_else(|| "params.query is required".to_string())?;
@@ -435,4 +477,26 @@ async fn write_drive_file(state: &Arc<AppState>, bot_name: &str, path: &str, con
         .map_err(|e| e.to_string())?;
     log::info!("api_call drive.write -> {bucket}/{key}");
     Ok(json!({ "success": true, "bucket": bucket, "path": key }))
+}
+
+/// Copies a file from one drive path to another (e.g. an attached invoice
+/// from `inbox/` into its `faturas/<month>/` folder).
+async fn move_drive_file(state: &Arc<AppState>, bot_name: &str, from: &str, to: &str) -> Result<Value, String> {
+    let drive = state
+        .drive
+        .clone()
+        .ok_or_else(|| "drive unavailable".to_string())?;
+    let bucket = format!("{bot_name}.gbai");
+    let from_key = format!("{bot_name}.gbdrive/{}", normalize_drive_path(from)?);
+    let to_key = format!("{bot_name}.gbdrive/{}", normalize_drive_path(to)?);
+    let bytes = drive
+        .get_object(&bucket, &from_key)
+        .await
+        .map_err(|e| format!("not found at {from_key}: {e}"))?;
+    drive
+        .put_object(&bucket, &to_key, bytes, None)
+        .await
+        .map_err(|e| e.to_string())?;
+    log::info!("api_call drive.file -> {bucket}/{to_key}");
+    Ok(json!({ "success": true, "bucket": bucket, "from": from_key, "to": to_key }))
 }

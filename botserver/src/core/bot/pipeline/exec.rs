@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use base64::Engine;
 use botcore::shared::state::AppState;
 use uuid::Uuid;
 
@@ -59,6 +60,30 @@ pub async fn process_message_internal(
             msg_type = 1;
         } else {
             return Ok(());
+        }
+    }
+
+    // Optional chat file attachment (base64) -> stored under inbox/ so the
+    // catalog `drive.file` command can organize it into the right folder.
+    if let Some(file) = parsed.get("file").and_then(|v| v.as_object()) {
+        let fname = file.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let b64 = file.get("content_base64").and_then(|v| v.as_str()).unwrap_or("");
+        if !fname.is_empty() && !b64.is_empty() {
+            if let Some(drive) = state.drive.as_ref() {
+                if let Ok(data) = base64::engine::general_purpose::STANDARD.decode(b64) {
+                    let key = format!("{bot_name}.gbdrive/inbox/{fname}");
+                    match drive.put_object(&format!("{bot_name}.gbai"), &key, data, None).await {
+                        Ok(()) => {
+                            log::info!("stored chat attachment: {key}");
+                            user_text = format!(
+                                "{user_text}\n[User attached a file stored at inbox/{fname}; \
+                                 use the drive.file command to organize it into its folder]"
+                            );
+                        }
+                        Err(e) => log::error!("chat attachment store failed: {e}"),
+                    }
+                }
+            }
         }
     }
 

@@ -209,32 +209,46 @@ pub async fn import_cashflow(
         .as_deref()
         .and_then(|s| Uuid::parse_str(s).ok())
         .unwrap_or(Uuid::nil());
-    let scope = resolve_bot_scope(&state.conn, &bot_id)
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Bot not found"))?;
+    let drive = state.drive.as_ref();
+    match cashflow_import_inner(&state.conn, drive, &bot_id, req.file_key.as_deref(), req.rows, req.period).await {
+        Ok(resp) => Ok(Json(resp)),
+        Err(msg) => Err(err(StatusCode::BAD_REQUEST, &msg)),
+    }
+}
+
+/// Shared business logic for the cash-flow import (issue #724). Used by the
+/// REST handler and by the LLM api-command catalog so chat can adjust a
+/// month's entries over any channel.
+pub async fn cashflow_import_inner(
+    pool: &botcore::shared::utils::DbPool,
+    drive: Option<&Arc<dyn botlib::traits::DriveRepository>>,
+    bot_id: &Uuid,
+    file_key: Option<&str>,
+    rows: Option<Vec<CashflowRow>>,
+    period: Option<String>,
+) -> Result<CashflowImportResponse, String> {
+    let scope = resolve_bot_scope(pool, bot_id).ok_or_else(|| "Bot not found".to_string())?;
 
     // Sheet content: explicit drive key or supplied rows.
-    let csv_text = if let Some(file_key) = &req.file_key {
-        let drive = state
-            .drive
-            .as_ref()
-            .ok_or_else(|| err(StatusCode::SERVICE_UNAVAILABLE, "Drive unavailable"))?;
+    let csv_text = if let Some(file_key) = file_key {
+        let drive = drive.ok_or_else(|| "Drive unavailable".to_string())?;
         let bucket = format!("{}.gbai", scope.name);
         let key = format!("{}.gbdrive/{}", scope.name, file_key.trim_start_matches('/'));
         let bytes = drive
             .get_object(&bucket, &key)
             .await
-            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("Sheet not found: {e}")))?;
+            .map_err(|e| format!("Sheet not found: {e}"))?;
         Some(String::from_utf8_lossy(&bytes).to_string())
     } else {
         None
     };
 
-    let rows: Vec<CashflowRow> = if let Some(rows) = req.rows {
+    let rows: Vec<CashflowRow> = if let Some(rows) = rows {
         rows
     } else if let Some(text) = csv_text {
         parse_csv_rows(&text)
     } else {
-        return Err(err(StatusCode::BAD_REQUEST, "Provide 'rows' or 'file_key'"));
+        return Err("Provide 'rows' or 'file_key'".to_string());
     };
 
     let mut normalized: Vec<(NaiveDate, String, f64, String)> = Vec::new();
@@ -248,8 +262,7 @@ pub async fn import_cashflow(
         }
     }
 
-    let period = req
-        .period
+    let period = period
         .filter(|p| !p.trim().is_empty())
         .or_else(|| {
             normalized
@@ -258,10 +271,7 @@ pub async fn import_cashflow(
         })
         .unwrap_or_else(|| Utc::now().format("%Y-%m").to_string());
 
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Pool error: {e}")))?;
+    let mut conn = pool.get().map_err(|e| format!("Pool error: {e}"))?;
 
     // Idempotent per period: replace the previous import of the same marker.
     let marker = format!("{IMPORT_BANK_MARKER}:{period}");
@@ -272,7 +282,7 @@ pub async fn import_cashflow(
     .bind::<diesel::sql_types::Uuid, _>(scope.branch_id)
     .bind::<diesel::sql_types::Text, _>(&marker)
     .execute(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Cleanup error: {e}")))?;
+    .map_err(|e| format!("Cleanup error: {e}"))?;
 
     let mut revenue = 0.0f64;
     let mut expenses = 0.0f64;
@@ -297,10 +307,10 @@ pub async fn import_cashflow(
         .bind::<diesel::sql_types::Double, _>(*amount)
         .bind::<diesel::sql_types::Text, _>(category)
         .execute(&mut conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Insert error: {e}")))?;
+        .map_err(|e| format!("Insert error: {e}"))?;
     }
 
-    Ok(Json(CashflowImportResponse {
+    Ok(CashflowImportResponse {
         imported: normalized.len(),
         skipped_invalid: invalid.len(),
         invalid,
@@ -308,7 +318,7 @@ pub async fn import_cashflow(
         revenue: round2(revenue),
         expenses: round2(expenses),
         net: round2(revenue - expenses),
-    }))
+    })
 }
 
 /// Returns the cash-flow result for the whole branch (issue #724). The

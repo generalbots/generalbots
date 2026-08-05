@@ -3,7 +3,11 @@ function sendMessage(messageContent) {
   if (!input) return;
 
   var content = messageContent || input.value.trim();
-  if (!content) return;
+
+  var fileInput = document.getElementById("messageFile");
+  var file = fileInput && fileInput.files && fileInput.files[0];
+
+  if (!content && !file) return;
 
   if (ChatState.isStreaming && ChatState.streamingMessageId) {
     finalizeStreaming();
@@ -16,25 +20,61 @@ function sendMessage(messageContent) {
     input.focus();
   }
 
-  addMessage("user", content);
+  addMessage("user", content || ("📎 " + file.name));
 
-  if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
-    ChatState.ws.send(JSON.stringify({
-      bot_id: ChatState.currentBotId,
-      user_id: ChatState.currentUserId,
-      session_id: ChatState.currentSessionId,
-      channel: "web",
-      content: content,
-      message_type: MessageType.USER,
-      active_switchers: Array.from(ChatState.activeSwitchers),
-      timestamp: new Date().toISOString(),
-    }));
+  var payload = {
+    bot_id: ChatState.currentBotId,
+    user_id: ChatState.currentUserId,
+    session_id: ChatState.currentSessionId,
+    channel: "web",
+    content: content,
+    message_type: MessageType.USER,
+    active_switchers: Array.from(ChatState.activeSwitchers),
+    timestamp: new Date().toISOString(),
+  };
+
+  var finalSend = function () {
+    ChatState.ws.send(JSON.stringify(payload));
+    if (fileInput) { fileInput.value = ""; }
+    var chip = document.getElementById("fileChip");
+    if (chip) { chip.style.display = "none"; chip.textContent = ""; }
+  };
+
+  if (file && ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      payload.file = {
+        name: file.name,
+        content_base64: String(reader.result).split(",")[1] || reader.result,
+      };
+      finalSend();
+    };
+    reader.readAsDataURL(file);
+  } else if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
+    finalSend();
   } else {
     notify("Not connected to server. Message not sent.", "warning");
   }
 }
 
 window.sendMessage = sendMessage;
+
+(function initFileButton() {
+  var fileBtn = document.getElementById("fileBtn");
+  var fileInput = document.getElementById("messageFile");
+  var chip = document.getElementById("fileChip");
+  if (!fileBtn || !fileInput || !chip) return;
+  fileBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    fileInput.click();
+  });
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files[0]) {
+      chip.textContent = "📎 " + fileInput.files[0].name;
+      chip.style.display = "inline-flex";
+    }
+  });
+})();
 
 window.getChatSessionInfo = function () {
   return {
