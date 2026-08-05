@@ -1215,8 +1215,11 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botcore",
+ "botlib",
+ "bottax",
  "chrono",
  "diesel",
+ "log",
  "rust_decimal",
  "serde",
  "serde_json",
@@ -2520,10 +2523,12 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "bigdecimal",
+ "bottax",
  "chrono",
  "diesel",
  "log",
  "r2d2",
+ "rust_decimal",
  "serde",
  "serde_json",
  "tokio",
@@ -2629,6 +2634,7 @@ name = "botsampledata"
 version = "6.3.1"
 dependencies = [
  "botcore",
+ "botlib",
  "chrono",
  "diesel",
  "log",
@@ -3139,8 +3145,10 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botcore",
+ "botlib",
  "chrono",
  "diesel",
+ "log",
  "rust_decimal",
  "serde",
  "serde_json",

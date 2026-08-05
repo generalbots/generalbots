@@ -329,6 +329,16 @@ async fn main() -> std::io::Result<()> {
 
     let app_state = main_module::create_app_state(cfg, pool, &redis_client).await?;
 
+    // Seed the fiscal Drive objects (invoice folder + cash-flow spreadsheets,
+    // issues #722/#723/#724) once the drive client is available.
+    #[cfg(feature = "sampledata")]
+    if let Some(drive) = app_state.drive.clone() {
+        let seed_pool = app_state.conn.clone();
+        tokio::spawn(async move {
+            botsampledata::seed_drive_fiscal(&seed_pool, drive.as_ref()).await;
+        });
+    }
+
     // Wire SESSION_CACHE into auth middleware so gb_xxx tokens resolve
     // to their stored roles (e.g. "admin") instead of falling back to Role::User.
     #[cfg(all(feature = "security", feature = "directory"))]

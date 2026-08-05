@@ -4,15 +4,17 @@
      ============================================================================= -->
 <link rel="stylesheet" href="/suite/canvas/canvas.css" />
 <div class="canvas-root" id="canvas-app-root">
-    <div hx-get="./partials/01_app_open.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/02_toolbar.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/03_header.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/04_canvas_container.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/05_properties_panel.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="./partials/06_export_modal.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/01_app_open.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/02_toolbar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/03_header.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/04_canvas_container.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/05_properties_panel.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/06_export_modal.html" hx-trigger="load" hx-swap="outerHTML"></div>
 </div>
 
 <script>
+(function () {
+    "use strict";
     let currentTool = "select";
     let isDrawing = false;
     let startX, startY;
@@ -368,4 +370,5 @@
     function toggleCollaborate() {
         console.log("Collaboration toggled");
     }
+})();
 </script>

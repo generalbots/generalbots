@@ -4,6 +4,7 @@ pub mod manager;
 pub mod manager_ops;
 pub mod tool_context;
 pub mod multimedia;
+pub mod api_catalog;
 
 pub use ws::{websocket_handler, websocket_handler_with_bot};
 

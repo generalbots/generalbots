@@ -10,10 +10,12 @@ repository = "https://github.com/GeneralBots/BotServer"
 [dependencies]
 axum = { workspace = true }
 bigdecimal = { workspace = true, features = ["serde"] }
+bottax = { path = "../bottax" }
 chrono = { workspace = true, features = ["serde", "clock"] }
 log = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json", "numeric", "32-column-tables"] }
 r2d2 = { workspace = true }
+rust_decimal = { workspace = true, features = ["serde-with-str", "db-diesel2-postgres"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time", "rt", "rt-multi-thread", "macros", "fs"] }

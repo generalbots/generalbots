@@ -158,7 +158,7 @@ allbutooxmlsdk = [
     "deployment",
     "tax", "vision", "erp", "integrations", "hr", "sales", "minutes", "templates",
     "itsm", "pos", "handoff", "kyc", "timeclock",
-    "fraud", "inventory", "gl", "retail",
+    "fraud", "inventory", "gl", "retail", "banking",
     "security", "directory", "llm", "vectordb", "crawler", "console",
     "saas", "m365",
     "sampledata",

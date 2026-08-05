@@ -245,8 +245,17 @@ if (typeof window.WindowManager === "undefined") {
         s.remove();
         return clone;
       });
+      // Vendor scripts define globals (Terminal, _amdLoaderGlobal, etc.).
+      // Re-injecting them in a second window breaks with "already declared"
+      // errors, so skip src-based scripts that were already loaded once.
       body.innerHTML = tempDiv.innerHTML;
-      scripts.forEach((s) => body.appendChild(s));
+      window.__gbLoadedScripts = window.__gbLoadedScripts || {};
+      scripts.forEach((s) => {
+        const src = s.getAttribute("src");
+        if (src && window.__gbLoadedScripts[src]) return;
+        if (src) window.__gbLoadedScripts[src] = true;
+        body.appendChild(s);
+      });
       if (window.htmx) htmx.process(body);
     }
 

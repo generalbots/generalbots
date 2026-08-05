@@ -3,6 +3,7 @@ pub mod transaction;
 pub mod reconcile;
 pub mod billing;
 pub mod dashboard;
+pub mod cashflow;
 pub mod db;
 pub mod storage;
 pub mod handlers;

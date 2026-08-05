@@ -483,6 +483,18 @@ async fn search_duckduckgo(
     Ok(results)
 }
 
+/// Public wrapper over the DuckDuckGo searcher so the LLM api-command catalog
+/// can answer from the web over any channel (e.g. WhatsApp).
+pub async fn search_web(
+    query: &str,
+    max_results: usize,
+    region: &str,
+) -> Result<Vec<WebSearchResult>, String> {
+    search_duckduckgo(query, max_results, region)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 fn parse_duckduckgo_html(html: &str, max_results: usize) -> Vec<WebSearchResult> {
     let mut results = Vec::new();
 

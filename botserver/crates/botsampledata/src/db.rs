@@ -120,6 +120,7 @@ pub fn seed(conn: &mut diesel::PgConnection) -> Result<(), String> {
         ("marketing", seed_marketing),
         ("o365", seed_m365),
         ("drive", seed_drive),
+        ("fiscal", seed_fiscal),
     ];
 
     for (name, seed_fn) in domains {
@@ -826,6 +827,154 @@ fn seed_drive(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String>
                 .bind::<Text, _>(mime)
                 .execute(conn)
                 .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+/// Seeds fiscal test data for issues #722/#723/#724:
+///   * `billing_tax_rates` rows (existing fiscal model) so the tax engine
+///     resolves branch-scoped rates instead of defaults;
+///   * `bot_configuration` overrides (`tax-*` keys) so the per-bot config
+///     path of the tax engine is exercisable;
+///   * `drive_files` index rows mirroring the invoice/finance objects that
+///     `drive::seed_drive_objects` writes to MinIO.
+fn seed_fiscal(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
+    let org = s.org_id;
+    let branch = s.branch_id;
+    let bot = s.bot_id;
+
+    let rates: &[(&str, f64, &str)] = &[
+        ("IRPJ", 4.80, "IRPJ over presumed profit (32% x 15%)"),
+        ("CSLL", 2.88, "CSLL over presumed profit (32% x 9%)"),
+        ("PIS/COFINS", 3.65, "PIS/COFINS cumulativo"),
+        ("ISS", 5.00, "ISS sobre servicos"),
+    ];
+    for (name, rate, description) in rates {
+        let n = count(
+            conn,
+            "SELECT count(*) AS n FROM billing_tax_rates WHERE branch_id::text = $1 AND name = $2",
+            &[&s.branch_str, name],
+        )?;
+        if n == 0 {
+            sql_query(
+                "INSERT INTO billing_tax_rates (id, org_id, branch_id, bot_id, name, rate, description, region, is_default, is_active, created_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'BR', true, true, NOW())",
+            )
+            .bind::<SqlUuid, _>(Uuid::new_v4())
+            .bind::<SqlUuid, _>(org)
+            .bind::<SqlUuid, _>(branch)
+            .bind::<SqlUuid, _>(bot)
+            .bind::<Text, _>(name)
+            .bind::<diesel::sql_types::Double, _>(rate)
+            .bind::<Text, _>(description)
+            .execute(conn)
+            .map_err(|e| e.to_string())?;
+        }
+    }
+
+    for (key, value) in [
+        ("tax-irpj", "4.80"),
+        ("tax-csll", "2.88"),
+        ("tax-pis-cofins", "3.65"),
+        ("tax-iss", "5.00"),
+    ] {
+        let n = count(
+            conn,
+            "SELECT count(*) AS n FROM bot_configuration WHERE bot_id::text = $1 AND config_key = $2",
+            &[&s.bot_str, key],
+        )?;
+        if n == 0 {
+            sql_query(
+                "INSERT INTO bot_configuration (id, bot_id, branch_id, config_key, config_value, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, NOW(), NOW())",
+            )
+            .bind::<SqlUuid, _>(Uuid::new_v4())
+            .bind::<SqlUuid, _>(bot)
+            .bind::<SqlUuid, _>(branch)
+            .bind::<Text, _>(key)
+            .bind::<Text, _>(value)
+            .execute(conn)
+            .map_err(|e| e.to_string())?;
+        }
+    }
+
+    // Sample service in the registry so the service-tax flow (issue #722)
+    // can run live: fixed-price consulting at R$ 10,000.00. tax_rate = 0
+    // means the composite rates come from billing_tax_rates (16.33% total).
+    // Seeded in the nil scope (global catalog) because botproducts resolves
+    // branch_id = nil in SaaS/admin mode.
+    {
+        let nil_branch = Uuid::nil();
+        let n = count(
+            conn,
+            "SELECT count(*) AS n FROM services WHERE branch_id::text = $1 AND name = $2",
+            &[&nil_branch.to_string(), "IT Consulting"],
+        )?;
+        if n == 0 {
+            sql_query(
+                "INSERT INTO services (id, org_id, bot_id, branch_id, name, description, category, service_type, fixed_price, hourly_rate, currency, duration_minutes, is_active, tax_rate, attributes, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, 'IT Consulting', 'Consulting and software development services', 'Services', 'fixed', 10000.00, NULL, 'BRL', 60, true, 0, '{}'::jsonb, NOW(), NOW())",
+            )
+            .bind::<SqlUuid, _>(Uuid::new_v4())
+            .bind::<SqlUuid, _>(org)
+            .bind::<SqlUuid, _>(bot)
+            .bind::<SqlUuid, _>(nil_branch)
+            .execute(conn)
+            .map_err(|e| e.to_string())?;
+        }
+    }
+
+    let now = chrono::Utc::now();
+    let current_month = now.format("%Y-%m").to_string();
+    let prev_month = now
+        .checked_sub_months(chrono::Months::new(1))
+        .map(|d| d.format("%Y-%m").to_string())
+        .unwrap_or_else(|| "2026-07".to_string());
+    let invoice_name = format!("telefonia-{current_month}.pdf");
+    let finance_name = format!("fluxo-caixa-{current_month}.csv");
+    let prev_finance_name = format!("fluxo-caixa-{prev_month}.csv");
+
+    for (path, ftype, name, mime) in [
+        (
+            format!("/faturas/{invoice_name}"),
+            "pdf",
+            invoice_name.as_str(),
+            "application/pdf",
+        ),
+        (
+            format!("/financeiro/{finance_name}"),
+            "csv",
+            finance_name.as_str(),
+            "text/csv",
+        ),
+        (
+            format!("/financeiro/{prev_finance_name}"),
+            "csv",
+            prev_finance_name.as_str(),
+            "text/csv",
+        ),
+    ] {
+        let n = count(
+            conn,
+            "SELECT count(*) AS n FROM drive_files WHERE branch_id::text = $1 AND file_path = $2",
+            &[&s.branch_str, path.as_str()],
+        )?;
+        if n == 0 {
+            sql_query(
+                "INSERT INTO drive_files (id, file_path, file_type, last_modified, file_size, indexed, user_id, scope, branch_id, path, name, mime_type, created_at, updated_at)
+                 VALUES ($1, $2, $3, NOW(), 245760, true, $4, 'user', $5, $6, $7, $8, NOW(), NOW())",
+            )
+            .bind::<SqlUuid, _>(Uuid::new_v4())
+            .bind::<Text, _>(path.clone())
+            .bind::<Text, _>(ftype)
+            .bind::<SqlUuid, _>(s.user_id)
+            .bind::<SqlUuid, _>(branch)
+            .bind::<Text, _>(path.rsplit('/').next().map(|p| format!("/{}", p)).unwrap_or_default())
+            .bind::<Text, _>(name)
+            .bind::<Text, _>(mime)
+            .execute(conn)
+            .map_err(|e| e.to_string())?;
         }
     }
     Ok(())

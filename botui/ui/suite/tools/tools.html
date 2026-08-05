@@ -1,0 +1,68 @@
+<link rel="stylesheet" href="/suite/tools/tools.css" />
+
+<div class="tools-container" id="tools-app">
+    <style>
+        .tools-container {
+            padding: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .tools-header {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tools-header h2 {
+            margin: 0 0 4px 0;
+            color: var(--text-color);
+        }
+        .tools-header p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+        .tool-card {
+            display: block;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--surface-color);
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: border-color 0.15s ease;
+        }
+        .tool-card:hover {
+            border-color: var(--primary-color);
+        }
+        .tool-card h3 {
+            margin: 0 0 6px 0;
+            font-size: 15px;
+        }
+        .tool-card p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+    </style>
+    <div class="tools-header">
+        <h2>Tools</h2>
+        <p>Utility toolkit: search, reindex, security and compliance.</p>
+    </div>
+    <div class="tools-grid">
+        <a class="tool-card" href="/suite/tools/security.html" data-i18n="tools-security">
+            <h3>Security</h3>
+            <p>Security settings and audit configuration.</p>
+        </a>
+        <a class="tool-card" href="/suite/tools/compliance.html" data-i18n="tools-compliance">
+            <h3>Compliance</h3>
+            <p>Compliance checks, issues and training.</p>
+        </a>
+    </div>
+</div>
+<script src="/suite/tools/tools.js"></script>

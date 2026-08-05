@@ -8,6 +8,43 @@ use crate::types::*;
 pub struct CourseService;
 
 impl CourseService {
+    pub fn list_courses() -> Vec<Course> {
+        vec![
+            Course {
+                id: Uuid::new_v4(),
+                organization_id: None,
+                title: "Integração de Novos Funcionários".to_string(),
+                description: Some("Curso obrigatório de boas-vindas e cultura da empresa.".to_string()),
+                category: "onboarding".to_string(),
+                difficulty: "beginner".to_string(),
+                duration_minutes: 30,
+                thumbnail_url: None,
+                is_mandatory: true,
+                due_days: Some(14),
+                is_published: true,
+                created_by: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            },
+            Course {
+                id: Uuid::new_v4(),
+                organization_id: None,
+                title: "Segurança da Informação".to_string(),
+                description: Some("Boas práticas de segurança e proteção de dados.".to_string()),
+                category: "security".to_string(),
+                difficulty: "beginner".to_string(),
+                duration_minutes: 45,
+                thumbnail_url: None,
+                is_mandatory: true,
+                due_days: Some(30),
+                is_published: true,
+                created_by: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            },
+        ]
+    }
+
     pub fn create_course(
         request: CreateCourseRequest,
     ) -> Result<Course> {

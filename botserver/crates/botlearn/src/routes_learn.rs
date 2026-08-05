@@ -17,7 +17,7 @@ use crate::types::*;
 
 pub fn configure_learn_api_routes() -> Router<Arc<GamificationService>> {
     Router::new()
-        .route("/api/learn/courses", post(create_course_handler))
+        .route("/api/learn/courses", get(list_courses_handler).post(create_course_handler))
         .route("/api/learn/courses/:id/publish", post(publish_course_handler))
         .route("/api/learn/enroll", post(enroll_handler))
         .route("/api/learn/progress/:enrollment_id", put(update_progress_handler))
@@ -29,6 +29,10 @@ pub fn configure_learn_api_routes() -> Router<Arc<GamificationService>> {
         .route("/api/learn/leaderboard", get(get_leaderboard_handler))
         .route("/api/learn/xp/:user_id", get(get_user_xp_handler))
         .route("/api/learn/badges", get(get_badge_definitions_handler))
+}
+
+async fn list_courses_handler() -> Result<Json<Vec<Course>>, (StatusCode, String)> {
+    Ok(Json(CourseService::list_courses()))
 }
 
 async fn create_course_handler(

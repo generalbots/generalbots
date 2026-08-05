@@ -199,12 +199,22 @@ pub async fn process_message_internal(
     } else {
         base_system_prompt
     };
-    let system_prompt = if channel == "whatsapp" {
-        format!("{system_prompt}\n\n---\nThis conversation is on WhatsApp.")
-    } else if channel == "web" {
-        format!("{system_prompt}\n\n{}", crate::main_module::ui_plan::ui_automation_instructions())
+    let system_prompt = if channel == "web" {
+        format!(
+            "{system_prompt}\n\n{}\n\n{}",
+            crate::core::bot::api_catalog::api_command_instructions(),
+            crate::main_module::ui_plan::ui_automation_instructions(),
+        )
+    } else if channel == "whatsapp" {
+        format!(
+            "{system_prompt}\n\n---\nThis conversation is on WhatsApp.\n\n{}",
+            crate::core::bot::api_catalog::api_command_instructions(),
+        )
     } else {
-        system_prompt
+        format!(
+            "{system_prompt}\n\n{}",
+            crate::core::bot::api_catalog::api_command_instructions(),
+        )
     };
 
     let session_context = {

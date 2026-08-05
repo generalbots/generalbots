@@ -244,6 +244,10 @@ pub async fn stream_llm_response(
                                         full_response.push_str(&chunk);
                                         continue;
                                     }
+                                    if chunk.contains(crate::core::bot::api_catalog::API_CALL_TRIGGER) {
+                                        full_response.push_str(&chunk);
+                                        continue;
+                                    }
                                     if chunk.contains(crate::main_module::ui_plan::UI_PLAN_TRIGGER) {
                                         full_response.push_str(&chunk);
                                         continue;
@@ -276,7 +280,20 @@ pub async fn stream_llm_response(
 
                 let has_tool_call = full_response.contains("\"__tool_call__\":");
                 let has_ui_plan = full_response.contains(crate::main_module::ui_plan::UI_PLAN_TRIGGER);
-                log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan);
+                let has_api_call = full_response.contains(crate::core::bot::api_catalog::API_CALL_TRIGGER);
+                log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}, has_api_call={}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan, has_api_call);
+
+                if has_api_call && handle_api_call(
+                    sink, state, &llm, llm_model, llm_key,
+                    bot_uuid, session_id, user_id, bot_name,
+                    &full_response, user_text,
+                ).await {
+                    {
+                        let mut sm = state.session_manager.lock().await;
+                        let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                    }
+                    break;
+                }
 
                 if has_ui_plan {
                     content_buffer = crate::main_module::ui_plan::strip_plan_json(&content_buffer);
@@ -444,4 +461,119 @@ pub async fn stream_llm_response(
     }
 
     Ok(())
+}
+
+/// Executes an `{"__api_call__": {"name", "params", "compose"}}` block found
+/// in the LLM reply. Returns true when the call was handled (even on error),
+/// so the caller skips the regular rendering path.
+async fn handle_api_call(
+    sink: &dyn ChannelSink,
+    state: &Arc<AppState>,
+    llm: &Arc<dyn botlib::traits::LLMProvider>,
+    model: &str,
+    key: &str,
+    bot_uuid: Uuid,
+    session_id: Uuid,
+    user_id: Uuid,
+    bot_name: &str,
+    full_response: &str,
+    user_text: &str,
+) -> bool {
+    use crate::core::bot::api_catalog;
+    let payload = match extract_api_call_payload(full_response) {
+        Some(p) => p,
+        None => return false,
+    };
+    let name = payload.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    if name.is_empty() {
+        return false;
+    }
+    let params = payload.get("params").cloned().unwrap_or(serde_json::Value::Null);
+    let compose = payload.get("compose").and_then(|v| v.as_bool()).unwrap_or(false);
+    let channel = sink.channel_type().to_string();
+
+    match api_catalog::execute_command(state, bot_uuid, bot_name, &name, &params).await {
+        Ok(result) => {
+            if compose {
+                let prompt = format!(
+                    "You are the assistant of bot '{bot_name}'. The user asked: \"{user_text}\".\n\
+                     You ran the command '{name}' and received this data:\n{json}\n\n\
+                     Write a concise, friendly answer for the user in the language of the user's message, \
+                     using the data. Never mention JSON, commands or internal details.",
+                    json = serde_json::to_string_pretty(&result).unwrap_or_default(),
+                );
+                match llm.generate(&prompt, &serde_json::json!({}), model, key).await {
+                    Ok(text) => {
+                        let resp = botlib::models::BotResponse::new(
+                            bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
+                            &text, &channel,
+                        );
+                        let _ = sink.send_bot_response(&resp).await;
+                    }
+                    Err(e) => {
+                        log::error!("api_call compose LLM error: {e}");
+                        let resp = botlib::models::BotResponse::new(
+                            bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
+                            "Dados obtidos, mas falhei ao redigir a resposta.", &channel,
+                        );
+                        let _ = sink.send_bot_response(&resp).await;
+                    }
+                }
+            } else {
+                let text = serde_json::to_string_pretty(&result).unwrap_or_default();
+                let text = if text.len() > 2000 {
+                    format!("{}...", &text[..2000])
+                } else {
+                    text
+                };
+                let resp = botlib::models::BotResponse::new(
+                    bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
+                    &text, &channel,
+                );
+                let _ = sink.send_bot_response(&resp).await;
+            }
+            true
+        }
+        Err(e) => {
+            log::warn!("api_call '{name}' failed: {e}");
+            let resp = botlib::models::BotResponse::new(
+                bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
+                &format!("Falha ao executar {name}: {e}"), &channel,
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            true
+        }
+    }
+}
+
+/// Extracts the first `{"__api_call__": {...}}` object from a response,
+/// returning its payload (the object's `__api_call__` value, or the whole
+/// object when it is not nested).
+fn extract_api_call_payload(full_response: &str) -> Option<serde_json::Value> {
+    use crate::core::bot::api_catalog::API_CALL_TRIGGER;
+    let pos = full_response.find(API_CALL_TRIGGER)?;
+    let obj_start = full_response[..pos].rfind('{')?;
+    let bytes = full_response.as_bytes();
+    let mut depth = 0i32;
+    let mut in_string = false;
+    for (i, &b) in bytes[obj_start..].iter().enumerate() {
+        match b {
+            b'"' => in_string = !in_string,
+            b'{' if !in_string => depth += 1,
+            b'}' if !in_string => {
+                depth -= 1;
+                if depth == 0 {
+                    let end = obj_start + i + 1;
+                    let parsed: serde_json::Value = match serde_json::from_str(&full_response[obj_start..end]) {
+                        Ok(v) => v,
+                        Err(_) => return None,
+                    };
+                    let inner = parsed.get("__api_call__").cloned().unwrap_or(parsed);
+                    return Some(inner);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }

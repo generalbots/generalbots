@@ -214,7 +214,7 @@ pub fn all_apps() -> Vec<AppDefinition> {
             "Social media posting and feed management.",
             "social media posts",
             "<path d=\"M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z\"/>"),
-        app("attendant", "Attendant", "business", "#84d669", "/suite/attendant/attendant.html",
+        app("attendant", "Attendant", "business", "#84d669", "/suite/attendant/index.html",
             "Human attendant console with queue and LLM assist.",
             "attendant queue support",
             "<path d=\"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M23 21v-2a4 4 0 0 0-3-3.87\"/><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/>"),
