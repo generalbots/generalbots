@@ -975,6 +975,7 @@ Requirements when adding/changing an endpoint or feature:
 3. **Seed demo data** via `botsampledata` so the feature works end-to-end on a fresh drive (e.g. CSVs for cashflow imports, `billing_tax_rates` rows, sample product with `tax_rate`).
 4. **Structured, summarized responses**: machine-readable JSON over prose — the LLM turns the JSON into user-facing text/visuals (e.g. diagnosis must return summary + detail, NOT generated markdown files).
 5. If the feature is reachable only through an HTTP endpoint AND needs to be answerable in chat, register it in the **api command catalog** (declarative entry executed backend-side, results fed back to the LLM) — do not add a new BASIC keyword unless the operation is a chat-native primitive.
+6. **RBAC-aware exposure:** mark admin-only capabilities (`admin_only: true` on the command, or a row in `rbac_api_permissions` for endpoint prefixes). The catalog filters admin-only entries for non-admin users via `resolve_user_role` — the injected manifest shortens per role, and the executor enforces the same rule server-side. Never rely on prompt text alone for authorization.
 
 ### Step 6: Document
 Add to `botbook/src/features/` if user-facing; module README if developer-facing; inline comments; update API docs.
