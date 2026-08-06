@@ -1703,3 +1703,29 @@ form.input-container {
     border-color: rgba(0, 212, 170, 0.7);
     color: #00d4aa;
 }
+
+/* Deep-link buttons: contextual "open app" actions in bot replies */
+.app-deeplink-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 4px 2px 0;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(132, 214, 105, 0.5);
+    background: rgba(132, 214, 105, 0.12);
+    color: var(--text, inherit);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+.app-deeplink-btn:hover {
+    background: rgba(132, 214, 105, 0.25);
+    transform: translateY(-1px);
+}
+.app-deeplink-btn::before {
+    content: "⧉";
+    font-size: 11px;
+    opacity: 0.8;
+}

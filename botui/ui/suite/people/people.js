@@ -79,6 +79,22 @@
         function init() {
             bindAdvancedSearch();
             loadContacts();
+            // Deep-link support: open the app contextualized to a person when the
+            // desktop shell opened us via app://people?person_id=...
+            const params = window.__gbAppParams__ || {};
+            if (params.person_id) {
+                const target = params.person_id;
+                let attempts = 0;
+                const tryOpen = () => {
+                    if (window.showContact && typeof window.showContact === "function") {
+                        window.showContact(target);
+                    }
+                    if (attempts++ < 15) {
+                        setTimeout(tryOpen, 500);
+                    }
+                };
+                setTimeout(tryOpen, 400);
+            }
         }
 
         if (document.readyState === "loading") {
