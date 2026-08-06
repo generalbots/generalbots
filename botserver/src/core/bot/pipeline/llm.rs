@@ -244,7 +244,7 @@ pub async fn stream_llm_response(
                                         full_response.push_str(&chunk);
                                         continue;
                                     }
-                                    if chunk.contains(crate::core::bot::api_catalog::API_CALL_TRIGGER) {
+                                    if crate::core::bot::api_catalog::is_api_call_trigger(&chunk) {
                                         full_response.push_str(&chunk);
                                         continue;
                                     }
@@ -280,7 +280,7 @@ pub async fn stream_llm_response(
 
                 let has_tool_call = full_response.contains("\"__tool_call__\":");
                 let has_ui_plan = full_response.contains(crate::main_module::ui_plan::UI_PLAN_TRIGGER);
-                let has_api_call = full_response.contains(crate::core::bot::api_catalog::API_CALL_TRIGGER);
+                let has_api_call = crate::core::bot::api_catalog::is_api_call_trigger(&full_response);
                 log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}, has_api_call={}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan, has_api_call);
 
                 if has_api_call && handle_api_call(
@@ -492,15 +492,41 @@ async fn handle_api_call(
     let compose = payload.get("compose").and_then(|v| v.as_bool()).unwrap_or(false);
     let channel = sink.channel_type().to_string();
 
+    // The LLM may have spoken a short "working on it..." line before the
+    // __api_call__ block. Surface it to the user so the tool call feels
+    // natural, then run the command. The JSON block itself is always
+    // stripped out of the leading text (never shown to the user).
+    let stripped = strip_api_call_block(full_response);
+    let leading = stripped.trim();
+    if !leading.is_empty() {
+        let progress = botlib::models::BotResponse::new(
+            bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
+            leading, &channel,
+        );
+        let _ = sink.send_bot_response(&progress).await;
+    }
+
     match api_catalog::execute_command(state, bot_uuid, bot_name, user_id, &name, &params).await {
         Ok(result) => {
             if compose {
+                let deep_links = extract_deep_links(&result);
                 let prompt = format!(
                     "You are the assistant of bot '{bot_name}'. The user asked: \"{user_text}\".\n\
                      You ran the command '{name}' and received this data:\n{json}\n\n\
                      Write a concise, friendly answer for the user in the language of the user's message, \
-                     using the data. Never mention JSON, commands or internal details.",
+                     using the data. Never mention JSON, commands or internal details.\n\
+                     {deep_link_instruction}",
                     json = serde_json::to_string_pretty(&result).unwrap_or_default(),
+                    deep_link_instruction = if deep_links.is_empty() {
+                        String::new()
+                    } else {
+                        format!(
+                            "The result references specific records. End your answer with a clickable \
+                             link to the most relevant record, in the exact form provided (it starts \
+                             with app://), e.g. '{first}'.",
+                            first = deep_links[0],
+                        )
+                    },
                 );
                 match llm.generate(&prompt, &serde_json::json!({}), model, key).await {
                     Ok(text) => {
@@ -512,9 +538,17 @@ async fn handle_api_call(
                     }
                     Err(e) => {
                         log::error!("api_call compose LLM error: {e}");
+                        let fallback = if deep_links.is_empty() {
+                            "Dados obtidos, mas falhei ao redigir a resposta.".to_string()
+                        } else {
+                            format!(
+                                "Here is the record you asked about: {link}",
+                                link = deep_links[0],
+                            )
+                        };
                         let resp = botlib::models::BotResponse::new(
                             bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
-                            "Dados obtidos, mas falhei ao redigir a resposta.", &channel,
+                            &fallback, &channel,
                         );
                         let _ = sink.send_bot_response(&resp).await;
                     }
@@ -546,12 +580,41 @@ async fn handle_api_call(
     }
 }
 
+/// Collects every `app://...` deep-link string present anywhere in a command
+/// result so the final answer can surface the most relevant one even when the
+/// compose LLM call fails.
+fn extract_deep_links(value: &serde_json::Value) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut stack = vec![value.clone()];
+    while let Some(v) = stack.pop() {
+        match v {
+            serde_json::Value::String(s) => {
+                if s.starts_with("app://") {
+                    out.push(s.clone());
+                }
+            }
+            serde_json::Value::Array(items) => {
+                for item in items {
+                    stack.push(item.clone());
+                }
+            }
+            serde_json::Value::Object(map) => {
+                for val in map.values() {
+                    stack.push(val.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
 /// Extracts the first `{"__api_call__": {...}}` object from a response,
 /// returning its payload (the object's `__api_call__` value, or the whole
 /// object when it is not nested).
 fn extract_api_call_payload(full_response: &str) -> Option<serde_json::Value> {
-    use crate::core::bot::api_catalog::API_CALL_TRIGGER;
-    let pos = full_response.find(API_CALL_TRIGGER)?;
+    use crate::core::bot::api_catalog::find_api_call;
+    let pos = find_api_call(full_response)?;
     let obj_start = full_response[..pos].rfind('{')?;
     let bytes = full_response.as_bytes();
     let mut depth = 0i32;
@@ -568,7 +631,7 @@ fn extract_api_call_payload(full_response: &str) -> Option<serde_json::Value> {
                         Ok(v) => v,
                         Err(_) => return None,
                     };
-                    let inner = parsed.get("__api_call__").cloned().unwrap_or(parsed);
+                    let inner = parsed.get("__api_call__").or_else(|| parsed.get("api_call")).or_else(|| parsed.get("_api_call_")).cloned().unwrap_or(parsed);
                     return Some(inner);
                 }
             }
@@ -576,4 +639,45 @@ fn extract_api_call_payload(full_response: &str) -> Option<serde_json::Value> {
         }
     }
     None
+}
+
+/// Removes the `{"__api_call__": ...}` JSON block (the model's tool-call
+/// preamble) from a response, leaving just the user-facing prose before and
+/// after it. The block is matched with brace balancing so it is stripped in
+/// full no matter which key variant the model emitted.
+fn strip_api_call_block(text: &str) -> String {
+    use crate::core::bot::api_catalog::find_api_call;
+    let Some(pos) = find_api_call(text) else {
+        return text.to_string();
+    };
+    let Some(obj_start) = text[..pos].rfind('{') else {
+        return text.to_string();
+    };
+    let bytes = text.as_bytes();
+    let mut depth = 0i32;
+    let mut in_string = false;
+    let mut end = None;
+    for (i, &b) in bytes[obj_start..].iter().enumerate() {
+        match b {
+            b'"' => in_string = !in_string,
+            b'{' if !in_string => depth += 1,
+            b'}' if !in_string => {
+                depth -= 1;
+                if depth == 0 {
+                    end = Some(obj_start + i + 1);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    match end {
+        Some(e) => {
+            let mut out = String::with_capacity(text.len());
+            out.push_str(&text[..obj_start]);
+            out.push_str(&text[e..]);
+            out
+        }
+        None => text.to_string(),
+    }
 }

@@ -1,4 +1,5 @@
 pub mod models;
+pub mod scope;
 pub mod employee;
 pub mod attendance;
 pub mod payroll;
@@ -7,7 +8,7 @@ pub mod ui;
 
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::{delete, get, post, put},
     Json, Router,
 };
@@ -32,6 +33,8 @@ pub struct PeopleState {
 diesel::table! {
     people (id) {
         id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         branch_id -> Uuid,
         user_id -> Nullable<Uuid>,
         first_name -> Varchar,
@@ -261,6 +264,8 @@ diesel::table! {
 #[diesel(table_name = people)]
 pub struct Person {
     pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
     pub branch_id: Uuid,
     pub user_id: Option<Uuid>,
     pub first_name: String,
@@ -542,13 +547,15 @@ fn bd(val: f64) -> BigDecimal {
 
 pub async fn create_person(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Json(req): Json<CreatePersonRequest>,
 ) -> Result<Json<Person>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -562,6 +569,8 @@ pub async fn create_person(
 
     let person = Person {
         id,
+        org_id: state.org_for_branch(branch_id),
+        bot_id: state.bot_for_branch(branch_id),
         branch_id,
         user_id: None,
         first_name: req.first_name,
@@ -1279,6 +1288,48 @@ pub async fn get_people_stats(
     };
 
     Ok(Json(stats))
+}
+
+impl PeopleState {
+    /// Resolves the org owning the given branch (branch → org via branches).
+    /// The org is the gborg tenant that owns the workspace; it is never
+    /// conflated with the branch id.
+    pub fn org_for_branch(&self, branch_id: Uuid) -> Uuid {
+        #[derive(diesel::QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            org_id: Uuid,
+        }
+        let Ok(mut conn) = self.pool.get() else {
+            return Uuid::nil();
+        };
+        diesel::sql_query("SELECT org_id FROM branches WHERE id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .get_result::<Row>(&mut conn)
+            .map(|r| r.org_id)
+            .unwrap_or_else(|_| Uuid::nil())
+    }
+
+    /// Resolves a bot id inside the given branch (the branch's default bot
+    /// when flagged, otherwise any active bot in the branch).
+    pub fn bot_for_branch(&self, branch_id: Uuid) -> Uuid {
+        #[derive(diesel::QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            id: Uuid,
+        }
+        let Ok(mut conn) = self.pool.get() else {
+            return Uuid::nil();
+        };
+        diesel::sql_query(
+            "SELECT id FROM bots WHERE branch_id = $1 AND is_active = true \
+             ORDER BY is_default_for_branch DESC LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .get_result::<Row>(&mut conn)
+        .map(|r| r.id)
+        .unwrap_or_else(|_| Uuid::nil())
+    }
 }
 
 pub fn configure_people_routes() -> Router<Arc<PeopleState>> {

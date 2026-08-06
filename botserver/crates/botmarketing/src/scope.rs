@@ -1,0 +1,70 @@
+//! Branch-scope resolution for CRM write handlers.
+//!
+//! Data is owned by the branch (workspace) which is owned by the org (the
+//! `.gborg` tenant). When an authenticated request carries a JWT whose email
+//! maps to a CRM contact, the branch is derived from that contact so writes
+//! land in the caller's own workspace — never in an arbitrary "default" bot
+//! branch (issue #730). When no JWT/email is present, callers fall back to
+//! their crate-level default context.
+
+use axum::http::HeaderMap;
+use diesel::prelude::*;
+use uuid::Uuid;
+
+/// Minimal URL-safe base64 decoder (JWT payloads). Returns `None` on invalid
+/// input so a malformed header never aborts a request.
+fn base64url_decode(input: &str) -> Option<Vec<u8>> {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut out = Vec::with_capacity(input.len() * 3 / 4);
+    let mut buf: u32 = 0;
+    let mut bits: u32 = 0;
+    for &b in input.as_bytes() {
+        let v = match TABLE.iter().position(|&x| x == b) {
+            Some(i) => i as u32,
+            None => return None,
+        };
+        buf = (buf << 6) | v;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((buf >> bits) as u8);
+        }
+    }
+    Some(out)
+}
+
+/// Extracts the `email` claim from a Bearer JWT Authorization header.
+pub fn email_from_jwt(headers: &HeaderMap) -> Option<String> {
+    let auth = headers.get("authorization")?.to_str().ok()?;
+    let token = auth.strip_prefix("Bearer ")?;
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let payload = base64url_decode(parts[1])?;
+    let json: serde_json::Value = serde_json::from_slice(&payload).ok()?;
+    json.get("email").and_then(|v| v.as_str()).map(|s| s.to_string())
+}
+
+/// Resolves the branch id for the authenticated user: looks up the JWT email
+/// in `crm_contacts` and returns that contact's `branch_id`.
+pub fn branch_from_jwt(
+    headers: &HeaderMap,
+    conn: &mut diesel::PgConnection,
+) -> Option<Uuid> {
+    let email = email_from_jwt(headers)?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: Uuid,
+    }
+    diesel::sql_query(
+        "SELECT branch_id FROM crm_contacts WHERE email = $1 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(email)
+    .get_result::<Row>(conn)
+    .optional()
+    .ok()
+    .flatten()
+    .map(|r| r.branch_id)
+}

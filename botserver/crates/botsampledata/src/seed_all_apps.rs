@@ -72,6 +72,16 @@ fn table_exists(conn: &mut diesel::PgConnection, name: &str) -> bool {
     r.map(|r| r.exists).unwrap_or(false)
 }
 
+/// Returns the first UUID of a single-column query (empty/not-found → nil).
+fn first_uuid(conn: &mut diesel::PgConnection, sql: &str) -> Result<Uuid, String> {
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    sql_query(sql).get_result::<Row>(conn).map(|r| r.id).map_err(|e| e.to_string())
+}
+
 /// Seeds every additional app. Failures are logged and isolated per domain.
 pub fn seed(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
     let domains: Vec<(&str, fn(&mut diesel::PgConnection, &Scopes) -> Result<(), String>)> = vec![
@@ -372,6 +382,38 @@ fn seed_hr(conn: &mut diesel::PgConnection, _s: &Scopes) -> Result<(), String> {
                  VALUES ($1, 'Backend Engineer', 'Engineering', 'open', 4, NOW())",
             )
             .bind::<SqlUuid, _>(Uuid::new_v4())
+            .execute(conn)
+            .map_err(|e| e.to_string())?;
+        }
+    }
+    if table_exists(conn, "hr_review_cycles") {
+        let nc = count(conn, "SELECT count(*) AS n FROM hr_review_cycles WHERE name = 'H1 Performance Review'", &[])?;
+        if nc == 0 {
+            sql_query(
+                "INSERT INTO hr_review_cycles (id, name, start_date, end_date, status, completed, total)
+                 VALUES ($1, 'H1 Performance Review', CURRENT_DATE - INTERVAL '90 days', CURRENT_DATE - INTERVAL '30 days', 'completed', 2, 3),
+                        ($2, 'H2 Performance Review', CURRENT_DATE, CURRENT_DATE + INTERVAL '120 days', 'active', 1, 3)",
+            )
+            .bind::<SqlUuid, _>(Uuid::new_v4())
+            .bind::<SqlUuid, _>(Uuid::new_v4())
+            .execute(conn)
+            .map_err(|e| e.to_string())?;
+        }
+    }
+    if table_exists(conn, "hr_goals") {
+        let ng = count(conn, "SELECT count(*) AS n FROM hr_goals WHERE title = 'Ship onboarding revamp'", &[])?;
+        if ng == 0 {
+            let emp_id = first_uuid(conn, "SELECT id FROM hr_employees WHERE email = 'joana.hr@example.com' LIMIT 1")?;
+            let goal1 = Uuid::new_v4();
+            let goal2 = Uuid::new_v4();
+            sql_query(
+                "INSERT INTO hr_goals (id, employee_id, title, completion, due_date)
+                 VALUES ($1, $2, 'Ship onboarding revamp', 70, CURRENT_DATE + INTERVAL '60 days'),
+                        ($3, $2, 'Reduce hiring cycle to 30 days', 40, CURRENT_DATE + INTERVAL '90 days')",
+            )
+            .bind::<SqlUuid, _>(goal1)
+            .bind::<SqlUuid, _>(emp_id)
+            .bind::<SqlUuid, _>(goal2)
             .execute(conn)
             .map_err(|e| e.to_string())?;
         }

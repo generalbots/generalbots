@@ -49,11 +49,51 @@ impl CrateState {
             .first::<Uuid>(&mut conn)
             .unwrap_or(Uuid::nil())
     }
+
+    /// Resolves the org that owns the given branch (branch → org via the
+    /// branches table). The org is the gborg tenant that owns the workspace
+    /// — it must never be conflated with the branch id.
+    pub fn org_for_branch(&self, branch_id: Uuid) -> Uuid {
+        use diesel::prelude::*;
+        #[derive(diesel::QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            org_id: Uuid,
+        }
+        let Ok(mut conn) = self.db_pool.get() else {
+            return Uuid::nil();
+        };
+        diesel::sql_query(
+            "SELECT org_id FROM branches WHERE id = $1 LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .get_result::<Row>(&mut conn)
+        .map(|r| r.org_id)
+        .unwrap_or_else(|_| Uuid::nil())
+    }
+
+    /// Resolves a bot id inside the given branch (the branch's default bot
+    /// when flagged, otherwise any active bot in the branch).
+    pub fn bot_for_branch(&self, branch_id: Uuid) -> Uuid {
+        use diesel::prelude::*;
+        use crate::schema::bots::dsl::{bots, branch_id as b_branch, id, is_active, is_default_for_branch};
+        let Ok(mut conn) = self.db_pool.get() else {
+            return Uuid::nil();
+        };
+        bots
+            .filter(b_branch.eq(branch_id))
+            .filter(is_active.eq(true))
+            .order_by(is_default_for_branch.desc())
+            .select(id)
+            .first::<Uuid>(&mut conn)
+            .unwrap_or(Uuid::nil())
+    }
 }
 
 pub mod schema;
 pub mod models;
 pub mod requests;
+pub mod scope;
 pub mod error;
 pub mod migration;
 pub mod contacts_api;

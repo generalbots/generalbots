@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::Utc;
@@ -11,42 +11,31 @@ use uuid::Uuid;
 use crate::models::*;
 use crate::requests::*;
 use crate::schema::crm_contacts;
+use crate::scope::branch_from_jwt;
 use crate::CrateState;
 
 fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
-fn default_bot_id(state: &CrateState) -> Uuid {
-    use crate::schema::bots::dsl::{bots, id, is_default_for_branch};
-    use diesel::prelude::*;
-
-    let Ok(mut conn) = state.db_pool.get() else {
-        return Uuid::nil();
-    };
-    bots
-        .filter(is_default_for_branch.eq(true))
-        .select(id)
-        .first::<Uuid>(&mut conn)
-        .unwrap_or(Uuid::nil())
-}
-
 pub async fn create_contact(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateContactRequest>,
 ) -> Result<Json<CrmContact>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let contact = CrmContact {
         id,
         org_id: branch_id,
-        bot_id: default_bot_id(&state),
+        bot_id: state.bot_for_branch(branch_id),
         branch_id,
         first_name: req.first_name.unwrap_or_default(),
         last_name: req.last_name,
@@ -57,7 +46,7 @@ pub async fn create_contact(
         job_title: req.job_title,
         source: req.source,
         status: Some("active".to_string()),
-        tags: req.tags.map(|t| serde_json::to_string(&t).unwrap_or_else(|_| "[]".to_string())),
+        tags: req.tags,
         custom_fields: Some(serde_json::json!({})),
         notes: req.notes,
         owner_id: None,

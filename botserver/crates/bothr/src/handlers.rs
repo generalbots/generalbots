@@ -129,3 +129,49 @@ pub async fn list_attendance() -> Result<Json<serde_json::Value>, (StatusCode, S
     })).collect();
     Ok(Json(serde_json::json!({"items": items})))
 }
+
+pub async fn list_performance() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Cycle {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] name: String,
+        #[diesel(sql_type = diesel::sql_types::Date)] start_date: chrono::NaiveDate,
+        #[diesel(sql_type = diesel::sql_types::Date)] end_date: chrono::NaiveDate,
+        #[diesel(sql_type = diesel::sql_types::Text)] status: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] completed: i64,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] total: i64,
+    }
+    #[derive(diesel::QueryableByName)]
+    struct Goal {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] title: String,
+        #[diesel(sql_type = diesel::sql_types::Integer)] completion: i32,
+        #[diesel(sql_type = diesel::sql_types::Date)] due_date: chrono::NaiveDate,
+        #[diesel(sql_type = diesel::sql_types::Text)] employee: String,
+    }
+    let cycles: Vec<Cycle> = diesel::sql_query(
+        "SELECT id, name, start_date, end_date, status, completed, total
+         FROM hr_review_cycles ORDER BY start_date DESC LIMIT 200",
+    ).load(&mut conn).map_err(db::map_diesel_err)?;
+    let goals: Vec<Goal> = diesel::sql_query(
+        "SELECT g.id, g.title, g.completion, g.due_date, COALESCE(e.name, 'Unassigned') AS employee
+         FROM hr_goals g LEFT JOIN hr_employees e ON e.id = g.employee_id
+         ORDER BY g.due_date ASC LIMIT 200",
+    ).load(&mut conn).map_err(db::map_diesel_err)?;
+    let cycles_json: Vec<serde_json::Value> = cycles.into_iter().map(|c| serde_json::json!({
+        "id": c.id, "name": c.name,
+        "start_date": c.start_date.to_string(), "end_date": c.end_date.to_string(),
+        "status": c.status, "completed": c.completed, "total": c.total,
+    })).collect();
+    let goals_json: Vec<serde_json::Value> = goals.into_iter().map(|g| serde_json::json!({
+        "id": g.id, "title": g.title, "completion": g.completion,
+        "due_date": g.due_date.to_string(), "employee": g.employee,
+    })).collect();
+    Ok(Json(serde_json::json!({
+        "review_cycles": cycles_json,
+        "goals": goals_json,
+    })))
+}

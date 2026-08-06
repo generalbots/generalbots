@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::{DateTime, Utc};
@@ -16,9 +16,10 @@ use crate::state::AppState;
 #[diesel(table_name = marketing_templates)]
 pub struct MarketingTemplate {
     pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
     pub branch_id: Uuid,
     pub name: String,
-    pub template_type: String,
     pub channel: String,
     pub subject: Option<String>,
     pub body: Option<String>,
@@ -90,21 +91,25 @@ pub async fn get_template(
 
 pub async fn create_template(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateTemplateRequest>,
 ) -> Result<Json<MarketingTemplate>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (branch_id, _) = state.get_bot_context();
+    let (org_id, default_branch_id, bot_id) = state.get_scope();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or(default_branch_id);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
     let template = MarketingTemplate {
         id,
+        org_id,
+        bot_id,
         branch_id,
         name: req.name,
-        template_type: req.channel.clone(),
         channel: req.channel,
         subject: req.subject,
         body: req.body,
@@ -142,9 +147,9 @@ pub async fn update_template(
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
-    if let Some(template_type) = req.channel {
+    if let Some(channel) = req.channel {
         diesel::update(marketing_templates::table.filter(marketing_templates::id.eq(id)))
-            .set(marketing_templates::template_type.eq(template_type))
+            .set(marketing_templates::channel.eq(channel))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }

@@ -1,5 +1,6 @@
 pub mod advisor;
 pub mod ai;
+pub mod scope;
 pub mod campaign;
 pub mod campaigns;
 pub mod email;

@@ -49,7 +49,7 @@ diesel::table! {
         job_title -> Nullable<Varchar>,
         source -> Nullable<Varchar>,
         status -> Nullable<Varchar>,
-        tags -> Nullable<Text>,
+        tags -> Nullable<Array<Text>>,
         custom_fields -> Nullable<Jsonb>,
         notes -> Nullable<Text>,
         owner_id -> Nullable<Uuid>,
@@ -88,7 +88,7 @@ diesel::table! {
         postal_code -> Nullable<Varchar>,
         country -> Nullable<Varchar>,
         description -> Nullable<Text>,
-        tags -> Text,
+        tags -> Array<Text>,
         custom_fields -> Jsonb,
     }
 }
@@ -137,7 +137,7 @@ diesel::table! {
         expected_close_date -> Nullable<Date>,
         owner_id -> Nullable<Uuid>,
         lost_reason -> Nullable<Varchar>,
-        tags -> Text,
+        tags -> Array<Text>,
         custom_fields -> Jsonb,
         closed_at -> Nullable<Timestamptz>,
     }
@@ -165,7 +165,7 @@ diesel::table! {
         actual_close_date -> Nullable<Date>,
         won -> Nullable<Bool>,
         owner_id -> Nullable<Uuid>,
-        tags -> Text,
+        tags -> Array<Text>,
         custom_fields -> Jsonb,
     }
 }
@@ -173,17 +173,16 @@ diesel::table! {
 diesel::table! {
     crm_activities (id) {
         id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         branch_id -> Uuid,
         contact_id -> Nullable<Uuid>,
         activity_type -> Varchar,
         subject -> Varchar,
         description -> Nullable<Text>,
         due_date -> Nullable<Timestamptz>,
-        completed -> Nullable<Bool>,
         completed_at -> Nullable<Timestamptz>,
-        assigned_to -> Nullable<Uuid>,
         created_at -> Timestamptz,
-        updated_at -> Timestamptz,
         lead_id -> Nullable<Uuid>,
         opportunity_id -> Nullable<Uuid>,
         account_id -> Nullable<Uuid>,

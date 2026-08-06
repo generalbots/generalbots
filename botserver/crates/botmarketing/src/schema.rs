@@ -102,9 +102,10 @@ diesel::table! {
 diesel::table! {
     marketing_templates (id) {
         id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         branch_id -> Uuid,
         name -> Varchar,
-        template_type -> Varchar,
         channel -> Varchar,
         subject -> Nullable<Varchar>,
         body -> Nullable<Text>,
