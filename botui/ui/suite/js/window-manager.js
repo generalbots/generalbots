@@ -591,16 +591,36 @@ if (typeof window.WindowManager === "undefined") {
         if (body) this._injectBodyContent(id, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
       });
     }
+
+    // Deep-link: open an app window contextualized with query params. The app
+    // HTML receives the params both as URL query args and via
+    // window.__gbAppParams__ so it can select/filter the referenced record.
+    // Only available in the desktop shell (web channel).
+    openDeepLink(appId, params) {
+      const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId);
+      const title = app ? app.title : appId;
+      const hxGet = app ? app.hxGet : `/suite/partials/${appId}.html`;
+      this.closeStartMenu();
+      this.open(appId, title, "");
+      window.__gbAppParams__ = Object.assign({}, params || {});
+      const qs = Object.keys(params || {}).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
+      const sep = hxGet.indexOf("?") === -1 ? "?" : "&";
+      fetch(hxGet + sep + (qs ? qs + "&" : "") + "_=" + Date.now()).then((r) => r.text()).then((html) => {
+        const body = document.getElementById(`window-body-${appId}`);
+        if (body) this._injectBodyContent(appId, html);
+      }).catch(() => {
+        const body = document.getElementById(`window-body-${appId}`);
+        if (body) this._injectBodyContent(appId, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
+      });
+    }
   }
 
   window.WindowManager = new WindowManager();
+  window.openDeepLink = (appId, params) => window.WindowManager.openDeepLink(appId, params);
 
-  document.addEventListener("keydown", (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-      e.preventDefault();
-      window.WindowManager.toggleStartMenu();
-    }
-  });
+  // Ctrl+K is owned by the unified command palette (command-palette.js) which
+  // is loaded after this file. Expose the start menu for launchers but do NOT
+  // bind Ctrl+K here — command-palette.js handles it with one handler only.
 
   window.toggleChatSidebar = function () {
     const sidebar = document.getElementById("chatSidebar");

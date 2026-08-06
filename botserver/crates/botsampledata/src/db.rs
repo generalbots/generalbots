@@ -130,6 +130,13 @@ pub fn seed(conn: &mut diesel::PgConnection) -> Result<(), String> {
         }
     }
 
+    // Extended surface (products, dashboards, meet, learn, project, canvas,
+    // attendant, OKR, database, integrations, sources, monitoring).
+    match crate::seed_all_apps::seed(conn, &scopes) {
+        Ok(()) => log::info!("botsampledata: extended app surface seeded"),
+        Err(e) => log::error!("botsampledata: extended app seeding failed: {e}"),
+    }
+
     Ok(())
 }
 

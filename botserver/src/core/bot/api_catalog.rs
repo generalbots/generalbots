@@ -19,7 +19,9 @@
 use std::sync::Arc;
 
 use base64::Engine;
+use bigdecimal::BigDecimal;
 use botcore::shared::state::AppState;
+use diesel::RunQueryDsl;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -27,13 +29,10 @@ use crate::apps::registry;
 
 pub const API_CALL_TRIGGER: &str = "\"__api_call__\":";
 
-pub struct ApiCommand {
-    pub name: &'static str,
-    pub summary: &'static str,
-    pub params: &'static [(&'static str, &'static str)],
-    /// When true only users with the admin role may invoke this command.
-    pub admin_only: bool,
-}
+/// The declarative command model lives in `crate::apps::commands`. We reuse
+/// that single source of truth here so the chat/WhatsApp prompt, the palette
+/// and the discovery commands all agree on the same per-app actions.
+pub use crate::apps::commands::{command_by_name, AppCommand};
 
 pub struct ApiEndpoint {
     pub method: &'static str,
@@ -41,83 +40,10 @@ pub struct ApiEndpoint {
     pub summary: &'static str,
 }
 
-const TAX_CMD: ApiCommand = ApiCommand {
-    name: "service.tax",
-    summary: "Compute Brazilian service taxes for a registered service (IRPJ, CSLL, PIS/COFINS, ISS).",
-    params: &[("service", "service name or id"), ("value", "optional amount; defaults to the service price")],
-    admin_only: false,
-};
-
-const DIAGNOSIS_CMD: ApiCommand = ApiCommand {
-    name: "banking.diagnosis",
-    summary: "Cash-flow health of the account: revenue, expenses, net, pending reconciliation and tax rates.",
-    params: &[("period", "optional YYYY-MM month filter")],
-    admin_only: false,
-};
-
-const IMPORT_CMD: ApiCommand = ApiCommand {
-    name: "banking.import",
-    summary: "Import a month's cash-flow sheet (CSV stored in the bot drive) into the financial model.",
-    params: &[
-        ("file_key", "drive path of the CSV, e.g. financeiro/fluxo-caixa-2026-08.csv"),
-        ("period", "optional YYYY-MM month filter"),
-    ],
-    admin_only: false,
-};
-
-const DRIVE_WRITE_CMD: ApiCommand = ApiCommand {
-    name: "drive.write",
-    summary: "Store a file (e.g. an invoice) in the bot drive under the given folder path.",
-    params: &[
-        ("path", "folder/file name, e.g. faturas/2026-08/fatura.pdf"),
-        ("content_base64", "the file bytes in base64"),
-    ],
-    admin_only: false,
-};
-
-const DRIVE_FILE_CMD: ApiCommand = ApiCommand {
-    name: "drive.file",
-    summary: "Organize a stored drive file (e.g. an attached invoice from inbox) into its folder.",
-    params: &[
-        ("from", "current drive path, e.g. inbox/fatura.pdf"),
-        ("to", "destination folder path, e.g. faturas/2026-08/fatura.pdf"),
-    ],
-    admin_only: false,
-};
-
-const WEB_SEARCH_CMD: ApiCommand = ApiCommand {
-    name: "web.search",
-    summary: "Search the web (DuckDuckGo) for current facts, news or prices.",
-    params: &[("query", "the search terms"), ("max_results", "optional 1-25")],
-    admin_only: false,
-};
-
-const APPS_FIND_CMD: ApiCommand = ApiCommand {
-    name: "apps.find",
-    summary: "Find a suite application by a description of what the user wants to do.",
-    params: &[("query", "what the user wants to accomplish")],
-    admin_only: false,
-};
-
-const API_FIND_CMD: ApiCommand = ApiCommand {
-    name: "api.find",
-    summary: "Discover which backend command or endpoint matches a described need.",
-    params: &[("query", "the described need")],
-    admin_only: false,
-};
-
 /// The stable command list rendered into the prompt and used by discovery.
-pub fn commands_list() -> Vec<&'static ApiCommand> {
-    vec![
-        &TAX_CMD,
-        &DIAGNOSIS_CMD,
-        &IMPORT_CMD,
-        &DRIVE_WRITE_CMD,
-        &DRIVE_FILE_CMD,
-        &WEB_SEARCH_CMD,
-        &APPS_FIND_CMD,
-        &API_FIND_CMD,
-    ]
+/// This now comes from the single source of truth in `crate::apps::commands`.
+pub fn commands_list() -> Vec<&'static AppCommand> {
+    crate::apps::commands::all_commands().iter().collect()
 }
 
 /// Full REST surface (method, path, one-line summary). Not injected — only
@@ -186,6 +112,12 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
 /// Compact system-prompt fragment teaching the `__api_call__` contract and
 /// the routing rule, shortened to the current user's role so admin-only
 /// commands are never proposed to regular users.
+/// Compact system-prompt fragment teaching the `__api_call__` contract and the
+/// discovery round-trip. The injected surface is intentionally tiny — instead
+/// of dumping every command (there are now 1000+ harvested endpoints), the LLM
+/// is taught to DISCOVER the exact command/endpoint with `api.find`, then EXECUTE
+/// it with `api.exec` (or a named curated command). This keeps the prompt small
+/// while unlocking the full action surface on every channel.
 pub fn api_command_instructions(role: &str) -> String {
     let mut lines = Vec::with_capacity(24);
     lines.push("---".to_string());
@@ -199,27 +131,29 @@ pub fn api_command_instructions(role: &str) -> String {
     lines.push(format!("Your role: {role}. Only issue commands you are allowed to use."));
     lines.push("To call one, make the FIRST line of your reply exactly a JSON object:".to_string());
     lines.push("{\"__api_call__\": {\"name\": \"<command>\", \"params\": {<named params>}, \"compose\": true}}".to_string());
-    lines.push("then add a short user-facing note after it. Available commands:".to_string());
-    for cmd in commands_list() {
-        if cmd.admin_only && role != crate::security::user_role::ROLE_ADMIN {
-            continue;
+    lines.push("then add a short user-facing note after it.".to_string());
+
+    // Discovery contract — never list the full surface in the prompt.
+    lines.push("Discovery (2-step, prefer this over guessing a command):".to_string());
+    lines.push("  1. `api.find` with params {query}: returns the matching curated command OR a harvested endpoint (kind, name/method/path, summary).".to_string());
+    lines.push("  2. Run it: `api.exec` with params {method, path, params} executes any registered endpoint; or use the curated command name when returned.".to_string());
+
+    // Only the most common commands are named explicitly to avoid prompt bloat.
+    lines.push("Common commands you may call directly:".to_string());
+    for name in ["apps.find", "api.find", "api.exec"] {
+        if let Some(cmd) = command_by_name(name) {
+            let params = cmd
+                .params
+                .iter()
+                .map(|(n, d)| format!("{n}: {d}"))
+                .collect::<Vec<_>>()
+                .join("; ");
+            lines.push(format!("- {name}: {summary} (params: {params})", summary = cmd.summary));
         }
-        let params = cmd
-            .params
-            .iter()
-            .map(|(n, d)| format!("{n}: {d}"))
-            .collect::<Vec<_>>()
-            .join("; ");
-        lines.push(format!(
-            "- {name}: {summary} (params: {params}){admin}",
-            name = cmd.name,
-            summary = cmd.summary,
-            admin = if cmd.admin_only { " [admin only]" } else { "" },
-        ));
     }
     lines.push(
-        "Rules: use compose=true when the answer needs prose from the data. If unsure which command fits, \
-         emit api.find or apps.find first. Never mention JSON or commands to the user."
+        "Rules: use compose=true when the answer needs prose from the data. Always discover first with \
+         api.find unless the command is obvious. Never mention JSON or commands to the user."
             .to_string(),
     );
     lines.join("\n")
@@ -286,7 +220,7 @@ fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str) -> Vec<Va
     }
     let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
     let mut out: Vec<Value> = Vec::new();
-    let mut scored_cmds: Vec<(i32, &ApiCommand)> = commands_list()
+    let mut scored_cmds: Vec<(i32, &AppCommand)> = commands_list()
         .iter()
         .filter_map(|cmd| {
             if cmd.admin_only && role != crate::security::user_role::ROLE_ADMIN {
@@ -309,6 +243,36 @@ fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str) -> Vec<Va
             "summary": cmd.summary,
             "admin_only": cmd.admin_only,
             "params": cmd.params.iter().map(|(n, d)| json!({"name": n, "description": d})).collect::<Vec<_>>(),
+        }));
+    }
+    // Harvested on-the-fly commands derived from the endpoint inventory. These
+    // are proposed as `api.exec` candidates (method + path) for regular users.
+    let derived = super::commands_derived::derived_commands();
+    let mut scored_dc: Vec<(i32, &super::commands_derived::DerivedCommand)> = derived
+        .iter()
+        .filter(|c| {
+            if role != crate::security::user_role::ROLE_ADMIN
+                && crate::security::user_role::is_admin_only_endpoint(&state.conn, user_id, c.method, &c.path)
+            {
+                return false;
+            }
+            true
+        })
+        .filter_map(|c| {
+            let hay = format!("{} {}", c.name.to_lowercase(), c.summary.to_lowercase());
+            let score = score_tokens(&hay, &q);
+            if score > 0 { Some((score, c)) } else { None }
+        })
+        .collect();
+    scored_dc.sort_by(|a, b| b.0.cmp(&a.0));
+    for (_, c) in scored_dc.into_iter().take(6) {
+        out.push(json!({
+            "kind": "derived",
+            "name": c.name,
+            "summary": c.summary,
+            "method": c.method,
+            "path": c.path,
+            "admin_only": crate::security::user_role::is_admin_only_endpoint(&state.conn, user_id, c.method, &c.path),
         }));
     }
     let mut scored_ep: Vec<(i32, &ApiEndpoint)> = all_endpoints()
@@ -433,8 +397,249 @@ pub async fn execute_command(
         }
         "apps.find" => Ok(json!({ "apps": find_apps(str_of("query").unwrap_or_default().as_str()) })),
         "api.find" => Ok(json!({ "matches": find_api_entries(state, user_id, str_of("query").unwrap_or_default().as_str()) })),
-        _ => Err(format!("unknown command '{name}'")),
+        "api.exec" => {
+            let method = str_of("method").ok_or_else(|| "params.method is required".to_string())?;
+            let path = str_of("path").ok_or_else(|| "params.path is required".to_string())?;
+            let mut params = serde_json::Map::new();
+            if let Some(Value::Object(map)) = obj.get("params") {
+                params = map.clone();
+            }
+            crate::core::bot::api_exec::exec_endpoint(state, user_id, Some(bot_uuid), &method, &path, &params).await
+        }
+        "crm.people.list" | "people.list" => list_people(state, &bot_uuid, None).await,
+        "crm.people.search" | "people.search" => {
+            let query = str_of("query").unwrap_or_default();
+            list_people(state, &bot_uuid, Some(&query)).await
+        }
+        "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
+        "products.items.list" => list_products(state, &bot_uuid, str_of("category").as_deref()).await,
+        "tickets.list" => list_tickets(state, &bot_uuid).await,
+        "drive.list" => list_drive_files(state, bot_name, str_of("path").as_deref()).await,
+        "monitoring.health" => Ok(json!({ "health": "ok", "note": "suite services running" })),
+        _ => {
+            // Unknown/mostly-navigation commands resolve to an in-app deep link
+            // when the command declares one, otherwise a clear error.
+            if let Some(cmd) = command_by_name(name) {
+                if let Some(link) = cmd.deep_link {
+                    Ok(json!({ "navigate": true, "app": cmd.app, "label": cmd.label, "deep_link": link }))
+                } else {
+                    Err(format!("command '{name}' is not executable from chat; open the {app} app instead",
+                        app = if cmd.app.is_empty() { "suite" } else { cmd.app }))
+                }
+            } else {
+                Err(format!("unknown command '{name}'"))
+            }
+        }
     }
+}
+
+fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> {
+    botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid)
+        .map(|s| s.branch_id)
+        .ok_or_else(|| "bot not found".to_string())
+}
+
+#[derive(diesel::QueryableByName)]
+struct PersonRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    person_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    first_name: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    last_name: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    email: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    status: String,
+}
+
+#[derive(diesel::QueryableByName)]
+struct InvoiceRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    invoice_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    invoice_number: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    customer_name: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    status: String,
+    #[diesel(sql_type = diesel::sql_types::Numeric)]
+    total: BigDecimal,
+}
+
+#[derive(diesel::QueryableByName)]
+struct ProductRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    product_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    sku: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    name: String,
+    #[diesel(sql_type = diesel::sql_types::Numeric)]
+    price: BigDecimal,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    product_type: String,
+    #[diesel(sql_type = diesel::sql_types::Int4)]
+    stock_quantity: i32,
+}
+
+#[derive(diesel::QueryableByName)]
+struct TicketRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    ticket_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    ticket_number: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    subject: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    status: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    priority: String,
+}
+
+/// Lists CRM/people contacts (read-only), scoped to the bot's branch.
+async fn list_people(state: &Arc<AppState>, bot_uuid: &Uuid, search: Option<&str>) -> Result<Value, String> {
+    let branch = branch_scope(state, bot_uuid)?;
+    let term = search.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+    let rows: Vec<PersonRow> = match &term {
+        Some(t) => {
+            let pattern = format!("%{t}%");
+            diesel::sql_query(
+                "SELECT id AS person_id, first_name, last_name, email, status FROM crm_contacts \
+                 WHERE branch_id = $1 AND (first_name ILIKE $2 OR last_name ILIKE $2 OR email ILIKE $2) \
+                 ORDER BY last_name ASC LIMIT 25",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(branch)
+            .bind::<diesel::sql_types::Text, _>(pattern)
+            .load(&mut conn)
+            .map_err(|e| format!("Query error: {e}"))?
+        }
+        None => diesel::sql_query(
+            "SELECT id AS person_id, first_name, last_name, email, status FROM crm_contacts \
+             WHERE branch_id = $1 ORDER BY last_name ASC LIMIT 25",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch)
+        .load(&mut conn)
+        .map_err(|e| format!("Query error: {e}"))?,
+    };
+    let items: Vec<Value> = rows
+        .into_iter()
+        .map(|r| {
+            let name = format!("{} {}", r.first_name.unwrap_or_default(), r.last_name.unwrap_or_default()).trim().to_string();
+            json!({
+                "person_id": r.person_id,
+                "name": if name.is_empty() { "Unnamed".to_string() } else { name },
+                "email": r.email.unwrap_or_default(),
+                "status": r.status,
+                "deep_link": format!("app://people?person_id={}", r.person_id),
+            })
+        })
+        .collect();
+    Ok(json!({ "count": items.len(), "people": items }))
+}
+
+/// Lists invoices (branch-scoped, read-only).
+async fn list_invoices(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
+    let branch = branch_scope(state, bot_uuid)?;
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+    let rows: Vec<InvoiceRow> = diesel::sql_query(
+        "SELECT id AS invoice_id, invoice_number, customer_name, status, total FROM billing_invoices \
+         WHERE branch_id = $1 ORDER BY issue_date DESC LIMIT 20",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn)
+    .map_err(|e| format!("Query error: {e}"))?;
+    let items: Vec<Value> = rows
+        .into_iter()
+        .map(|r| json!({
+            "invoice_id": r.invoice_id,
+            "invoice_number": r.invoice_number,
+            "customer_name": r.customer_name,
+            "status": r.status,
+            "total": r.total.to_string(),
+            "deep_link": format!("app://billing?invoice_id={}", r.invoice_id),
+        }))
+        .collect();
+    Ok(json!({ "count": items.len(), "invoices": items }))
+}
+
+/// Lists products/services (branch-scoped, read-only).
+async fn list_products(state: &Arc<AppState>, bot_uuid: &Uuid, category: Option<&str>) -> Result<Value, String> {
+    let branch = branch_scope(state, bot_uuid)?;
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+    let rows: Vec<ProductRow> = match category.map(|s| s.trim()).filter(|s| !s.is_empty()) {
+        Some(cat) => diesel::sql_query(
+            "SELECT id AS product_id, sku, name, price, product_type, stock_quantity FROM products \
+             WHERE branch_id = $1 AND category = $2 ORDER BY name ASC LIMIT 20",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch)
+        .bind::<diesel::sql_types::Text, _>(cat)
+        .load(&mut conn)
+        .map_err(|e| format!("Query error: {e}"))?,
+        None => diesel::sql_query(
+            "SELECT id AS product_id, sku, name, price, product_type, stock_quantity FROM products \
+             WHERE branch_id = $1 ORDER BY name ASC LIMIT 20",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch)
+        .load(&mut conn)
+        .map_err(|e| format!("Query error: {e}"))?,
+    };
+    let items: Vec<Value> = rows
+        .into_iter()
+        .map(|r| json!({
+            "product_id": r.product_id,
+            "sku": r.sku.unwrap_or_default(),
+            "name": r.name,
+            "price": r.price.to_string(),
+            "product_type": r.product_type,
+            "stock_quantity": r.stock_quantity,
+            "deep_link": format!("app://products?product_id={}", r.product_id),
+        }))
+        .collect();
+    Ok(json!({ "count": items.len(), "products": items }))
+}
+
+/// Lists support tickets (branch-scoped, read-only).
+async fn list_tickets(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
+    let branch = branch_scope(state, bot_uuid)?;
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+    let rows: Vec<TicketRow> = diesel::sql_query(
+        "SELECT id AS ticket_id, ticket_number, subject, status, priority FROM support_tickets \
+         WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 20",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn)
+    .map_err(|e| format!("Query error: {e}"))?;
+    let items: Vec<Value> = rows
+        .into_iter()
+        .map(|r| json!({
+            "ticket_id": r.ticket_id,
+            "ticket_number": r.ticket_number,
+            "subject": r.subject,
+            "status": r.status,
+            "priority": r.priority,
+            "deep_link": format!("app://tickets?ticket_id={}", r.ticket_id),
+        }))
+        .collect();
+    Ok(json!({ "count": items.len(), "tickets": items }))
+}
+
+/// Lists drive files under a folder (read-only, via the configured S3 repository).
+async fn list_drive_files(state: &Arc<AppState>, bot_name: &str, path: Option<&str>) -> Result<Value, String> {
+    let drive = state.drive.clone().ok_or_else(|| "drive unavailable".to_string())?;
+    let bucket = format!("{bot_name}.gbai");
+    let prefix = normalize_drive_path(path.unwrap_or(""))?;
+    let prefix = if prefix.is_empty() { format!("{bot_name}.gbdrive/") } else { format!("{bot_name}.gbdrive/{prefix}") };
+    let keys = drive
+        .list_objects_with_metadata(&bucket, Some(&prefix))
+        .await
+        .map_err(|e| format!("drive list error: {e}"))?;
+    let items: Vec<Value> = keys
+        .into_iter()
+        .map(|o| json!({ "path": o.key, "size": o.size, "etag": o.etag }))
+        .collect();
+    Ok(json!({ "count": items.len(), "files": items }))
 }
 
 async fn execute_tax(

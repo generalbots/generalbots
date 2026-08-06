@@ -14,6 +14,20 @@ const BankingApp = {
         });
         document.getElementById('bankingSearch').addEventListener('input', e => this.filterTransactions(e.target.value));
         this.loadTransactions();
+        // Deep-link support: open contextualized via app://banking?transaction_id=...
+        const params = window.__gbAppParams__ || {};
+        if (params.transaction_id) {
+            const target = params.transaction_id;
+            let tries = 0;
+            const tryOpen = () => {
+                if (this.state.transactions.length && this.viewTransaction) {
+                    this.viewTransaction(target);
+                } else if (tries++ < 20) {
+                    setTimeout(tryOpen, 500);
+                }
+            };
+            setTimeout(tryOpen, 600);
+        }
     },
 
     async api(path) {

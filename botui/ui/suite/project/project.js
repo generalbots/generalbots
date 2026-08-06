@@ -314,6 +314,17 @@ async function loadProjectList(query) {
 (function(){ var __cb = function() {
     generateTimelineHeaders();
     loadProjectList();
+    // Deep-link support: open contextualized via app://project?project_id=...
+    const params = window.__gbAppParams__ || {};
+    if (params.project_id) {
+        const target = params.project_id;
+        let tries = 0;
+        const tryOpen = () => {
+            if (typeof selectProject === "function") { selectProject(target); }
+            if (tries++ < 15) { setTimeout(tryOpen, 500); }
+        };
+        setTimeout(tryOpen, 400);
+    }
 }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
 function generateTimelineHeaders() {

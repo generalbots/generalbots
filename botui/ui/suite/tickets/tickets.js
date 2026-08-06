@@ -8,6 +8,19 @@
         });
     });
 
+    // Deep-link support: open the app contextualized to a ticket when the
+    // desktop shell opened us via app://tickets?ticket_id=...
+    const __dl = window.__gbAppParams__ || {};
+    if (__dl.ticket_id) {
+        const __target = __dl.ticket_id;
+        let __tries = 0;
+        const __try = function () {
+            if (window.selectTicket) { window.selectTicket(__target); }
+            if (__tries++ < 15) { setTimeout(__try, 500); }
+        };
+        setTimeout(__try, 400);
+    }
+
     document.getElementById("tickets-new-btn").addEventListener("click", function () {
         openTicketsModal();
     });

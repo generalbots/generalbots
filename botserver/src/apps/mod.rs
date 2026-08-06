@@ -3,6 +3,7 @@
 //! `register` mounts UI-fragment routers and the app catalog endpoint that
 //! drives every launcher (start menu, apps menu) in the frontend.
 
+pub mod commands;
 pub mod registry;
 
 pub use botuifragments::*;
@@ -102,12 +103,37 @@ pub async fn catalog_handler() -> Json<serde_json::Value> {
         .map(|c| c.get_enabled_apps().into_iter().collect())
         .unwrap_or_default();
 
+    let derived: Vec<crate::core::bot::commands_derived::DerivedCommand> =
+        crate::core::bot::commands_derived::derived_commands();
+
     let items: Vec<serde_json::Value> = apps
         .iter()
         .map(|a| {
             let id = a.id.as_str();
             let compiled = is_app_compiled(id) || CORE_APPS.contains(&id);
             let is_enabled = enabled.contains(id) || CORE_APPS.contains(&id);
+            // Merge curated commands with the harvested on-the-fly surface.
+            let app_derived: Vec<serde_json::Value> = derived
+                .iter()
+                .filter(|c| c.name.starts_with(&format!("{id}.")))
+                .take(40)
+                .map(|c| {
+                    json!({
+                        "name": c.name,
+                        "method": c.method,
+                        "path": c.path,
+                        "summary": c.summary,
+                        "derived": true,
+                    })
+                })
+                .collect();
+            let mut commands: Vec<serde_json::Value> = commands::commands_for_app(id)
+                .iter()
+                .map(|c| {
+                    json!({ "name": c.name, "label": c.label, "summary": c.summary, "derived": false })
+                })
+                .collect();
+            commands.extend(app_derived);
             json!({
                 "id": a.id,
                 "title": a.title,
@@ -119,10 +145,13 @@ pub async fn catalog_handler() -> Json<serde_json::Value> {
                 "icon": a.icon,
                 "enabled": is_enabled,
                 "compiled": compiled,
+                "commands": commands,
+                "deep_link_params": commands::deep_link_params_for_app(id),
             })
         })
         .collect();
 
+    let _derived_count = derived.len();
     Json(json!({
         "apps": items,
         "categories": registry::CATEGORIES
@@ -130,5 +159,6 @@ pub async fn catalog_handler() -> Json<serde_json::Value> {
             .map(|(k, l)| json!({"id": k, "label": l}))
             .collect::<Vec<_>>(),
         "labels": registry::category_labels(),
+        "surface": json!({ "curated_commands": commands::all_commands().len(), "harvested_endpoints": _derived_count }),
     }))
 }

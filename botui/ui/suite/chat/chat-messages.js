@@ -153,6 +153,38 @@ function convertNumberedLists(html) {
   return result.join('\n');
 }
 
+// Converts deep links of the form [Label](app://appId?k=v&k2=v2) in bot
+// replies into clickable buttons that open the related app window
+// contextualized in the desktop shell. Disabled outside the web desktop
+// (no window manager) — there the link stays as plain text.
+function renderDeepLinks(html) {
+  if (!html || !window.WindowManager || !window.openDeepLink) return html;
+  // marked converts markdown links to <a href="app://...">label</a>;
+  // match that anchor form (and any app:// href).
+  var pattern = /<a\s+[^>]*href="app:\/\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+  return html.replace(pattern, function (m, label) {
+    var hrefMatch = m.match(/href="app:\/\/([^"]+)"/i);
+    if (!hrefMatch) return m;
+    var target = hrefMatch[1];
+    var appId = target.split("?")[0];
+    var qs = target.indexOf("?") !== -1 ? target.split("?")[1] : "";
+    var params = {};
+    if (qs) {
+      qs.split("&").forEach(function (pair) {
+        var kv = pair.split("=");
+        if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || "");
+      });
+    }
+    var escapedLabel = String(label).replace(/"/g, "&quot;");
+    var json = JSON.stringify(params).replace(/"/g, "&quot;");
+    return '<button type="button" class="app-deeplink-btn" ' +
+      'title="Open ' + appId + '" ' +
+      'data-gb-app="' + appId + '" data-gb-params="' + json + '" ' +
+      'onclick="window.openDeepLink(this.dataset.gbApp, JSON.parse(this.dataset.gbParams))">' +
+      escapedLabel + "</button>";
+  });
+}
+
 function addMessage(sender, content, msgId, reasoning) {
   var messages = document.getElementById("messages");
   if (!messages) return;
@@ -177,6 +209,7 @@ function addMessage(sender, content, msgId, reasoning) {
     parsed = convertNumberedLists(parsed);
     parsed = parsed.replace(/<br\s*\/?>/gi, '');
     parsed = renderMentionInMessage(parsed);
+    parsed = renderDeepLinks(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
     if (content && content.trim() !== "") {
       div.appendChild(createSpeakButton(content));

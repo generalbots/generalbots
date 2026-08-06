@@ -15,6 +15,7 @@
 pub mod db;
 pub mod drive;
 pub mod email;
+pub mod seed_all_apps;
 
 use botcore::shared::utils::DbPool;
 
@@ -31,7 +32,9 @@ pub fn seed_all(pool: &DbPool) {
     };
 
     // db::seed runs each domain independently (one app's legacy/missing table
-    // does not abort the rest of the demo data).
+    // does not abort the rest of the demo data). This also seeds the extended
+    // app surface (products, dashboards, meet, learn, project, canvas,
+    // attendant, OKR, database, integrations, sources, monitoring).
     match db::seed(&mut conn) {
         Ok(()) => log::info!("botsampledata: database demo data seeded"),
         Err(e) => log::error!("botsampledata: database seeding failed: {e}"),
