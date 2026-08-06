@@ -162,7 +162,7 @@ function renderDeepLinks(html) {
   // marked converts markdown links to <a href="app://...">label</a>;
   // match that anchor form (and any app:// href).
   var pattern = /<a\s+[^>]*href="app:\/\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
-  return html.replace(pattern, function (m, label) {
+  html = html.replace(pattern, function (m, label) {
     var hrefMatch = m.match(/href="app:\/\/([^"]+)"/i);
     if (!hrefMatch) return m;
     var target = hrefMatch[1];
@@ -183,6 +183,30 @@ function renderDeepLinks(html) {
       'onclick="window.openDeepLink(this.dataset.gbApp, JSON.parse(this.dataset.gbParams))">' +
       escapedLabel + "</button>";
   });
+  // Also convert bare app://appId?k=v URLs the LLM may emit in prose
+  // into the same button (fallback when it does not use markdown links).
+  // Only URLs with at least one query param carry a real record reference;
+  // bare app://appId or templated app://appId/{...} are left as-is.
+  var barePattern = /(^|[\s(>])(app:\/\/[A-Za-z0-9\-_.]+\?[A-Za-z0-9\-_.=&\{\}]+)/g;
+  html = html.replace(barePattern, function (m, pre, target) {
+    var stripped = target.replace(/^app:\/\//i, "");
+    var appId = stripped.split("?")[0];
+    var qs = stripped.indexOf("?") !== -1 ? stripped.split("?")[1] : "";
+    var params = {};
+    if (qs) {
+      qs.split("&").forEach(function (pair) {
+        var kv = pair.split("=");
+        if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || "");
+      });
+    }
+    var json = JSON.stringify(params).replace(/"/g, "&quot;");
+    return pre + '<button type="button" class="app-deeplink-btn" ' +
+      'title="Open ' + appId + '" ' +
+      'data-gb-app="' + appId + '" data-gb-params="' + json + '" ' +
+      'onclick="window.openDeepLink(this.dataset.gbApp, JSON.parse(this.dataset.gbParams))">' +
+      'Open ' + appId + "</button>";
+  });
+  return html;
 }
 
 function addMessage(sender, content, msgId, reasoning) {

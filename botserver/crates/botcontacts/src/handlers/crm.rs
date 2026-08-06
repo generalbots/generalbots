@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::{DateTime, NaiveDate, Utc};
@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::models::*;
 use crate::requests::*;
 use crate::schema::{crm_deals, crm_activities, crm_pipeline_stages, crm_contacts, crm_accounts};
+use crate::scope::branch_from_jwt;
 use crate::CrateState;
 
 fn default_bot_id(state: &CrateState) -> Uuid {
@@ -281,13 +282,15 @@ pub async fn delete_deal(
 
 pub async fn create_activity(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateActivityRequest>,
 ) -> Result<Json<CrmActivity>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = state.get_bot_context();
+    let branch_id = branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -297,17 +300,16 @@ pub async fn create_activity(
 
     let activity = CrmActivity {
         id,
+        org_id: state.org_for_branch(branch_id),
+        bot_id: state.bot_for_branch(branch_id),
         branch_id,
         contact_id: req.contact_id,
         activity_type: req.activity_type,
         subject: req.subject.unwrap_or_default(),
         description: req.description,
         due_date,
-        completed: None,
         completed_at: None,
-        assigned_to: None,
         created_at: now,
-        updated_at: now,
         lead_id: req.lead_id,
         opportunity_id: req.opportunity_id,
         account_id: req.account_id,

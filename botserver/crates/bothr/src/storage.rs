@@ -19,6 +19,13 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             id UUID PRIMARY KEY, employee_id UUID NOT NULL, date DATE NOT NULL,
             clock_in TIMESTAMPTZ NOT NULL, clock_out TIMESTAMPTZ,
             hours_worked NUMERIC(8,2) NOT NULL DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS hr_review_cycles (
+            id UUID PRIMARY KEY, name TEXT NOT NULL, start_date DATE NOT NULL,
+            end_date DATE NOT NULL, status VARCHAR(30) NOT NULL DEFAULT 'draft',
+            completed BIGINT NOT NULL DEFAULT 0, total BIGINT NOT NULL DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS hr_goals (
+            id UUID PRIMARY KEY, employee_id UUID NOT NULL, title TEXT NOT NULL,
+            completion INTEGER NOT NULL DEFAULT 0, due_date DATE NOT NULL)",
     ] {
         diesel::sql_query(sql).execute(&mut conn).map_err(db::map_diesel_err)?;
     }

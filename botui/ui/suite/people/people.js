@@ -60,8 +60,12 @@
 
         async function apiFetch(path, options = {}) {
             const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+            const token = localStorage.getItem("gb_token");
             const opts = {
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+                },
                 ...options,
             };
             const resp = await fetch(url, opts);
@@ -83,17 +87,35 @@
             // desktop shell opened us via app://people?person_id=...
             const params = window.__gbAppParams__ || {};
             if (params.person_id) {
-                const target = params.person_id;
-                let attempts = 0;
-                const tryOpen = () => {
-                    if (window.showContact && typeof window.showContact === "function") {
-                        window.showContact(target);
-                    }
-                    if (attempts++ < 15) {
-                        setTimeout(tryOpen, 500);
-                    }
-                };
-                setTimeout(tryOpen, 400);
+                openDeepLinkedContact(params.person_id);
+            }
+        }
+
+        // Fetches a single contact by id and opens the detail panel directly.
+        // This works even when the contacts list is scoped to a different branch
+        // (the list endpoint uses the global default bot scope) — the id endpoint
+        // returns the record regardless.
+        async function openDeepLinkedContact(contactId) {
+            const panel = document.getElementById("contact-panel");
+            const detail = document.getElementById("contact-detail");
+            if (panel && detail) {
+                detail.textContent = "Loading contact...";
+                panel.classList.add("open");
+            }
+            try {
+                const data = await apiFetch(`/${contactId}`);
+                const contact = normalizeContact(Array.isArray(data) ? data[0] : data);
+                state.contacts = state.contacts || [];
+                if (!state.contacts.some((c) => c.id === contact.id)) {
+                    state.contacts.push(contact);
+                }
+                state.currentContact = contact;
+                if (typeof window.showContact === "function") {
+                    window.showContact(contact.id);
+                }
+            } catch (error) {
+                console.error("Deep-link contact load failed:", error);
+                if (detail) detail.textContent = "Contact not found.";
             }
         }
 
@@ -248,15 +270,20 @@
             if (!contact) return;
             state.currentContact = contact;
             const panel = document.getElementById("contact-panel");
-            if (!panel) return;
-            document.getElementById("panel-name").textContent = `${contact.firstName || ""} ${contact.lastName || ""}`.trim();
-            document.getElementById("panel-email").textContent = contact.email || "";
-            document.getElementById("panel-phone").textContent = contact.phone || "";
-            document.getElementById("panel-company").textContent = contact.company || "";
-            document.getElementById("panel-title").textContent = contact.title || "";
-            document.getElementById("panel-notes").textContent = contact.notes || "";
-            const tags = (contact.tags || []).map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("");
-            document.getElementById("panel-tags").innerHTML = tags;
+            const detail = document.getElementById("contact-detail");
+            if (!panel || !detail) return;
+            const name = `${contact.firstName || ""} ${contact.lastName || ""}`.trim() || "(no name)";
+            const tagList = Array.isArray(contact.tags) ? contact.tags : [];
+            const tags = tagList.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+            detail.innerHTML = `
+                <div class="detail-name">${escapeHtml(name)}</div>
+                <div class="detail-title">${escapeHtml(contact.title || "")}</div>
+                <div class="detail-email">${escapeHtml(contact.email || "")}</div>
+                <div class="detail-phone">${escapeHtml(contact.phone || "")}</div>
+                <div class="detail-company">${escapeHtml(contact.company || "")}</div>
+                ${contact.notes ? `<div class="detail-notes">${escapeHtml(contact.notes)}</div>` : ""}
+                ${tags ? `<div class="detail-tags">${tags}</div>` : ""}
+            `;
             panel.classList.add("open");
         }
 

@@ -1,5 +1,5 @@
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
 use diesel::PgConnection;
 use std::sync::Arc;
 
@@ -59,5 +59,34 @@ impl AppState {
             .unwrap_or(uuid::Uuid::nil());
 
         (org_id, bot_id)
+    }
+
+    /// Resolves (org_id, branch_id, bot_id) for the default bot.
+    /// org_id is the gborg tenant owning the workspace; branch_id is the
+    /// workspace branch; they are never conflated.
+    pub fn get_scope(&self) -> (uuid::Uuid, uuid::Uuid, uuid::Uuid) {
+        let Ok(mut conn) = self.conn.get() else {
+            return (uuid::Uuid::nil(), uuid::Uuid::nil(), uuid::Uuid::nil());
+        };
+        let (bot_id, _name) = (self.get_default_bot)(&mut conn);
+        #[derive(diesel::QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            org_id: uuid::Uuid,
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            branch_id: uuid::Uuid,
+        }
+        let row: Option<Row> = diesel::sql_query(
+            "SELECT org_id, branch_id FROM bots WHERE id = $1 LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .get_result(&mut conn)
+        .optional()
+        .ok()
+        .flatten();
+        match row {
+            Some(r) => (r.org_id, r.branch_id, bot_id),
+            None => (uuid::Uuid::nil(), uuid::Uuid::nil(), bot_id),
+        }
     }
 }

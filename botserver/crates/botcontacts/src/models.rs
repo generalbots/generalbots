@@ -22,7 +22,7 @@ pub struct CrmContact {
     pub job_title: Option<String>,
     pub source: Option<String>,
     pub status: Option<String>,
-    pub tags: Option<String>,
+    pub tags: Option<Vec<String>>,
     pub custom_fields: Option<serde_json::Value>,
     pub notes: Option<String>,
     pub owner_id: Option<Uuid>,
@@ -61,7 +61,7 @@ pub struct CrmAccount {
     pub postal_code: Option<String>,
     pub country: Option<String>,
     pub description: Option<String>,
-    pub tags: String,
+    pub tags: Vec<String>,
     pub custom_fields: serde_json::Value,
 }
 
@@ -141,7 +141,7 @@ pub struct CrmOpportunity {
     pub actual_close_date: Option<chrono::NaiveDate>,
     pub won: Option<bool>,
     pub owner_id: Option<Uuid>,
-    pub tags: String,
+    pub tags: Vec<String>,
     pub custom_fields: serde_json::Value,
 }
 
@@ -149,17 +149,16 @@ pub struct CrmOpportunity {
 #[diesel(table_name = crm_activities)]
 pub struct CrmActivity {
     pub id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
     pub branch_id: Uuid,
     pub contact_id: Option<Uuid>,
     pub activity_type: String,
     pub subject: String,
     pub description: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
-    pub completed: Option<bool>,
     pub completed_at: Option<DateTime<Utc>>,
-    pub assigned_to: Option<Uuid>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
     pub lead_id: Option<Uuid>,
     pub opportunity_id: Option<Uuid>,
     pub account_id: Option<Uuid>,

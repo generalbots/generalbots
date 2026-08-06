@@ -1703,6 +1703,24 @@ mod tests {
         assert!(route.matches_path("/api/bots/info"));
     }
 
+    #[tokio::test]
+    async fn test_people_routes_match_and_allow_authenticated() {
+        let routes = build_default_route_permissions();
+        let manager = RbacManager::with_defaults();
+        manager.register_routes(routes).await;
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "test@example.com".to_string());
+        let allowed_base = manager
+            .check_route_access("/api/people", "POST", &user)
+            .await
+            .is_allowed();
+        assert!(allowed_base, "POST /api/people should be allowed for authenticated user");
+        let allowed_skill = manager
+            .check_route_access("/api/people/123/skills", "POST", &user)
+            .await
+            .is_allowed();
+        assert!(allowed_skill, "POST /api/people/:id/skills should be allowed");
+    }
+
     #[test]
     fn test_resource_acl_owner_access() {
         let owner_id = Uuid::new_v4();

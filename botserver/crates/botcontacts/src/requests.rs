@@ -46,6 +46,7 @@ pub struct CreateAccountRequest {
     pub phone: Option<String>,
     pub email: Option<String>,
     pub description: Option<String>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]

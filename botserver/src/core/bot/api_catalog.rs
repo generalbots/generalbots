@@ -29,6 +29,24 @@ use crate::apps::registry;
 
 pub const API_CALL_TRIGGER: &str = "\"__api_call__\":";
 
+/// Convenience detection for the API-call trigger. Some models emit the JSON
+/// key as `__api_call__` (canonical) or `api_call` (common off-by-underscore
+/// variant) or `_api_call_`. Tolerate all so the trigger is never missed and
+/// never rendered to the user as raw JSON.
+pub fn is_api_call_trigger(hay: &str) -> bool {
+    ["\"__api_call__\":", "\"api_call\":", "\"_api_call_\":", "\"api-call\":"]
+        .iter()
+        .any(|t| hay.contains(t))
+}
+
+/// Position of the first API-call trigger variant in `hay`, if any.
+pub fn find_api_call(hay: &str) -> Option<usize> {
+    ["\"__api_call__\":", "\"api_call\":", "\"_api_call_\":", "\"api-call\":"]
+        .iter()
+        .filter_map(|t| hay.find(t))
+        .min()
+}
+
 /// The declarative command model lives in `crate::apps::commands`. We reuse
 /// that single source of truth here so the chat/WhatsApp prompt, the palette
 /// and the discovery commands all agree on the same per-app actions.
