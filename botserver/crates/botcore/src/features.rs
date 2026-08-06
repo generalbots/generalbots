@@ -150,8 +150,8 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "multimodal",
     #[cfg(feature = "attendance")]
     "attendance",
-    #[cfg(feature = "workspace")]
-    "workspace",
+    #[cfg(feature = "workspaces")]
+    "workspaces",
     #[cfg(feature = "biometry")]
     "biometry",
     #[cfg(feature = "office365")]
