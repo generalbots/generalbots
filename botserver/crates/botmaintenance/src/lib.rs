@@ -8,7 +8,7 @@ use axum::{
 use chrono::{DateTime, Duration, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Text, Timestamptz};
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 
 use std::sync::Arc;
