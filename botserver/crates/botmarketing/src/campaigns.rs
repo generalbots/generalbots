@@ -24,6 +24,11 @@ pub struct CrmCampaign {
     pub ends_at: Option<DateTime<Utc>>,
     pub budget: Option<bigdecimal::BigDecimal>,
     pub metrics: Option<serde_json::Value>,
+    pub run_offset: Option<i32>,
+    pub pause_requested: Option<bool>,
+    pub stop_requested: Option<bool>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -112,6 +117,11 @@ pub async fn create_campaign(
             "clicked": 0,
             "replied": 0
         })),
+        run_offset: Some(0),
+        pause_requested: Some(false),
+        stop_requested: Some(false),
+        started_at: None,
+        completed_at: None,
         created_at: now,
         updated_at: now,
     };

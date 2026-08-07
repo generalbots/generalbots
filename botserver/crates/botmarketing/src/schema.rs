@@ -77,8 +77,27 @@ diesel::table! {
         ends_at -> Nullable<Timestamptz>,
         budget -> Nullable<Numeric>,
         metrics -> Nullable<Jsonb>,
+        run_offset -> Nullable<Int4>,
+        pause_requested -> Nullable<Bool>,
+        stop_requested -> Nullable<Bool>,
+        started_at -> Nullable<Timestamptz>,
+        completed_at -> Nullable<Timestamptz>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    marketing_campaign_events (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        campaign_id -> Uuid,
+        channel -> Nullable<Varchar>,
+        event_type -> Varchar,
+        recipient_email -> Nullable<Varchar>,
+        status -> Nullable<Varchar>,
+        error_message -> Nullable<Text>,
+        created_at -> Timestamptz,
     }
 }
 
@@ -282,6 +301,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     system_automations,
     crm_contacts,
     marketing_campaigns,
+    marketing_campaign_events,
     marketing_lists,
     marketing_templates,
     marketing_contacts,

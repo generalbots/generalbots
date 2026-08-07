@@ -23,6 +23,8 @@ pub struct AppState {
     pub send_whatsapp: SendWhatsAppFn,
     pub get_config: GetConfigFn,
     pub llm_generate: LlmGenerateFn,
+    /// Durable campaign sender worker (#731). None until explicitly started.
+    pub worker: Option<Arc<crate::campaign::CampaignWorker>>,
 }
 
 impl AppState {
@@ -41,7 +43,17 @@ impl AppState {
             send_whatsapp,
             get_config,
             llm_generate,
+            worker: None,
         }
+    }
+
+    /// Attaches the durable campaign worker and starts its background loop.
+    pub fn with_worker(mut self, worker: crate::campaign::CampaignWorker) -> Self {
+        self.worker = Some(Arc::new(worker));
+        if let Some(worker) = self.worker.as_ref() {
+            worker.clone().start();
+        }
+        self
     }
 
     pub fn get_bot_context(&self) -> (uuid::Uuid, uuid::Uuid) {

@@ -995,7 +995,7 @@ async fn handle_login(
     let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let (user_name, found) = if let Some((_, fn_, ln_, _)) = &contact_opt {
+    let (user_name, found) = if let Some((_, fn_, ln_, _, _)) = &contact_opt {
         let n = [fn_.as_deref().unwrap_or(""), ln_.as_deref().unwrap_or("")]
             .iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" ");
         (if n.is_empty() { body.email.split('@').next().unwrap_or("User").to_string() } else { n }, true)

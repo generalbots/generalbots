@@ -77,9 +77,9 @@ struct StoredMessage {
 }
 
 async fn sync_all_accounts(pool: &DbPool) -> Result<(), String> {
-    let pool = pool.clone();
+    let closure_pool = pool.clone();
     let accounts = tokio::task::spawn_blocking(move || {
-        let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+        let mut conn = closure_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
         diesel::sql_query(
             "SELECT id, imap_server, imap_port, username, password_encrypted \
              FROM user_email_accounts WHERE is_active = true",

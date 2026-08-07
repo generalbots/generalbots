@@ -181,11 +181,11 @@ impl Claims {
     /// tenant, `branch_id` the workspace branch. Both are minted server-side
     /// from the user→org binding and validate client-supplied overrides.
     pub fn with_tenant_scope(mut self, org_id: String, branch_id: String) -> Self {
+        if self.organization_id.is_none() {
+            self.organization_id = Some(org_id.clone());
+        }
         self.org_id = Some(org_id);
         self.branch_id = Some(branch_id);
-        if self.organization_id.is_none() {
-            self.organization_id = Some(org_id);
-        }
         self
     }
 
