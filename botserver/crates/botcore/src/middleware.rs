@@ -177,6 +177,14 @@ pub struct TokenClaims {
     pub iss: Option<String>,
     pub aud: Option<Vec<String>>,
     pub scope: Option<String>,
+    /// Server-minted tenant (`.gborg`) claim. Presence means the token is
+    /// bound to an organization; a client-supplied `X-Organization-Id` must
+    /// match it or the request is rejected (issue #736).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub org_id: Option<String>,
+    /// Server-minted workspace branch claim, used to scope CRM and app data.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub branch_id: Option<String>,
 }
 
 // ============================================================================
@@ -392,7 +400,50 @@ pub async fn organization_context_middleware(
     mut request: Request<Body>,
     next: Next,
 ) -> Response {
-    let org_id = extract_organization_id(&request);
+    // Derive the tenant scope authoritatively from the authenticated token:
+    // the JWT `org_id` claim is server-minted at login and is the binding
+    // source of truth (issue #736). The `X-Organization-Id` header may only
+    // confirm the token scope — a client-supplied mismatch is rejected, never
+    // trusted, so a tenant can never view another tenant's context by
+    // spoofing the header.
+    let claims_org = request
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .and_then(|u| u.token_claims.as_ref())
+        .and_then(|c| c.org_id.as_ref())
+        .and_then(|o| Uuid::parse_str(o).ok());
+
+    let header_org = request.headers().get("X-Organization-Id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .or_else(|| {
+            // Compatibility: some legacy callers send `org_id` as a query
+            // parameter; treat it as a header-equivalent with the same rules.
+            request.uri().query().and_then(|q| {
+                q.split('&').find_map(|kv| {
+                    let (k, v) = kv.split_once('=')?;
+                    if k == "org_id" || k == "organization_id" {
+                        Uuid::parse_str(v).ok()
+                    } else {
+                        None
+                    }
+                })
+            })
+        });
+
+    let org_id = match (claims_org, header_org) {
+        (Some(claims), Some(header)) if claims != header => {
+            // The client requested a tenant different from the one the token
+            // is bound to: deny, fail closed.
+            return ForbiddenResponse::new(
+                "Requested organization does not match the authenticated session",
+            )
+            .into_response();
+        }
+        (Some(claims), _) => Some(claims),
+        (None, Some(header)) => Some(header),
+        (None, None) => None,
+    };
 
     if let Some(org_id) = org_id {
         if let Some(context) = state.get_organization_context(org_id).await {
@@ -552,46 +603,6 @@ pub async fn require_org_admin_middleware(
 // ============================================================================
 // Extractors
 // ============================================================================
-
-/// Extract organization ID from various sources
-fn extract_organization_id(request: &Request<Body>) -> Option<Uuid> {
-    // Try header first
-    if let Some(org_header) = request.headers().get("X-Organization-Id") {
-        if let Ok(org_str) = org_header.to_str() {
-            if let Ok(org_id) = Uuid::parse_str(org_str) {
-                return Some(org_id);
-            }
-        }
-    }
-
-    // Try query parameter
-    if let Some(query) = request.uri().query() {
-        for pair in query.split('&') {
-            if let Some((key, value)) = pair.split_once('=') {
-                if key == "org_id" || key == "organization_id" || key == "orgId" {
-                    if let Ok(org_id) = Uuid::parse_str(value) {
-                        return Some(org_id);
-                    }
-                }
-            }
-        }
-    }
-
-    // Try path parameter (for routes like /organizations/{id}/...)
-    let path = request.uri().path();
-    if path.contains("/organizations/") || path.contains("/orgs/") {
-        let parts: Vec<&str> = path.split('/').collect();
-        for (i, part) in parts.iter().enumerate() {
-            if (*part == "organizations" || *part == "orgs") && i + 1 < parts.len() {
-                if let Ok(org_id) = Uuid::parse_str(parts[i + 1]) {
-                    return Some(org_id);
-                }
-            }
-        }
-    }
-
-    None
-}
 
 /// Extract bot ID from request
 fn extract_bot_id(request: &Request<Body>) -> Option<Uuid> {

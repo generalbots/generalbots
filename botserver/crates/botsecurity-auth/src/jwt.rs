@@ -104,6 +104,15 @@ pub struct Claims {
     pub session_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub organization_id: Option<String>,
+    /// The owning tenant (`.gborg`) id, minted at login from the verified
+    /// user→org binding. Never derived from client input.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub org_id: Option<String>,
+    /// The workspace branch id, minted at login from the user's binding.
+    /// Because several bots may be flagged default in production, the branch
+    /// is always taken from the token, never guessed from the DB.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub branch_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub device_id: Option<String>,
 }
@@ -132,6 +141,8 @@ impl Claims {
             permissions: None,
             session_id: None,
             organization_id: None,
+            org_id: None,
+            branch_id: None,
             device_id: None,
         }
     }
@@ -164,6 +175,29 @@ impl Claims {
     pub fn with_organization_id(mut self, org_id: String) -> Self {
         self.organization_id = Some(org_id);
         self
+    }
+
+    /// Sets the verified tenant scope claims. `org_id` is the `.gborg`
+    /// tenant, `branch_id` the workspace branch. Both are minted server-side
+    /// from the user→org binding and validate client-supplied overrides.
+    pub fn with_tenant_scope(mut self, org_id: String, branch_id: String) -> Self {
+        self.org_id = Some(org_id);
+        self.branch_id = Some(branch_id);
+        if self.organization_id.is_none() {
+            self.organization_id = Some(org_id);
+        }
+        self
+    }
+
+    /// Returns the branch id claim, if present. This is the deterministic,
+    /// server-minted tenant for the session.
+    pub fn branch_id(&self) -> Option<&str> {
+        self.branch_id.as_deref()
+    }
+
+    /// Returns the owning tenant org id claim, if present.
+    pub fn tenant_org_id(&self) -> Option<&str> {
+        self.org_id.as_deref()
     }
 
     pub fn with_device_id(mut self, device_id: String) -> Self {

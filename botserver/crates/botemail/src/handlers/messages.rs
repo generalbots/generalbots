@@ -256,12 +256,13 @@ pub async fn send_email(
 
 pub async fn save_draft(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(request): Json<SaveDraftRequest>,
 ) -> Result<Json<SaveDraftResponse>, EmailError> {
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-    let Ok(user_id) = extract_user_from_session() else {
+    let Ok(user_id) = extract_user_from_session(&headers) else {
         return Err(EmailError("Authentication required".to_string()));
     };
     let draft_id = Uuid::new_v4();
@@ -447,9 +448,11 @@ pub struct CreateLabelRequest {
 
 pub async fn create_label(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(request): Json<CreateLabelRequest>,
 ) -> Result<Json<ApiResponse<()>>, EmailError> {
-    let user_id = extract_user_from_session().map_err(|_| EmailError("Authentication required".to_string()))?;
+    let user_id = extract_user_from_session(&headers)
+        .map_err(|_| EmailError("Authentication required".to_string()))?;
     let pool = state.pool.clone();
 
     tokio::task::spawn_blocking(move || {
@@ -490,9 +493,11 @@ pub struct BulkAddLabelRequest {
 
 pub async fn add_label_to_emails_bulk(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(request): Json<BulkAddLabelRequest>,
 ) -> Result<Json<ApiResponse<()>>, EmailError> {
-    let user_id = extract_user_from_session().map_err(|_| EmailError("Authentication required".to_string()))?;
+    let user_id = extract_user_from_session(&headers)
+        .map_err(|_| EmailError("Authentication required".to_string()))?;
     let pool = state.pool.clone();
 
     tokio::task::spawn_blocking(move || {

@@ -72,7 +72,12 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_anonymous_path("/api/cloud/plans")
             .add_anonymous_path("/api/cloud/offers")
             .add_anonymous_path("/api/cloud/llm-providers")
-            .add_anonymous_path("/api/products")
+            // Public store catalog only: the Store page reads
+            // /api/products/items anonymously; all other /api/products/*
+            // (pricelists, inventory, low-stock, services, stats) stay
+            // authenticated — prefix matching must never widen this to the
+            // whole namespace (issue #738).
+            .add_anonymous_path("/api/products/items")
             .add_anonymous_path("/api/sheet")
             .add_anonymous_path("/api/ui/sheet")
             .add_anonymous_path("/suite/sheet")

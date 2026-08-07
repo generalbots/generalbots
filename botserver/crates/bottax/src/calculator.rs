@@ -111,4 +111,22 @@ mod tests {
         assert_eq!(b.total_taxes, Decimal::ZERO);
         assert_eq!(b.effective_rate, Decimal::ZERO);
     }
+
+    #[test]
+    fn test_dynamic_rate_override() {
+        let mut rates = TaxRates::default();
+        rates.set("ISS", Decimal::new(200, 1));
+        rates.set("IRPJ", Decimal::new(150, 2));
+        assert_eq!(rates.iss_pct, Decimal::new(200, 1));
+        assert_eq!(rates.irpj_pct, Decimal::new(150, 2));
+
+        let b = calculate_service_tax(Decimal::new(10000, 0), &rates);
+        assert_eq!(b.iss, Decimal::new(20000, 2));
+        assert_eq!(b.irpj, Decimal::new(15000, 2));
+    }
+
+    #[test]
+    fn test_rate_names_are_stable() {
+        assert_eq!(TaxRates::rate_names(), ["IRPJ", "CSLL", "PIS/COFINS", "ISS"]);
+    }
 }

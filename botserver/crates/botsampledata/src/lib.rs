@@ -7,7 +7,7 @@
 //! What it creates:
 //!   * DB rows for every suite app (people, CRM, tickets, billing, calendar,
 //!     research, compliance, goals, workspaces, social, campaigns, lists,
-//!     o365, drive) — scoped correctly per handler (real default branch vs nil).
+//!     o365, drive) — always scoped to the dedicated sample tenant.
 //!   * A demo email account + a handful of messages so the Mail app is usable.
 //!
 //! Entry point: [`seed_all`].
@@ -15,13 +15,16 @@
 pub mod db;
 pub mod drive;
 pub mod email;
+pub mod sample;
 pub mod seed_all_apps;
 
 use botcore::shared::utils::DbPool;
 
 /// Seed every demo entity for the given pool.
 ///
-/// Safe to call on every startup — all operations are idempotent.
+/// Safe to call on every startup — all operations are idempotent. All demo
+/// data is written exclusively under the dedicated sample tenant; if that
+/// tenant cannot be created the seeding is skipped (never a real tenant).
 pub fn seed_all(pool: &DbPool) {
     let mut conn = match pool.get() {
         Ok(c) => c,
@@ -36,13 +39,13 @@ pub fn seed_all(pool: &DbPool) {
     // app surface (products, dashboards, meet, learn, project, canvas,
     // attendant, OKR, database, integrations, sources, monitoring).
     match db::seed(&mut conn) {
-        Ok(()) => log::info!("botsampledata: database demo data seeded"),
-        Err(e) => log::error!("botsampledata: database seeding failed: {e}"),
+        Ok(()) => log::info!("botsampledata: database demo data seeded (sample tenant)"),
+        Err(e) => log::warn!("botsampledata: database seeding skipped (sample tenant unavailable): {e}"),
     }
 
     match email::seed(&mut conn) {
-        Ok(()) => log::info!("botsampledata: demo email account + messages seeded"),
-        Err(e) => log::error!("botsampledata: email seeding failed: {e}"),
+        Ok(()) => log::info!("botsampledata: demo email account + messages seeded (sample tenant)"),
+        Err(e) => log::warn!("botsampledata: email seeding skipped (sample tenant unavailable): {e}"),
     }
 }
 

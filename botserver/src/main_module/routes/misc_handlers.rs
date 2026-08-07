@@ -225,10 +225,17 @@ pub async fn handle_services_summary(
 
 pub async fn handle_products_pricelists(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     use diesel::prelude::*;
 
     let mut conn = pool_conn(&state)?;
+
+    // Issue #738: pricelists are never anonymous. Require an authenticated,
+    // tenant-bound caller and scope to their workspace branch. Non-public
+    // products of other tenants are never exposed.
+    let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.db_pool)
+        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -244,8 +251,11 @@ pub async fn handle_products_pricelists(
     }
 
     let rows: Vec<PriceRow> = diesel::sql_query(
-        "SELECT id, name, price, currency FROM products ORDER BY name ASC LIMIT 100",
+        "SELECT id, name, price, currency FROM products \
+         WHERE branch_id = $1 AND is_public = true \
+         ORDER BY name ASC LIMIT 100",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
     .load(&mut conn)
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
 
@@ -270,12 +280,21 @@ pub async fn handle_products_pricelists(
 
 pub async fn handle_contacts_search(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     use diesel::prelude::*;
 
     let q = params.get("q").cloned().unwrap_or_default();
     let mut conn = pool_conn(&state)?;
+
+    // Tenant scoping (issue #738): the search only ever returns contacts of
+    // the authenticated user's workspace branch. The branch is derived from
+    // the server-minted JWT claim, the session cache, or the crm_contacts
+    // owner row — never from client input. Unauthenticated requests get no
+    // rows (the middleware rejects them before this handler anyway).
+    let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.db_pool)
+        .unwrap_or(Uuid::nil());
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -290,13 +309,20 @@ pub async fn handle_contacts_search(
 
     let pattern = format!("%{q}%");
     let rows: Vec<ContactRow> = if q.is_empty() {
-        diesel::sql_query("SELECT id, name, email FROM crm_contacts ORDER BY name ASC LIMIT 20")
-            .load(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?
+        diesel::sql_query(
+            "SELECT id, name, email FROM crm_contacts \
+             WHERE branch_id = $1 ORDER BY name ASC LIMIT 20",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?
     } else {
         diesel::sql_query(
-            "SELECT id, name, email FROM crm_contacts WHERE LOWER(name) LIKE LOWER($1) OR LOWER(email) LIKE LOWER($1) ORDER BY name ASC LIMIT 20",
+            "SELECT id, name, email FROM crm_contacts \
+             WHERE branch_id = $1 AND (LOWER(name) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2)) \
+             ORDER BY name ASC LIMIT 20",
         )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .bind::<diesel::sql_types::Text, _>(&pattern)
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?

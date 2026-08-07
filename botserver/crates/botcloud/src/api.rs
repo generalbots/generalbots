@@ -932,11 +932,11 @@ async fn handle_login(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
-    use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, id, first_name, last_name};
+    use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, id, first_name, last_name, branch_id};
     let contact_opt = crm_contacts
         .filter(email.eq(&body.email))
-        .select((id, first_name, last_name, email))
-        .first::<(Uuid, Option<String>, Option<String>, String)>(&mut conn)
+        .select((id, first_name, last_name, email, branch_id))
+        .first::<(Uuid, Option<String>, Option<String>, String, Uuid)>(&mut conn)
         .optional()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
 
@@ -959,12 +959,38 @@ async fn handle_login(
                 serde_json::json!({ "detail": "Invalid credentials" }).to_string(),
             )
         })?;
-    let payload_body = format!(
-        "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
-        sub,
-        body.email,
-        exp
-    );
+
+    // Mint verified tenant scope claims (issue #736): the branch comes from
+    // the CRM contact owned by the authenticated identity — never from the
+    // client. The org owning the branch is resolved from the branches table.
+    let branch_scope: Option<Uuid> = contact_opt.as_ref().map(|(_, _, _, _, br)| *br);
+    let org_scope: Option<Uuid> = branch_scope.and_then(|b| {
+        #[derive(diesel::QueryableByName)]
+        struct OrgRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            org_id: Uuid,
+        }
+        diesel::sql_query("SELECT org_id FROM branches WHERE id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(b)
+            .get_result::<OrgRow>(&mut conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|r| r.org_id)
+    });
+
+    let payload_body = match (org_scope, branch_scope) {
+        (Some(org_id), Some(branch)) => format!(
+            "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\"}}",
+            sub, body.email, exp, org_id, branch
+        ),
+        _ => format!(
+            "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
+            sub,
+            body.email,
+            exp
+        ),
+    };
     let payload = base64_url_encode(payload_body.as_bytes());
     let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;

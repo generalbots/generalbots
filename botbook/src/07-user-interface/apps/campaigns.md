@@ -264,9 +264,37 @@ tracking-enabled,true
 
 ---
 
+## Sending & Execution
+
+Campaign execution is a real backend flow (not a stub). When you trigger a send the server:
+
+1. Resolves recipients — either the explicitly requested contact ids, the
+   members of a list, or the recipients already linked to the campaign.
+2. Loads the template subject/body (or falls back to the campaign settings).
+3. Dispatches each recipient through the configured channel transport
+   (SMTP mail for email campaigns, the WhatsApp Graph API for WhatsApp).
+4. Marks each `marketing_recipients` row as `sent` (or `failed` with the
+   transport error), records it in `email_tracking`, and rolls the counts
+   into the campaign metrics.
+
+A send with no resolvable recipients returns an explicit client error rather
+than a not-implemented response.
+
+## Campaign via Chat
+
+The `drive.archive` command keeps the drive inbox tidy by moving invoice-like
+files into an archive folder, and `payroll.diagnosis` aggregates a branch's
+monthly invoice totals as the ledger basis for payroll:
+
+```json
+{ "__api_call__": { "name": "drive.archive", "params": { "source": "inbox", "destination": "faturas/2026" } } }
+{ "__api_call__": { "name": "payroll.diagnosis", "params": { "period": "2026-08" } } }
+```
+
 ## See Also
 
 - [Suite Manual](../suite-manual.md) - Complete user guide
 - [Mail](./mail.md) - Email sending
 - [CRM](./crm.md) - Contact management
+- [Tax](./tax.md) - Service tax calculation
 - [BASIC SEND MAIL Keyword](../../04-basic-scripting/keyword-send-mail.md) - Script integration

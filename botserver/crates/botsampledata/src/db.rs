@@ -1,19 +1,18 @@
 //! Database demo-data seeding.
 //!
-//! All inserts are guarded so re-running is safe. Scope notes:
-//!   * Real default branch (a188d531): CRM, tickets, billing, research,
-//!     workspaces, o365, drive.
-//!   * Nil scope (`00000000-...`): people, social, compliance, goals,
-//!     calendar, campaigns, lists — these handlers resolve scope to nil in
-//!     suite-admin mode.
+//! All inserts are guarded so re-running is safe. Every domain is scoped to
+//! the dedicated sample tenant (org/branch/bot), never to a real tenant or to
+//! the nil/global scope.
 
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::{Integer, Nullable, Text, Uuid as SqlUuid};
 use uuid::Uuid;
 
-/// Scopes resolved at seed time from the live database so demo data lands on
-/// the instance's actual default org/branch/bot (works in dev and prod).
+use crate::sample::{ensure_sample_scope, SampleScope};
+
+/// Scopes resolved at seed time from the dedicated sample tenant so demo data
+/// never lands in a real tenant. Real tenants are never queried or modified.
 pub struct Scopes {
     pub org_id: Uuid,
     pub branch_id: Uuid,
@@ -27,73 +26,16 @@ pub struct Scopes {
 
 impl Scopes {
     fn new(conn: &mut diesel::PgConnection) -> Result<Self, String> {
-        #[derive(diesel::QueryableByName)]
-        struct DefaultBotRow {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            branch_id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            bot_id: Uuid,
-        }
-        // Default bot is the first bot flagged is_default_for_branch.
-        let default_bot: Option<DefaultBotRow> = sql_query(
-            "SELECT b.branch_id, b.id AS bot_id FROM bots b \
-             WHERE b.is_default_for_branch = true ORDER BY b.created_at ASC LIMIT 1",
-        )
-        .get_result(conn)
-        .ok();
-
-        let (branch_id, bot_id) = default_bot
-            .map(|r| (r.branch_id, r.bot_id))
-            .unwrap_or_else(|| {
-                (
-                    Uuid::parse_str("0de59833-b46b-4546-b816-d0f73f59d8c0").unwrap_or_default(),
-                    Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d480").unwrap_or_default(),
-                )
-            });
-
-        // Org owning that branch.
-        #[derive(diesel::QueryableByName)]
-        struct OrgRow {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            org_id: Uuid,
-        }
-        let org_id: Option<OrgRow> = sql_query(
-            "SELECT org_id FROM branches WHERE id = $1 LIMIT 1",
-        )
-        .bind::<SqlUuid, _>(branch_id)
-        .get_result(conn)
-        .ok();
-
-        let org_id = org_id.map(|r| r.org_id).unwrap_or_else(Uuid::nil);
-
-        // Resolve the demo user id: prefer the users row matching the demo
-        // email (in prod this is the UUIDv5(zitadel:{id}) mapping used by the
-        // suite session), falling back to the fixed sample id.
-        #[derive(diesel::QueryableByName)]
-        struct UserRow {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            user_id: Uuid,
-        }
-        let user_id: Option<UserRow> = sql_query(
-            "SELECT id AS user_id FROM users WHERE email = 'sample@example.com' LIMIT 1",
-        )
-        .get_result(conn)
-        .ok();
-        let user_id = user_id
-            .map(|r| r.user_id)
-            .unwrap_or_else(|| {
-                Uuid::parse_str("10000000-0000-0000-0000-000000000001").unwrap_or_default()
-            });
-
+        let sample: SampleScope = ensure_sample_scope(conn)?;
         Ok(Scopes {
-            org_id,
-            branch_id,
-            bot_id,
-            user_id,
-            org_str: org_id.to_string(),
-            branch_str: branch_id.to_string(),
-            bot_str: bot_id.to_string(),
-            user_str: user_id.to_string(),
+            org_id: sample.org_id,
+            branch_id: sample.branch_id,
+            bot_id: sample.bot_id,
+            user_id: sample.user_id,
+            org_str: sample.org_str,
+            branch_str: sample.branch_str,
+            bot_str: sample.bot_str,
+            user_str: sample.user_str,
         })
     }
 }
@@ -103,7 +45,6 @@ impl Scopes {
 /// the remaining domains still seed.
 pub fn seed(conn: &mut diesel::PgConnection) -> Result<(), String> {
     let scopes = Scopes::new(conn)?;
-    ensure_user(conn, &scopes)?;
 
     let domains: Vec<(&str, fn(&mut diesel::PgConnection, &Scopes) -> Result<(), String>)> = vec![
         ("people", seed_people),
@@ -140,18 +81,6 @@ pub fn seed(conn: &mut diesel::PgConnection) -> Result<(), String> {
     Ok(())
 }
 
-fn ensure_user(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
-    sql_query(
-        "INSERT INTO users (id, username, email, password_hash, is_active, created_at, updated_at)
-         VALUES ($1, 'sample.user', 'sample@example.com', 'x', true, NOW(), NOW())
-         ON CONFLICT (id) DO NOTHING",
-    )
-    .bind::<SqlUuid, _>(s.user_id)
-    .execute(conn)
-    .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
 fn count(conn: &mut diesel::PgConnection, sql: &str, binds: &[&str]) -> Result<i64, String> {
     #[derive(diesel::QueryableByName)]
     struct C {
@@ -184,54 +113,62 @@ struct UuidRowNamed {
 }
 
 fn seed_people(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
-    let nil = Uuid::nil();
+    let org = s.org_id;
+    let bot = s.bot_id;
+    let branch = s.branch_id;
     let user = s.user_id;
 
     for (dept, code) in [("Engineering", "ENG"), ("Marketing", "MKT")] {
-        let n = count(conn, "SELECT count(*) AS n FROM people_departments WHERE org_id::text = $1 AND code = $2", &["00000000-0000-0000-0000-000000000000", code])?;
+        let n = count(conn, "SELECT count(*) AS n FROM people_departments WHERE org_id::text = $1 AND code = $2", &[&s.org_str, code])?;
         if n == 0 {
             sql_query("INSERT INTO people_departments (id, org_id, bot_id, name, description, code, is_active, created_at, updated_at, branch_id)
-                       VALUES ($1, $2, $2, $3, $3 || ' dept', $4, true, NOW(), NOW(), $2)")
+                       VALUES ($1, $2, $3, $4, $4 || ' dept', $5, true, NOW(), NOW(), $6)")
                 .bind::<SqlUuid, _>(Uuid::new_v4())
-                .bind::<SqlUuid, _>(nil)
+                .bind::<SqlUuid, _>(org)
+                .bind::<SqlUuid, _>(bot)
                 .bind::<Text, _>(dept)
                 .bind::<Text, _>(code)
+                .bind::<SqlUuid, _>(branch)
                 .execute(conn)
                 .map_err(|e| e.to_string())?;
         }
     }
 
     let people: &[(&str, &str, &str, &str, &str)] = &[
-        ("Alice", "Sample", "alice.sample@example.com", "Software Engineer", "Engineering"),
-        ("Bruno", "Demo", "bruno.demo@example.com", "Product Manager", "Marketing"),
-        ("Carla", "Test", "carla.test@example.com", "Designer", "Engineering"),
+        ("Alice", "Sample", "alice@sample.com", "Software Engineer", "Engineering"),
+        ("Bruno", "Demo", "bruno@sample.com", "Product Manager", "Marketing"),
+        ("Carla", "Test", "carla@sample.com", "Designer", "Engineering"),
     ];
     for (first, last, email, title, dept) in people {
-        let n = count(conn, "SELECT count(*) AS n FROM people WHERE org_id::text = $1 AND email = $2", &["00000000-0000-0000-0000-000000000000", email])?;
+        let n = count(conn, "SELECT count(*) AS n FROM people WHERE org_id::text = $1 AND email = $2", &[&s.org_str, email])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO people (id, org_id, bot_id, user_id, first_name, last_name, email, phone, job_title, department, office_location, hire_date, timezone, locale, skills, social_links, custom_fields, created_at, updated_at, branch_id)
-                 VALUES ($1, $2, $2, $3, $4, $5, $6, '+1 555 0100', $7, $8, 'Remote', '2024-03-01', 'UTC', 'en-US', ARRAY['rust'], '{}', '{}', NOW(), NOW(), $2)",
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, '+1 555 0100', $8, $9, 'Remote', '2024-03-01', 'UTC', 'en-US', ARRAY['rust'], '{}', '{}', NOW(), NOW(), $10)",
             )
                 .bind::<SqlUuid, _>(Uuid::new_v4())
-                .bind::<SqlUuid, _>(nil)
+                .bind::<SqlUuid, _>(org)
+                .bind::<SqlUuid, _>(bot)
                 .bind::<Nullable<SqlUuid>, _>(Some(user))
                 .bind::<Text, _>(first)
                 .bind::<Text, _>(last)
                 .bind::<Text, _>(email)
                 .bind::<Text, _>(title)
                 .bind::<Text, _>(dept)
+                .bind::<SqlUuid, _>(branch)
                 .execute(conn)
                 .map_err(|e| e.to_string())?;
         }
     }
 
-    let n = count(conn, "SELECT count(*) AS n FROM people_skills WHERE org_id::text = $1 AND name = 'Rust'", &["00000000-0000-0000-0000-000000000000"])?;
+    let n = count(conn, "SELECT count(*) AS n FROM people_skills WHERE org_id::text = $1 AND name = 'Rust'", &[&s.org_str])?;
     if n == 0 {
         sql_query("INSERT INTO people_skills (id, org_id, bot_id, name, category, description, is_active, created_at, branch_id)
-                   VALUES ($1, $2, $2, 'Rust', 'Engineering', 'Systems programming', true, NOW(), $2)")
+                   VALUES ($1, $2, $3, 'Rust', 'Engineering', 'Systems programming', true, NOW(), $4)")
             .bind::<SqlUuid, _>(Uuid::new_v4())
-            .bind::<SqlUuid, _>(nil)
+            .bind::<SqlUuid, _>(org)
+            .bind::<SqlUuid, _>(bot)
+            .bind::<SqlUuid, _>(branch)
             .execute(conn)
             .map_err(|e| e.to_string())?;
     }
@@ -366,9 +303,9 @@ fn seed_tickets(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), Strin
     }
 
     let tickets: &[(&str, &str, &str, &str, &str, &str)] = &[
-        ("TK-1001", "Cannot access dashboard", "Dashboard returns 502 after login", "open", "high", "alice.sample@example.com"),
-        ("TK-1002", "New hire onboarding", "Please provision access for new hire", "in_progress", "medium", "bruno.demo@example.com"),
-        ("TK-1003", "Export report missing columns", "Monthly export is missing created_at", "resolved", "low", "carla.test@example.com"),
+        ("TK-1001", "Cannot access dashboard", "Dashboard returns 502 after login", "open", "high", "alice@sample.com"),
+        ("TK-1002", "New hire onboarding", "Please provision access for new hire", "in_progress", "medium", "bruno@sample.com"),
+        ("TK-1003", "Export report missing columns", "Monthly export is missing created_at", "resolved", "low", "carla@sample.com"),
     ];
     for (num, subject, desc, status, priority, requester) in tickets {
         let n = count(conn, "SELECT count(*) AS n FROM support_tickets WHERE org_id::text = $1 AND ticket_number = $2", &[&s.org_str, num])?;
@@ -471,25 +408,25 @@ fn seed_tasks(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String>
 }
 
 fn seed_calendar(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
-    let nil = Uuid::nil();
+    let org = s.org_id;
     let user = s.user_id;
 
     let cal_id;
-    let n = count(conn, "SELECT count(*) AS n FROM calendars WHERE org_id::text = $1 AND owner_id::text = $2", &["00000000-0000-0000-0000-000000000000", &s.user_str])?;
+    let n = count(conn, "SELECT count(*) AS n FROM calendars WHERE org_id::text = $1 AND owner_id::text = $2", &[&s.org_str, &s.user_str])?;
     if n == 0 {
         cal_id = sql_query(
             "INSERT INTO calendars (id, org_id, bot_id, owner_id, name, description, color, timezone, is_primary, is_visible, is_shared, created_at, branch_id)
              VALUES ($1, $2, $2, $3, 'Work', 'Primary work calendar', '#3b82f6', 'UTC', true, true, false, NOW(), $2) RETURNING id",
         )
         .bind::<SqlUuid, _>(Uuid::new_v4())
-        .bind::<SqlUuid, _>(nil)
+        .bind::<SqlUuid, _>(org)
         .bind::<SqlUuid, _>(user)
         .get_result::<UuidRowNamed>(conn)
         .map(|r| r.id)
         .map_err(|e| e.to_string())?;
     } else {
         cal_id = sql_query("SELECT id FROM calendars WHERE org_id = $1 AND owner_id = $2 LIMIT 1")
-            .bind::<SqlUuid, _>(nil)
+            .bind::<SqlUuid, _>(org)
             .bind::<SqlUuid, _>(user)
             .get_result::<UuidRowNamed>(conn)
             .map(|r| r.id)
@@ -498,14 +435,14 @@ fn seed_calendar(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), Stri
 
     let events: &[&str] = &["Sprint Planning", "Product Review"];
     for title in events {
-        let n = count(conn, "SELECT count(*) AS n FROM calendar_events WHERE org_id::text = $1 AND title = $2", &["00000000-0000-0000-0000-000000000000", title])?;
+        let n = count(conn, "SELECT count(*) AS n FROM calendar_events WHERE org_id::text = $1 AND title = $2", &[&s.org_str, title])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO calendar_events (id, org_id, bot_id, calendar_id, owner_id, title, description, location, start_time, end_time, status, visibility, busy_status, reminders, attendees, created_at, updated_at, branch_id)
                  VALUES ($1, $2, $2, $3, $4, $5, 'Demo event', 'Virtual', NOW() + INTERVAL '1 day', NOW() + INTERVAL '1 day' + INTERVAL '1 hour', 'confirmed', 'default', 'busy', '[]', '[]', NOW(), NOW(), $2)",
             )
                 .bind::<SqlUuid, _>(Uuid::new_v4())
-                .bind::<SqlUuid, _>(nil)
+                .bind::<SqlUuid, _>(org)
                 .bind::<SqlUuid, _>(cal_id)
                 .bind::<SqlUuid, _>(user)
                 .bind::<Text, _>(title)
@@ -584,7 +521,7 @@ fn seed_research(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), Stri
 }
 
 fn seed_compliance(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
-    let nil = Uuid::nil();
+    let branch = s.branch_id;
     let user = s.user_id;
 
     let checks: &[(&str, &str, i32)] = &[
@@ -592,14 +529,14 @@ fn seed_compliance(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), St
         ("ISO27001", "non_compliant", 40),
     ];
     for (framework, status, score) in checks {
-        let n = count(conn, "SELECT count(*) AS n FROM compliance_checks WHERE branch_id::text = $1 AND check_type = $2", &["00000000-0000-0000-0000-000000000000", framework])?;
+        let n = count(conn, "SELECT count(*) AS n FROM compliance_checks WHERE branch_id::text = $1 AND check_type = $2", &[&s.branch_str, framework])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO compliance_checks (id, branch_id, check_type, status, target_type, target_id, result, checked_at, checked_by, created_at, updated_at)
                  VALUES ($1, $2, $3, $4, 'control', NULL, jsonb_build_object('score', $5), NOW(), $6, NOW(), NOW())",
             )
                 .bind::<SqlUuid, _>(Uuid::new_v4())
-                .bind::<SqlUuid, _>(nil)
+                .bind::<SqlUuid, _>(branch)
                 .bind::<Text, _>(framework)
                 .bind::<Text, _>(status)
                 .bind::<Integer, _>(*score)
@@ -612,39 +549,39 @@ fn seed_compliance(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), St
 }
 
 fn seed_goals(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
-    let nil = Uuid::nil();
+    let org = s.org_id;
     let user = s.user_id;
 
     let obj_id;
-    let n = count(conn, "SELECT count(*) AS n FROM okr_objectives WHERE org_id::text = $1 AND title = 'Ship v1.0'", &["00000000-0000-0000-0000-000000000000"])?;
+    let n = count(conn, "SELECT count(*) AS n FROM okr_objectives WHERE org_id::text = $1 AND title = 'Ship v1.0'", &[&s.org_str])?;
     if n == 0 {
         obj_id = sql_query(
             "INSERT INTO okr_objectives (id, org_id, bot_id, owner_id, title, description, period, period_start, period_end, status, progress, visibility, tags, created_at, updated_at, branch_id)
              VALUES ($1, $2, $2, $3, 'Ship v1.0', 'Deliver the v1 platform', 'Q3-2026', '2026-07-01', '2026-09-30', 'active', 45, 'team', ARRAY['v1','launch'], NOW(), NOW(), $2) RETURNING id",
         )
         .bind::<SqlUuid, _>(Uuid::new_v4())
-        .bind::<SqlUuid, _>(nil)
+        .bind::<SqlUuid, _>(org)
         .bind::<SqlUuid, _>(user)
         .get_result::<UuidRowNamed>(conn)
         .map(|r| r.id)
         .map_err(|e| e.to_string())?;
     } else {
         obj_id = sql_query("SELECT id FROM okr_objectives WHERE org_id = $1 AND title = 'Ship v1.0' LIMIT 1")
-            .bind::<SqlUuid, _>(nil)
+            .bind::<SqlUuid, _>(org)
             .get_result::<UuidRowNamed>(conn)
             .map(|r| r.id)
             .map_err(|e| e.to_string())?;
     }
 
     for (title, current) in [("Complete all 12 milestones", 5), ("Reach 95% test coverage", 72)] {
-        let n = count(conn, "SELECT count(*) AS n FROM okr_key_results WHERE org_id::text = $1 AND objective_id::text = $2 AND title = $3", &["00000000-0000-0000-0000-000000000000", &obj_id.to_string(), title])?;
+        let n = count(conn, "SELECT count(*) AS n FROM okr_key_results WHERE org_id::text = $1 AND objective_id::text = $2 AND title = $3", &[&s.org_str, &obj_id.to_string(), title])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO okr_key_results (id, org_id, bot_id, objective_id, owner_id, title, metric_type, start_value, target_value, current_value, unit, status, due_date, created_at, updated_at, branch_id)
                  VALUES ($1, $2, $2, $3, $4, $5, 'count', 0, 100, $6, 'units', 'in_progress', '2026-09-30', NOW(), NOW(), $2)",
             )
                 .bind::<SqlUuid, _>(Uuid::new_v4())
-                .bind::<SqlUuid, _>(nil)
+                .bind::<SqlUuid, _>(org)
                 .bind::<SqlUuid, _>(obj_id)
                 .bind::<SqlUuid, _>(user)
                 .bind::<Text, _>(title)
@@ -705,39 +642,39 @@ fn seed_workspaces(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), St
 }
 
 fn seed_social(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
-    let nil = Uuid::nil();
+    let org = s.org_id;
     let user = s.user_id;
 
     let community_id;
-    let n = count(conn, "SELECT count(*) AS n FROM social_communities WHERE org_id::text = $1 AND slug = 'company-announcements'", &["00000000-0000-0000-0000-000000000000"])?;
+    let n = count(conn, "SELECT count(*) AS n FROM social_communities WHERE org_id::text = $1 AND slug = 'company-announcements'", &[&s.org_str])?;
     if n == 0 {
         community_id = sql_query(
             "INSERT INTO social_communities (id, org_id, bot_id, name, slug, description, visibility, join_policy, owner_id, member_count, post_count, is_official, is_featured, settings, created_at, updated_at, branch_id)
              VALUES ($1, $2, $2, 'Company Announcements', 'company-announcements', 'Internal announcements', 'public', 'open', $3, 3, 2, true, false, '{}', NOW(), NOW(), $2) RETURNING id",
         )
         .bind::<SqlUuid, _>(Uuid::new_v4())
-        .bind::<SqlUuid, _>(nil)
+        .bind::<SqlUuid, _>(org)
         .bind::<SqlUuid, _>(user)
         .get_result::<UuidRowNamed>(conn)
         .map(|r| r.id)
         .map_err(|e| e.to_string())?;
     } else {
         community_id = sql_query("SELECT id FROM social_communities WHERE org_id = $1 AND slug = 'company-announcements' LIMIT 1")
-            .bind::<SqlUuid, _>(nil)
+            .bind::<SqlUuid, _>(org)
             .get_result::<UuidRowNamed>(conn)
             .map(|r| r.id)
             .map_err(|e| e.to_string())?;
     }
 
     for content in ["Welcome to the new platform! 🎉", "v1.0 is shipping this quarter"] {
-        let n = count(conn, "SELECT count(*) AS n FROM social_posts WHERE org_id::text = $1 AND content = $2", &["00000000-0000-0000-0000-000000000000", content])?;
+        let n = count(conn, "SELECT count(*) AS n FROM social_posts WHERE org_id::text = $1 AND content = $2", &[&s.org_str, content])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO social_posts (id, org_id, bot_id, author_id, community_id, content, content_type, hashtags, visibility, comment_count, reaction_counts, created_at, branch_id)
                  VALUES ($1, $2, $2, $3, $4, $5, 'text', ARRAY['demo'], 'public', 1, '{\"like\":1}', NOW(), $2)",
             )
                 .bind::<SqlUuid, _>(Uuid::new_v4())
-                .bind::<SqlUuid, _>(nil)
+                .bind::<SqlUuid, _>(org)
                 .bind::<SqlUuid, _>(user)
                 .bind::<Nullable<SqlUuid>, _>(Some(community_id))
                 .bind::<Text, _>(content)
@@ -749,19 +686,19 @@ fn seed_social(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String
 }
 
 fn seed_marketing(conn: &mut diesel::PgConnection, scopes: &Scopes) -> Result<(), String> {
-    let nil = Uuid::nil();
-    let branch = &scopes.branch_str;
+    let branch = scopes.branch_id;
+    let branch_str = &scopes.branch_str;
 
     let campaigns: &[(&str, &str)] = &[("Q3 Launch Campaign", "email"), ("WhatsApp Promo", "whatsapp")];
     for (name, ctype) in campaigns {
-        let n = count(conn, "SELECT count(*) AS n FROM marketing_campaigns WHERE branch_id::text = $1 AND name = $2", &[branch, name])?;
+        let n = count(conn, "SELECT count(*) AS n FROM marketing_campaigns WHERE branch_id::text = $1 AND name = $2", &[branch_str, name])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO marketing_campaigns (id, branch_id, name, campaign_type, status, starts_at, ends_at, budget, metrics, created_at, updated_at)
                  VALUES ($1, $2, $3, $4, 'draft', NOW(), NOW() + INTERVAL '14 days', 500, '{}', NOW(), NOW())",
             )
                 .bind::<SqlUuid, _>(Uuid::new_v4())
-                .bind::<SqlUuid, _>(nil)
+                .bind::<SqlUuid, _>(branch)
                 .bind::<Text, _>(name)
                 .bind::<Text, _>(ctype)
                 .execute(conn)
@@ -770,14 +707,14 @@ fn seed_marketing(conn: &mut diesel::PgConnection, scopes: &Scopes) -> Result<()
     }
 
     for name in ["All Active Contacts", "Warm Leads"] {
-        let n = count(conn, "SELECT count(*) AS n FROM marketing_lists WHERE branch_id::text = $1 AND name = $2", &[branch, name])?;
+        let n = count(conn, "SELECT count(*) AS n FROM marketing_lists WHERE branch_id::text = $1 AND name = $2", &[branch_str, name])?;
         if n == 0 {
             sql_query(
                 "INSERT INTO marketing_lists (id, branch_id, name, list_type, description, query_text, member_count, contact_count, is_dynamic, criteria, created_at, updated_at)
                  VALUES ($1, $2, $3, 'static', 'Sample list', NULL, 0, 0, false, '{}', NOW(), NOW())",
             )
                 .bind::<SqlUuid, _>(Uuid::new_v4())
-                .bind::<SqlUuid, _>(nil)
+                .bind::<SqlUuid, _>(branch)
                 .bind::<Text, _>(name)
                 .execute(conn)
                 .map_err(|e| e.to_string())?;
@@ -909,14 +846,12 @@ fn seed_fiscal(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String
     // Sample service in the registry so the service-tax flow (issue #722)
     // can run live: fixed-price consulting at R$ 10,000.00. tax_rate = 0
     // means the composite rates come from billing_tax_rates (16.33% total).
-    // Seeded in the nil scope (global catalog) because botproducts resolves
-    // branch_id = nil in SaaS/admin mode.
+    // Seeded in the sample scope (dedicated demo tenant).
     {
-        let nil_branch = Uuid::nil();
         let n = count(
             conn,
             "SELECT count(*) AS n FROM services WHERE branch_id::text = $1 AND name = $2",
-            &[&nil_branch.to_string(), "IT Consulting"],
+            &[&s.branch_str, "IT Consulting"],
         )?;
         if n == 0 {
             sql_query(
@@ -926,7 +861,7 @@ fn seed_fiscal(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String
             .bind::<SqlUuid, _>(Uuid::new_v4())
             .bind::<SqlUuid, _>(org)
             .bind::<SqlUuid, _>(bot)
-            .bind::<SqlUuid, _>(nil_branch)
+            .bind::<SqlUuid, _>(branch)
             .execute(conn)
             .map_err(|e| e.to_string())?;
         }

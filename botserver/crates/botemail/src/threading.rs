@@ -19,10 +19,11 @@ fn color_for_index(idx: usize) -> &'static str {
 
 pub async fn get_thread(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(thread_subject): Path<String>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<axum::response::Html<String>, ThreadError> {
-    let user_id = extract_user_from_session()
+    let user_id = extract_user_from_session(&headers)
         .map_err(|_| ThreadError("Authentication required".into()))?;
 
     let limit: i64 = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(50);

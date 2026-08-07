@@ -19,7 +19,7 @@ fn color_for_index(idx: usize) -> &'static str {
     ACCOUNT_COLORS[idx % ACCOUNT_COLORS.len()]
 }
 
-fn normalize_subject(subj: &str) -> String {
+pub(crate) fn normalize_subject(subj: &str) -> String {
     let s = subj.trim();
     for prefix in &["Re: ", "Re:", "Fwd: ", "Fwd:", "FW: ", "FW:"] {
         if let Some(rest) = s.strip_prefix(prefix) {
@@ -39,9 +39,10 @@ struct InboxStatsRow {
 
 pub async fn list_unified_inbox(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<axum::response::Html<String>, UnifiedInboxError> {
-    let user_id = extract_user_from_session()
+    let user_id = extract_user_from_session(&headers)
         .map_err(|_| UnifiedInboxError("Authentication required".into()))?;
 
     let folder = params.get("folder").cloned().unwrap_or_else(|| "INBOX".into());
@@ -178,8 +179,9 @@ pub async fn list_unified_inbox(
 
 pub async fn unified_stats(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<serde_json::Value>, UnifiedInboxError> {
-    let user_id = extract_user_from_session()
+    let user_id = extract_user_from_session(&headers)
         .map_err(|_| UnifiedInboxError("Authentication required".into()))?;
 
     let pool = state.pool.clone();

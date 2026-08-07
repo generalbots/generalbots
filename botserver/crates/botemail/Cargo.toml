@@ -13,13 +13,14 @@ vectordb = ["qdrant-client"]
 
 [dependencies]
 botlib = { workspace = true }
-diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "uuid"] }
+botsecurity-core = { workspace = true }
+diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "uuid", "serde_json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 axum = { workspace = true, features = ["ws", "multipart", "macros"] }
 axum-extra = { version = "0.9", features = ["typed-header"] }
 chrono = { workspace = true, features = ["serde"] }
-uuid = { workspace = true, features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 tokio = { workspace = true, features = ["full"] }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
