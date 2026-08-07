@@ -157,12 +157,14 @@ impl FraudEngine {
         let rules_json: serde_json::Value =
             serde_json::to_value(triggered).unwrap_or_default();
 
+        let branch = request.branch_id.unwrap_or_else(Uuid::nil);
         diesel::sql_query(
             "INSERT INTO fraud_events (id, branch_id, event_type, entity_type, entity_id, \
              risk_score, risk_level, triggered_rules, action_taken, details) \
-             VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, $6, $7, $8, $9)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
         .bind::<diesel::sql_types::Uuid, _>(&id)
+        .bind::<diesel::sql_types::Uuid, _>(branch)
         .bind::<diesel::sql_types::Text, _>(&request.event_type)
         .bind::<diesel::sql_types::Text, _>(&request.entity_type)
         .bind::<diesel::sql_types::Uuid, _>(&request.entity_id)
@@ -177,9 +179,10 @@ impl FraudEngine {
         if let Some(ip) = request.details.get("ip").and_then(|v| v.as_str()) {
             diesel::sql_query(
                 "INSERT INTO fraud_velocity (id, branch_id, identifier, identifier_type, event_type) \
-                 VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, 'ip', $3)",
+                 VALUES ($1, $2, $3, 'ip', $4)",
             )
             .bind::<diesel::sql_types::Uuid, _>(&Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(branch)
             .bind::<diesel::sql_types::Text, _>(ip)
             .bind::<diesel::sql_types::Text, _>(&request.event_type)
             .execute(conn)?;

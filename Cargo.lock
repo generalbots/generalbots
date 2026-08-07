@@ -2043,6 +2043,7 @@ name = "botfraud"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "base64 0.22.1",
  "chrono",
  "diesel",
  "log",
@@ -2060,6 +2061,7 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botcore",
+ "botlib",
  "diesel",
  "log",
  "serde",

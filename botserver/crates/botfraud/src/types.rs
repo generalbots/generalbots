@@ -49,6 +49,8 @@ pub struct FraudAssessmentRequest {
     pub entity_type: String,
     pub entity_id: Uuid,
     pub details: serde_json::Value,
+    #[serde(default)]
+    pub branch_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -23,7 +23,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "suricata", "suricata-update", "maldet", "systemctl", "sudo",
         "visudo", "id", "netsh", "llama-server", "ollama", "vault",
         "nc", "netcat", "python", "python3", "python3.11", "python3.12",
-        "tasklist", "tar.exe",
+        "tasklist", "tar.exe", "git",
     ])
 });
 

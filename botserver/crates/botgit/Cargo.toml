@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 axum = { workspace = true }
 botcore = { workspace = true }
+botlib = { workspace = true }
 diesel = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
