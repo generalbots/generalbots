@@ -34,11 +34,23 @@ fn resolve_branch(headers: &HeaderMap) -> Uuid {
         .get("authorization")
         .or_else(|| headers.get("Authorization"))
         .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer ").or_else(|| v.strip_prefix("bearer ")))?;
+        .and_then(|v| v.strip_prefix("Bearer ").or_else(|| v.strip_prefix("bearer ")));
 
-    let payload = header.split('.').nth(1)?;
-    let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload).ok()?;
-    let claims: serde_json::Value = serde_json::from_slice(&b64).ok()?;
+    let Some(header) = header else {
+        return Uuid::nil();
+    };
+    let Some(payload) = header.split('.').nth(1) else {
+        return Uuid::nil();
+    };
+    // JWT payloads are base64url without padding, but some issuers emit trailing
+    // padding; strip it so URL_SAFE_NO_PAD can always decode.
+    let unpadded: String = payload.trim_end_matches('=').to_string();
+    let Ok(b64) = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(unpadded) else {
+        return Uuid::nil();
+    };
+    let Ok(claims) = serde_json::from_slice::<serde_json::Value>(&b64) else {
+        return Uuid::nil();
+    };
 
     claims
         .get("branch_id")
