@@ -1,4 +1,5 @@
 pub mod handlers;
+pub mod scope;
 pub mod models;
 pub mod routes;
 pub mod schema;

@@ -1,4 +1,5 @@
 pub mod inventory;
+pub mod scope;
 pub mod pos;
 pub mod pricing;
 pub mod routes;
@@ -7,6 +8,7 @@ pub mod seed;
 pub mod service_tax;
 
 use axum::{
+    http::HeaderMap,
     extract::{Path, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse},
@@ -353,13 +355,15 @@ pub struct ProductWithVariants {
 
 pub async fn create_product(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateProductRequest>,
 ) -> Result<Json<Product>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -400,13 +404,15 @@ pub async fn create_product(
 
 pub async fn list_products(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -552,6 +558,7 @@ pub async fn delete_product(
 
 pub async fn adjust_stock(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<AdjustStockRequest>,
 ) -> Result<Json<Product>, (StatusCode, String)> {
@@ -559,7 +566,8 @@ pub async fn adjust_stock(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let now = Utc::now();
 
     let product: Product = products::table
@@ -613,13 +621,15 @@ pub async fn adjust_stock(
 
 pub async fn create_service(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateServiceRequest>,
 ) -> Result<Json<Service>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -654,13 +664,15 @@ pub async fn create_service(
 
 pub async fn list_services(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<Service>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -781,12 +793,14 @@ pub async fn delete_service(
 
 pub async fn list_categories(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<ProductCategory>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let cats: Vec<ProductCategory> = product_categories::table
         .filter(product_categories::branch_id.eq(branch_id))
@@ -801,13 +815,15 @@ pub async fn list_categories(
 
 pub async fn create_category(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateCategoryRequest>,
 ) -> Result<Json<ProductCategory>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -843,12 +859,14 @@ pub async fn create_category(
 
 pub async fn list_price_lists(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<PriceList>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let lists: Vec<PriceList> = price_lists::table
         .filter(price_lists::branch_id.eq(branch_id))
@@ -863,13 +881,15 @@ pub async fn list_price_lists(
 
 pub async fn create_price_list(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Json(req): Json<CreatePriceListRequest>,
 ) -> Result<Json<PriceList>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -925,12 +945,14 @@ pub async fn list_inventory_movements(
 
 pub async fn get_product_stats(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
 ) -> Result<Json<ProductStats>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let total_products: i64 = products::table
         .filter(products::branch_id.eq(branch_id))
@@ -1015,12 +1037,14 @@ pub async fn get_product_stats(
 
 pub async fn list_low_stock(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let prods: Vec<Product> = products::table
         .filter(products::branch_id.eq(branch_id))
@@ -1051,10 +1075,12 @@ pub fn configure_products_api_routes() -> Router<Arc<ProductsState>> {
 
 async fn handle_products_items(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -1173,10 +1199,12 @@ async fn handle_products_items(
 
 async fn handle_products_services(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -1292,10 +1320,12 @@ async fn handle_products_services(
 
 async fn handle_products_pricelists(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -1378,9 +1408,13 @@ async fn handle_products_pricelists(
     }
 }
 
-async fn handle_total_products(State(state): State<Arc<ProductsState>>) -> impl IntoResponse {
+async fn handle_total_products(
+    State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -1398,9 +1432,13 @@ async fn handle_total_products(State(state): State<Arc<ProductsState>>) -> impl 
     Html(format!("{}", result.unwrap_or(0)))
 }
 
-async fn handle_total_services(State(state): State<Arc<ProductsState>>) -> impl IntoResponse {
+async fn handle_total_services(
+    State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -1418,9 +1456,13 @@ async fn handle_total_services(State(state): State<Arc<ProductsState>>) -> impl 
     Html(format!("{}", result.unwrap_or(0)))
 }
 
-async fn handle_total_pricelists(State(state): State<Arc<ProductsState>>) -> impl IntoResponse {
+async fn handle_total_pricelists(
+    State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -1438,9 +1480,13 @@ async fn handle_total_pricelists(State(state): State<Arc<ProductsState>>) -> imp
     Html(format!("{}", result.unwrap_or(0)))
 }
 
-async fn handle_active_products(State(state): State<Arc<ProductsState>>) -> impl IntoResponse {
+async fn handle_active_products(
+    State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -1461,6 +1507,7 @@ async fn handle_active_products(State(state): State<Arc<ProductsState>>) -> impl
 
 async fn handle_products_search(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
     let q = query.q.clone().unwrap_or_default();
@@ -1469,7 +1516,8 @@ async fn handle_products_search(
     }
 
     let pool = state.pool.clone();
-    let branch_id = get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let search_term = format!("%{}%", q);
 
     let result = tokio::task::spawn_blocking(move || {

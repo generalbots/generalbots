@@ -68,13 +68,14 @@ pub async fn create_account(
 
 pub async fn list_accounts(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<CrmAccount>>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -102,14 +103,19 @@ pub async fn list_accounts(
 
 pub async fn get_account(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CrmAccount>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
+
     let account: CrmAccount = crm_accounts::table
         .filter(crm_accounts::id.eq(id))
+        .filter(crm_accounts::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Account not found".to_string()))?;
 
@@ -118,13 +124,18 @@ pub async fn get_account(
 
 pub async fn delete_account(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
+
     diesel::delete(crm_accounts::table.filter(crm_accounts::id.eq(id)))
+        .filter(crm_accounts::branch_id.eq(branch_id))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
 

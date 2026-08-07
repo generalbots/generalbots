@@ -607,13 +607,14 @@ pub async fn create_person(
 
 pub async fn list_people(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<Person>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -837,13 +838,14 @@ pub async fn get_direct_reports(
 
 pub async fn create_team(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateTeamRequest>,
 ) -> Result<Json<Team>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -871,12 +873,13 @@ pub async fn create_team(
 
 pub async fn list_teams(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<Team>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let teams: Vec<Team> = people_teams::table
         .filter(people_teams::branch_id.eq(branch_id))
@@ -997,13 +1000,14 @@ pub async fn delete_team(
 
 pub async fn create_department(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateDepartmentRequest>,
 ) -> Result<Json<Department>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -1031,12 +1035,13 @@ pub async fn create_department(
 
 pub async fn list_departments(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<Department>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let depts: Vec<Department> = people_departments::table
         .filter(people_departments::branch_id.eq(branch_id))
@@ -1050,12 +1055,13 @@ pub async fn list_departments(
 
 pub async fn list_skills(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<Skill>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let skills: Vec<Skill> = people_skills::table
         .filter(people_skills::branch_id.eq(branch_id))
@@ -1069,13 +1075,14 @@ pub async fn list_skills(
 
 pub async fn create_skill(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateSkillRequest>,
 ) -> Result<Json<Skill>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -1130,13 +1137,14 @@ pub async fn add_person_skill(
 
 pub async fn create_time_off(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateTimeOffRequest>,
 ) -> Result<Json<TimeOff>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -1173,13 +1181,14 @@ pub async fn create_time_off(
 
 pub async fn list_time_off(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<TimeOff>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -1226,12 +1235,13 @@ pub async fn approve_time_off(
 
 pub async fn get_people_stats(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
 ) -> Result<Json<PeopleStats>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let total_people: i64 = people::table
         .filter(people::branch_id.eq(branch_id))

@@ -1,4 +1,6 @@
 use axum::{
+    http::HeaderMap,
+
     extract::{Path, State},
     response::IntoResponse,
     routing::{get, post},
@@ -26,9 +28,10 @@ fn make_service(_state: &crate::CrateState) -> ExternalSyncService {
 
 async fn list_accounts_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.list_accounts(branch_id).await {
         Ok(accounts) => Json(accounts).into_response(),
         Err(e) => e.into_response(),
@@ -37,6 +40,7 @@ async fn list_accounts_handler(
 
 async fn get_account_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(account_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
@@ -48,10 +52,11 @@ async fn get_account_handler(
 
 async fn connect_account_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Json(request): Json<ConnectAccountRequest>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.connect_account(branch_id, Uuid::nil(), &request).await {
         Ok(account) => Json(account).into_response(),
         Err(e) => e.into_response(),
@@ -60,10 +65,11 @@ async fn connect_account_handler(
 
 async fn disconnect_account_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(account_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.disconnect_account(branch_id, account_id).await {
         Ok(()) => Json(serde_json::json!({"success": true})).into_response(),
         Err(e) => e.into_response(),
@@ -72,11 +78,12 @@ async fn disconnect_account_handler(
 
 async fn start_sync_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(account_id): Path<Uuid>,
     Json(request): Json<StartSyncRequest>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.start_sync(branch_id, account_id, &request, SyncTrigger::Manual).await {
         Ok(history) => Json(history).into_response(),
         Err(e) => e.into_response(),
@@ -85,6 +92,7 @@ async fn start_sync_handler(
 
 async fn get_sync_history_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(account_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
@@ -96,6 +104,7 @@ async fn get_sync_history_handler(
 
 async fn get_conflicts_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(account_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
@@ -107,11 +116,12 @@ async fn get_conflicts_handler(
 
 async fn resolve_conflict_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(mapping_id): Path<Uuid>,
     Json(request): Json<ResolveConflictRequest>,
 ) -> impl IntoResponse {
     let service = make_service(&state);
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.resolve_conflict(branch_id, mapping_id, &request).await {
         Ok(mapping) => Json(mapping).into_response(),
         Err(e) => e.into_response(),

@@ -12,6 +12,7 @@ external_sync = []
 tasks = []
 
 [dependencies]
+botsecurity-core = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
 diesel_migrations = { workspace = true }
 axum = { workspace = true }

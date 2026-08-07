@@ -1,4 +1,6 @@
 use axum::{
+    http::HeaderMap,
+
     extract::{Path, Query, State},
     response::IntoResponse,
     routing::{delete, get, post},
@@ -24,11 +26,12 @@ pub fn tasks_integration_routes() -> Router<Arc<crate::CrateState>> {
 
 async fn get_task_contacts_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(task_id): Path<Uuid>,
     Query(query): Query<TaskContactsQuery>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.get_task_contacts(branch_id, task_id, &query).await {
         Ok(contacts) => Json(contacts).into_response(),
         Err(e) => e.into_response(),
@@ -37,11 +40,12 @@ async fn get_task_contacts_handler(
 
 async fn assign_contact_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(task_id): Path<Uuid>,
     Json(request): Json<AssignContactRequest>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.assign_contact_to_task(branch_id, task_id, &request, Uuid::nil()).await {
         Ok(tc) => Json(tc).into_response(),
         Err(e) => e.into_response(),
@@ -50,11 +54,12 @@ async fn assign_contact_handler(
 
 async fn bulk_assign_contacts_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(task_id): Path<Uuid>,
     Json(request): Json<BulkAssignContactsRequest>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.bulk_assign_contacts(branch_id, task_id, &request, Uuid::nil()).await {
         Ok(results) => Json(results).into_response(),
         Err(e) => e.into_response(),
@@ -63,10 +68,11 @@ async fn bulk_assign_contacts_handler(
 
 async fn unassign_contact_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path((task_id, contact_id)): Path<(Uuid, Uuid)>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.unassign_contact_from_task(branch_id, task_id, contact_id).await {
         Ok(()) => Json(serde_json::json!({"success": true})).into_response(),
         Err(e) => e.into_response(),
@@ -75,11 +81,12 @@ async fn unassign_contact_handler(
 
 async fn update_task_contact_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path((task_id, contact_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<UpdateTaskContactRequest>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.update_task_contact(branch_id, task_id, contact_id, &request).await {
         Ok(tc) => Json(tc).into_response(),
         Err(e) => e.into_response(),
@@ -88,10 +95,11 @@ async fn update_task_contact_handler(
 
 async fn get_task_suggestions_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(task_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.get_suggested_contacts(branch_id, task_id, None).await {
         Ok(suggestions) => Json(suggestions).into_response(),
         Err(e) => e.into_response(),
@@ -100,11 +108,12 @@ async fn get_task_suggestions_handler(
 
 async fn get_contact_tasks_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(contact_id): Path<Uuid>,
     Query(query): Query<ContactTasksQuery>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.get_contact_tasks(branch_id, contact_id, &query).await {
         Ok(resp) => Json(resp).into_response(),
         Err(e) => e.into_response(),
@@ -113,10 +122,11 @@ async fn get_contact_tasks_handler(
 
 async fn get_contact_task_stats_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(contact_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.get_contact_task_stats(branch_id, contact_id).await {
         Ok(stats) => Json(stats).into_response(),
         Err(e) => e.into_response(),
@@ -125,10 +135,11 @@ async fn get_contact_task_stats_handler(
 
 async fn get_contact_workload_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(contact_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.get_contact_workload(branch_id, contact_id).await {
         Ok(workload) => Json(workload).into_response(),
         Err(e) => e.into_response(),
@@ -137,11 +148,12 @@ async fn get_contact_workload_handler(
 
 async fn create_task_for_contact_handler(
     State(state): State<Arc<crate::CrateState>>,
+    headers: HeaderMap,
     Path(contact_id): Path<Uuid>,
     Json(request): Json<CreateTaskForContactRequest>,
 ) -> impl IntoResponse {
     let service = TasksIntegrationService::new(state.db_pool.clone());
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.db_pool).unwrap_or_else(|| state.get_bot_context());
     match service.create_task_for_contact(branch_id, contact_id, &request, Uuid::nil()).await {
         Ok(result) => Json(result).into_response(),
         Err(e) => e.into_response(),

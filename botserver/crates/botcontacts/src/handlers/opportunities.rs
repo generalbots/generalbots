@@ -1,4 +1,6 @@
 use axum::{
+    http::HeaderMap,
+
     extract::{Path, Query, State},
     http::StatusCode,
     Json,
@@ -28,13 +30,14 @@ fn default_bot_id(state: &CrateState) -> Uuid {
 
 pub async fn create_opportunity(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateOpportunityRequest>,
 ) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -89,13 +92,14 @@ pub async fn create_opportunity(
 
 pub async fn list_opportunities(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<CrmDeal>>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -132,14 +136,19 @@ pub async fn list_opportunities(
 
 pub async fn get_opportunity(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
+
     let opp: CrmDeal = crm_deals::table
         .filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Opportunity not found".to_string()))?;
 
@@ -148,6 +157,7 @@ pub async fn get_opportunity(
 
 pub async fn update_opportunity(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateOpportunityRequest>,
 ) -> Result<Json<CrmDeal>, (StatusCode, String)> {
@@ -155,15 +165,20 @@ pub async fn update_opportunity(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
+
     let now = Utc::now();
 
-    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
         .set(crm_deals::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(name) = req.name {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::name.eq(name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -171,23 +186,28 @@ pub async fn update_opportunity(
 
     if let Some(stage) = req.stage {
         let probability = stage_probability(&stage);
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set((crm_deals::stage.eq(&stage), crm_deals::probability.eq(probability)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
-    get_opportunity(State(state), Path(id)).await
+    get_opportunity(State(state), headers, Path(id)).await
 }
 
 pub async fn close_opportunity(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<CloseOpportunityRequest>,
 ) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
+
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
 
     let now = Utc::now();
     let close_date = req.actual_close_date
@@ -197,7 +217,8 @@ pub async fn close_opportunity(
     let stage = if req.won { "won" } else { "lost" };
     let probability = if req.won { 100 } else { 0 };
 
-    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
         .set((
             crm_deals::won.eq(Some(req.won)),
             crm_deals::stage.eq(stage),
@@ -208,18 +229,23 @@ pub async fn close_opportunity(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
-    get_opportunity(State(state), Path(id)).await
+    get_opportunity(State(state), headers, Path(id)).await
 }
 
 pub async fn delete_opportunity(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(crm_deals::table.filter(crm_deals::id.eq(id)))
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
+
+    diesel::delete(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
 

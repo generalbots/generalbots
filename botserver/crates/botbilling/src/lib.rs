@@ -6,6 +6,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 pub mod alerts;
+pub mod scope;
 pub mod api;
 pub mod api_models;
 pub mod billing_admin;
