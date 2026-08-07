@@ -341,6 +341,7 @@ fn add_mail_routes(r: Router, s: &Arc<AppState>) -> Router {
         get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
         secrets_provider: Arc::new(|_key: &str| Err("secrets not available".to_string())),
     };
+    crate::email::poller::spawn_imap_sync_worker(s.conn.clone());
     r.merge(crate::email::routes::configure(Arc::new(email_state)))
 }
 

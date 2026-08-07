@@ -111,6 +111,22 @@ Would you like to emit any pending documents or view details?
 
 ---
 
+## Service Tax via Chat
+
+Service-revenue taxation (IRPJ, CSLL, PIS/COFINS, ISS) is computed on demand
+through the `service.tax` command with dynamic rates loaded per branch from
+`billing_tax_rates`:
+
+```json
+{ "__api_call__": { "name": "service.tax", "params": { "service": "consultoria", "value": "12000.00" } } }
+```
+
+```json
+{ "__api_call__": { "name": "payroll.diagnosis", "params": { "period": "2026-08" } } }
+```
+
+---
+
 ## API Reference
 
 | Endpoint | Method | Description |

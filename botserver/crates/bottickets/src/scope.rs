@@ -81,14 +81,38 @@ pub fn email_from_user_id(headers: &HeaderMap, conn: &mut diesel::PgConnection) 
         .map(|r| r.email)
 }
 
-/// Resolves the branch id for the authenticated user: looks up the JWT email
+/// Extracts the server-minted `branch_id` JWT claim. Minted at login from
+/// the user's verified tenant binding (issue #736), it is the authoritative
+/// branch scope; never derived from client input.
+pub fn branch_from_claim(headers: &HeaderMap) -> Option<Uuid> {
+    let auth = headers.get("authorization")?.to_str().ok()?;
+    let token = auth.strip_prefix("Bearer ")?;
+    if !token.contains('.') {
+        return None;
+    }
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let payload = base64url_decode(parts[1])?;
+    let json: serde_json::Value = serde_json::from_slice(&payload).ok()?;
+    json.get("branch_id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok())
+}
+
+/// Resolves the branch id for the authenticated user. The server-minted
+/// `branch_id` claim wins when present (issue #736); otherwise the JWT email
 /// (or the session-cache email for opaque suite tokens, or the `X-User-ID`
-/// email for the chat loopback) in `crm_contacts` and returns that contact's
-/// `branch_id`.
+/// email for the chat loopback) is looked up in `crm_contacts` to derive the
+/// contact's `branch_id`.
 pub fn branch_from_jwt(
     headers: &HeaderMap,
     conn: &mut diesel::PgConnection,
 ) -> Option<Uuid> {
+    if let Some(claim) = branch_from_claim(headers) {
+        return Some(claim);
+    }
     let email = email_from_jwt(headers)
         .or_else(|| email_from_session(headers))
         .or_else(|| email_from_user_id(headers, conn))?;

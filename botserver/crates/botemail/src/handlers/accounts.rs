@@ -25,9 +25,10 @@ fn encrypt_password(password: &str) -> String {
 
 pub async fn add_email_account(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(request): Json<EmailAccountRequest>,
 ) -> Result<Json<ApiResponse<EmailAccountResponse>>, EmailError> {
-    let Ok(current_user_id) = extract_user_from_session() else {
+    let Ok(current_user_id) = extract_user_from_session(&headers) else {
         return Err(EmailError("Authentication required".to_string()));
     };
 
@@ -97,8 +98,11 @@ pub async fn add_email_account(
     }))
 }
 
-pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let Ok(_user_id) = extract_user_from_session() else {
+pub async fn list_email_accounts_htmx(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
+    let Ok(_user_id) = extract_user_from_session(&headers) else {
         return axum::response::Html(
             r#"<div class="account-item" onclick="document.getElementById('add-account-modal').showModal()">
                 <span>+ Add email account</span>
@@ -154,8 +158,9 @@ pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> imp
 
 pub async fn list_email_accounts(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<ApiResponse<Vec<EmailAccountResponse>>>, EmailError> {
-    let Ok(current_user_id) = extract_user_from_session() else {
+    let Ok(current_user_id) = extract_user_from_session(&headers) else {
         return Err(EmailError("Authentication required".to_string()));
     };
 

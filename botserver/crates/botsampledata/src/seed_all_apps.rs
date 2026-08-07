@@ -110,11 +110,11 @@ pub fn seed(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
     Ok(())
 }
 
-fn seed_products(conn: &mut diesel::PgConnection, _s: &Scopes) -> Result<(), String> {
-    // Products handler resolves branch = nil in SaaS/admin mode; seed the nil
-    // scope (global catalog). Live schema requires price/currency/tax_rate/unit.
-    let scope_branch = Uuid::nil();
-    let scope_str = scope_branch.to_string();
+fn seed_products(conn: &mut diesel::PgConnection, s: &Scopes) -> Result<(), String> {
+    // Products are scoped to the dedicated sample branch so the demo catalog
+    // never pollutes a real tenant.
+    let scope_branch = s.branch_id;
+    let scope_str = s.branch_str.clone();
     let catalog: &[(&str, &str, &str, &str, f64, i32)] = &[
         ("hosting-basic", "Hosting Basic", "Shared web hosting plan", "plan", 9.99, 100),
         ("hosting-pro", "Hosting Pro", "VPS hosting with dedicated resources", "infrastructure", 19.99, 50),

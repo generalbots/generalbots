@@ -212,6 +212,8 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("banking", "banking.import", "Import cash-flow", "Import a month's cash-flow sheet (CSV stored in the bot drive) into the financial model.", &[("file_key", "drive path of the CSV"), ("period", "optional YYYY-MM")], None, false),
     cmd("drive", "drive.write", "Store a file", "Store a file (e.g. an invoice) in the bot drive under a folder path.", &[("path", "folder/file name"), ("content_base64", "the file bytes in base64")], None, false),
     cmd("drive", "drive.file", "Organize a file", "Organize a stored drive file (e.g. an attached invoice) into its folder.", &[("from", "current drive path"), ("to", "destination folder path")], None, false),
+    cmd("drive", "drive.archive", "Archive invoices", "Move invoice-like files from the drive inbox into an archive folder to keep it clean.", &[("source", "optional source folder (empty = whole drive)"), ("destination", "archive folder path")], None, false),
+    cmd("billing", "payroll.diagnosis", "Payroll diagnosis", "Aggregate a branch's monthly invoice totals as a payroll financial basis.", &[("period", "optional YYYY-MM month filter")], None, false),
     cmd("research", "web.search", "Search the web", "Search the web (DuckDuckGo) for current facts, news or prices.", &[("query", "the search terms"), ("max_results", "optional 1-25")], None, false),
     cmd("", "apps.find", "Find an app", "Find a suite application by a description of what the user wants to do.", &[("query", "what the user wants to accomplish")], None, false),
     cmd("", "api.find", "Find an API command", "Discover which backend command or endpoint matches a described need.", &[("query", "the described need")], None, false),

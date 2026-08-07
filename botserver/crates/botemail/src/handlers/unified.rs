@@ -21,9 +21,10 @@ fn account_color_index(idx: usize) -> &'static str {
 #[cfg(feature = "mail")]
 pub async fn list_unified_htmx(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="empty-state"><h3>Authentication required</h3><p>Please sign in to view your unified inbox</p></div>"#.to_string()),
     };
@@ -135,9 +136,10 @@ pub async fn list_unified_htmx(
 #[cfg(feature = "mail")]
 pub async fn search_all_accounts(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="empty-state"><h3>Authentication required</h3></div>"#.to_string()),
     };
@@ -277,10 +279,11 @@ pub async fn search_all_accounts(
 #[cfg(feature = "mail")]
 pub async fn get_thread_htmx(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(thread_subject): Path<String>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="empty-state"><h3>Authentication required</h3></div>"#.to_string()),
     };

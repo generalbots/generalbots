@@ -411,15 +411,31 @@ pub async fn list_products(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let has_token = headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+        .unwrap_or(false);
+
+    // Anonymous storefront callers (no token) may only see the public global
+    // catalog (branch nil); authenticated callers get their own tenant-scoped
+    // branch products.
+    let branch_id = if has_token {
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+            .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot))
+    } else {
+        Uuid::nil()
+    };
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
     let mut q = products::table
         .filter(products::branch_id.eq(branch_id))
-        
         .into_boxed();
+
+    if !has_token {
+        q = q.filter(products::is_public.eq(true));
+    }
 
     if let Some(is_active) = query.is_active {
         q = q.filter(products::is_active.eq(is_active));
@@ -455,14 +471,21 @@ pub async fn list_products(
 
 pub async fn get_product(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ProductWithVariants>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    // Object-level authorization (issue #734): a product may only be read by
+    // a caller whose workspace branch owns it.
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
+
     let product: Product = products::table
         .filter(products::id.eq(id))
+        .filter(products::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
 
@@ -477,6 +500,7 @@ pub async fn get_product(
 
 pub async fn update_product(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateProductRequest>,
 ) -> Result<Json<Product>, (StatusCode, String)> {
@@ -484,50 +508,53 @@ pub async fn update_product(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    // Object-level authorization: only the owning branch may modify a product.
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
     let now = Utc::now();
 
-    diesel::update(products::table.filter(products::id.eq(id)))
+    diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
         .set(products::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(name) = req.name {
-        diesel::update(products::table.filter(products::id.eq(id)))
+        diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::name.eq(name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(description) = req.description {
-        diesel::update(products::table.filter(products::id.eq(id)))
+        diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::description.eq(description))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(price) = req.price {
-        diesel::update(products::table.filter(products::id.eq(id)))
+        diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::price.eq(bd(price)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(stock_quantity) = req.stock_quantity {
-        diesel::update(products::table.filter(products::id.eq(id)))
+        diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::stock_quantity.eq(stock_quantity))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(is_active) = req.is_active {
-        diesel::update(products::table.filter(products::id.eq(id)))
+        diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::is_active.eq(is_active))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(category) = req.category {
-        diesel::update(products::table.filter(products::id.eq(id)))
+        diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::category.eq(category))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -535,6 +562,7 @@ pub async fn update_product(
 
     let product: Product = products::table
         .filter(products::id.eq(id))
+        .filter(products::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
 
@@ -543,15 +571,26 @@ pub async fn update_product(
 
 pub async fn delete_product(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(products::table.filter(products::id.eq(id)))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+    // Object-level authorization: only the owning branch may delete a product.
+    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
+        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
+
+    let deleted = diesel::delete(
+        products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))),
+    )
+    .execute(&mut conn)
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+
+    if deleted == 0 {
+        return Err((StatusCode::NOT_FOUND, "Product not found".to_string()));
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -572,6 +611,7 @@ pub async fn adjust_stock(
 
     let product: Product = products::table
         .filter(products::id.eq(id))
+        .filter(products::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
 
@@ -583,7 +623,7 @@ pub async fn adjust_stock(
         _ => current_stock + req.quantity,
     };
 
-    diesel::update(products::table.filter(products::id.eq(id)))
+    diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
         .set((
             products::stock_quantity.eq(new_quantity),
             products::updated_at.eq(now),
@@ -613,6 +653,7 @@ pub async fn adjust_stock(
 
     let updated: Product = products::table
         .filter(products::id.eq(id))
+        .filter(products::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
 

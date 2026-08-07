@@ -1,5 +1,5 @@
 use axum::{
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
@@ -234,8 +234,92 @@ pub struct EmailContent {
     pub read: bool,
 }
 
-pub fn extract_user_from_session() -> Result<Uuid, String> {
-    Ok(Uuid::nil())
+/// Decodes a URL-safe base64 payload (JWT claims). Trailing padding is
+/// stripped because JSON Web Tokens omit it and the decoder strictly walks
+/// the base64url alphabet. `None` is returned for invalid input so that a
+/// malformed token never aborts a request.
+fn decode_jwt_payload(segment: &str) -> Option<Vec<u8>> {
+    const TABLE: &[u8; 64] =
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let input = segment.trim_end_matches('=');
+    let mut out = Vec::with_capacity(input.len() * 3 / 4);
+    let mut buf: u32 = 0;
+    let mut bits: u32 = 0;
+    for &b in input.as_bytes() {
+        let v = match TABLE.iter().position(|&x| x == b) {
+            Some(i) => i as u32,
+            None => return None,
+        };
+        buf = (buf << 6) | v;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((buf >> bits) as u8);
+        }
+    }
+    Some(out)
+}
+
+/// Maps a raw identity subject to the stable database UUID used for mail
+/// accounts. Zitadel/OIDC numeric user ids are not valid UUIDs; routing them
+/// through `UUIDv5(zitadel:{id})` produces the same deterministic value that
+/// the RBAC layer derives, keeping `user_email_accounts` in the caller scope.
+pub fn stable_user_uuid(raw: &str) -> Uuid {
+    match Uuid::parse_str(raw) {
+        Ok(uuid) => uuid,
+        Err(_) => Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{raw}").as_bytes()),
+    }
+}
+
+/// Resolves the authenticated user id from the request headers.
+///
+/// Supported identities, in priority order:
+/// 1. `X-User-ID` header, used by the chat/WhatsApp loopback executor that
+///    cannot attach an `Authorization` header.
+/// 2. Opaque suite session token (`gb_*`) resolved through the shared session
+///    cache populated at login.
+/// 3. Bearer JWT whose claims identify the user (`sub` / `user_id`).
+///
+/// Never falls back to `Uuid::nil()` for an authenticated request: if the
+/// identity cannot be resolved this fails so callers can reject the request.
+pub fn extract_user_from_session(headers: &HeaderMap) -> Result<Uuid, String> {
+    if let Some(uid) = headers.get("x-user-id").and_then(|v| v.to_str().ok()) {
+        if let Ok(uuid) = Uuid::parse_str(uid) {
+            return Ok(uuid);
+        }
+    }
+
+    let auth = headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| "Missing Authorization header".to_string())?;
+    let token = auth
+        .strip_prefix("Bearer ")
+        .ok_or_else(|| "Authorization header is not a Bearer token".to_string())?;
+
+    if !token.contains('.') {
+        let entry = botsecurity_core::lookup_session_cache(token)
+            .ok_or_else(|| "Unknown or expired session token".to_string())?;
+        return Ok(stable_user_uuid(&entry.user_id));
+    }
+
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return Err("Malformed JWT token".to_string());
+    }
+    let raw = decode_jwt_payload(parts[1])
+        .ok_or_else(|| "Invalid JWT payload encoding".to_string())?;
+    let claims: serde_json::Value = serde_json::from_slice(&raw)
+        .map_err(|e| format!("Invalid JWT payload JSON: {e}"))?;
+    let sub = claims
+        .get("sub")
+        .or_else(|| claims.get("user_id"))
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "JWT carries no identity claim".to_string())?;
+    if sub.is_empty() {
+        return Err("JWT identity claim is empty".to_string());
+    }
+    Ok(stable_user_uuid(sub))
 }
 
 #[derive(Debug, QueryableByName, serde::Serialize)]

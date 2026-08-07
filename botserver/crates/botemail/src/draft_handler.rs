@@ -37,9 +37,10 @@ struct TimestampRow {
 
 pub async fn upsert_draft(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<DraftRequest>,
 ) -> Result<Json<DraftResponse>, DraftError> {
-    let user_id = extract_user_from_session()
+    let user_id = extract_user_from_session(&headers)
         .map_err(|_| DraftError("Authentication required".into()))?;
 
     let account_uuid = Uuid::parse_str(&req.account_id)

@@ -271,7 +271,24 @@ pub async fn init_database(
                     )
                     .execute(&mut conn)
                     .ok();
-                    botproducts::seed::seed_default_products(&mut conn, uuid::Uuid::nil());
+
+                    // Default cloud catalog products are scoped to the dedicated
+                    // sample tenant (not the nil/global scope) so the seeded
+                    // products never pollute a real tenant.
+                    #[cfg(feature = "sampledata")]
+                    {
+                        botproducts::seed::seed_default_products(
+                            &mut conn,
+                            botsampledata::sample::SAMPLE_BRANCH_ID,
+                        );
+                    }
+                    #[cfg(not(feature = "sampledata"))]
+                    {
+                        // Without the sampledata feature there is no dedicated
+                        // sample tenant to scope the catalog to. Never degrade
+                        // to the nil/global scope; skip product seeding instead.
+                        warn!("Product seeding skipped: sample data feature is disabled");
+                    }
                 }
             }
 

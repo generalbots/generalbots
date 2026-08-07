@@ -35,7 +35,7 @@ crawler = ["cache"]
 # Communication
 chat = ["automation", "cache", "botcore/chat"]
 people = ["automation", "drive", "cache", "dep:botpeople"]
-mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail"]
+mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail", "botemail/mail"]
 meet = ["automation", "drive", "cache"]
 social = ["automation", "drive", "cache", "dep:botsocial"]
 marketing = ["people", "automation", "drive", "cache", "dep:botmarketing"]

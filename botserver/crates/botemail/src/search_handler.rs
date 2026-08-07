@@ -10,6 +10,7 @@ use crate::models::extract_user_from_session;
 
 pub async fn search_emails(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<axum::response::Html<String>, SearchError> {
     let query = params.get("q").cloned().unwrap_or_default();
@@ -19,7 +20,7 @@ pub async fn search_emails(
         ));
     }
 
-    let user_id = extract_user_from_session()
+    let user_id = extract_user_from_session(&headers)
         .map_err(|_| SearchError("Authentication required".into()))?;
 
     let account_filter = params.get("account").cloned();

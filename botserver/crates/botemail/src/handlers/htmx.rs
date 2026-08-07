@@ -151,10 +151,11 @@ fn make_config_from_account(account: &EmailAccountRow) -> EmailConfig {
 #[cfg(feature = "mail")]
 pub async fn list_emails_htmx(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
     let folder = params.get("folder").cloned().unwrap_or_else(|| "inbox".to_string());
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="empty-state"><h3>Authentication required</h3><p>Please sign in to view your emails</p></div>"#.to_string()),
     };
@@ -208,8 +209,11 @@ pub async fn list_emails_htmx(
 }
 
 #[cfg(feature = "mail")]
-pub async fn list_folders_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+pub async fn list_folders_htmx(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="nav-item">Please sign in</div>"#.to_string()),
     };
@@ -256,9 +260,11 @@ pub async fn compose_email_htmx(State(_state): State<Arc<AppState>>) -> Result<i
 #[cfg(feature = "mail")]
 pub async fn get_email_content_htmx(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
-    let user_id = extract_user_from_session().map_err(|_| EmailError("Authentication required".to_string()))?;
+    let user_id = extract_user_from_session(&headers)
+        .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     let pool = state.pool.clone();
     let account = tokio::task::spawn_blocking(move || {
@@ -299,8 +305,12 @@ pub async fn get_email_content_htmx(
 }
 
 #[cfg(feature = "mail")]
-pub async fn delete_email_htmx(State(state): State<Arc<AppState>>, Path(id): Path<String>) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+pub async fn delete_email_htmx(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="empty-state"><h3>Authentication required</h3><p>Please sign in to delete emails</p></div>"#.to_string()),
     };
@@ -335,8 +345,11 @@ pub async fn delete_email_htmx(State(_state): State<Arc<AppState>>, Path(_id): P
     axum::response::Html(r#"<div class="empty-state"><h3>Mail feature not enabled</h3></div>"#.to_string())
 }
 
-pub async fn list_labels_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+pub async fn list_labels_htmx(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="label-item">Sign in to view labels</div>"#.to_string()),
     };
@@ -406,8 +419,11 @@ pub struct RuleRow {
     pub is_active: bool,
 }
 
-pub async fn list_templates_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+pub async fn list_templates_htmx(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="template-item">Please sign in</div>"#.to_string()),
     };
@@ -440,8 +456,11 @@ pub async fn list_templates_htmx(State(state): State<Arc<AppState>>) -> impl Int
     axum::response::Html(html)
 }
 
-pub async fn list_signatures_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+pub async fn list_signatures_htmx(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="signature-item">Please sign in</div>"#.to_string()),
     };
@@ -474,8 +493,11 @@ pub async fn list_signatures_htmx(State(state): State<Arc<AppState>>) -> impl In
     axum::response::Html(html)
 }
 
-pub async fn list_rules_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+pub async fn list_rules_htmx(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return axum::response::Html(r#"<div class="rule-item">Please sign in</div>"#.to_string()),
     };
@@ -510,9 +532,10 @@ pub async fn list_rules_htmx(State(state): State<Arc<AppState>>) -> impl IntoRes
 
 pub async fn create_rule(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::Json(payload): axum::Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return (StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({ "success": false, "error": "Unauthorized" }))).into_response(),
     };
@@ -547,9 +570,10 @@ pub async fn create_rule(
 
 pub async fn create_template(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::Json(payload): axum::Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return (StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({ "success": false, "error": "Unauthorized" }))).into_response(),
     };

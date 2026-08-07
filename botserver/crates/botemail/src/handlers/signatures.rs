@@ -51,8 +51,9 @@ fn strip_html_tags(html: &str) -> String {
 
 pub async fn list_signatures(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Authentication required", "signatures": [] }))).into_response(),
     };
@@ -89,8 +90,9 @@ pub async fn list_signatures(
 
 pub async fn get_default_signature(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Authentication required" }))).into_response(),
     };
@@ -129,9 +131,10 @@ pub async fn get_default_signature(
 
 pub async fn get_signature(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Authentication required" }))).into_response(),
     };
@@ -162,9 +165,10 @@ pub async fn get_signature(
 
 pub async fn create_signature(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(payload): Json<CreateSignatureRequest>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "success": false, "error": "Authentication required" }))).into_response(),
     };
@@ -203,10 +207,11 @@ pub async fn create_signature(
 
 pub async fn update_signature(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(id): Path<String>,
     Json(payload): Json<UpdateSignatureRequest>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "success": false, "error": "Authentication required" }))).into_response(),
     };
@@ -256,9 +261,10 @@ pub async fn update_signature(
 
 pub async fn delete_signature(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let user_id = match extract_user_from_session() {
+    let user_id = match extract_user_from_session(&headers) {
         Ok(id) => id,
         Err(_) => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "success": false, "error": "Authentication required" }))).into_response(),
     };

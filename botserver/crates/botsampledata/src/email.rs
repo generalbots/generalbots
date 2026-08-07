@@ -1,12 +1,14 @@
 //! Demo email account + messages so the Mail app shows real content.
 //!
-//! The account is created for every real (non-guest) user so whichever
-//! account logs in can see the demo inbox.
+//! The demo inbox is attached only to accounts of the dedicated sample tenant
+//! (`user@sample.com` etc.), never to real or guest users.
 
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::{BigInt, Bool, Text, Uuid as SqlUuid};
 use uuid::Uuid;
+
+use crate::sample::SAMPLE_ORG_ID;
 
 const DEMO_EMAIL: &str = "demo@generalbots.local";
 
@@ -28,37 +30,29 @@ struct UserIdRow {
     id: Uuid,
 }
 
+/// Seeds the demo mailbox for every user bound to the sample organization only.
 pub fn seed(conn: &mut diesel::PgConnection) -> Result<(), String> {
-    // Seed for every real user (skip anonymous guests).
+    // Sample-org users: bound via user_organizations to the sample org.
     let users: Vec<UserIdRow> = sql_query(
-        "SELECT id FROM users WHERE is_active = true AND username NOT LIKE 'guest%' ORDER BY created_at",
+        "SELECT u.id FROM users u \
+         JOIN user_organizations uo ON uo.user_id = u.id AND uo.org_id = $1 \
+         WHERE u.is_active = true ORDER BY u.created_at",
     )
+    .bind::<SqlUuid, _>(SAMPLE_ORG_ID)
     .load(conn)
     .map_err(|e| e.to_string())?;
 
     if users.is_empty() {
-        log::warn!("botsampledata/email: no non-guest users found to attach demo inbox");
+        log::warn!("botsampledata/email: no sample-org users found to attach demo inbox");
+        return Ok(());
     }
 
-    // The mail app resolves the session to Uuid::nil() in suite mode
-    // (extract_user_from_session returns nil), so always seed the nil
-    // user too — that is the account the Mail UI actually reads.
-    sql_query(
-        "INSERT INTO users (id, username, email, password_hash, is_active, created_at, updated_at)
-         VALUES ($1, 'demo', 'demo@generalbots.local', 'x', true, NOW(), NOW())
-         ON CONFLICT (id) DO NOTHING",
-    )
-    .bind::<SqlUuid, _>(Uuid::nil())
-    .execute(conn)
-    .map_err(|e| e.to_string())?;
-
     let mut targets: Vec<Uuid> = users.iter().map(|u| u.id).collect();
-    targets.push(Uuid::nil());
     targets.sort();
     targets.dedup();
 
     let messages: &[(&str, &str, &str, &str, &str)] = &[
-        ("Welcome to General Bots", "alice.sample@example.com", "Hello! Glad you joined the platform.", "INBOX", "false"),
+        ("Welcome to General Bots", "alice@sample.com", "Hello! Glad you joined the platform.", "INBOX", "false"),
         ("Your invoice INV-2026-0001", "billing@acme.example.com", "Your invoice is ready.", "INBOX", "false"),
         ("Sprint planning invite", "calendar@generalbots.local", "Join us for sprint planning.", "INBOX", "true"),
         ("Quarterly report ready", "reports@generalbots.local", "Q3 summary is available in Drive.", "INBOX", "false"),
