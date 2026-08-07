@@ -1,0 +1,6 @@
+ALTER TABLE auto_tasks DROP COLUMN IF EXISTS name;
+ALTER TABLE auto_tasks DROP COLUMN IF EXISTS schedule;
+ALTER TABLE auto_tasks DROP COLUMN IF EXISTS task_type;
+ALTER TABLE auto_tasks DROP COLUMN IF EXISTS config;
+ALTER TABLE auto_tasks DROP COLUMN IF EXISTS is_active;
+ALTER TABLE auto_tasks DROP COLUMN IF EXISTS last_run_at;

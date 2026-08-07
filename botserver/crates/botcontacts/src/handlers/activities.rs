@@ -1,4 +1,6 @@
 use axum::{
+    http::HeaderMap,
+
     extract::{Query, State},
     http::StatusCode,
     Json,
@@ -18,13 +20,14 @@ fn get_bot_context(state: &CrateState) -> Uuid {
 
 pub async fn list_activities(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<CrmActivity>>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 

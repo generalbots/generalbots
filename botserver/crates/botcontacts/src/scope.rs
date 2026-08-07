@@ -46,13 +46,27 @@ pub fn email_from_jwt(headers: &HeaderMap) -> Option<String> {
     json.get("email").and_then(|v| v.as_str()).map(|s| s.to_string())
 }
 
+/// Extracts the user email from an opaque suite session token (`gb_*`).
+/// The suite UI authenticates with a random opaque token that the auth
+/// middleware resolves via the session cache (populated at login); the
+/// cached entry carries the real user email used to scope CRM data.
+pub fn email_from_session(headers: &HeaderMap) -> Option<String> {
+    let auth = headers.get("authorization")?.to_str().ok()?;
+    let token = auth.strip_prefix("Bearer ")?;
+    if token.contains('.') {
+        return None;
+    }
+    botsecurity_core::lookup_session_cache(token).map(|u| u.email)
+}
+
 /// Resolves the branch id for the authenticated user: looks up the JWT email
-/// in `crm_contacts` and returns that contact's `branch_id`.
+/// (or the session-cache email for opaque suite tokens) in `crm_contacts`
+/// and returns that contact's `branch_id`.
 pub fn branch_from_jwt(
     headers: &HeaderMap,
     conn: &mut diesel::PgConnection,
 ) -> Option<Uuid> {
-    let email = email_from_jwt(headers)?;
+    let email = email_from_jwt(headers).or_else(|| email_from_session(headers))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)]
@@ -67,4 +81,14 @@ pub fn branch_from_jwt(
     .ok()
     .flatten()
     .map(|r| r.branch_id)
+}
+
+/// Resolves the branch for the caller using a connection from the pool,
+/// for handlers that hold a `DbPool` instead of a live connection.
+pub fn branch_from_jwt_pool(
+    headers: &HeaderMap,
+    pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+) -> Option<Uuid> {
+    let mut conn = pool.get().ok()?;
+    branch_from_jwt(headers, &mut conn)
 }

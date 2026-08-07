@@ -1,4 +1,6 @@
 use axum::{
+    http::HeaderMap,
+
     extract::{Query, State},
     response::{Html, IntoResponse},
 };
@@ -28,13 +30,14 @@ fn get_bot_context(state: &CrateState) -> Uuid {
 
 pub async fn handle_crm_count(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<StageQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html("0".to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let stage = query.stage.unwrap_or_else(|| "all".to_string());
 
     let count: i64 = if stage == "all" || stage.is_empty() {
@@ -57,13 +60,14 @@ pub async fn handle_crm_count(
 
 pub async fn handle_crm_pipeline(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<StageQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<div class="pipeline-empty"><p>No items yet</p></div>"#.to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let stage = query.stage.unwrap_or_else(|| "new".to_string());
 
     let leads: Vec<CrmDeal> = crm_deals::table
@@ -119,12 +123,13 @@ pub async fn handle_crm_pipeline(
 
 pub async fn handle_crm_contacts(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<tr><td colspan="6">No contacts yet</td></tr>"#.to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let contacts: Vec<crate::models::CrmContact> = crm_contacts::table
         .filter(crm_contacts::branch_id.eq(branch_id))
@@ -171,12 +176,13 @@ pub async fn handle_crm_contacts(
 
 pub async fn handle_crm_accounts(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<tr><td colspan="7">No accounts yet</td></tr>"#.to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let accounts: Vec<crate::models::CrmAccount> = crm_accounts::table
         .filter(crm_accounts::branch_id.eq(branch_id))
@@ -222,12 +228,13 @@ pub async fn handle_crm_accounts(
 
 pub async fn handle_crm_deals(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<tr><td colspan="9">No deals yet</td></tr>"#.to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let deals: Vec<CrmDeal> = crm_deals::table
         .filter(crm_deals::branch_id.eq(branch_id))
@@ -277,12 +284,13 @@ pub async fn handle_crm_deals(
 /// `/api/ui/crm/campaigns` — HTML card grid for the Campaigns view.
 pub async fn handle_crm_campaigns(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<div class="campaigns-empty">No campaigns yet</div>"#.to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let campaigns: Vec<crate::models::CrmCampaign> = crate::schema::marketing_campaigns::table
         .filter(crate::schema::marketing_campaigns::branch_id.eq(branch_id))
@@ -318,13 +326,14 @@ pub async fn handle_crm_campaigns(
 /// `/api/crm/search?q=` — global CRM search across deals, contacts and accounts.
 pub async fn handle_crm_search(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<div class="search-empty"><p>No results</p></div>"#.to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let q = query.q.unwrap_or_default().trim().to_lowercase();
     if q.is_empty() {
         return Html(r#"<div class="search-empty"><p>Type to search deals, contacts and accounts</p></div>"#.to_string());
@@ -421,11 +430,13 @@ pub async fn handle_crm_search(
 }
 
 /// `/api/crm/stats/pipeline-value` — sum of open deal values.
-pub async fn handle_crm_stats_pipeline_value(State(state): State<Arc<CrateState>>) -> impl IntoResponse {
+pub async fn handle_crm_stats_pipeline_value(State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html("$0".to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let total: Option<f64> = crm_deals::table
         .filter(crm_deals::branch_id.eq(branch_id))
@@ -441,11 +452,13 @@ pub async fn handle_crm_stats_pipeline_value(State(state): State<Arc<CrateState>
 }
 
 /// `/api/crm/stats/conversion-rate` — percentage of won deals.
-pub async fn handle_crm_stats_conversion_rate(State(state): State<Arc<CrateState>>) -> impl IntoResponse {
+pub async fn handle_crm_stats_conversion_rate(State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html("0%".to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let total: i64 = crm_deals::table
         .filter(crm_deals::branch_id.eq(branch_id))
@@ -465,11 +478,13 @@ pub async fn handle_crm_stats_conversion_rate(State(state): State<Arc<CrateState
 }
 
 /// `/api/crm/stats/avg-deal` — average deal value.
-pub async fn handle_crm_stats_avg_deal(State(state): State<Arc<CrateState>>) -> impl IntoResponse {
+pub async fn handle_crm_stats_avg_deal(State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html("$0".to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let avg_value = {
         let total: Option<f64> = crm_deals::table
@@ -492,11 +507,13 @@ pub async fn handle_crm_stats_avg_deal(State(state): State<Arc<CrateState>>) -> 
 }
 
 /// `/api/crm/stats/won-month` — value of deals won this month.
-pub async fn handle_crm_stats_won_month(State(state): State<Arc<CrateState>>) -> impl IntoResponse {
+pub async fn handle_crm_stats_won_month(State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html("$0".to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let total: Option<f64> = crm_deals::table
         .filter(crm_deals::branch_id.eq(branch_id))
@@ -515,12 +532,13 @@ pub async fn handle_crm_stats_won_month(State(state): State<Arc<CrateState>>) ->
 /// `/api/crm/accounts/search?q=` — account `<option>` list for form selects.
 pub async fn handle_crm_accounts_search(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<option value="">No accounts</option>"#.to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let accounts: Vec<crate::models::CrmAccount> = match query.q.as_deref() {
         Some(q) if !q.trim().is_empty() => {
@@ -559,12 +577,13 @@ pub async fn handle_crm_accounts_search(
 /// `/api/crm/opportunities/search?q=` — opportunity `<option>` list for form selects.
 pub async fn handle_crm_opportunities_search(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<option value="">No opportunities</option>"#.to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
     let opportunities: Vec<CrmDeal> = match query.q.as_deref() {
         Some(q) if !q.trim().is_empty() => {

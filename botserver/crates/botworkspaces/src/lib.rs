@@ -16,6 +16,8 @@ use uuid::Uuid;
 
 pub type DbPool = Pool<ConnectionManager<diesel::PgConnection>>;
 
+pub mod scope;
+
 diesel::table! {
     aiworkspaces (id) {
         id -> Uuid,

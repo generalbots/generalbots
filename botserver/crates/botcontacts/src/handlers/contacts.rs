@@ -73,13 +73,15 @@ pub async fn create_contact(
 
 pub async fn list_contacts(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<CrmContact>>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -113,14 +115,19 @@ pub async fn list_contacts(
 
 pub async fn get_contact(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CrmContact>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
+
     let contact: CrmContact = crm_contacts::table
         .filter(crm_contacts::id.eq(id))
+                .filter(crm_contacts::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Contact not found".to_string()))?;
 
@@ -129,6 +136,7 @@ pub async fn get_contact(
 
 pub async fn update_contact(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateContactRequest>,
 ) -> Result<Json<CrmContact>, (StatusCode, String)> {
@@ -136,60 +144,74 @@ pub async fn update_contact(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
+
     let now = Utc::now();
 
-    diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id)))
+    diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
+                .filter(crm_contacts::branch_id.eq(branch_id)))
         .set(crm_contacts::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(first_name) = req.first_name {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id)))
+        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
+                .filter(crm_contacts::branch_id.eq(branch_id)))
             .set(crm_contacts::first_name.eq(first_name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(last_name) = req.last_name {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id)))
+        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
+                .filter(crm_contacts::branch_id.eq(branch_id)))
             .set(crm_contacts::last_name.eq(last_name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(email) = req.email {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id)))
+        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
+                .filter(crm_contacts::branch_id.eq(branch_id)))
             .set(crm_contacts::email.eq(email))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(phone) = req.phone {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id)))
+        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
+                .filter(crm_contacts::branch_id.eq(branch_id)))
             .set(crm_contacts::phone.eq(phone))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(status) = req.status {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id)))
+        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
+                .filter(crm_contacts::branch_id.eq(branch_id)))
             .set(crm_contacts::status.eq(status))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
-    get_contact(State(state), Path(id)).await
+    get_contact(State(state), headers, Path(id)).await
 }
 
 pub async fn delete_contact(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(crm_contacts::table.filter(crm_contacts::id.eq(id)))
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
+
+    diesel::delete(crm_contacts::table.filter(crm_contacts::id.eq(id))
+                .filter(crm_contacts::branch_id.eq(branch_id)))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
 

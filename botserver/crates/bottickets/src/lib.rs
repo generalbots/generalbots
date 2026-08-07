@@ -1,4 +1,5 @@
 pub mod ui;
+pub mod scope;
 pub mod itsm;
 
 use axum::{

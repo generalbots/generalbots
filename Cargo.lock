@@ -1177,6 +1177,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -1422,6 +1423,7 @@ dependencies = [
  "async-trait",
  "axum 0.7.9",
  "bigdecimal",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "hex",
@@ -1617,6 +1619,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "diesel_migrations",
@@ -2317,6 +2320,7 @@ dependencies = [
  "anyhow",
  "axum 0.7.9",
  "bigdecimal",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -2466,6 +2470,7 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "bigdecimal",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "r2d2",
@@ -2523,6 +2528,7 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "bigdecimal",
+ "botsecurity-core",
  "bottax",
  "chrono",
  "diesel",
@@ -3223,6 +3229,7 @@ name = "bottickets"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -3391,6 +3398,7 @@ name = "botworkspaces"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "r2d2",

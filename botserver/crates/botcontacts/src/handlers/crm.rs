@@ -29,13 +29,14 @@ fn default_bot_id(state: &CrateState) -> Uuid {
 
 pub async fn list_deals(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<CrmDeal>>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -86,13 +87,14 @@ pub async fn list_deals(
 
 pub async fn create_deal(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateDealRequest>,
 ) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -147,14 +149,19 @@ pub async fn create_deal(
 
 pub async fn get_deal(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CrmDeal>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
+
     let deal: CrmDeal = crm_deals::table
         .filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Deal not found".to_string()))?;
 
@@ -163,6 +170,7 @@ pub async fn get_deal(
 
 pub async fn update_deal(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateDealRequest>,
 ) -> Result<Json<CrmDeal>, (StatusCode, String)> {
@@ -170,36 +178,44 @@ pub async fn update_deal(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
+
     let now = Utc::now();
 
-    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
         .set(crm_deals::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(title) = req.title {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::title.eq(title))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(name) = req.name {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::name.eq(name))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(value) = req.value {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::value.eq(value))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(currency) = req.currency {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::currency.eq(currency))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -207,13 +223,15 @@ pub async fn update_deal(
 
     if let Some(stage) = req.stage {
         let probability = stage_probability(&stage);
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set((crm_deals::stage.eq(&stage), crm_deals::probability.eq(probability)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
         if stage == "won" || stage == "lost" {
-            diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+            diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
                 .set(crm_deals::closed_at.eq(Some(now)))
                 .execute(&mut conn)
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -221,59 +239,70 @@ pub async fn update_deal(
     }
 
     if let Some(department_id) = req.department_id {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::department_id.eq(department_id))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(owner_id) = req.owner_id {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::owner_id.eq(owner_id))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(lost_reason) = req.lost_reason {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::lost_reason.eq(lost_reason))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(won) = req.won {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set((crm_deals::won.eq(won), crm_deals::closed_at.eq(Some(now))))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(notes) = req.notes {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::notes.eq(notes))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(tags) = req.tags {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
+        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
             .set(crm_deals::tags.eq(Some(tags)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
-    get_deal(State(state), Path(id)).await
+    get_deal(State(state), headers, Path(id)).await
 }
 
 pub async fn delete_deal(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(crm_deals::table.filter(crm_deals::id.eq(id)))
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
+
+    diesel::delete(crm_deals::table.filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
 
@@ -327,13 +356,14 @@ pub async fn create_activity(
 
 pub async fn list_activities(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<CrmActivity>>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -350,12 +380,13 @@ pub async fn list_activities(
 
 pub async fn get_pipeline_stages(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<CrmPipelineStage>>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
 
     let stages: Vec<CrmPipelineStage> = crm_pipeline_stages::table
         .filter(crm_pipeline_stages::branch_id.eq(branch_id))
@@ -368,12 +399,13 @@ pub async fn get_pipeline_stages(
 
 pub async fn get_crm_stats(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
 ) -> Result<Json<CrmStats>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = state.get_bot_context();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
 
     let total_contacts: i64 = crm_contacts::table
         .filter(crm_contacts::branch_id.eq(branch_id))
