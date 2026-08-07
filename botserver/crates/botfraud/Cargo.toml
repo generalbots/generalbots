@@ -12,6 +12,7 @@ diesel = { version = "2", features = ["postgres", "r2d2", "uuid", "serde_json", 
 axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 log = "0.4"
+base64 = { workspace = true }
 rust_decimal = { version = "1.36", default-features = false, features = ["serde-with-str"] }
 reqwest = { version = "0.12", features = ["json"], optional = true }
 
