@@ -25,7 +25,7 @@
     0 10px 28px rgba(0,0,0,.24),
     0 28px 72px rgba(0,0,0,.34),
     inset 0 1px 0 rgba(255,255,255,.06);
-  --win-titlebar-bg: var(--glass-bg, rgba(24,24,30,0.7));
+  --win-titlebar-bg: var(--glass-bg, #18181e);
   --win-titlebar-text: var(--text-secondary, #999);
   --win-caption-hover: rgba(255,255,255,0.08);
   --win-titlebar-sep: var(--glass-border-color, var(--border, #2a2a2a));
@@ -213,7 +213,7 @@
 .window-body-glass {
   flex: 1;
   overflow-y: auto;
-  background: transparent;
+  background: var(--win-bg);
   padding: 0;
   position: relative;
 }

@@ -412,6 +412,19 @@ pub async fn csrf_middleware(
         return next.run(request).await;
     }
 
+    // Skip CSRF for the internal loopback identity header used by the chat
+    // `api.exec` executor: the auth middleware already resolves `X-User-ID`
+    // into the AuthenticatedUser, and service-to-service loopback calls never
+    // carry browser cookies, so the double-submit cookie check cannot apply.
+    let is_loopback_identity = request
+        .headers()
+        .get("X-User-ID")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| !v.is_empty());
+    if is_loopback_identity {
+        return next.run(request).await;
+    }
+
     let header_token = request
         .headers()
         .get(&config.header_name)
