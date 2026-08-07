@@ -2,7 +2,7 @@ mod types;
 
 pub use types::*;
 
-use crate::types::{AutoTaskState, ConfigOps, DbPool, LlmProviderOps, UserSession};
+use crate::types::{AutoTaskState, ConfigOps, DbPool, DriveOps, LlmProviderOps, TaskProgressEvent, UserSession};
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::sql_query;
@@ -202,26 +202,44 @@ Respond with JSON only:
         }
     }
 
+    /// Keyword/PT-phrase classifier. Works fully offline (no LLM) and always
+    /// produces a concrete `suggested_name` for later resource creation.
     fn classify_heuristic(intent: &str) -> Result<ClassifiedIntent, Box<dyn std::error::Error + Send + Sync>> {
         let lower = intent.to_lowercase();
-        let (intent_type, confidence) = if lower.contains("create app") || lower.contains("build app")
-            || lower.contains("crm") || lower.contains("calculator") || lower.contains("dashboard")
-            || lower.contains("form") || lower.contains("inventory") || lower.contains("booking")
-            || lower.contains("website") || lower.contains("blog") || lower.contains("store")
-            || lower.contains("criar") || lower.contains("fazer") || lower.contains("construir")
-        { (IntentType::AppCreate, 0.75) }
-        else if lower.contains("remind") || lower.contains("call ") || lower.contains("tomorrow") { (IntentType::Todo, 0.70) }
-        else if lower.contains("alert when") || lower.contains("notify if") || lower.contains("monitor") { (IntentType::Monitor, 0.70) }
-        else if lower.contains("send email") || lower.contains("delete all") || lower.contains("export") { (IntentType::Action, 0.65) }
-        else if lower.contains("every day") || lower.contains("daily") || lower.contains("weekly") { (IntentType::Schedule, 0.70) }
-        else if lower.contains("increase") || lower.contains("improve") || lower.contains("achieve") { (IntentType::Goal, 0.60) }
-        else if lower.contains("when i say") || lower.contains("create command") { (IntentType::Tool, 0.70) }
-        else { (IntentType::Unknown, 0.30) };
+        let (intent_type, confidence) =
+            if has_any(&lower, &[
+                "todo dia", "todos os dias", "toda hora", "a cada dia", "todo mês", "todo mes",
+                "diariamente", "semanalmente", "mensalmente", "em horas", "a cada hora",
+                "every day", "daily", "weekly", "monthly", "every hour",
+            ]) || (lower.contains("a cada") && (lower.contains(" hora") || lower.contains(" dia") || lower.contains(" semana") || lower.contains(" mes")))
+            { (IntentType::Schedule, 0.85) }
+            else if has_phrase(&lower, & ["quando eu disser", "eu disser", "comando de voz", "comando por voz",
+                "when i say", "create command", "voice command", "eu falo"])
+            { (IntentType::Tool, 0.80) }
+            else if has_phrase(&lower, &["criar", "fazer", "construir", "gerar", "desenvolver",
+                "crie um", "crie meu", "aquilo", "calcular", "calculadora", "sistema de", "portal de",
+                "aplicativo", "página", "landing", "site", "blog", "loja", "dashboard", "painel",
+                "create app", "build app", "crm", "inventory", "booking", "website", "form", "store"])
+            { (IntentType::AppCreate, 0.75) }
+            else if has_phrase(&lower, &["me lembre", "lembrou", "lembrar", "to lembre", "remind", "call me",
+                "me avise quando", "amanhã", "amanha"])
+            { (IntentType::Todo, 0.70) }
+            else if has_phrase(&lower, &["me avise se", "me avise quando", "alerta quando", "avisar quando",
+                "notifique se", "monitor", "ficar de olho", "alert when", "notify if"])
+            { (IntentType::Monitor, 0.70) }
+            else if has_phrase(&lower, &["envie um", "envie o", "enviar email", "excluir", "apagar",
+                "exportar", "export", "delete all", "send email"])
+            { (IntentType::Action, 0.65) }
+            else if has_phrase(&lower, &["aumentar", "melhorar", "alcançar", "atingir", "meta de",
+                "increase", "improve", "achieve"])
+            { (IntentType::Goal, 0.60) }
+            else { (IntentType::Unknown, 0.30) };
 
+        let friendly = suggest_name(intent);
         Ok(ClassifiedIntent {
             id: Uuid::new_v4().to_string(), original_text: intent.to_string(),
             intent_type, confidence, entities: ClassifiedEntities::default(),
-            suggested_name: None,
+            suggested_name: if friendly.is_empty() { None } else { Some(friendly) },
             requires_clarification: intent_type == IntentType::Unknown,
             clarification_question: if intent_type == IntentType::Unknown {
                 Some("Could you please clarify what you'd like me to do?".to_string())
@@ -275,7 +293,7 @@ Respond with JSON only:
             "' Monitor: {subject}\n' Condition: {condition}\n' Created: {}\n\nON CHANGE \"{subject}\"\ncurrent_value = GET \"{subject}\"\nIF {condition} THEN\n  TALK \"Alert: {subject} has changed\"\nEND IF\nEND ON\n",
             Utc::now().format("%Y-%m-%d %H:%M")
         );
-        let event_path = format!("{}.gbdialog/events/{handler_name}", session.bot_id);
+        let event_path = format!("events/{handler_name}");
         self.save_basic_file(session.bot_id, &event_path, &basic_code)?;
         Ok(IntentResult {
             success: true, intent_type: IntentType::Monitor,
@@ -315,7 +333,7 @@ Respond with JSON only:
             "' Scheduler: {schedule_name}\n' Schedule: {time_spec}\n' Created: {}\n\nSET SCHEDULE \"{time_spec}\"\nTALK \"Running scheduled task: {schedule_name}\"\nEND SCHEDULE\n",
             Utc::now().format("%Y-%m-%d %H:%M")
         );
-        let scheduler_path = format!("{}.gbdialog/schedulers/{scheduler_file}", session.bot_id);
+        let scheduler_path = format!("schedulers/{scheduler_file}");
         self.save_basic_file(session.bot_id, &scheduler_path, &basic_code)?;
         let schedule_id = Uuid::new_v4();
         Ok(IntentResult {
@@ -338,7 +356,7 @@ Respond with JSON only:
             Utc::now().format("%Y-%m-%d %H:%M")
         );
         let goal_file = format!("{}.bas", goal_name.to_lowercase().replace(' ', "-"));
-        let goal_path = format!("{}.gbdialog/goals/{goal_file}", session.bot_id);
+        let goal_path = format!("goals/{goal_file}");
         self.save_basic_file(session.bot_id, &goal_path, &basic_code)?;
         Ok(IntentResult {
             success: true, intent_type: IntentType::Goal,
@@ -363,7 +381,7 @@ Respond with JSON only:
             "' Tool: {tool_name}\n' Triggers: {triggers_str}\n' Created: {}\n\nTRIGGER {triggers_str}\nTALK \"Running command: {tool_name}\"\nEND TRIGGER\n",
             Utc::now().format("%Y-%m-%d %H:%M")
         );
-        let tool_path = format!("{}.gbdialog/tools/{tool_file}", session.bot_id);
+        let tool_path = format!("tools/{tool_file}");
         self.save_basic_file(session.bot_id, &tool_path, &basic_code)?;
         Ok(IntentResult {
             success: true, intent_type: IntentType::Tool,
@@ -411,13 +429,31 @@ Respond with JSON only:
     }
 
     fn save_basic_file(&self, bot_id: Uuid, path: &str, content: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let site_path = "/opt/gbo/data/sites".to_string();
-        let full_path = format!("{site_path}/{org_id}.gborg/{bot_id}.gbai/{path}", org_id = botcore::shared::utils::current_org_id());
-        if let Some(dir) = std::path::Path::new(&full_path).parent() {
-            if !dir.exists() { std::fs::create_dir_all(dir)?; }
+        self.state.broadcast_task_progress(
+            TaskProgressEvent::new(&bot_id.to_string(), "save_basic_file", "Persisting BASIC to Drive")
+                .with_details(path.to_string()),
+        );
+        let mut conn = self.pool.get().map_err(|e| format!("db pool: {e}"))?;
+        #[derive(diesel::QueryableByName)]
+        struct BotNameRow {
+            #[diesel(sql_type = Text)]
+            name: String,
         }
-        std::fs::write(&full_path, content)?;
-        info!("Saved BASIC file: {full_path}");
+        let bot = sql_query("SELECT name FROM bots WHERE id = $1")
+            .bind::<DieselUuid, _>(bot_id)
+            .get_result::<BotNameRow>(&mut conn)
+            .optional()
+            .map_err(|e| format!("resolve bot: {e}"))?;
+        let Some(bot) = bot else {
+            return Err(format!("Bot not found for id {bot_id}").into());
+        };
+        let Some(ops) = self.state.file_ops() else {
+            return Err("Drive ops not available — cannot persist generated BASIC".into());
+        };
+        let bucket = format!("{}.gbai", bot.name);
+        let key = format!("{}.gbdialog/{}", bot.name, path.trim_start_matches('/'));
+        ops.put_object(bucket, key, content.as_bytes().to_vec(), "text/plain")?;
+        info!("Saved BASIC file to Drive: {bucket}/{key}");
         Ok(())
     }
 
@@ -436,6 +472,51 @@ Respond with JSON only:
         }
         Ok(())
     }
+}
+
+/// Contains any of the substrings (case already normalized by caller).
+fn has_any(lower: &str, phrases: &[&str]) -> bool {
+    phrases.iter().any(|p| lower.contains(p))
+}
+
+/// Contains the full phrase as a word boundary (phrase + whitespace or EOS).
+/// Multi-word phrases fall back to substring matching (e.g. "quando eu disser").
+fn has_phrase(lower: &str, phrases: &[&str]) -> bool {
+    phrases.iter().any(|p| {
+        if p.contains(' ') {
+            lower.contains(p)
+        } else {
+            lower.split_whitespace().any(|w| w == *p)
+        }
+    })
+}
+
+/// Deterministic resource-name suggestion without any LLM; slugs the first
+/// meaningful words of the intent (PT or PT/EN mixture), e.g.
+/// "fala todo dia que o comercial vendeu" -> "comercial_vendeu_diario".
+fn suggest_name(intent: &str) -> String {
+    let mut words: Vec<String> = Vec::new();
+    for word in intent.to_lowercase().split_whitespace() {
+        if word.len() < 3 || word.chars().any(|c| !c.is_alphanumeric()) {
+            continue;
+        }
+        let kept = word;
+        words.push(kept.to_string());
+    }
+    let mut name = words.iter().take(3).cloned().collect::<Vec<_>>().join("_");
+    if name.is_empty() {
+        return String::new();
+    }
+    let trimmed: String = name.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect();
+    let mut wrapped: Vec<char> = Vec::new();
+    for c in trimmed.chars() {
+        if wrapped.is_empty() {
+            wrapped.push(c.to_ascii_lowercase());
+        } else {
+            wrapped.push(c);
+        }
+    }
+    wrapped.into_iter().collect()
 }
 
 #[cfg(test)]

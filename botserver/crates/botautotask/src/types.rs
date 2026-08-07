@@ -7,7 +7,7 @@ use tokio::sync::broadcast;
 use uuid::Uuid;
 
 pub type DbPool = Arc<Pool<ConnectionManager<PgConnection>>>;
-type BoxError = Box<dyn std::error::Error + Send + Sync>;
+pub type BoxError = Box<dyn std::error::Error + Send + Sync>;
 type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, BoxError>> + Send>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -226,6 +226,8 @@ impl AgentActivity {
 pub trait AutoTaskState: Send + Sync {
     fn db_pool(&self) -> &DbPool;
     fn bucket_name(&self) -> &str;
+    /// Drive object-store facade used by the BASIC-only pipeline (#754).
+    fn file_ops(&self) -> Option<&dyn DriveOps>;
     fn broadcast_task_progress(&self, event: TaskProgressEvent);
     fn emit_activity(
         &self,
@@ -242,12 +244,55 @@ pub trait AutoTaskState: Send + Sync {
     fn task_progress_broadcast(&self) -> Option<&broadcast::Sender<TaskProgressEvent>>;
 }
 
+/// Resolved bot identity used to build Drive buckets and DriveMonitor keys.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BotInfo {
+    pub id: Uuid,
+    pub name: String,
+}
+
+impl BotInfo {
+    /// Drive bucket for the bot (MinIO layout: `{name}.gbai`).
+    pub fn bucket_name(&self) -> String {
+        format!("{}.gbai", self.name)
+    }
+
+    /// Drive folder inside the bucket (`{name}.gbdialog`).
+    pub fn dialog_folder(&self) -> String {
+        format!("{}.gbdialog", self.name)
+    }
+}
+
+/// Persisted AutoTask row fragment used by the API pipeline (no full
+/// agent-state machinery required to record a created task).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskRecord {
+    pub id: String,
+    pub bot_id: Uuid,
+    pub session_id: Option<Uuid>,
+    pub title: String,
+    pub intent: String,
+    pub status: String,
+    pub mode: String,
+    pub priority: String,
+    pub plan_id: Option<String>,
+    pub basic_program: Option<String>,
+}
+
 pub trait BotDatabaseOps: Send + Sync {
     fn create_table_in_bot_database(
         &self,
         bot_id: Uuid,
         sql: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+
+    /// Resolve a bot by its database identifier (name + Drive layout).
+    fn resolve_bot(&self, bot_id: Uuid) -> Result<Option<BotInfo>, BoxError>;
+
+    /// Persist an AutoTask metadata row created by the API pipeline
+    /// (status, plan id, generated BASIC program) so it is observable in
+    /// `/api/autotask/tasks`.
+    fn persist_task(&self, task: &TaskRecord) -> Result<(), BoxError>;
 }
 
 pub trait LlmProviderOps: Send + Sync {
@@ -279,13 +324,18 @@ pub trait ConfigOps: Send + Sync {
 }
 
 pub trait DriveOps: Send + Sync {
+    /// Upload a file to MinIO/Drive. Bucket follows the Drive layout
+    /// (`{bot}.gbai`), key is the object path inside it.
     fn put_object(
         &self,
         bucket: &str,
         key: &str,
         body: Vec<u8>,
         content_type: &str,
-    ) -> BoxFuture<()>;
+    ) -> Result<(), BoxError>;
+
+    /// Read an object back (verification + rollback support).
+    fn get_object(&self, bucket: &str, key: &str) -> Result<Vec<u8>, BoxError>;
 }
 
 pub trait ScriptRunner: Send + Sync {
