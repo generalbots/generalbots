@@ -59,14 +59,39 @@ pub fn email_from_session(headers: &HeaderMap) -> Option<String> {
     botsecurity_core::lookup_session_cache(token).map(|u| u.email)
 }
 
+/// Resolves a suite user's email from the `X-User-ID` header used by the
+/// chat/WhatsApp loopback executor (`api.exec`). The loopback hop carries no
+/// Authorization header, so the account is identified by id only; its email
+/// comes from the `users` table.
+pub fn email_from_user_id(headers: &HeaderMap, conn: &mut diesel::PgConnection) -> Option<String> {
+    use diesel::sql_types::{Text, Uuid as SqlUuid};
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = Text)]
+        email: String,
+    }
+    let uid = headers.get("x-user-id")?.to_str().ok()?;
+    let uid = uuid::Uuid::parse_str(uid).ok()?;
+    diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
+        .bind::<SqlUuid, _>(uid)
+        .get_result::<Row>(conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|r| r.email)
+}
+
 /// Resolves the branch id for the authenticated user: looks up the JWT email
-/// (or the session-cache email for opaque suite tokens) in `crm_contacts`
-/// and returns that contact's `branch_id`.
+/// (or the session-cache email for opaque suite tokens, or the `X-User-ID`
+/// email for the chat loopback) in `crm_contacts` and returns that contact's
+/// `branch_id`.
 pub fn branch_from_jwt(
     headers: &HeaderMap,
     conn: &mut diesel::PgConnection,
 ) -> Option<Uuid> {
-    let email = email_from_jwt(headers).or_else(|| email_from_session(headers))?;
+    let email = email_from_jwt(headers)
+        .or_else(|| email_from_session(headers))
+        .or_else(|| email_from_user_id(headers, conn))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)]

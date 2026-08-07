@@ -12,8 +12,10 @@ use botcore::shared::utils::get_stack_path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use once_cell::sync::Lazy;
+use std::sync::OnceLock;
 
 use botcore::shared::state::AppState;
+use crate::DbPool;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionUserData {
@@ -31,6 +33,55 @@ pub struct SessionUserData {
 
 pub static SESSION_CACHE: Lazy<RwLock<HashMap<String, SessionUserData>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
+
+/// Optional DB pool used to persist suite sessions across restarts. Wired once
+/// at bootstrap (main.rs); when present, session creation writes a row to
+/// `login_sessions` and logout deletes it, and the auth lookup rehydrates on
+/// in-memory cache misses.
+static SESSION_POOL: OnceLock<DbPool> = OnceLock::new();
+
+pub fn set_session_pool(pool: DbPool) {
+    let _ = SESSION_POOL.set(pool);
+}
+
+pub fn persist_session(token: &str, user: &SessionUserData) {
+    let Some(pool) = SESSION_POOL.get() else {
+        return;
+    };
+    let Ok(user_json) = serde_json::to_value(user) else {
+        return;
+    };
+    if let Ok(mut conn) = pool.get() {
+        use diesel::RunQueryDsl;
+        diesel::sql_query(
+            "INSERT INTO login_sessions (token, user_data) VALUES ($1, $2::jsonb) \
+             ON CONFLICT (token) DO UPDATE SET user_data = EXCLUDED.user_data, created_at = NOW()",
+        )
+        .bind::<diesel::sql_types::Text, _>(token)
+        .bind::<diesel::sql_types::Text, _>(&user_json.to_string())
+        .execute(&mut conn)
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to persist login session: {e}");
+            0
+        });
+    }
+}
+
+pub fn remove_persisted_session(token: &str) {
+    let Some(pool) = SESSION_POOL.get() else {
+        return;
+    };
+    if let Ok(mut conn) = pool.get() {
+        use diesel::RunQueryDsl;
+        diesel::sql_query("DELETE FROM login_sessions WHERE token = $1")
+            .bind::<diesel::sql_types::Text, _>(token)
+            .execute(&mut conn)
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to remove persisted login session: {e}");
+                0
+            });
+    }
+}
 
 const BOOTSTRAP_SECRET_ENV: &str = "GB_BOOTSTRAP_SECRET";
 
@@ -284,6 +335,7 @@ pub async fn login(
                 let mut cache = SESSION_CACHE.write().await;
                 cache.insert(api_token.clone(), session_user.clone());
                 info!("Session cached for user: {} with token: {}...", req.email, &api_token[..std::cmp::min(20, api_token.len())]);
+                persist_session(&api_token, &session_user);
             }
 
             info!("Login successful for: {} (user_id: {})", req.email, user_id_str);
@@ -339,6 +391,7 @@ pub async fn logout(
         } else {
             info!("User logged out (session was not in cache)");
         }
+        remove_persisted_session(token_str);
     }
 
     Ok(Json(LogoutResponse {

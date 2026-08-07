@@ -11,6 +11,8 @@ pub mod users;
 pub mod groups;
 pub mod organizations;
 
+pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+
 pub use client::{ZitadelClient, ZitadelConfig};
 pub type AuthService = ZitadelClient;
 

@@ -341,15 +341,48 @@ async fn main() -> std::io::Result<()> {
 
     // Wire SESSION_CACHE into auth middleware so gb_xxx tokens resolve
     // to their stored roles (e.g. "admin") instead of falling back to Role::User.
+    // When the in-memory cache misses (e.g. after a restart), sessions are
+    // rehydrated from the login_sessions table so users keep their login.
     #[cfg(all(feature = "security", feature = "directory"))]
     {
-        botsecurity::set_session_cache_lookup(Box::new(|token: &str| {
+        // Wire the DB pool so suite sessions persist across restarts.
+        botcoredirectory::auth_routes::set_session_pool(app_state.conn.clone());
+        let session_pool = app_state.conn.clone();
+        botsecurity::set_session_cache_lookup(Box::new(move |token: &str| {
             let cache = botcoredirectory::auth_routes::SESSION_CACHE.try_read().ok()?;
-            cache.get(token).map(|u| botsecurity::SessionCacheEntry {
-                user_id: u.user_id.clone(),
-                email: u.email.clone(),
-                roles: u.roles.clone(),
-            })
+            match cache.get(token) {
+                Some(u) => Some(botsecurity::SessionCacheEntry {
+                    user_id: u.user_id.clone(),
+                    email: u.email.clone(),
+                    roles: u.roles.clone(),
+                }),
+                None => {
+                    // Rehydrate from the persisted login_sessions table.
+                    use diesel::RunQueryDsl;
+                    let mut conn = session_pool.get().ok()?;
+                    #[derive(diesel::QueryableByName)]
+                    struct Row {
+                        #[diesel(sql_type = diesel::sql_types::Text)]
+                        user_data: String,
+                    }
+                    let row: Row = match diesel::sql_query(
+                        "SELECT user_data FROM login_sessions WHERE token = $1 LIMIT 1",
+                    )
+                    .bind::<diesel::sql_types::Text, _>(token)
+                    .get_result(&mut conn)
+                    {
+                        Ok(r) => r,
+                        Err(_) => return None,
+                    };
+                    let user: botcoredirectory::auth_routes::SessionUserData =
+                        serde_json::from_str(&row.user_data).ok()?;
+                    Some(botsecurity::SessionCacheEntry {
+                        user_id: user.user_id.clone(),
+                        email: user.email.clone(),
+                        roles: user.roles.clone(),
+                    })
+                }
+            }
         }));
     }
 

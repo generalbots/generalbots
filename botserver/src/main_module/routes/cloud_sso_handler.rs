@@ -7,7 +7,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use botcore::shared::state::AppState;
-use botcoredirectory::auth_routes::{SESSION_CACHE, SessionUserData};
+use botcoredirectory::auth_routes::{SESSION_CACHE, SessionUserData, persist_session};
 
 #[derive(Debug, Deserialize)]
 pub struct SsoRequest {
@@ -163,7 +163,8 @@ pub(crate) async fn create_suite_session(email: &str, user_id: &str, bucket: Opt
 
     {
         let mut cache = SESSION_CACHE.write().await;
-        cache.insert(api_token.clone(), session_user);
+        cache.insert(api_token.clone(), session_user.clone());
+        persist_session(&api_token, &session_user);
     }
 
     log::info!("Created Suite session for {} (token: {}...)", email, &api_token[..20.min(api_token.len())]);

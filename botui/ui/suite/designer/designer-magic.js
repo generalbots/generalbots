@@ -1,5 +1,6 @@
 function showMagicPanel() {
   const panel = document.getElementById('magic-panel');
+  if (!panel) return;
   panel.classList.add('visible');
   analyzeMagicSuggestions();
 }
@@ -13,13 +14,15 @@ function hideMagicPanel() {
 
 async function analyzeMagicSuggestions() {
   const content = document.getElementById('magic-content');
+  if (!content) return;
   content.innerHTML = '<div class="magic-loading"><div class="spinner"></div><p>Analyzing your dialog...</p></div>';
 
-  const nodes = Array.from(state.nodes.values());
+  const filenameEl = document.getElementById('current-filename');
+  const nodes = Array.from((state && state.nodes) ? state.nodes.values() : []);
   const dialogData = {
     nodes: nodes.map(n => ({ type: n.type, fields: n.fields })),
-    connections: state.connections.length,
-    filename: document.getElementById('current-filename').value || 'untitled'
+    connections: (state && state.connections) ? state.connections.length : 0,
+    filename: filenameEl ? (filenameEl.value || 'untitled') : 'untitled'
   };
 
   try {
