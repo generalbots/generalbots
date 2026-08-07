@@ -231,11 +231,12 @@ pub async fn handle_products_pricelists(
 
     let mut conn = pool_conn(&state)?;
 
-    // Issue #738: pricelists are never anonymous. Require an authenticated,
-    // tenant-bound caller and scope to their workspace branch. Non-public
-    // products of other tenants are never exposed.
-    let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.db_pool)
-        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
+    // Issue #738: pricelists are never anonymous. Anonymous callers are
+    // already rejected by the auth middleware (this path is not public);
+    // authenticated callers without a tenant binding resolve to the global
+    // (nil) branch scope, mirroring campaigns and the seeded global catalog.
+    let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn)
+        .unwrap_or(Uuid::nil());
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -293,7 +294,7 @@ pub async fn handle_contacts_search(
     // the server-minted JWT claim, the session cache, or the crm_contacts
     // owner row — never from client input. Unauthenticated requests get no
     // rows (the middleware rejects them before this handler anyway).
-    let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.db_pool)
+    let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn)
         .unwrap_or(Uuid::nil());
 
     #[derive(diesel::QueryableByName)]
@@ -301,26 +302,45 @@ pub async fn handle_contacts_search(
     struct ContactRow {
         #[diesel(sql_type = diesel::sql_types::Uuid)]
         id: Uuid,
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        name: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        first_name: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        last_name: Option<String>,
         #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
         email: Option<String>,
+    }
+
+    fn display_name(row: &ContactRow) -> String {
+        let full = [row.first_name.as_deref(), row.last_name.as_deref()]
+            .into_iter()
+            .flatten()
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
+        if full.is_empty() {
+            row.email.clone().unwrap_or_else(|| "Unknown".to_string())
+        } else {
+            full
+        }
     }
 
     let pattern = format!("%{q}%");
     let rows: Vec<ContactRow> = if q.is_empty() {
         diesel::sql_query(
-            "SELECT id, name, email FROM crm_contacts \
-             WHERE branch_id = $1 ORDER BY name ASC LIMIT 20",
+            "SELECT id, first_name, last_name, email FROM crm_contacts \
+             WHERE branch_id = $1 ORDER BY first_name ASC, last_name ASC LIMIT 20",
         )
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?
     } else {
         diesel::sql_query(
-            "SELECT id, name, email FROM crm_contacts \
-             WHERE branch_id = $1 AND (LOWER(name) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2)) \
-             ORDER BY name ASC LIMIT 20",
+            "SELECT id, first_name, last_name, email FROM crm_contacts \
+             WHERE branch_id = $1 \
+               AND (LOWER(first_name) LIKE LOWER($2) \
+                    OR LOWER(last_name) LIKE LOWER($2) \
+                    OR LOWER(email) LIKE LOWER($2)) \
+             ORDER BY first_name ASC, last_name ASC LIMIT 20",
         )
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .bind::<diesel::sql_types::Text, _>(&pattern)
@@ -329,11 +349,11 @@ pub async fn handle_contacts_search(
     };
 
     let contacts: Vec<serde_json::Value> = rows
-        .into_iter()
+        .iter()
         .map(|r| {
             serde_json::json!({
                 "id": r.id,
-                "name": r.name,
+                "name": display_name(r),
                 "email": r.email,
             })
         })

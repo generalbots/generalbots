@@ -5,8 +5,6 @@ use axum::{
 use diesel::prelude::*;
 use log::{info, warn};
 #[cfg(feature = "mail")]
-use log::error;
-#[cfg(feature = "mail")]
 use mailparse::MailHeaderMap;
 use std::sync::Arc;
 
@@ -42,7 +40,7 @@ fn fetch_emails_from_folder(config: &EmailConfig, folder: &str) -> Result<Vec<Em
     let mut emails = Vec::new();
     for message in messages.iter() {
         if let Some(header) = message.header() {
-            let parsed = parse_mail(header).ok();
+            let parsed = mailparse::parse_mail(header).ok();
             if let Some(mail) = parsed {
                 let subject = mail.headers.get_first_value("Subject").unwrap_or_default();
                 let from = mail.headers.get_first_value("From").unwrap_or_default();
@@ -106,7 +104,7 @@ fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailContent, Str
 
     if let Some(message) = messages.iter().next() {
         if let Some(body) = message.body() {
-            let parsed = parse_mail(body).map_err(|e| format!("Parse failed: {}", e))?;
+            let parsed = mailparse::parse_mail(body).map_err(|e| format!("Parse failed: {}", e))?;
             let subject = parsed.headers.get_first_value("Subject").unwrap_or_default();
             let from = parsed.headers.get_first_value("From").unwrap_or_default();
             let to = parsed.headers.get_first_value("To").unwrap_or_default();
@@ -284,8 +282,6 @@ pub async fn get_email_content_htmx(
     let email_content = fetch_email_by_id(&config, &id).map_err(|e| EmailError(format!("Failed to fetch email: {}", e)))?;
 
     let html = format!(r##"<div class="mail-content-view"><div id="nudges-banner-{id}" class="nudges-banner" data-email-id="{id}"></div><div class="mail-actions"><button hx-get="/api/ui/email/compose?reply_to={id}" hx-target="#mail-content" hx-swap="innerHTML">Reply</button><button hx-get="/api/ui/email/compose?forward={id}" hx-target="#mail-content" hx-swap="innerHTML">Forward</button><details class="snooze-menu"><summary class="mail-action-btn">Snooze</summary><div class="snooze-presets"><button onclick="snoozeEmail('{id}','later-today')">Later today</button><button onclick="snoozeEmail('{id}','tomorrow')">Tomorrow</button><button onclick="snoozeEmail('{id}','this-weekend')">This weekend</button><button onclick="snoozeEmail('{id}','next-week')">Next week</button></div></details><button hx-delete="/api/ui/email/{id}/delete" hx-target="#mail-list" hx-swap="innerHTML" hx-confirm="Delete this email?">Delete</button></div><h2>{subject}</h2><div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;"><div><div style="font-weight: 600;">{from_name}</div><div class="text-sm text-gray">to: {to}</div></div><div style="margin-left: auto;" class="text-sm text-gray">{date}</div></div><div class="mail-body">{body}</div><div id="smart-reply-{id}" class="smart-reply-chips" data-email-id="{id}"></div></div>"##,
-    id = id,
-    id = id,
     id = id,
     subject = email_content.subject,
     from_name = email_content.from_name,

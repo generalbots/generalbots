@@ -267,14 +267,20 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
 
 #[cfg(feature = "marketing")]
 pub(super) fn make_marketing_router(app_state: &Arc<AppState>) -> Router<()> {
-    crate::marketing::routes::configure_marketing_routes().with_state(Arc::new(botmarketing::state::AppState {
+    let base = botmarketing::state::AppState {
         conn: Arc::new(app_state.conn.clone()),
         get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
         send_email: Arc::new(|_: &str, _: &str, _: &str, _: uuid::Uuid, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
         send_whatsapp: Arc::new(|_: uuid::Uuid, _: &str, _: &str, _: Option<&str>, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
         get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
         llm_generate: Arc::new(|_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, String> { Ok("stub".to_string()) }),
-    }))
+        worker: None,
+    };
+    let worker_state = Arc::new(base.clone());
+    let marketing_state = Arc::new(
+        base.with_worker(botmarketing::campaign::CampaignWorker::new(worker_state)),
+    );
+    crate::marketing::routes::configure_marketing_routes().with_state(marketing_state)
 }
 
 #[cfg(feature = "telegram")]

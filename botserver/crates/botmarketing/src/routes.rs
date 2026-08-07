@@ -145,6 +145,9 @@ pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
         .route("/api/crm/campaigns", get(crate::campaigns::list_campaigns).post(crate::campaigns::create_campaign))
         .route("/api/crm/campaigns/:id", get(crate::campaigns::get_campaign).put(crate::campaigns::update_campaign).delete(crate::campaigns::delete_campaign))
         .route("/api/crm/campaigns/:id/send", post(crate::campaigns::send_campaign))
+        .route("/api/crm/campaigns/:id/control/:action", post(crate::campaign::control::control_campaign))
+        .route("/api/crm/campaigns/worker/:action", post(crate::campaign::control::control_worker))
+        .route("/api/crm/campaigns/:id/events", get(crate::campaign::control::campaign_events))
 
         .route("/api/crm/lists", get(crate::lists::list_lists).post(crate::lists::create_list))
         .route("/api/crm/lists/:id", get(crate::lists::get_list).put(crate::lists::update_list).delete(crate::lists::delete_list))
