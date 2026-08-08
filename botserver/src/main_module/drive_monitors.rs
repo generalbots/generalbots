@@ -784,35 +784,74 @@ fn ensure_tenant_and_org(pool: &botcore::shared::utils::DbPool, tenant_slug: &st
     .map_err(|e| format!("Failed to get tenant_id: {}", e))?
     .id;
 
-    // Upsert default org for this tenant
-    let org_id = Uuid::new_v4();
-    let org_slug = format!("{}-org", tenant_slug);
-    sql_query(format!(
-        "INSERT INTO organizations (org_id, tenant_id, name, slug, created_at) \
-         VALUES ('{oid}', '{tid}', '{slug}', '{orgslug}', NOW()) \
-         ON CONFLICT (slug) DO NOTHING",
-        oid = org_id,
-        tid = tid,
-        slug = tenant_slug,
-        orgslug = org_slug
-    ))
-    .execute(&mut conn)
-    .ok();
-
-    // Get org_id
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct OrgId { #[diesel(sql_type = diesel::sql_types::Uuid)] org_id: Uuid }
-    let resolved_org_id: Uuid = diesel::sql_query(
-        "SELECT org_id FROM organizations WHERE tenant_id = $1 AND slug = $2 LIMIT 1"
-    )
-    .bind::<diesel::sql_types::Uuid, _>(tid)
-    .bind::<diesel::sql_types::Text, _>(&org_slug)
-    .get_result::<OrgId>(&mut conn)
-    .map_err(|e| format!("Failed to get org_id: {}", e))?
-    .org_id;
+    struct OrgRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+        tenant_id: Option<Uuid>,
+    }
 
-    Ok((tid, resolved_org_id))
+    // Reuse an existing org matching this tenant: signup creates organizations
+    // with slug = {name}, drive_monitor's legacy naming appends "-org". Both
+    // must resolve to the SAME org/branch so a bucket -> signup -> workspace
+    // does not produce a duplicated cloud_workspaces row (issue #779).
+    let legacy_org_slug = format!("{}-org", tenant_slug);
+    let reuse_ids: [&str; 2] = [tenant_slug, &legacy_org_slug];
+    let mut reusable: Option<OrgRow> = None;
+    for slug in &reuse_ids {
+        match diesel::sql_query(
+            "SELECT org_id, tenant_id FROM organizations WHERE slug = $1 LIMIT 1"
+        )
+        .bind::<diesel::sql_types::Text, _>(slug)
+        .get_result::<OrgRow>(&mut conn)
+        {
+            Ok(row) => { reusable = Some(row); break; }
+            Err(_) => continue,
+        }
+    }
+
+    let resolved_org_id: Uuid;
+    let effective_tenant_id: Uuid = match reusable {
+        // Reuse the org as-is, keeping ITS tenant so branch/workspace scopes
+        // stay consistent with whatever created it (signup or default tenant).
+        Some(OrgRow { org_id, tenant_id: Some(org_tenant) }) => {
+            resolved_org_id = org_id;
+            org_tenant
+        }
+        Some(OrgRow { org_id, tenant_id: None }) => {
+            resolved_org_id = org_id;
+            tid
+        }
+        None => {
+            // No existing org — create the legacy "{slug}-org" naming.
+            let org_id = Uuid::new_v4();
+            sql_query(format!(
+                "INSERT INTO organizations (org_id, tenant_id, name, slug, created_at) \
+                 VALUES ('{oid}', '{tid}', '{slug}', '{orgslug}', NOW()) \
+                 ON CONFLICT (slug) DO NOTHING",
+                oid = org_id,
+                tid = tid,
+                slug = tenant_slug,
+                orgslug = format!("{}-org", tenant_slug)
+            ))
+            .execute(&mut conn)
+            .ok();
+
+            let row: OrgRow = diesel::sql_query(
+                "SELECT org_id, tenant_id FROM organizations WHERE tenant_id = $1 AND slug = $2 LIMIT 1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(tid)
+            .bind::<diesel::sql_types::Text, _>(format!("{}-org", tenant_slug))
+            .get_result::<OrgRow>(&mut conn)
+            .map_err(|e| format!("Failed to get org_id: {}", e))?;
+            resolved_org_id = row.org_id;
+            tid
+        }
+    };
+
+    Ok((effective_tenant_id, resolved_org_id))
 }
 
 fn ensure_branch_exists(pool: &botcore::shared::utils::DbPool, branch_slug: &str, org_id: Uuid, tenant_id: Uuid) -> Result<Uuid, String> {

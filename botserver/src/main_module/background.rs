@@ -8,6 +8,33 @@ use std::sync::Arc;
 
 use super::drive_monitors::{start_drive_monitors, start_drive_compiler};
 
+/// Runs every 5 minutes and promotes trialing `billing_recurring` rows whose
+/// trial period has ended to `active` at the plan price, generating the first
+/// invoice (issue #778). The signup flow writes trials straight to the DB, so
+/// this DB-driven job is the only path that converts them to paid.
+fn start_trial_promotion_guard(app_state: Arc<AppState>) {
+    #[cfg(feature = "billing")]
+    {
+        let pool = app_state.conn.clone();
+        tokio::spawn(async move {
+            info!("Billing trial promotion guard started (every 5 minutes)");
+            loop {
+                match pool.get() {
+                    Ok(mut conn) => {
+                        if let Err(e) = botbilling::lifecycle::promote_expired_trials_in_db(&mut conn) {
+                            error!("Billing trial promotion failed: {}", e);
+                        }
+                    }
+                    Err(e) => error!("Billing trial promotion pool error: {}", e),
+                }
+                tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
+            }
+        });
+    }
+    #[cfg(not(feature = "billing"))]
+    let _ = app_state;
+}
+
 
 pub async fn start_background_services(
   app_state: Arc<AppState>,
@@ -78,5 +105,8 @@ pub async fn start_background_services(
   // Start DriveCompiler to compile .bas files from drive_files table
   #[cfg(feature = "drive")]
   start_drive_compiler(app_state.clone()).await;
+
+  // Start billing trial promotion (trialing -> active + first invoice)
+  start_trial_promotion_guard(app_state.clone());
     // start_config_watcher(app_state.clone()).await;
 }

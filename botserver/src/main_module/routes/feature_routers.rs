@@ -33,6 +33,60 @@ fn default_branch_fn(conn: &mut diesel::PgConnection) -> uuid::Uuid {
     resolve_default_branch(conn)
 }
 
+/// Resolves a working Zitadel management token for the SaaS cloud API.
+///
+/// The configured `service_token` may be stale or invalid (it is a leftover
+/// from an older setup and is never renewed). Fall back to the long-lived
+/// bootstrap admin PAT (`conf/directory/admin-pat.txt`) and validate the
+/// chosen token against the management API so signup user creation and login
+/// password checks never run with a dead token.
+fn resolve_directory_service_token(api_url: &str, configured: Option<String>) -> Option<String> {
+    let mut candidates: Vec<String> = Vec::new();
+    if let Some(token) = configured {
+        if !token.is_empty() {
+            candidates.push(token);
+        }
+    }
+    let pat_path = format!(
+        "{}/conf/directory/admin-pat.txt",
+        botcore::shared::utils::get_stack_path()
+    );
+    if let Ok(pat) = std::fs::read_to_string(&pat_path) {
+        let pat = pat.trim().to_string();
+        if !pat.is_empty() {
+            candidates.push(pat);
+        }
+    }
+    if api_url.is_empty() || candidates.is_empty() {
+        return configured;
+    }
+    for token in &candidates {
+        let valid = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+            .ok()
+            .and_then(|client| {
+                client
+                    .post(format!("{api_url}/management/v1/users/_search"))
+                    .header("Authorization", format!("Bearer {token}"))
+                    .json(&serde_json::json!({}))
+                    .send()
+                    .ok()
+            })
+            .map(|response| response.status().is_success())
+            .unwrap_or(false);
+        if valid {
+            if configured.as_deref() != Some(token.as_str()) {
+                tracing::info!("Using admin PAT as directory service token (configured token was invalid)");
+            }
+            return Some(token.clone());
+        }
+        tracing::warn!("Directory service token rejected by Zitadel, trying next candidate");
+    }
+    tracing::error!("No valid directory service token found - SaaS signup/login will fail");
+    configured
+}
+
 fn resolve_default_branch_pool(
     _pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
 ) -> (uuid::Uuid, uuid::Uuid) {
@@ -271,14 +325,29 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                 match serde_json::from_str::<serde_json::Value>(&content) {
                     Ok(json) => {
                         let j = |key: &str| json.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
+                        let configured_token = j("service_token");
+                        let api_url = j("base_url");
+                        let service_token = resolve_directory_service_token(
+                            api_url.as_deref().unwrap_or_default(),
+                            configured_token,
+                        );
+                        if service_token != configured_token {
+                            // Persist the working token so future boots reuse it.
+                            if let Some(new_token) = &service_token {
+                                if let Ok(mut json) = content.clone().parse::<serde_json::Value>() {
+                                    json["service_token"] = serde_json::Value::String(new_token.clone());
+                                    let _ = std::fs::write(&config_path, serde_json::to_string_pretty(&json).unwrap_or(content.clone()));
+                                }
+                            }
+                        }
                         (
                             j("saas_base_url").unwrap_or_default(),
                             j("saas_jwt_secret").unwrap_or_else(crate::main_module::directory_setup::resolve_saas_jwt_secret),
                             j("bot_templates_dir").unwrap_or_else(|| "work/templates/bots".to_string()),
                             j("mc_path").unwrap_or_else(|| "/tmp/mc".to_string()),
                             j("mc_alias").unwrap_or_else(|| "local".to_string()),
-                            j("base_url"),
-                            j("service_token"),
+                            api_url,
+                            service_token,
                             j("external_domain"),
                         )
                     }
