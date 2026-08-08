@@ -94,7 +94,7 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         let issues = issues.clone();
         futures::executor::block_on(async move {
             registry
-                .register_agent_tools(skills, canvases, issues)
+                .register_m5_tools(skills, canvases, issues)
                 .await;
         });
     }
@@ -119,7 +119,7 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         Ok(()) => info!("Vibe: vm_metering schema ensured"),
         Err(e) => log::error!("Vibe: ensure vm_metering schema failed: {e}"),
     }
-    botvibe::metering::spawn_vm_hours_sampler(metering.clone(), 3600);
+    VMetering::spawn_vm_hours_sampler(metering.clone(), 3600);
     info!("Vibe: vm-hours metering sampler started (hourly)");
 
     botvibe::api::router(

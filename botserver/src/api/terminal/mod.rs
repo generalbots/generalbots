@@ -190,18 +190,20 @@ impl TerminalManager {
 
     pub async fn kill_session(&self, id: &str) -> Result<(), String> {
         let session = self.get_session(id).ok_or_else(|| format!("session {id} not found"))?;
-        if let Ok(mut guard) = session.child.lock() {
-            if let Some(child) = guard.as_mut() {
-                let _ = child.start_kill();
-                match child.kill().await {
-                    Ok(()) => {}
-                    Err(e) => log::warn!("kill session {id}: {e}"),
-                }
-                if let Ok(status) = child.wait().await {
-                    let code = status.code();
-                    if let Ok(mut exit) = session.exit_code.lock() {
-                        *exit = code;
-                    }
+        let mut child = {
+            let mut guard = session.child.lock().map_err(|_| "child lock poisoned".to_string())?;
+            guard.take()
+        };
+        if let Some(child_ref) = child.as_mut() {
+            let _ = child_ref.start_kill();
+            match child_ref.kill().await {
+                Ok(()) => {}
+                Err(e) => log::warn!("kill session {id}: {e}"),
+            }
+            if let Ok(status) = child_ref.wait().await {
+                let code = status.code();
+                if let Ok(mut exit) = session.exit_code.lock() {
+                    *exit = code;
                 }
             }
         }
