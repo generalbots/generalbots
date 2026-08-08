@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -8,6 +8,12 @@ use diesel::OptionalExtension;
 
 use crate::db;
 use crate::storage::ensure_schema_sync;
+
+use botcore::shared::tenant::branch_from_claims;
+
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueueEntry {
@@ -52,8 +58,9 @@ pub struct TransferRequest {
     pub notes: Option<String>,
 }
 
-pub async fn list_queue() -> Result<Json<Vec<QueueEntry>>, (StatusCode, String)> {
+pub async fn list_queue(headers: HeaderMap) -> Result<Json<Vec<QueueEntry>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -67,8 +74,9 @@ pub async fn list_queue() -> Result<Json<Vec<QueueEntry>>, (StatusCode, String)>
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, session_id, user_name, channel, priority, waiting_since
-         FROM handoff_queue ORDER BY priority DESC, waiting_since ASC LIMIT 500",
+         FROM handoff_queue WHERE branch_id = $1 ORDER BY priority DESC, waiting_since ASC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| QueueEntry {
@@ -78,10 +86,12 @@ pub async fn list_queue() -> Result<Json<Vec<QueueEntry>>, (StatusCode, String)>
 }
 
 pub async fn transfer_item(
+    headers: HeaderMap,
     Path(id): Path<String>,
     Json(req): Json<TransferRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid queue id '{id}': {e}")))?;
     let pool = db::pool()?;
@@ -90,17 +100,20 @@ pub async fn transfer_item(
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] session_id: Uuid,
     }
-    let entry: Option<Uuid> = diesel::sql_query("SELECT session_id FROM handoff_queue WHERE id = $1")
+    let entry: Option<Uuid> = diesel::sql_query("SELECT session_id FROM handoff_queue WHERE id = $1 AND branch_id = $2")
         .bind::<diesel::sql_types::Uuid, _>(parsed)
+        .bind::<diesel::sql_types::Uuid, _>(branch)
         .get_result::<Row>(&mut conn)
         .optional()
         .map_err(db::map_diesel_err)?
         .map(|r| r.session_id);
     let session_id = entry.ok_or((StatusCode::NOT_FOUND, format!("Queue entry {id} not found")))?;
-    diesel::sql_query("DELETE FROM handoff_queue WHERE id = $1")
+    let n = diesel::sql_query("DELETE FROM handoff_queue WHERE id = $1 AND branch_id = $2")
         .bind::<diesel::sql_types::Uuid, _>(parsed)
+        .bind::<diesel::sql_types::Uuid, _>(branch)
         .execute(&mut conn)
         .map_err(db::map_diesel_err)?;
+    if n == 0 { return Err((StatusCode::NOT_FOUND, format!("Queue entry {id} not found"))); }
     Ok(Json(serde_json::json!({
         "transferred": true,
         "session_id": session_id,
@@ -109,8 +122,9 @@ pub async fn transfer_item(
     })))
 }
 
-pub async fn get_analytics() -> Result<Json<Vec<HandoffAnalytics>>, (StatusCode, String)> {
+pub async fn get_analytics(headers: HeaderMap) -> Result<Json<Vec<HandoffAnalytics>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -123,8 +137,9 @@ pub async fn get_analytics() -> Result<Json<Vec<HandoffAnalytics>>, (StatusCode,
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT period, total_transfers, avg_wait_seconds, avg_handle_seconds, satisfaction_avg
-         FROM conversation_analytics ORDER BY period DESC LIMIT 100",
+         FROM conversation_analytics WHERE branch_id = $1 ORDER BY period DESC LIMIT 100",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| HandoffAnalytics {
@@ -134,8 +149,9 @@ pub async fn get_analytics() -> Result<Json<Vec<HandoffAnalytics>>, (StatusCode,
     }).collect()))
 }
 
-pub async fn list_channels() -> Result<Json<Vec<Channel>>, (StatusCode, String)> {
+pub async fn list_channels(headers: HeaderMap) -> Result<Json<Vec<Channel>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -147,8 +163,9 @@ pub async fn list_channels() -> Result<Json<Vec<Channel>>, (StatusCode, String)>
         #[diesel(sql_type = diesel::sql_types::BigInt)] active_agents: i64,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, name, kind, status, active_agents FROM handoff_channels ORDER BY name ASC LIMIT 500",
+        "SELECT id, name, kind, status, active_agents FROM handoff_channels WHERE branch_id = $1 ORDER BY name ASC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Channel {
@@ -156,8 +173,9 @@ pub async fn list_channels() -> Result<Json<Vec<Channel>>, (StatusCode, String)>
     }).collect()))
 }
 
-pub async fn list_csat() -> Result<Json<Vec<CsatEntry>>, (StatusCode, String)> {
+pub async fn list_csat(headers: HeaderMap) -> Result<Json<Vec<CsatEntry>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -170,8 +188,9 @@ pub async fn list_csat() -> Result<Json<Vec<CsatEntry>>, (StatusCode, String)> {
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, session_id, rating, comment, submitted_at FROM conversation_ratings
-         ORDER BY submitted_at DESC LIMIT 500",
+         WHERE branch_id = $1 ORDER BY submitted_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| CsatEntry {

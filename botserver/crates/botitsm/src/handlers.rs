@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -77,6 +77,14 @@ pub struct NewServiceRequest {
     pub requester: String,
 }
 
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch so anonymous/system
+/// callers keep working, but every query is still constrained by the resolved
+/// branch — a tenant can never see another tenant's rows.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
+
 #[derive(diesel::QueryableByName)]
 struct IncidentRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -89,14 +97,16 @@ struct IncidentRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)] resolved_at: Option<chrono::DateTime<Utc>>,
 }
 
-pub async fn list_incidents() -> Result<Json<Vec<Incident>>, (StatusCode, String)> {
+pub async fn list_incidents(headers: HeaderMap) -> Result<Json<Vec<Incident>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let rows: Vec<IncidentRow> = diesel::sql_query(
         "SELECT id, title, description, severity, status, assignee, created_at, resolved_at
-         FROM itsm_incidents ORDER BY created_at DESC LIMIT 500",
+         FROM itsm_incidents WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Incident {
@@ -105,15 +115,16 @@ pub async fn list_incidents() -> Result<Json<Vec<Incident>>, (StatusCode, String
     }).collect()))
 }
 
-pub async fn create_incident(Json(req): Json<NewIncident>) -> Result<Json<Incident>, (StatusCode, String)> {
+pub async fn create_incident(headers: HeaderMap, Json(req): Json<NewIncident>) -> Result<Json<Incident>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO itsm_incidents (id, title, description, severity, status, assignee, created_at)
-         VALUES ($1, $2, $3, $4, 'open', $5, $6)",
+        "INSERT INTO itsm_incidents (id, title, description, severity, status, assignee, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, 'open', $5, $6, $7)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(&req.title)
@@ -121,6 +132,7 @@ pub async fn create_incident(Json(req): Json<NewIncident>) -> Result<Json<Incide
     .bind::<diesel::sql_types::Text, _>(&req.severity)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(req.assignee.as_deref())
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(Incident {
@@ -130,19 +142,22 @@ pub async fn create_incident(Json(req): Json<NewIncident>) -> Result<Json<Incide
 }
 
 pub async fn update_incident(
+    headers: HeaderMap,
     Path(id): Path<String>,
     Json(req): Json<UpdateIncident>,
 ) -> Result<Json<Incident>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let existing: Option<IncidentRow> = diesel::sql_query(
         "SELECT id, title, description, severity, status, assignee, created_at, resolved_at
-         FROM itsm_incidents WHERE id = $1",
+         FROM itsm_incidents WHERE id = $1 AND branch_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .get_result(&mut conn)
     .optional()
     .map_err(db::map_diesel_err)?;
@@ -157,8 +172,8 @@ pub async fn update_incident(
     } else {
         existing.resolved_at
     };
-    diesel::sql_query(
-        "UPDATE itsm_incidents SET title = $1, description = $2, severity = $3, status = $4, assignee = $5, resolved_at = $6 WHERE id = $7",
+    let n = diesel::sql_query(
+        "UPDATE itsm_incidents SET title = $1, description = $2, severity = $3, status = $4, assignee = $5, resolved_at = $6 WHERE id = $7 AND branch_id = $8",
     )
     .bind::<diesel::sql_types::Text, _>(&new_title)
     .bind::<diesel::sql_types::Text, _>(&new_desc)
@@ -167,16 +182,21 @@ pub async fn update_incident(
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(new_assignee.as_deref())
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(resolved_at)
     .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
+    if n == 0 {
+        return Err((StatusCode::NOT_FOUND, format!("Incident {id} not found")));
+    }
     Ok(Json(Incident {
         id: parsed, title: new_title, description: new_desc, severity: new_sev,
         status: new_status, assignee: new_assignee, created_at: existing.created_at, resolved_at,
     }))
 }
 
-pub async fn list_requests() -> Result<Json<Vec<ServiceRequest>>, (StatusCode, String)> {
+pub async fn list_requests(headers: HeaderMap) -> Result<Json<Vec<ServiceRequest>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -191,8 +211,9 @@ pub async fn list_requests() -> Result<Json<Vec<ServiceRequest>>, (StatusCode, S
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, title, description, category, status, requester, created_at
-         FROM itsm_service_requests ORDER BY created_at DESC LIMIT 500",
+         FROM itsm_service_requests WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| ServiceRequest {
@@ -201,15 +222,16 @@ pub async fn list_requests() -> Result<Json<Vec<ServiceRequest>>, (StatusCode, S
     }).collect()))
 }
 
-pub async fn create_request(Json(req): Json<NewServiceRequest>) -> Result<Json<ServiceRequest>, (StatusCode, String)> {
+pub async fn create_request(headers: HeaderMap, Json(req): Json<NewServiceRequest>) -> Result<Json<ServiceRequest>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO itsm_service_requests (id, title, description, category, status, requester, created_at)
-         VALUES ($1, $2, $3, $4, 'open', $5, $6)",
+        "INSERT INTO itsm_service_requests (id, title, description, category, status, requester, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, 'open', $5, $6, $7)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(&req.title)
@@ -217,6 +239,7 @@ pub async fn create_request(Json(req): Json<NewServiceRequest>) -> Result<Json<S
     .bind::<diesel::sql_types::Text, _>(&req.category)
     .bind::<diesel::sql_types::Text, _>(&req.requester)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(ServiceRequest {
@@ -225,8 +248,9 @@ pub async fn create_request(Json(req): Json<NewServiceRequest>) -> Result<Json<S
     }))
 }
 
-pub async fn list_cmdb() -> Result<Json<Vec<CmdbItem>>, (StatusCode, String)> {
+pub async fn list_cmdb(headers: HeaderMap) -> Result<Json<Vec<CmdbItem>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -239,8 +263,9 @@ pub async fn list_cmdb() -> Result<Json<Vec<CmdbItem>>, (StatusCode, String)> {
         #[diesel(sql_type = diesel::sql_types::Jsonb)] dependencies: serde_json::Value,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, name, kind, owner, status, dependencies FROM itsm_cmdb ORDER BY name ASC LIMIT 500",
+        "SELECT id, name, kind, owner, status, dependencies FROM itsm_cmdb WHERE branch_id = $1 ORDER BY name ASC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| CmdbItem {
@@ -249,8 +274,9 @@ pub async fn list_cmdb() -> Result<Json<Vec<CmdbItem>>, (StatusCode, String)> {
     }).collect()))
 }
 
-pub async fn list_kb() -> Result<Json<Vec<KbArticle>>, (StatusCode, String)> {
+pub async fn list_kb(headers: HeaderMap) -> Result<Json<Vec<KbArticle>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -263,8 +289,9 @@ pub async fn list_kb() -> Result<Json<Vec<KbArticle>>, (StatusCode, String)> {
         #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, title, content, tags, author, created_at FROM itsm_kb ORDER BY created_at DESC LIMIT 500",
+        "SELECT id, title, content, tags, author, created_at FROM itsm_kb WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| KbArticle {

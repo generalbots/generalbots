@@ -353,6 +353,7 @@ pub async fn handle_get_collection<S: ResearchState>(
 
 pub async fn handle_search<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
     Form(payload): Form<SearchRequest>,
 ) -> impl IntoResponse {
     let query = payload.query.unwrap_or_default();
@@ -369,6 +370,7 @@ pub async fn handle_search<S: ResearchState>(
     let bot_id = state.bot_id();
     let scope = bot_scope_clause(&bot_id);
     let query_c = query.clone();
+    let branch_id = botsecurity_core::tenant::branch_from_claims(&headers).unwrap_or_else(uuid::Uuid::nil);
 
     let results = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -380,9 +382,14 @@ pub async fn handle_search<S: ResearchState>(
         };
 
         // Record the real search so Recent/Trending reflect actual activity.
-        let _ = diesel::sql_query("INSERT INTO research_searches (query) VALUES ($1)")
-            .bind::<diesel::sql_types::Text, _>(&query_c)
-            .execute(&mut db_conn);
+        // Scoped to the caller's branch (issue #734): one tenant's search
+        // history is never visible to another tenant.
+        let _ = diesel::sql_query(
+            "INSERT INTO research_searches (query, branch_id) VALUES ($1, $2)",
+        )
+        .bind::<diesel::sql_types::Text, _>(&query_c)
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .execute(&mut db_conn);
 
         let search_pattern = format!("%{}%", query_c.to_lowercase());
 
@@ -518,8 +525,10 @@ fn format_search_result(doc: &KbDocumentRow) -> String {
 
 pub async fn handle_recent_searches<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
     let conn = state.db_pool().clone();
+    let branch_id = botsecurity_core::tenant::branch_from_claims(&headers).unwrap_or_else(uuid::Uuid::nil);
 
     let recent_searches: Vec<String> = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -531,8 +540,10 @@ pub async fn handle_recent_searches<S: ResearchState>(
         };
 
         diesel::sql_query(
-            "SELECT query FROM research_searches WHERE query <> '' ORDER BY created_at DESC LIMIT 8",
+            "SELECT query FROM research_searches WHERE query <> '' AND branch_id = $1 \
+             ORDER BY created_at DESC LIMIT 8",
         )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load::<RecentSearchRow>(&mut db_conn)
         .map(|rows| rows.into_iter().map(|r| r.query).collect())
         .unwrap_or_default()
@@ -566,8 +577,10 @@ pub async fn handle_recent_searches<S: ResearchState>(
 
 pub async fn handle_trending_tags<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
     let conn = state.db_pool().clone();
+    let branch_id = botsecurity_core::tenant::branch_from_claims(&headers).unwrap_or_else(uuid::Uuid::nil);
 
     let tags: Vec<(String, i64)> = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -579,8 +592,11 @@ pub async fn handle_trending_tags<S: ResearchState>(
         };
 
         diesel::sql_query(
-            "SELECT query, COUNT(*) AS n FROM research_searches WHERE query <> '' GROUP BY query ORDER BY n DESC, MAX(created_at) DESC LIMIT 8",
+            "SELECT query, COUNT(*) AS n FROM research_searches \
+             WHERE query <> '' AND branch_id = $1 GROUP BY query \
+             ORDER BY n DESC, MAX(created_at) DESC LIMIT 8",
         )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load::<TrendingTagRow>(&mut db_conn)
         .map(|rows| rows.into_iter().map(|r| (r.query, r.n)).collect())
         .unwrap_or_default()

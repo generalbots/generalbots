@@ -1,5 +1,5 @@
 use axum::extract::Json;
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use diesel::RunQueryDsl;
 use rust_decimal::Decimal;
@@ -8,6 +8,13 @@ use uuid::Uuid;
 
 use crate::db;
 use crate::storage::ensure_schema_sync;
+
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch for anonymous/system
+/// callers; every query is still constrained by the resolved branch.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
 
 #[derive(serde::Deserialize)]
 pub struct AnalysisRequest {
@@ -28,8 +35,9 @@ pub struct AnalysisResult {
     pub created_at: chrono::DateTime<Utc>,
 }
 
-pub async fn analyze_image(Json(req): Json<AnalysisRequest>) -> Result<Json<AnalysisResult>, (StatusCode, String)> {
+pub async fn analyze_image(headers: HeaderMap, Json(req): Json<AnalysisRequest>) -> Result<Json<AnalysisResult>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
@@ -38,8 +46,8 @@ pub async fn analyze_image(Json(req): Json<AnalysisRequest>) -> Result<Json<Anal
     let labels = serde_json::json!(["detected"]);
     let confidence = Decimal::new(95, 2);
     diesel::sql_query(
-        "INSERT INTO vision_analysis (id, image_url, kind, status, labels, confidence, parameters, created_at)
-         VALUES ($1, $2, $3, 'completed', $4, $5, $6, $7)",
+        "INSERT INTO vision_analysis (id, image_url, kind, status, labels, confidence, parameters, created_at, branch_id)
+         VALUES ($1, $2, $3, 'completed', $4, $5, $6, $7, $8)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(&req.image_url)
@@ -48,6 +56,7 @@ pub async fn analyze_image(Json(req): Json<AnalysisRequest>) -> Result<Json<Anal
     .bind::<diesel::sql_types::Numeric, _>(confidence)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Jsonb>, _>(params_json)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(AnalysisResult {
@@ -57,8 +66,9 @@ pub async fn analyze_image(Json(req): Json<AnalysisRequest>) -> Result<Json<Anal
     }))
 }
 
-pub async fn list_history() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn list_history(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -74,8 +84,8 @@ pub async fn list_history() -> Result<Json<serde_json::Value>, (StatusCode, Stri
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, image_url, kind, status, labels, confidence, parameters, created_at
-         FROM vision_analysis ORDER BY created_at DESC LIMIT 500",
-    ).load(&mut conn).map_err(db::map_diesel_err)?;
+         FROM vision_analysis WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).load(&mut conn).map_err(db::map_diesel_err)?;
     let items: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
         "id": r.id, "image_url": r.image_url, "kind": r.kind, "status": r.status,
         "labels": r.labels, "confidence": r.confidence.to_string(),

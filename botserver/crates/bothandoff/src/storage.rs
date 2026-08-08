@@ -27,7 +27,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             agent_id UUID,
             metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -37,7 +38,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     diesel::sql_query(
         "ALTER TABLE handoff_queue ADD COLUMN IF NOT EXISTS user_name TEXT NOT NULL DEFAULT '',
          ADD COLUMN IF NOT EXISTS channel VARCHAR(50) NOT NULL DEFAULT 'chat',
-         ADD COLUMN IF NOT EXISTS waiting_since TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+         ADD COLUMN IF NOT EXISTS waiting_since TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+         ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
     )
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
@@ -50,7 +52,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             avg_wait_seconds BIGINT NOT NULL DEFAULT 0,
             avg_handle_seconds BIGINT NOT NULL DEFAULT 0,
             satisfaction_avg NUMERIC(4,2) NOT NULL DEFAULT 0,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -62,7 +65,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             name TEXT NOT NULL,
             kind VARCHAR(50) NOT NULL DEFAULT 'chat',
             status VARCHAR(30) NOT NULL DEFAULT 'active',
-            active_agents BIGINT NOT NULL DEFAULT 0
+            active_agents BIGINT NOT NULL DEFAULT 0,
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -74,7 +78,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             session_id UUID NOT NULL,
             rating INTEGER NOT NULL,
             comment TEXT,
-            submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)

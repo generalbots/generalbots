@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -54,12 +54,21 @@ pub struct NewOrder {
     pub payment_method: String,
 }
 
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch so anonymous/system
+/// callers keep working, but every query is still constrained by the resolved
+/// branch — a tenant can never see another tenant's rows.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
+
 fn parse_decimal(s: &str) -> Result<Decimal, (StatusCode, String)> {
     s.parse::<Decimal>().map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid decimal '{s}': {e}")))
 }
 
-pub async fn list_products() -> Result<Json<Vec<Product>>, (StatusCode, String)> {
+pub async fn list_products(headers: HeaderMap) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -75,8 +84,9 @@ pub async fn list_products() -> Result<Json<Vec<Product>>, (StatusCode, String)>
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, sku, name, price, stock, category, active, created_at
-         FROM pos_products ORDER BY name ASC LIMIT 500",
+         FROM pos_products WHERE branch_id = $1 ORDER BY name ASC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Product {
@@ -85,16 +95,17 @@ pub async fn list_products() -> Result<Json<Vec<Product>>, (StatusCode, String)>
     }).collect()))
 }
 
-pub async fn create_product(Json(req): Json<NewProduct>) -> Result<Json<Product>, (StatusCode, String)> {
+pub async fn create_product(headers: HeaderMap, Json(req): Json<NewProduct>) -> Result<Json<Product>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let price = parse_decimal(&req.price)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO pos_products (id, sku, name, price, stock, category, active, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, true, $7)",
+        "INSERT INTO pos_products (id, sku, name, price, stock, category, active, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(&req.sku)
@@ -103,6 +114,7 @@ pub async fn create_product(Json(req): Json<NewProduct>) -> Result<Json<Product>
     .bind::<diesel::sql_types::BigInt, _>(req.stock)
     .bind::<diesel::sql_types::Text, _>(&req.category)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(Product {
@@ -111,8 +123,9 @@ pub async fn create_product(Json(req): Json<NewProduct>) -> Result<Json<Product>
     }))
 }
 
-pub async fn list_orders() -> Result<Json<Vec<Order>>, (StatusCode, String)> {
+pub async fn list_orders(headers: HeaderMap) -> Result<Json<Vec<Order>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -126,8 +139,9 @@ pub async fn list_orders() -> Result<Json<Vec<Order>>, (StatusCode, String)> {
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, items, total, status, payment_method, created_at
-         FROM pos_orders ORDER BY created_at DESC LIMIT 500",
+         FROM pos_orders WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Order {
@@ -146,8 +160,9 @@ pub async fn list_orders() -> Result<Json<Vec<Order>>, (StatusCode, String)> {
     }).collect()))
 }
 
-pub async fn create_order(Json(req): Json<NewOrder>) -> Result<Json<Order>, (StatusCode, String)> {
+pub async fn create_order(headers: HeaderMap, Json(req): Json<NewOrder>) -> Result<Json<Order>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let mut total = Decimal::ZERO;
@@ -161,14 +176,15 @@ pub async fn create_order(Json(req): Json<NewOrder>) -> Result<Json<Order>, (Sta
         (StatusCode::INTERNAL_SERVER_ERROR, format!("Serialize: {e}"))
     })?;
     diesel::sql_query(
-        "INSERT INTO pos_orders (id, items, total, status, payment_method, created_at)
-         VALUES ($1, $2, $3, 'created', $4, $5)",
+        "INSERT INTO pos_orders (id, items, total, status, payment_method, created_at, branch_id)
+         VALUES ($1, $2, $3, 'created', $4, $5, $6)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Jsonb, _>(&items_json)
     .bind::<diesel::sql_types::Numeric, _>(total)
     .bind::<diesel::sql_types::Text, _>(&req.payment_method)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(Order {
@@ -177,10 +193,11 @@ pub async fn create_order(Json(req): Json<NewOrder>) -> Result<Json<Order>, (Sta
     }))
 }
 
-pub async fn get_order(Path(id): Path<String>) -> Result<Json<Order>, (StatusCode, String)> {
+pub async fn get_order(headers: HeaderMap, Path(id): Path<String>) -> Result<Json<Order>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -193,9 +210,10 @@ pub async fn get_order(Path(id): Path<String>) -> Result<Json<Order>, (StatusCod
         #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
     }
     let row: Option<Row> = diesel::sql_query(
-        "SELECT id, items, total, status, payment_method, created_at FROM pos_orders WHERE id = $1",
+        "SELECT id, items, total, status, payment_method, created_at FROM pos_orders WHERE id = $1 AND branch_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .get_result(&mut conn)
     .optional()
     .map_err(db::map_diesel_err)?;

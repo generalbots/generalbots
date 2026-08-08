@@ -338,7 +338,24 @@ fn add_calendar_routes(r: Router, s: &Arc<AppState>) -> Router {
 fn add_mail_routes(r: Router, s: &Arc<AppState>) -> Router {
     let email_state = crate::email::models::AppState {
         pool: Arc::new(s.conn.clone()),
-        get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
+        get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
+            // Resolve the real workspace branch instead of the previous
+            // hardcoded nil (issue #734); falls back to nil global scope only
+            // when no bot is flagged default yet.
+            use diesel::prelude::*;
+            #[derive(diesel::QueryableByName)]
+            #[diesel(check_for_backend(diesel::pg::Pg))]
+            struct BranchRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                branch_id: uuid::Uuid,
+            }
+            diesel::sql_query(
+                "SELECT branch_id FROM bots WHERE is_default_for_branch = TRUE LIMIT 1",
+            )
+            .get_result::<BranchRow>(conn)
+            .map(|r| (r.branch_id, "default".to_string()))
+            .unwrap_or_else(|_| (uuid::Uuid::nil(), "default".to_string()))
+        }),
         secrets_provider: Arc::new(|_key: &str| Err("secrets not available".to_string())),
     };
     crate::email::poller::spawn_imap_sync_worker(s.conn.clone());

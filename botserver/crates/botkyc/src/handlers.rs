@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -7,6 +7,12 @@ use diesel::RunQueryDsl;
 
 use crate::db;
 use crate::storage::ensure_schema_sync;
+
+use botcore::shared::tenant::branch_from_claims;
+
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Verification {
@@ -49,8 +55,9 @@ pub struct UpdateVerification {
     pub documents: Option<Vec<String>>,
 }
 
-pub async fn list_verifications() -> Result<Json<Vec<Verification>>, (StatusCode, String)> {
+pub async fn list_verifications(headers: HeaderMap) -> Result<Json<Vec<Verification>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -66,8 +73,9 @@ pub async fn list_verifications() -> Result<Json<Vec<Verification>>, (StatusCode
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, user_id, kind, status, documents, reviewed_by, created_at, completed_at
-         FROM identity_kyc_workflows ORDER BY created_at DESC LIMIT 500",
+         FROM identity_kyc_workflows WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Verification {
@@ -78,12 +86,14 @@ pub async fn list_verifications() -> Result<Json<Vec<Verification>>, (StatusCode
 }
 
 pub async fn update_verification(
+    headers: HeaderMap,
     Path(id): Path<String>,
     Json(req): Json<UpdateVerification>,
 ) -> Result<Json<Verification>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let completed_at = if req.status == "approved" || req.status == "rejected" {
@@ -95,16 +105,18 @@ pub async fn update_verification(
         .map(|d| serde_json::to_value(d).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Serialize: {e}"))))
         .transpose()?
         .unwrap_or(serde_json::json!([]));
-    diesel::sql_query(
-        "UPDATE identity_kyc_workflows SET status = $1, reviewed_by = $2, documents = $3, completed_at = COALESCE($4, completed_at) WHERE id = $5",
+    let n = diesel::sql_query(
+        "UPDATE identity_kyc_workflows SET status = $1, reviewed_by = $2, documents = $3, completed_at = COALESCE($4, completed_at) WHERE id = $5 AND branch_id = $6",
     )
     .bind::<diesel::sql_types::Text, _>(&req.status)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(req.reviewed_by)
     .bind::<diesel::sql_types::Jsonb, _>(&docs_json)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(completed_at)
     .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
+    if n == 0 { return Err((StatusCode::NOT_FOUND, format!("Verification {id} not found"))); }
     Ok(Json(Verification {
         id: parsed, user_id: Uuid::nil(), kind: "identity".to_string(), status: req.status,
         documents: req.documents.unwrap_or_default(), reviewed_by: req.reviewed_by,
@@ -112,8 +124,9 @@ pub async fn update_verification(
     }))
 }
 
-pub async fn list_signatures() -> Result<Json<Vec<Signature>>, (StatusCode, String)> {
+pub async fn list_signatures(headers: HeaderMap) -> Result<Json<Vec<Signature>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -128,8 +141,9 @@ pub async fn list_signatures() -> Result<Json<Vec<Signature>>, (StatusCode, Stri
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, document_id, signer_name, signer_email, status, signed_at, created_at
-         FROM identity_signatures ORDER BY created_at DESC LIMIT 500",
+         FROM identity_signatures WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Signature {
@@ -138,18 +152,20 @@ pub async fn list_signatures() -> Result<Json<Vec<Signature>>, (StatusCode, Stri
     }).collect()))
 }
 
-pub async fn sign_document(Path(id): Path<String>) -> Result<Json<Signature>, (StatusCode, String)> {
+pub async fn sign_document(headers: HeaderMap, Path(id): Path<String>) -> Result<Json<Signature>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();
     let n = diesel::sql_query(
-        "UPDATE identity_signatures SET status = 'signed', signed_at = $1 WHERE id = $2",
+        "UPDATE identity_signatures SET status = 'signed', signed_at = $1 WHERE id = $2 AND branch_id = $3",
     )
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     if n == 0 {
@@ -161,8 +177,9 @@ pub async fn sign_document(Path(id): Path<String>) -> Result<Json<Signature>, (S
     }))
 }
 
-pub async fn list_certificates() -> Result<Json<Vec<Certificate>>, (StatusCode, String)> {
+pub async fn list_certificates(headers: HeaderMap) -> Result<Json<Vec<Certificate>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -177,8 +194,9 @@ pub async fn list_certificates() -> Result<Json<Vec<Certificate>>, (StatusCode, 
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, subject, issuer, serial, valid_from, valid_until, status
-         FROM identity_certificates ORDER BY subject ASC LIMIT 500",
+         FROM identity_certificates WHERE branch_id = $1 ORDER BY subject ASC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Certificate {

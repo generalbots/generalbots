@@ -21,9 +21,24 @@ pub struct ListQuery {
     pub branch_id: Option<String>,
 }
 
+/// Resolves the tenant branch. The server-minted `branch_id` JWT claim wins
+/// (issue #734); unknown/unauthenticated callers fall back to the configured
+/// default branch so legacy calls still work — every mutation is additionally
+/// constrained by the branch, so a tenant can never touch another tenant's
+/// task.
+fn resolve_branch(state: &Arc<TasksState>, headers: &HeaderMap) -> Uuid {
+    botsecurity_core::tenant::branch_from_claims(headers)
+        .or_else(|| {
+            (state.get_config)("default_branch_id")
+                .ok()
+                .and_then(|id| id.parse::<Uuid>().ok())
+        })
+        .unwrap_or_else(Uuid::nil)
+}
+
 pub async fn handle_list_tasks(
     State(state): State<Arc<TasksState>>,
-    Query(query): Query<ListQuery>,
+    _query: Query<ListQuery>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let _session = match get_user_id_from_headers(&state, &headers) {
@@ -32,9 +47,12 @@ pub async fn handle_list_tasks(
     };
 
     let engine = TaskEngine::new(state.clone());
-    let branch_id = query.branch_id.and_then(|s| s.parse::<Uuid>().ok());
+    // Tenant scope comes from the authenticated token; the client-supplied
+    // branch_id query param is ignored (issue #734) so a tenant can never
+    // list another tenant's tasks by spoofing it.
+    let branch_id = resolve_branch(&state, &headers);
 
-    match engine.list_tasks(branch_id) {
+    match engine.list_tasks(Some(branch_id)) {
         Ok(tasks) => Json(serde_json::json!({"tasks": tasks})).into_response(),
         Err(e) => Json(serde_json::json!({"error": e})).into_response(),
     }
@@ -84,15 +102,17 @@ pub async fn handle_create_task(
 
 pub async fn handle_get_task(
     State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     let engine = TaskEngine::new(state.clone());
+    let branch_id = resolve_branch(&state, &headers);
     let id = match task_id.parse::<Uuid>() {
         Ok(id) => id,
         Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
     };
 
-    match engine.get_task(id) {
+    match engine.get_task(id, branch_id) {
         Ok(task) => Json(serde_json::json!({"task": task})).into_response(),
         Err(e) => Json(serde_json::json!({"error": e})).into_response(),
     }
@@ -100,15 +120,17 @@ pub async fn handle_get_task(
 
 pub async fn handle_execute_task(
     State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     let id = match task_id.parse::<Uuid>() {
         Ok(id) => id,
         Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
     };
+    let branch_id = resolve_branch(&state, &headers);
 
     let engine = TaskEngine::new(state.clone());
-    if let Err(e) = engine.update_task_status(id, "running") {
+    if let Err(e) = engine.update_task_status(id, branch_id, "running") {
         return Json(serde_json::json!({"error": e})).into_response();
     }
 
@@ -122,12 +144,12 @@ pub async fn handle_execute_task(
 
     match scheduler_exec::execute_task(&state, id, &mut manifest).await {
         Ok(()) => {
-            let _ = engine.update_task_status(id, &manifest.status);
+            let _ = engine.update_task_status(id, branch_id, &manifest.status);
             let _ = persistence.save_manifest(id, &manifest).await;
             Json(serde_json::json!({"status": "completed", "manifest": manifest})).into_response()
         }
         Err(e) => {
-            let _ = engine.update_task_status(id, "failed");
+            let _ = engine.update_task_status(id, branch_id, "failed");
             let _ = persistence.save_manifest(id, &manifest).await;
             Json(serde_json::json!({"error": e})).into_response()
         }
@@ -136,15 +158,17 @@ pub async fn handle_execute_task(
 
 pub async fn handle_cancel_task(
     State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     let id = match task_id.parse::<Uuid>() {
         Ok(id) => id,
         Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
     };
+    let branch_id = resolve_branch(&state, &headers);
 
     let engine = TaskEngine::new(state.clone());
-    if let Err(e) = engine.update_task_status(id, "cancelled") {
+    if let Err(e) = engine.update_task_status(id, branch_id, "cancelled") {
         return Json(serde_json::json!({"error": e})).into_response();
     }
 

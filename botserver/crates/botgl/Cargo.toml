@@ -13,3 +13,4 @@ axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 log = "0.4"
 rust_decimal = { workspace = true, features = ["serde-with-str", "db-diesel2-postgres"] }
+botsecurity-core = { workspace = true }

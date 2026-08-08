@@ -14,6 +14,7 @@ pub mod request_id;
 pub mod safe_unwrap;
 pub mod security_monitoring;
 pub mod sql_guard;
+pub mod tenant;
 pub mod validation;
 pub mod webhook;
 

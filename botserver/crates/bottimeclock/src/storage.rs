@@ -12,7 +12,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             employee_id UUID NOT NULL,
             kind VARCHAR(20) NOT NULL,
             ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            notes TEXT
+            notes TEXT,
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -25,7 +26,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             clock_in TIMESTAMPTZ NOT NULL,
             clock_out TIMESTAMPTZ,
             hours_worked NUMERIC(8,2) NOT NULL DEFAULT 0,
-            status VARCHAR(30) NOT NULL DEFAULT 'open'
+            status VARCHAR(30) NOT NULL DEFAULT 'open',
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -39,7 +41,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             reason TEXT NOT NULL DEFAULT '',
             status VARCHAR(30) NOT NULL DEFAULT 'pending',
             approved_by UUID,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -51,7 +54,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             total_hours NUMERIC(10,2) NOT NULL DEFAULT 0,
             overtime_hours NUMERIC(10,2) NOT NULL DEFAULT 0,
             employees BIGINT NOT NULL DEFAULT 0,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)

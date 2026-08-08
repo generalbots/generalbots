@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -7,6 +7,12 @@ use diesel::RunQueryDsl;
 
 use crate::db;
 use crate::storage::ensure_schema_sync;
+
+use botcore::shared::tenant::branch_from_claims;
+
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClockEvent {
@@ -57,21 +63,23 @@ pub struct NewClockEvent {
     pub notes: Option<String>,
 }
 
-pub async fn clock_in_out(Json(req): Json<NewClockEvent>) -> Result<Json<ClockEvent>, (StatusCode, String)> {
+pub async fn clock_in_out(headers: HeaderMap, Json(req): Json<NewClockEvent>) -> Result<Json<ClockEvent>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO timeclock_events (id, employee_id, kind, ts, notes)
-         VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO timeclock_events (id, employee_id, kind, ts, notes, branch_id)
+         VALUES ($1, $2, $3, $4, $5, $6)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Uuid, _>(req.employee_id)
     .bind::<diesel::sql_types::Text, _>(&req.kind)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(req.notes.as_deref())
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(ClockEvent {
@@ -79,8 +87,9 @@ pub async fn clock_in_out(Json(req): Json<NewClockEvent>) -> Result<Json<ClockEv
     }))
 }
 
-pub async fn list_records() -> Result<Json<Vec<TimeRecord>>, (StatusCode, String)> {
+pub async fn list_records(headers: HeaderMap) -> Result<Json<Vec<TimeRecord>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -95,8 +104,9 @@ pub async fn list_records() -> Result<Json<Vec<TimeRecord>>, (StatusCode, String
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, employee_id, date, clock_in, clock_out, hours_worked, status
-         FROM timeclock_records ORDER BY date DESC LIMIT 500",
+         FROM timeclock_records WHERE branch_id = $1 ORDER BY date DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| TimeRecord {
@@ -105,8 +115,9 @@ pub async fn list_records() -> Result<Json<Vec<TimeRecord>>, (StatusCode, String
     }).collect()))
 }
 
-pub async fn list_overtime() -> Result<Json<Vec<OvertimeRequest>>, (StatusCode, String)> {
+pub async fn list_overtime(headers: HeaderMap) -> Result<Json<Vec<OvertimeRequest>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -122,8 +133,9 @@ pub async fn list_overtime() -> Result<Json<Vec<OvertimeRequest>>, (StatusCode, 
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, employee_id, date, hours, reason, status, approved_by, created_at
-         FROM timeclock_overtime ORDER BY created_at DESC LIMIT 500",
+         FROM timeclock_overtime WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| OvertimeRequest {
@@ -132,16 +144,18 @@ pub async fn list_overtime() -> Result<Json<Vec<OvertimeRequest>>, (StatusCode, 
     }).collect()))
 }
 
-pub async fn approve_overtime(Path(id): Path<String>) -> Result<Json<OvertimeRequest>, (StatusCode, String)> {
+pub async fn approve_overtime(headers: HeaderMap, Path(id): Path<String>) -> Result<Json<OvertimeRequest>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let n = diesel::sql_query(
-        "UPDATE timeclock_overtime SET status = 'approved', approved_by = gen_random_uuid() WHERE id = $1",
+        "UPDATE timeclock_overtime SET status = 'approved', approved_by = gen_random_uuid() WHERE id = $1 AND branch_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     if n == 0 {
@@ -154,8 +168,9 @@ pub async fn approve_overtime(Path(id): Path<String>) -> Result<Json<OvertimeReq
     }))
 }
 
-pub async fn get_reports() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
+pub async fn get_reports(headers: HeaderMap) -> Result<Json<Vec<Report>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -169,8 +184,9 @@ pub async fn get_reports() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, period, total_hours, overtime_hours, employees, created_at
-         FROM timeclock_reports ORDER BY created_at DESC LIMIT 500",
+         FROM timeclock_reports WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Report {

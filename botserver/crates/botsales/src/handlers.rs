@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use diesel::RunQueryDsl;
 use rust_decimal::Decimal;
@@ -8,8 +8,17 @@ use uuid::Uuid;
 use crate::db;
 use crate::storage::ensure_schema_sync;
 
-pub async fn list_deals() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch so anonymous/system
+/// callers keep working, but every query is still constrained by the resolved
+/// branch — a tenant can never see another tenant's rows.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
+
+pub async fn list_deals(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -26,8 +35,8 @@ pub async fn list_deals() -> Result<Json<serde_json::Value>, (StatusCode, String
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, title, contact_id, value, stage, status, probability, created_at, closed_at
-         FROM sales_deals ORDER BY created_at DESC LIMIT 500",
-    ).load(&mut conn).map_err(db::map_diesel_err)?;
+         FROM sales_deals WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).load(&mut conn).map_err(db::map_diesel_err)?;
     let items: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
         "id": r.id, "title": r.title, "contact_id": r.contact_id, "value": r.value.to_string(),
         "stage": r.stage, "status": r.status, "probability": r.probability.to_string(),
@@ -36,15 +45,16 @@ pub async fn list_deals() -> Result<Json<serde_json::Value>, (StatusCode, String
     Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn create_deal(Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn create_deal(headers: HeaderMap, Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO sales_deals (id, title, contact_id, value, stage, status, probability, created_at)
-         VALUES ($1, $2, $3, $4, $5, 'open', $6, $7)",
+        "INSERT INTO sales_deals (id, title, contact_id, value, stage, status, probability, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, $5, 'open', $6, $7, $8)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(item.get("title").and_then(|v| v.as_str()).unwrap_or(""))
@@ -53,26 +63,31 @@ pub async fn create_deal(Json(item): Json<serde_json::Value>) -> Result<Json<ser
     .bind::<diesel::sql_types::Text, _>(item.get("stage").and_then(|v| v.as_str()).unwrap_or("lead"))
     .bind::<diesel::sql_types::Numeric, _>(Decimal::new((item.get("probability").and_then(|v| v.as_f64()).unwrap_or(0.0) * 100.0) as i64, 2))
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn).map_err(db::map_diesel_err)?;
     Ok(Json(serde_json::json!({"item": {"id": id, "created_at": now, "status": "open"}})))
 }
 
-pub async fn update_deal(Path(id): Path<String>, Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn update_deal(headers: HeaderMap, Path(id): Path<String>, Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id).map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id: {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     if let Some(stage) = item.get("stage").and_then(|v| v.as_str()) {
-        diesel::sql_query("UPDATE sales_deals SET stage = $1 WHERE id = $2")
+        let n = diesel::sql_query("UPDATE sales_deals SET stage = $1 WHERE id = $2 AND branch_id = $3")
             .bind::<diesel::sql_types::Text, _>(stage)
             .bind::<diesel::sql_types::Uuid, _>(parsed)
+            .bind::<diesel::sql_types::Uuid, _>(branch)
             .execute(&mut conn).map_err(db::map_diesel_err)?;
+        if n == 0 { return Err((StatusCode::NOT_FOUND, "Deal not found".to_string())); }
     }
     Ok(Json(serde_json::json!({"item": {"id": parsed, "status": "updated"}})))
 }
 
-pub async fn list_contacts() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn list_contacts(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -85,16 +100,17 @@ pub async fn list_contacts() -> Result<Json<serde_json::Value>, (StatusCode, Str
         #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, name, email, phone, company, created_at FROM sales_contacts ORDER BY name ASC LIMIT 500",
-    ).load(&mut conn).map_err(db::map_diesel_err)?;
+        "SELECT id, name, email, phone, company, created_at FROM sales_contacts WHERE branch_id = $1 ORDER BY name ASC LIMIT 500",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).load(&mut conn).map_err(db::map_diesel_err)?;
     let items: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
         "id": r.id, "name": r.name, "email": r.email, "phone": r.phone, "company": r.company, "created_at": r.created_at,
     })).collect();
     Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_activities() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn list_activities(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -106,16 +122,17 @@ pub async fn list_activities() -> Result<Json<serde_json::Value>, (StatusCode, S
         #[diesel(sql_type = diesel::sql_types::Date)] activity_date: chrono::NaiveDate,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, deal_id, kind, description, activity_date FROM sales_activities ORDER BY activity_date DESC LIMIT 500",
-    ).load(&mut conn).map_err(db::map_diesel_err)?;
+        "SELECT id, deal_id, kind, description, activity_date FROM sales_activities WHERE branch_id = $1 ORDER BY activity_date DESC LIMIT 500",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).load(&mut conn).map_err(db::map_diesel_err)?;
     let items: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
         "id": r.id, "deal_id": r.deal_id, "kind": r.kind, "description": r.description, "date": r.activity_date.to_string(),
     })).collect();
     Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn get_forecast() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn get_forecast(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -124,8 +141,9 @@ pub async fn get_forecast() -> Result<Json<serde_json::Value>, (StatusCode, Stri
         #[diesel(sql_type = diesel::sql_types::BigInt)] deal_count: i64,
     }
     let stats: Row = diesel::sql_query(
-        "SELECT COALESCE(SUM(value), 0) AS total_value, COUNT(*) AS deal_count FROM sales_deals WHERE status = 'open'",
-    ).get_result(&mut conn).map_err(db::map_diesel_err)?;
+        "SELECT COALESCE(SUM(value), 0) AS total_value, COUNT(*) AS deal_count
+         FROM sales_deals WHERE status = 'open' AND branch_id = $1",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).get_result(&mut conn).map_err(db::map_diesel_err)?;
     Ok(Json(serde_json::json!({"items": [{
         "period": chrono::Utc::now().format("%Y-%m").to_string(),
         "pipeline_value": stats.total_value.to_string(),
