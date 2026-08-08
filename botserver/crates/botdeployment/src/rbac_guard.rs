@@ -32,7 +32,14 @@ impl DeployRole {
     }
 }
 
+
 type Conn = diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+
+#[derive(diesel::QueryableByName)]
+struct StringCell {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    value: String,
+}
 
 fn conn(pool: &DbPool) -> Result<Conn, String> {
     pool.get().map_err(|e| format!("db pool: {e}"))
@@ -48,8 +55,9 @@ fn user_group_names(conn: &mut Conn, user_id: Uuid) -> Result<Vec<String>, Strin
          WHERE ug.user_id = $1 AND g.is_active = true",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .load::<String>(conn)
+    .load::<StringCell>(conn)
     .map_err(|e| format!("resolve user groups: {e}"))
+    .map(|rows| rows.into_iter().map(|r| r.value).collect())
 }
 
 pub fn resolve_project_role(
@@ -58,32 +66,32 @@ pub fn resolve_project_role(
     project_id: Uuid,
 ) -> Result<DeployRole, String> {
     let mut conn = conn(pool)?;
-    let direct: Option<String> = diesel::sql_query(
+    let direct: Option<StringCell> = diesel::sql_query(
         "SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(project_id)
     .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .get_result::<String>(&mut conn)
+    .get_result::<StringCell>(&mut conn)
     .optional()
     .map_err(|e| format!("resolve project role: {e}"))?;
     if let Some(role) = direct {
-        if let Some(r) = DeployRole::parse(&role) {
+        if let Some(r) = DeployRole::parse(&role.value) {
             return Ok(r);
         }
     }
     let groups = user_group_names(&mut conn, user_id)?;
     let mut best = DeployRole::Viewer;
     for name in &groups {
-        let group_role: Option<String> = diesel::sql_query(
+        let group_role: Option<StringCell> = diesel::sql_query(
             "SELECT role FROM project_members WHERE project_id = $1 AND group_name = $2",
         )
         .bind::<diesel::sql_types::Uuid, _>(project_id)
         .bind::<diesel::sql_types::Text, _>(name)
-        .get_result::<String>(&mut conn)
+        .get_result::<StringCell>(&mut conn)
         .optional()
         .map_err(|e| format!("resolve group role: {e}"))?;
         if let Some(role) = group_role {
-            if let Some(r) = DeployRole::parse(&role) {
+            if let Some(r) = DeployRole::parse(&role.value) {
                 best = best.max(r);
             }
         }

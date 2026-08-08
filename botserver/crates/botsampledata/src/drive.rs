@@ -252,9 +252,9 @@ pub async fn seed_pragmatismo_payload(drive: &dyn DriveRepository) -> Result<(),
     put_if_missing(drive, &bucket, &base("gbot", "config.csv"), "text/csv", pragmatismo_config_csv().as_bytes()).await?;
     put_if_missing(drive, &bucket, &base("gbot", "PROMPT.md"), "text/markdown", pragmatismo_prompt_md().as_bytes()).await?;
     put_if_missing(drive, &bucket, &base("gbdialog", "start.bas"), "text/plain", pragmatismo_start_bas().as_bytes()).await?;
-    let vibe_run_bas = r#"' vibe_run.bas — demo bridge script: surfaces the VIBE toolset.
+    let vibe_run_bas = r##"' vibe_run.bas — demo bridge script: surfaces the VIBE toolset.
 VIBE TOOLS
-VIBE RUN "Criar um website institucional"'#;
+VIBE RUN "Criar um website institucional""##;
     put_if_missing(drive, &bucket, &base("gbdialog", "vibe_run.bas"), "text/plain", vibe_run_bas.as_bytes()).await?;
 
     put_if_missing(drive, &bucket, &base("gbdialog", "vibe-run.mcp.json"), "application/json",

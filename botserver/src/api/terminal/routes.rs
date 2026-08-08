@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -88,7 +88,7 @@ async fn kill_terminal(
 
 async fn terminal_ws(
     State(manager): State<Arc<TerminalManager>>,
-    Query(query): axum::extract::Query<std::collections::HashMap<String, String>>,
+    Query(query): Query<std::collections::HashMap<String, String>>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
     let id = query.get("id").cloned().unwrap_or_default();
@@ -105,7 +105,7 @@ async fn terminal_ws(
 }
 
 async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::TerminalSession>) {
-    send_history(&mut socket, &session).await;
+    send_history(&session, &mut socket).await;
     let mut events_rx = session.events.subscribe();
     loop {
         tokio::select! {

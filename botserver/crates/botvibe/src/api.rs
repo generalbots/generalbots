@@ -152,46 +152,46 @@ async fn create_run(
     let state_str = run.state.to_string();
     let uc_str = run.use_case.to_string();
 
-    let ctx = api.inner.prompt_manager.build_context(
+    let ctx = api.prompt_manager.build_context(
         run.use_case,
         &run.intent,
         &[],
     );
     let system_prompt = ctx.system_prompt.clone();
 
-    api.inner.telemetry.record_run_start(&run).await;
+    api.telemetry.record_run_start(&run).await;
 
     let agent_loop = Arc::new(
         AgentLoop::new(
-            api.inner.prompt_manager.clone(),
-            api.inner.tool_executor.clone(),
-            api.inner.telemetry.clone(),
-            api.inner.state.clone(),
+            api.prompt_manager.clone(),
+            api.tool_executor.clone(),
+            api.telemetry.clone(),
+            api.state.clone(),
         )
         .with_security(
-            api.inner.permissions.clone(),
-            api.inner.skills.clone(),
+            api.permissions.clone(),
+            api.skills.clone(),
         ),
     );
 
     {
-        let mut runs = api.inner.runs.write().await;
+        let mut runs = api.runs.write().await;
         runs.insert(run_id, run);
     }
 
-    api.inner.state.broadcast_progress(
+    api.state.broadcast_progress(
         VibeProgressEvent::started(run_id.to_string(), "Vibe run created", 3),
     );
 
     let api_clone = api.clone();
     tokio::spawn(async move {
         let run_opt = {
-            let mut runs = api_clone.inner.runs.write().await;
+            let mut runs = api_clone.runs.write().await;
             runs.remove(&run_id)
         };
         if let Some(mut run) = run_opt {
             agent_loop.execute_run(&mut run).await;
-            let mut runs = api_clone.inner.runs.write().await;
+            let mut runs = api_clone.runs.write().await;
             runs.insert(run_id, run);
         }
     });
@@ -210,7 +210,7 @@ async fn get_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let runs = api.inner.runs.read().await;
+    let runs = api.runs.read().await;
     if let Some(run) = runs.get(&run_id) {
         Json(GetRunResponse {
             run_id: run.run_id,
@@ -245,7 +245,7 @@ async fn cancel_run(
     Path(run_id): Path<Uuid>,
     Json(_req): Json<CancelRunRequest>,
 ) -> impl IntoResponse {
-    let mut runs = api.inner.runs.write().await;
+    let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {
         run.transition(VibeRunState::Cancelled);
         info!("Vibe run cancelled: {run_id}");
@@ -267,7 +267,7 @@ async fn approve_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let mut runs = api.inner.runs.write().await;
+    let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {
         for tool_call in &mut run.tool_calls {
             if tool_call.requires_approval && !tool_call.approved {
@@ -293,7 +293,7 @@ async fn list_runs(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Query(query): Query<ListRunsQuery>,
 ) -> impl IntoResponse {
-    let runs = api.inner.runs.read().await;
+    let runs = api.runs.read().await;
     let limit = query.limit.unwrap_or(50).min(200) as usize;
     let offset = query.offset.unwrap_or(0) as usize;
 
@@ -331,7 +331,7 @@ async fn list_runs(
 }
 
 async fn list_tools(Extension(api): Extension<Arc<VibeApiInner>>) -> impl IntoResponse {
-    let tools = api.inner.tool_executor.registry().list_tools().await;
+    let tools = api.tool_executor.registry().list_tools().await;
     Json(ListToolsResponse { tools })
 }
 
@@ -340,12 +340,12 @@ async fn list_tools_for_use_case(
     Path(use_case): Path<String>,
 ) -> impl IntoResponse {
     let uc = parse_use_case(&use_case).unwrap_or(VibeUseCase::SoftwareDevelopment);
-    let tools = api.inner.tool_executor.registry().list_tools_for_use_case(uc).await;
+    let tools = api.tool_executor.registry().list_tools_for_use_case(uc).await;
     Json(ListToolsResponse { tools })
 }
 
 async fn get_global_metrics(Extension(api): Extension<Arc<VibeApiInner>>) -> impl IntoResponse {
-    let metrics = api.inner.telemetry.get_global_metrics().await;
+    let metrics = api.telemetry.get_global_metrics().await;
     Json(MetricsResponse {
         success: true,
         metrics: Some(serde_json::to_value(metrics).unwrap_or(serde_json::Value::Null)),
@@ -357,7 +357,7 @@ async fn get_run_metrics(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match api.inner.telemetry.get_run_metrics(run_id).await {
+    match api.telemetry.get_run_metrics(run_id).await {
         Some(metrics) => Json(MetricsResponse {
             success: true,
             metrics: Some(serde_json::to_value(metrics).unwrap_or(serde_json::Value::Null)),
@@ -375,7 +375,7 @@ async fn get_run_events(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let events = api.inner.telemetry.get_events_for_run(run_id, 100).await;
+    let events = api.telemetry.get_events_for_run(run_id, 100).await;
     Json(events)
 }
 
@@ -384,7 +384,7 @@ async fn execute_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    let runs = api.inner.runs.read().await;
+    let runs = api.runs.read().await;
     let run = match runs.get(&run_id) {
         Some(r) => r,
         None => {
@@ -399,7 +399,7 @@ async fn execute_run(
     let use_case = run.use_case;
     let tool_calls = run.tool_calls.clone();
     drop(runs);
-    let state_clone = api.inner.state.clone();
+    let state_clone = api.state.clone();
 
     for tool_call in &tool_calls {
         if !tool_call.approved && tool_call.requires_approval {
@@ -412,7 +412,6 @@ async fn execute_run(
 
         let mut owned = tool_call.clone();
         let result = api
-            .inner
             .tool_executor
             .execute(&mut owned, use_case, state_clone.as_ref())
             .await;

@@ -537,7 +537,7 @@ fn inner_build_sub_router(
     }
 
     #[cfg(feature = "terminal")]
-    { sub_router = sub_router.merge(crate::api::terminal::configure_terminal_routes()); }
+    { sub_router = sub_router.merge(crate::api::terminal::routes::configure_terminal_routes()); }
 
     // AutoTask routes
     {
