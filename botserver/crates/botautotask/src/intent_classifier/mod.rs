@@ -246,14 +246,15 @@ Respond with JSON only:
     }
 
     fn handle_todo(
-        &self, classification: &ClassifiedIntent, _session: &UserSession,
+        &self, classification: &ClassifiedIntent, session: &UserSession,
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
         info!("Handling TODO intent");
         let task_id = Uuid::new_v4();
         let title = classification.suggested_name.clone().unwrap_or_else(|| classification.original_text.clone());
         let mut conn = self.pool.get()?;
-        sql_query("INSERT INTO tasks (id, title, description, status, priority, created_at) VALUES ($1, $2, $3, 'pending', 'normal', NOW())")
+        sql_query("INSERT INTO tasks (id, title, description, status, priority, branch_id, created_at) VALUES ($1, $2, $3, 'pending', 'normal', $4, NOW())")
             .bind::<DieselUuid, _>(task_id).bind::<Text, _>(&title).bind::<Text, _>(&classification.original_text)
+            .bind::<DieselUuid, _>(session.branch_id)
             .execute(&mut conn)?;
         Ok(IntentResult {
             success: true, intent_type: IntentType::Todo,

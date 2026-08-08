@@ -25,7 +25,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             total_steps INTEGER NOT NULL DEFAULT 1,
             status VARCHAR(30) NOT NULL DEFAULT 'pending',
             started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            completed_at TIMESTAMPTZ
+            completed_at TIMESTAMPTZ,
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -37,7 +38,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
          ADD COLUMN IF NOT EXISTS kind VARCHAR(50) NOT NULL DEFAULT 'identity',
          ADD COLUMN IF NOT EXISTS documents JSONB NOT NULL DEFAULT '[]'::jsonb,
          ADD COLUMN IF NOT EXISTS reviewed_by UUID,
-         ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+         ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+         ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
     )
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
@@ -53,7 +55,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             ip_address VARCHAR(64),
             user_agent TEXT,
             signed_at TIMESTAMPTZ,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -62,7 +65,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     diesel::sql_query(
         "ALTER TABLE identity_signatures ADD COLUMN IF NOT EXISTS signer_name TEXT NOT NULL DEFAULT '',
          ADD COLUMN IF NOT EXISTS signer_email TEXT NOT NULL DEFAULT '',
-         ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'pending'",
+         ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'pending',
+         ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
     )
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
@@ -75,7 +79,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             serial TEXT NOT NULL DEFAULT '',
             valid_from TIMESTAMPTZ NOT NULL,
             valid_until TIMESTAMPTZ NOT NULL,
-            status VARCHAR(30) NOT NULL DEFAULT 'active'
+            status VARCHAR(30) NOT NULL DEFAULT 'active',
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)

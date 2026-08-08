@@ -12,3 +12,4 @@ diesel = { version = "2", features = ["postgres", "r2d2", "uuid", "serde_json", 
 axum = { version = "0.7", features = ["macros"] }
 log = "0.4"
 rust_decimal = { version = "1.36", default-features = false, features = ["serde-with-str"] }
+botsecurity-core = { workspace = true }

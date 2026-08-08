@@ -2,7 +2,12 @@ use crate::types::{
     BalanceSheetRow, CreateAccountRequest, CreateJournalEntryRequest, GlAccount, GlJournalEntry,
     IncomeStatementRow, TrialBalanceRow,
 };
-use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    routing::get,
+    Json, Router,
+};
 use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -12,6 +17,13 @@ pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<PgConnectio
 #[derive(Clone)]
 pub struct GlState {
     pub pool: DbPool,
+}
+
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch for anonymous/system
+/// callers; every query is still bounded by the resolved branch.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botsecurity_core::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
 }
 
 pub fn configure_gl_routes() -> Router<Arc<GlState>> {
@@ -26,12 +38,15 @@ pub fn configure_gl_routes() -> Router<Arc<GlState>> {
 
 async fn list_accounts(
     State(state): State<Arc<GlState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<GlAccount>>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let accounts = diesel::sql_query(
         "SELECT id, branch_id, code, name, account_type, parent_id, is_active, created_at \
-         FROM gl_accounts ORDER BY code",
+         FROM gl_accounts WHERE branch_id = $1 ORDER BY code",
     )
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .load::<GlAccountDbRow>(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .into_iter()
@@ -51,16 +66,19 @@ async fn list_accounts(
 
 async fn create_account(
     State(state): State<Arc<GlState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreateAccountRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let id = Uuid::new_v4();
 
     diesel::sql_query(
         "INSERT INTO gl_accounts (id, branch_id, code, name, account_type, parent_id, is_active) \
-         VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, true)",
+         VALUES ($1, $2, $3, $4, $5, $6, true)",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .bind::<diesel::sql_types::Text, _>(&payload.code)
     .bind::<diesel::sql_types::Text, _>(&payload.name)
     .bind::<diesel::sql_types::Text, _>(&payload.account_type)
@@ -73,14 +91,17 @@ async fn create_account(
 
 async fn get_account(
     State(state): State<Arc<GlState>>,
+    headers: HeaderMap,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> Result<Json<GlAccount>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
         "SELECT id, branch_id, code, name, account_type, parent_id, is_active, created_at \
-         FROM gl_accounts WHERE id = $1",
+         FROM gl_accounts WHERE id = $1 AND branch_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .get_result::<GlAccountDbRow>(&mut conn)
     .map_err(|_| StatusCode::NOT_FOUND)?;
 
@@ -99,13 +120,16 @@ async fn get_account(
 
 async fn list_entries(
     State(state): State<Arc<GlState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<GlJournalEntry>>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let entries = diesel::sql_query(
         "SELECT id, branch_id, entry_date, description, reference_type, reference_id, \
          status, created_by, posted_at, created_at \
-         FROM gl_journal_entries ORDER BY entry_date DESC",
+         FROM gl_journal_entries WHERE branch_id = $1 ORDER BY entry_date DESC",
     )
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .load::<GlEntryDbRow>(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .into_iter()
@@ -127,17 +151,20 @@ async fn list_entries(
 
 async fn create_entry(
     State(state): State<Arc<GlState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreateJournalEntryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let entry_id = Uuid::new_v4();
 
     conn.transaction(|tx| {
         diesel::sql_query(
             "INSERT INTO gl_journal_entries (id, branch_id, entry_date, description, reference_type, reference_id, status) \
-             VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, 'draft')",
+             VALUES ($1, $2, $3, $4, $5, $6, 'draft')",
         )
         .bind::<diesel::sql_types::Uuid, _>(&entry_id)
+        .bind::<diesel::sql_types::Uuid, _>(&branch)
         .bind::<diesel::sql_types::Date, _>(&payload.entry_date)
         .bind::<diesel::sql_types::Text, _>(&payload.description)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&payload.reference_type)
@@ -167,7 +194,9 @@ async fn create_entry(
 
 async fn trial_balance(
     State(state): State<Arc<GlState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<TrialBalanceRow>>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT a.code, a.name, a.account_type, \
@@ -177,9 +206,11 @@ async fn trial_balance(
          FROM gl_accounts a \
          LEFT JOIN gl_journal_lines l ON l.account_id = a.id \
          LEFT JOIN gl_journal_entries e ON e.id = l.entry_id AND e.status = 'posted' \
+         WHERE a.branch_id = $1 \
          GROUP BY a.id, a.code, a.name, a.account_type \
          ORDER BY a.code",
     )
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .load::<TrialBalanceDbRow>(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .into_iter()
@@ -197,7 +228,9 @@ async fn trial_balance(
 
 async fn income_statement(
     State(state): State<Arc<GlState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<IncomeStatementRow>>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT a.code, a.name, \
@@ -206,10 +239,11 @@ async fn income_statement(
          FROM gl_accounts a \
          LEFT JOIN gl_journal_lines l ON l.account_id = a.id \
          LEFT JOIN gl_journal_entries e ON e.id = l.entry_id AND e.status = 'posted' \
-         WHERE a.account_type IN ('revenue','income','expense') \
+         WHERE a.account_type IN ('revenue','income','expense') AND a.branch_id = $1 \
          GROUP BY a.id, a.code, a.name \
          ORDER BY a.code",
     )
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .load::<IncomeStDbRow>(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .into_iter()
@@ -224,7 +258,9 @@ async fn income_statement(
 
 async fn balance_sheet(
     State(state): State<Arc<GlState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<BalanceSheetRow>>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT a.code, a.name, a.account_type, \
@@ -232,10 +268,11 @@ async fn balance_sheet(
          FROM gl_accounts a \
          LEFT JOIN gl_journal_lines l ON l.account_id = a.id \
          LEFT JOIN gl_journal_entries e ON e.id = l.entry_id AND e.status = 'posted' \
-         WHERE a.account_type IN ('asset','liability','equity') \
+         WHERE a.account_type IN ('asset','liability','equity') AND a.branch_id = $1 \
          GROUP BY a.id, a.code, a.name, a.account_type \
          ORDER BY a.code",
     )
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .load::<BalanceSheetDbRow>(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .into_iter()

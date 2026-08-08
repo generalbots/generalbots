@@ -1,5 +1,5 @@
 use axum::extract::Json;
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -8,6 +8,13 @@ use diesel::OptionalExtension;
 
 use crate::db;
 use crate::storage;
+
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch for anonymous/system
+/// callers; every query is still bounded by the resolved branch.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SharePointItem {
@@ -48,8 +55,9 @@ pub struct M365Settings {
     pub last_sync: Option<chrono::DateTime<Utc>>,
 }
 
-pub async fn list_sharepoint() -> Result<Json<Vec<SharePointItem>>, (StatusCode, String)> {
+pub async fn list_sharepoint(headers: HeaderMap) -> Result<Json<Vec<SharePointItem>>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -64,8 +72,9 @@ pub async fn list_sharepoint() -> Result<Json<Vec<SharePointItem>>, (StatusCode,
         "SELECT id, COALESCE(site_id, '') AS site_name, COALESCE(list_id, '') AS list_name, \
          (CASE WHEN fields IS NULL THEN 0 ELSE 1 END)::bigint AS item_count, \
          COALESCE(modified_at, synced_at) AS last_modified
-         FROM m365_sharepoint_items ORDER BY synced_at DESC LIMIT 500",
+         FROM m365_sharepoint_items WHERE branch_id = $1 ORDER BY synced_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| SharePointItem {
@@ -74,8 +83,9 @@ pub async fn list_sharepoint() -> Result<Json<Vec<SharePointItem>>, (StatusCode,
     }).collect()))
 }
 
-pub async fn list_calendar() -> Result<Json<Vec<CalendarEvent>>, (StatusCode, String)> {
+pub async fn list_calendar(headers: HeaderMap) -> Result<Json<Vec<CalendarEvent>>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -90,8 +100,9 @@ pub async fn list_calendar() -> Result<Json<Vec<CalendarEvent>>, (StatusCode, St
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, subject, start_time, end_time, location, attendees, status
-         FROM m365_calendar_events ORDER BY start_time DESC LIMIT 500",
+         FROM m365_calendar_events WHERE branch_id = $1 ORDER BY start_time DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| CalendarEvent {
@@ -102,8 +113,9 @@ pub async fn list_calendar() -> Result<Json<Vec<CalendarEvent>>, (StatusCode, St
     }).collect()))
 }
 
-pub async fn list_onedrive() -> Result<Json<Vec<OneDriveFile>>, (StatusCode, String)> {
+pub async fn list_onedrive(headers: HeaderMap) -> Result<Json<Vec<OneDriveFile>>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -117,8 +129,9 @@ pub async fn list_onedrive() -> Result<Json<Vec<OneDriveFile>>, (StatusCode, Str
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, name, path, size_bytes, last_modified, author
-         FROM m365_onedrive_files ORDER BY last_modified DESC LIMIT 500",
+         FROM m365_onedrive_files WHERE branch_id = $1 ORDER BY last_modified DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| OneDriveFile {
@@ -127,8 +140,9 @@ pub async fn list_onedrive() -> Result<Json<Vec<OneDriveFile>>, (StatusCode, Str
     }).collect()))
 }
 
-pub async fn get_settings() -> Result<Json<Option<M365Settings>>, (StatusCode, String)> {
+pub async fn get_settings(headers: HeaderMap) -> Result<Json<Option<M365Settings>>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -138,8 +152,10 @@ pub async fn get_settings() -> Result<Json<Option<M365Settings>>, (StatusCode, S
         #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)] last_sync: Option<chrono::DateTime<Utc>>,
     }
     let row: Option<Row> = diesel::sql_query(
-        "SELECT tenant_id, client_id, last_sync FROM oauth_microsoft_settings LIMIT 1",
+        "SELECT tenant_id, client_id, last_sync FROM oauth_microsoft_settings \
+         WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 1",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .get_result(&mut conn)
     .optional()
     .map_err(db::map_diesel_err)?;

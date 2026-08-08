@@ -17,7 +17,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             total NUMERIC(18,2) NOT NULL DEFAULT 0,
             status VARCHAR(30) NOT NULL DEFAULT 'pending',
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            authorized_at TIMESTAMPTZ
+            authorized_at TIMESTAMPTZ,
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -30,7 +31,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             provider_cnpj TEXT NOT NULL DEFAULT '',
             total NUMERIC(18,2) NOT NULL DEFAULT 0,
             status VARCHAR(30) NOT NULL DEFAULT 'pending',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -44,7 +46,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             modality TEXT NOT NULL DEFAULT 'normal',
             total NUMERIC(18,2) NOT NULL DEFAULT 0,
             status VARCHAR(30) NOT NULL DEFAULT 'pending',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -55,7 +58,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             period TEXT NOT NULL,
             kind TEXT NOT NULL DEFAULT 'fiscal',
             status VARCHAR(30) NOT NULL DEFAULT 'open',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)

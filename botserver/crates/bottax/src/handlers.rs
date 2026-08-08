@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use diesel::RunQueryDsl;
 use rust_decimal::Decimal;
@@ -9,8 +9,17 @@ use crate::db;
 use crate::models::{CTe, NFe, NFSe, NewCTe, NewNFe, NewNFSe, Sped, TaxCalculationRequest};
 use crate::storage::{ensure_schema_sync, load_rates_from_billing, parse_decimal};
 
-pub async fn list_nfe() -> Result<Json<Vec<NFe>>, (StatusCode, String)> {
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch so anonymous/system
+/// callers keep working, but every query is still constrained by the resolved
+/// branch — a tenant can never see another tenant's rows.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
+
+pub async fn list_nfe(headers: HeaderMap) -> Result<Json<Vec<NFe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -27,8 +36,9 @@ pub async fn list_nfe() -> Result<Json<Vec<NFe>>, (StatusCode, String)> {
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, number, series, emitter_cnpj, recipient_cnpj, total, status, created_at, authorized_at
-         FROM brazil_nfe ORDER BY created_at DESC LIMIT 500",
+         FROM brazil_nfe WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| NFe {
@@ -38,16 +48,17 @@ pub async fn list_nfe() -> Result<Json<Vec<NFe>>, (StatusCode, String)> {
     }).collect()))
 }
 
-pub async fn create_nfe(Json(req): Json<NewNFe>) -> Result<Json<NFe>, (StatusCode, String)> {
+pub async fn create_nfe(headers: HeaderMap, Json(req): Json<NewNFe>) -> Result<Json<NFe>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO brazil_nfe (id, number, series, emitter_cnpj, recipient_cnpj, total, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)",
+        "INSERT INTO brazil_nfe (id, number, series, emitter_cnpj, recipient_cnpj, total, status, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(&req.number)
@@ -56,6 +67,7 @@ pub async fn create_nfe(Json(req): Json<NewNFe>) -> Result<Json<NFe>, (StatusCod
     .bind::<diesel::sql_types::Text, _>(&req.recipient_cnpj)
     .bind::<diesel::sql_types::Numeric, _>(total)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(NFe {
@@ -65,18 +77,20 @@ pub async fn create_nfe(Json(req): Json<NewNFe>) -> Result<Json<NFe>, (StatusCod
     }))
 }
 
-pub async fn authorize_nfe(Path(id): Path<String>) -> Result<Json<NFe>, (StatusCode, String)> {
+pub async fn authorize_nfe(headers: HeaderMap, Path(id): Path<String>) -> Result<Json<NFe>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();
     let n = diesel::sql_query(
-        "UPDATE brazil_nfe SET status = 'authorized', authorized_at = $1 WHERE id = $2",
+        "UPDATE brazil_nfe SET status = 'authorized', authorized_at = $1 WHERE id = $2 AND branch_id = $3",
     )
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     if n == 0 {
@@ -89,8 +103,9 @@ pub async fn authorize_nfe(Path(id): Path<String>) -> Result<Json<NFe>, (StatusC
     }))
 }
 
-pub async fn list_nfse() -> Result<Json<Vec<NFSe>>, (StatusCode, String)> {
+pub async fn list_nfse(headers: HeaderMap) -> Result<Json<Vec<NFSe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -105,8 +120,9 @@ pub async fn list_nfse() -> Result<Json<Vec<NFSe>>, (StatusCode, String)> {
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, number, service_code, provider_cnpj, total, status, created_at
-         FROM brazil_nfse ORDER BY created_at DESC LIMIT 500",
+         FROM brazil_nfse WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| NFSe {
@@ -115,16 +131,17 @@ pub async fn list_nfse() -> Result<Json<Vec<NFSe>>, (StatusCode, String)> {
     }).collect()))
 }
 
-pub async fn create_nfse(Json(req): Json<NewNFSe>) -> Result<Json<NFSe>, (StatusCode, String)> {
+pub async fn create_nfse(headers: HeaderMap, Json(req): Json<NewNFSe>) -> Result<Json<NFSe>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO brazil_nfse (id, number, service_code, provider_cnpj, total, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, 'pending', $6)",
+        "INSERT INTO brazil_nfse (id, number, service_code, provider_cnpj, total, status, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(&req.number)
@@ -132,6 +149,7 @@ pub async fn create_nfse(Json(req): Json<NewNFSe>) -> Result<Json<NFSe>, (Status
     .bind::<diesel::sql_types::Text, _>(&req.provider_cnpj)
     .bind::<diesel::sql_types::Numeric, _>(total)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(NFSe {
@@ -140,8 +158,9 @@ pub async fn create_nfse(Json(req): Json<NewNFSe>) -> Result<Json<NFSe>, (Status
     }))
 }
 
-pub async fn list_cte() -> Result<Json<Vec<CTe>>, (StatusCode, String)> {
+pub async fn list_cte(headers: HeaderMap) -> Result<Json<Vec<CTe>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -157,8 +176,9 @@ pub async fn list_cte() -> Result<Json<Vec<CTe>>, (StatusCode, String)> {
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, number, sender_cnpj, recipient_cnpj, modality, total, status, created_at
-         FROM brazil_cte ORDER BY created_at DESC LIMIT 500",
+         FROM brazil_cte WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| CTe {
@@ -167,16 +187,17 @@ pub async fn list_cte() -> Result<Json<Vec<CTe>>, (StatusCode, String)> {
     }).collect()))
 }
 
-pub async fn create_cte(Json(req): Json<NewCTe>) -> Result<Json<CTe>, (StatusCode, String)> {
+pub async fn create_cte(headers: HeaderMap, Json(req): Json<NewCTe>) -> Result<Json<CTe>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let total = parse_decimal(&req.total)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO brazil_cte (id, number, sender_cnpj, recipient_cnpj, modality, total, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)",
+        "INSERT INTO brazil_cte (id, number, sender_cnpj, recipient_cnpj, modality, total, status, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(&req.number)
@@ -185,6 +206,7 @@ pub async fn create_cte(Json(req): Json<NewCTe>) -> Result<Json<CTe>, (StatusCod
     .bind::<diesel::sql_types::Text, _>(&req.modality)
     .bind::<diesel::sql_types::Numeric, _>(total)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(CTe {
@@ -193,8 +215,9 @@ pub async fn create_cte(Json(req): Json<NewCTe>) -> Result<Json<CTe>, (StatusCod
     }))
 }
 
-pub async fn list_sped() -> Result<Json<Vec<Sped>>, (StatusCode, String)> {
+pub async fn list_sped(headers: HeaderMap) -> Result<Json<Vec<Sped>>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -206,8 +229,9 @@ pub async fn list_sped() -> Result<Json<Vec<Sped>>, (StatusCode, String)> {
         #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, period, kind, status, created_at FROM brazil_sped ORDER BY created_at DESC LIMIT 500",
+        "SELECT id, period, kind, status, created_at FROM brazil_sped WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Sped {
@@ -219,19 +243,18 @@ pub async fn list_sped() -> Result<Json<Vec<Sped>>, (StatusCode, String)> {
 /// when present for the branch, otherwise built-in defaults. The calculation
 /// is returned immediately — no records are persisted per calculation.
 pub async fn calculate_tax(
+    headers: HeaderMap,
     Json(req): Json<TaxCalculationRequest>,
 ) -> Result<Json<crate::calculator::TaxBreakdown>, (StatusCode, String)> {
     let service_value = parse_decimal(&req.service_value)?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
 
-    let branch_id = req
-        .branch_id
-        .as_deref()
-        .and_then(|s| Uuid::parse_str(s).ok())
-        .unwrap_or(Uuid::nil());
-
-    let loaded = load_rates_from_billing(&mut conn, &branch_id);
+    // Tenant scope comes exclusively from the server-minted JWT claim
+    // (issue #734); the client-supplied body branch_id is never trusted, so
+    // a caller cannot load another tenant's tax rates by providing its id.
+    let loaded = load_rates_from_billing(&mut conn, &branch);
     let rates = loaded.unwrap_or_default();
     let breakdown = crate::calculator::calculate_service_tax(service_value, &rates);
     Ok(Json(breakdown))

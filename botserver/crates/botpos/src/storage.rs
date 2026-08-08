@@ -15,7 +15,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             stock BIGINT NOT NULL DEFAULT 0,
             category VARCHAR(100) NOT NULL DEFAULT 'general',
             active BOOLEAN NOT NULL DEFAULT true,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -27,7 +28,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             total NUMERIC(18,2) NOT NULL DEFAULT 0,
             status VARCHAR(30) NOT NULL DEFAULT 'created',
             payment_method VARCHAR(50) NOT NULL DEFAULT 'cash',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)

@@ -2,6 +2,48 @@ use axum::Router;
 use std::sync::Arc;
 use botcore::shared::state::AppState;
 
+/// Resolves the real workspace branch for suite-mode callers that carry no
+/// JWT (issue #734). Returns the branch flagged `is_default_for_branch`, or
+/// `Uuid::nil()` (the fallback global scope) when no bot is flagged yet.
+/// This replaces the previous hardcoded `Uuid::nil()` stub so suite-mode
+/// handlers stop defaulting to the global shared scope.
+fn resolve_default_branch(conn: &mut diesel::PgConnection) -> uuid::Uuid {
+    use diesel::prelude::*;
+    if let Some(branch) = diesel::sql_query(
+        "SELECT branch_id FROM bots WHERE is_default_for_branch = TRUE LIMIT 1",
+    )
+    .get_result::<DefaultBranchRow>(conn)
+    .optional()
+    .ok()
+    .flatten()
+    {
+        return branch.branch_id;
+    }
+    uuid::Uuid::nil()
+}
+
+#[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct DefaultBranchRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: uuid::Uuid,
+}
+
+fn default_branch_fn(conn: &mut diesel::PgConnection) -> uuid::Uuid {
+    resolve_default_branch(conn)
+}
+
+fn resolve_default_branch_pool(
+    _pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+) -> (uuid::Uuid, uuid::Uuid) {
+    let mut conn = match _pool.get() {
+        Ok(c) => c,
+        Err(_) => return (uuid::Uuid::nil(), uuid::Uuid::nil()),
+    };
+    let branch = resolve_default_branch(&mut conn);
+    (branch, branch)
+}
+
 #[cfg(feature = "paper")]
 pub(super) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::state::PaperState> {
     let drive = app_state.drive.clone();
@@ -98,7 +140,10 @@ pub(super) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::s
 pub(super) fn make_designer_router(app_state: &Arc<AppState>) -> Router<()> {
     let make_state = || Arc::new(botdesigner::DesignerState {
         conn: Arc::new(app_state.conn.clone()),
-        get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
+        get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
+            let branch = resolve_default_branch(conn);
+            (branch, "default".to_string())
+        }),
         get_designer_error_context: Arc::new(|_err: &str| -> Option<String> { None }),
         get_content_type: Arc::new(|_p: &str| -> &'static str { "text/html" }),
         get_stack_path: Arc::new(|| "/opt/gbo/stack".to_string()),
@@ -118,8 +163,8 @@ pub(super) fn make_designer_router(app_state: &Arc<AppState>) -> Router<()> {
 
 #[cfg(feature = "dashboards")]
 pub(super) fn make_dashboards_router(app_state: &Arc<AppState>) -> Router<()> {
-    fn default_bot_fn(_conn: &mut diesel::PgConnection) -> uuid::Uuid {
-        uuid::Uuid::nil()
+    fn default_bot_fn(conn: &mut diesel::PgConnection) -> uuid::Uuid {
+        resolve_default_branch(conn)
     }
     Router::new()
         .merge(crate::dashboards::configure_dashboards_routes(Arc::new(botdashboards::DashboardsState {
@@ -136,7 +181,9 @@ pub(super) fn make_dashboards_router(app_state: &Arc<AppState>) -> Router<()> {
 pub(super) fn make_canvas_router(app_state: &Arc<AppState>) -> Router<()> {
     let make_state = || Arc::new(botcanvas::CanvasState {
         pool: Arc::new(app_state.conn.clone()),
-        get_bot_context: Arc::new(|_: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>| (uuid::Uuid::nil(), uuid::Uuid::nil())),
+        get_bot_context: Arc::new(
+            resolve_default_branch_pool as fn(&diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>) -> (uuid::Uuid, uuid::Uuid),
+        ),
     });
     let state = make_state();
     Router::new()
@@ -148,7 +195,10 @@ pub(super) fn make_canvas_router(app_state: &Arc<AppState>) -> Router<()> {
 pub(super) fn make_social_router(app_state: &Arc<AppState>) -> Router<()> {
     let make_state = || Arc::new(botsocial::SocialState {
         pool: Arc::new(app_state.conn.clone()),
-        get_default_bot: Arc::new(|_conn: &mut _| (uuid::Uuid::nil(), "default".to_string())),
+        get_default_bot: Arc::new(|conn: &mut _| {
+            let branch = resolve_default_branch(conn);
+            (branch, "default".to_string())
+        }),
     });
     let state = make_state();
     Router::new()
@@ -269,7 +319,10 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
 pub(super) fn make_marketing_router(app_state: &Arc<AppState>) -> Router<()> {
     let base = botmarketing::state::AppState {
         conn: Arc::new(app_state.conn.clone()),
-        get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
+        get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
+            let branch = resolve_default_branch(conn);
+            (branch, "default".to_string())
+        }),
         send_email: Arc::new(|_: &str, _: &str, _: &str, _: uuid::Uuid, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
         send_whatsapp: Arc::new(|_: uuid::Uuid, _: &str, _: &str, _: Option<&str>, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
         get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
@@ -287,7 +340,10 @@ pub(super) fn make_marketing_router(app_state: &Arc<AppState>) -> Router<()> {
 pub(super) fn make_telegram_router(app_state: &Arc<AppState>) -> Router<()> {
     crate::telegram::webhook::configure().with_state(Arc::new(bottelegram::ChannelState {
         conn: Arc::new(app_state.conn.clone()),
-        get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
+        get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
+            let branch = resolve_default_branch(conn);
+            (branch, "default".to_string())
+        }),
         get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
         stream_response: {
             let app_state = app_state.clone();
@@ -331,7 +387,10 @@ pub(super) fn make_instagram_router(app_state: &Arc<AppState>) -> Router<()> {
 pub(super) fn make_msteams_router(app_state: &Arc<AppState>) -> Router<()> {
     crate::msteams::webhook::configure().with_state(Arc::new(botmsteams::state::ChannelState {
         conn: Arc::new(app_state.conn.clone()),
-        get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| (uuid::Uuid::nil(), "default".to_string())),
+        get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
+            let branch = resolve_default_branch(conn);
+            (branch, "default".to_string())
+        }),
         get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
         stream_response: {
             let app_state = app_state.clone();
@@ -356,7 +415,7 @@ pub(super) fn make_attendant_router(app_state: &Arc<AppState>) -> Router<()> {
         .merge(crate::attendance::routes::configure_attendance_routes().with_state(Arc::new(botattendance::AttendanceConfig {
             pool: Arc::new(app_state.conn.clone()),
             master_key: botsecurity_crypto::encryption::load_master_encryption_key(),
-            get_default_bot: Arc::new(|_conn: &mut _| uuid::Uuid::nil()),
+            get_default_bot: Arc::new(|conn: &mut _| resolve_default_branch(conn)),
             llm_generate: Arc::new(|_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, Box<dyn std::error::Error + Send + Sync>> { Ok(String::new()) }),
             process_content: Arc::new(|_: &str, _: &str| -> String { String::new() }),
             config_get: Arc::new(|_: &uuid::Uuid, _: &str| -> String { String::new() }),

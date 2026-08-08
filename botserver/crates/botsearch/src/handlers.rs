@@ -1,6 +1,6 @@
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -10,6 +10,14 @@ use uuid::Uuid;
 use crate::search::{SearchService, SearchSource};
 
 pub type SearchAppState = Arc<SearchService>;
+
+/// Resolves the caller's owning tenant org id from the server-minted JWT
+/// claims (issue #734). Falls back to the global nil org for anonymous/system
+/// callers; the search index is always bounded by the resolved org so one
+/// tenant can never see another tenant's indexed documents.
+fn resolve_org(headers: &HeaderMap) -> Uuid {
+    botsecurity_core::tenant::org_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
 
 #[derive(Debug, Serialize)]
 pub struct SearchSettingsResponse {
@@ -93,9 +101,11 @@ pub async fn save_settings(
 
 pub async fn get_stats(
     State(service): State<SearchAppState>,
+    headers: HeaderMap,
 ) -> Result<Json<SearchStatsResponse>, (StatusCode, String)> {
+    let org = resolve_org(&headers);
     let stats = service
-        .get_index_stats(Uuid::nil())
+        .get_index_stats(org)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Stats error: {e}")))?;
 
@@ -117,8 +127,10 @@ pub async fn get_stats(
 
 pub async fn reindex_all(
     State(service): State<SearchAppState>,
+    headers: HeaderMap,
     Json(payload): Json<ReindexRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let org = resolve_org(&headers);
     let sources = payload
         .sources
         .unwrap_or_default()
@@ -135,7 +147,7 @@ pub async fn reindex_all(
 
     let mut reindexed = Vec::new();
     for source in &sources {
-        let result = service.reindex_source(Uuid::nil(), *source).await;
+        let result = service.reindex_source(org, *source).await;
         match result {
             Ok(r) => reindexed.push(format!("{} (+{})", source, r.success_count)),
             Err(e) => log::error!("Reindex {source} failed: {e}"),
@@ -151,13 +163,15 @@ pub async fn reindex_all(
 
 pub async fn reindex_source(
     State(service): State<SearchAppState>,
+    headers: HeaderMap,
     axum::extract::Path(source): axum::extract::Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let parsed = parse_source(&source)
         .ok_or_else(|| (StatusCode::BAD_REQUEST, format!("Unknown source: {source}")))?;
+    let org = resolve_org(&headers);
 
     let result = service
-        .reindex_source(Uuid::nil(), parsed)
+        .reindex_source(org, parsed)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Reindex error: {e}")))?;
 
@@ -171,8 +185,10 @@ pub async fn reindex_source(
 
 pub async fn search_entities(
     State(service): State<SearchAppState>,
+    headers: HeaderMap,
     Query(query): Query<EntityQuery>,
 ) -> Result<Json<Vec<EntityResult>>, (StatusCode, String)> {
+    let org = resolve_org(&headers);
     let entity_type = query.type_.unwrap_or_default();
     let term = query.q.unwrap_or_default();
     let mut entities = Vec::new();
@@ -185,7 +201,7 @@ pub async fn search_entities(
             .search(crate::search::SearchQuery {
                 query: term,
                 sources: Some(vec![source]),
-                organization_id: Uuid::nil(),
+                organization_id: org,
                 user_id: None,
                 from_date: None,
                 to_date: None,
@@ -210,8 +226,10 @@ pub async fn search_entities(
 
 pub async fn search_entity(
     State(service): State<SearchAppState>,
+    headers: HeaderMap,
     Query(query): Query<EntityQuery>,
 ) -> Result<Json<EntityResult>, (StatusCode, String)> {
+    let org = resolve_org(&headers);
     let entity_type = query.type_.unwrap_or_default();
     let name = query.name.unwrap_or_default();
 
@@ -220,7 +238,7 @@ pub async fn search_entity(
         .search(crate::search::SearchQuery {
             query: name,
             sources: Some(vec![source]),
-            organization_id: Uuid::nil(),
+            organization_id: org,
             user_id: None,
             from_date: None,
             to_date: None,

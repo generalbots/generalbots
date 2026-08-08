@@ -346,6 +346,7 @@ pub async fn handle_deep_research<S: ResearchState>(
 
 pub async fn handle_search_history<S: ResearchState>(
     State(state): State<Arc<S>>,
+    headers: axum::http::HeaderMap,
     Query(params): Query<SearchHistoryQuery>,
 ) -> impl IntoResponse {
     let page = params.page.unwrap_or(1).max(1);
@@ -366,6 +367,7 @@ pub async fn handle_search_history<S: ResearchState>(
     }
 
     let conn = state.db_pool().clone();
+    let branch_id = botsecurity_core::tenant::branch_from_claims(&headers).unwrap_or_else(uuid::Uuid::nil);
     let history: Vec<SearchHistoryEntry> = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
@@ -377,8 +379,9 @@ pub async fn handle_search_history<S: ResearchState>(
 
         diesel::sql_query(
             "SELECT query, COUNT(*) AS n, MAX(created_at) AS created_at FROM research_searches \
-             WHERE query <> '' GROUP BY query ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+             WHERE query <> '' AND branch_id = $1 GROUP BY query ORDER BY created_at DESC LIMIT $2 OFFSET $3",
         )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .bind::<diesel::sql_types::BigInt, _>(per_page as i64)
         .bind::<diesel::sql_types::BigInt, _>(offset)
         .load::<HistoryRow>(&mut db_conn)

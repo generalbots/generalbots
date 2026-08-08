@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use diesel::RunQueryDsl;
 use uuid::Uuid;
@@ -7,8 +7,17 @@ use uuid::Uuid;
 use crate::db;
 use crate::storage::ensure_schema_sync;
 
-pub async fn list_meetings() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch so anonymous/system
+/// callers keep working, but every query is still constrained by the resolved
+/// branch — a tenant can never see another tenant's rows.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
+
+pub async fn list_meetings(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -24,8 +33,9 @@ pub async fn list_meetings() -> Result<Json<serde_json::Value>, (StatusCode, Str
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, title, meeting_date, duration_minutes, participants, status, transcript_id, created_at
-         FROM minutes_meetings ORDER BY meeting_date DESC LIMIT 500",
-    ).load(&mut conn).map_err(db::map_diesel_err)?;
+         FROM minutes_meetings WHERE branch_id = $1 ORDER BY meeting_date DESC LIMIT 500",
+    ).bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn).map_err(db::map_diesel_err)?;
     let items: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
         "id": r.id, "title": r.title, "date": r.meeting_date, "duration_minutes": r.duration_minutes,
         "participants": r.participants, "status": r.status, "transcript_id": r.transcript_id, "created_at": r.created_at,
@@ -33,8 +43,9 @@ pub async fn list_meetings() -> Result<Json<serde_json::Value>, (StatusCode, Str
     Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_transcripts() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn list_transcripts(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -48,8 +59,9 @@ pub async fn list_transcripts() -> Result<Json<serde_json::Value>, (StatusCode, 
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, meeting_id, content, language, word_count, created_at
-         FROM minutes_transcripts ORDER BY created_at DESC LIMIT 500",
-    ).load(&mut conn).map_err(db::map_diesel_err)?;
+         FROM minutes_transcripts WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
+    ).bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn).map_err(db::map_diesel_err)?;
     let items: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
         "id": r.id, "meeting_id": r.meeting_id, "content": r.content, "language": r.language,
         "word_count": r.word_count, "created_at": r.created_at,
@@ -57,8 +69,9 @@ pub async fn list_transcripts() -> Result<Json<serde_json::Value>, (StatusCode, 
     Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn list_documents() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn list_documents(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -74,8 +87,9 @@ pub async fn list_documents() -> Result<Json<serde_json::Value>, (StatusCode, St
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, meeting_id, title, kind, content, version, created_at, updated_at
-         FROM minutes_documents ORDER BY updated_at DESC LIMIT 500",
-    ).load(&mut conn).map_err(db::map_diesel_err)?;
+         FROM minutes_documents WHERE branch_id = $1 ORDER BY updated_at DESC LIMIT 500",
+    ).bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn).map_err(db::map_diesel_err)?;
     let items: Vec<serde_json::Value> = rows.into_iter().map(|r| serde_json::json!({
         "id": r.id, "meeting_id": r.meeting_id, "title": r.title, "kind": r.kind,
         "content": r.content, "version": r.version, "created_at": r.created_at, "updated_at": r.updated_at,
@@ -83,61 +97,73 @@ pub async fn list_documents() -> Result<Json<serde_json::Value>, (StatusCode, St
     Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn update_document(Path(id): Path<String>, Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn update_document(headers: HeaderMap, Path(id): Path<String>, Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id).map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id: {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let mut updated = 0;
     if let Some(title) = item.get("title").and_then(|v| v.as_str()) {
-        diesel::sql_query("UPDATE minutes_documents SET title = $1, version = version + 1, updated_at = NOW() WHERE id = $2")
+        updated += diesel::sql_query("UPDATE minutes_documents SET title = $1, version = version + 1, updated_at = NOW() WHERE id = $2 AND branch_id = $3")
             .bind::<diesel::sql_types::Text, _>(title)
             .bind::<diesel::sql_types::Uuid, _>(parsed)
+            .bind::<diesel::sql_types::Uuid, _>(branch)
             .execute(&mut conn).map_err(db::map_diesel_err)?;
     }
     if let Some(content) = item.get("content").and_then(|v| v.as_str()) {
-        diesel::sql_query("UPDATE minutes_documents SET content = $1, version = version + 1, updated_at = NOW() WHERE id = $2")
+        updated += diesel::sql_query("UPDATE minutes_documents SET content = $1, version = version + 1, updated_at = NOW() WHERE id = $2 AND branch_id = $3")
             .bind::<diesel::sql_types::Text, _>(content)
             .bind::<diesel::sql_types::Uuid, _>(parsed)
+            .bind::<diesel::sql_types::Uuid, _>(branch)
             .execute(&mut conn).map_err(db::map_diesel_err)?;
     }
+    if updated == 0 { return Err((StatusCode::NOT_FOUND, "Document not found".to_string())); }
     Ok(Json(serde_json::json!({"success": true, "id": id})))
 }
 
-pub async fn start_meeting(Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn start_meeting(headers: HeaderMap, Path(id): Path<String>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let parsed = Uuid::parse_str(&id).map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id: {e}")))?;
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO minutes_meetings (id, title, meeting_date, duration_minutes, participants, status, created_at)
-         VALUES ($1, $2, $3, 0, '[]'::jsonb, 'in_progress', $4)
-         ON CONFLICT (id) DO UPDATE SET status = 'in_progress', meeting_date = $3",
+        "INSERT INTO minutes_meetings (id, title, meeting_date, duration_minutes, participants, status, created_at, branch_id)
+         VALUES ($1, $2, $3, 0, '[]'::jsonb, 'in_progress', $4, $5)
+         ON CONFLICT (id) DO UPDATE SET status = 'in_progress', meeting_date = $3, branch_id = EXCLUDED.branch_id",
     )
     .bind::<diesel::sql_types::Uuid, _>(parsed)
     .bind::<diesel::sql_types::Text, _>(format!("Meeting {id}"))
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn).map_err(db::map_diesel_err)?;
     Ok(Json(serde_json::json!({"success": true, "id": id})))
 }
 
-pub async fn update_meeting(Path(id): Path<String>, Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn update_meeting(headers: HeaderMap, Path(id): Path<String>, Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let parsed = Uuid::parse_str(&id).map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id: {e}")))?;
     ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let mut updated = 0;
     if let Some(title) = item.get("title").and_then(|v| v.as_str()) {
-        diesel::sql_query("UPDATE minutes_meetings SET title = $1 WHERE id = $2")
+        updated += diesel::sql_query("UPDATE minutes_meetings SET title = $1 WHERE id = $2 AND branch_id = $3")
             .bind::<diesel::sql_types::Text, _>(title)
             .bind::<diesel::sql_types::Uuid, _>(parsed)
+            .bind::<diesel::sql_types::Uuid, _>(branch)
             .execute(&mut conn).map_err(db::map_diesel_err)?;
     }
     if let Some(status) = item.get("status").and_then(|v| v.as_str()) {
-        diesel::sql_query("UPDATE minutes_meetings SET status = $1 WHERE id = $2")
+        updated += diesel::sql_query("UPDATE minutes_meetings SET status = $1 WHERE id = $2 AND branch_id = $3")
             .bind::<diesel::sql_types::Text, _>(status)
             .bind::<diesel::sql_types::Uuid, _>(parsed)
+            .bind::<diesel::sql_types::Uuid, _>(branch)
             .execute(&mut conn).map_err(db::map_diesel_err)?;
     }
+    if updated == 0 { return Err((StatusCode::NOT_FOUND, "Meeting not found".to_string())); }
     Ok(Json(serde_json::json!({"success": true, "id": id})))
 }

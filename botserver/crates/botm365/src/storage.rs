@@ -10,6 +10,7 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             bot_id UUID NOT NULL,
             organization_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
             site_id TEXT NOT NULL,
             list_id TEXT,
             item_id TEXT,
@@ -27,6 +28,7 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
         "CREATE TABLE IF NOT EXISTS m365_calendar_events (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             bot_id UUID NOT NULL,
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
             subject TEXT NOT NULL,
             start_time TIMESTAMPTZ NOT NULL,
             end_time TIMESTAMPTZ NOT NULL,
@@ -42,6 +44,7 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
         "CREATE TABLE IF NOT EXISTS m365_onedrive_files (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             bot_id UUID NOT NULL,
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
             name TEXT NOT NULL,
             path TEXT NOT NULL,
             size_bytes BIGINT NOT NULL DEFAULT 0,
@@ -55,6 +58,7 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     diesel::sql_query(
         "CREATE TABLE IF NOT EXISTS oauth_microsoft_settings (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
             tenant_id TEXT NOT NULL DEFAULT '',
             client_id TEXT NOT NULL DEFAULT '',
             client_secret_encrypted TEXT,

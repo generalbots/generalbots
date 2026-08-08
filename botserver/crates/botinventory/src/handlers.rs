@@ -2,7 +2,12 @@ use crate::types::{
     CreateItemRequest, CreateMovementRequest, CreatePoRequest, InventoryItem, InventoryMovement,
     PurchaseOrder,
 };
-use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    routing::get,
+    Json, Router,
+};
 use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -12,6 +17,13 @@ pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<PgConnectio
 #[derive(Clone)]
 pub struct InventoryState {
     pub pool: DbPool,
+}
+
+/// Resolves the caller's tenant branch from the server-minted JWT claims
+/// (issue #734). Falls back to the global nil branch for anonymous/system
+/// callers; every query is still bounded by the resolved branch.
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    botsecurity_core::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
 }
 
 pub fn configure_inventory_routes() -> Router<Arc<InventoryState>> {
@@ -25,13 +37,16 @@ pub fn configure_inventory_routes() -> Router<Arc<InventoryState>> {
 
 async fn list_items(
     State(state): State<Arc<InventoryState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<InventoryItem>>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let items = diesel::sql_query(
         "SELECT id, branch_id, product_id, sku, name, description, quantity, unit, \
          min_stock, max_stock, location, category, unit_cost, is_active, created_at, updated_at \
-         FROM inventory_items ORDER BY name",
+         FROM inventory_items WHERE branch_id = $1 ORDER BY name",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load::<ItemDbRow>(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .into_iter()
@@ -42,8 +57,10 @@ async fn list_items(
 
 async fn create_item(
     State(state): State<Arc<InventoryState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreateItemRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let id = Uuid::new_v4();
     let qty = payload.quantity.unwrap_or_default();
@@ -52,9 +69,10 @@ async fn create_item(
     diesel::sql_query(
         "INSERT INTO inventory_items (id, branch_id, sku, name, description, quantity, unit, \
          min_stock, max_stock, location, category, unit_cost, is_active) \
-         VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true)",
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .bind::<diesel::sql_types::Text, _>(&payload.sku)
     .bind::<diesel::sql_types::Text, _>(&payload.name)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&payload.description)
@@ -73,15 +91,18 @@ async fn create_item(
 
 async fn get_item(
     State(state): State<Arc<InventoryState>>,
+    headers: HeaderMap,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> Result<Json<InventoryItem>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
         "SELECT id, branch_id, product_id, sku, name, description, quantity, unit, \
          min_stock, max_stock, location, category, unit_cost, is_active, created_at, updated_at \
-         FROM inventory_items WHERE id = $1",
+         FROM inventory_items WHERE id = $1 AND branch_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .get_result::<ItemDbRow>(&mut conn)
     .map_err(|_| StatusCode::NOT_FOUND)?;
     Ok(Json(item_from_row(row)))
@@ -89,13 +110,16 @@ async fn get_item(
 
 async fn list_movements(
     State(state): State<Arc<InventoryState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<InventoryMovement>>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT id, branch_id, item_id, movement_type, quantity, reference_type, \
          reference_id, notes, created_by, created_at \
-         FROM inventory_movements ORDER BY created_at DESC",
+         FROM inventory_movements WHERE branch_id = $1 ORDER BY created_at DESC",
     )
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .load::<MovementDbRow>(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .into_iter()
@@ -117,16 +141,19 @@ async fn list_movements(
 
 async fn create_movement(
     State(state): State<Arc<InventoryState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreateMovementRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let id = Uuid::new_v4();
 
     diesel::sql_query(
         "INSERT INTO inventory_movements (id, branch_id, item_id, movement_type, quantity, notes) \
-         VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, $4, $5)",
+         VALUES ($1, $2, $3, $4, $5, $6)",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .bind::<diesel::sql_types::Uuid, _>(&payload.item_id)
     .bind::<diesel::sql_types::Text, _>(&payload.movement_type)
     .bind::<diesel::sql_types::Numeric, _>(&payload.quantity)
@@ -139,13 +166,16 @@ async fn create_movement(
 
 async fn list_pos(
     State(state): State<Arc<InventoryState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<PurchaseOrder>>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let rows = diesel::sql_query(
         "SELECT id, branch_id, po_number, vendor_name, status, total_amount, currency, \
          expected_date, notes, created_at \
-         FROM purchase_orders ORDER BY created_at DESC",
+         FROM purchase_orders WHERE branch_id = $1 ORDER BY created_at DESC",
     )
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .load::<PoDbRow>(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .into_iter()
@@ -167,8 +197,10 @@ async fn list_pos(
 
 async fn create_po(
     State(state): State<Arc<InventoryState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreatePoRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let po_id = Uuid::new_v4();
     let po_number = format!("PO-{}", chrono::Utc::now().format("%Y%m%d-%06x"));
@@ -181,9 +213,10 @@ async fn create_po(
 
         diesel::sql_query(
             "INSERT INTO purchase_orders (id, branch_id, po_number, vendor_name, status, total_amount, expected_date, notes) \
-             VALUES ($1, '00000000-0000-0000-0000-000000000000', $2, $3, 'draft', $4, $5, $6)",
+             VALUES ($1, $2, $3, $4, 'draft', $5, $6, $7)",
         )
         .bind::<diesel::sql_types::Uuid, _>(&po_id)
+        .bind::<diesel::sql_types::Uuid, _>(&branch)
         .bind::<diesel::sql_types::Text, _>(&po_number)
         .bind::<diesel::sql_types::Text, _>(&payload.vendor_name)
         .bind::<diesel::sql_types::Numeric, _>(&total)
@@ -215,15 +248,18 @@ async fn create_po(
 
 async fn get_po(
     State(state): State<Arc<InventoryState>>,
+    headers: HeaderMap,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> Result<Json<PurchaseOrder>, StatusCode> {
+    let branch = resolve_branch(&headers);
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let row = diesel::sql_query(
         "SELECT id, branch_id, po_number, vendor_name, status, total_amount, currency, \
          expected_date, notes, created_at \
-         FROM purchase_orders WHERE id = $1",
+         FROM purchase_orders WHERE id = $1 AND branch_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
+    .bind::<diesel::sql_types::Uuid, _>(&branch)
     .get_result::<PoDbRow>(&mut conn)
     .map_err(|_| StatusCode::NOT_FOUND)?;
 

@@ -16,7 +16,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             status VARCHAR(30) NOT NULL DEFAULT 'open',
             assignee TEXT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            resolved_at TIMESTAMPTZ
+            resolved_at TIMESTAMPTZ,
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -30,7 +31,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             category VARCHAR(50) NOT NULL DEFAULT 'general',
             status VARCHAR(30) NOT NULL DEFAULT 'open',
             requester TEXT NOT NULL DEFAULT '',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -43,7 +45,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             kind VARCHAR(50) NOT NULL DEFAULT 'service',
             owner TEXT NOT NULL DEFAULT '',
             status VARCHAR(30) NOT NULL DEFAULT 'active',
-            dependencies JSONB NOT NULL DEFAULT '[]'::jsonb
+            dependencies JSONB NOT NULL DEFAULT '[]'::jsonb,
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)
@@ -56,7 +59,8 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             content TEXT NOT NULL DEFAULT '',
             tags JSONB NOT NULL DEFAULT '[]'::jsonb,
             author TEXT NOT NULL DEFAULT '',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
         )",
     )
     .execute(&mut conn)

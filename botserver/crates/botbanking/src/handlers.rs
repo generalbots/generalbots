@@ -1,5 +1,5 @@
 use axum::extract::{Json, Path};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -8,6 +8,12 @@ use diesel::RunQueryDsl;
 
 use crate::db;
 use crate::storage;
+
+use botcore::shared::tenant::branch_from_claims;
+
+fn resolve_branch(headers: &HeaderMap) -> Uuid {
+    branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
@@ -64,8 +70,9 @@ fn parse_decimal(s: &str) -> Result<Decimal, (StatusCode, String)> {
     s.parse::<Decimal>().map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid decimal '{s}': {e}")))
 }
 
-pub async fn list_transactions() -> Result<Json<Vec<Transaction>>, (StatusCode, String)> {
+pub async fn list_transactions(headers: HeaderMap) -> Result<Json<Vec<Transaction>>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -81,8 +88,9 @@ pub async fn list_transactions() -> Result<Json<Vec<Transaction>>, (StatusCode, 
     }
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, account_id, kind, amount, currency, description, status, created_at
-         FROM banking_transactions ORDER BY created_at DESC LIMIT 500",
+         FROM banking_transactions WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Transaction {
@@ -91,16 +99,17 @@ pub async fn list_transactions() -> Result<Json<Vec<Transaction>>, (StatusCode, 
     }).collect()))
 }
 
-pub async fn create_transaction(Json(req): Json<NewTransaction>) -> Result<Json<Transaction>, (StatusCode, String)> {
+pub async fn create_transaction(headers: HeaderMap, Json(req): Json<NewTransaction>) -> Result<Json<Transaction>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
     let amount = parse_decimal(&req.amount)?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     diesel::sql_query(
-        "INSERT INTO banking_transactions (id, account_id, kind, amount, currency, description, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)",
+        "INSERT INTO banking_transactions (id, account_id, kind, amount, currency, description, status, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Uuid, _>(req.account_id)
@@ -109,6 +118,7 @@ pub async fn create_transaction(Json(req): Json<NewTransaction>) -> Result<Json<
     .bind::<diesel::sql_types::Text, _>(&req.currency)
     .bind::<diesel::sql_types::Text, _>(&req.description)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(Transaction {
@@ -117,8 +127,9 @@ pub async fn create_transaction(Json(req): Json<NewTransaction>) -> Result<Json<
     }))
 }
 
-pub async fn list_platforms() -> Result<Json<Vec<Platform>>, (StatusCode, String)> {
+pub async fn list_platforms(headers: HeaderMap) -> Result<Json<Vec<Platform>>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -130,8 +141,9 @@ pub async fn list_platforms() -> Result<Json<Vec<Platform>>, (StatusCode, String
         #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)] last_sync: Option<chrono::DateTime<Utc>>,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, name, kind, status, last_sync FROM banking_platforms ORDER BY name ASC LIMIT 500",
+        "SELECT id, name, kind, status, last_sync FROM banking_platforms WHERE branch_id = $1 ORDER BY name ASC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Platform {
@@ -139,8 +151,9 @@ pub async fn list_platforms() -> Result<Json<Vec<Platform>>, (StatusCode, String
     }).collect()))
 }
 
-pub async fn reconcile() -> Result<Json<ReconcileResult>, (StatusCode, String)> {
+pub async fn reconcile(headers: HeaderMap) -> Result<Json<ReconcileResult>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let period = Utc::now().format("%Y-%m").to_string();
@@ -152,8 +165,9 @@ pub async fn reconcile() -> Result<Json<ReconcileResult>, (StatusCode, String)> 
     }
     let stats: TxnRow = diesel::sql_query(
         "SELECT COUNT(*) AS total_count, COALESCE(SUM(amount), 0) AS total_amount
-         FROM banking_transactions WHERE status != 'reconciled'",
+         FROM banking_transactions WHERE status != 'reconciled' AND branch_id = $1",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .get_result(&mut conn)
     .map_err(db::map_diesel_err)?;
     let total_count = stats.total_count;
@@ -161,8 +175,8 @@ pub async fn reconcile() -> Result<Json<ReconcileResult>, (StatusCode, String)> 
     let unmatched = total_count - matched;
     let id = Uuid::new_v4();
     diesel::sql_query(
-        "INSERT INTO banking_reconcile_results (id, period, matched, unmatched, total_amount, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, 'completed', $6)",
+        "INSERT INTO banking_reconcile_results (id, period, matched, unmatched, total_amount, status, created_at, branch_id)
+         VALUES ($1, $2, $3, $4, $5, 'completed', $6, $7)",
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Text, _>(&period)
@@ -170,6 +184,7 @@ pub async fn reconcile() -> Result<Json<ReconcileResult>, (StatusCode, String)> 
     .bind::<diesel::sql_types::BigInt, _>(unmatched)
     .bind::<diesel::sql_types::Numeric, _>(stats.total_amount)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(ReconcileResult {
@@ -179,8 +194,9 @@ pub async fn reconcile() -> Result<Json<ReconcileResult>, (StatusCode, String)> 
     }))
 }
 
-pub async fn get_report() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
+pub async fn get_report(headers: HeaderMap) -> Result<Json<Vec<Report>>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -193,8 +209,9 @@ pub async fn get_report() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
         #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, name, kind, period, url, created_at FROM banking_reports ORDER BY created_at DESC LIMIT 500",
+        "SELECT id, name, kind, period, url, created_at FROM banking_reports WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Report {
@@ -202,8 +219,9 @@ pub async fn get_report() -> Result<Json<Vec<Report>>, (StatusCode, String)> {
     }).collect()))
 }
 
-pub async fn list_reconcile_pairs() -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn list_reconcile_pairs(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
 
@@ -219,8 +237,9 @@ pub async fn list_reconcile_pairs() -> Result<Json<serde_json::Value>, (StatusCo
 
     let rows: Vec<Row> = diesel::sql_query(
         "SELECT id, period, matched, total_amount, status, created_at \
-         FROM banking_reconcile_results ORDER BY created_at DESC LIMIT 100",
+         FROM banking_reconcile_results WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 100",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
 
@@ -257,18 +276,22 @@ pub async fn manual_match(
 }
 
 pub async fn sync_platform(
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
 
     let now = Utc::now();
-    diesel::sql_query("UPDATE banking_platforms SET last_sync = $1, status = 'synced' WHERE id = $2")
+    let n = diesel::sql_query("UPDATE banking_platforms SET last_sync = $1, status = 'synced' WHERE id = $2 AND branch_id = $3")
         .bind::<diesel::sql_types::Timestamptz, _>(now)
         .bind::<diesel::sql_types::Uuid, _>(id)
+        .bind::<diesel::sql_types::Uuid, _>(branch)
         .execute(&mut conn)
         .map_err(db::map_diesel_err)?;
+    if n == 0 { return Err((StatusCode::NOT_FOUND, format!("Platform {id} not found"))); }
 
     Ok(Json(serde_json::json!({
         "success": true,

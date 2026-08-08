@@ -74,7 +74,7 @@ impl TaskEngine {
         }
     }
 
-    pub fn get_task(&self, task_id: Uuid) -> Result<Task, String> {
+    pub fn get_task(&self, task_id: Uuid, task_branch_id: Uuid) -> Result<Task, String> {
         use crate::schema::tasks::dsl::*;
 
         let mut conn = self
@@ -84,12 +84,12 @@ impl TaskEngine {
             .map_err(|e| format!("Pool error: {}", e))?;
 
         tasks
-            .find(task_id)
+            .filter(id.eq(task_id).and(branch_id.eq(task_branch_id)))
             .first::<Task>(&mut conn)
             .map_err(|e| format!("Query error: {}", e))
     }
 
-    pub fn update_task_status(&self, task_id: Uuid, new_status: &str) -> Result<(), String> {
+    pub fn update_task_status(&self, task_id: Uuid, task_branch_id: Uuid, new_status: &str) -> Result<(), String> {
         use crate::schema::tasks::dsl::*;
 
         let mut conn = self
@@ -98,7 +98,7 @@ impl TaskEngine {
             .get()
             .map_err(|e| format!("Pool error: {}", e))?;
 
-        diesel::update(tasks.find(task_id))
+        diesel::update(tasks.filter(id.eq(task_id).and(branch_id.eq(task_branch_id))))
             .set(status.eq(Some(new_status.to_string())))
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {}", e))?;
@@ -106,7 +106,7 @@ impl TaskEngine {
         Ok(())
     }
 
-    pub fn delete_task(&self, task_id: Uuid) -> Result<(), String> {
+    pub fn delete_task(&self, task_id: Uuid, task_branch_id: Uuid) -> Result<(), String> {
         use crate::schema::tasks::dsl::*;
 
         let mut conn = self
@@ -115,15 +115,10 @@ impl TaskEngine {
             .get()
             .map_err(|e| format!("Pool error: {}", e))?;
 
-        diesel::delete(tasks.find(task_id))
+        diesel::delete(tasks.filter(id.eq(task_id).and(branch_id.eq(task_branch_id))))
             .execute(&mut conn)
             .map_err(|e| format!("Delete error: {}", e))?;
 
         Ok(())
-    }
-
-    pub fn get_branch_id_for_task(&self, task_id: Uuid) -> Result<Uuid, String> {
-        let task = self.get_task(task_id)?;
-        Ok(task.branch_id)
     }
 }

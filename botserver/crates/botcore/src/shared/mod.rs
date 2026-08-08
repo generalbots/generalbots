@@ -23,3 +23,4 @@ pub use memory_monitor::*;
 
 pub mod message_type;
 pub use message_type::MessageType;
+pub use botsecurity_core::tenant as tenant;
