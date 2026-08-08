@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 pub type DbPool = Arc<Pool<ConnectionManager<PgConnection>>>;
 pub type BoxError = Box<dyn std::error::Error + Send + Sync>;
-type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, BoxError>> + Send>>;
+pub type BoxFuture<T> = std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, BoxError>> + Send>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserSession {

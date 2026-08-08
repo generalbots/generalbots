@@ -592,7 +592,8 @@ fn inner_build_sub_router(
             }),
         });
         let config_ops = Arc::new(ConfigOpsImpl);
-        sub_router = sub_router.merge(botautotask::api::router(autotask_state, config_ops));
+        let llm_ops = Arc::new(botautotask::llm_adapter::BotlibLlmAdapter(app_state.llm_provider.clone()));
+        sub_router = sub_router.merge(botautotask::api::router(autotask_state, config_ops, llm_ops));
     }
 
     sub_router
