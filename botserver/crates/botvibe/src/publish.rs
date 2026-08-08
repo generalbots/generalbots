@@ -12,15 +12,20 @@ use std::time::Duration;
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::domains::{BindDomainRequest, ProjectDomains};
 use crate::projects::ProjectRegistry;
-use crate::tool_executor::{ToolFuture, ToolHandler, ToolSchema};
+use crate::tool_executor::{ToolHandler, ToolSchema};
 use crate::types::{VibeState, VibeToolResult, VibeUseCase};
 use crate::vm_lifecycle::{CreateVmRequest, VmLifecycle};
 
 const PUBLISH_DEFAULT_ENV: &str = "production";
 
 pub fn publish_project_tool() -> ToolHandler {
-    Arc::new(|args: Value, state: &dyn VibeState| Box::pin(publish_project(args, state)) as ToolFuture)
+    Arc::new(|args: Value, state: &dyn VibeState| {
+        let pool = state.db_pool().clone();
+        let args = args.clone();
+        Box::pin(publish_project(args, pool))
+    })
 }
 
 pub fn publish_project_schema() -> ToolSchema {
@@ -42,15 +47,15 @@ fn api_base() -> String {
     std::env::var("VIBE_API_URL").unwrap_or_else(|_| "http://localhost:8080".to_string())
 }
 
-async fn publish_project(args: Value, state: &dyn VibeState) -> VibeToolResult {
+async fn publish_project(args: Value, pool: crate::types::DbPool) -> VibeToolResult {
     let started = std::time::Instant::now();
-    match do_publish(args, state).await {
+    match do_publish(args, pool).await {
         Ok(data) => VibeToolResult { success: true, data, error: None, latency_ms: started.elapsed().as_millis() as u64 },
         Err(e) => VibeToolResult { success: false, data: Value::Null, error: Some(e), latency_ms: started.elapsed().as_millis() as u64 },
     }
 }
 
-async fn do_publish(args: Value, state: &dyn VibeState) -> Result<Value, String> {
+async fn do_publish(args: Value, pool: crate::types::DbPool) -> Result<Value, String> {
     let project_id = args
         .get("project_id")
         .and_then(|v| v.as_str())
@@ -62,7 +67,6 @@ async fn do_publish(args: Value, state: &dyn VibeState) -> Result<Value, String>
     }
     let domain = args.get("domain").and_then(|v| v.as_str()).map(ToString::to_string);
 
-    let pool = state.db_pool().clone();
     let registry = ProjectRegistry::new(pool.clone());
     let project = registry
         .get(project_id)?
@@ -78,21 +82,21 @@ async fn do_publish(args: Value, state: &dyn VibeState) -> Result<Value, String>
     let target = match &domain {
         Some(d) => serde_json::json!({
             "External": {
-                "repo_url": format!("https://alm.pragmatismo.com.br/{org}/{repo}"),
+                "repo_url": format!("https://alm.pragmatismo.com.br/{org}/{repo_name}"),
                 "custom_domain": d,
                 "ci_cd_enabled": true
             }
         }),
         None => serde_json::json!({
             "Internal": {
-                "route": format!("{repo}-{env}.gb.solutions"),
+                "route": format!("{repo_name}-{env}.gb.solutions"),
                 "shared_resources": true
             }
         }),
     };
 
     let body = serde_json::json!({
-        "app_name": repo,
+        "app_name": repo_name,
         "org": org,
         "project_type": project.project_type,
         "environment": env,
@@ -129,12 +133,24 @@ async fn do_publish(args: Value, state: &dyn VibeState) -> Result<Value, String>
         .append_deployment(project_id, &deployment)
         .map_err(|e| format!("record deployment: {e}"))?;
 
+    let binding = match &domain {
+        Some(d) => {
+            let bind_req = BindDomainRequest { domain: d.clone(), env: env.clone() };
+            match ProjectDomains::new(pool).bind(project_id, &bind_req).await {
+                Ok(b) => serde_json::json!({ "bound": true, "id": b.id, "domain": b.domain, "env": b.env, "container": b.container, "verified": b.verified, "tls_status": b.tls_status }),
+                Err(e) => serde_json::json!({ "bound": false, "error": e }),
+            }
+        }
+        None => serde_json::json!({ "bound": false, "error": "no domain provided" }),
+    };
+
     Ok(serde_json::json!({
         "published": true,
         "project": project.name,
         "env": env,
         "container": vm.container_name,
         "domain": domain,
+        "domain_bind": binding,
         "deployment": deployed,
         "history_key": "deployments"
     }))

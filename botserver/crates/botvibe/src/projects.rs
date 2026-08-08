@@ -214,6 +214,7 @@ impl ProjectRegistry {
         sql.push_str(&(limit_idx + 1).to_string());
 
         let mut query_builder = diesel::sql_query(sql)
+            .into_boxed::<diesel::pg::Pg>()
             .bind::<diesel::sql_types::Uuid, _>(branch_id);
         for b in &binds {
             query_builder = query_builder.bind::<diesel::sql_types::Text, _>(b.clone());
@@ -311,7 +312,7 @@ impl ProjectRegistry {
         sql.push_str(&assignments.join(", "));
         sql.push_str(&format!(" WHERE id = ${}", binds.len() + (payload_bind.is_some() as usize) + 1));
 
-        let mut query_builder = diesel::sql_query(sql);
+        let mut query_builder = diesel::sql_query(sql).into_boxed::<diesel::pg::Pg>();
         for b in &binds {
             query_builder = query_builder.bind::<diesel::sql_types::Text, _>(b.clone());
         }
@@ -337,22 +338,23 @@ impl ProjectRegistry {
 }
 
 #[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 struct ProjectRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    org_id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    branch_id: String,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     name: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     project_type: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     repository: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     framework: Option<String>,
-    #[diesel(sql_type = diesel::sql_types::Text)]
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     custom_domain: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Text)]
     status: String,
@@ -369,9 +371,9 @@ struct ProjectRow {
 impl ProjectRow {
     fn into_project(self) -> Project {
         Project {
-            id: Uuid::parse_str(&self.id).unwrap_or_else(|_| Uuid::nil()),
-            org_id: Uuid::parse_str(&self.org_id).unwrap_or_else(|_| Uuid::nil()),
-            branch_id: Uuid::parse_str(&self.branch_id).unwrap_or_else(|_| Uuid::nil()),
+            id: self.id,
+            org_id: self.org_id,
+            branch_id: self.branch_id,
             name: self.name,
             project_type: self.project_type,
             repository: self.repository,

@@ -166,6 +166,7 @@
             var project = data.project;
             await raiseDevVm(project, env, kind.id, tier);
             if (typeof currentProject !== "undefined") currentProject = name;
+            if (typeof currentProjectId !== "undefined") currentProjectId = project.id;
             close();
             document.dispatchEvent(new CustomEvent("gb:vibe-project", {
                 detail: { project: name, id: project.id }

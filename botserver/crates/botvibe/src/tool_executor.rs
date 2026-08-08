@@ -138,6 +138,20 @@ impl ToolRegistry {
             handler: crate::publish::publish_project_tool(),
         });
 
+        for (name, schema, handler) in [
+            ("domain/bind", crate::domains_tool::domain_bind_schema(), crate::domains_tool::domain_bind_tool()),
+            ("domain/verify", crate::domains_tool::domain_verify_schema(), crate::domains_tool::domain_verify_tool()),
+            ("domain/tls", crate::domains_tool::domain_tls_schema(), crate::domains_tool::domain_tls_tool()),
+        ] {
+            tools.insert(name.to_string(), RegisteredTool {
+                descriptor: ToolDescriptor {
+                    schema,
+                    category: ToolCategory::Deployment,
+                },
+                handler,
+            });
+        }
+
         let crm_tools = vec![
             ("search_contacts", "Busca contatos no CRM", false),
             ("get_deals", "Obtém oportunidades do pipeline CRM", false),

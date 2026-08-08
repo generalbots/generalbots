@@ -2073,6 +2073,7 @@ name = "botgl"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -2152,6 +2153,7 @@ name = "botinventory"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -2599,6 +2601,7 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botlib",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -2671,6 +2674,7 @@ version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
  "botlib",
+ "botsecurity-core",
  "chrono",
  "diesel",
  "log",
@@ -3138,6 +3142,7 @@ name = "bottasks"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "botsecurity-core",
  "chrono",
  "cron",
  "diesel",
