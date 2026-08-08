@@ -242,6 +242,27 @@ impl ProjectRegistry {
         Ok(row.map(ProjectRow::into_project))
     }
 
+    /// Append a deployment record to the project payload (deploy history;
+    /// consumed by #772 rollback and the UI deployment list).
+    pub fn append_deployment(&self, id: Uuid, record: &serde_json::Value) -> Result<(), String> {
+        let mut conn = self.conn()?;
+        diesel::sql_query(
+            "UPDATE vibe_projects
+             SET payload = jsonb_set(
+                   payload,
+                   '{deployments}',
+                   COALESCE(payload->'deployments', '[]'::jsonb) || $2::jsonb
+                 ),
+                 updated_at = NOW()
+             WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(id)
+        .bind::<diesel::sql_types::Jsonb, _>(record)
+        .execute(&mut conn)
+        .map_err(|e| format!("append deployment: {e}"))?;
+        Ok(())
+    }
+
     pub fn update(&self, id: Uuid, req: &UpdateProjectRequest) -> Result<bool, String> {
         let mut conn = self.conn()?;
         let mut assignments: Vec<String> = Vec::new();
