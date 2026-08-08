@@ -158,6 +158,40 @@ Use Designer to change anything about your app through conversation.
 
 ---
 
+## LLM / Chat Exposure (end-to-end reachability)
+
+AutoTask is reachable from every channel (web, WhatsApp, Telegram) through the
+unified `__api_call__` surface — the API command catalog. The LLM discovers the
+endpoints with `api.find` and executes them with `api.exec`; no BASIC keyword or
+per-bot prompt change is required.
+
+Registered surface:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/autotask/classify` | Classify a plain-language intent into an automation plan |
+| `POST /api/autotask/compile` | Compile an automation plan into a BASIC script |
+| `POST /api/autotask/decide` | Decide immediate vs scheduled execution mode |
+| `POST /api/autotask/execute` | Execute a compiled automation plan |
+| `POST /api/autotask/create-and-execute` | One-call automation: classify, plan, generate, execute |
+| `GET /api/autotask/tasks` | List AutoTask runs and their status |
+| `GET /api/autotask/stats` | Runs, success rate, pending approvals |
+| `POST /api/autotask/tasks/:task_id/approve` | Approve a pending task |
+| `POST /api/autotask/tasks/:task_id/cancel` | Cancel a queued or running task |
+
+Curated chat commands (visible through `apps.find`/`api.find`):
+
+- `tasks.autotask.create` — turn plain language into a running automation (admin)
+- `tasks.autotask.list` — list runs and status
+- `tasks.autotask.approve` / `tasks.autotask.cancel` (admin)
+- `tasks.autotask.stats`
+
+Security: mutating AutoTask endpoints are admin-only via the
+`rbac_api_permissions` matrix (`/api/autotask%` for POST/PUT/DELETE). The
+discovery filter (`api.find`) and the executor (`api.exec`) both enforce it, so
+regular users can list tasks but cannot generate or execute automation scripts.
+Read-only `GET` endpoints remain open.
+
 ## Next Steps
 
 - [Designer Guide](./designer.md) — Edit apps through conversation

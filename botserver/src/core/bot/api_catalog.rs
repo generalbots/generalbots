@@ -126,6 +126,15 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "GET", path: "/api/cloud/domains", summary: "List bot domain mappings" },
         ApiEndpoint { method: "POST", path: "/api/cloud/domains", summary: "Map a domain to a bot" },
         ApiEndpoint { method: "GET", path: "/api/domains/resolve", summary: "Resolve a hostname to a bot" },
+        ApiEndpoint { method: "POST", path: "/api/autotask/classify", summary: "Classify a plain-language intent into an automation plan" },
+        ApiEndpoint { method: "POST", path: "/api/autotask/compile", summary: "Compile an automation plan into a BASIC script" },
+        ApiEndpoint { method: "POST", path: "/api/autotask/decide", summary: "Decide immediate vs scheduled execution mode" },
+        ApiEndpoint { method: "POST", path: "/api/autotask/execute", summary: "Execute an automation plan (compiled BASIC script)" },
+        ApiEndpoint { method: "POST", path: "/api/autotask/create-and-execute", summary: "Turn a plain-language request into an automated task and run it" },
+        ApiEndpoint { method: "GET", path: "/api/autotask/tasks", summary: "List AutoTask runs and their status" },
+        ApiEndpoint { method: "GET", path: "/api/autotask/stats", summary: "AutoTask statistics: runs, success rate, pending approvals" },
+        ApiEndpoint { method: "POST", path: "/api/autotask/tasks/:task_id/approve", summary: "Approve a pending automated task" },
+        ApiEndpoint { method: "POST", path: "/api/autotask/tasks/:task_id/cancel", summary: "Cancel a queued or running automated task" },
     ]
 }
 
