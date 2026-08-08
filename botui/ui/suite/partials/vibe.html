@@ -255,6 +255,18 @@ font-weight: 600;
 ">
 💻 Code
 </button>
+<button class="vibe-deploy-btn" onclick="window.VibeNewProject.open()" style="
+border: 1px solid var(--accent);
+background: var(--accent);
+color: var(--bg);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
++ New
+</button>
 <button class="vibe-deploy-btn" onclick="showDeploymentModal()" style="
 border: 1px solid var(--accent);
 background: var(--accent);
@@ -667,6 +679,8 @@ Enable CI/CD pipeline (automatic builds and deployments)
 </div>
 </div>
 
+<div id="vibeNewProjectModal" style="display: none; position: absolute; inset: 0; z-index: 90;"></div>
+
 <script src="/suite/vibe/vibe-state.js"></script>
 <script src="/suite/vibe/vibe-helpers.js"></script>
 <script src="/suite/vibe/vibe-canvas.js"></script>
@@ -676,3 +690,4 @@ Enable CI/CD pipeline (automatic builds and deployments)
 <script src="/suite/vibe/vibe-deploy.js"></script>
 <script src="/suite/vibe/vibe-init.js"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
+<script src="/suite/vibe/vibe-new-project.js"></script>
