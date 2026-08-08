@@ -127,7 +127,7 @@ impl VmOps {
                 Ok(()) => report = self.probe(&vm).await?,
                 Err(e) => report.error = Some(format!("restart: {e}")),
             }
-            let _ = lifecycle.sync_status(&vm.id);
+            let _ = lifecycle.sync_status(vm.id);
         }
         Ok(report)
     }

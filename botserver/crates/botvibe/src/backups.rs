@@ -101,7 +101,7 @@ impl Backups {
         VmLifecycle::new(self.pool.clone())
             .linux_snapshot(&vm.container_name, &safe_tag)
             .map_err(|e| format!("incus snapshot: {e}"))?;
-        self.insert(&vm, &safe_tag, "snapshot", "created", 0, None)
+        self.insert(&vm, &safe_tag, "snapshot", "created", 0)
     }
 
     /// Create an off-machine copy of an existing snapshot record.

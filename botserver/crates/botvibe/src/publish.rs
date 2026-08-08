@@ -72,6 +72,12 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         .get(project_id)?
         .ok_or_else(|| format!("project {project_id} not found"))?;
 
+    let metering = crate::metering::VMetering::new(pool.clone());
+    if let Err(e) = metering.enforce_for_project(project_id, crate::metering::MeterKind::BuildMinutes) {
+        return Err(e);
+    }
+    let _ = metering.add_for_project(project_id, &env, crate::metering::MeterKind::BuildMinutes, 1.0);
+
     let repo_name = VmLifecycle::alm_repo(&project.name);
     let org = VmLifecycle::alm_org(project.branch_id);
 
@@ -101,6 +107,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         "project_type": project.project_type,
         "environment": env,
         "target": target,
+        "project_id": project_id,
     });
 
     let client = reqwest::Client::builder()

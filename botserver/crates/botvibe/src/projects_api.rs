@@ -1,15 +1,25 @@
 //! #743 — REST surface for the Vibe project registry. Handlers are thin:
 //! validation + delegation to `ProjectRegistry`; errors are sanitized.
+//! #768 — every mutation is gated by per-project RBAC: create grants the
+//! creator `owner`; update requires `developer+`; delete requires `owner`.
 
-use crate::projects::{
-    CreateProjectRequest, ListProjectsQuery, Project, ProjectRegistryRef, UpdateProjectRequest,
-};
+use std::sync::Arc;
+
 use axum::{
-    extract::{Path, Query},
+    extract::{Extension, Path, Query},
+    http::StatusCode,
     Json,
 };
 use serde::Serialize;
 use uuid::Uuid;
+
+use botsecurity_auth::auth_api::types::AuthenticatedUser;
+
+use crate::metering::VMetering;
+use crate::projects::{
+    CreateProjectRequest, ListProjectsQuery, Project, ProjectRegistryRef, UpdateProjectRequest,
+};
+use crate::rbac::{ProjectRbac, ProjectRole};
 
 #[derive(Debug, Serialize)]
 pub struct ProjectResponse {
@@ -19,68 +29,131 @@ pub struct ProjectResponse {
     pub error: Option<String>,
 }
 
-fn ok_project(p: Project) -> Json<ProjectResponse> {
-    Json(ProjectResponse {
-        success: true,
-        project: Some(p),
-        projects: None,
-        error: None,
-    })
+type ApiResult = (StatusCode, Json<ProjectResponse>);
+
+fn ok_project(p: Project) -> ApiResult {
+    (
+        StatusCode::OK,
+        Json(ProjectResponse {
+            success: true,
+            project: Some(p),
+            projects: None,
+            error: None,
+        }),
+    )
 }
 
-fn ok_projects(list: Vec<Project>) -> Json<ProjectResponse> {
-    Json(ProjectResponse {
-        success: true,
-        project: None,
-        projects: Some(list),
-        error: None,
-    })
+fn ok_projects(list: Vec<Project>) -> ApiResult {
+    (
+        StatusCode::OK,
+        Json(ProjectResponse {
+            success: true,
+            project: None,
+            projects: Some(list),
+            error: None,
+        }),
+    )
 }
 
-fn err_response(msg: String) -> Json<ProjectResponse> {
+fn err_response(msg: String) -> ApiResult {
     log::error!("Vibe projects API error: {msg}");
-    Json(ProjectResponse {
-        success: false,
-        project: None,
-        projects: None,
-        error: Some(msg),
-    })
+    (
+        StatusCode::OK,
+        Json(ProjectResponse {
+            success: false,
+            project: None,
+            projects: None,
+            error: Some(msg),
+        }),
+    )
 }
 
-async fn create_project(
-    axum::extract::Extension(registry): axum::extract::Extension<ProjectRegistryRef>,
-    Json(req): Json<CreateProjectRequest>,
-) -> Json<ProjectResponse> {
-    if req.name.trim().is_empty() {
-        return err_response("project name must not be empty".into());
-    }
-    match registry.create(&req) {
-        Ok(p) => ok_project(p),
-        Err(e) => err_response(e),
-    }
+fn forbidden(msg: String) -> ApiResult {
+    log::warn!("Vibe projects API forbidden: {msg}");
+    (
+        StatusCode::FORBIDDEN,
+        Json(ProjectResponse {
+            success: false,
+            project: None,
+            projects: None,
+            error: Some(msg),
+        }),
+    )
 }
 
-async fn delete_project(
-    axum::extract::Extension(registry): axum::extract::Extension<ProjectRegistryRef>,
-    Path(id): Path<Uuid>,
-) -> Json<ProjectResponse> {
-    match registry.delete(id) {
-        Ok(true) => Json(ProjectResponse {
+fn deleted() -> ApiResult {
+    (
+        StatusCode::OK,
+        Json(ProjectResponse {
             success: true,
             project: None,
             projects: None,
             error: None,
         }),
+    )
+}
+
+async fn create_project(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(metering): Extension<Arc<VMetering>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<CreateProjectRequest>,
+) -> ApiResult {
+    if user.user_id.is_nil() {
+        return forbidden("forbidden: anonymous users cannot create projects".into());
+    }
+    if req.name.trim().is_empty() {
+        return err_response("project name must not be empty".into());
+    }
+    let org_id = req.org_id.unwrap_or_else(Uuid::nil);
+    let branch_id = req.branch_id.unwrap_or_else(Uuid::nil);
+    if let Err(e) = metering.enforce_project_creation(
+        org_id,
+        branch_id,
+        req.project_type.as_deref().unwrap_or("bot"),
+    ) {
+        return forbidden(e);
+    }
+    match registry.create(&req) {
+        Ok(p) => {
+            if let Err(e) = rbac.set_user_role(p.id, user.user_id, ProjectRole::Owner) {
+                log::error!("grant owner on project {} failed: {e}", p.id);
+            }
+            ok_project(p)
+        }
+        Err(e) => err_response(e),
+    }
+}
+
+async fn delete_project(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<Uuid>,
+) -> ApiResult {
+    match rbac.require_role(user.user_id, id, ProjectRole::Owner) {
+        Ok(_) => {}
+        Err(e) => return forbidden(e),
+    }
+    match registry.delete(id) {
+        Ok(true) => deleted(),
         Ok(false) => err_response(format!("project {id} not found")),
         Err(e) => err_response(e),
     }
 }
 
 async fn update_project(
-    axum::extract::Extension(registry): axum::extract::Extension<ProjectRegistryRef>,
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateProjectRequest>,
-) -> Json<ProjectResponse> {
+) -> ApiResult {
+    match rbac.require_role(user.user_id, id, ProjectRole::Developer) {
+        Ok(_) => {}
+        Err(e) => return forbidden(e),
+    }
     match registry.update(id, &req) {
         Ok(true) => match registry.get(id) {
             Ok(Some(p)) => ok_project(p),
@@ -93,9 +166,13 @@ async fn update_project(
 }
 
 async fn list_projects(
-    axum::extract::Extension(registry): axum::extract::Extension<ProjectRegistryRef>,
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(query): Query<ListProjectsQuery>,
-) -> Json<ProjectResponse> {
+) -> ApiResult {
+    if user.user_id.is_nil() {
+        return forbidden("forbidden: anonymous users cannot list projects".into());
+    }
     match registry.list(&query) {
         Ok(list) => ok_projects(list),
         Err(e) => err_response(e),
@@ -103,9 +180,15 @@ async fn list_projects(
 }
 
 async fn get_project(
-    axum::extract::Extension(registry): axum::extract::Extension<ProjectRegistryRef>,
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
-) -> Json<ProjectResponse> {
+) -> ApiResult {
+    match rbac.require_role(user.user_id, id, ProjectRole::Viewer) {
+        Ok(_) => {}
+        Err(e) => return forbidden(e),
+    }
     match registry.get(id) {
         Ok(Some(p)) => ok_project(p),
         Ok(None) => err_response(format!("project {id} not found")),
@@ -113,7 +196,11 @@ async fn get_project(
     }
 }
 
-pub fn projects_router(registry: ProjectRegistryRef) -> axum::Router {
+pub fn projects_router(
+    registry: ProjectRegistryRef,
+    rbac: ProjectRbac,
+    metering: Arc<VMetering>,
+) -> axum::Router {
     use axum::routing::{delete, get, post, put};
     axum::Router::new()
         .route("/api/vibe/projects", post(create_project))
@@ -121,5 +208,7 @@ pub fn projects_router(registry: ProjectRegistryRef) -> axum::Router {
         .route("/api/vibe/projects/:project_id", get(get_project))
         .route("/api/vibe/projects/:project_id", put(update_project))
         .route("/api/vibe/projects/:project_id", delete(delete_project))
-        .layer(axum::Extension(registry))
+        .layer(Extension(registry))
+        .layer(Extension(rbac))
+        .layer(Extension(metering))
 }
