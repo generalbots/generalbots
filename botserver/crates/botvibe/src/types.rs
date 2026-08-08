@@ -97,6 +97,7 @@ pub struct VibeRunConfig {
     pub max_tool_calls: u32,
     pub timeout_seconds: u64,
     pub model: Option<String>,
+    pub budget_cents: u64,
 }
 
 impl Default for VibeRunConfig {
@@ -107,6 +108,7 @@ impl Default for VibeRunConfig {
             max_tool_calls: 50,
             timeout_seconds: 300,
             model: None,
+            budget_cents: 0,
         }
     }
 }

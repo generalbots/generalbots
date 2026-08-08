@@ -79,7 +79,26 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     }
 
     let prompt_manager = Arc::new(VibePromptManager::new());
-    let tool_executor = Arc::new(VibeToolExecutor::new(Arc::new(ToolRegistry::new())));
+    let permissions = Arc::new(botvibe::PermissionEngine::new());
+    let skills = Arc::new(botvibe::SkillStore::new());
+    let canvases = Arc::new(botvibe::CanvasStore::new());
+    let issues = Arc::new(botvibe::IssueStore::new());
+    let sessions = Arc::new(botvibe::SessionStore::new());
+    let teams = Arc::new(botvibe::TeamStore::new());
+
+    let tool_registry = Arc::new(ToolRegistry::new());
+    {
+        let registry = tool_registry.clone();
+        let skills = skills.clone();
+        let canvases = canvases.clone();
+        let issues = issues.clone();
+        futures::executor::block_on(async move {
+            registry
+                .register_m5_tools(skills, canvases, issues)
+                .await;
+        });
+    }
+    let tool_executor = Arc::new(VibeToolExecutor::new(tool_registry));
     let telemetry = Arc::new(VibeTelemetry::new());
 
     let vm_ops = Arc::new(VmOps::new(app_state.conn.clone()));
@@ -101,7 +120,14 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         Err(e) => log::error!("Vibe: ensure vm_metering schema failed: {e}"),
     }
 
-    botvibe::api::router(state, prompt_manager, tool_executor, telemetry)
+    botvibe::api::router(
+        state.clone(),
+        prompt_manager.clone(),
+        tool_executor.clone(),
+        telemetry.clone(),
+        permissions.clone(),
+        skills.clone(),
+    )
         .merge(projects_router(
             project_registry.clone(),
             project_rbac.clone(),
@@ -123,5 +149,27 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
             pool: app_state.conn.clone(),
             rbac: project_rbac,
             metering: metering.clone(),
+        }))
+        .merge(botvibe::permissions_router(permissions.clone()))
+        .merge(botvibe::skills_router(skills.clone()))
+        .merge(botvibe::canvases_router(canvases.clone()))
+        .merge(botvibe::issues_router(issues.clone()))
+        .merge(botvibe::sessions_router(botvibe::SessionRoutes {
+            sessions: sessions.clone(),
+            state: state.clone(),
+            prompt_manager: prompt_manager.clone(),
+            tool_executor: tool_executor.clone(),
+            telemetry: telemetry.clone(),
+            permissions: permissions.clone(),
+            skills: skills.clone(),
+        }))
+        .merge(botvibe::teams_router(botvibe::TeamRoutes {
+            teams: teams.clone(),
+            state: state.clone(),
+            prompt_manager: prompt_manager.clone(),
+            tool_executor: tool_executor.clone(),
+            telemetry: telemetry.clone(),
+            permissions: permissions.clone(),
+            skills: skills.clone(),
         }))
 }

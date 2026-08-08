@@ -25,6 +25,16 @@ pub mod members_api;
 pub mod metering;
 pub mod metering_api;
 pub mod metering_schema;
+pub mod permissions;
+pub mod permissions_api;
+pub mod skills;
+pub mod browser;
+pub mod canvases;
+pub mod issues;
+pub mod websearch;
+pub mod gitflow;
+pub mod sessions;
+pub mod teams;
 
 pub use types::{
     VibeContext, VibeLlmOps, VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState,
@@ -41,3 +51,13 @@ pub use rbac::{ProjectMember, ProjectRbac, ProjectRole};
 pub use members_api::members_router;
 pub use metering::{MeterPlan, UsageSummary, VMetering, VMeteringRef};
 pub use metering_api::metering_router;
+pub use permissions::{PermissionEngine, PermissionEngineRef, PermissionMode};
+pub use permissions_api::permissions_router;
+pub use skills::{SkillStore, VibeSkill, skills_router};
+pub use browser::browser_tools;
+pub use canvases::{CanvasStore, VibeCanvas, canvases_router};
+pub use issues::{IssueState, IssueStore, VibeIssue, issues_router};
+pub use websearch::websearch_tools;
+pub use gitflow::gitflow_tools;
+pub use sessions::{SessionRoutes, SessionStore, VibeSession, sessions_router};
+pub use teams::{TeamRoutes, TeamStore, VibeTeam, teams_router};
