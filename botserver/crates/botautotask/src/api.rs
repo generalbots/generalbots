@@ -1,17 +1,14 @@
-use crate::types::{AutoTaskState, ConfigOps};
-use axum::{
-    extract::{Path, Query, State},
-    response::IntoResponse,
-    Json,
-};
-use log::info;
+//! AutoTask HTTP surface (#755): request/response contracts and the router.
+//! Handler implementations live in `handlers.rs`.
+
+use crate::types::{AutoTaskState, ConfigOps, LlmProviderOps};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct CompileIntentRequest {
     pub intent: String,
+    pub bot_id: Option<String>,
     pub execution_mode: Option<String>,
     pub priority: Option<String>,
 }
@@ -19,6 +16,7 @@ pub struct CompileIntentRequest {
 #[derive(Debug, Deserialize)]
 pub struct ClassifyIntentRequest {
     pub intent: String,
+    pub bot_id: Option<String>,
     pub auto_process: Option<bool>,
 }
 
@@ -30,7 +28,9 @@ pub struct ClassifyIntentResponse {
     pub suggested_name: Option<String>,
     pub requires_clarification: bool,
     pub clarification_question: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<IntentResultResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
 
@@ -49,6 +49,7 @@ pub struct IntentResultResponse {
 #[derive(Debug, Deserialize)]
 pub struct CreateAndExecuteRequest {
     pub intent: String,
+    pub bot_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -192,11 +193,16 @@ pub struct DecisionRequest {
 pub struct AutoTaskApi {
     state: Arc<dyn AutoTaskState>,
     config_ops: Arc<dyn ConfigOps>,
+    llm_ops: Arc<dyn LlmProviderOps>,
 }
 
 impl AutoTaskApi {
-    pub fn new(state: Arc<dyn AutoTaskState>, config_ops: Arc<dyn ConfigOps>) -> Self {
-        Self { state, config_ops }
+    pub fn new(
+        state: Arc<dyn AutoTaskState>,
+        config_ops: Arc<dyn ConfigOps>,
+        llm_ops: Arc<dyn LlmProviderOps>,
+    ) -> Self {
+        Self { state, config_ops, llm_ops }
     }
 
     pub fn state(&self) -> &Arc<dyn AutoTaskState> {
@@ -206,137 +212,28 @@ impl AutoTaskApi {
     pub fn config_ops(&self) -> &Arc<dyn ConfigOps> {
         &self.config_ops
     }
+
+    pub fn llm_ops(&self) -> &Arc<dyn LlmProviderOps> {
+        &self.llm_ops
+    }
 }
 
-pub fn router(state: Arc<dyn AutoTaskState>, config_ops: Arc<dyn ConfigOps>) -> axum::Router {
-    let api = Arc::new(AutoTaskApi::new(state, config_ops));
+pub fn router(
+    state: Arc<dyn AutoTaskState>,
+    config_ops: Arc<dyn ConfigOps>,
+    llm_ops: Arc<dyn LlmProviderOps>,
+) -> axum::Router {
+    use axum::routing::{get, post};
+    let api = Arc::new(AutoTaskApi::new(state, config_ops, llm_ops));
     axum::Router::new()
-        .route("/api/autotask/classify", axum::routing::post(classify_intent))
-        .route("/api/autotask/compile", axum::routing::post(compile_intent))
-        .route("/api/autotask/execute", axum::routing::post(execute_plan))
-        .route("/api/autotask/create-and-execute", axum::routing::post(create_and_execute))
-        .route("/api/autotask/tasks", axum::routing::get(list_tasks))
-        .route("/api/autotask/stats", axum::routing::get(get_stats))
-        .route("/api/autotask/tasks/:task_id/approve", axum::routing::post(approve_task))
-        .route("/api/autotask/tasks/:task_id/cancel", axum::routing::post(cancel_task))
-        .route("/api/autotask/decide", axum::routing::post(make_decision))
+        .route("/api/autotask/classify", post(crate::handlers::classify_intent))
+        .route("/api/autotask/compile", post(crate::handlers::compile_intent))
+        .route("/api/autotask/execute", post(crate::handlers::execute_plan))
+        .route("/api/autotask/create-and-execute", post(crate::handlers::create_and_execute))
+        .route("/api/autotask/tasks", get(crate::handlers::list_tasks))
+        .route("/api/autotask/stats", get(crate::handlers::get_stats))
+        .route("/api/autotask/tasks/:task_id/approve", post(crate::handlers::approve_task))
+        .route("/api/autotask/tasks/:task_id/cancel", post(crate::handlers::cancel_task))
+        .route("/api/autotask/decide", post(crate::handlers::make_decision))
         .with_state(api)
-}
-
-async fn classify_intent(
-    State(_api): State<Arc<AutoTaskApi>>,
-    Json(req): Json<ClassifyIntentRequest>,
-) -> impl IntoResponse {
-    info!("API classify intent: {}", &req.intent[..req.intent.len().min(50)]);
-    Json(ClassifyIntentResponse {
-        success: true,
-        intent_type: "UNKNOWN".to_string(),
-        confidence: 0.5,
-        suggested_name: None,
-        requires_clarification: false,
-        clarification_question: None,
-        result: None,
-        error: None,
-    })
-}
-
-async fn compile_intent(
-    State(_api): State<Arc<AutoTaskApi>>,
-    Json(req): Json<CompileIntentRequest>,
-) -> impl IntoResponse {
-    info!("API compile intent: {}", &req.intent[..req.intent.len().min(50)]);
-    Json(CompileIntentResponse {
-        success: true,
-        plan_id: Some(Uuid::new_v4().to_string()),
-        plan_name: Some("Generated Plan".to_string()),
-        plan_description: Some(req.intent.clone()),
-        steps: Vec::new(),
-        alternatives: Vec::new(),
-        confidence: 0.5,
-        risk_level: "low".to_string(),
-        estimated_duration_minutes: 10,
-        estimated_cost: 0.0,
-        resource_estimate: ResourceEstimateResponse {
-            compute_hours: 0.0, storage_gb: 0.0, api_calls: 0,
-            llm_tokens: 0, estimated_cost_usd: 0.0,
-        },
-        basic_program: None,
-        requires_approval: false,
-        mcp_servers: Vec::new(),
-        external_apis: Vec::new(),
-        risks: Vec::new(),
-        error: None,
-    })
-}
-
-async fn execute_plan(
-    State(_api): State<Arc<AutoTaskApi>>,
-    Json(req): Json<ExecutePlanRequest>,
-) -> impl IntoResponse {
-    info!("API execute plan: {}", req.plan_id);
-    Json(ExecutePlanResponse {
-        success: true,
-        task_id: Some(Uuid::new_v4().to_string()),
-        status: Some("running".to_string()),
-        error: None,
-    })
-}
-
-async fn create_and_execute(
-    State(_api): State<Arc<AutoTaskApi>>,
-    Json(req): Json<CreateAndExecuteRequest>,
-) -> impl IntoResponse {
-    info!("API create and execute: {}", &req.intent[..req.intent.len().min(50)]);
-    let task_id = Uuid::new_v4().to_string();
-    Json(CreateAndExecuteResponse {
-        success: true,
-        task_id,
-        status: "running".to_string(),
-        message: "Task created and executing".to_string(),
-        app_url: None,
-        created_resources: Vec::new(),
-        pending_items: Vec::new(),
-        error: None,
-    })
-}
-
-async fn list_tasks(
-    State(_api): State<Arc<AutoTaskApi>>,
-    Query(query): Query<ListTasksQuery>,
-) -> impl IntoResponse {
-    let _ = query;
-    Json(Vec::<serde_json::Value>::new())
-}
-
-async fn get_stats(
-    State(_api): State<Arc<AutoTaskApi>>,
-) -> impl IntoResponse {
-    Json(AutoTaskStatsResponse {
-        total: 0, running: 0, pending: 0, completed: 0,
-        failed: 0, pending_approval: 0, pending_decision: 0,
-    })
-}
-
-async fn approve_task(
-    State(_api): State<Arc<AutoTaskApi>>,
-    Path(task_id): Path<String>,
-) -> impl IntoResponse {
-    info!("API approve task: {task_id}");
-    Json(TaskActionResponse { success: true, message: Some("Task approved".to_string()), error: None })
-}
-
-async fn cancel_task(
-    State(_api): State<Arc<AutoTaskApi>>,
-    Path(task_id): Path<String>,
-) -> impl IntoResponse {
-    info!("API cancel task: {task_id}");
-    Json(TaskActionResponse { success: true, message: Some("Task cancelled".to_string()), error: None })
-}
-
-async fn make_decision(
-    State(_api): State<Arc<AutoTaskApi>>,
-    Json(req): Json<DecisionRequest>,
-) -> impl IntoResponse {
-    info!("API make decision: {}", req.decision_id);
-    Json(TaskActionResponse { success: true, message: Some("Decision recorded".to_string()), error: None })
 }

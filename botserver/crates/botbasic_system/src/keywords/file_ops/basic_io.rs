@@ -100,6 +100,47 @@ pub async fn execute_write(
     Ok(())
 }
 
+/// CREATE FILE — create a *new* file in the bot's `.gbdrive`; fails if the
+/// object already exists so existing data is never silently overwritten
+/// (docs: `CREATE FILE "{path}" WITH {content}`; scripts use `WRITE` to
+/// overwrite).
+pub async fn execute_create_file(
+    state: &Arc<dyn BasicRuntime>,
+    user: &UserSession,
+    path: &str,
+    content: &str,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let client = state.drive_repository().ok_or("S3 client not configured")?;
+
+    let bot_name: String = {
+        let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
+        bots.filter(id.eq(&user.bot_id))
+            .select(name)
+            .first(&mut *db_conn)
+            .map_err(|e| {
+                log::error!("Failed to query bot name: {e}");
+                e
+            })?
+    };
+
+    let bucket_name = format!("{bot_name}.gbai");
+    let key = format!("{bot_name}.gbdrive/{path}");
+
+    if client.object_exists(&bucket_name, &key).await
+        .map_err(|e| format!("S3 exists check failed: {e}"))?
+    {
+        return Err(format!("CREATE FILE failed: object already exists: {key}").into());
+    }
+
+    client
+        .put_object(&bucket_name, &key, content.as_bytes().to_vec(), Some("text/plain"))
+        .await
+        .map_err(|e| format!("S3 put failed: {e}"))?;
+
+    trace!("CREATE successful: {} bytes to {path}", content.len());
+    Ok(())
+}
+
 pub async fn execute_delete_file(
     state: &Arc<dyn BasicRuntime>,
     user: &UserSession,

@@ -1,5 +1,9 @@
 pub mod schema;
 pub mod types;
+pub mod execution;
+pub mod drive_ops;
+pub mod llm_adapter;
+pub mod handlers;
 pub mod app_logs;
 pub mod task_types;
 pub mod task_manifest;
@@ -29,6 +33,10 @@ pub use app_logs::{
 pub use ask_later::{ask_later_keyword, PendingInfoItem};
 pub use intent_classifier::{ClassifiedIntent, IntentClassifier, IntentType};
 pub use intent_compiler::{CompiledIntent, IntentCompiler};
+pub use execution::{
+    fallback_script, schedule_expression, script_body, script_for, script_path_for_intent,
+};
+pub use llm_adapter::BotlibLlmAdapter;
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
 pub use designer_ai::DesignerAI;
 pub use app_generator::{AppGenerator, FileType, GeneratedApp, GeneratedFile};

@@ -339,6 +339,16 @@ async fn main() -> std::io::Result<()> {
         });
     }
 
+    // #750 — seed the Pragmatismo reference bot payload (start.bas with VIBE
+    // bridge keywords, PROMPT.md, config.csv and MCP tool definitions) into
+    // the pragmatismo.gbai bucket.
+    #[cfg(feature = "sampledata")]
+    if let Some(drive) = app_state.drive.clone() {
+        tokio::spawn(async move {
+            botsampledata::seed_pragmatismo_payload(drive.as_ref()).await;
+        });
+    }
+
     // Wire SESSION_CACHE into auth middleware so gb_xxx tokens resolve
     // to their stored roles (e.g. "admin") instead of falling back to Role::User.
     // When the in-memory cache misses (e.g. after a restart), sessions are

@@ -1,6 +1,7 @@
 pub mod archive;
 pub mod basic_io;
 pub mod copy_move;
+pub mod create;
 pub mod handlers;
 pub mod pdf;
 pub mod transfer;

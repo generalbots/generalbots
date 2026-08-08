@@ -305,7 +305,7 @@ botcoreoauth = { workspace = true }
 botcorebot = { workspace = true }
 botcoredirectory = { workspace = true }
 botcorepkg = { workspace = true }
-botautotask = { workspace = true }
+botautotask = { workspace = true, features = ["llm"] }
 botvibe = { workspace = true, optional = true }
 botbasic_types = { path = "crates/botbasic_types" }
 botcore = { path = "crates/botcore" }

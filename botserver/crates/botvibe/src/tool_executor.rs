@@ -61,7 +61,7 @@ pub enum ToolCategory {
 }
 
 pub type ToolHandler = Arc<dyn Fn(serde_json::Value, &dyn VibeState) -> ToolFuture + Send + Sync>;
-type ToolFuture = std::pin::Pin<Box<dyn std::future::Future<Output = VibeToolResult> + Send>>;
+pub type ToolFuture = std::pin::Pin<Box<dyn std::future::Future<Output = VibeToolResult> + Send>>;
 
 pub struct ToolRegistry {
     tools: RwLock<HashMap<String, RegisteredTool>>,
@@ -78,6 +78,7 @@ impl ToolRegistry {
             tools: RwLock::new(HashMap::new()),
         };
         registry.register_builtin_tools();
+        registry.register_harness_tools();
         registry
     }
 
@@ -160,6 +161,55 @@ impl ToolRegistry {
             tools.insert(name.to_string(), RegisteredTool {
                 descriptor: ToolDescriptor { schema, category: ToolCategory::Analysis },
                 handler: Arc::new(stub_tool_handler(name)),
+            });
+        }
+    }
+
+    /// #747 — real harness tools: file/shell/git/logs/test operating on the
+    /// project workspace, all sandboxed.
+    fn register_harness_tools(&self) {
+        use crate::harness;
+        let mut tools = futures::executor::block_on(self.tools.write());
+
+        let entries: Vec<(String, String, bool, ToolHandler)> = vec![
+            ("file/read".into(), "Read a file from the project workspace".into(), false, harness::file_tools::file_read()),
+            ("file/write".into(), "Write a file into the project workspace".into(), true, harness::file_tools::file_write()),
+            ("file/list".into(), "List files in the project workspace".into(), false, harness::file_tools::file_list()),
+            ("file/delete".into(), "Delete a file from the project workspace".into(), true, harness::file_tools::file_delete()),
+            ("file/exists".into(), "Check whether a workspace path exists".into(), false, harness::file_tools::file_exists()),
+            ("shell/run".into(), "Run an allowlisted command inside the project workspace".into(), true, harness::run_tools::run_command()),
+            ("git/status".into(), "Show git status of the project workspace".into(), false, harness::git_tools::git_status()),
+            ("git/log".into(), "Show recent commits of the project".into(), false, harness::git_tools::git_log_tool()),
+            ("git/diff".into(), "Show the working tree diff of the project".into(), false, harness::git_tools::git_diff_tool()),
+            ("git/commit".into(), "Stage all changes and commit in the project".into(), true, harness::git_tools::git_commit_tool()),
+            ("git/init".into(), "Initialize or clone the project repository into the workspace".into(), true, harness::git_tools::git_init_tool()),
+            ("logs/read".into(), "Read the tail of a project log file".into(), false, harness::log_tools::logs_read()),
+            ("logs/list".into(), "List available project log files".into(), false, harness::log_tools::logs_list()),
+            ("test/run".into(), "Run the project test suite".into(), true, harness::test_tools::test_run()),
+            ("test/list".into(), "Detect the test frameworks present in the project".into(), false, harness::test_tools::test_list()),
+        ];
+
+        for (name, description, requires_approval, handler) in entries {
+            let tool_schema = ToolSchema::new(name.clone(), description)
+                .with_parameters(serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "project": {"type": "string", "description": "Vibe project id (name)"},
+                        "path": {"type": "string", "description": "Path relative to the project workspace"},
+                        "content": {"type": "string", "description": "File content"},
+                        "command": {"type": "string", "description": "Allowlisted command to run"},
+                        "args": {"type": "array", "items": {"type": "string"}, "description": "Command arguments"},
+                        "message": {"type": "string", "description": "Commit message"},
+                        "limit": {"type": "integer", "description": "Line/commit limit"},
+                        "timeout_secs": {"type": "integer", "description": "Command timeout in seconds"}
+                    },
+                    "required": ["project"]
+                }))
+                .with_approval_if(requires_approval)
+                .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]);
+            tools.insert(name, RegisteredTool {
+                descriptor: ToolDescriptor { schema: tool_schema, category: ToolCategory::File },
+                handler,
             });
         }
     }
@@ -345,9 +395,9 @@ fn stub_tool_handler(name: &'static str) -> impl Fn(serde_json::Value, &dyn Vibe
         let name = name.to_string();
         Box::pin(async move {
             VibeToolResult {
-                success: true,
-                data: serde_json::json!({"stub": true, "tool": name}),
-                error: None,
+                success: false,
+                data: serde_json::Value::Null,
+                error: Some(format!("tool '{name}' is not wired up yet")),
                 latency_ms: 0,
             }
         })

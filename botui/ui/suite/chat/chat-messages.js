@@ -243,6 +243,13 @@ function addMessage(sender, content, msgId, reasoning) {
   messages.appendChild(div);
 
   reexecuteScripts(div);
+  if (sender === "bot" && window.ChatCodeUX) {
+    ChatCodeUX.enhance(div);
+    var toolCards = ChatCodeUX.extractToolCards(content);
+    toolCards.forEach(function (tool) {
+      if (tool.status) ChatCodeUX.appendCard(tool);
+    });
+  }
 
   if (!ChatState.isUserScrolling) {
     scrollToBottom(true);
@@ -343,6 +350,13 @@ function updateStreaming(content) {
   parsed = renderMentionInMessage(parsed);
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
   msgContent.innerHTML = thinkingHtml + parsed;
+  if (window.ChatCodeUX) {
+    ChatCodeUX.enhance(msgContent);
+    var toolCards = ChatCodeUX.extractToolCards(content);
+    toolCards.forEach(function (tool) {
+      if (tool.status) ChatCodeUX.appendCard(tool);
+    });
+  }
   if (!ChatState.isUserScrolling) scrollToBottom(true);
 }
 

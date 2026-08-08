@@ -547,6 +547,7 @@ fn inner_build_sub_router(
             pool: Arc<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>>,
             bucket_name: String,
             manifests: Arc<RwLock<HashMap<String, botautotask::TaskManifest>>>,
+            drive_ops: Option<Arc<dyn botautotask::types::DriveOps>>,
         }
 
         impl AutoTaskState for AutoTaskStateImpl {
@@ -555,6 +556,9 @@ fn inner_build_sub_router(
             }
             fn bucket_name(&self) -> &str {
                 &self.bucket_name
+            }
+            fn file_ops(&self) -> Option<&dyn botautotask::types::DriveOps> {
+                self.drive_ops.as_deref()
             }
             fn broadcast_task_progress(&self, _event: botautotask::types::TaskProgressEvent) {}
             fn emit_activity(&self, _task_id: &str, _step: &str, _message: &str, _current: u8, _total: u8, _activity: botautotask::types::AgentActivity) {}
@@ -583,9 +587,13 @@ fn inner_build_sub_router(
             pool: Arc::new(app_state.conn.clone()),
             bucket_name: app_state.bucket_name.clone(),
             manifests: Arc::new(RwLock::new(HashMap::new())),
+            drive_ops: app_state.drive.clone().map(|d| {
+                Arc::new(botautotask::drive_ops::DriveRepositoryOps(d)) as Arc<dyn botautotask::types::DriveOps>
+            }),
         });
         let config_ops = Arc::new(ConfigOpsImpl);
-        sub_router = sub_router.merge(botautotask::api::router(autotask_state, config_ops));
+        let llm_ops = Arc::new(botautotask::llm_adapter::BotlibLlmAdapter(app_state.llm_provider.clone()));
+        sub_router = sub_router.merge(botautotask::api::router(autotask_state, config_ops, llm_ops));
     }
 
     sub_router
