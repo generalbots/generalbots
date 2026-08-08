@@ -3,8 +3,11 @@
 //! `vibe_projects` schema at boot.
 
 use botcore::shared::state::AppState;
+use botvibe::backups::Backups;
 use botvibe::domains::ProjectDomains;
 use botvibe::domains_api::domains_router;
+use botvibe::ops::VmOps;
+use botvibe::ops_api::{ops_router, OpsRoutes};
 use botvibe::projects::ProjectRegistry;
 use botvibe::projects_api::projects_router;
 use botvibe::types::{VibeProgressEvent, VibeRun, VibeState};
@@ -75,8 +78,21 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     let tool_executor = Arc::new(VibeToolExecutor::new(Arc::new(ToolRegistry::new())));
     let telemetry = Arc::new(VibeTelemetry::new());
 
+    let vm_ops = Arc::new(VmOps::new(app_state.conn.clone()));
+    let backups = Arc::new(Backups::new(app_state.conn.clone()));
+    match backups.ensure_schema() {
+        Ok(()) => info!("Vibe: vm_backups schema ensured"),
+        Err(e) => log::error!("Vibe: ensure vm_backups schema failed: {e}"),
+    }
+
     botvibe::api::router(state, prompt_manager, tool_executor, telemetry)
         .merge(projects_router(project_registry.clone()))
-        .merge(vms_router(vm_lifecycle, project_registry))
+        .merge(vms_router(vm_lifecycle, project_registry.clone()))
         .merge(domains_router(domain_binds))
+        .merge(ops_router(OpsRoutes {
+            vm_ops,
+            backups,
+            registry: project_registry,
+            pool: app_state.conn.clone(),
+        }))
 }

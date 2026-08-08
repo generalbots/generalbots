@@ -55,7 +55,7 @@ async fn publish_project(args: Value, pool: crate::types::DbPool) -> VibeToolRes
     }
 }
 
-async fn do_publish(args: Value, pool: crate::types::DbPool) -> Result<Value, String> {
+pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Result<Value, String> {
     let project_id = args
         .get("project_id")
         .and_then(|v| v.as_str())

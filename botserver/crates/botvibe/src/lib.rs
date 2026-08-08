@@ -16,6 +16,10 @@ pub mod domains;
 pub mod domains_api;
 pub mod domains_tool;
 pub mod harness;
+pub mod ops;
+pub mod ops_api;
+pub mod ops_tools;
+pub mod backups;
 
 pub use types::{
     VibeContext, VibeLlmOps, VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState,

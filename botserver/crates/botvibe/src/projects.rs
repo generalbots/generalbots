@@ -264,6 +264,35 @@ impl ProjectRegistry {
         Ok(())
     }
 
+    /// #772 — Deployment history for a project, newest first, optionally
+    /// filtered by environment. Reads the `deployments` jsonb array that
+    /// `append_deployment` accumulates in `vibe_projects.payload`.
+    pub fn list_deployments(
+        &self,
+        id: Uuid,
+        env: Option<&str>,
+    ) -> Result<Vec<serde_json::Value>, String> {
+        let project = self.get(id)?.ok_or_else(|| format!("project {id} not found"))?;
+        let arr = project
+            .payload
+            .get("deployments")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let mut rows: Vec<serde_json::Value> = arr
+            .into_iter()
+            .filter(|d| {
+                env.map(|e| d.get("env").and_then(|v| v.as_str()) == Some(e))
+                    .unwrap_or(true)
+            })
+            .collect();
+        rows.sort_by(|a, b| {
+            let at = |v: &serde_json::Value| v.get("at").and_then(|t| t.as_str()).unwrap_or("");
+            at(b).cmp(at(a))
+        });
+        Ok(rows)
+    }
+
     pub fn update(&self, id: Uuid, req: &UpdateProjectRequest) -> Result<bool, String> {
         let mut conn = self.conn()?;
         let mut assignments: Vec<String> = Vec::new();
