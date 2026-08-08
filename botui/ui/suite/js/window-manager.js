@@ -195,6 +195,9 @@ if (typeof window.WindowManager === "undefined") {
         windowEl.innerHTML = this._legacyHeader(id, title) + this._legacyBody(id);
       }
 
+      // Issue #725: every app window gets an inverted 3D bevel status bar.
+      windowEl.insertAdjacentHTML("beforeend", this._statusBar(id));
+
       workspace.appendChild(windowEl);
       this._injectBodyContent(id, htmlContent);
       this._addTaskbarDockItem(id);
@@ -230,6 +233,18 @@ if (typeof window.WindowManager === "undefined") {
 
     _legacyBody(id) {
       return `<div id="window-body-${id}" class="window-body relative flex-1 overflow-y-auto"></div>`;
+    }
+
+    // Issue #725: an inverted 3D bevel status bar, styled to match the active
+    // theme. Shows a small status glyph and the window title so every app
+    // window carries a visible footer bar.
+    _statusBar(id) {
+      const title = ((this.openWindows.find((w) => w.id === id)) || {}).title || "";
+      return `<div class="window-statusbar" data-window-id="${id}">
+        <span class="window-statusbar-status">Ready</span>
+        <span class="window-statusbar-spacer"></span>
+        <span class="window-statusbar-title">${String(title).replace(/"/g, "&quot;")}</span>
+      </div>`;
     }
 
     _injectBodyContent(id, htmlContent) {

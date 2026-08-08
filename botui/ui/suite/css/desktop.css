@@ -48,6 +48,51 @@
     z-index: 100;
 }
 
+/* Issue #725: inverted 3D bevel status bar for every app window.
+   Light on top, dark on bottom (inverted bevel) so it reads as a recessed
+   footer bar, consistent with the 3dbevel/classic themes. */
+.window-statusbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 22px;
+    padding: 0 8px;
+    flex-shrink: 0;
+    background: var(--surface, #d4d4d4);
+    font-size: 11px;
+    line-height: 22px;
+    color: var(--text, #000);
+    user-select: none;
+    border-top: 1px solid var(--border, #808080);
+    box-shadow: inset 0 1px 0 #ffffff, inset 1px 0 0 #ffffff,
+                inset 0 -1px 0 var(--border, #808080), inset -1px 0 0 var(--border, #808080);
+    font-family: "Fira Code", monospace;
+    letter-spacing: 0.02em;
+}
+
+[data-theme="3dbevel"] .window-statusbar {
+    background: #c0c0c0;
+    color: #000000;
+    box-shadow: inset -1px -1px 0 #000000, inset 1px 1px 0 #ffffff,
+                inset -2px -2px 0 #808080, inset 2px 2px 0 #ffffff;
+}
+
+.window-statusbar-status {
+    font-weight: 700;
+}
+
+.window-statusbar-spacer {
+    flex: 1;
+}
+
+.window-statusbar-title {
+    color: var(--text-secondary, #404040);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40%;
+}
+
 .window-header {
     height: 40px;
     background-color: var(--surface, #ffffff);

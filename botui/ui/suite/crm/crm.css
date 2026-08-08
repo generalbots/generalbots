@@ -892,3 +892,23 @@
     text-transform: uppercase;
     margin-top: 2px;
 }
+
+/* Issue #741: Folder view inside lead detail */
+.lead-detail { padding: 16px; }
+.lead-detail-title { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+.lead-detail-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.lead-detail-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border, #ccc); margin-bottom: 12px; }
+.crm-tab-btn { background: none; border: none; padding: 6px 12px; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 600; color: var(--text, #222); }
+.crm-tab-btn.active { border-bottom-color: var(--primary, #2563eb); color: var(--primary, #2563eb); }
+.crm-dtab-view { padding: 8px 0; }
+.detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-muted, #eee); }
+.detail-label { color: var(--text-secondary, #666); }
+.folder-view-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.folder-view-path { font-family: "Fira Code", monospace; font-size: 12px; color: var(--text-secondary, #555); word-break: break-all; }
+.folder-view-list ul.folder-view-items { list-style: none; margin: 0; padding: 0; }
+.folder-view-item { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 4px; }
+.folder-view-item:hover { background: var(--surface-hover, #f3f4f6); }
+.folder-view-icon { width: 20px; text-align: center; }
+.folder-view-name { flex: 1; font-size: 13px; }
+.folder-view-size { font-size: 11px; color: var(--text-secondary, #777); }
+.folder-view-loading, .folder-view-empty { color: var(--text-secondary, #777); font-size: 13px; padding: 12px 0; }
