@@ -219,6 +219,18 @@ font-weight: 600;
 ">
 🌱 Source Control
 </button>
+<button class="vibe-members-btn" onclick="window.VibeMembers && window.VibeMembers.open()" style="
+border: 1px solid var(--accent);
+background: transparent;
+color: var(--text);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
+👥 Members
+</button>
 <button class="vibe-browser-btn" onclick="document.getElementById('vibeBrowserModal').style.display='flex'" style="
 border: 1px solid var(--accent);
 background: transparent;
@@ -254,6 +266,18 @@ margin-right: 12px;
 font-weight: 600;
 ">
 💻 Code
+</button>
+<button class="vibe-deploy-btn" onclick="window.VibeNewProject.open()" style="
+border: 1px solid var(--accent);
+background: var(--accent);
+color: var(--bg);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
++ New
 </button>
 <button class="vibe-deploy-btn" onclick="showDeploymentModal()" style="
 border: 1px solid var(--accent);
@@ -667,6 +691,37 @@ Enable CI/CD pipeline (automatic builds and deployments)
 </div>
 </div>
 
+<div id="vibeNewProjectModal" style="display: none; position: absolute; inset: 0; z-index: 90;"></div>
+
+<div id="vibeMembersModal" style="display: none; position: fixed; inset: 0; z-index: 95; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
+  <div style="width: 520px; max-height: 80vh; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 8px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="margin: 0; font-size: 15px; color: var(--text, #eee);">Project Members</h3>
+      <button onclick="window.VibeMembers && window.VibeMembers.close()" style="border: none; background: transparent; color: var(--text, #eee); font-size: 18px; cursor: pointer;">×</button>
+    </div>
+    <div id="vibeMembersRole" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, #999);"></div>
+    <div id="vibeMeterUsage" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, #999);"></div>
+    <div id="vibeMembersList" style="margin-bottom: 16px;"></div>
+    <div style="border-top: 1px solid var(--border, #333); padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+      <input id="vibeMemberTarget" placeholder="user UUID or group name" style="flex: 1; min-width: 160px; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
+      <select id="vibeMemberRole" style="padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;">
+        <option value="viewer">viewer</option>
+        <option value="developer">developer</option>
+        <option value="admin">admin</option>
+      </select>
+      <select id="vibeMemberKind" style="padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;">
+        <option value="user">user</option>
+        <option value="group">group</option>
+      </select>
+      <button onclick="window.VibeMembers && window.VibeMembers.add()" style="padding: 8px 14px; border: none; border-radius: 6px; background: var(--accent, #4a6cf7); color: white; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
+    </div>
+    <div style="margin-top: 12px; border-top: 1px solid var(--border, #333); padding-top: 12px; display: flex; gap: 8px; align-items: center;">
+      <input id="vibeTransferTarget" placeholder="new owner user UUID" style="flex: 1; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
+      <button onclick="window.VibeMembers && window.VibeMembers.transfer()" style="padding: 8px 14px; border: 1px solid #f77; background: transparent; color: #f88; border-radius: 6px; font-size: 13px; cursor: pointer;">Transfer Ownership</button>
+    </div>
+  </div>
+</div>
+
 <script src="/suite/vibe/vibe-state.js"></script>
 <script src="/suite/vibe/vibe-helpers.js"></script>
 <script src="/suite/vibe/vibe-canvas.js"></script>
@@ -676,3 +731,5 @@ Enable CI/CD pipeline (automatic builds and deployments)
 <script src="/suite/vibe/vibe-deploy.js"></script>
 <script src="/suite/vibe/vibe-init.js"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
+<script src="/suite/vibe/vibe-new-project.js"></script>
+<script src="/suite/vibe/vibe-members.js"></script>

@@ -214,6 +214,7 @@ impl ProjectRegistry {
         sql.push_str(&(limit_idx + 1).to_string());
 
         let mut query_builder = diesel::sql_query(sql)
+            .into_boxed::<diesel::pg::Pg>()
             .bind::<diesel::sql_types::Uuid, _>(branch_id);
         for b in &binds {
             query_builder = query_builder.bind::<diesel::sql_types::Text, _>(b.clone());
@@ -240,6 +241,53 @@ impl ProjectRegistry {
         .optional()
         .map_err(|e| format!("get project: {e}"))?;
         Ok(row.map(ProjectRow::into_project))
+    }
+
+    /// Append a deployment record to the project payload (deploy history;
+    /// consumed by #772 rollback and the UI deployment list).
+    pub fn append_deployment(&self, id: Uuid, record: &serde_json::Value) -> Result<(), String> {
+        let mut conn = self.conn()?;
+        diesel::sql_query(
+            "UPDATE vibe_projects
+             SET payload = jsonb_set(
+                   payload,
+                   '{deployments}',
+                   COALESCE(payload->'deployments', '[]'::jsonb) || $2::jsonb
+                 ),
+                 updated_at = NOW()
+             WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(id)
+        .bind::<diesel::sql_types::Jsonb, _>(record)
+        .execute(&mut conn)
+        .map_err(|e| format!("append deployment: {e}"))?;
+        Ok(())
+    }
+
+    /// #772 — Deployment history for a project, newest first, optionally
+    /// filtered by environment. Reads the `deployments` jsonb array that
+    /// `append_deployment` accumulates in `vibe_projects.payload`.
+    pub fn list_deployments(
+        &self,
+        id: Uuid,
+        env: Option<&str>,
+    ) -> Result<Vec<serde_json::Value>, String> {
+        let project = self.get(id)?.ok_or_else(|| format!("project {id} not found"))?;
+        let arr = project
+            .payload
+            .get("deployments")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let mut rows: Vec<serde_json::Value> = arr
+            .into_iter()
+            .filter(|d| {
+                env.map(|e| d.get("env").and_then(|v| v.as_str()) == Some(e))
+                    .unwrap_or(true)
+            })
+            .collect();
+        rows.sort_by(|a, b| deploy_at(b).cmp(deploy_at(a)));
+        Ok(rows)
     }
 
     pub fn update(&self, id: Uuid, req: &UpdateProjectRequest) -> Result<bool, String> {
@@ -290,7 +338,7 @@ impl ProjectRegistry {
         sql.push_str(&assignments.join(", "));
         sql.push_str(&format!(" WHERE id = ${}", binds.len() + (payload_bind.is_some() as usize) + 1));
 
-        let mut query_builder = diesel::sql_query(sql);
+        let mut query_builder = diesel::sql_query(sql).into_boxed::<diesel::pg::Pg>();
         for b in &binds {
             query_builder = query_builder.bind::<diesel::sql_types::Text, _>(b.clone());
         }
@@ -316,22 +364,23 @@ impl ProjectRegistry {
 }
 
 #[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 struct ProjectRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    org_id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    branch_id: String,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     name: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     project_type: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     repository: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     framework: Option<String>,
-    #[diesel(sql_type = diesel::sql_types::Text)]
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     custom_domain: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Text)]
     status: String,
@@ -345,12 +394,17 @@ struct ProjectRow {
     updated_at: DateTime<Utc>,
 }
 
+/// Extract the deployment timestamp (`at` field) for history sorting.
+fn deploy_at(v: &serde_json::Value) -> &str {
+    v.get("at").and_then(|t| t.as_str()).unwrap_or("")
+}
+
 impl ProjectRow {
     fn into_project(self) -> Project {
         Project {
-            id: Uuid::parse_str(&self.id).unwrap_or_else(|_| Uuid::nil()),
-            org_id: Uuid::parse_str(&self.org_id).unwrap_or_else(|_| Uuid::nil()),
-            branch_id: Uuid::parse_str(&self.branch_id).unwrap_or_else(|_| Uuid::nil()),
+            id: self.id,
+            org_id: self.org_id,
+            branch_id: self.branch_id,
             name: self.name,
             project_type: self.project_type,
             repository: self.repository,

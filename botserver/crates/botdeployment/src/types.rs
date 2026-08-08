@@ -219,6 +219,10 @@ pub struct DeploymentRequest {
     pub node_version: Option<String>,
     pub build_command: Option<String>,
     pub output_directory: Option<String>,
+    /// #768 — optional per-project scope; when present, the deployment is
+    /// gated by the caller's role on that project (admin+ required).
+    #[serde(default)]
+    pub project_id: Option<uuid::Uuid>,
 }
 
 #[derive(Debug, Serialize)]
@@ -251,6 +255,8 @@ pub enum DeploymentApiError {
     ValidationError(String),
     DeploymentFailed(String),
     ConfigurationError(String),
+    /// #768 — the caller is authenticated but lacks the required role.
+    Forbidden(String),
 }
 
 impl IntoResponse for DeploymentApiError {
@@ -267,6 +273,7 @@ impl IntoResponse for DeploymentApiError {
                 let sanitized = log_and_sanitize(&error, "deployment_config");
                 (StatusCode::INTERNAL_SERVER_ERROR, sanitized.message)
             }
+            DeploymentApiError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
         };
 
         let body = Json(serde_json::json!({

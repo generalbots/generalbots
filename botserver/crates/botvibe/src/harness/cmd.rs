@@ -14,7 +14,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "ls", "cat", "head", "tail", "grep", "find", "wc", "diff", "stat",
         "git", "mkdir", "touch", "cp", "mv", "rm",
         "node", "npm", "npx", "cargo", "python3", "python", "sh",
-        "botserver", "botc", "caddy", "incus",
+        "botserver", "botc", "caddy", "incus", "dig", "nslookup",
     ])
 });
 

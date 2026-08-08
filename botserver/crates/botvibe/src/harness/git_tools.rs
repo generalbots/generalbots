@@ -133,7 +133,7 @@ pub fn git_init_tool() -> ToolHandler {
                     Err(e) => err(e.to_string()),
                 }
             } else {
-                match run("git", &["clone".to_string(), clone_url, "."], &cwd, 300) {
+                match run("git", &["clone".to_string(), clone_url, ".".to_string()], &cwd, 300) {
                     Ok(out) if out.exit_code == Some(0) => {
                         ok(json!({"cloned": true, "output": out.stdout}))
                     }

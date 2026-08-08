@@ -68,6 +68,53 @@ impl VmLifecycle {
         Ok(())
     }
 
+    pub(crate) fn linux_restart(&self, name: &str) -> Result<(), String> {
+        run("incus", &["restart".to_string(), name.to_string()], Path::new("/tmp"), 120)
+            .map_err(|e| format!("incus restart {name}: {e}"))?;
+        Ok(())
+    }
+
+    /// `incus snapshot create {name} {tag}` — point-in-time VM backup (#773).
+    pub(crate) fn linux_snapshot(&self, name: &str, tag: &str) -> Result<(), String> {
+        run(
+            "incus",
+            &["snapshot".to_string(), "create".to_string(), format!("{name}/{tag}")],
+            Path::new("/tmp"),
+            180,
+        )
+        .map_err(|e| format!("incus snapshot {name}/{tag}: {e}"))?;
+        Ok(())
+    }
+
+    /// `incus restore {name} {tag}` — applies a snapshot; the container must
+    /// be stopped, so stop first and let the caller restart it.
+    pub(crate) fn linux_restore_snapshot(&self, name: &str, tag: &str) -> Result<(), String> {
+        if self.linux_running(name)? {
+            self.linux_stop(name)?;
+        }
+        run(
+            "incus",
+            &["restore".to_string(), name.to_string(), tag.to_string()],
+            Path::new("/tmp"),
+            180,
+        )
+        .map_err(|e| format!("incus restore {name}/{tag}: {e}"))?;
+        Ok(())
+    }
+
+    /// `incus export {name}/{tag} {path}` — off-machine copy of a snapshot
+    /// into `VIBE_BACKUP_DIR` (#773); returns the export target path.
+    pub(crate) fn linux_export(&self, name: &str, tag: &str, target: &str) -> Result<String, String> {
+        run(
+            "incus",
+            &["export".to_string(), format!("{name}/{tag}"), target.to_string()],
+            Path::new("/tmp"),
+            300,
+        )
+        .map_err(|e| format!("incus export {name}/{tag}: {e}"))?;
+        Ok(target.to_string())
+    }
+
     fn linux_list(&self) -> Result<serde_json::Value, String> {
         let out = run(
             "incus",

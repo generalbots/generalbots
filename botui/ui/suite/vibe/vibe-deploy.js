@@ -56,6 +56,10 @@ environment: "production",
 manifest: {}
 };
 
+if (typeof currentProjectId !== "undefined" && currentProjectId) {
+  payload.project_id = currentProjectId;
+}
+
 var projectType = document.getElementById('deployAppType')?.value || "app-htmx";
   payload.project_type = projectType;
 
@@ -98,6 +102,10 @@ if (previewUrl && previewPanel && result.url) {
 previewUrl.value = result.url;
 previewPanel.style.display = "block";
 }
+
+if (selectedDeploymentTarget === 'external') {
+await bindExternalDomain(result);
+}
 } else {
 vibeAddMsg("system", "❌ Deployment failed: " + (result.error || result.status));
 }
@@ -108,6 +116,29 @@ if (deployButton) {
 deployButton.textContent = "Deploy Now";
 deployButton.disabled = false;
 }
+}
+}
+
+async function bindExternalDomain(result) {
+var domain = document.getElementById('deployCustomDomain')?.value?.trim();
+var projectId = (typeof currentProjectId !== "undefined") ? currentProjectId : null;
+if (!domain || !projectId) {
+return;
+}
+try {
+var resp = await fetch("/api/vibe/projects/" + projectId + "/domains", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ domain: domain, env: "production" })
+});
+var data = await resp.json();
+if (data.success && data.bind) {
+vibeAddMsg("system", "🌐 Domain bound: " + data.bind.domain + " → " + data.bind.container + " (TLS " + data.bind.tls_status + ")");
+} else {
+vibeAddMsg("system", "⚠️ Domain bind failed: " + (data.error || ("HTTP " + resp.status)));
+}
+} catch (e) {
+vibeAddMsg("system", "⚠️ Domain bind error: " + e.message);
 }
 }
 

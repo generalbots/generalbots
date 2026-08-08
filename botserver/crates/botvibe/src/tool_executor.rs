@@ -129,6 +129,39 @@ impl ToolRegistry {
             });
         }
 
+        let publish_schema = crate::publish::publish_project_schema();
+        tools.insert("publish/project".to_string(), RegisteredTool {
+            descriptor: ToolDescriptor {
+                schema: publish_schema,
+                category: ToolCategory::Deployment,
+            },
+            handler: crate::publish::publish_project_tool(),
+        });
+
+        for (name, schema, handler) in [
+            ("domain/bind", crate::domains_tool::domain_bind_schema(), crate::domains_tool::domain_bind_tool()),
+            ("domain/verify", crate::domains_tool::domain_verify_schema(), crate::domains_tool::domain_verify_tool()),
+            ("domain/tls", crate::domains_tool::domain_tls_schema(), crate::domains_tool::domain_tls_tool()),
+        ] {
+            tools.insert(name.to_string(), RegisteredTool {
+                descriptor: ToolDescriptor {
+                    schema,
+                    category: ToolCategory::Deployment,
+                },
+                handler,
+            });
+        }
+
+        for (name, schema, handler) in crate::ops_tools::ops_tools() {
+            tools.insert(name.to_string(), RegisteredTool {
+                descriptor: ToolDescriptor {
+                    schema,
+                    category: ToolCategory::Deployment,
+                },
+                handler,
+            });
+        }
+
         let crm_tools = vec![
             ("search_contacts", "Busca contatos no CRM", false),
             ("get_deals", "Obtém oportunidades do pipeline CRM", false),
@@ -220,6 +253,31 @@ impl ToolRegistry {
         tools.insert(name, RegisteredTool { descriptor, handler });
     }
 
+    pub async fn register_m5_tools(
+        &self,
+        skills: Arc<crate::skills::SkillStore>,
+        canvases: Arc<crate::canvases::CanvasStore>,
+        issues: Arc<crate::issues::IssueStore>,
+    ) {
+        let mut tools = self.tools.write().await;
+
+        let entries: Vec<(String, ToolSchema, ToolHandler)> = crate::skills::skill_tools(skills)
+            .into_iter()
+            .chain(crate::browser::browser_tools())
+            .chain(crate::canvases::canvas_tools(canvases))
+            .chain(crate::issues::issue_tools(issues))
+            .chain(crate::websearch::websearch_tools())
+            .chain(crate::gitflow::gitflow_tools())
+            .collect();
+
+        for (name, schema, handler) in entries {
+            tools.insert(name.clone(), RegisteredTool {
+                descriptor: ToolDescriptor { schema, category: ToolCategory::Deployment },
+                handler,
+            });
+        }
+    }
+
     pub async fn get_descriptor(&self, name: &str) -> Option<ToolDescriptor> {
         let tools = self.tools.read().await;
         tools.get(name).map(|t| t.descriptor.clone())
@@ -277,7 +335,7 @@ impl Default for ToolRegistry {
     }
 }
 
-trait ToolSchemaExt {
+pub trait ToolSchemaExt {
     fn with_approval_if(self, needs_approval: bool) -> Self;
 }
 
