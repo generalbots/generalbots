@@ -82,7 +82,7 @@ fn web_search() -> ToolHandler {
                 return err("query is required".into());
             }
             let max = args.get("max_results").and_then(|v| v.as_u64()).unwrap_or(5).min(20) as usize;
-            let url = format!("https://html.duckduckgo.com/html/?q={}", urlencode(&query));
+            let url = format!("https://html.duckduckgo.com/html/?q={}", percent_encode(&query));
             let client = reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(20))
                 .build()
@@ -148,7 +148,7 @@ fn decode_ddg_url(href: &str) -> String {
     href.to_string()
 }
 
-fn urlencode(s: &str) -> String {
+fn percent_encode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for b in s.bytes() {
         match b {
