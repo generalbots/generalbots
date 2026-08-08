@@ -50,6 +50,20 @@ impl IntentClassifier {
         Ok(classification)
     }
 
+    /// Classify for the AutoTask API (#755) — no session required, tries the
+    /// heuristic classifier first (offline-safe), falls back to LLM.
+    pub async fn classify_api(
+        &self, intent: &str, bot_id: Uuid,
+    ) -> Result<ClassifiedIntent, Box<dyn std::error::Error + Send + Sync>> {
+        info!("API classify intent for bot {bot_id}: {}", &intent[..intent.len().min(100)]);
+        let heuristic = Self::classify_heuristic(intent)?;
+        if !heuristic.requires_clarification {
+            Ok(heuristic)
+        } else {
+            self.classify_with_llm(intent, bot_id).await
+        }
+    }
+
     pub async fn classify_and_process(
         &self, intent: &str, session: &UserSession,
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
