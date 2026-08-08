@@ -1857,6 +1857,7 @@ name = "botdeployment"
 version = "6.3.1"
 dependencies = [
  "axum 0.7.9",
+ "botsecurity-auth",
  "chrono",
  "diesel",
  "git2",
@@ -3326,6 +3327,7 @@ dependencies = [
  "botcontacts",
  "botdeployment",
  "botlib",
+ "botsecurity-auth",
  "chrono",
  "diesel",
  "futures",

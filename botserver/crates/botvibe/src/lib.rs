@@ -20,6 +20,11 @@ pub mod ops;
 pub mod ops_api;
 pub mod ops_tools;
 pub mod backups;
+pub mod rbac;
+pub mod members_api;
+pub mod metering;
+pub mod metering_api;
+pub mod metering_schema;
 
 pub use types::{
     VibeContext, VibeLlmOps, VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState,
@@ -32,3 +37,7 @@ pub use api::router;
 pub use agent_loop::AgentLoop;
 pub use projects::{Project, ProjectKind, ProjectRegistry};
 pub use projects_api::projects_router;
+pub use rbac::{ProjectMember, ProjectRbac, ProjectRole};
+pub use members_api::members_router;
+pub use metering::{MeterPlan, UsageSummary, VMetering, VMeteringRef};
+pub use metering_api::metering_router;

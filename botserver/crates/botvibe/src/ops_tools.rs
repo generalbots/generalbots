@@ -16,11 +16,12 @@ use crate::types::{DbPool, VibeState, VibeToolResult, VibeUseCase};
 
 fn handler<F>(f: F) -> ToolHandler
 where
-    F: Fn(DbPool, Value) -> futures::future::BoxFuture<'static, Result<Value, String>> + Send + Sync + 'static,
+    F: Fn(DbPool, Value) -> futures::future::BoxFuture<'static, Result<Value, String>> + Send + Sync + Clone + 'static,
 {
     Arc::new(move |args: Value, state: &dyn VibeState| {
         let pool = state.db_pool().clone();
         let args = args.clone();
+        let f = f.clone();
         Box::pin(async move {
             let started = std::time::Instant::now();
             match f(pool, args).await {
@@ -39,14 +40,14 @@ fn str_arg(args: &Value, key: &str) -> Result<String, String> {
 }
 
 async fn do_probe(pool: DbPool, args: Value) -> Result<Value, String> {
-    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?)?;
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
     let env = str_arg(&args, "env").unwrap_or_else(|_| "production".to_string());
     let report = VmOps::new(pool).probe_and_recover(pid, &env, false).await?;
     Ok(json!({ "probe": report }))
 }
 
 async fn do_restart(pool: DbPool, args: Value) -> Result<Value, String> {
-    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?)?;
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
     let env = str_arg(&args, "env").unwrap_or_else(|_| "production".to_string());
     let report = VmOps::new(pool).probe_and_recover(pid, &env, true).await?;
     if !report.ok {
@@ -56,14 +57,14 @@ async fn do_restart(pool: DbPool, args: Value) -> Result<Value, String> {
 }
 
 async fn do_history(pool: DbPool, args: Value) -> Result<Value, String> {
-    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?)?;
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
     let env = args.get("env").and_then(|v| v.as_str());
     let rows = ProjectRegistry::new(pool).list_deployments(pid, env)?;
     Ok(json!({ "deployments": rows }))
 }
 
 async fn do_rollback(pool: DbPool, args: Value) -> Result<Value, String> {
-    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?)?;
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
     let env = str_arg(&args, "env").unwrap_or_else(|_| "production".to_string());
     let index = args.get("index").and_then(|v| v.as_u64()).unwrap_or(1) as usize;
     let registry = ProjectRegistry::new(pool.clone());
@@ -95,26 +96,26 @@ async fn do_rollback(pool: DbPool, args: Value) -> Result<Value, String> {
 }
 
 async fn do_backup_snapshot(pool: DbPool, args: Value) -> Result<Value, String> {
-    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?)?;
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
     let env = str_arg(&args, "env").unwrap_or_else(|_| "production".to_string());
     let rec = crate::backups::Backups::new(pool).create_snapshot(pid, &env)?;
     Ok(json!({ "backup": rec }))
 }
 
 async fn do_backup_export(pool: DbPool, args: Value) -> Result<Value, String> {
-    let bid = Uuid::parse_str(&str_arg(&args, "backup_id")?)?;
+    let bid = Uuid::parse_str(&str_arg(&args, "backup_id")?).map_err(|e| format!("invalid backup_id: {e}"))?;
     let rec = crate::backups::Backups::new(pool).export_snapshot(bid)?;
     Ok(json!({ "backup": rec, "exported": true }))
 }
 
 async fn do_backup_list(pool: DbPool, args: Value) -> Result<Value, String> {
-    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?)?;
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
     let rows = crate::backups::Backups::new(pool).list(pid)?;
     Ok(json!({ "backups": rows }))
 }
 
 async fn do_backup_restore(pool: DbPool, args: Value) -> Result<Value, String> {
-    let bid = Uuid::parse_str(&str_arg(&args, "backup_id")?)?;
+    let bid = Uuid::parse_str(&str_arg(&args, "backup_id")?).map_err(|e| format!("invalid backup_id: {e}"))?;
     let backups = crate::backups::Backups::new(pool.clone());
     let ops = VmOps::new(pool);
     let (rec, probe) = backups.restore(bid, &ops).await?;

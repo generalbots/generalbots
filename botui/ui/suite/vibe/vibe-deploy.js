@@ -56,6 +56,10 @@ environment: "production",
 manifest: {}
 };
 
+if (typeof currentProjectId !== "undefined" && currentProjectId) {
+  payload.project_id = currentProjectId;
+}
+
 var projectType = document.getElementById('deployAppType')?.value || "app-htmx";
   payload.project_type = projectType;
 

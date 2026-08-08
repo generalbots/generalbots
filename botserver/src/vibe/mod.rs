@@ -6,10 +6,14 @@ use botcore::shared::state::AppState;
 use botvibe::backups::Backups;
 use botvibe::domains::ProjectDomains;
 use botvibe::domains_api::domains_router;
+use botvibe::members_api::members_router;
+use botvibe::metering::VMetering;
+use botvibe::metering_api::metering_router;
 use botvibe::ops::VmOps;
 use botvibe::ops_api::{ops_router, OpsRoutes};
 use botvibe::projects::ProjectRegistry;
 use botvibe::projects_api::projects_router;
+use botvibe::rbac::ProjectRbac;
 use botvibe::types::{VibeProgressEvent, VibeRun, VibeState};
 use botvibe::vm_lifecycle::VmLifecycle;
 use botvibe::vms_api::vms_router;
@@ -85,14 +89,39 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         Err(e) => log::error!("Vibe: ensure vm_backups schema failed: {e}"),
     }
 
+    let project_rbac = ProjectRbac::new(app_state.conn.clone());
+    match project_rbac.ensure_schema() {
+        Ok(()) => info!("Vibe: project_members schema ensured"),
+        Err(e) => log::error!("Vibe: ensure project_members schema failed: {e}"),
+    }
+
+    let metering = Arc::new(VMetering::new(app_state.conn.clone()));
+    match metering.ensure_schema() {
+        Ok(()) => info!("Vibe: vm_metering schema ensured"),
+        Err(e) => log::error!("Vibe: ensure vm_metering schema failed: {e}"),
+    }
+
     botvibe::api::router(state, prompt_manager, tool_executor, telemetry)
-        .merge(projects_router(project_registry.clone()))
-        .merge(vms_router(vm_lifecycle, project_registry.clone()))
-        .merge(domains_router(domain_binds))
+        .merge(projects_router(
+            project_registry.clone(),
+            project_rbac.clone(),
+            metering.clone(),
+        ))
+        .merge(vms_router(
+            vm_lifecycle,
+            project_registry.clone(),
+            project_rbac.clone(),
+            metering.clone(),
+        ))
+        .merge(domains_router(domain_binds, project_rbac.clone(), metering.clone()))
+        .merge(members_router(project_rbac.clone()))
+        .merge(metering_router(metering.clone(), project_rbac.clone()))
         .merge(ops_router(OpsRoutes {
             vm_ops,
             backups,
             registry: project_registry,
             pool: app_state.conn.clone(),
+            rbac: project_rbac,
+            metering: metering.clone(),
         }))
 }

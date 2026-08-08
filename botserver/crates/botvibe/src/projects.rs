@@ -286,10 +286,7 @@ impl ProjectRegistry {
                     .unwrap_or(true)
             })
             .collect();
-        rows.sort_by(|a, b| {
-            let at = |v: &serde_json::Value| v.get("at").and_then(|t| t.as_str()).unwrap_or("");
-            at(b).cmp(at(a))
-        });
+        rows.sort_by(|a, b| deploy_at(b).cmp(deploy_at(a)));
         Ok(rows)
     }
 
@@ -395,6 +392,11 @@ struct ProjectRow {
     created_at: DateTime<Utc>,
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
     updated_at: DateTime<Utc>,
+}
+
+/// Extract the deployment timestamp (`at` field) for history sorting.
+fn deploy_at(v: &serde_json::Value) -> &str {
+    v.get("at").and_then(|t| t.as_str()).unwrap_or("")
 }
 
 impl ProjectRow {
