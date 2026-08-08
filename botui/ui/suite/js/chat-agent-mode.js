@@ -179,6 +179,15 @@
             case "file_created":
                 incrementBadge("explorerBadge");
                 break;
+            case "tool_progress":
+            case "tool_done":
+            case "tool_error":
+            case "tool_approval":
+                renderToolEvent(data);
+                break;
+            case "git_diff":
+                renderGitDiff(data);
+                break;
         }
     }
 
@@ -267,6 +276,30 @@
         if (modelEl && data.model) {
             modelEl.textContent = data.model + " — " + (data.usage || 0) + "%";
         }
+    }
+
+    function renderToolEvent(data) {
+        if (!window.ChatCodeUX) return;
+        var tool = {
+            id: data.tool_id || "",
+            tool_name: data.tool_name || data.tool || "tool",
+            status: data.type === "tool_done" ? "done"
+                : data.type === "tool_error" ? "error"
+                : data.type === "tool_approval" ? "awaiting" : "running",
+            argsDetail: data.args ? String(data.args) : "",
+            summary: data.summary || data.message || ""
+        };
+        ChatCodeUX.appendCard(tool);
+    }
+
+    function renderGitDiff(data) {
+        var messages = document.getElementById("messages");
+        if (!messages || !window.ChatCodeUX) return;
+        var wrapper = document.createElement("div");
+        wrapper.className = "message bot";
+        wrapper.innerHTML = '<div class="message-content bot-message">' +
+            ChatCodeUX.renderDiff(data.diff || data.content || "") + "</div>";
+        messages.appendChild(wrapper);
     }
 
     function incrementBadge(badgeId) {
