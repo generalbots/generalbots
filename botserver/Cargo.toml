@@ -192,7 +192,7 @@ num-format = { workspace = true }
 once_cell = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
-reqwest = { workspace = true, features = ["rustls-tls", "multipart", "stream", "json"] }
+reqwest = { workspace = true, features = ["rustls-tls", "multipart", "stream", "json", "blocking"] }
 serde = { workspace = true, features = ["derive", "std"] }
 serde_json = { workspace = true }
 toml = { workspace = true }

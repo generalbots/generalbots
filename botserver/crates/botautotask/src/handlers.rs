@@ -96,7 +96,7 @@ pub async fn classify_intent(
             requires_clarification: true,
             clarification_question: None,
             result: None,
-            error: Some(err_msg("classify", &e)),
+            error: Some(err_msg("classify", &*e)),
         }),
     }
 }
@@ -104,12 +104,12 @@ pub async fn classify_intent(
 pub async fn compile_intent(
     State(api): State<Arc<AutoTaskApi>>,
     Json(req): Json<CompileIntentRequest>,
-) -> impl IntoResponse {
+) -> Json<CompileIntentResponse> {
     info!("API compile intent: {}", &req.intent[..req.intent.len().min(50)]);
     let bot_id = canonical_bot_id(req.bot_id.clone());
     let classification = match classifier_for(&api).classify_api(&req.intent, bot_id).await {
         Ok(c) => c,
-        Err(e) => return error_compile(&req.intent, &e),
+        Err(e) => return error_compile(&req.intent, &*e),
     };
     let fallback_body = script_for(&classification, None).1;
     let compiled = match compiler_for(&api)
@@ -198,7 +198,7 @@ pub async fn compile_intent(
     })
 }
 
-fn error_compile(intent: &str, e: &dyn std::error::Error) -> impl IntoResponse {
+fn error_compile(intent: &str, e: &dyn std::error::Error) -> Json<CompileIntentResponse> {
     let msg = err_msg("compile", e);
     warn!("compile failed for intent: {intent}");
     Json(CompileIntentResponse {
@@ -243,22 +243,22 @@ pub async fn execute_plan(
 pub async fn create_and_execute(
     State(api): State<Arc<AutoTaskApi>>,
     Json(req): Json<CreateAndExecuteRequest>,
-) -> impl IntoResponse {
+) -> Json<CreateAndExecuteResponse> {
     info!("API create and execute: {}", &req.intent[..req.intent.len().min(50)]);
     let bot_id = canonical_bot_id(req.bot_id.clone());
     let classification = match classifier_for(&api).classify_api(&req.intent, bot_id).await {
         Ok(c) => c,
-        Err(e) => return error_create(&req.intent, &e),
+        Err(e) => return error_create(&req.intent, &*e),
     };
     let compiled = match compiler_for(&api)
         .compile_from_classification(&classification, None, None)
         .await
     {
         Ok(c) => c,
-        Err(e) => return error_create(&req.intent, &e),
+        Err(e) => return error_create(&req.intent, &*e),
     };
     let (relative_path, body) = script_for(&classification, Some(&compiled));
-    match persist_script(&api, bot_id, &classification, &relative_path, &body) {
+    match persist_script(&api, bot_id, &relative_path, &body) {
         Ok((bucket, key)) => Json(CreateAndExecuteResponse {
             success: true,
             task_id: classification.id.clone(),
@@ -294,7 +294,6 @@ pub async fn create_and_execute(
 fn persist_script(
     api: &AutoTaskApi,
     bot_id: Uuid,
-    classification: &crate::intent_classifier::ClassifiedIntent,
     relative_path: &str,
     body: &str,
 ) -> Result<(String, String), String> {
@@ -306,12 +305,13 @@ fn persist_script(
         .ok_or_else(|| "Drive ops not available — cannot persist generated BASIC".to_string())?;
     let bucket = info.bucket_name();
     let key = format!("{}/{}", info.dialog_folder(), relative_path.trim_start_matches('/'));
-    ops.put_object(&bucket, &key, body.as_bytes().to_vec(), "text/plain")?;
+    ops.put_object(&bucket, &key, body.as_bytes().to_vec(), "text/plain")
+        .map_err(|e| format!("drive put failed: {e}"))?;
     info!("Saved BASIC file to Drive: {bucket}/{key}");
     Ok((bucket, key))
 }
 
-fn error_create(intent: &str, e: &dyn std::error::Error) -> impl IntoResponse {
+fn error_create(intent: &str, e: &dyn std::error::Error) -> Json<CreateAndExecuteResponse> {
     let msg = err_msg("create_and_execute", e);
     warn!("create failed for intent: {intent}");
     Json(CreateAndExecuteResponse {
@@ -329,21 +329,48 @@ fn error_create(intent: &str, e: &dyn std::error::Error) -> impl IntoResponse {
 pub async fn list_tasks(
     State(api): State<Arc<AutoTaskApi>>,
     Query(_query): Query<crate::api::ListTasksQuery>,
-) -> impl IntoResponse {
+) -> Json<Vec<serde_json::Value>> {
     let pool = api.state().db_pool().clone();
     let rows = pool
         .get()
         .ok()
         .and_then(|mut conn| {
-            sql_query(
+            let rows: Vec<TaskRow> = sql_query(
                 "SELECT id, original_text, intent_type, confidence, created_at \
                  FROM intent_classifications ORDER BY created_at DESC LIMIT 50",
             )
-            .load::<serde_json::Value>(&mut conn)
-            .ok()
+            .load(&mut conn)
+            .ok()?;
+            Some(rows)
         })
         .unwrap_or_default();
-    Json(rows)
+    Json(rows.into_iter().map(|r| r.into_json()).collect())
+}
+
+#[derive(diesel::QueryableByName)]
+struct TaskRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    id: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    original_text: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    intent_type: String,
+    #[diesel(sql_type = diesel::sql_types::Float8)]
+    confidence: f64,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl TaskRow {
+    fn into_json(self) -> serde_json::Value {
+        serde_json::json!({
+            "id": self.id,
+            "original_text": self.original_text,
+            "intent_type": self.intent_type,
+            "confidence": self.confidence,
+            "created_at": self.created_at.to_rfc3339(),
+        })
+    }
 }
 
 pub async fn get_stats(
