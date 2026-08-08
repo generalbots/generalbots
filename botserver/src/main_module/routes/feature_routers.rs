@@ -29,10 +29,6 @@ struct DefaultBranchRow {
     branch_id: uuid::Uuid,
 }
 
-fn default_branch_fn(conn: &mut diesel::PgConnection) -> uuid::Uuid {
-    resolve_default_branch(conn)
-}
-
 /// Resolves a working Zitadel management token for the SaaS cloud API.
 ///
 /// The configured `service_token` may be stale or invalid (it is a leftover

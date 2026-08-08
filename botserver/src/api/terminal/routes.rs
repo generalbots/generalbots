@@ -6,7 +6,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use futures_util::{SinkExt, StreamExt};
+use futures_util::StreamExt;
 
 use super::{TerminalManager, default_shell, sanitize_cwd};
 

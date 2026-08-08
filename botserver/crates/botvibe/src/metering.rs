@@ -304,7 +304,8 @@ impl VMetering {
         .bind::<diesel::sql_types::Text, _>(env)
         .bind::<diesel::sql_types::Text, _>(MeterKind::VmHours.as_str())
         .bind::<diesel::sql_types::BigInt, _>(window)
-        .get_result::<f64>(&mut conn)
+        .get_result::<F64Cell>(&mut conn)
+        .map(|c| c.value)
         .map_err(|e| format!("recorded usage sum: {e}"))?;
         Ok((elapsed.min(window_hours) - recorded).max(0.0))
     }

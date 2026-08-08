@@ -694,8 +694,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
 dependencies = [
  "async-trait",
- "axum-core 0.4.5",
- "axum-macros 0.4.2",
+ "axum-core",
+ "axum-macros",
  "base64 0.22.1",
  "bytes",
  "futures-util",
@@ -705,7 +705,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "itoa",
- "matchit 0.7.3",
+ "matchit",
  "memchr",
  "mime",
  "multer",
@@ -719,44 +719,7 @@ dependencies = [
  "sha1",
  "sync_wrapper",
  "tokio",
- "tokio-tungstenite 0.24.0",
- "tower 0.5.3",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
-name = "axum"
-version = "0.8.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31b698c5f9a010f6573133b09e0de5408834d0c82f8d7475a89fc1867a71cd90"
-dependencies = [
- "axum-core 0.5.6",
- "axum-macros 0.5.1",
- "base64 0.22.1",
- "bytes",
- "form_urlencoded",
- "futures-util",
- "http",
- "http-body",
- "http-body-util",
- "hyper",
- "hyper-util",
- "itoa",
- "matchit 0.8.4",
- "memchr",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "serde_core",
- "serde_json",
- "serde_path_to_error",
- "serde_urlencoded",
- "sha1",
- "sync_wrapper",
- "tokio",
- "tokio-tungstenite 0.29.0",
+ "tokio-tungstenite",
  "tower 0.5.3",
  "tower-layer",
  "tower-service",
@@ -785,32 +748,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-core"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08c78f31d7b1291f7ee735c1c6780ccde7785daae9a9206026862dab7d8792d1"
-dependencies = [
- "bytes",
- "futures-core",
- "http",
- "http-body",
- "http-body-util",
- "mime",
- "pin-project-lite",
- "sync_wrapper",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
 name = "axum-extra"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c794b30c904f0a1c2fb7740f7df7f7972dfaa14ef6f57cb6178dc63e5dca2f04"
 dependencies = [
- "axum 0.7.9",
- "axum-core 0.4.5",
+ "axum",
+ "axum-core",
  "bytes",
  "fastrand",
  "futures-util",
@@ -832,17 +776,6 @@ name = "axum-macros"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57d123550fa8d071b7255cb0cc04dc302baa6c8c4a79f55701552684d8399bce"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.118",
-]
-
-[[package]]
-name = "axum-macros"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7aa268c23bfbbd2c4363b9cd302a4f504fb2a9dfe7e3451d66f35dd392e20aca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1091,7 +1024,7 @@ dependencies = [
 name = "botanalytics"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "bigdecimal",
  "chrono",
@@ -1110,7 +1043,7 @@ name = "botapi"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botcore",
  "botsecurity",
@@ -1154,7 +1087,7 @@ name = "botattendance"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "botsecurity-crypto",
  "chrono",
  "diesel",
@@ -1176,7 +1109,7 @@ name = "botattendant"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "botsecurity-core",
  "chrono",
  "diesel",
@@ -1192,7 +1125,7 @@ dependencies = [
 name = "botautotask"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "botlib",
  "chrono",
@@ -1214,7 +1147,7 @@ dependencies = [
 name = "botbanking"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "botlib",
  "bottax",
@@ -1234,7 +1167,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botbasic_types",
  "botcore",
@@ -1267,7 +1200,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "bigdecimal",
  "botbasic_core",
@@ -1340,7 +1273,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "botbasic_core",
  "botbasic_types",
  "botcore",
@@ -1372,7 +1305,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botbasic_core",
  "botbasic_data",
@@ -1421,7 +1354,7 @@ name = "botbilling"
 version = "6.3.1"
 dependencies = [
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "bigdecimal",
  "botsecurity-core",
  "chrono",
@@ -1468,7 +1401,7 @@ name = "botbrowser"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "chromiumoxide",
  "chrono",
@@ -1486,7 +1419,7 @@ dependencies = [
 name = "botcalendar"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "icalendar",
@@ -1503,7 +1436,7 @@ dependencies = [
 name = "botcanvas"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "r2d2",
@@ -1517,7 +1450,7 @@ name = "botchannels"
 version = "6.3.1"
 dependencies = [
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botchannels-core",
  "chrono",
@@ -1568,7 +1501,7 @@ name = "botcloud"
 version = "0.1.0"
 dependencies = [
  "argon2",
- "axum 0.7.9",
+ "axum",
  "bigdecimal",
  "botbilling",
  "botcoredirectory",
@@ -1598,7 +1531,7 @@ name = "botcompliance"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "chrono",
  "csv",
  "diesel",
@@ -1618,7 +1551,7 @@ name = "botcontacts"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "botsecurity-core",
  "chrono",
  "diesel",
@@ -1639,7 +1572,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botbasic_types",
  "botcoresecrets",
@@ -1694,7 +1627,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botlib",
  "chrono",
@@ -1720,7 +1653,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "argon2",
- "axum 0.7.9",
+ "axum",
  "botcore",
  "botcoresecrets",
  "botlib",
@@ -1744,7 +1677,7 @@ name = "botcoreoauth"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botcoresecrets",
  "chrono",
@@ -1805,7 +1738,7 @@ name = "botcoresession"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "botlib",
  "botsecurity-crypto",
  "chrono",
@@ -1823,7 +1756,7 @@ dependencies = [
 name = "botdashboards"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "r2d2",
@@ -1839,7 +1772,7 @@ name = "botdatabase"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botcore",
  "chrono",
@@ -1856,7 +1789,7 @@ dependencies = [
 name = "botdeployment"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botsecurity-auth",
  "chrono",
  "diesel",
@@ -1874,7 +1807,7 @@ dependencies = [
 name = "botdesigner"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -1891,7 +1824,7 @@ dependencies = [
 name = "botdesktop"
 version = "0.1.0"
 dependencies = [
- "axum 0.8.9",
+ "axum",
  "chrono",
  "diesel",
  "futures-util",
@@ -1909,7 +1842,7 @@ dependencies = [
 name = "botdocs"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botlib",
  "chrono",
  "diesel",
@@ -1933,7 +1866,7 @@ name = "botdrive"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botcore",
  "botlib",
@@ -1967,7 +1900,7 @@ dependencies = [
 name = "boteditor"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botcore",
  "diesel",
@@ -1982,7 +1915,7 @@ name = "botemail"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "axum-extra",
  "base64 0.22.1",
  "botlib",
@@ -2011,7 +1944,7 @@ dependencies = [
 name = "boterp"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2043,7 +1976,7 @@ dependencies = [
 name = "botfraud"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "chrono",
  "diesel",
@@ -2060,7 +1993,7 @@ dependencies = [
 name = "botgit"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "botlib",
  "diesel",
@@ -2073,7 +2006,7 @@ dependencies = [
 name = "botgl"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botsecurity-core",
  "chrono",
  "diesel",
@@ -2089,7 +2022,7 @@ dependencies = [
 name = "bothandoff"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2105,7 +2038,7 @@ dependencies = [
 name = "bothr"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2122,7 +2055,7 @@ name = "botinstagram"
 version = "6.3.1"
 dependencies = [
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "botlib",
  "log",
  "reqwest 0.12.28",
@@ -2137,7 +2070,7 @@ dependencies = [
 name = "botintegrations"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2153,7 +2086,7 @@ dependencies = [
 name = "botinventory"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botsecurity-core",
  "chrono",
  "diesel",
@@ -2168,7 +2101,7 @@ dependencies = [
 name = "botitsm"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2199,7 +2132,7 @@ dependencies = [
 name = "botkyc"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2215,7 +2148,7 @@ dependencies = [
 name = "botlearn"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "serde",
@@ -2227,7 +2160,7 @@ dependencies = [
 name = "botlegal"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "r2d2",
@@ -2295,7 +2228,7 @@ name = "botm365"
 version = "6.3.1"
 dependencies = [
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2309,7 +2242,7 @@ dependencies = [
 name = "botmaintenance"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "log",
@@ -2324,7 +2257,7 @@ name = "botmarketing"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "bigdecimal",
  "botsecurity-core",
  "chrono",
@@ -2345,7 +2278,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botcore",
  "botlib",
@@ -2373,7 +2306,7 @@ dependencies = [
 name = "botminutes"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2404,7 +2337,7 @@ dependencies = [
 name = "botmonitoring"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "hex",
  "log",
@@ -2422,7 +2355,7 @@ name = "botmsteams"
 version = "6.3.1"
 dependencies = [
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "botlib",
  "chrono",
  "diesel",
@@ -2460,7 +2393,7 @@ dependencies = [
 name = "botpaper"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "log",
@@ -2474,7 +2407,7 @@ dependencies = [
 name = "botpeople"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "bigdecimal",
  "botsecurity-core",
  "chrono",
@@ -2490,7 +2423,7 @@ dependencies = [
 name = "botplan"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "futures-util",
  "log",
@@ -2506,7 +2439,7 @@ name = "botplayer"
 version = "6.3.1"
 dependencies = [
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "serde",
  "serde_json",
  "tokio",
@@ -2516,7 +2449,7 @@ dependencies = [
 name = "botpos"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2532,7 +2465,7 @@ dependencies = [
 name = "botproducts"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "bigdecimal",
  "botsecurity-core",
  "bottax",
@@ -2551,7 +2484,7 @@ dependencies = [
 name = "botproject"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "log",
  "quick-xml 0.37.5",
@@ -2600,7 +2533,7 @@ dependencies = [
 name = "botresearch"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botlib",
  "botsecurity-core",
  "chrono",
@@ -2630,7 +2563,7 @@ dependencies = [
 name = "botsales"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -2673,7 +2606,7 @@ dependencies = [
 name = "botsearch"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botlib",
  "botsecurity-core",
  "chrono",
@@ -2689,7 +2622,7 @@ name = "botsecurity"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botsecurity-auth",
  "botsecurity-core",
@@ -2715,7 +2648,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botlib",
  "botsecurity-core",
@@ -2749,7 +2682,7 @@ name = "botsecurity-core"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botlib",
  "chrono",
@@ -2811,7 +2744,7 @@ name = "botsecurity-protection"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "botcore",
  "botsecurity-core",
  "chrono",
@@ -2833,7 +2766,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "axum-server",
  "base64 0.22.1",
  "bigdecimal",
@@ -3018,7 +2951,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "argon2",
- "axum 0.7.9",
+ "axum",
  "bigdecimal",
  "botcore",
  "botschema",
@@ -3041,7 +2974,7 @@ name = "botsheet"
 version = "6.3.1"
 dependencies = [
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botlib",
  "botsheet-core",
@@ -3085,7 +3018,7 @@ dependencies = [
 name = "botslides"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botlib",
  "chrono",
  "diesel",
@@ -3106,7 +3039,7 @@ dependencies = [
 name = "botsocial"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "r2d2",
@@ -3121,7 +3054,7 @@ dependencies = [
 name = "botsources"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "botcoresecrets",
  "chrono",
@@ -3142,7 +3075,7 @@ dependencies = [
 name = "bottasks"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botsecurity-core",
  "chrono",
  "cron",
@@ -3159,7 +3092,7 @@ dependencies = [
 name = "bottax"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "botlib",
  "chrono",
@@ -3177,7 +3110,7 @@ name = "bottelegram"
 version = "6.3.1"
 dependencies = [
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "botlib",
  "chrono",
  "diesel",
@@ -3193,7 +3126,7 @@ dependencies = [
 name = "bottemplates"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -3238,7 +3171,7 @@ dependencies = [
 name = "bottickets"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botsecurity-core",
  "chrono",
  "diesel",
@@ -3254,7 +3187,7 @@ dependencies = [
 name = "bottimeclock"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -3284,7 +3217,7 @@ name = "botui"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "axum 0.7.9",
+ "axum",
  "botcoresecrets",
  "botlib",
  "futures-util",
@@ -3297,7 +3230,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "tokio-tungstenite 0.24.0",
+ "tokio-tungstenite",
  "tower-http",
 ]
 
@@ -3305,7 +3238,7 @@ dependencies = [
 name = "botuifragments"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "botminutes",
  "bottax",
@@ -3322,7 +3255,7 @@ dependencies = [
 name = "botvibe"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botautotask",
  "botcontacts",
  "botdeployment",
@@ -3345,7 +3278,7 @@ dependencies = [
 name = "botvideo"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botlib",
  "chrono",
  "diesel",
@@ -3365,7 +3298,7 @@ dependencies = [
 name = "botvision"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botcore",
  "chrono",
  "diesel",
@@ -3381,7 +3314,7 @@ dependencies = [
 name = "botweba"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "log",
  "serde",
@@ -3394,7 +3327,7 @@ dependencies = [
 name = "botwhatsapp"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "chrono",
  "diesel",
  "log",
@@ -3408,7 +3341,7 @@ dependencies = [
 name = "botworkspaces"
 version = "6.3.1"
 dependencies = [
- "axum 0.7.9",
+ "axum",
  "botsecurity-core",
  "chrono",
  "diesel",
@@ -7458,12 +7391,6 @@ name = "matchit"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
-
-[[package]]
-name = "matchit"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
 
 [[package]]
 name = "maybe-async"
@@ -11946,18 +11873,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-tungstenite"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f72a05e828585856dacd553fba484c242c46e391fb0e58917c942ee9202915c"
-dependencies = [
- "futures-util",
- "log",
- "tokio",
- "tungstenite 0.29.0",
-]
-
-[[package]]
 name = "tokio-util"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12098,7 +12013,7 @@ checksum = "877c5b330756d856ffcc4553ab34a5684481ade925ecc54bcd1bf02b1d0d4d52"
 dependencies = [
  "async-stream",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "bytes",
  "flate2",
@@ -12327,22 +12242,6 @@ dependencies = [
  "sha1",
  "thiserror 1.0.69",
  "utf-8",
-]
-
-[[package]]
-name = "tungstenite"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c01152af293afb9c7c2a57e4b559c5620b421f6d133261c60dd2d0cdb38e6b8"
-dependencies = [
- "bytes",
- "data-encoding",
- "http",
- "httparse",
- "log",
- "rand 0.9.4",
- "sha1",
- "thiserror 2.0.18",
 ]
 
 [[package]]
