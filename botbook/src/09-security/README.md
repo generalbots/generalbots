@@ -74,6 +74,7 @@ These permissions are enforced during vector search, ensuring users only see con
 - [RBAC & Security Design](./rbac-design.md) - Complete RBAC architecture and security matrix
 - [Role-Based Tool Access](./role-based-tools.md) - Restrict bot tools to admins via the `role` runtime variable
 - [Organization Multi-Tenancy](./organizations.md) - Multi-organization support and switching
+- [Multi-Tenant Data Isolation](./multi-tenant-isolation.md) - branch_id scoping rules for all data apps
 - [Knowledge Base Security](./kb-security.md) - Folder-level permissions and Qdrant integration
 - [SOC 2 Compliance](./soc2-compliance.md) - Enterprise compliance controls
 - [Security Matrix Reference](./security-matrix.md) - Complete permission reference tables
