@@ -123,7 +123,7 @@ CREATE INDEX IF NOT EXISTS idx_app_template_deploys_branch ON app_template_deplo
 CREATE INDEX IF NOT EXISTS idx_itsm_incidents_branch       ON itsm_incidents(branch_id);
 CREATE INDEX IF NOT EXISTS idx_itsm_service_requests_branch ON itsm_service_requests(branch_id);
 CREATE INDEX IF NOT EXISTS idx_itsm_cmdb_branch            ON itsm_cmdb(branch_id);
-CREATE INDEX IF NOT EXISTS idx_itsm_kb_branch              ON itsm_cmdb(branch_id);
+CREATE INDEX IF NOT EXISTS idx_itsm_kb_branch              ON itsm_kb(branch_id);
 CREATE INDEX IF NOT EXISTS idx_pos_products_branch         ON pos_products(branch_id);
 CREATE INDEX IF NOT EXISTS idx_pos_orders_branch           ON pos_orders(branch_id);
 CREATE INDEX IF NOT EXISTS idx_handoff_queue_branch        ON handoff_queue(branch_id);
