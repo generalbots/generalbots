@@ -90,6 +90,22 @@ function proceedWithChatInit() {
   var botName = window.__INITIAL_BOT_NAME__ || "default";
   var storageKey = "gb_chat_" + botName;
 
+  // #753 — cross-surface deeplinks: ?vibe= / ?run_id= open the Vibe app
+  // (desktop shell) or mark the chat tab for the Vibe surface.
+  try {
+    var qs = new URLSearchParams(window.location.search);
+    if (qs.get("vibe") !== null || qs.get("run_id") !== null) {
+      if (window.VibeB) {
+        window.VibeB.open({
+          project: qs.get("vibe") || "",
+          run_id: qs.get("run_id") || ""
+        });
+      } else {
+        sessionStorage.setItem("gb_vibe_deeplink", window.location.search);
+      }
+    }
+  } catch (e) { /* non-fatal */ }
+
   // Capture auth token passed back from the login server (?token=...) —
   // localStorage is origin-scoped, so the login domain's storage is not
   // visible here. Consume the param and persist for this origin.
