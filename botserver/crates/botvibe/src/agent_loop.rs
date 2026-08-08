@@ -1,4 +1,6 @@
+use crate::permissions::{PermissionEngine, PermissionEngineRef, PermissionMode};
 use crate::prompt_manager::VibePromptManager;
+use crate::skills::SkillStore;
 use crate::telemetry::{ToolCallRecord, VibeTelemetry};
 use crate::tool_executor::VibeToolExecutor;
 use crate::types::{VibeProgressEvent, VibeRun, VibeRunState, VibeState, VibeToolCall};
@@ -14,6 +16,8 @@ pub struct AgentLoop {
     tool_executor: Arc<VibeToolExecutor>,
     telemetry: Arc<VibeTelemetry>,
     state: Arc<dyn VibeState>,
+    permissions: PermissionEngineRef,
+    skills: Arc<SkillStore>,
 }
 
 impl AgentLoop {
@@ -28,7 +32,19 @@ impl AgentLoop {
             tool_executor,
             telemetry,
             state,
+            permissions: Arc::new(PermissionEngine::new()),
+            skills: Arc::new(SkillStore::new()),
         }
+    }
+
+    pub fn with_security(
+        mut self,
+        permissions: PermissionEngineRef,
+        skills: Arc<SkillStore>,
+    ) -> Self {
+        self.permissions = permissions;
+        self.skills = skills;
+        self
     }
 
     pub async fn execute_run(&self, run: &mut VibeRun) {
@@ -66,9 +82,28 @@ impl AgentLoop {
         let mut context = self.prompt_manager.build_context(run.use_case, &run.intent, &[]);
         context.run_id = run.run_id;
 
+        let triggered = self.skills.auto_trigger(&run.intent).await;
+        if !triggered.is_empty() {
+            context.kb_references = triggered
+                .iter()
+                .map(|s| s.content.clone())
+                .collect();
+        }
+
         for step in 0..max_steps {
             if run.state == VibeRunState::Cancelled {
                 info!("Vibe run {} cancelled at step {}", run.run_id, step);
+                return;
+            }
+
+            if self.budget_exceeded(run).await {
+                run.transition(VibeRunState::Failed);
+                run.error = Some(format!(
+                    "Budget cap exceeded ({} cents)",
+                    run.config.budget_cents
+                ));
+                self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                self.broadcast_event(run, "failed", "Budget cap exceeded", 100);
                 return;
             }
 
@@ -217,7 +252,7 @@ impl AgentLoop {
         step: u32,
         max_steps: u32,
     ) {
-        let requires_approval = self
+        let schema_requires = self
             .tool_executor
             .registry()
             .get_descriptor(&extracted.tool_name)
@@ -225,12 +260,24 @@ impl AgentLoop {
             .map(|d| d.schema.requires_approval)
             .unwrap_or(false);
 
+        let mode = self.permissions.mode().await;
+        let requires_approval = if matches!(mode, PermissionMode::Bypass) {
+            false
+        } else {
+            self.permissions
+                .requires_approval(schema_requires, &extracted.tool_name, mode)
+        };
+
         let mut tool_call = VibeToolCall::new(
             run.run_id,
             extracted.tool_name.clone(),
             extracted.arguments.clone(),
             requires_approval,
         );
+
+        if matches!(mode, PermissionMode::Bypass) {
+            tool_call.approved = true;
+        }
 
         self.telemetry
             .record_tool_call(ToolCallRecord {
@@ -398,6 +445,29 @@ impl AgentLoop {
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
         self.state.broadcast_progress(event);
+    }
+
+    async fn budget_exceeded(&self, run: &VibeRun) -> bool {
+        let budget_cents = run.config.budget_cents;
+        if budget_cents == 0 {
+            return false;
+        }
+        let spent = self
+            .telemetry
+            .get_run_metrics(run.run_id)
+            .await
+            .map(|m| m.total_cost)
+            .unwrap_or(0.0);
+        let spent_cents = (spent * 100.0).round() as u64;
+        if spent_cents >= budget_cents {
+            warn!(
+                "Vibe run {} exceeded budget: {spent_cents} cents >= {budget_cents} cents",
+                run.run_id
+            );
+            true
+        } else {
+            false
+        }
     }
 }
 struct ExtractedToolCall {

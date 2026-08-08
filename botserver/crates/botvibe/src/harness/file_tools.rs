@@ -1,7 +1,7 @@
 //! #747 — File tools for the Vibe agent. Writes are confined to the
 //! project workspace (`VIBE_WORKSPACE_ROOT/{project}/`).
 
-use crate::harness::{list_rel, read_rel_file, write_rel_file};
+use crate::harness::{list_rel, write_rel_file};
 use crate::tool_executor::ToolHandler;
 use crate::types::{VibeState, VibeToolResult};
 use serde_json::json;

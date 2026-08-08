@@ -23,6 +23,7 @@ pub struct CreateRunRequest {
     pub max_tool_calls: Option<u32>,
     pub timeout_seconds: Option<u64>,
     pub model: Option<String>,
+    pub budget_cents: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -86,30 +87,9 @@ struct VibeApiInner {
     prompt_manager: Arc<VibePromptManager>,
     tool_executor: Arc<VibeToolExecutor>,
     telemetry: Arc<VibeTelemetry>,
+    permissions: crate::permissions::PermissionEngineRef,
+    skills: Arc<crate::skills::SkillStore>,
     runs: Arc<RwLock<HashMap<Uuid, VibeRun>>>,
-}
-
-pub struct VibeApi {
-    inner: Arc<VibeApiInner>,
-}
-
-impl VibeApi {
-    pub fn new(
-        state: Arc<dyn VibeState>,
-        prompt_manager: Arc<VibePromptManager>,
-        tool_executor: Arc<VibeToolExecutor>,
-        telemetry: Arc<VibeTelemetry>,
-    ) -> Self {
-        Self {
-            inner: Arc::new(VibeApiInner {
-                state,
-                prompt_manager,
-                tool_executor,
-                telemetry,
-                runs: Arc::new(RwLock::new(HashMap::new())),
-            }),
-        }
-    }
 }
 
 pub fn router(
@@ -117,8 +97,18 @@ pub fn router(
     prompt_manager: Arc<VibePromptManager>,
     tool_executor: Arc<VibeToolExecutor>,
     telemetry: Arc<VibeTelemetry>,
+    permissions: crate::permissions::PermissionEngineRef,
+    skills: Arc<crate::skills::SkillStore>,
 ) -> axum::Router {
-    let api = Arc::new(VibeApi::new(state, prompt_manager, tool_executor, telemetry));
+    let api = Arc::new(VibeApiInner {
+        state,
+        prompt_manager,
+        tool_executor,
+        telemetry,
+        permissions,
+        skills,
+        runs: Arc::new(RwLock::new(HashMap::new())),
+    });
     axum::Router::new()
         .route("/api/vibe/run", axum::routing::post(create_run))
         .route("/api/vibe/run/:run_id", axum::routing::get(get_run))
@@ -137,7 +127,7 @@ pub fn router(
 }
 
 async fn create_run(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Json(req): Json<CreateRunRequest>,
 ) -> impl IntoResponse {
     info!("Vibe create run: {}", &req.intent[..req.intent.len().min(80)]);
@@ -154,6 +144,7 @@ async fn create_run(
         max_tool_calls: req.max_tool_calls.unwrap_or(50),
         timeout_seconds: req.timeout_seconds.unwrap_or(300),
         model: req.model,
+        budget_cents: req.budget_cents.unwrap_or(0),
     };
 
     let run = VibeRun::new(Uuid::nil(), Uuid::nil(), Uuid::nil(), req.intent, config);
@@ -170,12 +161,18 @@ async fn create_run(
 
     api.inner.telemetry.record_run_start(&run).await;
 
-    let agent_loop = Arc::new(AgentLoop::new(
-        api.inner.prompt_manager.clone(),
-        api.inner.tool_executor.clone(),
-        api.inner.telemetry.clone(),
-        api.inner.state.clone(),
-    ));
+    let agent_loop = Arc::new(
+        AgentLoop::new(
+            api.inner.prompt_manager.clone(),
+            api.inner.tool_executor.clone(),
+            api.inner.telemetry.clone(),
+            api.inner.state.clone(),
+        )
+        .with_security(
+            api.inner.permissions.clone(),
+            api.inner.skills.clone(),
+        ),
+    );
 
     {
         let mut runs = api.inner.runs.write().await;
@@ -210,7 +207,7 @@ async fn create_run(
 }
 
 async fn get_run(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let runs = api.inner.runs.read().await;
@@ -244,7 +241,7 @@ async fn get_run(
 }
 
 async fn cancel_run(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
     Json(_req): Json<CancelRunRequest>,
 ) -> impl IntoResponse {
@@ -267,7 +264,7 @@ async fn cancel_run(
 }
 
 async fn approve_run(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let mut runs = api.inner.runs.write().await;
@@ -293,7 +290,7 @@ async fn approve_run(
 }
 
 async fn list_runs(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Query(query): Query<ListRunsQuery>,
 ) -> impl IntoResponse {
     let runs = api.inner.runs.read().await;
@@ -333,13 +330,13 @@ async fn list_runs(
     Json(filtered)
 }
 
-async fn list_tools(Extension(api): Extension<Arc<VibeApi>>) -> impl IntoResponse {
+async fn list_tools(Extension(api): Extension<Arc<VibeApiInner>>) -> impl IntoResponse {
     let tools = api.inner.tool_executor.registry().list_tools().await;
     Json(ListToolsResponse { tools })
 }
 
 async fn list_tools_for_use_case(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Path(use_case): Path<String>,
 ) -> impl IntoResponse {
     let uc = parse_use_case(&use_case).unwrap_or(VibeUseCase::SoftwareDevelopment);
@@ -347,7 +344,7 @@ async fn list_tools_for_use_case(
     Json(ListToolsResponse { tools })
 }
 
-async fn get_global_metrics(Extension(api): Extension<Arc<VibeApi>>) -> impl IntoResponse {
+async fn get_global_metrics(Extension(api): Extension<Arc<VibeApiInner>>) -> impl IntoResponse {
     let metrics = api.inner.telemetry.get_global_metrics().await;
     Json(MetricsResponse {
         success: true,
@@ -357,7 +354,7 @@ async fn get_global_metrics(Extension(api): Extension<Arc<VibeApi>>) -> impl Int
 }
 
 async fn get_run_metrics(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
     match api.inner.telemetry.get_run_metrics(run_id).await {
@@ -375,7 +372,7 @@ async fn get_run_metrics(
 }
 
 async fn get_run_events(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let events = api.inner.telemetry.get_events_for_run(run_id, 100).await;
@@ -384,7 +381,7 @@ async fn get_run_events(
 
 
 async fn execute_run(
-    Extension(api): Extension<Arc<VibeApi>>,
+    Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let runs = api.inner.runs.read().await;

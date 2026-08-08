@@ -22,6 +22,7 @@ pub mod gateway;
 pub mod gateway_server;
 pub mod handlers;
 pub mod installer;
+pub mod rbac_guard;
 pub mod router;
 pub mod service;
 pub mod types;

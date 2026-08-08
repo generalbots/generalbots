@@ -303,10 +303,11 @@ Respond with JSON only:
                     probability: r.probability,
                     impact: r.impact,
                 }).collect();
+                let plan_name = resp.plan_name;
                 Ok(CompiledIntent {
                     id: Uuid::new_v4().to_string(),
                     intent_type: IntentType::Unknown,
-                    plan_name: resp.plan_name,
+                    plan_name: plan_name.clone(),
                     plan_description: resp.plan_description,
                     steps,
                     alternatives,
@@ -322,7 +323,7 @@ Respond with JSON only:
                         estimated_cost_usd: resp.resource_estimate.estimated_cost_usd,
                     },
                     basic_program: resp.basic_program
-                        .or_else(|| Some(fallback_basic_program(&resp.plan_name, original_intent))),
+                        .or_else(|| Some(fallback_basic_program(&plan_name, original_intent))),
                     requires_approval: resp.requires_approval,
                     mcp_servers: resp.mcp_servers,
                     external_apis: resp.external_apis,

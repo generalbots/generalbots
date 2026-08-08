@@ -2,7 +2,7 @@ mod types;
 
 pub use types::*;
 
-use crate::types::{AutoTaskState, ConfigOps, DbPool, DriveOps, LlmProviderOps, TaskProgressEvent, UserSession};
+use crate::types::{AutoTaskState, ConfigOps, DbPool, LlmProviderOps, TaskProgressEvent, UserSession};
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::sql_query;
@@ -286,7 +286,7 @@ Respond with JSON only:
         let mut conn = self.pool.get()?;
         sql_query("INSERT INTO tasks (id, title, description, status, priority, branch_id, created_at) VALUES ($1, $2, $3, 'pending', 'normal', $4, NOW())")
             .bind::<DieselUuid, _>(task_id).bind::<Text, _>(&title).bind::<Text, _>(&classification.original_text)
-            .bind::<DieselUuid, _>(session.branch_id)
+            .bind::<DieselUuid, _>(session.bot_id)
             .execute(&mut conn)?;
         Ok(IntentResult {
             success: true, intent_type: IntentType::Todo,
@@ -467,7 +467,7 @@ Respond with JSON only:
         };
         let bucket = format!("{}.gbai", bot.name);
         let key = format!("{}.gbdialog/{}", bot.name, path.trim_start_matches('/'));
-        ops.put_object(bucket, key, content.as_bytes().to_vec(), "text/plain")?;
+        ops.put_object(&bucket, &key, content.as_bytes().to_vec(), "text/plain")?;
         info!("Saved BASIC file to Drive: {bucket}/{key}");
         Ok(())
     }
@@ -518,7 +518,7 @@ fn suggest_name(intent: &str) -> String {
         let kept = word;
         words.push(kept.to_string());
     }
-    let mut name = words.iter().take(3).cloned().collect::<Vec<_>>().join("_");
+    let name = words.iter().take(3).cloned().collect::<Vec<_>>().join("_");
     if name.is_empty() {
         return String::new();
     }

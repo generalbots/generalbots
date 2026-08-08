@@ -93,8 +93,15 @@ pub async fn get_project_types() -> Result<Json<ProjectTypesResponse>, Deploymen
 
 pub async fn deploy_project(
     Extension(pool): Extension<DbPool>,
+    Extension(user): Extension<botsecurity_auth::auth_api::types::AuthenticatedUser>,
     Json(request): Json<DeploymentRequest>,
 ) -> Result<Json<DeploymentResponse>, DeploymentApiError> {
+    if !user.user_id.is_nil() {
+        if let Err(msg) = super::rbac_guard::require_deploy_role(&pool, user.user_id, request.project_id) {
+            log::warn!("Deployment denied for user {}: {msg}", user.user_id);
+            return Err(DeploymentApiError::Forbidden(msg));
+        }
+    }
     log::info!(
         "Deployment request: org={:?}, app={}, type={}, env={}",
         request.organization,

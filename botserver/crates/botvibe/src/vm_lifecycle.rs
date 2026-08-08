@@ -16,8 +16,6 @@ use uuid::Uuid;
 
 use crate::types::DbPool;
 
-mod vm_incus;
-
 pub const VM_INSTANCES_SCHEMA: &str = r"
 CREATE TABLE IF NOT EXISTS vm_instances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
