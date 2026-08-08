@@ -11,11 +11,9 @@ pub mod safety_layer;
 pub mod intent_classifier;
 pub mod intent_compiler;
 pub mod designer_ai;
-pub mod orchestrator;
 pub mod agent_executor;
 pub mod container_session;
 pub mod ask_later;
-pub mod app_generator;
 pub mod api;
 
 pub use task_types::{AutoTask, AutoTaskStatus, ExecutionMode, TaskPriority};
@@ -39,4 +37,3 @@ pub use execution::{
 pub use llm_adapter::BotlibLlmAdapter;
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
 pub use designer_ai::DesignerAI;
-pub use app_generator::{AppGenerator, FileType, GeneratedApp, GeneratedFile};
