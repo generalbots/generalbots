@@ -152,6 +152,7 @@ pub mod card;
 #[cfg(feature = "social")]
 pub mod post_to;
 pub mod set_answer_mode;
+pub mod vibe_agent;
 
 // ===== CONVENIENCE RE-EXPORTS =====
 pub use app_server::configure_app_server_routes;
