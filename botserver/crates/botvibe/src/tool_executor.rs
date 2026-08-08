@@ -129,6 +129,15 @@ impl ToolRegistry {
             });
         }
 
+        let publish_schema = crate::publish::publish_project_schema();
+        tools.insert("publish/project".to_string(), RegisteredTool {
+            descriptor: ToolDescriptor {
+                schema: publish_schema,
+                category: ToolCategory::Deployment,
+            },
+            handler: crate::publish::publish_project_tool(),
+        });
+
         let crm_tools = vec![
             ("search_contacts", "Busca contatos no CRM", false),
             ("get_deals", "Obtém oportunidades do pipeline CRM", false),

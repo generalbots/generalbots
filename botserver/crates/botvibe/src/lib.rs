@@ -9,6 +9,7 @@ pub mod projects;
 pub mod projects_api;
 pub mod vm_lifecycle;
 pub mod vms_api;
+pub mod publish;
 pub mod harness;
 
 pub use types::{
