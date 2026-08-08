@@ -6,6 +6,8 @@ use botcore::shared::state::AppState;
 use botvibe::projects::ProjectRegistry;
 use botvibe::projects_api::projects_router;
 use botvibe::types::{VibeProgressEvent, VibeRun, VibeState};
+use botvibe::vm_lifecycle::VmLifecycle;
+use botvibe::vms_api::vms_router;
 use botvibe::{ToolRegistry, VibePromptManager, VibeTelemetry, VibeToolExecutor};
 use log::info;
 use std::collections::HashMap;
@@ -55,10 +57,17 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     }
     let project_registry = Arc::new(registry);
 
+    let vm_lifecycle = Arc::new(VmLifecycle::new(app_state.conn.clone()));
+    match vm_lifecycle.ensure_schema() {
+        Ok(()) => info!("Vibe: vm_instances schema ensured"),
+        Err(e) => log::error!("Vibe: ensure vm_instances schema failed: {e}"),
+    }
+
     let prompt_manager = Arc::new(VibePromptManager::new());
     let tool_executor = Arc::new(VibeToolExecutor::new(Arc::new(ToolRegistry::new())));
     let telemetry = Arc::new(VibeTelemetry::new());
 
     botvibe::api::router(state, prompt_manager, tool_executor, telemetry)
-        .merge(projects_router(project_registry))
+        .merge(projects_router(project_registry.clone()))
+        .merge(vms_router(vm_lifecycle, project_registry))
 }
