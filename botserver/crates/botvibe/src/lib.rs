@@ -7,6 +7,8 @@ pub mod knowledge_graph;
 pub mod agent_loop;
 pub mod projects;
 pub mod projects_api;
+pub mod vm_lifecycle;
+pub mod vms_api;
 pub mod harness;
 
 pub use types::{
