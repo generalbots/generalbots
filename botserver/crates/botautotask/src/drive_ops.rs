@@ -17,9 +17,13 @@ fn bridge<T>(fut: impl std::future::Future<Output = Result<T, String>>) -> Resul
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| BridgeError::from(format!("spawn runtime: {e}")))?;
+        .map_err(|e| box_error(format!("spawn runtime: {e}")))?;
     rt.block_on(fut)
-        .map_err(|e| BridgeError::from(format!("drive operation failed: {e}")))
+        .map_err(|e| box_error(format!("drive operation failed: {e}")))
+}
+
+fn box_error(msg: String) -> BoxError {
+    Box::new(BridgeError(msg)) as BoxError
 }
 
 #[derive(Debug)]

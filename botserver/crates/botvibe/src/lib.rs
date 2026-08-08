@@ -8,8 +8,13 @@ pub mod agent_loop;
 pub mod projects;
 pub mod projects_api;
 pub mod vm_lifecycle;
+mod vm_incus;
 pub mod vms_api;
 pub mod publish;
+pub mod caddy;
+pub mod domains;
+pub mod domains_api;
+pub mod domains_tool;
 pub mod harness;
 
 pub use types::{

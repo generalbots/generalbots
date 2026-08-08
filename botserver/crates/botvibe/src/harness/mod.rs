@@ -67,13 +67,13 @@ pub fn ensure_workspace(project: &str) -> Result<PathBuf, String> {
     Ok(root)
 }
 
-pub fn read_rel_file(project: &str, rel: &str, max_bytes: usize) -> Result<Vec<u8>, String> {
+pub fn read_rel_file(project: &str, rel: &str, max_bytes: u64) -> Result<Vec<u8>, String> {
     let path = resolve_workspace_path(project, rel)?;
     let meta = std::fs::metadata(&path).map_err(|e| format!("stat {rel}: {e}"))?;
     if meta.is_dir() {
         return Err(format!("{rel} is a directory"));
     }
-    if meta.len() > max_bytes {
+    if (meta.len() as u64) > max_bytes {
         return Err(format!("{rel} exceeds {max_bytes} bytes"));
     }
     std::fs::read(&path).map_err(|e| format!("read {rel}: {e}"))

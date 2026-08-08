@@ -3,6 +3,8 @@
 //! `vibe_projects` schema at boot.
 
 use botcore::shared::state::AppState;
+use botvibe::domains::ProjectDomains;
+use botvibe::domains_api::domains_router;
 use botvibe::projects::ProjectRegistry;
 use botvibe::projects_api::projects_router;
 use botvibe::types::{VibeProgressEvent, VibeRun, VibeState};
@@ -63,6 +65,12 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         Err(e) => log::error!("Vibe: ensure vm_instances schema failed: {e}"),
     }
 
+    let domain_binds = Arc::new(ProjectDomains::new(app_state.conn.clone()));
+    match domain_binds.ensure_schema() {
+        Ok(()) => info!("Vibe: project_domains schema ensured"),
+        Err(e) => log::error!("Vibe: ensure project_domains schema failed: {e}"),
+    }
+
     let prompt_manager = Arc::new(VibePromptManager::new());
     let tool_executor = Arc::new(VibeToolExecutor::new(Arc::new(ToolRegistry::new())));
     let telemetry = Arc::new(VibeTelemetry::new());
@@ -70,4 +78,5 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     botvibe::api::router(state, prompt_manager, tool_executor, telemetry)
         .merge(projects_router(project_registry.clone()))
         .merge(vms_router(vm_lifecycle, project_registry))
+        .merge(domains_router(domain_binds))
 }

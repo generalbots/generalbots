@@ -26,11 +26,10 @@ pub fn vms_router(lifecycle: VmLifecycleRef, registry: ProjectRegistryRef) -> Ro
 }
 
 fn project_name(registry: &ProjectRegistryRef, project_id: Uuid) -> Result<(Uuid, String), String> {
-    registry
-        .get(project_id)
-        .map(|p| p.map(|p| (p.branch_id, p.name)))
-        .transpose()
-        .ok_or_else(|| format!("project {project_id} not found"))
+    let project = registry
+        .get(project_id)?
+        .ok_or_else(|| format!("project {project_id} not found"))?;
+    Ok((project.branch_id, project.name))
 }
 
 fn resolve_context(
@@ -54,10 +53,10 @@ async fn create_vm(
 ) -> Json<VmResult> {
     let (branch_id, name) = resolve_context(&registry, project_id);
     match lifecycle.create_project_vm(project_id, branch_id, &name, &req) {
-        Ok(vm) => VmResult::ok(vm),
+        Ok(vm) => Json(VmResult::ok(vm)),
         Err(e) => {
             log::error!("create_vm failed for {project_id}: {e}");
-            VmResult::err(e)
+            Json(VmResult::err(e))
         }
     }
 }
@@ -67,10 +66,10 @@ async fn list_vms(
     Path(project_id): Path<Uuid>,
 ) -> Json<VmResult> {
     match lifecycle.list(project_id) {
-        Ok(vms) => VmResult::ok_list(vms),
+        Ok(vms) => Json(VmResult::ok_list(vms)),
         Err(e) => {
             log::error!("list_vms failed for {project_id}: {e}");
-            VmResult::err(e)
+            Json(VmResult::err(e))
         }
     }
 }
@@ -80,10 +79,10 @@ async fn get_vm(
     Path((_project_id, vm_id)): Path<(Uuid, Uuid)>,
 ) -> Json<VmResult> {
     match lifecycle.get(vm_id) {
-        Ok(vm) => VmResult::ok(vm),
+        Ok(vm) => Json(VmResult::ok(vm)),
         Err(e) => {
             log::error!("get_vm {vm_id}: {e}");
-            VmResult::err(e)
+            Json(VmResult::err(e))
         }
     }
 }
@@ -93,10 +92,10 @@ async fn delete_vm(
     Path((_project_id, vm_id)): Path<(Uuid, Uuid)>,
 ) -> Json<VmResult> {
     match lifecycle.delete(vm_id) {
-        Ok(()) => VmResult::deleted(),
+        Ok(()) => Json(VmResult::deleted()),
         Err(e) => {
             log::error!("delete_vm {vm_id}: {e}");
-            VmResult::err(e)
+            Json(VmResult::err(e))
         }
     }
 }
@@ -106,10 +105,10 @@ async fn stop_vm(
     Path(vm_id): Path<Uuid>,
 ) -> Json<VmResult> {
     match lifecycle.stop(vm_id) {
-        Ok(vm) => VmResult::ok(vm),
+        Ok(vm) => Json(VmResult::ok(vm)),
         Err(e) => {
             log::error!("stop_vm {vm_id}: {e}");
-            VmResult::err(e)
+            Json(VmResult::err(e))
         }
     }
 }
@@ -119,10 +118,10 @@ async fn sync_vm(
     Path(vm_id): Path<Uuid>,
 ) -> Json<VmResult> {
     match lifecycle.sync_status(vm_id) {
-        Ok(vm) => VmResult::ok(vm),
+        Ok(vm) => Json(VmResult::ok(vm)),
         Err(e) => {
             log::error!("sync_vm {vm_id}: {e}");
-            VmResult::err(e)
+            Json(VmResult::err(e))
         }
     }
 }
