@@ -149,3 +149,17 @@ fn browser_screenshot() -> ToolHandler {
         })
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cdp_base_defaults_to_localhost_9222() {
+        std::env::remove_var("BROWSER_CDP_URL");
+        assert_eq!(cdp_base(), "http://127.0.0.1:9222");
+        std::env::set_var("BROWSER_CDP_URL", "http://example.com:9223");
+        assert_eq!(cdp_base(), "http://example.com:9223");
+        std::env::remove_var("BROWSER_CDP_URL");
+    }
+}

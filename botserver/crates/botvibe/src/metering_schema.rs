@@ -127,3 +127,45 @@ pub struct EnforceResult {
     pub allowed: bool,
     pub metered: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn meter_plan_parses_known_and_unknown() {
+        assert_eq!(MeterPlan::parse("free"), MeterPlan::Free);
+        assert_eq!(MeterPlan::parse("shared"), MeterPlan::Shared);
+        assert_eq!(MeterPlan::parse("private-cloud"), MeterPlan::PrivateCloud);
+        assert_eq!(MeterPlan::parse("PrivateCloud"), MeterPlan::PrivateCloud);
+        assert_eq!(MeterPlan::parse("custom"), MeterPlan::PrivateCloud);
+        assert_eq!(MeterPlan::parse("SHARED"), MeterPlan::Shared);
+        assert_eq!(MeterPlan::parse("nonsense"), MeterPlan::Free);
+        assert_eq!(MeterPlan::parse(""), MeterPlan::Free);
+    }
+
+    #[test]
+    fn meter_plan_as_str_round_trip() {
+        assert_eq!(MeterPlan::Free.as_str(), "free");
+        assert_eq!(MeterPlan::Shared.as_str(), "shared");
+        assert_eq!(MeterPlan::PrivateCloud.as_str(), "private-cloud");
+        assert_eq!(MeterPlan::parse(MeterPlan::PrivateCloud.as_str()), MeterPlan::PrivateCloud);
+    }
+
+    #[test]
+    fn meter_kind_as_str() {
+        assert_eq!(MeterKind::VmHours.as_str(), "vm_hours");
+        assert_eq!(MeterKind::BuildMinutes.as_str(), "build_minutes");
+        assert_eq!(MeterKind::StorageGbHours.as_str(), "storage_gb_hours");
+        assert_eq!(MeterKind::EgressGb.as_str(), "egress_gb");
+        assert_eq!(MeterKind::SnapshotCount.as_str(), "snapshot_count");
+        assert_eq!(MeterKind::DomainBindings.as_str(), "domain_bindings");
+    }
+
+    #[test]
+    fn schema_contains_core_tables() {
+        assert!(METERING_SCHEMA.contains("metering_usage"));
+        assert!(METERING_SCHEMA.contains("metering_limits"));
+        assert!(METERING_SCHEMA.contains("metering_overrides"));
+    }
+}

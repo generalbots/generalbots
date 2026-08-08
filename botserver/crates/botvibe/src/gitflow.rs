@@ -186,3 +186,38 @@ fn parse_forgejo_repo(remote: &str) -> Option<(String, String)> {
     }
     Some((owner, repo))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_forgejo_repo_handles_url_forms() {
+        assert_eq!(
+            parse_forgejo_repo("https://alm.pragmatismo.com.br/generalbots/botserver.git"),
+            Some(("generalbots".to_string(), "botserver".to_string()))
+        );
+        assert_eq!(
+            parse_forgejo_repo("http://host/generalbots/botserver"),
+            Some(("generalbots".to_string(), "botserver".to_string()))
+        );
+        assert_eq!(
+            parse_forgejo_repo("git@host:generalbots/botserver.git"),
+            Some(("generalbots".to_string(), "botserver".to_string()))
+        );
+    }
+
+    #[test]
+    fn parse_forgejo_repo_rejects_malformed() {
+        assert_eq!(parse_forgejo_repo(""), None);
+        assert_eq!(parse_forgejo_repo("https://host/single"), None);
+        assert_eq!(parse_forgejo_repo("https://host/only-one.git"), None);
+    }
+
+    #[test]
+    fn str_arg_extracts_string() {
+        let args = json!({ "project": "demo" });
+        assert_eq!(str_arg(&args, "project"), "demo");
+        assert_eq!(str_arg(&args, "missing"), "");
+    }
+}
