@@ -238,3 +238,60 @@ fn web_crawl() -> ToolHandler {
         })
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn percent_encode_keeps_reserved_ascii() {
+        assert_eq!(percent_encode("hello world"), "hello+world");
+        assert_eq!(percent_encode("a-b.c~d"), "a-b.c~d");
+        assert_eq!(percent_encode("café"), "caf%C3%A9");
+        assert_eq!(percent_encode(""), "");
+    }
+
+    #[test]
+    fn decode_ddg_url_handles_plain_and_encoded() {
+        assert_eq!(decode_ddg_url("https://example.com/a?b=1"), "https://example.com/a?b=1");
+        assert_eq!(decode_ddg_url("//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2F&rut=x"), "https://example.com/");
+    }
+
+    #[test]
+    fn strip_html_removes_tags_and_scripts() {
+        assert_eq!(strip_html("<p>Hello <b>world</b></p>"), "Hello world");
+        assert_eq!(strip_html("<script>var x = 1;</script>Keep"), "Keep");
+        assert_eq!(strip_html("plain text"), "plain text");
+    }
+
+    #[test]
+    fn parse_ddg_results_extracts_entries() {
+        let html = r#"<a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2F">Example <b>Site</b></a>
+            <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2F">A useful snippet</a>
+            <a class="result__a" href="https://other.org">Other</a>
+            <a class="result__snippet" href="https://other.org">Snippet two</a>"#;
+        let results = parse_ddg_results(html, 5);
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0]["title"], "Example Site");
+        assert_eq!(results[0]["url"], "https://example.com/");
+        assert_eq!(results[0]["snippet"], "A useful snippet");
+        assert_eq!(results[1]["title"], "Other");
+    }
+
+    #[test]
+    fn parse_ddg_results_respects_max() {
+        let html = format!(
+            "{}",
+            r#"<a class="result__a" href="https://a.org">A</a><a class="result__snippet" href="https://a.org">s1</a>
+               <a class="result__a" href="https://b.org">B</a><a class="result__snippet" href="https://b.org">s2</a>"#
+        );
+        assert_eq!(parse_ddg_results(&html, 1).len(), 1);
+        assert_eq!(parse_ddg_results("no markers here", 5).len(), 0);
+    }
+
+    #[test]
+    fn urlencode_module_decodes_percent_and_plus() {
+        assert_eq!(urlencode::decode("a%20b+c"), "a b c");
+        assert_eq!(urlencode::decode("100%25"), "100%");
+    }
+}

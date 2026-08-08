@@ -517,3 +517,64 @@ fn extract_json_object(s: &str) -> Option<String> {
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extract_json_object_handles_nested_and_strings() {
+        let input = r#"prefix {"a": {"b": [1, 2]}, "c": "x{y}z"} suffix"#;
+        let extracted = extract_json_object(input).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&extracted).unwrap();
+        assert_eq!(parsed["a"]["b"][1], 2);
+        assert_eq!(parsed["c"], "x{y}z");
+    }
+
+    #[test]
+    fn extract_json_object_returns_none_for_no_object() {
+        assert!(extract_json_object("no braces here").is_none());
+        assert!(extract_json_object("").is_none());
+        assert!(extract_json_object("unbalanced {").is_none());
+    }
+
+    #[test]
+    fn parse_tool_calls_from_llm_response() {
+        let agent = AgentLoop::new(
+            Arc::new(VibePromptManager::new()),
+            Arc::new(VibeToolExecutor::new(Arc::new(crate::tool_executor::ToolRegistry::new()))),
+            Arc::new(VibeTelemetry::new()),
+            Arc::new(MockState::new()),
+        );
+        let response = r#"{"tool_calls": [{"tool_name": "file/read", "arguments": {"path": "a.txt"}}, {"tool_name": "web/search", "arguments": {}}]}"#;
+        let calls = agent.parse_tool_calls(response);
+        assert_eq!(calls.len(), 2);
+        assert_eq!(calls[0].tool_name, "file/read");
+        assert_eq!(calls[0].arguments["path"], "a.txt");
+        assert_eq!(calls[1].tool_name, "web/search");
+        assert!(agent.parse_tool_calls("no calls").is_empty());
+    }
+
+    struct MockState {
+        runs: Arc<RwLock<std::collections::HashMap<Uuid, VibeRun>>>,
+    }
+
+    impl MockState {
+        fn new() -> Self {
+            Self { runs: Arc::new(RwLock::new(std::collections::HashMap::new())) }
+        }
+    }
+
+    impl VibeState for MockState {
+        fn db_pool(&self) -> &crate::types::DbPool {
+            unreachable!("db_pool not exercised in parse tests")
+        }
+        fn broadcast_progress(&self, _event: VibeProgressEvent) {}
+        fn progress_sender(&self) -> Option<&tokio::sync::broadcast::Sender<VibeProgressEvent>> {
+            None
+        }
+        fn active_runs(&self) -> &Arc<RwLock<std::collections::HashMap<Uuid, VibeRun>>> {
+            &self.runs
+        }
+    }
+}

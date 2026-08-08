@@ -301,3 +301,46 @@ async fn update_issue(
         None => Json(IssueResponse { success: false, issue: None, error: Some("Issue not found".into()) }),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn issue_state_str_and_display() {
+        assert_eq!(IssueState::Open.as_str(), "open");
+        assert_eq!(IssueState::Closed.as_str(), "closed");
+        assert_eq!(format!("{}", IssueState::Closed), "closed");
+        let v = serde_json::to_value(IssueState::Open).unwrap();
+        assert_eq!(v, "open");
+    }
+
+    #[tokio::test]
+    async fn create_list_filter_by_state() {
+        let store = IssueStore::new();
+        let open = store.create("bug".into(), "crashes".into(), vec!["bug".into()], Some("ana".into())).await;
+        store.create("closed one".into(), "b".into(), vec![].into(), None).await;
+        store.update(open.issue_id, Some(IssueState::Closed), None, None).await;
+        assert_eq!(store.list(None).await.len(), 2);
+        assert_eq!(store.list(Some(IssueState::Closed)).await.len(), 1);
+        assert_eq!(store.list(Some(IssueState::Open)).await.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn update_changes_assignee_and_labels() {
+        let store = IssueStore::new();
+        let issue = store.create("t".into(), "b".into(), vec![].into(), None).await;
+        let updated = store
+            .update(issue.issue_id, None, Some("bob".into()), Some(vec!["urgent".into()]))
+            .await
+            .unwrap();
+        assert_eq!(updated.assignee.as_deref(), Some("bob"));
+        assert_eq!(updated.labels, vec!["urgent"]);
+    }
+
+    #[tokio::test]
+    async fn update_missing_returns_none() {
+        let store = IssueStore::new();
+        assert!(store.update(Uuid::new_v4(), None, None, None).await.is_none());
+    }
+}

@@ -252,3 +252,79 @@ async fn delete_skill(
         error: if removed { None } else { Some("Skill not found".into()) },
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn register_dedupes_by_name_and_enables_by_default() {
+        let store = SkillStore::new();
+        let first = store.register("sql".into(), "SQL expert".into(), "write sql".into(), vec!["sql".into()]).await;
+        let second = store.register("sql".into(), "New desc".into(), "write better sql".into(), vec![].into()).await;
+        assert_ne!(first.skill_id, second.skill_id);
+        let skills = store.list().await;
+        assert_eq!(skills.len(), 1);
+        assert_eq!(skills[0].description, "New desc");
+        assert!(skills[0].enabled);
+    }
+
+    #[tokio::test]
+    async fn apply_stacks_only_enabled_matches() {
+        let store = SkillStore::new();
+        store.register("a".into(), "A".into(), "content-a".into(), vec![].into()).await;
+        store.register("b".into(), "B".into(), "content-b".into(), vec![].into()).await;
+        let stacked = store.apply(&["a".into(), "b".into(), "nope".into()]).await;
+        assert!(stacked.contains("content-a"));
+        assert!(stacked.contains("content-b"));
+        assert!(!stacked.contains("nope"));
+        assert!(store.apply(&["nope".into()]).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn delete_removes_and_reports() {
+        let store = SkillStore::new();
+        store.register("x".into(), "X".into(), "c".into(), vec![].into()).await;
+        assert!(store.delete("x").await);
+        assert!(!store.delete("x").await);
+        assert!(store.list().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn auto_trigger_matches_case_insensitively() {
+        let store = SkillStore::new();
+        store.register("email".into(), "Email".into(), "mail body".into(), vec!["send email".into()]).await;
+        store.register("disabled".into(), "D".into(), "no".into(), vec!["send email".into()]).await;
+        let mut skills = store.list().await;
+        skills[1].enabled = false;
+        {
+            let mut guard = store.skills.write().await;
+            *guard = skills;
+        }
+        let triggered = store.auto_trigger("Please SEND EMAIL now").await;
+        assert_eq!(triggered.len(), 1);
+        assert_eq!(triggered[0].name, "email");
+    }
+
+    #[tokio::test]
+    async fn auto_trigger_ignores_empty_triggers() {
+        let store = SkillStore::new();
+        store.register("no-trigger".into(), "N".into(), "c".into(), vec![].into()).await;
+        assert!(store.auto_trigger("anything").await.is_empty());
+    }
+
+    #[test]
+    fn skill_serialization_shape() {
+        let skill = VibeSkill {
+            skill_id: Uuid::nil(),
+            name: "n".into(),
+            description: "d".into(),
+            content: "c".into(),
+            triggers: vec!["t".into()],
+            enabled: true,
+        };
+        let v = serde_json::to_value(&skill).unwrap();
+        assert_eq!(v["name"], "n");
+        assert_eq!(v["enabled"], true);
+    }
+}
