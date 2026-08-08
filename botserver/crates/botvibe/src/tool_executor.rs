@@ -253,6 +253,31 @@ impl ToolRegistry {
         tools.insert(name, RegisteredTool { descriptor, handler });
     }
 
+    pub async fn register_m5_tools(
+        &self,
+        skills: Arc<crate::skills::SkillStore>,
+        canvases: Arc<crate::canvases::CanvasStore>,
+        issues: Arc<crate::issues::IssueStore>,
+    ) {
+        let mut tools = self.tools.write().await;
+
+        let entries: Vec<(String, ToolSchema, ToolHandler)> = crate::skills::skill_tools(skills)
+            .into_iter()
+            .chain(crate::browser::browser_tools())
+            .chain(crate::canvases::canvas_tools(canvases))
+            .chain(crate::issues::issue_tools(issues))
+            .chain(crate::websearch::websearch_tools())
+            .chain(crate::gitflow::gitflow_tools())
+            .collect();
+
+        for (name, schema, handler) in entries {
+            tools.insert(name.clone(), RegisteredTool {
+                descriptor: ToolDescriptor { schema, category: ToolCategory::Deployment },
+                handler,
+            });
+        }
+    }
+
     pub async fn get_descriptor(&self, name: &str) -> Option<ToolDescriptor> {
         let tools = self.tools.read().await;
         tools.get(name).map(|t| t.descriptor.clone())
