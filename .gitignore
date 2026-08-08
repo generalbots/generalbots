@@ -17,8 +17,14 @@ start-and-unseal.sh
 *.swp
 *.swo
 a.tmp
+*.tmp
 opencode.json
 work/
 .github/workflows/boteval.yml
 .cache/
 dump.rdb
+*.orig
+.antigravitycli/
+.playwright-mcp/
+test-results/
+opt/
