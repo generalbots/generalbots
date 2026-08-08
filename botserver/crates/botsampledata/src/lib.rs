@@ -58,3 +58,12 @@ pub async fn seed_drive_fiscal(pool: &DbPool, drive: &dyn botlib::traits::DriveR
         Err(e) => log::error!("botsampledata: fiscal drive seeding failed: {e}"),
     }
 }
+
+/// Seeds the Pragmatismo reference bot payload (#750) into the
+/// `pragmatismo.gbai` bucket. Safe to run every boot (existence-guarded).
+pub async fn seed_pragmatismo_payload(drive: &dyn botlib::traits::DriveRepository) {
+    match drive::seed_pragmatismo_payload(drive).await {
+        Ok(()) => log::info!("botsampledata: pragmatismo payload seeded"),
+        Err(e) => log::error!("botsampledata: pragmatismo payload seeding failed: {e}"),
+    }
+}
