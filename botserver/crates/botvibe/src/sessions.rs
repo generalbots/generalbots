@@ -291,3 +291,66 @@ async fn resume_session(
         error: None,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bot_id() -> Uuid {
+        Uuid::nil()
+    }
+
+    #[tokio::test]
+    async fn create_get_list_sorted_by_updated() {
+        let store = SessionStore::new();
+        let first = store.create(bot_id(), Uuid::nil(), "intent one".into(), VibeUseCase::SoftwareDevelopment, 0, None).await;
+        let second = store.create(bot_id(), Uuid::nil(), "intent two".into(), VibeUseCase::CustomerSupport, 100, None).await;
+        assert_eq!(store.get(first.session_id).await.unwrap().intent, "intent one");
+        let list = store.list().await;
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].session_id, second.session_id);
+        assert_eq!(list[1].session_id, first.session_id);
+    }
+
+    #[tokio::test]
+    async fn fork_copies_run_and_links_parent() {
+        let store = SessionStore::new();
+        let original = store.create(bot_id(), Uuid::nil(), "intent".into(), VibeUseCase::SoftwareDevelopment, 0, None).await;
+        let mut run = VibeRun::new(bot_id(), original.session_id, Uuid::nil(), "intent".into(), VibeRunConfig::default());
+        run.tool_calls.push(VibeToolCall::new(run.run_id, "web/search".into(), json!({}), false));
+        {
+            let mut sessions = store.sessions.write().await;
+            sessions.iter_mut().find(|s| s.session_id == original.session_id).unwrap().run = Some(run);
+        }
+        let fork = store.fork(original.session_id).await.unwrap();
+        assert_eq!(fork.parent_session_id, Some(original.session_id));
+        assert_eq!(fork.run.as_ref().unwrap().tool_calls.len(), 1);
+        assert_eq!(store.fork(Uuid::new_v4()).await, None);
+    }
+
+    #[tokio::test]
+    async fn rewind_truncates_tool_calls() {
+        let store = SessionStore::new();
+        let session = store.create(bot_id(), Uuid::nil(), "i".into(), VibeUseCase::SoftwareDevelopment, 0, None).await;
+        let mut run = VibeRun::new(bot_id(), session.session_id, Uuid::nil(), "i".into(), VibeRunConfig::default());
+        run.tool_calls.push(VibeToolCall::new(run.run_id, "a".into(), json!({}), false));
+        run.tool_calls.push(VibeToolCall::new(run.run_id, "b".into(), json!({}), false));
+        {
+            let mut sessions = store.sessions.write().await;
+            sessions.iter_mut().find(|s| s.session_id == session.session_id).unwrap().run = Some(run);
+        }
+        let rewound = store.rewind(session.session_id, 1).await.unwrap();
+        assert_eq!(rewound.run.as_ref().unwrap().tool_calls.len(), 1);
+        assert_eq!(rewound.run.as_ref().unwrap().state, VibeRunState::Pending);
+        assert!(store.rewind(Uuid::new_v4(), 0).await.is_none());
+    }
+
+    #[test]
+    fn parse_use_case_mapping() {
+        assert_eq!(parse_use_case("software_development"), Some(VibeUseCase::SoftwareDevelopment));
+        assert_eq!(parse_use_case("customer_support"), Some(VibeUseCase::CustomerSupport));
+        assert_eq!(parse_use_case("financial_analysis"), Some(VibeUseCase::FinancialAnalysis));
+        assert_eq!(parse_use_case("bogus"), None);
+        assert_eq!(parse_use_case(""), None);
+    }
+}

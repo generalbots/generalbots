@@ -300,3 +300,44 @@ impl ProjectRbac {
         self.set_user_role(project_id, new_owner_id, ProjectRole::Owner)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_role_parse_and_round_trip() {
+        assert_eq!(ProjectRole::parse("viewer"), Some(ProjectRole::Viewer));
+        assert_eq!(ProjectRole::parse("developer"), Some(ProjectRole::Developer));
+        assert_eq!(ProjectRole::parse("admin"), Some(ProjectRole::Admin));
+        assert_eq!(ProjectRole::parse("owner"), Some(ProjectRole::Owner));
+        assert_eq!(ProjectRole::parse("ADMIN"), Some(ProjectRole::Admin));
+        assert_eq!(ProjectRole::parse("superuser"), None);
+        assert_eq!(ProjectRole::parse(""), None);
+        for role in [ProjectRole::Viewer, ProjectRole::Developer, ProjectRole::Admin, ProjectRole::Owner] {
+            assert_eq!(ProjectRole::parse(role.as_str()), Some(role));
+            assert_eq!(format!("{role}"), role.as_str());
+        }
+    }
+
+    #[test]
+    fn project_role_ordering() {
+        assert!(ProjectRole::Viewer < ProjectRole::Developer);
+        assert!(ProjectRole::Developer < ProjectRole::Admin);
+        assert!(ProjectRole::Admin < ProjectRole::Owner);
+        assert_eq!(ProjectRole::Owner.max(ProjectRole::Viewer), ProjectRole::Owner);
+        assert_eq!(ProjectRole::Viewer.max(ProjectRole::Admin), ProjectRole::Admin);
+    }
+
+    #[test]
+    fn project_role_serializes_to_str() {
+        let v = serde_json::to_value(ProjectRole::Owner).unwrap();
+        assert_eq!(v, "owner");
+    }
+
+    #[test]
+    fn member_schema_constraints_present() {
+        assert!(PROJECT_MEMBERS_SCHEMA.contains("project_members"));
+        assert!(PROJECT_MEMBERS_SCHEMA.contains("role IN ('owner', 'admin', 'developer', 'viewer')"));
+    }
+}

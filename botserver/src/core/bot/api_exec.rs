@@ -110,6 +110,9 @@ pub async fn exec_endpoint(
     if !is_registered(&method_upper, &path) {
         return Err(format!("endpoint {method_upper} {path} is not a registered route"));
     }
+    if crate::security::user_role::is_admin_only_endpoint(&state.conn, user_id, &method_upper, &path) {
+        return Err(format!("endpoint {method_upper} {path} requires the admin role"));
+    }
 
     let base = base_url(state);
     let url = format!("{base}{path}");

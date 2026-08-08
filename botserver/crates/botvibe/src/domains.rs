@@ -152,6 +152,40 @@ impl ProjectDomains {
         format!("{DNS_VERIFY_PREFIX}.{domain}")
     }
 
+    /// #774 — Parse `dig +short CAA <domain>` output and decide whether the
+    /// Let's Encrypt CA (used by Caddy ACME) is allowed to issue for the
+    /// domain. No CAA records at all means no policy, hence allowed.
+    pub fn caa_allows_acme(records: &str) -> bool {
+        let mut saw_issue = false;
+        let mut saw_acme_ok = false;
+        for line in records.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let value = line
+                .split('"')
+                .nth(1)
+                .map(|v| v.trim().to_ascii_lowercase());
+            match value.as_deref() {
+                Some(";") | Some("") => {
+                    if line.contains("issue") {
+                        return false;
+                    }
+                }
+                Some(ca) if ca.contains("letsencrypt.org") && line.contains("issue") => {
+                    saw_issue = true;
+                    saw_acme_ok = true;
+                }
+                _ => {}
+            }
+            if line.contains("issue") {
+                saw_issue = true;
+            }
+        }
+        !saw_issue || saw_acme_ok
+    }
+
     pub async fn bind(&self, project_id: Uuid, req: &BindDomainRequest) -> Result<DomainBind, String> {
         let domain = Self::validate_domain(&req.domain)?;
         let env = req.env.trim().to_lowercase();
@@ -290,7 +324,39 @@ impl ProjectDomains {
             "expected_token": expected,
             "found": records,
             "verified": matched,
+            "caa": Self::caa_report(&domain),
         }))
+    }
+
+    /// #774 — CAA policy report for a domain: records found and whether the
+    /// ACME CA used by Caddy (Let's Encrypt) is permitted to issue.
+    pub fn caa_report(domain: &str) -> serde_json::Value {
+        let records = match crate::harness::cmd::run(
+            "dig",
+            &[
+                "+short".to_string(),
+                "CAA".to_string(),
+                domain.to_string(),
+            ],
+            std::path::Path::new("."),
+            10,
+        ) {
+            Ok(out) => out.stdout,
+            Err(e) => {
+                log::warn!("CAA lookup for {domain} failed: {e}");
+                String::new()
+            }
+        };
+        let allowed = Self::caa_allows_acme(&records);
+        serde_json::json!({
+            "records": records,
+            "allows_acme": allowed,
+            "check": if allowed {
+                "CAA permits Let's Encrypt issuance".to_string()
+            } else {
+                "CAA policy restricts the CA; TLS issuance may fail".to_string()
+            },
+        })
     }
 
     /// #770 — TLS via Caddy ACME: (re)apply the route so the automatic

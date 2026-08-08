@@ -94,3 +94,64 @@ impl Default for PermissionEngine {
 }
 
 pub type PermissionEngineRef = Arc<PermissionEngine>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mode_as_str_and_display() {
+        assert_eq!(PermissionMode::Manual.as_str(), "manual");
+        assert_eq!(PermissionMode::Auto.as_str(), "auto");
+        assert_eq!(PermissionMode::Bypass.as_str(), "bypass");
+        assert_eq!(format!("{}", PermissionMode::Auto), "auto");
+    }
+
+    #[test]
+    fn mode_serde_round_trip() {
+        let json = serde_json::to_string(&PermissionMode::Auto).unwrap();
+        assert_eq!(json, "\"auto\"");
+        let back: PermissionMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, PermissionMode::Auto);
+    }
+
+    #[test]
+    fn manual_requires_schema_flag_or_destructive() {
+        let engine = PermissionEngine::new();
+        assert!(engine.requires_approval(true, "web/search", PermissionMode::Manual));
+        assert!(engine.requires_approval(false, "file/delete", PermissionMode::Manual));
+        assert!(!engine.requires_approval(false, "web/search", PermissionMode::Manual));
+    }
+
+    #[test]
+    fn auto_requires_destructive_only() {
+        let engine = PermissionEngine::new();
+        assert!(!engine.requires_approval(true, "web/search", PermissionMode::Auto));
+        assert!(engine.requires_approval(false, "git/push", PermissionMode::Auto));
+    }
+
+    #[test]
+    fn bypass_never_requires_approval() {
+        let engine = PermissionEngine::new();
+        assert!(!engine.requires_approval(true, "git/push", PermissionMode::Bypass));
+    }
+
+    #[test]
+    fn destructive_prefix_matching() {
+        let engine = PermissionEngine::new();
+        assert!(engine.is_destructive("file/delete"));
+        assert!(engine.is_destructive("git/commit"));
+        assert!(engine.is_destructive("ops/restart"));
+        assert!(!engine.is_destructive("file/list"));
+        assert!(!engine.is_destructive("web/search"));
+    }
+
+    #[tokio::test]
+    async fn mode_defaults_to_manual_and_can_change() {
+        let engine = PermissionEngine::new();
+        assert_eq!(engine.mode().await, PermissionMode::Manual);
+        engine.set_mode(PermissionMode::Bypass).await;
+        assert_eq!(engine.mode().await, PermissionMode::Bypass);
+        assert_eq!(PermissionEngine::default().mode().await, PermissionMode::Manual);
+    }
+}

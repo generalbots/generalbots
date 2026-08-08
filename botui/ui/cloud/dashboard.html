@@ -77,6 +77,17 @@
         </div>
       </div>
 
+      <!-- PRIVATE CLOUD USAGE (Vibe metering) -->
+      <div class="mgmt-section-header" style="margin-top:1rem">
+        <div><div class="mgmt-section-title">Private Cloud Usage</div><div class="mgmt-section-sub">Per-project VM hours, builds and storage (metering window: last 30 days)</div></div>
+      </div>
+      <div class="usage-grid" id="vibe-metering-grid">
+        <div class="usage-card">
+          <div class="usage-label"><span>Loading metering data...</span><span></span></div>
+          <div class="usage-value">Ticks tracked by the Vibe metering sampler.</div>
+        </div>
+      </div>
+
       <!-- YOUR BOTS -->
       <div class="mgmt-section-header" style="margin-top:1rem">
         <div><div class="mgmt-section-title">Your Bots</div><div class="mgmt-section-sub">Direct links to your chatbots</div></div>
@@ -303,6 +314,16 @@
       document.getElementById('usage-org-bar').style.width = orgPct + '%';
       document.getElementById('usage-org-bar').className = 'usage-bar-fill' + (orgPct > 80 ? ' warning' : '');
 
+      // Private Cloud usage: per-project Vibe metering (VM hours, builds, storage)
+      const vibeGrid = document.getElementById('vibe-metering-grid');
+      if (vibeGrid) {
+        if (currentPlan !== 'private-cloud' && currentPlan !== 'private') {
+          vibeGrid.innerHTML = '<div class="usage-card" style="grid-column:1/-1"><div class="usage-label"><span>No dedicated VPS metering</span></div><div class="usage-value">Metering for project VMs is available on the Private Cloud plan.</div></div>';
+        } else {
+          loadVibeMetering(vibeGrid);
+        }
+      }
+
       // Recent services
       if (services.length > 0) {
         const recentHtml = services.slice(0, 3).map(s =>
@@ -344,6 +365,42 @@
   }
 
   await loadBots();
+
+  // Private Cloud usage: per-project metering from the Vibe API
+  async function loadVibeMetering(grid) {
+    try {
+      const projRes = await cloudFetch('/api/vibe/projects');
+      if (!projRes.ok) { grid.innerHTML = '<div class="usage-card" style="grid-column:1/-1"><div class="usage-label"><span>Metering unavailable</span></div><div class="usage-value">Could not load projects (HTTP ' + projRes.status + ').</div></div>'; return; }
+      const projData = await projRes.json();
+      const projects = projData.projects || [];
+      if (!projects || projects.length === 0) {
+        grid.innerHTML = '<div class="usage-card" style="grid-column:1/-1"><div class="usage-label"><span>No projects yet</span></div><div class="usage-value">Create a project to see its VM metering here.</div></div>';
+        return;
+      }
+      const meters = { vm_hours: 'VM Hours', build_minutes: 'Build Minutes', storage_gb_hours: 'Storage (GB·h)', egress_gb: 'Egress (GB)' };
+      const cards = [];
+      for (const p of projects) {
+        let summary = null;
+        try {
+          const mRes = await cloudFetch('/api/vibe/projects/' + p.id + '/metering');
+          if (mRes.ok) { const mData = await mRes.json(); summary = mData.summary || null; }
+        } catch (_) { /* keep null */ }
+        const rows = (summary && summary.rows) || [];
+        const total = rows.reduce((acc, r) => acc + (r.amount || 0), 0);
+        const details = rows.map(r => {
+          const label = meters[r.meter] || r.meter;
+          return '<div style="display:flex;justify-content:space-between;font-size:.72rem;margin-top:.35rem;color:var(--muted)"><span>' + label + '</span><span style="font-family:monospace">' + (typeof r.amount === 'number' ? r.amount.toFixed(2) : r.amount) + '</span></div>';
+        }).join('');
+        const planTag = summary && summary.plan ? '<span style="font-size:.68rem;color:var(--accent3);text-transform:uppercase">' + escapeHtml(summary.plan) + '</span>' : '';
+        cards.push('<div class="usage-card"><div class="usage-label"><span>' + escapeHtml(p.name || p.id) + '</span>' + planTag + '</div>' +
+          '<div class="usage-value">' + (total > 0 ? total.toFixed(2) + ' metered units in the window' : '0 metered units') + '</div>' +
+          details + '</div>');
+      }
+      grid.innerHTML = cards.join('') || '<div class="usage-card" style="grid-column:1/-1"><div class="usage-value">No metering rows yet; they accrue while project VMs run.</div></div>';
+    } catch(e) {
+      grid.innerHTML = '<div class="usage-card" style="grid-column:1/-1"><div class="usage-label"><span>Metering unavailable</span></div><div class="usage-value">' + escapeHtml(String(e)) + '</div></div>';
+    }
+  }
 
   // Load catalog products (from DB seeded data)
   async function loadCatalogProducts() {

@@ -350,3 +350,96 @@ CREATE INDEX IF NOT EXISTS idx_vibe_telemetry_event_type ON vibe_telemetry(event
 CREATE INDEX IF NOT EXISTS idx_vibe_telemetry_timestamp ON vibe_telemetry(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_vibe_telemetry_use_case ON vibe_telemetry(use_case);
 ";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn run_state_display() {
+        assert_eq!(VibeRunState::Pending.to_string(), "pending");
+        assert_eq!(VibeRunState::Running.to_string(), "running");
+        assert_eq!(VibeRunState::AwaitingApproval.to_string(), "awaiting_approval");
+        assert_eq!(VibeRunState::Completed.to_string(), "completed");
+        assert_eq!(VibeRunState::Failed.to_string(), "failed");
+        assert_eq!(VibeRunState::Cancelled.to_string(), "cancelled");
+    }
+
+    #[test]
+    fn use_case_display_and_prompts() {
+        assert_eq!(VibeUseCase::SoftwareDevelopment.to_string(), "software_development");
+        assert_eq!(VibeUseCase::CustomerSupport.to_string(), "customer_support");
+        assert_eq!(VibeUseCase::FinancialAnalysis.to_string(), "financial_analysis");
+        assert!(VibeUseCase::SoftwareDevelopment.default_system_prompt().contains("desenvolvimento"));
+        assert!(VibeUseCase::CustomerSupport.default_system_prompt().contains("cliente"));
+        assert!(VibeUseCase::FinancialAnalysis.default_system_prompt().contains("financeira"));
+    }
+
+    #[test]
+    fn run_config_defaults() {
+        let cfg = VibeRunConfig::default();
+        assert_eq!(cfg.use_case, VibeUseCase::SoftwareDevelopment);
+        assert!(!cfg.auto_approve);
+        assert_eq!(cfg.max_tool_calls, 50);
+        assert_eq!(cfg.timeout_seconds, 300);
+        assert_eq!(cfg.model, None);
+        assert_eq!(cfg.budget_cents, 0);
+    }
+
+    #[test]
+    fn run_new_and_terminal_transitions_set_completed_at() {
+        let run_id = Uuid::new_v4();
+        let mut run = VibeRun::new(run_id, Uuid::nil(), Uuid::nil(), "intent".into(), VibeRunConfig::default());
+        assert_eq!(run.state, VibeRunState::Pending);
+        assert_eq!(run.bot_id, run_id);
+        assert!(run.completed_at.is_none());
+
+        run.transition(VibeRunState::Running);
+        assert!(run.completed_at.is_none());
+
+        run.transition(VibeRunState::Completed);
+        assert_eq!(run.state, VibeRunState::Completed);
+        assert!(run.completed_at.is_some());
+
+        let mut failed = VibeRun::new(Uuid::new_v4(), Uuid::nil(), Uuid::nil(), "i".into(), VibeRunConfig::default());
+        failed.transition(VibeRunState::Failed);
+        assert!(failed.completed_at.is_some());
+
+        let mut cancelled = VibeRun::new(Uuid::new_v4(), Uuid::nil(), Uuid::nil(), "i".into(), VibeRunConfig::default());
+        cancelled.transition(VibeRunState::Cancelled);
+        assert!(cancelled.completed_at.is_some());
+    }
+
+    #[test]
+    fn context_tracks_messages_and_defaults() {
+        let ctx = VibeContext::new(Uuid::nil(), VibeUseCase::CustomerSupport);
+        assert!(ctx.system_prompt.contains("atendimento"));
+        assert!(ctx.conversation_history.is_empty());
+
+        let mut ctx = ctx;
+        ctx.add_user_message("hi".into());
+        ctx.add_assistant_message("hello".into());
+        assert_eq!(ctx.conversation_history.len(), 2);
+        assert_eq!(ctx.conversation_history[0].role, "user");
+        assert_eq!(ctx.conversation_history[1].role, "assistant");
+    }
+
+    #[test]
+    fn tool_call_requires_approval_defaults_to_false() {
+        let call = VibeToolCall::new(Uuid::new_v4(), "git/push".into(), json!({}), true);
+        assert_eq!(call.tool_name, "git/push");
+        assert!(call.requires_approval);
+        assert!(!call.approved);
+        assert!(call.result.is_none());
+    }
+
+    #[test]
+    fn progress_event_started_shape() {
+        let ev = VibeProgressEvent::started("run-1", "starting", 5);
+        assert_eq!(ev.event_type, "vibe_started");
+        assert_eq!(ev.run_id, "run-1");
+        assert_eq!(ev.total_steps, 5);
+        assert_eq!(ev.progress, 0);
+        assert!(!ev.timestamp.is_empty());
+    }
+}

@@ -106,3 +106,45 @@ impl Default for VibePromptManager {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn system_prompt_for_all_use_cases() {
+        let pm = VibePromptManager::new();
+        for use_case in [VibeUseCase::SoftwareDevelopment, VibeUseCase::CustomerSupport, VibeUseCase::FinancialAnalysis] {
+            let prompt = pm.system_prompt_for(use_case);
+            assert!(prompt.contains("Formato de saída esperado"));
+            assert!(prompt.contains("tool_name"));
+        }
+    }
+
+    #[test]
+    fn build_context_sets_prompt_and_history() {
+        let pm = VibePromptManager::new();
+        let history = vec![
+            crate::types::ContextMessage { role: "assistant".into(), content: "hi".into(), timestamp: chrono::Utc::now() },
+        ];
+        let ctx = pm.build_context(VibeUseCase::CustomerSupport, "need help", &history);
+        assert!(ctx.system_prompt.contains("atendimento"));
+        assert_eq!(ctx.conversation_history.len(), 2);
+        assert_eq!(ctx.conversation_history.last().unwrap().role, "user");
+        assert_eq!(ctx.conversation_history.last().unwrap().content, "need help");
+        assert_eq!(ctx.run_id, uuid::Uuid::nil());
+    }
+
+    #[test]
+    fn compose_prompt_includes_context_and_user() {
+        let pm = VibePromptManager::new();
+        let mut ctx = pm.build_context(VibeUseCase::SoftwareDevelopment, "first msg", &[]);
+        ctx.kb_references.push("kb-doc-1".to_string());
+        let composed = pm.compose_prompt(&ctx, "second msg");
+        assert!(composed.contains("System:"));
+        assert!(composed.contains("first msg"));
+        assert!(composed.contains("second msg"));
+        assert!(composed.contains("kb-doc-1"));
+        assert!(composed.contains("User: second msg"));
+    }
+}

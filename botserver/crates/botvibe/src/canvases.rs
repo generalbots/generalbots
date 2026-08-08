@@ -257,3 +257,50 @@ async fn share_canvas(
     };
     axum::response::Html(html)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn create_get_update_round_trip() {
+        let store = CanvasStore::new();
+        let canvas = store.create("design".into(), Some("proj-a".into()), json!({"layers": 3})).await;
+        let fetched = store.get(canvas.canvas_id).await.unwrap();
+        assert_eq!(fetched.title, "design");
+        assert_eq!(fetched.project.as_deref(), Some("proj-a"));
+        assert!(!fetched.share_token.is_empty());
+
+        let updated = store.update(canvas.canvas_id, Some("design v2".into()), Some(json!({"layers": 5}))).await.unwrap();
+        assert_eq!(updated.title, "design v2");
+        assert_eq!(updated.content["layers"], 5);
+        assert!(updated.updated_at > canvas.updated_at || updated.updated_at == canvas.updated_at);
+    }
+
+    #[tokio::test]
+    async fn list_filters_by_project() {
+        let store = CanvasStore::new();
+        store.create("a".into(), Some("p1".into()), json!({})).await;
+        store.create("b".into(), Some("p2".into()), json!({})).await;
+        store.create("c".into(), None, json!({})).await;
+        assert_eq!(store.list(Some("p1")).await.len(), 1);
+        assert_eq!(store.list(Some("nope")).await.len(), 0);
+        assert_eq!(store.list(None).await.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn delete_and_find_by_token() {
+        let store = CanvasStore::new();
+        let canvas = store.create("x".into(), None, json!({})).await;
+        assert!(store.find_by_token(&canvas.share_token).await.is_some());
+        assert!(store.delete(canvas.canvas_id).await);
+        assert!(!store.delete(canvas.canvas_id).await);
+        assert!(store.find_by_token(&canvas.share_token).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn update_missing_returns_none() {
+        let store = CanvasStore::new();
+        assert!(store.update(Uuid::new_v4(), Some("t".into()), None).await.is_none());
+    }
+}
