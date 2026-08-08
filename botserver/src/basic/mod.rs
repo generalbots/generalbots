@@ -41,7 +41,13 @@ impl ScriptService {
         // Register local (botserver-only) keywords that need Arc<AppState>
         keywords::set_answer_mode::register_set_answer_mode_keyword(state_for_local.clone(), user.clone(), &mut engine);
         register_universal_messaging(state_for_local.clone(), user.clone(), &mut engine);
-        send_mail_keyword(state_for_local, user, &mut engine);
+        send_mail_keyword(state_for_local.clone(), user.clone(), &mut engine);
+        keywords::vibe_agent::register_vibe_run_keyword(state_for_local.clone(), user.clone(), &mut engine);
+        keywords::vibe_agent::register_vibe_status_command(state_for_local.clone(), user.clone(), &mut engine);
+        keywords::vibe_agent::register_vibe_approve_command(state_for_local.clone(), user.clone(), &mut engine);
+        keywords::vibe_agent::register_vibe_cancel_command(state_for_local.clone(), user.clone(), &mut engine);
+        keywords::vibe_agent::register_vibe_tools_command(state_for_local.clone(), user.clone(), &mut engine);
+        keywords::vibe_agent::register_vibe_events_command(state_for_local, user, &mut engine);
 
         Self { engine, scope, role }
     }
