@@ -2,18 +2,26 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use uuid::Uuid;
 
-use crate::metering_schema::{
+pub use crate::metering_schema::{
     EnforceResult, LimitRow, MeterKind, MeterPlan, UsageRow, UsageSummary, METERING_SCHEMA,
 };
 use crate::types::DbPool;
 
-pub use crate::metering_schema::{
-    EnforceResult, LimitRow, MeterKind, MeterPlan, UsageRow, UsageSummary,
-};
-
 pub type VMeteringRef = std::sync::Arc<VMetering>;
 
 type Conn = diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+
+#[derive(diesel::QueryableByName)]
+struct F64Cell {
+    #[diesel(sql_type = diesel::sql_types::Float8)]
+    value: f64,
+}
+
+#[derive(diesel::QueryableByName)]
+struct I64Cell {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    value: i64,
+}
 
 const WINDOW_ENV: &str = "VIBE_METER_WINDOW_SECONDS";
 const DEFAULT_WINDOW_SECONDS: i64 = 30 * 24 * 3600;
@@ -41,39 +49,41 @@ impl VMetering {
     }
 
     fn project_scope(&self, conn: &mut Conn, project_id: Uuid) -> Result<(Uuid, Uuid), String> {
-        let row: serde_json::Value = diesel::sql_query(
+        #[derive(diesel::QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            org_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            branch_id: Uuid,
+        }
+        let row = diesel::sql_query(
             "SELECT org_id, branch_id FROM vibe_projects WHERE id = $1",
         )
         .bind::<diesel::sql_types::Uuid, _>(project_id)
-        .get_result::<serde_json::Value>(conn)
+        .get_result::<Row>(conn)
         .map_err(|e| format!("project lookup: {e}"))?;
-        let org = row
-            .get("org_id")
-            .and_then(|v| v.as_str())
-            .and_then(|s| Uuid::parse_str(s).ok())
-            .unwrap_or_else(Uuid::nil);
-        let branch = row
-            .get("branch_id")
-            .and_then(|v| v.as_str())
-            .and_then(|s| Uuid::parse_str(s).ok())
-            .unwrap_or_else(Uuid::nil);
-        Ok((org, branch))
+        Ok((row.org_id, row.branch_id))
     }
 
     fn plan_for(&self, conn: &mut Conn, branch_id: Uuid) -> Result<MeterPlan, String> {
         if branch_id.is_nil() {
             return Ok(MeterPlan::Free);
         }
-        let plan: Option<String> = diesel::sql_query(
+        #[derive(diesel::QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            plan_name: String,
+        }
+        let plan: Option<Row> = diesel::sql_query(
             "SELECT plan_name FROM billing_recurring \
              WHERE branch_id = $1 AND status = 'active' \
              ORDER BY created_at DESC LIMIT 1",
         )
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
-        .get_result::<String>(conn)
+        .get_result::<Row>(conn)
         .optional()
         .map_err(|e| format!("plan lookup: {e}"))?;
-        Ok(plan.as_deref().map(MeterPlan::parse).unwrap_or(MeterPlan::Free))
+        Ok(plan.map(|r| r.plan_name).as_deref().map(MeterPlan::parse).unwrap_or(MeterPlan::Free))
     }
 
     fn window_seconds() -> i64 {
@@ -193,21 +203,21 @@ impl VMetering {
     pub fn enforce_cap(&self, org_id: Uuid, branch_id: Uuid, meter: MeterKind) -> Result<EnforceResult, String> {
         let mut conn = self.conn()?;
         let plan = self.plan_for(&mut conn, branch_id)?;
-        let cap: Option<f64> = diesel::sql_query(
+        let cap: Option<F64Cell> = diesel::sql_query(
             "SELECT hard_limit FROM metering_limits \
              WHERE org_id = $1 AND scope = $2 AND meter = $3",
         )
         .bind::<diesel::sql_types::Uuid, _>(org_id)
         .bind::<diesel::sql_types::Text, _>(plan.as_str())
         .bind::<diesel::sql_types::Text, _>(meter.as_str())
-        .get_result::<f64>(&mut conn)
+        .get_result::<F64Cell>(&mut conn)
         .optional()
         .map_err(|e| format!("cap lookup: {e}"))?;
-        let cap = cap.unwrap_or(0.0);
+        let cap = cap.map(|c| c.value).unwrap_or(0.0);
         if cap <= 0.0 {
             return Ok(EnforceResult { allowed: true, metered: meter.as_str().to_string() });
         }
-        let used: f64 = diesel::sql_query(
+        let used: F64Cell = diesel::sql_query(
             "SELECT COALESCE(SUM(amount), 0) FROM metering_usage \
              WHERE org_id = $1 AND meter = $2 \
              AND period_start >= NOW() - make_interval(secs => $3)",
@@ -215,11 +225,12 @@ impl VMetering {
         .bind::<diesel::sql_types::Uuid, _>(org_id)
         .bind::<diesel::sql_types::Text, _>(meter.as_str())
         .bind::<diesel::sql_types::BigInt, _>(Self::window_seconds())
-        .get_result::<f64>(&mut conn)
+        .get_result::<F64Cell>(&mut conn)
         .map_err(|e| format!("usage sum: {e}"))?;
-        if used >= cap {
+        let used_val = used.value;
+        if used_val >= cap {
             return Err(format!(
-                "metering '{}' cap reached: {used:.2} of {cap:.2} ({} plan) — upgrade to continue",
+                "metering '{}' cap reached: {used_val:.2} of {cap:.2} ({} plan) — upgrade to continue",
                 meter.as_str(),
                 plan.as_str()
             ));
@@ -301,7 +312,8 @@ impl VMetering {
         )
         .bind::<diesel::sql_types::Uuid, _>(org_id)
         .bind::<diesel::sql_types::Text, _>(project_type)
-        .get_result::<i64>(&mut conn)
+        .get_result::<I64Cell>(&mut conn)
+        .map(|c| c.value)
         .map_err(|e| format!("project count: {e}"))
     }
 

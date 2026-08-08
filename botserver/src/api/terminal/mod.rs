@@ -169,7 +169,12 @@ impl TerminalManager {
     }
 
     pub fn list_sessions(&self) -> Vec<serde_json::Value> {
-        let sessions = self.sessions.lock().ok().cloned().unwrap_or_default();
+        let sessions = self
+            .sessions
+            .lock()
+            .ok()
+            .map(|guard| guard.clone())
+            .unwrap_or_default();
         let mut out = Vec::new();
         for (id, session) in sessions {
             out.push(serde_json::json!({

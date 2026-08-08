@@ -42,9 +42,9 @@ fn default_branch_fn(conn: &mut diesel::PgConnection) -> uuid::Uuid {
 /// password checks never run with a dead token.
 fn resolve_directory_service_token(api_url: &str, configured: Option<String>) -> Option<String> {
     let mut candidates: Vec<String> = Vec::new();
-    if let Some(token) = configured {
+    if let Some(token) = configured.as_ref() {
         if !token.is_empty() {
-            candidates.push(token);
+            candidates.push(token.clone());
         }
     }
     let pat_path = format!(
@@ -329,7 +329,7 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                         let api_url = j("base_url");
                         let service_token = resolve_directory_service_token(
                             api_url.as_deref().unwrap_or_default(),
-                            configured_token,
+                            configured_token.clone(),
                         );
                         if service_token != configured_token {
                             // Persist the working token so future boots reuse it.

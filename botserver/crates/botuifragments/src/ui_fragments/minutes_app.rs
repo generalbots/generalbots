@@ -3,6 +3,7 @@
  * =============================================================================*/
 use super::*;
 use axum::Json;
+use axum::http::HeaderMap;
 use crate::db;
 use botminutes::handlers as minutes;
 
@@ -26,7 +27,7 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
 }
 
 async fn upcoming() -> Result<Html<String>, (StatusCode, String)> {
-    match minutes::list_meetings().await {
+    match minutes::list_meetings(HeaderMap::new()).await {
         Ok(Json(value)) => {
             let items = value.get("items").cloned().unwrap_or(serde_json::Value::Array(vec![]));
             if let Some(arr) = items.as_array() {
@@ -141,7 +142,7 @@ async fn live() -> Result<Html<String>, (StatusCode, String)> {
 }
 
 async fn transcripts() -> Result<Html<String>, (StatusCode, String)> {
-    match minutes::list_transcripts().await {
+    match minutes::list_transcripts(HeaderMap::new()).await {
         Ok(Json(value)) => {
             let items = value.get("items").cloned().unwrap_or(serde_json::Value::Array(vec![]));
             let arr = items.as_array().cloned().unwrap_or_default();
@@ -181,7 +182,7 @@ async fn transcripts() -> Result<Html<String>, (StatusCode, String)> {
 }
 
 async fn documents() -> Result<Html<String>, (StatusCode, String)> {
-    match minutes::list_documents().await {
+    match minutes::list_documents(HeaderMap::new()).await {
         Ok(Json(value)) => {
             let items = value.get("items").cloned().unwrap_or(serde_json::Value::Array(vec![]));
             let arr = items.as_array().cloned().unwrap_or_default();

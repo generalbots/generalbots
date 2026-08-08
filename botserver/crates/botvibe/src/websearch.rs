@@ -143,7 +143,7 @@ fn decode_ddg_url(href: &str) -> String {
     if let Some(idx) = href.find("uddg=") {
         let after = &href[idx + 5..];
         let end = after.find('&').unwrap_or(after.len());
-        return urlencode::decode(after[..end]);
+        return urlencode::decode(&after[..end]);
     }
     href.to_string()
 }

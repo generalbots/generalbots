@@ -3,6 +3,7 @@
  * =============================================================================*/
 use super::*;
 use axum::Json;
+use axum::http::HeaderMap;
 use crate::db;
 use bottimeclock::handlers as timeclock;
 
@@ -58,7 +59,7 @@ async fn today() -> Result<Html<String>, (StatusCode, String)> {
 }
 
 async fn records() -> Result<Html<String>, (StatusCode, String)> {
-    match timeclock::list_records().await {
+    match timeclock::list_records(HeaderMap::new()).await {
         Ok(Json(items)) => Ok(Html(render_records(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("records: {e}")))),
     }
@@ -97,7 +98,7 @@ fn render_records(items: &[timeclock::TimeRecord]) -> String {
 }
 
 async fn overtime() -> Result<Html<String>, (StatusCode, String)> {
-    match timeclock::list_overtime().await {
+    match timeclock::list_overtime(HeaderMap::new()).await {
         Ok(Json(items)) => Ok(Html(render_overtime(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("overtime: {e}")))),
     }
@@ -230,7 +231,7 @@ async fn audit() -> Result<Html<String>, (StatusCode, String)> {
 }
 
 async fn reports() -> Result<Html<String>, (StatusCode, String)> {
-    match timeclock::get_reports().await {
+    match timeclock::get_reports(HeaderMap::new()).await {
         Ok(Json(items)) => Ok(Html(render_reports(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("reports: {e}")))),
     }
@@ -266,7 +267,7 @@ pub struct ClockForm {
 
 async fn clock_in(Form(f): Form<ClockForm>) -> Result<Html<String>, (StatusCode, String)> {
     let req = timeclock::NewClockEvent { employee_id: f.employee_id, kind: "in".into(), notes: f.notes };
-    match timeclock::clock_in_out(Json(req)).await {
+    match timeclock::clock_in_out(HeaderMap::new(), Json(req)).await {
         Ok(_) => Ok(Html(r#"<span class="gb-ok">✓ Entrada registrada às <span id="tc-now"></span></span>"#.to_string())),
         Err((sc, e)) => Ok(Html(err_fragment(&format!("HTTP {sc}: {e}")))),
     }
@@ -274,7 +275,7 @@ async fn clock_in(Form(f): Form<ClockForm>) -> Result<Html<String>, (StatusCode,
 
 async fn clock_out(Form(f): Form<ClockForm>) -> Result<Html<String>, (StatusCode, String)> {
     let req = timeclock::NewClockEvent { employee_id: f.employee_id, kind: "out".into(), notes: f.notes };
-    match timeclock::clock_in_out(Json(req)).await {
+    match timeclock::clock_in_out(HeaderMap::new(), Json(req)).await {
         Ok(_) => Ok(Html(r#"<span class="gb-ok">✓ Saída registrada</span>"#.to_string())),
         Err((sc, e)) => Ok(Html(err_fragment(&format!("HTTP {sc}: {e}")))),
     }
@@ -282,7 +283,7 @@ async fn clock_out(Form(f): Form<ClockForm>) -> Result<Html<String>, (StatusCode
 
 async fn break_start(Form(f): Form<ClockForm>) -> Result<Html<String>, (StatusCode, String)> {
     let req = timeclock::NewClockEvent { employee_id: f.employee_id, kind: "break_start".into(), notes: f.notes };
-    match timeclock::clock_in_out(Json(req)).await {
+    match timeclock::clock_in_out(HeaderMap::new(), Json(req)).await {
         Ok(_) => Ok(Html(r#"<span class="gb-ok">✓ Início de pausa</span>"#.to_string())),
         Err((sc, e)) => Ok(Html(err_fragment(&format!("HTTP {sc}: {e}")))),
     }
@@ -290,7 +291,7 @@ async fn break_start(Form(f): Form<ClockForm>) -> Result<Html<String>, (StatusCo
 
 async fn break_end(Form(f): Form<ClockForm>) -> Result<Html<String>, (StatusCode, String)> {
     let req = timeclock::NewClockEvent { employee_id: f.employee_id, kind: "break_end".into(), notes: f.notes };
-    match timeclock::clock_in_out(Json(req)).await {
+    match timeclock::clock_in_out(HeaderMap::new(), Json(req)).await {
         Ok(_) => Ok(Html(r#"<span class="gb-ok">✓ Pausa encerrada</span>"#.to_string())),
         Err((sc, e)) => Ok(Html(err_fragment(&format!("HTTP {sc}: {e}")))),
     }
@@ -345,7 +346,7 @@ async fn submit_overtime(Form(_f): Form<OvertimeForm>) -> Result<Html<String>, (
 }
 
 async fn approve_overtime(Path(id): Path<String>) -> Result<Html<String>, (StatusCode, String)> {
-    match timeclock::approve_overtime(Path(id)).await {
+    match timeclock::approve_overtime(HeaderMap::new(), Path(id)).await {
         Ok(_) => Ok(Html(r#"<span class="gb-ok">✓ Aprovado</span>"#.to_string())),
         Err((sc, e)) => Ok(Html(err_fragment(&format!("HTTP {sc}: {e}")))),
     }

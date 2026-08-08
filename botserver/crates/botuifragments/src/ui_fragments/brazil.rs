@@ -3,6 +3,7 @@
  * =============================================================================*/
 use super::*;
 use axum::Json;
+use axum::http::HeaderMap;
 use bottax::handlers as tax_handlers;
 use bottax::models as tax_models;
 
@@ -66,7 +67,7 @@ async fn render_dashboard() -> Result<String, String> {
 }
 
 async fn list_nfe() -> Result<Html<String>, (StatusCode, String)> {
-    match tax_handlers::list_nfe().await {
+    match tax_handlers::list_nfe(HeaderMap::new()).await {
         Ok(Json(items)) => Ok(Html(render_nfe_table(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("NFe error: {e}")))),
     }
@@ -114,7 +115,7 @@ fn render_nfe_table(items: &[tax_models::NFe]) -> String {
 }
 
 async fn list_nfse() -> Result<Html<String>, (StatusCode, String)> {
-    match tax_handlers::list_nfse().await {
+    match tax_handlers::list_nfse(HeaderMap::new()).await {
         Ok(Json(items)) => Ok(Html(render_nfse_table(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("NFSe error: {e}")))),
     }
@@ -144,7 +145,7 @@ fn render_nfse_table(items: &[tax_models::NFSe]) -> String {
 }
 
 async fn list_cte() -> Result<Html<String>, (StatusCode, String)> {
-    match tax_handlers::list_cte().await {
+    match tax_handlers::list_cte(HeaderMap::new()).await {
         Ok(Json(items)) => Ok(Html(render_cte_table(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("CTe error: {e}")))),
     }
@@ -179,7 +180,7 @@ async fn list_mdfe() -> Result<Html<String>, (StatusCode, String)> {
 }
 
 async fn list_sped() -> Result<Html<String>, (StatusCode, String)> {
-    match tax_handlers::list_sped().await {
+    match tax_handlers::list_sped(HeaderMap::new()).await {
         Ok(Json(items)) => Ok(Html(render_sped_table(&items))),
         Err((_, e)) => Ok(Html(err_fragment(&format!("SPED error: {e}")))),
     }
@@ -275,7 +276,7 @@ async fn create_nfe_form(
         recipient_cnpj: f.recipient_cnpj,
         total: f.total,
     };
-    match tax_handlers::create_nfe(Json(req)).await {
+    match tax_handlers::create_nfe(HeaderMap::new(), Json(req)).await {
         Ok(Json(n)) => Ok(Html(format!(
             r##"<div id="nfe-new-result" hx-get="/suite/brazil/fragments/nfe" hx-trigger="load delay:200ms" hx-swap="innerHTML" hx-target="#gb-nfe-body">
 <input type="hidden" name="nfe_id" value="{id}">
@@ -289,7 +290,7 @@ async fn create_nfe_form(
 }
 
 async fn authorize_nfe_form(Path(id): Path<String>) -> Result<Html<String>, (StatusCode, String)> {
-    match tax_handlers::authorize_nfe(Path(id)).await {
+    match tax_handlers::authorize_nfe(HeaderMap::new(), Path(id)).await {
         Ok(_) => Ok(Html(r#"<span class="gb-ok">✓ Autorizada</span>"#.to_string())),
         Err((c, e)) => Ok(Html(err_fragment(&format!("HTTP {c}: {e}")))),
     }
@@ -314,7 +315,7 @@ async fn create_cte_form(
         modality: f.modality,
         total: f.total,
     };
-    match tax_handlers::create_cte(Json(req)).await {
+    match tax_handlers::create_cte(HeaderMap::new(), Json(req)).await {
         Ok(Json(c)) => Ok(Html(format!(
             r##"<div hx-get="/suite/brazil/fragments/cte" hx-trigger="load delay:200ms" hx-swap="innerHTML" hx-target="#gb-cte-body">
 <p class="gb-ok">CTe {number} criado.</p>
@@ -342,7 +343,7 @@ async fn create_nfse_form(
         provider_cnpj: f.provider_cnpj,
         total: f.total,
     };
-    match tax_handlers::create_nfse(Json(req)).await {
+    match tax_handlers::create_nfse(HeaderMap::new(), Json(req)).await {
         Ok(Json(n)) => Ok(Html(format!(
             r##"<div hx-get="/suite/brazil/fragments/nfse" hx-trigger="load delay:200ms" hx-swap="innerHTML" hx-target="#gb-nfse-body">
 <p class="gb-ok">NFSe {number} criada.</p>
