@@ -76,6 +76,78 @@ Click **Deploy** to trigger `POST /api/bots/:id/deploy`. Real-time progress stre
 
 ---
 
+## Vibe Agent Gateway (project registry + tool harness)
+
+Vibe is backed by the `botvibe` crate, exposed through `botserver` under the `vibe` feature.
+
+### Project Registry (DB-backed)
+
+Projects live in the `vibe_projects` table (migration `6.5.49-vibe-projects`), replacing hardcoded workspace modeling. Scoped by `org_id`/`branch_id` like other SaaS tables (nil UUID = global default-bot scope):
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/vibe/projects` | Create project (name, kind: bot/website/custom, repo, framework, env) |
+| `GET` | `/api/vibe/projects` | List projects (filter by `branch_id`, `project_type`, `status`; paginate) |
+| `GET` | `/api/vibe/projects/:project_id` | Get one project |
+| `PUT` | `/api/vibe/projects/:project_id` | Update name/type/repo/framework/env/status/payload |
+| `DELETE` | `/api/vibe/projects/:project_id` | Delete a project |
+
+Payload is a free-form JSONB pragma used by agents (deploy hints, hooks, manifest).
+
+### Run API (agent runs)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/vibe/run` | Create a run: `{"intent": "...", "use_case": "...", "auto_approve": bool}` |
+| `GET` | `/api/vibe/run/:run_id` | Run state + executed tool calls |
+| `POST` | `/api/vibe/run/:run_id/cancel` | Cancel a run |
+| `POST` | `/api/vibe/run/:run_id/approve` | Approve pending tool calls |
+| `GET` | `/api/vibe/runs` | List runs (filters: state, use_case, limit, offset) |
+| `GET` | `/api/vibe/tools` · `/api/vibe/tools/:use_case` | Tool discovery |
+| `GET` | `/api/vibe/events/:run_id` | Progress event stream (telemetry) |
+| `GET` | `/api/vibe/metrics` / `/api/vibe/metrics/:run_id` | Run metrics |
+
+### Real Tool Harness
+
+The tool registry no longer returns stubs — the harness (`botvibe/src/harness/`) implements sandboxed tools operating on a per-project workspace under `VIBE_WORKSPACE_ROOT` (default `/opt/gbo/data/vibe-workspaces/{project}`):
+
+| Tool | Description | Approval |
+|------|-------------|----------|
+| `file/read` `file/write` `file/list` `file/delete` `file/exists` | Workspace-confined file operations (path traversal guarded) | write/delete require approval |
+| `shell/run` | Run allowlisted commands (git, cat, ls, npm, cargo, python3, …) with arg validation, env wipe, timeout | requires approval |
+| `git/status` `git/log` `git/diff` `git/commit` `git/init` | Local git operations in the project workspace | commit/init require approval |
+| `logs/read` `logs/list` | Runtime log tailing | read-only |
+| `test/run` `test/list` | Test suite execution + framework detection | run requires approval |
+
+Any not-yet-wired plugin tool returns an honest error instead of fake success JSON.
+
+### VIBE bridge keywords (chat)
+
+The BASIC surface can drive the agent through the local Vibe API:
+
+| Keyword | Purpose |
+|---------|---------|
+| `VIBE RUN "{intent}"` | Create an agent run (returns run_id + state) |
+| `VIBE STATUS "{run_id}"` | Poll run state + executed tool count |
+| `VIBE APPROVE "{run_id}"` | Approve pending tool calls |
+| `VIBE CANCEL "{run_id}"` | Cancel a run |
+| `VIBE TOOLS` | List available tools |
+| `VIBE EVENTS "{run_id}"` | Stream latest progress events |
+
+Example `start.bas`:
+
+```basic
+' start.bas — Vibe demo
+ADD_SUGGESTION "VIBE RUN \"Criar website institucional\"" as "Criar website"
+ADD_SELECTION "VIBE TOOLS" as "Ver ferramentas do Vibe"
+SET CONTEXT "vibe" AS "You are the Pragmatismo assistant. Use VIBE RUN to create projects."
+TALK "Olá! Posso criar projetos com o agente Vibe."
+```
+
+The Pragmatismo payload (`start.bas`, `PROMPT.md`, `config.csv`, MCP tool defs) is seeded automatically into the `pragmatismo.gbai` bucket when the `sampledata` feature is enabled (#750).
+
+---
+
 ## Enabling Vibe
 
 Vibe is always available in the suite — no feature gate required. Access it from the desktop icon or via `http://localhost:3000/suite/vibe`.
