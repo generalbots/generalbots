@@ -152,6 +152,16 @@ impl ToolRegistry {
             });
         }
 
+        for (name, schema, handler) in crate::ops_tools::ops_tools() {
+            tools.insert(name.to_string(), RegisteredTool {
+                descriptor: ToolDescriptor {
+                    schema,
+                    category: ToolCategory::Deployment,
+                },
+                handler,
+            });
+        }
+
         let crm_tools = vec![
             ("search_contacts", "Busca contatos no CRM", false),
             ("get_deals", "Obtém oportunidades do pipeline CRM", false),
@@ -300,7 +310,7 @@ impl Default for ToolRegistry {
     }
 }
 
-trait ToolSchemaExt {
+pub trait ToolSchemaExt {
     fn with_approval_if(self, needs_approval: bool) -> Self;
 }
 
