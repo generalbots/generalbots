@@ -139,4 +139,35 @@ mod tests {
         assert!(resolve_workspace_path("proj", "a/./b").is_err());
         assert!(resolve_workspace_path("proj", "src/main.rs").is_ok());
     }
+
+    #[test]
+    fn write_read_list_roundtrip() {
+        let tmp = std::env::temp_dir().join(format!("vibe-harness-test-{}", uuid::Uuid::new_v4()));
+        std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
+        let project = "proj-a";
+
+        ensure_workspace(project).expect("ensure workspace");
+        write_rel_file(project, "src/main.rs", b"fn main() {}").expect("write");
+        write_rel_file(project, "README.md", b"# demo").expect("write");
+
+        let bytes = read_rel_file(project, "src/main.rs", 1024).expect("read");
+        assert_eq!(bytes, b"fn main() {}");
+
+        let entries = list_rel(project, "", 0).expect("list");
+        assert!(entries.iter().any(|e| e == "src/"));
+        assert!(entries.iter().any(|e| e == "README.md"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn read_rejects_oversize() {
+        let tmp = std::env::temp_dir().join(format!("vibe-harness-test-{}", uuid::Uuid::new_v4()));
+        std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
+        let project = "proj-b";
+        ensure_workspace(project).expect("ensure workspace");
+        write_rel_file(project, "big.bin", &vec![0u8; 4096]).expect("write");
+        assert!(read_rel_file(project, "big.bin", 1024).is_err());
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
 }
