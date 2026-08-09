@@ -54,7 +54,7 @@ Each row links to the issue that closes it.
 |---|-----|-------------|
 | 4 | Number formats are parsed, stored, and never applied. | `R$ 1.234,50` displays as `1234.5`; a date displays as `46096`. → issue 5 |
 | 10 | 26 columns hardcoded; 1,200,000 rows against the desktop standard of 1,048,576. | Most of the address space is unreachable, and the row count is wrong in the other direction. → issue 6 |
-| 11 | Column width and row height are constants. | Widths and heights imported from `.xlsx` cannot be displayed; resize is impossible by construction. → issue 6 |
+| 11 | ~~Column width and row height are constants.~~ **Partially shipped (2026-08-09)** | Widths and heights imported from `.xlsx` now render (headers, cells, selection box, fill handle align). Interactive drag-resize still requires a backend width endpoint. → issue 6 |
 | 12 | ~~Selection is one cell and one overlay element.~~ **Partially shipped (2026-08-09)** | Range drag-selection, Shift+click extension, `Ctrl+A` select-all. Multi-range and whole row/column selection still planned. → issue 6 |
 | 18 | Frozen panes are imported with the axes swapped and never rendered. | A frozen header row does not stay put. → issue 6, issue 8 |
 | 27 | ~~Conditional formatting, validation, charts and comments are stored and never rendered or enforced.~~ **Partially shipped (2026-08-09)** | Conditional-format rules now render in the grid (`>`, `<`, `>=`, `<=`, between, text contains/starts-with/ends-with, duplicates, color scale). List validation renders a red marker dot and an in-cell dropdown editor; invalid single-cell edits are blocked with a toast. The advanced JS module stubs (`01_core`…`12_export`) are implemented. Charts still render nothing; comments still show no marker. → issue 10 |
