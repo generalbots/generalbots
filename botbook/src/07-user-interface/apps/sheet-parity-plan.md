@@ -34,19 +34,19 @@ Each row links to the issue that closes it.
 
 | # | Gap | Consequence |
 |---|-----|-------------|
-| 1 | Cell values are `Option<String>`. No number, date, boolean or error type. | `=SUM()` over `1,234.50` returns `0`. Dates cannot be subtracted. Numbers cannot be right-aligned. ZIP codes lose leading zeros. → issue 1 |
+| 1 | ~~Cell values are `Option<String>`. No number, date, boolean or error type.~~ **Partially shipped (2026-08-09)** | New `engine::value::CellValue` gives typed numbers/text/booleans/errors in the formula engine; `=1/0` returns a typed `#DIV/0!`, comparisons are numeric. Storage remains string-cached. → issue 1 |
 | 9 | Two incompatible cell-key conventions coexist (`"row,col"` and `"A1"`). | A workbook opened from Drive renders differently from one fetched through the range API. → issue 3 |
 
 ### Formula engine
 
 | # | Gap | Consequence |
 |---|-----|-------------|
-| 2 | No parser. Dispatch is a 170-arm match on the text before the first `(`. | `=SUM(A1:A3)+1`, `=A1&B1`, `=A1^2` and every nested call return `#ERROR!`. → issue 2 |
-| 3 | The whole formula is upper-cased before evaluation. | `=CONCATENATE("Total: ",A1)` returns `TOTAL: 7`. Data corruption, not cosmetics. → issue 2 |
-| 5 | Recalculation stops after 1000 cells with no error and no warning. | A financial model displays stale numbers that look final. → issue 4 |
+| 2 | ~~No parser. Dispatch is a 170-arm match on the text before the first `(`.~~ **Partially shipped (2026-08-09)** | New `engine` module: lexer + Pratt parser → AST. `=SUM(A1:A3)+1`, `=A1&B1`, `=A1^2` and nested calls now evaluate with correct precedence (`2^3^2 = 512`, `-2^2 = -4`). Legacy dispatcher remains as the function-call backend and fallback. → issue 2 |
+| 3 | ~~The whole formula is upper-cased before evaluation.~~ **Partially shipped (2026-08-09)** | The typed parser does not uppercase string literals; `="Total: "&A1` preserves case. Legacy `CONCATENATE("…")` still routes through the old dispatcher (documented quirk). → issue 2 |
+| 5 | ~~Recalculation stops after 1000 cells with no error and no warning.~~ **Partially shipped (2026-08-09)** | `recalc_cascade_typed` keeps the limit but logs and skips cycle members instead of silently stalling; `find_cycles` reports them. → issue 4 |
 | 6 | The dependency graph is rebuilt by re-scanning formula text on every keystroke. | Editing is O(workbook) instead of O(dependents). → issue 4 |
-| 7 | The evaluator takes a single `&Worksheet`. | `=Sheet2!A1` is unrepresentable, despite the model holding many worksheets. → issue 3 |
-| 8 | `$` anchors are discarded during parsing. | No copy, fill or paste can translate references correctly. → issue 3 |
+| 7 | ~~The evaluator takes a single `&Worksheet`.~~ **Partially shipped (2026-08-09)** | `Reference.sheet` qualifiers parse and render (`Sheet2!A1`); evaluation returns a typed `#REF!` for cross-sheet refs the single-worksheet model cannot satisfy. → issue 3 |
+| 8 | ~~`$` anchors are discarded during parsing.~~ **Partially shipped (2026-08-09)** | `Reference` keeps `col_absolute`/`row_absolute`; `translate(dr, dc)` shifts only relative parts. → issue 3 |
 
 ### Rendering
 
@@ -103,21 +103,21 @@ Twelve issues in four phases. The ordering is a dependency order, not a priority
 
 ### Phase 1 — Foundation
 
-| Issue | Title | Closes |
-|---|---|---|
-| [#781](https://github.com/generalbots/generalbots/issues/781) | Typed cell values — numbers, spreadsheet date serials, booleans, error values | 1 |
-| [#782](https://github.com/generalbots/generalbots/issues/782) | Real formula parser — lexer, Pratt parser, AST, evaluator, function registry | 2, 3 |
-| [#783](https://github.com/generalbots/generalbots/issues/783) | Reference model — `$` anchors, sheet qualifiers, whole row/column, A1 keys, translation | 7, 8, 9 |
-| [#784](https://github.com/generalbots/generalbots/issues/784) | Calc engine — incremental dependency graph, topological recalc, cycle detection | 5, 6 |
+| Issue | Title | Closes | Status |
+|---|---|---|---|
+| [#781](https://github.com/generalbots/generalbots/issues/781) | Typed cell values — numbers, spreadsheet date serials, booleans, error values | 1 | 🟡 In progress — `engine::value::CellValue` shipped (2026-08-09) |
+| [#782](https://github.com/generalbots/generalbots/issues/782) | Real formula parser — lexer, Pratt parser, AST, evaluator, function registry | 2, 3 | 🟡 In progress — lexer + Pratt parser + AST + evaluator shipped (2026-08-09) |
+| [#783](https://github.com/generalbots/generalbots/issues/783) | Reference model — `$` anchors, sheet qualifiers, whole row/column, A1 keys, translation | 7, 8, 9 | 🟡 In progress — `Reference` with anchors + translate shipped (2026-08-09) |
+| [#784](https://github.com/generalbots/generalbots/issues/784) | Calc engine — incremental dependency graph, topological recalc, cycle detection | 5, 6 | 🟡 In progress — `find_cycles` + `recalc_cascade_typed` shipped (2026-08-09) |
 
 Phase 1 is unglamorous and unavoidable. While a cell is a `String` and a formula is a string match, everything above it is built on sand.
 
 ### Phase 2 — Presentation
 
-| Issue | Title | Closes |
-|---|---|---|
-| [#785](https://github.com/generalbots/generalbots/issues/785) | OOXML number format engine — currency, dates, accounting, scientific, fractions | 4 |
-| [#786](https://github.com/generalbots/generalbots/issues/786) | Canvas grid — 16,384 × 1,048,576, variable sizes, frozen panes, range selection | 10, 11, 12, 18 |
+| Issue | Title | Closes | Status |
+|---|---|---|---|
+| [#785](https://github.com/generalbots/generalbots/issues/785) | OOXML number format engine — currency, dates, accounting, scientific, fractions | 4 | 🟡 In progress — `engine::formats` renders currency/thousands/percent/dates (2026-08-09) |
+| [#786](https://github.com/generalbots/generalbots/issues/786) | Canvas grid — 16,384 × 1,048,576, variable sizes, frozen panes, range selection | 10, 11, 12, 18 | 🟡 Partial — DOM grid now renders variable widths/heights, frozen panes, range/row/col selection, row limit aligned; canvas rendering + 16,384 cols pending |
 
 The grid moves from one absolutely positioned `<div>` per cell to canvas rendering with a DOM overlay for interactive chrome — the approach every serious web grid uses, because per-cell borders, fills, clipping and overflow cannot be composited at 60 fps in the DOM.
 
@@ -131,12 +131,12 @@ The clipboard writes three flavours — TSV, styled HTML, and an internal JSON p
 
 ### Phase 4 — Fidelity and infrastructure
 
-| Issue | Title | Closes |
-|---|---|---|
-| [#788](https://github.com/generalbots/generalbots/issues/788) | xlsx round-trip fidelity — stop the destructive save-back, preserve unmodelled parts | 19, 20, 21 |
-| [#789](https://github.com/generalbots/generalbots/issues/789) | Document sessions — in-memory state, oplog, versioning, real identity and ACLs | 22, 23, 24 |
-| [#790](https://github.com/generalbots/generalbots/issues/790) | Structured features — conditional formatting, validation, tables, filter/sort, charts, pivots | 27 |
-| [#791](https://github.com/generalbots/generalbots/issues/791) | Collaboration protocol — A1 addressing, server-authoritative sequencing, presence | 25, 26 |
+| Issue | Title | Closes | Status |
+|---|---|---|---|
+| [#788](https://github.com/generalbots/generalbots/issues/788) | xlsx round-trip fidelity — stop the destructive save-back, preserve unmodelled parts | 19, 20, 21 | 🟡 In progress — `merge_into_original` preserves the untouched package and rewrites only edited cells (2026-08-09) |
+| [#789](https://github.com/generalbots/generalbots/issues/789) | Document sessions — in-memory state, oplog, versioning, real identity and ACLs | 22, 23, 24 | 📋 Planned |
+| [#790](https://github.com/generalbots/generalbots/issues/790) | Structured features — conditional formatting, validation, tables, filter/sort, charts, pivots | 27 | 🟡 Partial — frontend render/enforce + modules shipped (see gap 27) |
+| [#791](https://github.com/generalbots/generalbots/issues/791) | Collaboration protocol — A1 addressing, server-authoritative sequencing, presence | 25, 26 | 📋 Planned |
 | [#792](https://github.com/generalbots/generalbots/issues/792) | UI shell, i18n, dead code removal, and the test suite | 17, 28, 29, 30 |
 
 **Issue 788 starts out of order.** Its first commit makes the `.xlsx` save-back non-destructive, because gap 20 is data loss reachable today and should not wait for its phase.

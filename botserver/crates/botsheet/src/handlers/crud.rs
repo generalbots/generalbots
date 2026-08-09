@@ -151,6 +151,14 @@ pub async fn handle_load_from_drive(
         external_links: None,
         source_bucket: Some(req.bucket.clone()),
         source_path: Some(req.path.clone()),
+        // Retain the original package so the save-back hook can merge the
+        // edited cells into the untouched original instead of regenerating
+        // the workbook from the lossy model (#788).
+        source_bytes: if ext == "xlsx" || ext == "xlsm" {
+            Some(bytes.clone())
+        } else {
+            None
+        },
     };
 
     // Persist to Drive so subsequent /api/sheet/range calls find the data
@@ -178,6 +186,7 @@ pub async fn handle_save_sheet(
         external_links: None,
     source_bucket: None,
     source_path: None,
+        source_bytes: None,
     };
 
     if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {

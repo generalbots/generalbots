@@ -104,6 +104,91 @@ pub fn ensure_cell(worksheet: &mut Worksheet, row: u32, col: u32) {
     });
 }
 
+/// Finds the cells that participate in a reference cycle, if any (#784).
+///
+/// A formula cell is reported when it is reachable from itself through the
+/// dependency graph. The caller can surface these as `#CIRC!` instead of
+/// silently evaluating them in a degraded order.
+pub fn find_cycles(worksheet: &Worksheet) -> Vec<CellKey> {
+    let graph = build_dependency_graph(worksheet);
+    // Kahn-style: repeatedly strip nodes with no in-degree; what remains is
+    // part of at least one cycle.
+    let mut in_degree: HashMap<CellKey, usize> = HashMap::new();
+    for node in graph.keys() {
+        in_degree.entry(*node).or_insert(0);
+    }
+    for dependents in graph.values() {
+        for d in dependents {
+            *in_degree.entry(*d).or_insert(0) += 1;
+        }
+    }
+    let mut queue: std::collections::VecDeque<CellKey> = in_degree
+        .iter()
+        .filter(|(_, &d)| d == 0)
+        .map(|(&k, _)| k)
+        .collect();
+    let mut removed: HashSet<CellKey> = HashSet::new();
+    while let Some(node) = queue.pop_front() {
+        removed.insert(node);
+        if let Some(dependents) = graph.get(&node) {
+            for d in dependents {
+                if let Some(deg) = in_degree.get_mut(d) {
+                    *deg = deg.saturating_sub(1);
+                    if *deg == 0 && !removed.contains(d) {
+                        queue.push_back(*d);
+                    }
+                }
+            }
+        }
+    }
+    let mut cyclic: Vec<CellKey> = in_degree
+        .keys()
+        .filter(|k| !removed.contains(k))
+        .copied()
+        .collect();
+    cyclic.sort_unstable();
+    cyclic
+}
+
+/// Recalculates dependents of `changed` using the typed engine, stopping when
+/// the limit is reached. Cycle members are reported but not re-evaluated.
+pub fn recalc_cascade_typed(
+    worksheet: &mut Worksheet,
+    changed: CellKey,
+    max_iterations: usize,
+) {
+    let graph = build_dependency_graph(worksheet);
+    let order = collect_dependents(&[changed], &graph);
+    let cycles = find_cycles(worksheet);
+
+    let mut iter = 0usize;
+    for cell_key in order {
+        if iter >= max_iterations {
+            log::warn!(
+                "recalculation stopped after {max_iterations} cells; dependency chain from {changed:?} is longer than the configured limit"
+            );
+            break;
+        }
+        if cycles.contains(&cell_key) {
+            continue;
+        }
+        let key_str = key_to_string(cell_key);
+        let Some(cell) = worksheet.data.get(&key_str) else {
+            continue;
+        };
+        let Some(formula) = cell.formula.clone() else {
+            continue;
+        };
+        let result = crate::engine::evaluate_typed(&formula, worksheet).display();
+        if let Some(target) = worksheet.data.get_mut(&key_str) {
+            if target.value.as_deref() != Some(result.as_str()) {
+                target.value = Some(result);
+            }
+        }
+        iter += 1;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,5 +322,39 @@ mod tests {
             w.data.get("0,2").and_then(|c| c.value.as_deref()),
             Some("102")
         );
+    }
+
+    #[test]
+    fn finds_two_cell_cycle() {
+        let w = ws(&[("0,0", "=B1+1"), ("0,1", "=A1+1")]);
+        let cycles = find_cycles(&w);
+        assert_eq!(cycles.len(), 2);
+        assert!(cycles.contains(&(0, 0)));
+        assert!(cycles.contains(&(0, 1)));
+    }
+
+    #[test]
+    fn acyclic_sheet_has_no_cycles() {
+        let w = ws(&[("0,0", "=5"), ("0,1", "=A1+1"), ("0,2", "=B1+1")]);
+        assert!(find_cycles(&w).is_empty());
+    }
+
+    #[test]
+    fn typed_recalc_skips_cycles() {
+        let mut data = HashMap::new();
+        data.insert("0,0".to_string(), cell(Some("=10")));
+        data.insert("0,1".to_string(), cell(Some("=A1+1")));
+        data.insert("1,0".to_string(), cell(Some("=B1+1")));
+        data.insert("1,1".to_string(), cell(Some("=B1+1")));
+        // Self-cycle: C3 refers to itself (C3 = col 2, row 2 = key "2,2").
+        data.insert("2,2".to_string(), cell(Some("=C3+1")));
+        let mut w = Worksheet {
+            data,
+            ..Worksheet::default()
+        };
+        recalc_cascade_typed(&mut w, (0, 0), 1000);
+        assert_eq!(w.data.get("0,1").and_then(|c| c.value.as_deref()), Some("11"));
+        // Cycle member (2,2) is reported but not re-evaluated.
+        assert!(find_cycles(&w).contains(&(2, 2)));
     }
 }

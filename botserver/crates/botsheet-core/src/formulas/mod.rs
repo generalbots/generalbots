@@ -24,6 +24,12 @@ pub use refs::{
 
 use crate::types::{FormulaResult, Worksheet};
 
+/// Entry point for formula evaluation.
+///
+/// The typed engine (#781-785) is tried first: a real lexer + Pratt parser
+/// handles operator precedence, `&`, `^`, nested calls, `$` anchors and typed
+/// values. If the formula does not parse (for example a legacy quirk), we fall
+/// back to the string-dispatcher evaluator so nothing that used to work breaks.
 pub fn evaluate_formula(formula: &str, worksheet: &Worksheet) -> FormulaResult {
     if !formula.starts_with('=') {
         return FormulaResult {
@@ -31,7 +37,26 @@ pub fn evaluate_formula(formula: &str, worksheet: &Worksheet) -> FormulaResult {
             error: None,
         };
     }
+    let body = &formula[1..];
+    match crate::engine::parse(body) {
+        Ok(expr) => {
+            let value = crate::engine::eval_expr(&expr, worksheet);
+            FormulaResult {
+                value: value.display(),
+                error: None,
+            }
+        }
+        Err(_) => evaluate_legacy(formula, worksheet),
+    }
+}
 
+/// Legacy string-dispatcher evaluation, used for function calls parsed by the
+/// new engine and as a fallback when the typed parser rejects a formula.
+pub fn evaluate_function_call(formula: &str, worksheet: &Worksheet) -> FormulaResult {
+    evaluate_legacy(formula, worksheet)
+}
+
+fn evaluate_legacy(formula: &str, worksheet: &Worksheet) -> FormulaResult {
     let expr = formula[1..].to_uppercase();
 
     // Otimização de busca direta O(1) com base no prefixo do nome da função.
