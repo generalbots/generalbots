@@ -39,6 +39,7 @@ pub mod sessions;
 pub mod teams;
 pub mod capability_registry;
 pub mod pipeline;
+pub mod run_store;
 
 pub use types::{
     VibeContext, VibeLlmOps, VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState,

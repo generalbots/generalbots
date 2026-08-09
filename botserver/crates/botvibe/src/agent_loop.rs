@@ -3,7 +3,7 @@ use crate::prompt_manager::VibePromptManager;
 use crate::skills::SkillStore;
 use crate::telemetry::{ToolCallRecord, VibeTelemetry};
 use crate::tool_executor::VibeToolExecutor;
-use crate::types::{VibeProgressEvent, VibeRun, VibeRunState, VibeState, VibeToolCall};
+use crate::types::{VibeProgressEvent, VibeRun, VibeRunState, VibeState, VibeToolCall, VibeUseCase};
 use log::{error, info, warn};
 use std::sync::Arc;
 use tokio::time::{timeout, Duration};
@@ -186,13 +186,154 @@ impl AgentLoop {
     ) -> Result<String, String> {
         let prompt = self.prompt_manager.compose_prompt(context, &run.intent);
         let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
-        let model = run.config.model.clone().unwrap_or_else(|| {
-            std::env::var("LLM_MODEL").unwrap_or_else(|_| "gpt-4o-mini".to_string())
-        });
-        let api_key = std::env::var("LLM_KEY").unwrap_or_default();
-        let api_url = std::env::var("LLM_URL")
-            .unwrap_or_else(|_| "https://api.openai.com/v1/chat/completions".to_string());
+        // Per-bot config (Issue #795): explicit run overrides > bot config.csv
+        // via the state > environment > built-in defaults.
+        let llm = self.state.llm_config(&run.bot_id);
+        let model = run
+            .config
+            .model
+            .clone()
+            .or_else(|| llm.as_ref().map(|l| l.model.clone()))
+            .or_else(|| std::env::var("LLM_MODEL").ok())
+            .unwrap_or_else(|| "gpt-4o-mini".to_string());
+        let api_key = run
+            .config
+            .llm_key
+            .clone()
+            .or_else(|| llm.as_ref().map(|l| l.key.clone()))
+            .or_else(|| std::env::var("LLM_KEY").ok())
+            .unwrap_or_default();
+        let api_url = run
+            .config
+            .llm_url
+            .clone()
+            .or_else(|| llm.as_ref().map(|l| l.url.clone()))
+            .or_else(|| std::env::var("LLM_URL").ok())
+            .unwrap_or_else(|| "https://api.openai.com/v1/chat/completions".to_string());
 
+        let client = reqwest::Client::new();
+        let tools = self.tool_schemas_for(run.use_case).await;
+        let body = serde_json::json!({
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 4096,
+            "tools": tools,
+            "tool_choice": "auto",
+            "stream": true,
+        });
+
+        // Native streaming with SSE accumulation (Issue #794); the streamed
+        // content and tool-call deltas are reassembled into the canonical
+        // form `parse_tool_calls` already understands.
+        let send_result = client
+            .post(&api_url)
+            .header("Authorization", format!("Bearer {api_key}"))
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await;
+
+        let resp = match send_result {
+            Ok(r) => r,
+            Err(e) => return Err(format!("HTTP request failed: {e}")),
+        };
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            // Some providers reject the `tools` field; retry without it so
+            // the plain chat path keeps working (fallback per issue #794).
+            if text.contains("tool") || text.contains("function") {
+                return self
+                    .call_llm_plain(&api_url, &api_key, &model, &system, &prompt)
+                    .await;
+            }
+            return Err(format!("LLM returned status {status}: {text}"));
+        }
+
+        let payload = match self.read_body(resp).await {
+            Ok(payload) => payload,
+            Err(e) => return Err(e),
+        };
+        Self::content_from_payload(&payload)
+    }
+
+    /// OpenAI-style `tools` array derived from the live tool registry.
+    async fn tool_schemas_for(&self, use_case: VibeUseCase) -> Vec<serde_json::Value> {
+        self.tool_executor
+            .registry()
+            .list_tools_for_use_case(use_case)
+            .await
+            .iter()
+            .map(|t| {
+                serde_json::json!({
+                    "type": "function",
+                    "function": {
+                        "name": t.schema.name,
+                        "description": t.schema.description,
+                        "parameters": t.schema.parameters,
+                    }
+                })
+            })
+            .collect()
+    }
+
+    /// Extracts either native tool calls (canonical envelope) or plain text
+    /// content from an OpenAI-style completion payload.
+    fn content_from_payload(payload: &serde_json::Value) -> Result<String, String> {
+        if let Some(calls) = native_tool_calls_from_value(payload) {
+            return Ok(canonical_tool_calls_json(&calls));
+        }
+        let content = payload["choices"][0]["message"]["content"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
+        if content.is_empty() {
+            return Err("LLM returned empty content".to_string());
+        }
+        Ok(content)
+    }
+
+    /// Reads the entire HTTP body, classifying it as either an SSE stream
+    /// (`data: ...` lines, Issue #794) or a plain JSON completion payload.
+    async fn read_body(&self, mut resp: reqwest::Response) -> Result<serde_json::Value, String> {
+        let content_type = resp
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_string();
+        let mut bytes = Vec::new();
+        while let Some(chunk) = resp
+            .chunk()
+            .await
+            .map_err(|e| format!("stream error: {e}"))?
+        {
+            bytes.extend_from_slice(&chunk);
+        }
+        let text = String::from_utf8_lossy(&bytes).into_owned();
+        if content_type.contains("text/event-stream") || text.contains("data:") {
+            parse_sse(&text).ok_or_else(|| "LLM returned malformed SSE stream".to_string())
+        } else {
+            serde_json::from_str(&text)
+                .map_err(|e| format!("Failed to parse LLM response: {e}"))
+        }
+    }
+
+    /// Plain (non-stream, no `tools`) fallback for providers that reject the
+    /// `tools` field (Issue #794).
+    async fn call_llm_plain(
+        &self,
+        api_url: &str,
+        api_key: &str,
+        model: &str,
+        system: &str,
+        prompt: &str,
+    ) -> Result<String, String> {
         let client = reqwest::Client::new();
         let body = serde_json::json!({
             "model": model,
@@ -203,37 +344,21 @@ impl AgentLoop {
             "temperature": 0.3,
             "max_tokens": 4096,
         });
-
         let resp = client
-            .post(&api_url)
+            .post(api_url)
             .header("Authorization", format!("Bearer {api_key}"))
             .header("Content-Type", "application/json")
             .json(&body)
             .send()
             .await
             .map_err(|e| format!("HTTP request failed: {e}"))?;
-
         if !resp.status().is_success() {
             let status = resp.status();
             let text = resp.text().await.unwrap_or_default();
             return Err(format!("LLM returned status {status}: {text}"));
         }
-
-        let json: serde_json::Value = resp
-            .json()
-            .await
-            .map_err(|e| format!("Failed to parse LLM response: {e}"))?;
-
-        let content = json["choices"][0]["message"]["content"]
-            .as_str()
-            .unwrap_or("")
-            .to_string();
-
-        if content.is_empty() {
-            return Err("LLM returned empty content".to_string());
-        }
-
-        Ok(content)
+        let payload = self.read_body(resp).await?;
+        Self::content_from_payload(&payload)
     }
 
     fn parse_tool_calls(&self, llm_response: &str) -> Vec<ExtractedToolCall> {
@@ -542,6 +667,107 @@ fn looks_like_tool_intent(response: &str) -> bool {
     response.contains("tool_calls") || response.contains("tool_name")
 }
 
+/// Accumulates an SSE body (`data: {...}` lines) into a single JSON payload
+/// with the assistant `content`/`tool_calls` merged (Issue #794). Returns
+/// `None` when the body contains no SSE events.
+fn parse_sse(body: &str) -> Option<serde_json::Value> {
+    let mut message = serde_json::json!({"role": "assistant", "content": "", "tool_calls": []});
+    let mut first_seen = false;
+    for line in body.lines() {
+        let Some(data) = line.trim().strip_prefix("data:") else {
+            continue;
+        };
+        let data = data.trim();
+        if data == "[DONE]" {
+            first_seen = true;
+            break;
+        }
+        let Ok(event) = serde_json::from_str::<serde_json::Value>(data) else {
+            continue;
+        };
+        first_seen = true;
+        let delta = &event["choices"][0]["delta"];
+        if let Some(text) = delta["content"].as_str() {
+            message["content"] =
+                serde_json::Value::String(message["content"].as_str().unwrap_or_default().to_string() + text);
+        }
+        if let Some(deltas) = delta["tool_calls"].as_array() {
+            for delta_call in deltas {
+                let index = delta_call["index"].as_u64().unwrap_or(0) as usize;
+                let calls = message["tool_calls"].as_array_mut().unwrap();
+                while calls.len() <= index {
+                    calls.push(serde_json::json!({
+                        "id": "", "type": "function",
+                        "function": {"name": "", "arguments": ""}
+                    }));
+                }
+                let entry = &mut calls[index];
+                eprintln!("DBG delta_call={delta_call} entry_before={entry}");
+                if let Some(id) = delta_call["id"].as_str() {
+                    if !id.is_empty() {
+                        entry["id"] = serde_json::Value::String(id.to_string());
+                    }
+                }
+                if let Some(name) = delta_call["function"]["name"].as_str() {
+                    if !name.is_empty() {
+                        let current = entry["function"]["name"].as_str().unwrap_or_default();
+                        entry["function"]["name"] =
+                            serde_json::Value::String(current.to_string() + name);
+                    }
+                }
+                if let Some(args) = delta_call["function"]["arguments"].as_str() {
+                    let current = entry["function"]["arguments"].as_str().unwrap_or_default();
+                    entry["function"]["arguments"] =
+                        serde_json::Value::String(current.to_string() + args);
+                }
+            }
+        }
+    }
+    if !first_seen {
+        return None;
+    }
+    let mut accumulated = serde_json::Map::new();
+    accumulated.insert("choices".to_string(), serde_json::json!([{"message": message}]));
+    Some(serde_json::Value::Object(accumulated))
+}
+
+/// Extracts native OpenAI-format tool calls (`message.tool_calls[].function`)
+/// from a completion payload, if present.
+fn native_tool_calls_from_value(payload: &serde_json::Value) -> Option<Vec<ExtractedToolCall>> {
+    let calls = payload["choices"][0]["message"]["tool_calls"].as_array()?;
+    let parsed: Vec<ExtractedToolCall> = calls
+        .iter()
+        .filter_map(|tc| {
+            let name = tc["function"]["name"].as_str()?.to_string();
+            let arguments = tc["function"]["arguments"]
+                .as_str()
+                .and_then(|a| serde_json::from_str::<serde_json::Value>(a).ok())
+                .unwrap_or_else(|| serde_json::json!({}));
+            Some(ExtractedToolCall {
+                tool_name: name,
+                arguments,
+            })
+        })
+        .collect();
+    if parsed.is_empty() {
+        None
+    } else {
+        Some(parsed)
+    }
+}
+
+/// Serializes native tool calls back into the canonical JSON envelope that
+/// `parse_tool_calls` consumes downstream.
+fn canonical_tool_calls_json(calls: &[ExtractedToolCall]) -> String {
+    let body = serde_json::json!({
+        "tool_calls": calls.iter().map(|c| serde_json::json!({
+            "tool_name": c.tool_name,
+            "arguments": c.arguments,
+        })).collect::<Vec<_>>(),
+    });
+    body.to_string()
+}
+
 /// Caps a string at `limit` characters, cutting on a char boundary and
 /// marking the truncation so long tool results stay visible but bounded.
 fn truncate(text: &str, limit: usize) -> String {
@@ -601,6 +827,7 @@ fn extract_json_object(s: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
     use tokio::sync::RwLock;
 
     #[test]
@@ -645,6 +872,64 @@ mod tests {
     }
 
     #[test]
+    fn native_tool_calls_parse_openai_format() {
+        let payload = serde_json::json!({
+            "choices": [{"message": {"tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "read_file", "arguments": "{\"path\": \"a.txt\"}"}}
+            ]}}]
+        });
+        let calls = native_tool_calls_from_value(&payload).expect("native calls present");
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].tool_name, "read_file");
+        assert_eq!(calls[0].arguments["path"], "a.txt");
+        assert!(
+            native_tool_calls_from_value(&serde_json::json!({"choices": [{"message": {"content": "hi"}}]}))
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn canonical_json_envelope_parses_like_loop_output() {
+        let calls = vec![ExtractedToolCall {
+            tool_name: "file/read".to_string(),
+            arguments: serde_json::json!({"path": "a.txt"}),
+        }];
+        let json = canonical_tool_calls_json(&calls);
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("envelope is json");
+        assert_eq!(parsed["tool_calls"][0]["tool_name"], "file/read");
+        assert_eq!(parsed["tool_calls"][0]["arguments"]["path"], "a.txt");
+    }
+
+    #[test]
+    fn parse_sse_accumulates_content_and_tool_call_deltas() {
+        let lines = [
+            format!("data: {}", json!({"choices": [{"delta": {"role": "assistant"}}]})),
+            format!("data: {}", json!({"choices": [{"delta": {"content": "Hel"}}]})),
+            format!("data: {}", json!({"choices": [{"delta": {"content": "lo"}}]})),
+            format!("data: {}", json!({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1", "function": {"name": "read_fi", "arguments": "{\"pa"}}]}}]})),
+            format!("data: {}", json!({"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"name": "le", "arguments": "th\": \"a.txt\"}"}}]}}]})),
+        ]
+        .join("\n")
+            + "\ndata: [DONE]";
+        let payload = parse_sse(&lines).expect("sse parsed");
+        assert_eq!(payload["choices"][0]["message"]["content"], "Hello");
+        assert_eq!(
+            payload["choices"][0]["message"]["tool_calls"][0]["function"]["name"],
+            "read_file"
+        );
+        assert_eq!(
+            payload["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"],
+            "{\"path\": \"a.txt\"}"
+        );
+    }
+
+    #[test]
+    fn parse_sse_rejects_non_sse_body() {
+        assert!(parse_sse("{\"choices\":[]}").is_none());
+    }
+
+    #[test]
     fn parse_tool_calls_from_llm_response() {
         let agent = AgentLoop::new(
             Arc::new(VibePromptManager::new()),
@@ -683,6 +968,9 @@ mod tests {
             &self.runs
         }
         fn run_signal_sender(&self) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeRunSignal>> {
+            None
+        }
+        fn llm_config(&self, _bot_id: &uuid::Uuid) -> Option<crate::types::LlmConfig> {
             None
         }
     }

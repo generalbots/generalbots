@@ -90,6 +90,10 @@ pub struct VibeRunConfig {
     pub max_tool_calls: u32,
     pub timeout_seconds: u64,
     pub model: Option<String>,
+    /// Per-bot LLM API key override (over env `LLM_KEY`).
+    pub llm_key: Option<String>,
+    /// Per-bot LLM endpoint override (over env `LLM_URL`).
+    pub llm_url: Option<String>,
     pub budget_cents: u64,
 }
 
@@ -102,6 +106,8 @@ impl Default for VibeRunConfig {
             max_tool_calls: 50,
             timeout_seconds: 300,
             model: None,
+            llm_key: None,
+            llm_url: None,
             budget_cents: 0,
         }
     }
@@ -280,6 +286,17 @@ pub trait VibeState: Send + Sync {
     fn progress_sender(&self) -> Option<&broadcast::Sender<VibeProgressEvent>>;
     fn active_runs(&self) -> &Arc<RwLock<HashMap<Uuid, VibeRun>>>;
     fn run_signal_sender(&self) -> Option<&broadcast::Sender<VibeRunSignal>>;
+    /// Per-bot LLM settings resolved from the bot's configuration
+    /// (Drive config.csv via ConfigManager). `None` means "use environment".
+    fn llm_config(&self, bot_id: &Uuid) -> Option<LlmConfig>;
+}
+
+/// LLM provider settings resolved for a specific bot (Issue #795).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LlmConfig {
+    pub model: String,
+    pub key: String,
+    pub url: String,
 }
 
 pub trait VibeLlmOps: Send + Sync {
@@ -383,6 +400,8 @@ mod tests {
         assert_eq!(cfg.max_tool_calls, 50);
         assert_eq!(cfg.timeout_seconds, 300);
         assert_eq!(cfg.model, None);
+        assert_eq!(cfg.llm_key, None);
+        assert_eq!(cfg.llm_url, None);
         assert_eq!(cfg.budget_cents, 0);
     }
 

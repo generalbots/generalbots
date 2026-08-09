@@ -96,6 +96,17 @@ fn team_status(members: &[TeamMember]) -> &'static str {
     }
 }
 
+/// Runtime dependencies shared by all members of a team run.
+#[derive(Clone)]
+pub struct MemberRuntime {
+    pub state: Arc<dyn VibeState>,
+    pub prompt_manager: Arc<VibePromptManager>,
+    pub tool_executor: Arc<VibeToolExecutor>,
+    pub telemetry: Arc<VibeTelemetry>,
+    pub permissions: crate::permissions::PermissionEngineRef,
+    pub skills: Arc<crate::skills::SkillStore>,
+}
+
 /// Coordinates a team run: executes one member as its own agent run and
 /// records the outcome on the team row. The execution itself stays async so
 /// callers decide whether members run concurrently or in waves.
@@ -107,12 +118,7 @@ impl TeamCoordinator {
     /// with its run id, state and error attached.
     pub async fn execute_member(
         &self,
-        state: Arc<dyn VibeState>,
-        prompt_manager: Arc<VibePromptManager>,
-        tool_executor: Arc<VibeToolExecutor>,
-        telemetry: Arc<VibeTelemetry>,
-        permissions: crate::permissions::PermissionEngineRef,
-        skills: Arc<crate::skills::SkillStore>,
+        runtime: &MemberRuntime,
         member: &TeamMember,
     ) -> TeamMember {
         let config = VibeRunConfig {
@@ -122,6 +128,8 @@ impl TeamCoordinator {
             max_tool_calls: 50,
             timeout_seconds: 600,
             model: None,
+            llm_key: None,
+            llm_url: None,
             budget_cents: 0,
         };
         let mut run = VibeRun::new(
@@ -133,16 +141,24 @@ impl TeamCoordinator {
         );
         let run_id = run.run_id;
         {
-            let mut runs = state.active_runs().write().await;
+            let mut runs = runtime.state.active_runs().write().await;
             runs.insert(run_id, run.clone());
         }
         let agent_loop = Arc::new(
-            AgentLoop::new(prompt_manager, tool_executor, telemetry, state.clone())
-                .with_security(permissions, skills),
+            AgentLoop::new(
+                runtime.prompt_manager.clone(),
+                runtime.tool_executor.clone(),
+                runtime.telemetry.clone(),
+                runtime.state.clone(),
+            )
+            .with_security(
+                runtime.permissions.clone(),
+                runtime.skills.clone(),
+            ),
         );
         agent_loop.execute_run(&mut run).await;
         {
-            let mut runs = state.active_runs().write().await;
+            let mut runs = runtime.state.active_runs().write().await;
             runs.insert(run_id, run.clone());
         }
         TeamMember {
@@ -273,26 +289,21 @@ async fn create_team(
     tokio::spawn(async move {
         let coordinator = TeamCoordinator;
         let mut handles = Vec::new();
+        let runtime = MemberRuntime {
+            state,
+            prompt_manager: prompt,
+            tool_executor: executor,
+            telemetry,
+            permissions,
+            skills,
+        };
         for (index, member) in members_copy.iter().enumerate() {
-            let state = state.clone();
-            let prompt = prompt.clone();
-            let executor = executor.clone();
-            let telemetry = telemetry.clone();
-            let permissions = permissions.clone();
-            let skills = skills.clone();
+            let runtime = runtime.clone();
             let teams = teams.clone();
             let member = member.clone();
             handles.push(tokio::spawn(async move {
                 let updated = coordinator
-                    .execute_member(
-                        state,
-                        prompt,
-                        executor,
-                        telemetry,
-                        permissions,
-                        skills,
-                        &member,
-                    )
+                    .execute_member(&runtime, &member)
                     .await;
                 teams.update_member(team_id, index, updated).await;
             }));

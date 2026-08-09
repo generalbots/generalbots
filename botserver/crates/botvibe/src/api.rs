@@ -8,7 +8,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use log::info;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -105,6 +105,7 @@ pub(crate) struct VibeApiInner {
     permissions: crate::permissions::PermissionEngineRef,
     skills: Arc<crate::skills::SkillStore>,
     runs: Arc<RwLock<HashMap<Uuid, VibeRun>>>,
+    runs_store: crate::run_store::VibeRunStore,
 }
 
 impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
@@ -135,6 +136,7 @@ pub fn router(
     telemetry: Arc<VibeTelemetry>,
     permissions: crate::permissions::PermissionEngineRef,
     skills: Arc<crate::skills::SkillStore>,
+    pool: crate::types::DbPool,
 ) -> axum::Router {
     let api = Arc::new(VibeApiInner {
         state,
@@ -144,6 +146,7 @@ pub fn router(
         permissions,
         skills,
         runs: Arc::new(RwLock::new(HashMap::new())),
+        runs_store: crate::run_store::VibeRunStore::new(pool),
     });
     axum::Router::new()
         .route("/api/vibe/run", axum::routing::post(create_run))
@@ -184,6 +187,8 @@ async fn create_run(
         max_tool_calls: req.max_tool_calls.unwrap_or(50),
         timeout_seconds: req.timeout_seconds.unwrap_or(300),
         model: req.model,
+        llm_key: None,
+        llm_url: None,
         budget_cents: req.budget_cents.unwrap_or(0),
     };
 
@@ -232,6 +237,9 @@ async fn create_run(
         };
         if let Some(mut run) = run_opt {
             agent_loop.execute_run(&mut run).await;
+            if let Err(e) = api_clone.runs_store.save_run(&run) {
+                error!("Vibe: persist run {run_id} failed: {e}");
+            }
             let mut runs = api_clone.runs.write().await;
             runs.insert(run_id, run);
         }
@@ -253,20 +261,13 @@ async fn get_run(
 ) -> impl IntoResponse {
     let runs = api.runs.read().await;
     if let Some(run) = runs.get(&run_id) {
-        Json(GetRunResponse {
-            run_id: run.run_id,
-            bot_id: run.bot_id,
-            session_id: run.session_id,
-            state: run.state.to_string(),
-            use_case: run.use_case.to_string(),
-            intent: run.intent.clone(),
-            tool_call_count: run.tool_calls.len(),
-            created_at: run.created_at.to_rfc3339(),
-            completed_at: run.completed_at.map(|t| t.to_rfc3339()),
-            error: run.error.clone(),
-        })
-    } else {
-        Json(GetRunResponse {
+        return Json(run_to_response(run));
+    }
+    drop(runs);
+    // Fall back to the persisted store (Issue #793): runs survive restarts.
+    match api.runs_store.get_run(run_id) {
+        Some(run) => Json(run_to_response(&run)),
+        None => Json(GetRunResponse {
             run_id,
             bot_id: Uuid::nil(),
             session_id: Uuid::nil(),
@@ -277,7 +278,22 @@ async fn get_run(
             created_at: String::new(),
             completed_at: None,
             error: Some("Run not found".to_string()),
-        })
+        }),
+    }
+}
+
+fn run_to_response(run: &VibeRun) -> GetRunResponse {
+    GetRunResponse {
+        run_id: run.run_id,
+        bot_id: run.bot_id,
+        session_id: run.session_id,
+        state: run.state.to_string(),
+        use_case: run.use_case.to_string(),
+        intent: run.intent.clone(),
+        tool_call_count: run.tool_calls.len(),
+        created_at: run.created_at.to_rfc3339(),
+        completed_at: run.completed_at.map(|t| t.to_rfc3339()),
+        error: run.error.clone(),
     }
 }
 
@@ -292,6 +308,11 @@ async fn cancel_run(
     let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {
         run.transition(VibeRunState::Cancelled);
+        let snapshot = run.clone();
+        drop(runs);
+        if let Err(e) = api.runs_store.save_run(&snapshot) {
+            error!("Vibe: persist cancelled run {run_id} failed: {e}");
+        }
         info!("Vibe run cancelled: {run_id}");
         Json(ActionResponse {
             success: true,
@@ -323,6 +344,11 @@ async fn approve_run(
         }
         info!("Vibe run approved: {run_id}");
         run.transition(VibeRunState::Running);
+        let snapshot = run.clone();
+        drop(runs);
+        if let Err(e) = api.runs_store.save_run(&snapshot) {
+            error!("Vibe: persist approved run {run_id} failed: {e}");
+        }
         Json(ActionResponse {
             success: true,
             message: Some("Pending tool calls approved and run resumed".to_string()),
@@ -361,18 +387,7 @@ async fn list_runs(
                 .as_ref()
                 .is_none_or(|f| r.use_case.to_string() == *f)
         })
-        .map(|r| GetRunResponse {
-            run_id: r.run_id,
-            bot_id: r.bot_id,
-            session_id: r.session_id,
-            state: r.state.to_string(),
-            use_case: r.use_case.to_string(),
-            intent: r.intent.clone(),
-            tool_call_count: r.tool_calls.len(),
-            created_at: r.created_at.to_rfc3339(),
-            completed_at: r.completed_at.map(|t| t.to_rfc3339()),
-            error: r.error.clone(),
-        })
+        .map(run_to_response)
         .collect();
 
     Json(filtered)

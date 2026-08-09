@@ -2,6 +2,7 @@
 //! `VibeState` implementation backed by the main AppState pool, and seeds the
 //! `vibe_projects` schema at boot.
 
+use botcore::config::ConfigManager;
 use botcore::shared::state::AppState;
 use botvibe::backups::Backups;
 use botvibe::domains::ProjectDomains;
@@ -14,7 +15,9 @@ use botvibe::ops_api::{ops_router, OpsRoutes};
 use botvibe::projects::ProjectRegistry;
 use botvibe::projects_api::projects_router;
 use botvibe::rbac::ProjectRbac;
-use botvibe::types::{VibeProgressEvent, VibeRun, VibeRunSignal, VibeState};
+use botvibe::types::{
+    LlmConfig, VibeProgressEvent, VibeRun, VibeRunSignal, VibeState,
+};
 use botvibe::vm_lifecycle::VmLifecycle;
 use botvibe::vms_api::vms_router;
 use botvibe::{ToolRegistry, VibePromptManager, VibeTelemetry, VibeToolExecutor};
@@ -29,6 +32,7 @@ struct VibeStateImpl {
     progress: Option<broadcast::Sender<VibeProgressEvent>>,
     runs: Arc<RwLock<HashMap<Uuid, VibeRun>>>,
     signals: Option<broadcast::Sender<VibeRunSignal>>,
+    config: ConfigManager,
 }
 
 impl VibeState for VibeStateImpl {
@@ -53,6 +57,29 @@ impl VibeState for VibeStateImpl {
     fn run_signal_sender(&self) -> Option<&broadcast::Sender<VibeRunSignal>> {
         self.signals.as_ref()
     }
+
+    /// Resolves the bot's LLM settings from its config.csv via ConfigManager
+    /// (Issue #795). `get_config` returns `Ok("")` on a miss, so empty values
+    /// are filtered out and fall through to the environment in the agent loop.
+    fn llm_config(&self, bot_id: &Uuid) -> Option<LlmConfig> {
+        let value = |key: &str| {
+            self.config
+                .get_config(bot_id, key, None)
+                .ok()
+                .filter(|v| !v.is_empty())
+        };
+        match value("llm-model") {
+            Some(model) => Some(LlmConfig {
+                model,
+                key: value("llm-key").unwrap_or_default(),
+                url: value("llm-url").unwrap_or_default(),
+            }),
+            None => {
+                log::warn!("Vibe: no llm-model configured for bot {bot_id}; falling back to env");
+                None
+            }
+        }
+    }
 }
 
 pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
@@ -63,6 +90,7 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         progress: Some(broadcast::channel(128).0),
         runs: Arc::new(RwLock::new(HashMap::new())),
         signals: Some(broadcast::channel(128).0),
+        config: ConfigManager::new(app_state.conn.clone()),
     });
 
     let registry = ProjectRegistry::new(app_state.conn.clone());
@@ -102,6 +130,11 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     {
         log::error!("Vibe: M5 tool registration failed: {e}");
     }
+    // VIBE_SCHEMA persistence (Issue #793): ensure tables at boot.
+    match botvibe::run_store::ensure_vibe_schema(&app_state.conn) {
+        Ok(()) => info!("Vibe: vibe_runs schema ensured"),
+        Err(e) => log::error!("Vibe: ensure vibe_runs schema failed: {e}"),
+    }
     let tool_executor = Arc::new(VibeToolExecutor::new(tool_registry));
     let telemetry = Arc::new(VibeTelemetry::new());
 
@@ -133,6 +166,7 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         telemetry.clone(),
         permissions.clone(),
         skills.clone(),
+        app_state.conn.clone(),
     )
         .merge(projects_router(
             project_registry.clone(),
