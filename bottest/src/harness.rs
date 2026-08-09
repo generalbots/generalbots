@@ -679,7 +679,7 @@ impl BotServerInstance {
         log::info!("Created clean test stack at: {}", stack_path.display());
 
         let botserver_bin = std::env::var("BOTSERVER_BIN")
-            .unwrap_or_else(|_| "../botserver/target/debug/botserver".to_string());
+            .unwrap_or_else(|_| default_botserver_bin());
 
         if !PathBuf::from(&botserver_bin).exists() {
             log::warn!("Botserver binary not found at: {botserver_bin}");
@@ -700,6 +700,7 @@ impl BotServerInstance {
             .and_then(|p| p.parent())
             .and_then(|p| p.parent())
             .map(std::path::Path::to_path_buf)
+            .filter(|p| p.join("botserver-installers").exists())
             .unwrap_or_else(|| {
                 std::fs::canonicalize("../botserver")
                     .unwrap_or_else(|_| PathBuf::from("../botserver"))
@@ -720,6 +721,18 @@ impl BotServerInstance {
             .arg(port.to_string())
             .arg("--noconsole")
             .env_remove("RUST_LOG")
+            .env("GBO_NO_DOTENV", "1")
+            .env_remove("VAULT_ADDR")
+            .env_remove("VAULT_TOKEN")
+            .env_remove("VAULT_CACERT")
+            .env_remove("VAULT_SKIP_VERIFY")
+            .env_remove("VAULT_CLIENT_CERT")
+            .env_remove("VAULT_CLIENT_KEY")
+            .env_remove("TABLES_HOST")
+            .env_remove("TABLES_PORT")
+            .env_remove("TABLES_DATABASE")
+            .env_remove("TABLES_USERNAME")
+            .env_remove("TABLES_PASSWORD")
             .env("BOTSERVER_INSTALLERS_PATH", &installers_path)
             .env("DATABASE_URL", ctx.database_url())
             .env("DIRECTORY_URL", ctx.zitadel_url())
@@ -850,6 +863,16 @@ impl Drop for BotServerInstance {
             let _ = process.wait();
         }
     }
+}
+
+fn default_botserver_bin() -> String {
+    let candidates = ["../target/debug/botserver", "../botserver/target/debug/botserver"];
+    for candidate in candidates {
+        if PathBuf::from(candidate).exists() {
+            return candidate.to_string();
+        }
+    }
+    "../botserver/target/debug/botserver".to_string()
 }
 
 pub struct TestHarness;

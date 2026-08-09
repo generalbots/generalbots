@@ -181,11 +181,6 @@ impl PostgresService {
     fn configure_for_testing(&self) -> Result<()> {
         let config_path = self.data_dir.join("postgresql.conf");
 
-        let abs_data_dir = self
-            .data_dir
-            .canonicalize()
-            .unwrap_or_else(|_| self.data_dir.clone());
-
         let config = format!(
             r"
 # Test configuration - optimized for speed, not durability
@@ -204,10 +199,9 @@ max_wal_senders = 0
 logging_collector = off
 log_statement = 'none'
 log_duration = off
-unix_socket_directories = '{}'
+unix_socket_directories = ''
 ",
-            self.port,
-            abs_data_dir.to_str().unwrap()
+            self.port
         );
 
         std::fs::write(&config_path, config)?;
@@ -313,10 +307,21 @@ unix_socket_directories = '{}'
         log::info!("Running database migrations...");
 
         if let Ok(diesel) = which::which("diesel") {
+            let crate_dir = std::env::current_dir().unwrap_or_default();
+            let candidate = crate_dir.join("../botserver/migrations");
+            let migration_dir = if candidate.is_dir() {
+                candidate
+            } else {
+                crate_dir.parent().map(|p| p.join("botserver/migrations"))
+                    .filter(|p| p.is_dir())
+                    .unwrap_or_else(|| crate_dir.join("migrations"))
+            };
             let status = Command::new(diesel)
                 .args([
                     "migration",
                     "run",
+                    "--migration-dir",
+                    migration_dir.to_str().unwrap_or("migrations"),
                     "--database-url",
                     &self.connection_string,
                 ])
