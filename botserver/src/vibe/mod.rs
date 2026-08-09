@@ -81,6 +81,12 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     let prompt_manager = Arc::new(VibePromptManager::new());
     let permissions = Arc::new(botvibe::PermissionEngine::new());
     let skills = Arc::new(botvibe::SkillStore::new());
+    {
+        let skills = skills.clone();
+        futures::executor::block_on(async move {
+            skills.seed_bootstrap().await;
+        });
+    }
     let canvases = Arc::new(botvibe::CanvasStore::new());
     let issues = Arc::new(botvibe::IssueStore::new());
     let sessions = Arc::new(botvibe::SessionStore::new());
@@ -154,6 +160,7 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         }))
         .merge(botvibe::permissions_router(permissions.clone()))
         .merge(botvibe::skills_router(skills.clone()))
+        .merge(botvibe::doctor_router(skills.clone(), sessions.clone()))
         .merge(botvibe::canvases_router(canvases.clone()))
         .merge(botvibe::issues_router(issues.clone()))
         .merge(botvibe::sessions_router(botvibe::SessionRoutes {
