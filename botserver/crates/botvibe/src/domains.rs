@@ -163,23 +163,24 @@ impl ProjectDomains {
             if line.is_empty() {
                 continue;
             }
+            let is_issue = line.to_ascii_lowercase().contains("issue");
             let value = line
                 .split('"')
                 .nth(1)
                 .map(|v| v.trim().to_ascii_lowercase());
             match value.as_deref() {
                 Some(";") | Some("") => {
-                    if line.contains("issue") {
+                    if is_issue {
                         return false;
                     }
                 }
-                Some(ca) if ca.contains("letsencrypt.org") && line.contains("issue") => {
+                Some(ca) if ca.contains("letsencrypt.org") && is_issue => {
                     saw_issue = true;
                     saw_acme_ok = true;
                 }
                 _ => {}
             }
-            if line.contains("issue") {
+            if is_issue {
                 saw_issue = true;
             }
         }

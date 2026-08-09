@@ -46,7 +46,7 @@ impl TeamStore {
 
     pub async fn list(&self) -> Vec<VibeTeam> {
         let mut teams = self.teams.read().await.clone();
-        teams.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        teams.sort_by_key(|t| std::cmp::Reverse(t.created_at));
         teams
     }
 
@@ -275,7 +275,7 @@ mod tests {
         let list = store.list().await;
         assert_eq!(list.len(), 2);
         assert_eq!(list[0].team_id, newer.team_id);
-        assert_eq!(store.get(Uuid::new_v4()).await, None);
+        assert!(store.get(Uuid::new_v4()).await.is_none());
     }
 
     #[tokio::test]

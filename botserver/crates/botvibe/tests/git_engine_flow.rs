@@ -34,10 +34,10 @@ fn full_git_flow_clone_status_diff_commit_push() {
     let status = git(&work, &["status", "--porcelain"]);
     assert!(status.contains("hello.txt"), "status should show new file, got {status}");
 
-    let diff = git(&work, &["diff"]);
+    git(&work, &["add", "hello.txt"]);
+    let diff = git(&work, &["diff", "--cached"]);
     assert!(diff.contains("v1"), "diff should contain new content");
 
-    git(&work, &["add", "hello.txt"]);
     git(&work, &["commit", "-m", "add hello"]);
     git(&work, &["push", "origin", "HEAD"]);
 

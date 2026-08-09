@@ -169,16 +169,22 @@ fn git_pr() -> ToolHandler {
 
 fn parse_forgejo_repo(remote: &str) -> Option<(String, String)> {
     let normalized = remote.trim();
-    let path = if let Some(rest) = normalized.strip_prefix("https://") {
-        rest
+    let (strip_host, path) = if let Some(rest) = normalized.strip_prefix("https://") {
+        (true, rest)
     } else if let Some(rest) = normalized.strip_prefix("http://") {
-        rest
+        (true, rest)
     } else if let Some(rest) = normalized.strip_prefix("git@") {
-        rest.splitn(2, ':').nth(1)?
+        (false, rest.split_once(':')?.1)
     } else {
-        normalized
+        (false, normalized)
     };
-    let mut parts = path.trim_end_matches(".git").split('/');
+    let path = path.trim_end_matches(".git");
+    let owner_repo = if strip_host {
+        path.split_once('/')?.1
+    } else {
+        path
+    };
+    let mut parts = owner_repo.split('/');
     let owner = parts.next()?.to_string();
     let repo = parts.next()?.to_string();
     if owner.is_empty() || repo.is_empty() {
