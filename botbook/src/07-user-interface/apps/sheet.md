@@ -29,12 +29,12 @@ The work to close the gap is tracked in [Sheet Parity Plan](./sheet-parity-plan.
 | Edit a cell | Available | Double-click, `F2`, or type over the selection |
 | A1-style references | Available | `A1`, `A1:C10` |
 | Number, currency, date and percentage formats | Planned | Format codes are read from `.xlsx` and stored, but the grid renders the raw underlying value |
-| Merge cells | Planned | The API accepts a merge and the model stores it; the grid does not render merges, and the toolbar button currently merges a cell with itself |
-| Resize rows and columns | Planned | Widths and heights are imported from `.xlsx` and persisted, but the grid uses fixed sizes |
-| Range selection | Planned | Selection is a single cell |
+| Merge cells | Available | The merge button merges the selected range; unmerge supported; merged regions render with the anchor spanning |
+| Resize rows and columns | Partial | Imported widths and heights render; drag-resize not yet wired |
+| Range selection | Available | Drag, Shift+click extend, `Ctrl+A`, row/column via header clicks |
 | Multi-range selection (`Ctrl`+click) | Planned | — |
-| Freeze panes | Planned | Imported from `.xlsx` and stored; not rendered |
-| Cell comments and notes | Planned | Threaded comments are modelled with a full API; the grid renders no marker |
+| Freeze panes | Available | Freeze top row / first column / both via the toolbar; sticky render |
+| Cell comments and notes | Partial | Notes add/edit/clear via right-click; orange marker on noted cells; threaded comments via the sidebar panel |
 
 ### Formulas
 
@@ -77,19 +77,19 @@ These are real and will bite immediately. Each is tracked in [Sheet Parity Plan]
 
 | Type | Status |
 |------|--------|
-| Bar, Line, Pie, Scatter, Area | Planned — chart definitions are stored and returned by the API, but nothing renders them in the grid, and their data is snapshotted rather than bound to a range |
+| Bar, Line, Pie, Scatter, Area | Partial — charts render as SVG overlays anchored to grid coordinates; data is snapshotted rather than bound to a range |
 
 ### Filters
 
 | Filter | Status |
 |--------|--------|
-| Text contains / equals, number range, date range, empty/non-empty, custom formula | Planned — `POST /api/sheet/filter` accepts and stores a filter, but no rows are hidden in the grid |
+| Text contains / equals, number range, date range, empty/non-empty, custom formula | Partial — column-header filter menu with distinct-value checkboxes; matching rows survive, others are hidden client-side |
 
 ### Sort
 
 | Option | Status |
 |--------|--------|
-| Ascending / descending on a range | Partial — `POST /api/sheet/sort` reorders stored values; formulas referencing the moved cells are not rewritten |
+| Ascending / descending on a range | Available — column-header sort menu (A→Z / Z→A) sorts a multi-cell selection or the populated region; formulas referencing moved cells are not rewritten |
 | Multi-column, custom order | Planned |
 
 ### Import / Export
@@ -118,22 +118,22 @@ Implemented today:
 | `Tab` | Commit and move right |
 | `F2` | Edit the active cell |
 | `Arrow` keys | Move the selection |
+| `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
+| `Ctrl+C` / `Ctrl+V` / `Ctrl+X` | Copy / paste / cut |
+| `Ctrl+D` / `Ctrl+R` | Fill down / fill right |
+| `Delete` / `Backspace` | Clear the selected range |
+| `Ctrl+A` | Select all |
+| `Ctrl+Arrow` | Jump to the edge of the data |
+| `Ctrl+Home` / `Ctrl+End` | First / last used cell |
+| `Ctrl+PageUp` / `Ctrl+PageDown` | Page the viewport |
+| `Esc` | Abandon an edit / clear the selection |
 
 Documented but **not yet implemented** — tracked in [Sheet Parity Plan](./sheet-parity-plan.md):
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
-| `Ctrl+C` / `Ctrl+V` / `Ctrl+X` | Copy / paste / cut |
 | `Ctrl+Alt+V` | Paste Special |
-| `Ctrl+D` / `Ctrl+R` | Fill down / fill right |
-| `Delete` / `Backspace` | Clear a range |
-| `Ctrl+A` | Select all |
-| `Ctrl+Arrow` | Jump to the edge of the data |
-| `Ctrl+Home` / `Ctrl+End` | First / last used cell |
-| `PageUp` / `PageDown` | Page the viewport |
 | `Alt+Enter` | Newline inside a cell |
-| `Esc` | Abandon an edit |
 | `F4` | Cycle `$` anchors in a reference |
 | `Ctrl+Space` / `Shift+Space` | Select column / row |
 
