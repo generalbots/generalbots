@@ -83,7 +83,7 @@ function loadModules() {
   sandbox.addEventListener = function () {};
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
-  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "04_undo.js", "05_clipboard.js", "07_conditional_render.js", "10_i18n.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js"].forEach(function (f) {
+  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "04_undo.js", "05_clipboard.js", "07_conditional_render.js", "10_i18n.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js", "19_notes.js"].forEach(function (f) {
     const code = fs.readFileSync(path.join(MODULES, f), "utf8");
     vm.runInContext(code, ctx, { filename: f });
   });
@@ -312,6 +312,13 @@ function runUndo() {
   assertTrue(U.canRedo(), "canRedo true after undo");
   U.redo();
   assertEqual(g4.cells.get("0,0").value, "new", "redo re-applies new value");
+  runNotes();
+}
+
+// cell notes module exposes add/clear API
+function runNotes() {
+  assertTrue(!!env.window.SheetNotes && typeof env.window.SheetNotes.addNote === "function", "SheetNotes.addNote exposed");
+  assertTrue(typeof env.window.SheetNotes.clearNote === "function", "SheetNotes.clearNote exposed");
   runCharts();
 }
 
