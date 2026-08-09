@@ -689,27 +689,6 @@
         VirtualGrid.formatSelectedCell({ text_decoration: "line-through" });
       });
     }
-    var mergeBtn = document.getElementById("mergeCellsBtn");
-    if (mergeBtn) {
-      mergeBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        var row = VirtualGrid.selectedRow;
-        var col = VirtualGrid.selectedCol;
-        if (row == null || col == null) return;
-        fetch("/api/sheet/merge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sheet_id: currentSheetId(),
-            worksheet_index: WORKSHEET_INDEX,
-            start_row: row,
-            start_col: col,
-            end_row: row,
-            end_col: col
-          })
-        });
-      });
-    }
     var formulaInput = document.getElementById("formulaInput");
     if (formulaInput) {
       formulaInput.addEventListener("keydown", function (e) {
