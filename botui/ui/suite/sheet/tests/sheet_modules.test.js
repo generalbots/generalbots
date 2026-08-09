@@ -172,7 +172,7 @@ function runWidths() {
     totalCols: 26,
     totalRows: 100,
     cells: new Map(),
-    bodyInner: { appendChild: function () {}, lastChild: { style: {} }, querySelector: function () { return null; }, getBoundingClientRect: function () { return { left: 0, top: 0 }; } },
+    bodyInner: { style: {}, appendChild: function () {}, lastChild: { style: {} }, querySelector: function () { return null; }, getBoundingClientRect: function () { return { left: 0, top: 0 }; } },
     headerRow: { appendChild: function () {}, querySelectorAll: function () { return []; }, style: {} },
     headerColPool: [],
     getOrCreateNode: function () { return { style: {} }; },

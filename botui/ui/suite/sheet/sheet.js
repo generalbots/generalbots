@@ -92,10 +92,12 @@
 
   function positionSelectionOverlay(row, col) {
     if (!VirtualGrid.selectionOverlay) return;
+    const cwFn = (window.SheetCore && window.SheetCore.colWidth) ? window.SheetCore.colWidth : function () { return COL_WIDTH; };
+    const cxFn = (window.SheetCore && window.SheetCore.colX) ? window.SheetCore.colX : function (c) { return HEADER_WIDTH + c * COL_WIDTH; };
     VirtualGrid.selectionOverlay.style.display = "block";
-    VirtualGrid.selectionOverlay.style.left = (HEADER_WIDTH + col * COL_WIDTH - 1) + "px";
+    VirtualGrid.selectionOverlay.style.left = (cxFn(col) - 1) + "px";
     VirtualGrid.selectionOverlay.style.top = (row * ROW_HEIGHT - 1) + "px";
-    VirtualGrid.selectionOverlay.style.width = (COL_WIDTH + 2) + "px";
+    VirtualGrid.selectionOverlay.style.width = (cwFn(col) + 2) + "px";
     VirtualGrid.selectionOverlay.style.height = (ROW_HEIGHT + 2) + "px";
   }
 
