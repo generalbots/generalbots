@@ -178,14 +178,52 @@ impl VibePromptManager {
         }
 
         if !context.kb_references.is_empty() {
-            parts.push(format!(
-                "Contexto de base de conhecimento: {}",
-                context.kb_references.join(", ")
-            ));
+            parts.push(render_grounding(&context.kb_references));
         }
 
         parts.push(format!("User: {user_message}"));
         parts.join("\n\n")
+    }
+}
+
+const MAX_GROUNDING_REFS: usize = 20;
+const MAX_GROUNDING_REF_CHARS: usize = 1500;
+
+/// Renders the grounding section: deduplicated, numbered and length-capped
+/// references followed by explicit instructions so the model grounds factual
+/// claims in the provided sources instead of inventing context.
+fn render_grounding(references: &[String]) -> String {
+    let mut seen = std::collections::HashSet::new();
+    let mut lines = Vec::new();
+    for reference in references {
+        if lines.len() >= MAX_GROUNDING_REFS {
+            break;
+        }
+        let trimmed = reference.trim();
+        if trimmed.is_empty() || !seen.insert(trimmed.to_string()) {
+            continue;
+        }
+        lines.push(format!("[{}] {}", lines.len() + 1, truncate_chars(trimmed, MAX_GROUNDING_REF_CHARS)));
+    }
+    if lines.is_empty() {
+        return String::new();
+    }
+    let mut section = String::from("Grounding context (answer factual questions using only these sources):\n");
+    section.push_str(&lines.join("\n"));
+    section.push_str("\nIf the grounding context does not contain the answer, say so explicitly; never invent sources.");
+    section
+}
+
+/// Cuts text on a character boundary, marking any truncation.
+fn truncate_chars(text: &str, limit: usize) -> String {
+    if text.chars().count() <= limit {
+        text.to_string()
+    } else {
+        let mut end = limit;
+        while !text.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{}…", &text[..end])
     }
 }
 
@@ -254,5 +292,38 @@ mod tests {
         assert!(composed.contains("second msg"));
         assert!(composed.contains("kb-doc-1"));
         assert!(composed.contains("User: second msg"));
+    }
+
+    #[test]
+    fn grounding_renders_numbered_deduplicated_refs() {
+        let section = render_grounding(&[
+            "doc-A: first snippet".to_string(),
+            "doc-A: first snippet".to_string(),
+            "doc-B: second snippet".to_string(),
+        ]);
+        assert!(section.contains("[1] doc-A: first snippet"));
+        assert!(section.contains("[2] doc-B: second snippet"));
+        assert!(!section.contains("[3]"));
+        assert!(section.contains("never invent sources"));
+        assert_eq!(section.matches("doc-A: first snippet").count(), 1, "duplicates removed");
+    }
+
+    #[test]
+    fn grounding_caps_count_and_length() {
+        let many: Vec<String> = (0..30).map(|i| format!("ref-{i}: data")).collect();
+        let section = render_grounding(&many);
+        assert!(section.matches('[').count() <= MAX_GROUNDING_REFS + 1, "numbered refs capped");
+
+        let long = vec![format!("snippet {}", "x".repeat(3000))];
+        let section = render_grounding(&long);
+        assert!(section.contains('…'), "oversized reference is truncated");
+        let body = section.lines().find(|l| l.starts_with("[1]")).unwrap_or_default();
+        assert!(body.chars().count() <= MAX_GROUNDING_REF_CHARS + 8);
+    }
+
+    #[test]
+    fn grounding_omits_blank_and_returns_empty_section_safely() {
+        assert_eq!(render_grounding(&[]), "");
+        assert_eq!(render_grounding(&["   ".to_string(), "".to_string()]), "");
     }
 }
