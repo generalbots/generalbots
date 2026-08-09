@@ -363,7 +363,7 @@ async fn handle_signup(
 
     // 9. Create org bucket `.gborg` in MinIO with bot files inside (non-fatal — outside tx)
     if let Err(e) = integration::create_bot_bucket(
-        &service.config, &org_slug, &bot_name, &bot_name, body.template.as_deref(),
+        &service.config, &org_slug, &org_slug, &bot_name, body.template.as_deref(),
     ) {
         tracing::warn!("MinIO bucket creation skipped (non-fatal): {e}");
     }
