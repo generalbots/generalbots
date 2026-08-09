@@ -98,6 +98,10 @@
     "a11y.unselected": "não selecionado",
     "msg.confirm_delete": "Tem certeza?",
     "msg.network_error": "Erro de rede — verifique sua conexão",
-    "msg.unsupported_browser": "Seu navegador pode não suportar todos os recursos"
+    "msg.unsupported_browser": "Seu navegador pode não suportar todos os recursos",
+    "common.strikethrough": "Tachado",
+    "common.merge": "Mesclar células",
+    "modal.custom_format": "Formato Numérico Personalizado",
+    "common.share": "Compartilhar"
   }
 }
