@@ -6,6 +6,7 @@ botserver-installers/
 botmodels/
 botschema/
 prompts/
+!botserver/crates/botvibe/prompts/
 .vault-token-*
 vault-unseal-keys*
 start-and-unseal.sh

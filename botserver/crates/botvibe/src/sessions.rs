@@ -137,6 +137,7 @@ pub struct ResumeRequest {
     pub max_tool_calls: Option<u32>,
     pub timeout_seconds: Option<u64>,
     pub model: Option<String>,
+    pub lang: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -242,6 +243,7 @@ async fn resume_session(
 
     let config = VibeRunConfig {
         use_case: session.use_case,
+        lang: req.lang.unwrap_or_else(|| "en".to_string()),
         auto_approve: req.auto_approve.unwrap_or(false),
         max_tool_calls: req.max_tool_calls.unwrap_or(50),
         timeout_seconds: req.timeout_seconds.unwrap_or(300),

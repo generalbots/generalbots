@@ -274,7 +274,7 @@ mod tests {
         let updated = store.update(canvas.canvas_id, Some("design v2".into()), Some(json!({"layers": 5}))).await.unwrap();
         assert_eq!(updated.title, "design v2");
         assert_eq!(updated.content["layers"], 5);
-        assert!(updated.updated_at > canvas.updated_at || updated.updated_at == canvas.updated_at);
+        assert!(updated.updated_at >= canvas.updated_at);
     }
 
     #[tokio::test]

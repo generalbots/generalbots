@@ -205,6 +205,7 @@ async fn create_team(
             handles.push(tokio::spawn(async move {
                 let config = VibeRunConfig {
                     use_case: VibeUseCase::SoftwareDevelopment,
+                    lang: "en".to_string(),
                     auto_approve: true,
                     max_tool_calls: 50,
                     timeout_seconds: 600,

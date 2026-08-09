@@ -319,7 +319,7 @@ mod tests {
     async fn create_list_filter_by_state() {
         let store = IssueStore::new();
         let open = store.create("bug".into(), "crashes".into(), vec!["bug".into()], Some("ana".into())).await;
-        store.create("closed one".into(), "b".into(), vec![].into(), None).await;
+        store.create("closed one".into(), "b".into(), Vec::new(), None).await;
         store.update(open.issue_id, Some(IssueState::Closed), None, None).await;
         assert_eq!(store.list(None).await.len(), 2);
         assert_eq!(store.list(Some(IssueState::Closed)).await.len(), 1);
@@ -329,7 +329,7 @@ mod tests {
     #[tokio::test]
     async fn update_changes_assignee_and_labels() {
         let store = IssueStore::new();
-        let issue = store.create("t".into(), "b".into(), vec![].into(), None).await;
+        let issue = store.create("t".into(), "b".into(), Vec::new(), None).await;
         let updated = store
             .update(issue.issue_id, None, Some("bob".into()), Some(vec!["urgent".into()]))
             .await

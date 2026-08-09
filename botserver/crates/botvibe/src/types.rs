@@ -80,19 +80,12 @@ impl std::fmt::Display for VibeUseCase {
     }
 }
 
-impl VibeUseCase {
-    pub fn default_system_prompt(&self) -> &'static str {
-        match self {
-            Self::SoftwareDevelopment => "Você é um agente de desenvolvimento de software. Analise requisitos, gere código, revise alterações e corrija defeitos com precisão.",
-            Self::CustomerSupport => "Você é um agente de atendimento ao cliente. Resolva tickets, consulte dados CRM e forneça respostas contextualizadas com cortesia profissional.",
-            Self::FinancialAnalysis => "Você é um agente de análise financeira. Agregue indicadores de sentimento, gere relatórios marcados e identifique tendências de mercado.",
-        }
-    }
-}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VibeRunConfig {
     pub use_case: VibeUseCase,
+    pub lang: String,
     pub auto_approve: bool,
     pub max_tool_calls: u32,
     pub timeout_seconds: u64,
@@ -104,6 +97,7 @@ impl Default for VibeRunConfig {
     fn default() -> Self {
         Self {
             use_case: VibeUseCase::SoftwareDevelopment,
+            lang: "en".to_string(),
             auto_approve: false,
             max_tool_calls: 50,
             timeout_seconds: 300,
@@ -182,10 +176,10 @@ pub struct ContextMessage {
 }
 
 impl VibeContext {
-    pub fn new(run_id: Uuid, use_case: VibeUseCase) -> Self {
+    pub fn new(run_id: Uuid) -> Self {
         Self {
             run_id,
-            system_prompt: use_case.default_system_prompt().to_string(),
+            system_prompt: String::new(),
             conversation_history: Vec::new(),
             kb_references: Vec::new(),
             user_preferences: HashMap::new(),
@@ -374,19 +368,17 @@ mod tests {
     }
 
     #[test]
-    fn use_case_display_and_prompts() {
+    fn use_case_display() {
         assert_eq!(VibeUseCase::SoftwareDevelopment.to_string(), "software_development");
         assert_eq!(VibeUseCase::CustomerSupport.to_string(), "customer_support");
         assert_eq!(VibeUseCase::FinancialAnalysis.to_string(), "financial_analysis");
-        assert!(VibeUseCase::SoftwareDevelopment.default_system_prompt().contains("desenvolvimento"));
-        assert!(VibeUseCase::CustomerSupport.default_system_prompt().contains("cliente"));
-        assert!(VibeUseCase::FinancialAnalysis.default_system_prompt().contains("financeira"));
     }
 
     #[test]
     fn run_config_defaults() {
         let cfg = VibeRunConfig::default();
         assert_eq!(cfg.use_case, VibeUseCase::SoftwareDevelopment);
+        assert_eq!(cfg.lang, "en");
         assert!(!cfg.auto_approve);
         assert_eq!(cfg.max_tool_calls, 50);
         assert_eq!(cfg.timeout_seconds, 300);
@@ -420,8 +412,8 @@ mod tests {
 
     #[test]
     fn context_tracks_messages_and_defaults() {
-        let ctx = VibeContext::new(Uuid::nil(), VibeUseCase::CustomerSupport);
-        assert!(ctx.system_prompt.contains("atendimento"));
+        let ctx = VibeContext::new(Uuid::nil());
+        assert!(ctx.system_prompt.is_empty());
         assert!(ctx.conversation_history.is_empty());
 
         let mut ctx = ctx;

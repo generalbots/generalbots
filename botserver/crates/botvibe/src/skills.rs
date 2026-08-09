@@ -280,7 +280,7 @@ mod tests {
     async fn register_dedupes_by_name_and_enables_by_default() {
         let store = SkillStore::new();
         let first = store.register("sql".into(), "SQL expert".into(), "write sql".into(), vec!["sql".into()]).await;
-        let second = store.register("sql".into(), "New desc".into(), "write better sql".into(), vec![].into()).await;
+        let second = store.register("sql".into(), "New desc".into(), "write better sql".into(), Vec::new()).await;
         assert_ne!(first.skill_id, second.skill_id);
         let skills = store.list().await;
         assert_eq!(skills.len(), 1);
@@ -291,8 +291,8 @@ mod tests {
     #[tokio::test]
     async fn apply_stacks_only_enabled_matches() {
         let store = SkillStore::new();
-        store.register("a".into(), "A".into(), "content-a".into(), vec![].into()).await;
-        store.register("b".into(), "B".into(), "content-b".into(), vec![].into()).await;
+        store.register("a".into(), "A".into(), "content-a".into(), Vec::new()).await;
+        store.register("b".into(), "B".into(), "content-b".into(), Vec::new()).await;
         let stacked = store.apply(&["a".into(), "b".into(), "nope".into()]).await;
         assert!(stacked.contains("content-a"));
         assert!(stacked.contains("content-b"));
@@ -327,7 +327,7 @@ mod tests {
     #[tokio::test]
     async fn delete_removes_and_reports() {
         let store = SkillStore::new();
-        store.register("x".into(), "X".into(), "c".into(), vec![].into()).await;
+        store.register("x".into(), "X".into(), "c".into(), Vec::new()).await;
         assert!(store.delete("x").await);
         assert!(!store.delete("x").await);
         assert!(store.list().await.is_empty());
@@ -352,7 +352,7 @@ mod tests {
     #[tokio::test]
     async fn auto_trigger_ignores_empty_triggers() {
         let store = SkillStore::new();
-        store.register("no-trigger".into(), "N".into(), "c".into(), vec![].into()).await;
+        store.register("no-trigger".into(), "N".into(), "c".into(), Vec::new()).await;
         assert!(store.auto_trigger("anything").await.is_empty());
     }
 
