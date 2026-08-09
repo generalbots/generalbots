@@ -83,7 +83,7 @@ function loadModules() {
   sandbox.addEventListener = function () {};
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
-  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "14_widths.js"].forEach(function (f) {
+  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "14_widths.js", "15_freeze.js"].forEach(function (f) {
     const code = fs.readFileSync(path.join(MODULES, f), "utf8");
     vm.runInContext(code, ctx, { filename: f });
   });
@@ -196,6 +196,15 @@ function runWidths() {
   assertEqual(env.window.SheetCore.rowHeight(1), 24, "rowHeight(1) = 24 (default)");
   // colX: HEADER(48) + w0 + w1 = 248
   assertEqual(env.window.SheetCore.colX(2), 48 + 120 + 80, "colX(2) sums widths (248)");
+  runFreeze();
+}
+
+// freeze state read from loaded sheet
+function runFreeze() {
+  env.window.__LOADED_SHEET = { worksheets: [{ frozen_rows: 1, frozen_cols: 0, validations: {} }] };
+  const f = env.window.SheetFreeze.getFrozen();
+  assertEqual(f.rows, 1, "frozen.rows = 1");
+  assertEqual(f.cols, 0, "frozen.cols = 0");
   finalize();
 }
 
