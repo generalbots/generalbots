@@ -148,6 +148,22 @@
       const p = parseRef(ref);
       const key = p ? p.row + "," + p.col : null;
       const before = key && grid() ? grid().cells.get(key) : null;
+      const strVal = value == null ? "" : String(value);
+      if (!suspended && !strVal.startsWith("=") && key && window.SheetCore && window.SheetCore.validateEdit) {
+        const check = window.SheetCore.validateEdit(p.row, p.col, strVal);
+        if (!check.valid) {
+          showToast(check.message || "Valor inválido");
+          if (grid() && key) {
+            const node = grid().bodyInner.querySelector('[data-row="' + p.row + '"][data-col="' + p.col + '"]');
+            if (node) {
+              const cur = grid().cells.get(key);
+              node.textContent = cur && cur.value != null ? cur.value : "";
+              node.blur();
+            }
+          }
+          return Promise.resolve(null);
+        }
+      }
       const res = orig(ref, value);
       if (!suspended && key) {
         const oldSnap = {};
@@ -162,6 +178,21 @@
       }
       return res;
     };
+  }
+
+  function showToast(msg) {
+    const id = "ss-validation-toast";
+    let toast = document.getElementById(id);
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = id;
+      toast.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#dc2626;color:#fff;padding:10px 18px;border-radius:6px;font-size:13px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);";
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.display = "block";
+    clearTimeout(toast.__timer);
+    toast.__timer = setTimeout(function () { toast.style.display = "none"; }, 2600);
   }
 
   function hasValue(r, c) {
