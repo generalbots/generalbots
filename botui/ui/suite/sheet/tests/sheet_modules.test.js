@@ -83,7 +83,7 @@ function loadModules() {
   sandbox.addEventListener = function () {};
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
-  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "10_i18n.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js"].forEach(function (f) {
+  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "04_undo.js", "05_clipboard.js", "07_conditional_render.js", "10_i18n.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js"].forEach(function (f) {
     const code = fs.readFileSync(path.join(MODULES, f), "utf8");
     vm.runInContext(code, ctx, { filename: f });
   });
@@ -282,8 +282,33 @@ function runPasteI18n() {
     const I = env.window.SheetI18n;
     assertTrue(!!I && typeof I.t === "function", "SheetI18n.t exposed");
     assertEqual(I.t("missing.key.xyz"), "missing.key.xyz", "i18n falls back to key when unloaded");
-    runCharts();
+    runUndo();
   });
+}
+
+// undo/redo: beforeBulk/recordBulk push an entry; undo restores, redo re-applies
+function runUndo() {
+  const g4 = {
+    cells: new Map([["0,0", { value: "old" }]]),
+    totalRows: 1000,
+    totalCols: 26,
+    lastRenderedRange: null,
+    requestRange: function () {},
+    selectCell: function () {},
+  };
+  env.window.SheetVirtualGrid = g4;
+  env.window.SheetCore.setGrid(g4);
+  const U = env.window.SheetUndo;
+  U.beforeBulk("Edit", ["0,0"]);
+  g4.cells.set("0,0", { value: "new" });
+  U.recordBulk();
+  assertTrue(U.canUndo(), "canUndo true after edit");
+  U.undo();
+  assertEqual(g4.cells.get("0,0").value, "old", "undo restores old value");
+  assertTrue(U.canRedo(), "canRedo true after undo");
+  U.redo();
+  assertEqual(g4.cells.get("0,0").value, "new", "redo re-applies new value");
+  runCharts();
 }
 
 // chart SVG renderers emit valid svg + expected element
