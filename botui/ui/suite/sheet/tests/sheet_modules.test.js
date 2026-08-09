@@ -83,7 +83,7 @@ function loadModules() {
   sandbox.addEventListener = function () {};
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
-  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "04_undo.js", "05_clipboard.js", "07_conditional_render.js", "10_i18n.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js", "19_notes.js"].forEach(function (f) {
+  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "04_undo.js", "05_clipboard.js", "07_conditional_render.js", "10_i18n.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js", "19_notes.js", "20_select.js"].forEach(function (f) {
     const code = fs.readFileSync(path.join(MODULES, f), "utf8");
     vm.runInContext(code, ctx, { filename: f });
   });
@@ -319,6 +319,33 @@ function runUndo() {
 function runNotes() {
   assertTrue(!!env.window.SheetNotes && typeof env.window.SheetNotes.addNote === "function", "SheetNotes.addNote exposed");
   assertTrue(typeof env.window.SheetNotes.clearNote === "function", "SheetNotes.clearNote exposed");
+  runSelect();
+}
+
+// row/column selection sets a full range via SheetAdvanced.setRange
+function runSelect() {
+  const g5 = {
+    cells: new Map(),
+    totalRows: 100,
+    totalCols: 26,
+    lastRenderedRange: null,
+    requestRange: function () {},
+    selectCell: function () {},
+  };
+  env.window.SheetVirtualGrid = g5;
+  env.window.SheetCore.setGrid(g5);
+  let captured = null;
+  const orig = env.window.SheetAdvanced.setRange;
+  env.window.SheetAdvanced.setRange = function (r1, c1, r2, c2) { captured = { r1: r1, c1: c1, r2: r2, c2: c2 }; };
+  env.window.SheetCore.selectColumn(3);
+  assertEqual(captured.c1, 3, "selectColumn starts at col 3");
+  assertEqual(captured.c2, 3, "selectColumn spans to same col (full column)");
+  assertEqual(captured.r1, 0, "selectColumn starts at row 0");
+  assertEqual(captured.r2, 99, "selectColumn spans to last row");
+  env.window.SheetCore.selectRow(5);
+  assertEqual(captured.r1, 5, "selectRow starts at row 5");
+  assertEqual(captured.r2, 5, "selectRow ends at row 5");
+  env.window.SheetAdvanced.setRange = orig;
   runCharts();
 }
 
