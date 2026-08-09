@@ -72,11 +72,27 @@
     return d.value != null ? String(d.value) : d.formula || "";
   }
 
+  function cw(idx) {
+    if (window.SheetCore && window.SheetCore.colWidth) return window.SheetCore.colWidth(idx);
+    return COL_WIDTH;
+  }
+
+  function cx(idx) {
+    if (window.SheetCore && window.SheetCore.colX) return window.SheetCore.colX(idx);
+    return HEADER_WIDTH + idx * COL_WIDTH;
+  }
+
   function cellFromEvent(e) {
     const rect = grid.bodyInner.getBoundingClientRect();
     const x = e.clientX - rect.left - HEADER_WIDTH;
     const y = e.clientY - rect.top;
-    const col = Math.floor(x / COL_WIDTH);
+    let col = 0;
+    let acc = 0;
+    for (let c = 0; c < grid.totalCols; c++) {
+      if (x < acc + cw(c)) { col = c; break; }
+      acc += cw(c);
+      col = c;
+    }
     const row = Math.floor(y / ROW_HEIGHT);
     if (row < 0 || col < 0) return null;
     return { row: Math.min(row, grid.totalRows - 1), col: Math.min(col, grid.totalCols - 1) };
@@ -85,16 +101,16 @@
   function positionRangeBox() {
     if (!rangeBox || !sel) return;
     rangeBox.style.display = "block";
-    rangeBox.style.left = (HEADER_WIDTH + sel.startCol * COL_WIDTH - 1) + "px";
+    rangeBox.style.left = (cx(sel.startCol) - 1) + "px";
     rangeBox.style.top = (sel.startRow * ROW_HEIGHT - 1) + "px";
-    rangeBox.style.width = ((sel.endCol - sel.startCol + 1) * COL_WIDTH + 2) + "px";
+    rangeBox.style.width = (cx(sel.endCol) + cw(sel.endCol) - cx(sel.startCol) + 2) + "px";
     rangeBox.style.height = ((sel.endRow - sel.startRow + 1) * ROW_HEIGHT + 2) + "px";
   }
 
   function positionFillHandle() {
     if (!fillHandle || !sel) return;
     fillHandle.style.display = "block";
-    fillHandle.style.left = (HEADER_WIDTH + sel.endCol * COL_WIDTH + COL_WIDTH - 5) + "px";
+    fillHandle.style.left = (cx(sel.endCol) + cw(sel.endCol) - 5) + "px";
     fillHandle.style.top = (sel.endRow * ROW_HEIGHT + ROW_HEIGHT - 5) + "px";
   }
 
@@ -167,9 +183,9 @@
     const preview = document.getElementById("ss-fill-preview");
     if (preview) {
       preview.style.display = "block";
-      preview.style.left = (HEADER_WIDTH + sel.endCol * COL_WIDTH - 1) + "px";
+      preview.style.left = (cx(sel.endCol) - 1) + "px";
       preview.style.top = (sel.endRow * ROW_HEIGHT - 1) + "px";
-      preview.style.width = ((c - sel.endCol + 1) * COL_WIDTH + 2) + "px";
+      preview.style.width = (cx(c) + cw(c) - cx(sel.endCol) + 2) + "px";
       preview.style.height = ((r - sel.endRow + 1) * ROW_HEIGHT + 2) + "px";
     }
   }

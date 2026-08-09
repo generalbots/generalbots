@@ -206,6 +206,7 @@
     openMenu: openMenu,
     closeMenu: closeMenu,
     reload: reloadFromServer,
+    refreshHandles: addSortHandles,
   };
 
   if (window.SheetCore) {
