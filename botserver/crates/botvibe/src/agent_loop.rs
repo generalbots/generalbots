@@ -382,7 +382,14 @@ impl AgentLoop {
                     .as_ref()
                     .map(|r| {
                         if r.success {
-                            format!("Success: {}", r.data)
+                            let data = if r.data.is_null()
+                                || r.data.as_object().is_some_and(|m| m.is_empty())
+                            {
+                                "no data returned".to_string()
+                            } else {
+                                r.data.to_string()
+                            };
+                            format!("Success: {data}")
                         } else {
                             format!("Failed: {}", r.error.as_deref().unwrap_or("unknown"))
                         }
