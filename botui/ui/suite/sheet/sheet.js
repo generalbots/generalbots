@@ -3,7 +3,7 @@
 
 (function () {
   const SIDEBAR_TAB_KEY = "sheet_sidebar_tab";
-  const DEFAULT_TOTAL_ROWS = 1200000;
+  const DEFAULT_TOTAL_ROWS = 1048576;
   const DEFAULT_TOTAL_COLS = 26;
   const CELL_COLS = DEFAULT_TOTAL_COLS;
   const COL_WIDTH = 96;
