@@ -219,6 +219,10 @@ function runFilters() {
   assertTrue(mf("Shipping", { condition: "contains:Ship" }), "contains matches Shipping");
   assertTrue(!mf("Billing", { condition: "contains:Ship" }), "contains rejects Billing");
   assertTrue(!mf("1.5", { condition: ">=5" }), ">=5 rejects 1.5");
+  assertTrue(mf("7", { value1: "5", value2: "10" }), "range value1/value2 accepts 7");
+  assertTrue(!mf("12", { value1: "5", value2: "10" }), "range value1/value2 rejects 12");
+  assertTrue(mf("banana", { condition: "=banana" }), "text equality =banana accepts");
+  assertTrue(!mf("apple", { condition: "=banana" }), "text equality =banana rejects apple");
   runFormulaFill();
 }
 
