@@ -8,8 +8,26 @@ use std::path::Path;
 use crate::harness::cmd::run;
 use crate::vm_lifecycle::VmLifecycle;
 
+const VM_UNAVAILABLE: &str = "vm-skip: incus binary unavailable";
+
 impl VmLifecycle {
+    pub(crate) fn linux_available(&self) -> bool {
+        if std::env::var("VIBE_INCUS_FORCE_UNAVAILABLE").as_deref() == Ok("1") {
+            return false;
+        }
+        run("incus", &["version".to_string()], Path::new("/tmp"), 5).is_ok()
+    }
+
+    fn skip_if_unavailable(&self) -> Result<(), String> {
+        if self.linux_available() {
+            Ok(())
+        } else {
+            Err(VM_UNAVAILABLE.to_string())
+        }
+    }
+
     pub(crate) fn linux_exists(&self, name: &str) -> Result<bool, String> {
+        self.skip_if_unavailable()?;
         let list = self.linux_list()?;
         Ok(list
             .as_array()
@@ -18,6 +36,7 @@ impl VmLifecycle {
     }
 
     pub(crate) fn linux_running(&self, name: &str) -> Result<bool, String> {
+        self.skip_if_unavailable()?;
         let list = self.linux_list()?;
         Ok(list
             .as_array()
@@ -31,6 +50,7 @@ impl VmLifecycle {
     }
 
     pub(crate) fn linux_create(&self, name: &str, tier: &str) -> Result<(), String> {
+        self.skip_if_unavailable()?;
         let image = std::env::var("VIBE_VM_IMAGE").unwrap_or_else(|_| "images:ubuntu/24.04".to_string());
         let (cpu, mem) = match tier {
             "medium" => ("2", "2GiB"),
@@ -51,24 +71,28 @@ impl VmLifecycle {
     }
 
     pub(crate) fn linux_start(&self, name: &str) -> Result<(), String> {
+        self.skip_if_unavailable()?;
         run("incus", &["start".to_string(), name.to_string()], Path::new("/tmp"), 60)
             .map_err(|e| format!("incus start {name}: {e}"))?;
         Ok(())
     }
 
     pub(crate) fn linux_stop(&self, name: &str) -> Result<(), String> {
+        self.skip_if_unavailable()?;
         run("incus", &["stop".to_string(), name.to_string()], Path::new("/tmp"), 60)
             .map_err(|e| format!("incus stop {name}: {e}"))?;
         Ok(())
     }
 
     pub(crate) fn linux_delete(&self, name: &str) -> Result<(), String> {
+        self.skip_if_unavailable()?;
         run("incus", &["delete".to_string(), "--force".to_string(), name.to_string()], Path::new("/tmp"), 60)
             .map_err(|e| format!("incus delete {name}: {e}"))?;
         Ok(())
     }
 
     pub(crate) fn linux_restart(&self, name: &str) -> Result<(), String> {
+        self.skip_if_unavailable()?;
         run("incus", &["restart".to_string(), name.to_string()], Path::new("/tmp"), 120)
             .map_err(|e| format!("incus restart {name}: {e}"))?;
         Ok(())
@@ -76,6 +100,7 @@ impl VmLifecycle {
 
     /// `incus snapshot create {name} {tag}` — point-in-time VM backup (#773).
     pub(crate) fn linux_snapshot(&self, name: &str, tag: &str) -> Result<(), String> {
+        self.skip_if_unavailable()?;
         run(
             "incus",
             &["snapshot".to_string(), "create".to_string(), format!("{name}/{tag}")],
@@ -89,6 +114,7 @@ impl VmLifecycle {
     /// `incus restore {name} {tag}` — applies a snapshot; the container must
     /// be stopped, so stop first and let the caller restart it.
     pub(crate) fn linux_restore_snapshot(&self, name: &str, tag: &str) -> Result<(), String> {
+        self.skip_if_unavailable()?;
         if self.linux_running(name)? {
             self.linux_stop(name)?;
         }
@@ -105,6 +131,7 @@ impl VmLifecycle {
     /// `incus export {name}/{tag} {path}` — off-machine copy of a snapshot
     /// into `VIBE_BACKUP_DIR` (#773); returns the export target path.
     pub(crate) fn linux_export(&self, name: &str, tag: &str, target: &str) -> Result<String, String> {
+        self.skip_if_unavailable()?;
         run(
             "incus",
             &["export".to_string(), format!("{name}/{tag}"), target.to_string()],
