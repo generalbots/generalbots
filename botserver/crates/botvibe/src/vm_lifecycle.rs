@@ -168,11 +168,15 @@ impl VmLifecycle {
 
         match self.lookup(&project_id, &env) {
             Ok(existing) => {
-                let state = self.linux_running(&existing.container_name)?;
-                if !state {
-                    self.linux_start(&existing.container_name)?;
+                if self.linux_available() {
+                    let state = self.linux_running(&existing.container_name)?;
+                    if !state {
+                        self.linux_start(&existing.container_name)?;
+                    }
+                    self.set_status(&existing.id, "running")?;
+                } else {
+                    self.set_status(&existing.id, "skipped")?;
                 }
-                self.set_status(&existing.id, "running")?;
                 Ok(existing)
             }
             Err(_) => {
@@ -191,29 +195,37 @@ impl VmLifecycle {
                 .execute(&mut conn)
                 .map_err(|e| format!("insert vm: {e}"))?;
 
-                if !self.linux_exists(&container)? {
-                    self.linux_create(&container, &tier)?;
+                if self.linux_available() {
+                    if !self.linux_exists(&container)? {
+                        self.linux_create(&container, &tier)?;
+                    }
+                    if !self.linux_running(&container)? {
+                        self.linux_start(&container)?;
+                    }
+                    let inst = self.lookup(&project_id, &env)?;
+                    self.set_status(&inst.id, "running")?;
+                    Ok(inst)
+                } else {
+                    let inst = self.lookup(&project_id, &env)?;
+                    self.set_status(&inst.id, "skipped")?;
+                    Ok(inst)
                 }
-                if !self.linux_running(&container)? {
-                    self.linux_start(&container)?;
-                }
-                let inst = self.lookup(&project_id, &env)?;
-                self.set_status(&inst.id, "running")?;
-                Ok(inst)
             }
         }
     }
 
     pub fn stop(&self, vm_id: Uuid) -> Result<VmInstance, String> {
         let inst = self.lookup_by_id(&vm_id)?;
-        self.linux_stop(&inst.container_name)?;
+        if self.linux_available() {
+            self.linux_stop(&inst.container_name)?;
+        }
         self.set_status(&inst.id, "stopped")?;
         Ok(VmInstance { status: "stopped".into(), ..inst })
     }
 
     pub fn delete(&self, vm_id: Uuid) -> Result<(), String> {
         let inst = self.lookup_by_id(&vm_id)?;
-        if self.linux_exists(&inst.container_name)? {
+        if self.linux_available() && self.linux_exists(&inst.container_name)? {
             self.linux_delete(&inst.container_name)?;
         }
         let mut conn = self.conn()?;
@@ -238,6 +250,9 @@ impl VmLifecycle {
 
     pub fn sync_status(&self, vm_id: Uuid) -> Result<VmInstance, String> {
         let inst = self.lookup_by_id(&vm_id)?;
+        if !self.linux_available() {
+            return Ok(inst);
+        }
         let running = self.linux_running(&inst.container_name)?;
         let wanted = if running { "running" } else { "stopped" };
         if inst.status != wanted {
@@ -382,5 +397,21 @@ mod tests {
         let org = VmLifecycle::alm_org(id);
         assert_eq!(org.len(), 8);
         assert_eq!(VmLifecycle::alm_repo("My Web App"), "my-web-app");
+    }
+
+    #[test]
+    fn skip_pattern_reports_unavailable_when_forced() {
+        std::env::set_var("VIBE_INCUS_FORCE_UNAVAILABLE", "1");
+        let manager = diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(
+            "postgres://127.0.0.1:1/nonexistent",
+        );
+        let pool = diesel::r2d2::Pool::builder()
+            .build(manager)
+            .expect("pool builder");
+        let lifecycle = VmLifecycle::new(pool);
+        assert!(!lifecycle.linux_available());
+        let err = lifecycle.linux_running("x").unwrap_err();
+        assert!(err.contains("vm-skip"), "expected skip error, got {err}");
+        std::env::remove_var("VIBE_INCUS_FORCE_UNAVAILABLE");
     }
 }
