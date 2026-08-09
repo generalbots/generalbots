@@ -122,25 +122,19 @@ fn detect_date_format(code: &str) -> Option<String> {
                 out.push_str(if count >= 3 { "%b" } else { "%m" });
             }
             'd' => {
-                let mut count = 1;
                 while matches!(chars.peek(), Some(&'d') | Some(&'D')) {
-                    count += 1;
                     chars.next();
                 }
                 out.push_str("%d");
             }
             'h' => {
-                let mut count = 1;
                 while matches!(chars.peek(), Some(&'h') | Some(&'H')) {
-                    count += 1;
                     chars.next();
                 }
                 out.push_str("%H");
             }
             's' => {
-                let mut count = 1;
                 while matches!(chars.peek(), Some(&'s') | Some(&'S')) {
-                    count += 1;
                     chars.next();
                 }
                 out.push_str("%S");
@@ -174,7 +168,7 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
         }
         return super::value::format_number(n);
     }
-    let scaled = n / fmt.scale;
+    let scaled = n * fmt.scale;
     let neg = scaled < 0.0;
     let abs = scaled.abs();
     let factor = 10f64.powi(fmt.min_decimal_digits as i32);

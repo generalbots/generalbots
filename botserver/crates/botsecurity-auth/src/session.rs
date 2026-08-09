@@ -86,16 +86,16 @@ impl DeviceInfo {
             Some("Desktop".into())
         };
 
-        let os = if ua_lower.contains("windows") {
+        let os = if ua_lower.contains("android") {
+            Some("Android".into())
+        } else if ua_lower.contains("iphone") || ua_lower.contains("ipad") {
+            Some("iOS".into())
+        } else if ua_lower.contains("windows") {
             Some("Windows".into())
         } else if ua_lower.contains("mac os") || ua_lower.contains("macos") {
             Some("macOS".into())
         } else if ua_lower.contains("linux") {
             Some("Linux".into())
-        } else if ua_lower.contains("android") {
-            Some("Android".into())
-        } else if ua_lower.contains("iphone") || ua_lower.contains("ipad") {
-            Some("iOS".into())
         } else {
             None
         };

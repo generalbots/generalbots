@@ -36,7 +36,6 @@ impl Default for AuthConfig {
                 "/webhook/whatsapp".to_string(),
             ],
             public_paths: vec![
-                "/".to_string(),
                 "/static".to_string(),
                 "/favicon.ico".to_string(),
                 "/robots.txt".to_string(),

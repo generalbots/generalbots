@@ -451,6 +451,15 @@ impl JwtManager {
             refresh_expiry,
         );
 
+        if let Some(e) = email {
+            refresh_claims = refresh_claims.with_email(e);
+        }
+        if let Some(u) = username {
+            refresh_claims = refresh_claims.with_username(u);
+        }
+        if let Some(r) = roles {
+            refresh_claims = refresh_claims.with_roles(r);
+        }
         if let Some(s) = session_id {
             refresh_claims = refresh_claims.with_session_id(s);
         }

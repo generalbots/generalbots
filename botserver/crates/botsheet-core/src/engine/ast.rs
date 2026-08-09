@@ -10,7 +10,6 @@
 use std::fmt;
 
 use super::lexer::{Token, TokenKind};
-use super::references::Reference;
 use super::value::CellValue;
 
 /// A parsed formula expression.
@@ -73,14 +72,17 @@ fn infix_power(op: &str) -> Option<(u8, u8)> {
         "=" | "<>" | "<" | ">" | "<=" | ">=" => (5, 6),
         "+" | "-" => (7, 8),
         "*" | "/" => (9, 10),
-        "^" => (11, 12),
+        // (11, 10): the right operand binds one power below the operator, so
+        // `2^3^2` parses right-to-left as 2^(3^2) = 512.
+        "^" => (11, 10),
         _ => return None,
     })
 }
 
 fn prefix_power(op: &str) -> Option<u8> {
     Some(match op {
-        "+" | "-" => 13,
+        // Binds looser than `^` but tighter than `*`: `-2^2 = -(2^2) = -4`.
+        "+" | "-" => 10,
         _ => return None,
     })
 }
@@ -171,7 +173,7 @@ impl<'a> Parser<'a> {
                             Reference::parse(&r2).ok_or_else(|| format!("bad reference {r2}"))?;
                         Ok(Expr::Range(first, second))
                     } else {
-                        Err(format!("expected reference after ':' got {end_tok}"))
+                        Err(format!("expected reference after ':' got {end_tok:?}"))
                     }
                 } else {
                     Ok(Expr::Reference(first))
@@ -253,6 +255,7 @@ impl<'a> Parser<'a> {
                     expr: Box::new(inner),
                 })
             }
+            TokenKind::Op(ref op) => Err(format!("cannot start expression with operator '{op}'")),
             TokenKind::LParen => {
                 let inner = self.parse_expr(0)?;
                 if !matches!(self.peek().kind, TokenKind::RParen) {
@@ -261,7 +264,7 @@ impl<'a> Parser<'a> {
                 let _ = self.next();
                 Ok(inner)
             }
-            TokenKind::Comma | TokenKind::Colon => Err(format!("unexpected {tok}")),
+            TokenKind::Comma | TokenKind::Colon => Err(format!("unexpected {tok:?}")),
             TokenKind::RParen => Err("unbalanced ')'".to_string()),
             TokenKind::Eof => Err("unexpected end of formula".to_string()),
         }
@@ -372,7 +375,7 @@ mod tests {
         let r = Reference::parse("A1").expect("parse");
         assert_eq!(r.translate(2, 3).to_string(), "D3");
         let mixed = Reference::parse("$A1").expect("parse");
-        assert_eq!(mixed.translate(2, 3).to_string(), "$A4");
+        assert_eq!(mixed.translate(2, 3).to_string(), "$A3");
     }
 
     #[test]
