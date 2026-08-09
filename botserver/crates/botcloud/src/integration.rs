@@ -25,6 +25,23 @@ struct IdRow {
 
 use crate::{DbPool, SaasConfig};
 
+/// Canonical identifier slug for orgs, branches and bots (issue #779).
+///
+/// The signup flow and the drive monitor BOTH derive branch slugs from this
+/// shape: lowercase, spaces and underscores to dashes, keeping only
+/// alphanumerics and dashes. The `.gbai/` prefix the drive monitor scans is
+/// built from the bot slug, so the branch slug MUST use the same sanitization
+/// or the monitor resolves a different branch and a duplicate
+/// `cloud_workspaces` row is created for the same org.
+pub fn slugify(name: &str) -> String {
+    name.to_lowercase()
+        .replace(' ', "-")
+        .replace('_', "-")
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '-')
+        .collect()
+}
+
 /// Creates a contact in CRM (`crm_contacts`) and returns the generated ID.
 pub fn create_crm_contact(
     pool: &DbPool,
@@ -115,7 +132,7 @@ pub fn win_crm_deal(
 pub fn create_organization(pool: &DbPool, name: &str, domain: Option<&str>) -> Result<Uuid, String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
     let id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-").replace('_', "-").chars().filter(|c| c.is_alphanumeric() || *c == '-').collect::<String>();
+    let slug = slugify(name);
 
     diesel::sql_query(
         r#"INSERT INTO organizations (org_id, name, slug, domain, created_at, updated_at)
@@ -327,7 +344,7 @@ pub fn link_org_to_tenant(pool: &DbPool, org_id: Uuid, tenant_id: Uuid) -> Resul
 pub fn create_branch(pool: &DbPool, org_id: Uuid, tenant_id: Uuid, name: &str) -> Result<Uuid, String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
     let id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-").replace('_', "-").chars().filter(|c| c.is_alphanumeric() || *c == '-').collect::<String>();
+    let slug = slugify(name);
 
     diesel::sql_query(
         r#"INSERT INTO branches (id, org_id, tenant_id, slug, name, is_active, created_at, updated_at)
@@ -348,7 +365,7 @@ pub fn create_branch(pool: &DbPool, org_id: Uuid, tenant_id: Uuid, name: &str) -
 pub fn create_bot(pool: &DbPool, org_id: Uuid, branch_id: Uuid, _tenant_id: Uuid, name: &str) -> Result<(Uuid, String), String> {
     let mut conn = pool.get().map_err(|e| format!("DB pool: {e}"))?;
     let bot_id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-").replace('_', "-").chars().filter(|c| c.is_alphanumeric() || *c == '-').collect::<String>();
+    let slug = slugify(name);
     let org_slug = slug.clone();
     let now = Utc::now();
 
@@ -403,7 +420,7 @@ pub fn get_or_create_default_tenant_inner(conn: &mut PgConnection) -> Result<Uui
 
 pub fn create_organization_inner(conn: &mut PgConnection, name: &str, domain: Option<&str>) -> Result<Uuid, String> {
     let id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-");
+    let slug = slugify(name);
 
     diesel::sql_query(
         r#"INSERT INTO organizations (org_id, name, slug, domain, created_at, updated_at)
@@ -433,7 +450,7 @@ pub fn link_org_to_tenant_inner(conn: &mut PgConnection, org_id: Uuid, tenant_id
 
 pub fn create_branch_inner(conn: &mut PgConnection, org_id: Uuid, tenant_id: Uuid, name: &str) -> Result<Uuid, String> {
     let id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-");
+    let slug = slugify(name);
 
     diesel::sql_query(
         r#"INSERT INTO branches (id, org_id, tenant_id, slug, name, is_active, created_at, updated_at)
@@ -452,7 +469,7 @@ pub fn create_branch_inner(conn: &mut PgConnection, org_id: Uuid, tenant_id: Uui
 
 pub fn create_bot_inner(conn: &mut PgConnection, org_id: Uuid, branch_id: Uuid, name: &str) -> Result<(Uuid, String), String> {
     let bot_id = Uuid::new_v4();
-    let slug = name.to_lowercase().replace(' ', "-").replace('_', "-").chars().filter(|c| c.is_alphanumeric() || *c == '-').collect::<String>();
+    let slug = slugify(name);
     let org_slug = slug.clone();
     let now = Utc::now();
 
