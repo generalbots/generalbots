@@ -110,7 +110,7 @@ pub async fn handle_custom_format_form(Json(payload): Json<serde_json::Value>) -
 <label style="color:#f8fafc;font-size:13px;">Range
 <input type="text" name="range" placeholder="A1:A100" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">Formato personalizado (Excel pattern)
+<label style="color:#f8fafc;font-size:13px;">Formato personalizado (padrão de planilha)
 <input type="text" name="format" placeholder="#,##0.00_);[Red](#,##0.00)" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:monospace;" />
 </label>
 <div style="color:#94a3b8;font-size:11px;background:#0f172a;padding:8px;border-radius:4px;">

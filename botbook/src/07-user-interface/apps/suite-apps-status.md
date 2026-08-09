@@ -204,7 +204,7 @@ This page tracks which Suite applications have documentation in the botbook and 
 |-----|-------------|-------------|------------------|
 | **attendant** | Human agent console for bot-transferred conversations | `attendant/index.html` | Queue management, conversation handoff, agent workflows |
 | **docs** | WYSIWYG document editor (Google Docs-like) | `docs/docs.html` | Rich text editing, formatting, print, collaboration |
-| **sheet** | Spreadsheet editor (Excel-like) | `sheet/sheet.html` | Cell editing, formulas, formatting, import/export |
+| **sheet** | Spreadsheet editor | `sheet/sheet.html` | Cell editing, formulas, formatting, import/export |
 | **slides** | Presentation editor (PowerPoint-like) | `slides/slides.html` | Slide creation, templates, transitions, presenter mode |
 | **canvas** | Collaborative whiteboard | `canvas/canvas.html` | Drawing tools, shapes, collaboration, export |
 | **campaigns** | Multi-channel marketing campaigns | `campaigns/campaigns.html` | Email/WhatsApp/Social campaigns, templates, lists |

@@ -342,3 +342,98 @@
     white-space: nowrap;
 }
 
+/* =============================================================================
+   WORKSHEET TAB BAR (spreadsheet-style bottom tabs)
+   ============================================================================= */
+
+.ss-tab-bar {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--sheet-tabbar-bg, #0f172a);
+    border-top: 1px solid var(--sheet-tabbar-border, #334155);
+    flex-shrink: 0;
+    overflow-x: auto;
+    min-height: 36px;
+}
+
+.ss-tab-bar::-webkit-scrollbar {
+    height: 4px;
+}
+
+.ss-tab-add {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 1;
+    transition: background 0.15s ease;
+}
+
+.ss-tab-add:hover {
+    background: #2563eb;
+}
+
+.ss-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--sheet-tab-bg, #0f172a);
+    color: var(--sheet-tab-fg, #94a3b8);
+    border: 1px solid var(--sheet-tab-border, #334155);
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.ss-tab:hover {
+    background: var(--sheet-tab-hover, #1e293b);
+    color: #f8fafc;
+}
+
+.ss-tab.ss-tab-active {
+    background: var(--sheet-tab-active-bg, #1e293b);
+    color: #f8fafc;
+    border-color: #3b82f6;
+    font-weight: 600;
+}
+
+.ss-tab-del {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    padding: 0 2px;
+    border-radius: 3px;
+}
+
+.ss-tab-del:hover {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.15);
+}
+
+/* =============================================================================
+   RANGE SELECTION & AUTOFILL
+   ============================================================================= */
+
+#ss-fill-preview {
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.ss-fill-handle:hover {
+    background: #60a5fa;
+}
+

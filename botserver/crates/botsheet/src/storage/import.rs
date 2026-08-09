@@ -90,7 +90,7 @@ pub fn parse_csv_to_worksheets(
     }])
 }
 
-pub fn parse_excel_to_worksheets(
+pub fn parse_xlsx_to_worksheets(
     bytes: &[u8],
     ext: &str,
 ) -> Result<Vec<crate::types::Worksheet>, String> {
@@ -351,8 +351,8 @@ pub fn import_spreadsheet_bytes(
     let detected = detect_spreadsheet_format(bytes);
 
     let worksheets = match detected {
-        "xlsx" | "xlsm" => parse_excel_to_worksheets(bytes, "xlsx")?,
-        "xls" => parse_excel_to_worksheets(bytes, "xls")?,
+        "xlsx" | "xlsm" => parse_xlsx_to_worksheets(bytes, "xlsx")?,
+        "xls" => parse_xlsx_to_worksheets(bytes, "xls")?,
         "ods" => parse_ods_to_worksheets(bytes)?,
         "csv" => parse_csv_to_worksheets(bytes, b',', "Sheet1")?,
         "tsv" => parse_csv_to_worksheets(bytes, b'\t', "Sheet1")?,

@@ -1,4 +1,4 @@
-# Sheet — Excel Parity Plan 🟡 BETA
+# Sheet — Desktop Spreadsheet Parity Plan 🟡 BETA
 
 > **What is missing, why it matters, and the order in which it is being fixed.**
 
@@ -47,7 +47,7 @@ Each row links to the issue that closes it.
 | # | Gap | Consequence |
 |---|-----|-------------|
 | 4 | Number formats are parsed, stored, and never applied. | `R$ 1.234,50` displays as `1234.5`; a date displays as `46096`. → issue 5 |
-| 10 | 26 columns hardcoded; 1,200,000 rows against Excel's 1,048,576. | Most of the address space is unreachable, and the row count is wrong in the other direction. → issue 6 |
+| 10 | 26 columns hardcoded; 1,200,000 rows against the desktop standard of 1,048,576. | Most of the address space is unreachable, and the row count is wrong in the other direction. → issue 6 |
 | 11 | Column width and row height are constants. | Widths and heights imported from `.xlsx` cannot be displayed; resize is impossible by construction. → issue 6 |
 | 12 | Selection is one cell and one overlay element. | No range, multi-range, row, column or whole-sheet selection. → issue 6 |
 | 18 | Frozen panes are imported with the axes swapped and never rendered. | A frozen header row does not stay put. → issue 6, issue 8 |
@@ -57,7 +57,7 @@ Each row links to the issue that closes it.
 
 | # | Gap | Consequence |
 |---|-----|-------------|
-| 13 | No clipboard. | Pasting a block from Excel — the most common spreadsheet operation there is — does nothing. → issue 7 |
+| 13 | No clipboard. | Pasting a block from another spreadsheet — the most common spreadsheet operation there is — does nothing. → issue 7 |
 | 14 | No undo or redo. The buttons issue a request the server does not implement. | One mistake is unrecoverable. → issue 7 |
 | 15 | No fill handle, no `Ctrl+D`/`Ctrl+R`, no series extrapolation. | Every repeated formula must be typed. → issue 7 |
 | 16 | The merge button merges a cell with itself. | A no-op that appears to work. → issue 7 |
@@ -99,7 +99,7 @@ Twelve issues in four phases. The ordering is a dependency order, not a priority
 
 | Issue | Title | Closes |
 |---|---|---|
-| [#781](https://github.com/generalbots/generalbots/issues/781) | Typed cell values — numbers, Excel date serials, booleans, error values | 1 |
+| [#781](https://github.com/generalbots/generalbots/issues/781) | Typed cell values — numbers, spreadsheet date serials, booleans, error values | 1 |
 | [#782](https://github.com/generalbots/generalbots/issues/782) | Real formula parser — lexer, Pratt parser, AST, evaluator, function registry | 2, 3 |
 | [#783](https://github.com/generalbots/generalbots/issues/783) | Reference model — `$` anchors, sheet qualifiers, whole row/column, A1 keys, translation | 7, 8, 9 |
 | [#784](https://github.com/generalbots/generalbots/issues/784) | Calc engine — incremental dependency graph, topological recalc, cycle detection | 5, 6 |
@@ -121,7 +121,7 @@ The grid moves from one absolutely positioned `<div>` per cell to canvas renderi
 |---|---|---|
 | [#787](https://github.com/generalbots/generalbots/issues/787) | Editing, clipboard, Paste Special, fill handle, undo/redo | 13, 14, 15, 16 |
 
-The clipboard writes three flavours — TSV, styled HTML, and an internal JSON payload — so that a copy survives into Excel, into Google Sheets, and back again losslessly. Parsing Excel's `text/html` flavour is what makes "paste from Excel keeps my formatting" true.
+The clipboard writes three flavours — TSV, styled HTML, and an internal JSON payload — so that a copy survives into other spreadsheet apps, and back again losslessly. Parsing competitor spreadsheets' `text/html` flavour is what makes "paste keeps my formatting" true.
 
 ### Phase 4 — Fidelity and infrastructure
 
@@ -142,8 +142,8 @@ Round-trip fidelity is achieved by **preserve-and-passthrough**: retain the orig
 ## Definition of done
 
 - A real workbook — 40 sheets, pivot tables, nested `INDEX`/`MATCH`, conditional formatting, a chart — opens, renders, edits and saves without losing anything Sheet does not itself understand.
-- Paste from Excel keeps values, formulas, formats, fills and merges.
-- Formulas are Excel-correct: precedence, `2^3^2 = 64`, `-2^2 = 4`, error propagation, cross-sheet references, `$` anchors that survive a fill.
+- Paste from another spreadsheet app keeps values, formulas, formats, fills and merges.
+- Formulas are spreadsheet-correct: precedence, `2^3^2 = 64`, `-2^2 = 4`, error propagation, cross-sheet references, `$` anchors that survive a fill.
 - 16,384 columns and 1,048,576 rows, scrolling above 55 fps.
 - Undo works, 100 levels deep, one step per user action.
 - Two people edit at once without either losing work.

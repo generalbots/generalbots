@@ -6,7 +6,7 @@ use crate::state::{
     delete_sheet_from_drive, get_current_user_id, list_sheets_from_drive, load_sheet_by_id,
     load_sheet_from_drive, save_sheet_to_drive, SheetState,
 };
-use crate::storage::import::{import_spreadsheet_bytes, parse_csv_to_worksheets, parse_excel_to_worksheets};
+use crate::storage::import::{import_spreadsheet_bytes, parse_csv_to_worksheets, parse_xlsx_to_worksheets};
 use crate::storage::import::create_new_spreadsheet;
 use crate::types::{
     ExportRequest, LoadFromDriveRequest, LoadQuery, SaveRequest,
@@ -123,7 +123,7 @@ pub async fn handle_load_from_drive(
             })?
         }
         "xlsx" | "xls" | "ods" | "xlsb" | "xlsm" => {
-            parse_excel_to_worksheets(&bytes, &ext).map_err(|e| {
+            parse_xlsx_to_worksheets(&bytes, &ext).map_err(|e| {
                 (
                     StatusCode::BAD_REQUEST,
                     Json(serde_json::json!({ "error": e })),
