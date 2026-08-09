@@ -13,12 +13,17 @@ use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+/// Upper bound on formulas recalculated for a single cell edit.
+/// Keeps one request from monopolizing a worker thread on a pathological sheet.
+const MAX_RECALC_CELLS: usize = 1000;
+
 fn reevaluate_cascade(worksheet: &mut Worksheet, changed: (u32, u32)) {
-    let _ = worksheet;
-    let _ = changed;
-    recalc_cascade(worksheet, cell_key(changed.0, changed.1), |formula, ws| {
-        evaluate_formula(formula, ws).value
-    }, 1000);
+    recalc_cascade(
+        worksheet,
+        cell_key(changed.0, changed.1),
+        |formula, ws| evaluate_formula(formula, ws).value,
+        MAX_RECALC_CELLS,
+    );
 }
 
 pub async fn handle_update_cell(

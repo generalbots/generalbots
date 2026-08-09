@@ -8,14 +8,18 @@ pub mod logic;
 pub mod lookup;
 pub mod math;
 pub mod pivot;
+pub mod refs;
 pub mod text;
 pub mod text365;
 pub mod trig;
 
 pub use helpers::{
-    col_name_to_index, count_matching, evaluate_condition, format_number, get_range_string_values,
-    get_range_values, matches_criteria, parse_cell_ref, parse_range, resolve_cell_references,
-    resolve_cell_value, split_args,
+    count_matching, evaluate_condition, format_number, matches_criteria, resolve_cell_value,
+    split_args,
+};
+pub use refs::{
+    clamp_range, col_name_to_index, get_range_string_values, get_range_values, parse_cell_ref,
+    parse_range, resolve_cell_references, MAX_COL_INDEX, MAX_RANGE_CELLS, MAX_ROW_INDEX,
 };
 
 use crate::types::{FormulaResult, Worksheet};

@@ -1,6 +1,7 @@
 use crate::types::Worksheet;
 
-use super::helpers::{parse_range, resolve_cell_value, split_args};
+use super::helpers::{resolve_cell_value, split_args};
+use super::refs::{clamp_range, parse_range};
 
 pub fn evaluate_vlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
     if !expr.starts_with("VLOOKUP(") || !expr.ends_with(')') {
@@ -13,9 +14,11 @@ pub fn evaluate_vlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let lookup_value = parts[0].trim().trim_matches('"');
     let table_range = parts[1].trim();
-    let col_index: usize = parts[2].trim().parse().ok()?;
+    let col_index: u32 = parts[2].trim().parse().ok()?;
+    // Column offsets are one-based; offset 0 is an invalid argument, not column -1.
+    let col_offset = col_index.checked_sub(1)?;
 
-    let (start, end) = parse_range(table_range)?;
+    let (start, end) = parse_range(table_range).map(|(s, e)| clamp_range(s, e, worksheet))?;
     for row in start.0..=end.0 {
         let key = format!("{},{}", row, start.1);
         let cell_value = worksheet
@@ -24,7 +27,7 @@ pub fn evaluate_vlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
             .and_then(|c| c.value.clone())
             .unwrap_or_default();
         if cell_value.eq_ignore_ascii_case(lookup_value) {
-            let result_col = start.1 + col_index as u32 - 1;
+            let result_col = start.1.checked_add(col_offset)?;
             if result_col > end.1 {
                 return Some("#REF!".to_string());
             }
@@ -52,9 +55,11 @@ pub fn evaluate_hlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let lookup_value = parts[0].trim().trim_matches('"');
     let table_range = parts[1].trim();
-    let row_index: usize = parts[2].trim().parse().ok()?;
+    let row_index: u32 = parts[2].trim().parse().ok()?;
+    // Row offsets are one-based; offset 0 is an invalid argument, not row -1.
+    let row_offset = row_index.checked_sub(1)?;
 
-    let (start, end) = parse_range(table_range)?;
+    let (start, end) = parse_range(table_range).map(|(s, e)| clamp_range(s, e, worksheet))?;
     for col in start.1..=end.1 {
         let key = format!("{},{}", start.0, col);
         let cell_value = worksheet
@@ -63,7 +68,7 @@ pub fn evaluate_hlookup(expr: &str, worksheet: &Worksheet) -> Option<String> {
             .and_then(|c| c.value.clone())
             .unwrap_or_default();
         if cell_value.eq_ignore_ascii_case(lookup_value) {
-            let result_row = start.0 + row_index as u32 - 1;
+            let result_row = start.0.checked_add(row_offset)?;
             if result_row > end.0 {
                 return Some("#REF!".to_string());
             }
@@ -98,9 +103,10 @@ pub fn evaluate_index_match(expr: &str, worksheet: &Worksheet) -> Option<String>
     };
 
     let (start, _end) = parse_range(range)?;
-    let target_row = start.0 + row_num - 1;
-    let target_col = start.1 + col_num - 1;
-    let key = format!("{},{}", target_row, target_col);
+    // INDEX offsets are one-based; a zero offset is invalid rather than a wrap-around.
+    let target_row = start.0.checked_add(row_num.checked_sub(1)?)?;
+    let target_col = start.1.checked_add(col_num.checked_sub(1)?)?;
+    let key = format!("{target_row},{target_col}");
     Some(
         worksheet
             .data

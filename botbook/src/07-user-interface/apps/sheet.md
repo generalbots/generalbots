@@ -8,7 +8,15 @@
 
 ## Overview
 
-Sheet is the spreadsheet application in General Bots Suite. Create, analyze, and visualize data with Excel-like functionality enhanced by AI. Build formulas, generate charts, import and export CSV files, and collaborate on datasets with powerful filtering and sorting.
+Sheet is the spreadsheet application in General Bots Suite. It stores workbooks in Drive, imports and exports `.xlsx` and CSV, evaluates a large worksheet function library server-side, and renders a virtualised grid that scrolls over very large row counts.
+
+Sheet is in **beta**, and the gap between it and a desktop spreadsheet is currently wide. The tables below mark each capability honestly:
+
+- **Available** — implemented and usable today.
+- **Partial** — present but incomplete or unreliable; the note says how.
+- **Planned** — modelled, or exposed in the API, but not yet functional end to end.
+
+The work to close the gap is tracked in [Excel Parity Plan](./sheet-excel-parity.md). Read that page before relying on Sheet for a workbook you cannot afford to lose.
 
 ---
 
@@ -16,91 +24,124 @@ Sheet is the spreadsheet application in General Bots Suite. Create, analyze, and
 
 ### Cells
 
-| Action | Description |
-|--------|-------------|
-| Edit | Double-click or type to edit cell |
-| Format | Numbers, currency, dates, percentages |
-| Merge | Merge cells for headers |
-| Resize | Drag column and row borders |
-| Reference | Use A1-style cell references |
-| Multi-Select | Ctrl+Click for non-contiguous ranges |
+| Action | Status | Notes |
+|--------|--------|-------|
+| Edit a cell | Available | Double-click, `F2`, or type over the selection |
+| A1-style references | Available | `A1`, `A1:C10` |
+| Number, currency, date and percentage formats | Planned | Format codes are read from `.xlsx` and stored, but the grid renders the raw underlying value |
+| Merge cells | Planned | The API accepts a merge and the model stores it; the grid does not render merges, and the toolbar button currently merges a cell with itself |
+| Resize rows and columns | Planned | Widths and heights are imported from `.xlsx` and persisted, but the grid uses fixed sizes |
+| Range selection | Planned | Selection is a single cell |
+| Multi-range selection (`Ctrl`+click) | Planned | — |
+| Freeze panes | Planned | Imported from `.xlsx` and stored; not rendered |
+| Cell comments and notes | Planned | Threaded comments are modelled with a full API; the grid renders no marker |
 
 ### Formulas
 
+Around 170 worksheet functions are implemented server-side, including the Microsoft 365 dynamic-array family. A representative sample:
+
 | Function | Syntax | Description |
 |----------|--------|-------------|
-| SUM | `=SUM(A1:A10)` | Sum of range |
-| AVERAGE | `=AVERAGE(B1:B5)` | Average of range |
-| COUNT | `=COUNT(C1:C20)` | Count non-empty cells |
-| IF | `=IF(A1>10,"Yes","No")` | Conditional logic |
-| VLOOKUP | `=VLOOKUP(A1,D:E,2,0)` | Vertical lookup |
-| CONCAT | `=CONCAT(A1," ",B1)` | Join text |
-| MAX | `=MAX(A1:A10)` | Maximum value |
-| MIN | `=MIN(A1:A10)` | Minimum value |
-| DATE | `=DATE(2025,5,15)` | Create date |
-| BOT_AI_PROMPT | `=BOT_AI_PROMPT("Analyze ", A1)` | AI-powered cell evaluation with intelligent caching — see [AI Sheet Cache](../../03-knowledge-ai/ai-sheet-cache.md) |
+| SUM | `=SUM(A1:A10)` | Sum of a range |
+| AVERAGE | `=AVERAGE(B1:B5)` | Mean of a range |
+| COUNT / COUNTA / COUNTBLANK | `=COUNTA(C1:C20)` | Counting variants |
+| IF / IFERROR | `=IF(A1>10,"Yes","No")` | Conditional logic |
+| VLOOKUP / HLOOKUP / XLOOKUP / MATCH / INDEX | `=XLOOKUP(A1,D:D,E:E)` | Lookups |
+| SUMIF / SUMIFS / COUNTIF / COUNTIFS / AVERAGEIFS / MAXIFS / MINIFS | `=SUMIFS(C:C,A:A,"Jan")` | Criteria aggregation |
+| MAX / MIN / MEDIAN / STDEV / PERCENTILE / QUARTILE / RANK | `=MEDIAN(A1:A10)` | Statistics |
+| FILTER / SORT / SORTBY / UNIQUE / SEQUENCE / RANDARRAY | `=UNIQUE(A1:A100)` | Dynamic arrays |
+| HSTACK / VSTACK / TOCOL / TOROW / TAKE / DROP / EXPAND | `=VSTACK(A1:A5,C1:C5)` | Array shaping |
+| LET / LAMBDA / MAP / REDUCE / BYROW / BYCOL / MAKEARRAY | `=LET(x,A1,x*2)` | Lambda family |
+| TEXTSPLIT / TEXTBEFORE / TEXTAFTER / VALUETOTEXT | `=TEXTSPLIT(A1,",")` | Text 365 |
+| GROUPBY / PIVOTBY / SUBTOTAL / AGGREGATE / PERCENTOF | `=GROUPBY(A:A,B:B,SUM)` | Grouping |
+| DATE / YEAR / MONTH / DAY / DATEDIF / HOUR / MINUTE / SECOND | `=DATEDIF(A1,B1,"d")` | Dates |
+| BOT_AI_PROMPT | `=BOT_AI_PROMPT("Analyze ", A1)` | AI-powered cell evaluation with caching — see [AI Sheet Cache](../../03-knowledge-ai/ai-sheet-cache.md) |
+
+#### Current formula limitations
+
+These are real and will bite immediately. Each is tracked in [Excel Parity Plan](./sheet-excel-parity.md).
+
+| Limitation | Example | Result today |
+|---|---|---|
+| A formula must be a single function call | `=SUM(A1:A3)+1` | `#ERROR!` |
+| No nested calls | `=INDEX(A1:A3,MATCH(20,A1:A3,0))` | `#ERROR!` |
+| No `&` concatenation operator | `=A1&B1` | `#ERROR!` |
+| No `^` exponentiation operator | `=A1^2` | `#ERROR!` |
+| String literals are upper-cased | `=CONCATENATE("Total: ",A1)` | `TOTAL: 7` |
+| No cross-sheet references | `=Sheet2!A1` | not resolved |
+| `$` anchors are not preserved | `=$A$1` copied down | not translated correctly |
+| Values are stored as text | `=SUM()` over `1,234.50` | `0` |
+| Recalculation stops after 1000 dependent cells | a large model | downstream cells keep stale values, silently |
 
 ### Charts
 
-| Type | Best For |
-|------|----------|
-| Bar | Comparing categories |
-| Line | Trends over time |
-| Pie | Proportion of parts |
-| Scatter | Correlation analysis |
-| Area | Cumulative totals |
+| Type | Status |
+|------|--------|
+| Bar, Line, Pie, Scatter, Area | Planned — chart definitions are stored and returned by the API, but nothing renders them in the grid, and their data is snapshotted rather than bound to a range |
 
 ### Filters
 
-| Filter | Description |
-|--------|-------------|
-| Text Contains | Partial text match |
-| Text Equals | Exact text match |
-| Number Range | Min/max values |
-| Date Range | Date between dates |
-| Empty/Non-Empty | Presence check |
-| Custom Formula | Advanced filtering |
+| Filter | Status |
+|--------|--------|
+| Text contains / equals, number range, date range, empty/non-empty, custom formula | Planned — `POST /api/sheet/filter` accepts and stores a filter, but no rows are hidden in the grid |
 
 ### Sort
 
-| Option | Description |
-|--------|-------------|
-| Ascending | A-Z, 0-9, oldest-newest |
-| Descending | Z-A, 9-0, newest-oldest |
-| Multi-Column | Sort by multiple columns |
-| Custom Order | Sort by custom list |
+| Option | Status |
+|--------|--------|
+| Ascending / descending on a range | Partial — `POST /api/sheet/sort` reorders stored values; formulas referencing the moved cells are not rewritten |
+| Multi-column, custom order | Planned |
 
-### Import/Export
+### Import / Export
 
-| Format | Import | Export |
-|--------|--------|--------|
-| CSV | Yes | Yes |
-| JSON | Yes | Yes |
-| Excel (.xlsx) | Yes | Yes |
-| TSV | Yes | Yes |
+| Format | Import | Export | Notes |
+|--------|--------|--------|-------|
+| CSV | Available | Available | Exported values are unformatted |
+| TSV | Available | Available | — |
+| JSON | Available | Available | Internal document shape |
+| Excel `.xlsx` | Partial | Partial | Values, formulas, number format codes, cell styles, merged cells, column widths, row heights and frozen panes are read. **Defined names, data validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, sheet protection, print setup and external links are dropped.** |
+| Markdown | — | Available | — |
+| ODS | — | Partial | Emits content XML, not a complete `.ods` package |
+| PDF | — | Planned | — |
+
+> **Warning — opening an `.xlsx` from Drive.** Sheet can write the edited workbook back over the original file. Because import is lossy, features Sheet does not model are not preserved on that write. Until [Excel Parity Plan](./sheet-excel-parity.md) issue 8 lands, keep a copy of any workbook that contains charts, pivot tables, conditional formatting or data validation before editing it in Sheet.
 
 ---
 
 ## Keyboard Shortcuts
 
+Implemented today:
+
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
-| `Ctrl+C` | Copy cell |
-| `Ctrl+V` | Paste cell |
-| `Ctrl+X` | Cut cell |
-| `Tab` | Next cell (right) |
-| `Enter` | Confirm and move down |
-| `Delete` | Clear cell content |
+| `Enter` | Commit and move down |
+| `Tab` | Commit and move right |
+| `F2` | Edit the active cell |
+| `Arrow` keys | Move the selection |
+
+Documented but **not yet implemented** — tracked in [Excel Parity Plan](./sheet-excel-parity.md):
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
+| `Ctrl+C` / `Ctrl+V` / `Ctrl+X` | Copy / paste / cut |
+| `Ctrl+Alt+V` | Paste Special |
+| `Ctrl+D` / `Ctrl+R` | Fill down / fill right |
+| `Delete` / `Backspace` | Clear a range |
 | `Ctrl+A` | Select all |
-| `Ctrl+Shift+F` | Open filter panel |
-| `F2` | Edit active cell |
-| `Ctrl+Arrow` | Navigate to edge of data |
+| `Ctrl+Arrow` | Jump to the edge of the data |
+| `Ctrl+Home` / `Ctrl+End` | First / last used cell |
+| `PageUp` / `PageDown` | Page the viewport |
+| `Alt+Enter` | Newline inside a cell |
+| `Esc` | Abandon an edit |
+| `F4` | Cycle `$` anchors in a reference |
+| `Ctrl+Space` / `Shift+Space` | Select column / row |
 
 ---
 
 ## Sheet via Chat
+
+The examples below show the intended conversational flow. Chat-driven sheet creation depends on the parity work in [Excel Parity Plan](./sheet-excel-parity.md); treat them as the target experience rather than a description of current behaviour.
 
 ### Creating a Sales Report
 
@@ -262,46 +303,55 @@ Sheet is the spreadsheet application in General Bots Suite. Create, analyze, and
 
 ## Configuration
 
-Sheet settings can be configured in `config.csv`:
+Current grid limits are compiled in, not configurable:
 
-```csv
-key,value
-max-rows,1200000
-max-columns,256
-auto-calculate,true
-default-sheet-count,1
-```
+| Limit | Current value | Excel |
+|-------|---------------|-------|
+| Columns | 26 | 16,384 (`XFD`) |
+| Rows | 1,200,000 | 1,048,576 |
+| Recalculated cells per edit | 1,000 (silently truncated) | unlimited |
+
+Aligning these with Excel is part of [Excel Parity Plan](./sheet-excel-parity.md) issues 4 and 6.
 
 ---
 
 ## Troubleshooting
 
-### Formula Not Calculating
+### A formula returns `#ERROR!`
 
-1. Check formula syntax (must start with `=`)
-2. Verify cell references are valid
-3. Check for circular references
-4. Ensure referenced cells contain valid data
+Check it against the limitations table above first — `=SUM(A1:A3)+1`, `=A1&B1`, `=A1^2` and any nested call return `#ERROR!` by design of the current evaluator, not because of anything wrong with your sheet. Otherwise:
 
-### Import Failing
+1. Confirm the formula starts with `=`.
+2. Confirm the function name is in the implemented set.
+3. Check for a circular reference.
 
-1. Verify file format (CSV, JSON, Excel)
-2. Check file encoding (UTF-8 recommended)
-3. Ensure file size is under limit
-4. Check for malformed data rows
+### A number is treated as text
 
-### Chart Not Displaying
+Values are stored as strings today, so a number typed with a thousands separator (`1,234.50`) or a currency symbol is not recognised as numeric and aggregates as zero. Type the bare number.
 
-1. Verify data range is valid
-2. Check that data contains numeric values
-3. Ensure chart type matches data structure
-4. Refresh the page
+### Cell formatting is not shown
+
+Number format codes are imported and stored but not rendered — a currency cell displays its raw value. Tracked as issue 5 in the parity plan.
+
+### A worksheet cannot be reached
+
+Only the first worksheet is reachable; the tab bar is not yet implemented. Tracked as issue 12.
+
+### Import lost part of the file
+
+See the import table above for exactly what is dropped. Charts, pivot tables, conditional formatting and data validation do not survive import today.
+
+### Chart is not displayed
+
+Charts are not rendered in the grid yet. The definition is stored and returned by the API.
 
 ---
 
 ## See Also
 
-- [Suite Manual](../suite-manual.md) - Complete user guide
-- [Drive](./drive.md) - File storage for imports
-- [Chat App](./chat.md) - Create sheets via chat
-- [BASIC Database Keywords](../../04-basic-scripting/keyword-database.md) - Script integration
+- [Excel Parity Plan](./sheet-excel-parity.md) — current gaps and the plan to close them
+- [Sheets API](../../08-rest-api-tools/sheets-api.md) — endpoint reference
+- [Suite Manual](../suite-manual.md) — complete user guide
+- [Drive](./drive.md) — file storage for imports
+- [Chat App](./chat.md) — create sheets via chat
+- [BASIC Database Keywords](../../04-basic-scripting/keyword-database.md) — script integration

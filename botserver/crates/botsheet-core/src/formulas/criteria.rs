@@ -1,5 +1,6 @@
 use crate::types::Worksheet;
 
+use super::refs::clamp_range;
 use super::{parse_range, split_args};
 use super::helpers::{count_matching, matches_criteria};
 
@@ -21,6 +22,7 @@ pub fn evaluate_countblank(expr: &str, worksheet: &Worksheet) -> Option<String> 
     }
     let inner = &expr[11..expr.len() - 1];
     let (start, end) = parse_range(inner)?;
+    let (start, end) = clamp_range(start, end, worksheet);
     let mut count = 0;
     for row in start.0..=end.0 {
         for col in start.1..=end.1 {
