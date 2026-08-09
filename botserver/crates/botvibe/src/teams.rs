@@ -61,8 +61,11 @@ impl TeamStore {
             if let Some(m) = team.members.get_mut(index) {
                 *m = member;
             }
-            if team.members.iter().all(|m| m.state == "completed" || m.state == "failed") {
-                team.status = "completed".into();
+            team.status = team_status(&team.members).to_string();
+            if team.members
+                .iter()
+                .all(|m| m.state == "completed" || m.state == "failed")
+            {
                 team.completed_at = Some(chrono::Utc::now());
             }
         }
@@ -72,6 +75,83 @@ impl TeamStore {
 impl Default for TeamStore {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Aggregates member states into a team-level status: "completed" only when
+/// every member completed, "failed" when all members are terminal and at
+/// least one failed, "running" otherwise.
+fn team_status(members: &[TeamMember]) -> &'static str {
+    let all_terminal = members
+        .iter()
+        .all(|m| m.state == "completed" || m.state == "failed");
+    if all_terminal {
+        if members.iter().all(|m| m.state == "completed") {
+            "completed"
+        } else {
+            "failed"
+        }
+    } else {
+        "running"
+    }
+}
+
+/// Coordinates a team run: executes one member as its own agent run and
+/// records the outcome on the team row. The execution itself stays async so
+/// callers decide whether members run concurrently or in waves.
+#[derive(Clone, Copy)]
+pub struct TeamCoordinator;
+
+impl TeamCoordinator {
+    /// Runs one member task through the agent loop and returns the member
+    /// with its run id, state and error attached.
+    pub async fn execute_member(
+        &self,
+        state: Arc<dyn VibeState>,
+        prompt_manager: Arc<VibePromptManager>,
+        tool_executor: Arc<VibeToolExecutor>,
+        telemetry: Arc<VibeTelemetry>,
+        permissions: crate::permissions::PermissionEngineRef,
+        skills: Arc<crate::skills::SkillStore>,
+        member: &TeamMember,
+    ) -> TeamMember {
+        let config = VibeRunConfig {
+            use_case: VibeUseCase::SoftwareDevelopment,
+            lang: "en".to_string(),
+            auto_approve: true,
+            max_tool_calls: 50,
+            timeout_seconds: 600,
+            model: None,
+            budget_cents: 0,
+        };
+        let mut run = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            member.task.clone(),
+            config,
+        );
+        let run_id = run.run_id;
+        {
+            let mut runs = state.active_runs().write().await;
+            runs.insert(run_id, run.clone());
+        }
+        let agent_loop = Arc::new(
+            AgentLoop::new(prompt_manager, tool_executor, telemetry, state.clone())
+                .with_security(permissions, skills),
+        );
+        agent_loop.execute_run(&mut run).await;
+        {
+            let mut runs = state.active_runs().write().await;
+            runs.insert(run_id, run.clone());
+        }
+        TeamMember {
+            name: member.name.clone(),
+            task: member.task.clone(),
+            run_id: Some(run_id),
+            state: run.state.to_string(),
+            error: run.error.clone(),
+        }
     }
 }
 
@@ -191,6 +271,7 @@ async fn create_team(
     let members_copy = members.clone();
 
     tokio::spawn(async move {
+        let coordinator = TeamCoordinator;
         let mut handles = Vec::new();
         for (index, member) in members_copy.iter().enumerate() {
             let state = state.clone();
@@ -200,41 +281,20 @@ async fn create_team(
             let permissions = permissions.clone();
             let skills = skills.clone();
             let teams = teams.clone();
-            let member_name = member.name.clone();
-            let task = member.task.clone();
+            let member = member.clone();
             handles.push(tokio::spawn(async move {
-                let config = VibeRunConfig {
-                    use_case: VibeUseCase::SoftwareDevelopment,
-                    lang: "en".to_string(),
-                    auto_approve: true,
-                    max_tool_calls: 50,
-                    timeout_seconds: 600,
-                    model: None,
-                    budget_cents: 0,
-                };
-                let mut run = VibeRun::new(Uuid::nil(), Uuid::nil(), Uuid::nil(), task.clone(), config);
-                let run_id = run.run_id;
-                {
-                    let mut runs = state.active_runs().write().await;
-                    runs.insert(run_id, run.clone());
-                }
-                let agent_loop = Arc::new(
-                    AgentLoop::new(prompt, executor, telemetry, state.clone())
-                        .with_security(permissions, skills),
-                );
-                agent_loop.execute_run(&mut run).await;
-                {
-                    let mut runs = state.active_runs().write().await;
-                    runs.insert(run_id, run.clone());
-                }
-                let member = TeamMember {
-                    name: member_name,
-                    task,
-                    run_id: Some(run_id),
-                    state: run.state.to_string(),
-                    error: run.error.clone(),
-                };
-                teams.update_member(team_id, index, member).await;
+                let updated = coordinator
+                    .execute_member(
+                        state,
+                        prompt,
+                        executor,
+                        telemetry,
+                        permissions,
+                        skills,
+                        &member,
+                    )
+                    .await;
+                teams.update_member(team_id, index, updated).await;
             }));
         }
         for handle in handles {
@@ -280,7 +340,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn update_member_marks_team_completed_when_all_done() {
+    async fn update_member_marks_team_failed_when_any_member_fails() {
         let store = TeamStore::new();
         let team = sample_team("t");
         store.insert(team.clone()).await;
@@ -289,8 +349,31 @@ mod tests {
         assert_eq!(mid.status, "running");
         store.update_member(team.team_id, 1, TeamMember { name: "bob".into(), task: "t2".into(), run_id: None, state: "failed".into(), error: Some("boom".into()) }).await;
         let done = store.get(team.team_id).await.unwrap();
+        assert_eq!(done.status, "failed");
+        assert!(done.completed_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn update_member_marks_team_completed_when_all_members_complete() {
+        let store = TeamStore::new();
+        let team = sample_team("t");
+        store.insert(team.clone()).await;
+        store.update_member(team.team_id, 0, TeamMember { name: "alice".into(), task: "t1".into(), run_id: Some(Uuid::new_v4()), state: "completed".into(), error: None }).await;
+        store.update_member(team.team_id, 1, TeamMember { name: "bob".into(), task: "t2".into(), run_id: Some(Uuid::new_v4()), state: "completed".into(), error: None }).await;
+        let done = store.get(team.team_id).await.unwrap();
         assert_eq!(done.status, "completed");
         assert!(done.completed_at.is_some());
+    }
+
+    #[test]
+    fn team_status_aggregates_member_states() {
+        fn member(state: &str) -> TeamMember {
+            TeamMember { name: "x".into(), task: "t".into(), run_id: None, state: state.into(), error: None }
+        }
+        assert_eq!(team_status(&[member("completed"), member("completed")]), "completed");
+        assert_eq!(team_status(&[member("completed"), member("failed")]), "failed");
+        assert_eq!(team_status(&[member("running"), member("pending")]), "running");
+        assert_eq!(team_status(&[]), "completed", "empty team is trivially done");
     }
 
     #[tokio::test]

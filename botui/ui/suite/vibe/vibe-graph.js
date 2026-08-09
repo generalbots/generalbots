@@ -35,6 +35,7 @@ const VibeGraph = {
         const visible = show === undefined ? panel.style.display === 'none' : show;
         panel.style.display = visible ? 'flex' : 'none';
         if (visible) {
+            this.resize();
             const useCase = window.VibeGraphUseCase || this.useCase;
             this.useCase = useCase;
             this.loadGraph(useCase);
@@ -275,6 +276,12 @@ const VibeGraph = {
     },
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+function initVibeGraph() {
     VibeGraph.init('vibeGraphCanvas');
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initVibeGraph);
+} else {
+    initVibeGraph();
+}
