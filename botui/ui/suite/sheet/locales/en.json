@@ -98,6 +98,10 @@
     "a11y.unselected": "not selected",
     "msg.confirm_delete": "Are you sure?",
     "msg.network_error": "Network error — please check your connection",
-    "msg.unsupported_browser": "Your browser may not support all features"
+    "msg.unsupported_browser": "Your browser may not support all features",
+    "common.strikethrough": "Strikethrough",
+    "common.merge": "Merge Cells",
+    "modal.custom_format": "Custom Number Format",
+    "common.share": "Share"
   }
 }

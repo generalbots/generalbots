@@ -12,60 +12,60 @@
     <div class="sheet-toolbar">
         <div class="toolbar-left">
             <input type="text" class="sheet-name-input" id="sheetName" value="Untitled Spreadsheet" spellcheck="false" hx-post="/api/sheet/save" hx-trigger="blur changed" hx-vals='{"id":"current","action":"rename"}' hx-swap="none" />
-            <button class="btn-icon" id="saveSheetBtn" onclick="saveSheet()" title="Save (Ctrl+S)">
+            <button class="btn-icon" id="saveSheetBtn" onclick="saveSheet()" title="Save (Ctrl+S)" data-i18n-title="common.save">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                <span style="font-size:12px;margin-left:4px;">Save</span>
+                <span style="font-size:12px;margin-left:4px;" data-i18n="common.save">Save</span>
             </button>
         </div>
         <div class="toolbar-center">
             <div class="toolbar-group">
-                <button class="btn-icon" id="undoBtn" title="Undo (Ctrl+Z)">
+                <button class="btn-icon" id="undoBtn" title="Undo (Ctrl+Z)" data-i18n-title="common.undo">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
                 </button>
-                <button class="btn-icon" id="redoBtn" title="Redo (Ctrl+Y)">
+                <button class="btn-icon" id="redoBtn" title="Redo (Ctrl+Y)" data-i18n-title="common.redo">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>
                 </button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="printPreviewBtn" hx-get="/suite/sheet/modals/print-preview" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Print Preview">
+                <button class="btn-icon" id="printPreviewBtn" hx-get="/suite/sheet/modals/print-preview" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Print Preview" data-i18n-title="common.print">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 </button>
-                <button class="btn-icon" id="findReplaceBtn" hx-get="/suite/sheet/modals/find-replace" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Find & Replace">
+                <button class="btn-icon" id="findReplaceBtn" hx-get="/suite/sheet/modals/find-replace" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Find & Replace" data-i18n-title="modal.find_replace">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group format-group">
-                <button class="btn-icon" id="boldBtn" title="Bold" type="button"><strong>B</strong></button>
-                <button class="btn-icon" id="italicBtn" title="Italic" type="button"><em>I</em></button>
-                <button class="btn-icon" id="underlineBtn" title="Underline" type="button"><u>U</u></button>
-                <button class="btn-icon" id="strikeBtn" title="Strikethrough" type="button"><s>S</s></button>
+                <button class="btn-icon" id="boldBtn" title="Bold" data-i18n-title="common.bold" type="button"><strong>B</strong></button>
+                <button class="btn-icon" id="italicBtn" title="Italic" data-i18n-title="common.italic" type="button"><em>I</em></button>
+                <button class="btn-icon" id="underlineBtn" title="Underline" data-i18n-title="common.underline" type="button"><u>U</u></button>
+                <button class="btn-icon" id="strikeBtn" title="Strikethrough" data-i18n-title="common.strikethrough" type="button"><s>S</s></button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="mergeCellsBtn" title="Merge Cells" type="button">
+                <button class="btn-icon" id="mergeCellsBtn" title="Merge Cells" data-i18n-title="common.merge" type="button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
                 </button>
                 <button class="btn-icon" id="conditionalFormatBtn" hx-get="/suite/sheet/modals/conditional-format" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Conditional Formatting">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" fill="#4CAF50"></rect><rect x="14" y="3" width="7" height="7" fill="#FFC107"></rect><rect x="3" y="14" width="7" height="7" fill="#F44336"></rect><rect x="14" y="14" width="7" height="7" fill="#2196F3"></rect></svg>
                 </button>
-                <button class="btn-icon" id="dataValidationBtn" hx-get="/suite/sheet/modals/data-validation" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Data Validation">
+                <button class="btn-icon" id="dataValidationBtn" data-i18n-title="modal.validation" hx-get="/suite/sheet/modals/data-validation" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Data Validation">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                 </button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="insertChartBtn" hx-get="/suite/sheet/modals/chart" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Insert Chart">
+                <button class="btn-icon" id="insertChartBtn" data-i18n-title="modal.chart_insert" hx-get="/suite/sheet/modals/chart" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Insert Chart">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"></rect><rect x="10" y="6" width="4" height="15"></rect><rect x="17" y="3" width="4" height="18"></rect></svg>
                 </button>
-                <button class="btn-icon" id="insertImageBtn" hx-get="/suite/sheet/modals/insert-image" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Insert Image">
+                <button class="btn-icon" id="insertImageBtn" data-i18n-title="modal.image_insert" hx-get="/suite/sheet/modals/insert-image" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Insert Image">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 </button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="customFormatBtn" hx-get="/suite/sheet/modals/custom-format" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Custom Number Format">
+                <button class="btn-icon" id="customFormatBtn" data-i18n-title="modal.custom_format" hx-get="/suite/sheet/modals/custom-format" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Custom Number Format">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><text x="2" y="16" font-size="10" fill="currentColor">#,##0.00</text></svg>
                 </button>
             </div>
@@ -74,9 +74,9 @@
             <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
             <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
             <span id="gb-auth-button"></span>
-            <button class="btn-primary" id="shareBtn" hx-get="/suite/sheet/modals/share" hx-vals='{"id":"current","name":"Planilha"}' hx-target="#modal-container" hx-swap="innerHTML">
+            <button class="btn-primary" id="shareBtn" hx-get="/suite/sheet/modals/share" hx-vals='{"id":"current","name":"Planilha"}' hx-target="#modal-container" hx-swap="innerHTML" data-i18n-title="common.share">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                <span>Share</span>
+                <span data-i18n="common.share">Share</span>
             </button>
         </div>
     </div>
@@ -273,6 +273,7 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/sheet/js/modules-sheet-advanced/07_conditional_render.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/08_statusbar.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/09_validation_editor.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/10_i18n.js"></script>
 <script>
 /* Boot: load sheet data from per-window storage (avoids race with multiple windows) */
 (function(){
