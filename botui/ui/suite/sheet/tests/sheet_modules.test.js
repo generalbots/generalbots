@@ -167,7 +167,6 @@ function runValidation() {
 function runWidths() {
   const sheet = { worksheets: [{ column_widths: { "0": 120, "1": 80 }, row_heights: { "0": 30 }, validations: {} }] };
   env.window.__LOADED_SHEET = sheet;
-  env.window.SheetCore.api = function () { return null; };
   env.window.SheetCore.rehydrateGrid = function () {};
   const widthGrid = {
     totalCols: 26,
@@ -220,7 +219,43 @@ function runFilters() {
   assertTrue(mf("Shipping", { condition: "contains:Ship" }), "contains matches Shipping");
   assertTrue(!mf("Billing", { condition: "contains:Ship" }), "contains rejects Billing");
   assertTrue(!mf("1.5", { condition: ">=5" }), ">=5 rejects 1.5");
-  runCharts();
+  runFormulaFill();
+}
+
+// formula fill: relative refs shift with the fill direction; $ anchors stay
+function runFormulaFill() {
+  env.window.SheetAPI = { updateCell: function (ref, v) { return Promise.resolve({ success: true }); }, load: function () { return Promise.resolve(null); } };
+  const g2 = {
+    cells: makeCellMap({ "0,0": { value: "10", formula: null }, "0,1": { value: "5", formula: null } }),
+    totalRows: 1000,
+    totalCols: 26,
+    lastRenderedRange: null,
+    requestRange: function () {},
+    selectCell: function () {},
+  };
+  env.window.SheetVirtualGrid = g2;
+  env.window.SheetCore.setGrid(g2);
+  // put a formula in A1
+  g2.cells.set("0,0", { value: "", formula: "=A2+B2" });
+  g2.cells.set("1,0", { value: "1" });
+  g2.cells.set("1,1", { value: "2" });
+  env.window.SheetAdvanced.setRange(0, 0, 0, 0);
+  env.window.SheetCore.applyFill(0, 1).then(function () { // fill right to B1
+    const b1 = g2.cells.get("0,1");
+    assertEqual(b1 && b1.formula, "=B2+C2", "fill right shifts relative refs A2->B2, B2->C2");
+    // fill down from A1 with $ anchors
+    g2.cells.set("0,0", { value: "", formula: "=$A$2+B2" });
+    g2.cells.set("1,0", { value: "1" });
+    g2.cells.set("1,1", { value: "2" });
+    env.window.SheetAdvanced.setRange(0, 0, 0, 0);
+    env.window.SheetCore.applyFill(2, 0).then(function () {
+      const a2 = g2.cells.get("1,0");
+      const a3 = g2.cells.get("2,0");
+      assertEqual(a2 && a2.formula, "=$A$2+B3", "fill down keeps $A$2 anchor, shifts B2->B3");
+      assertEqual(a3 && a3.formula, "=$A$2+B4", "fill down second row shifts B3->B4");
+      runCharts();
+    });
+  });
 }
 
 // chart SVG renderers emit valid svg + expected element
