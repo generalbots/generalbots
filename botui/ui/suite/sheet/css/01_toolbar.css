@@ -215,48 +215,6 @@
     border-color: var(--sentient-accent, #4285f4);
 }
 
-.font-family {
-    width: 110px;
-}
-
-.font-size {
-    width: 60px;
-}
-
-.color-btn {
-    position: relative;
-    overflow: visible;
-}
-
-.color-letter {
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.color-indicator {
-    position: absolute;
-    bottom: 4px;
-    left: 6px;
-    right: 6px;
-    height: 3px;
-    background: #000000;
-    border-radius: 1px;
-}
-
-.bg-indicator {
-    background: #ffff00;
-}
-
-.color-input {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-}
-
 /* =============================================================================
    COLLABORATORS
    ============================================================================= */
@@ -265,23 +223,5 @@
     display: flex;
     align-items: center;
     gap: -8px;
-}
-
-.collaborator-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid var(--sentient-bg-primary, #ffffff);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: white;
-    margin-left: -8px;
-}
-
-.collaborator-avatar:first-child {
-    margin-left: 0;
 }
 
