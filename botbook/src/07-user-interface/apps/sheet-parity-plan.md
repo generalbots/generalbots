@@ -6,6 +6,12 @@ This page is the reference for anyone deciding whether to trust Sheet with a rea
 
 Tracking issue: [generalbots/generalbots#780](https://github.com/generalbots/generalbots/issues/780).
 
+> **Progress (2026-08-09):** the frontend now ships a real `SheetAdvanced` module set —
+> range selection, clipboard, undo/redo, fill handle, worksheet tab bar, live status bar,
+> column-header sort, CSV/XLSX/Markdown export, conditional-format rendering, validation
+> dots + list dropdown editor, and locale loading. Backend-heavy gaps (typed cells, parser,
+> calc engine, number formats, xlsx round-trip, sessions, collab protocol) are unchanged.
+
 ---
 
 ## What already works well
@@ -49,19 +55,19 @@ Each row links to the issue that closes it.
 | 4 | Number formats are parsed, stored, and never applied. | `R$ 1.234,50` displays as `1234.5`; a date displays as `46096`. → issue 5 |
 | 10 | 26 columns hardcoded; 1,200,000 rows against the desktop standard of 1,048,576. | Most of the address space is unreachable, and the row count is wrong in the other direction. → issue 6 |
 | 11 | Column width and row height are constants. | Widths and heights imported from `.xlsx` cannot be displayed; resize is impossible by construction. → issue 6 |
-| 12 | Selection is one cell and one overlay element. | No range, multi-range, row, column or whole-sheet selection. → issue 6 |
+| 12 | ~~Selection is one cell and one overlay element.~~ **Partially shipped (2026-08-09)** | Range drag-selection, Shift+click extension, `Ctrl+A` select-all. Multi-range and whole row/column selection still planned. → issue 6 |
 | 18 | Frozen panes are imported with the axes swapped and never rendered. | A frozen header row does not stay put. → issue 6, issue 8 |
-| 27 | Conditional formatting, validation, charts and comments are stored and never rendered or enforced. | Four toolbar buttons open modals whose results vanish. Three advanced JS modules are empty stubs that are nonetheless loaded. → issue 10 |
+| 27 | ~~Conditional formatting, validation, charts and comments are stored and never rendered or enforced.~~ **Partially shipped (2026-08-09)** | Conditional-format rules now render in the grid (`>`, `<`, `>=`, `<=`, between, text contains/starts-with/ends-with, duplicates, color scale). List validation renders a red marker dot and an in-cell dropdown editor; invalid single-cell edits are blocked with a toast. The advanced JS module stubs (`01_core`…`12_export`) are implemented. Charts still render nothing; comments still show no marker. → issue 10 |
 
 ### Interaction
 
 | # | Gap | Consequence |
 |---|-----|-------------|
-| 13 | No clipboard. | Pasting a block from another spreadsheet — the most common spreadsheet operation there is — does nothing. → issue 7 |
-| 14 | No undo or redo. The buttons issue a request the server does not implement. | One mistake is unrecoverable. → issue 7 |
-| 15 | No fill handle, no `Ctrl+D`/`Ctrl+R`, no series extrapolation. | Every repeated formula must be typed. → issue 7 |
+| 13 | ~~No clipboard.~~ **Shipped (2026-08-09)** | Copy/cut/paste/copy TSV with multi-cell block support and fallback textarea for non-secure contexts. Pasting a block from another spreadsheet works. → issue 7 |
+| 14 | ~~No undo or redo. The buttons issue a request the server does not implement.~~ **Shipped (2026-08-09)** | Client-side 100-level undo/redo stack covering edits, paste, fill, cut and clear; toolbar buttons wired (`Ctrl+Z` / `Ctrl+Y`). → issue 7 |
+| 15 | ~~No fill handle, no `Ctrl+D`/`Ctrl+R`, no series extrapolation.~~ **Shipped (2026-08-09)** | Drag fill handle with numeric series extrapolation and `$`-anchor-aware formula translation; `Ctrl+D`/`Ctrl+R` fill down/right. → issue 7 |
 | 16 | The merge button merges a cell with itself. | A no-op that appears to work. → issue 7 |
-| 17 | No worksheet tab bar exists in the markup. | Only the first worksheet of a workbook is reachable. → issue 12 |
+| 17 | ~~No worksheet tab bar exists in the markup.~~ **Shipped (2026-08-09)** | Client-rendered tab bar with add/switch/delete/rename wired to the worksheet endpoints; only the first worksheet is no longer reachable. → issue 12 |
 
 ### File fidelity
 
@@ -86,7 +92,7 @@ Each row links to the issue that closes it.
 | # | Gap | Consequence |
 |---|-----|-------------|
 | 28 | ~1,100 lines of dead CSS styling markup that does not exist; ~30 inline styles in the app HTML; ~180 inline styles in server-rendered fragments emitting classes no stylesheet defines. | Nothing is themeable and the real rules are hard to find. → issue 12 |
-| 29 | Hardcoded Portuguese strings in the HTML and JS, while both locale catalogues sit unloaded. | The app cannot be localised. → issue 12 |
+| 29 | ~~Hardcoded Portuguese strings in the HTML and JS, while both locale catalogues sit unloaded.~~ **Partially shipped (2026-08-09)** | `locales/en.json` + `locales/pt-BR.json` are now loaded and applied to the toolbar via `data-i18n*` attributes; remaining inline strings are still hardcoded. → issue 12 |
 | 30 | No tests for Sheet. Not one. | Every regression reaches a user first. → issue 12 |
 
 ---
