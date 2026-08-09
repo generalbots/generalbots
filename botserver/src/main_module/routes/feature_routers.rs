@@ -56,30 +56,42 @@ fn resolve_directory_service_token(api_url: &str, configured: Option<String>) ->
     if api_url.is_empty() || candidates.is_empty() {
         return configured;
     }
-    for token in &candidates {
-        let valid = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(5))
-            .build()
-            .ok()
-            .and_then(|client| {
-                client
-                    .post(format!("{api_url}/management/v1/users/_search"))
-                    .header("Authorization", format!("Bearer {token}"))
-                    .json(&serde_json::json!({}))
-                    .send()
-                    .ok()
-            })
-            .map(|response| response.status().is_success())
-            .unwrap_or(false);
-        if valid {
-            if configured.as_deref() != Some(token.as_str()) {
-                tracing::info!("Using admin PAT as directory service token (configured token was invalid)");
+    // The probe uses reqwest::blocking, which owns a tokio runtime; running it
+    // from the async boot task would drop that runtime in a blocking-forbidden
+    // context and panic. Probe from a dedicated thread instead.
+    let api_url = api_url.to_string();
+    let valid = std::thread::spawn(move || -> Option<String> {
+        for token in &candidates {
+            let probe_ok = reqwest::blocking::Client::builder()
+                .timeout(std::time::Duration::from_secs(5))
+                .build()
+                .ok()
+                .and_then(|client| {
+                    client
+                        .post(format!("{api_url}/management/v1/users/_search"))
+                        .header("Authorization", format!("Bearer {token}"))
+                        .json(&serde_json::json!({}))
+                        .send()
+                        .ok()
+                })
+                .map(|response| response.status().is_success())
+                .unwrap_or(false);
+            if probe_ok {
+                return Some(token.clone());
             }
-            return Some(token.clone());
+            tracing::warn!("Directory service token rejected by Zitadel, trying next candidate");
         }
-        tracing::warn!("Directory service token rejected by Zitadel, trying next candidate");
+        tracing::error!("No valid directory service token found - SaaS signup/login will fail");
+        None
+    })
+    .join()
+    .unwrap_or(None);
+    if let Some(token) = valid {
+        if configured.as_deref() != Some(token.as_str()) {
+            tracing::info!("Using admin PAT as directory service token (configured token was invalid)");
+        }
+        return Some(token);
     }
-    tracing::error!("No valid directory service token found - SaaS signup/login will fail");
     configured
 }
 

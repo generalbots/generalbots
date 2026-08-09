@@ -54,15 +54,29 @@ impl SkillStore {
         self.skills.read().await.clone()
     }
 
+    pub async fn seed_bootstrap(&self) {
+        for (name, description, content, triggers) in crate::skill_loader::bootstrap_skill_definitions() {
+            self.register(name, description, content, triggers).await;
+        }
+    }
+
     pub async fn apply(&self, names: &[String]) -> String {
         let skills = self.skills.read().await;
         let mut stacked = String::new();
+        let mut count = 0usize;
         for name in names {
+            if count >= crate::skill_loader::MAX_STACKED_SKILLS {
+                break;
+            }
             for skill in skills.iter().filter(|s| s.name == *name && s.enabled) {
+                if count >= crate::skill_loader::MAX_STACKED_SKILLS {
+                    break;
+                }
                 stacked.push_str(&format!(
                     "## Skill: {}\n{}\n{}\n\n",
                     skill.name, skill.description, skill.content
                 ));
+                count += 1;
             }
         }
         stacked
@@ -279,6 +293,29 @@ mod tests {
         assert!(stacked.contains("content-b"));
         assert!(!stacked.contains("nope"));
         assert!(store.apply(&["nope".into()]).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn apply_caps_at_five_skills() {
+        let store = SkillStore::new();
+        for i in 0..7 {
+            store.register(format!("s{i}"), format!("S{i}"), format!("content-{i}"), vec![]).await;
+        }
+        let names: Vec<String> = (0..7).map(|i| format!("s{i}")).collect();
+        let stacked = store.apply(&names).await;
+        assert!(stacked.contains("content-0"));
+        assert!(stacked.contains("content-4"));
+        assert!(!stacked.contains("content-5"));
+        assert!(!stacked.contains("content-6"));
+    }
+
+    #[tokio::test]
+    async fn seed_bootstrap_registers_all_skills() {
+        let store = SkillStore::new();
+        store.seed_bootstrap().await;
+        let skills = store.list().await;
+        assert_eq!(skills.len(), 6);
+        assert!(skills.iter().all(|s| s.enabled && !s.triggers.is_empty()));
     }
 
     #[tokio::test]

@@ -917,8 +917,8 @@ pub fn promote_expired_trials_in_db(conn: &mut diesel::PgConnection) -> Result<u
                 status, issue_date, due_date, subtotal, tax_rate, tax_amount,
                 discount_percent, discount_amount, total, amount_due, amount_paid,
                 currency, notes, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, 'unpaid', $8, $8, $9, 0, 0, 0, 0, $9, $9, 0,
-                       'USD', $10, NOW(), NOW())"#,
+               VALUES ($1, $2, $3, $4, $5, $6, $7, 'unpaid', $8, $9, $10, 0, 0, 0, 0, $10, $10, 0,
+                       'USD', $11, NOW(), NOW())"#,
         )
         .bind::<DieselUuid, _>(invoice_id)
         .bind::<DieselUuid, _>(row.org_id)

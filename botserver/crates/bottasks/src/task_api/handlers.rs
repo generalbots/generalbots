@@ -60,12 +60,10 @@ pub async fn handle_list_tasks(
 
 pub async fn handle_create_task(
     State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreateTaskRequest>,
 ) -> impl IntoResponse {
-    let branch_id = match (state.get_config)("default_branch_id") {
-        Ok(id) => id.parse::<Uuid>().unwrap_or_default(),
-        Err(_) => Uuid::nil(),
-    };
+    let branch_id = resolve_branch(&state, &headers);
 
     let bot_id = match (state.get_config)("default_bot_id") {
         Ok(id) => id.parse::<Uuid>().unwrap_or_default(),
@@ -183,12 +181,19 @@ pub async fn handle_cancel_task(
 
 pub async fn handle_get_manifest(
     State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     let id = match task_id.parse::<Uuid>() {
         Ok(id) => id,
         Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
     };
+
+    let branch_id = resolve_branch(&state, &headers);
+    let engine = TaskEngine::new(state.clone());
+    if engine.get_task(id, branch_id).is_err() {
+        return Json(serde_json::json!({"error": "Task not found"})).into_response();
+    }
 
     let persistence = EnginePersistence::new(state.clone());
     match persistence.load_manifest(id).await {
@@ -200,12 +205,19 @@ pub async fn handle_get_manifest(
 
 pub async fn handle_get_cards(
     State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     let id = match task_id.parse::<Uuid>() {
         Ok(id) => id,
         Err(_) => return Html("<div class='error'>Invalid task ID</div>".to_string()).into_response(),
     };
+
+    let branch_id = resolve_branch(&state, &headers);
+    let engine = TaskEngine::new(state.clone());
+    if engine.get_task(id, branch_id).is_err() {
+        return Html("<div class='error'>Task not found</div>".to_string()).into_response();
+    }
 
     let persistence = EnginePersistence::new(state.clone());
     match persistence.load_manifest(id).await {
@@ -217,12 +229,19 @@ pub async fn handle_get_cards(
 
 pub async fn handle_get_terminal(
     State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     let id = match task_id.parse::<Uuid>() {
         Ok(id) => id,
         Err(_) => return Html("<div class='error'>Invalid task ID</div>".to_string()).into_response(),
     };
+
+    let branch_id = resolve_branch(&state, &headers);
+    let engine = TaskEngine::new(state.clone());
+    if engine.get_task(id, branch_id).is_err() {
+        return Html("<div class='error'>Task not found</div>".to_string()).into_response();
+    }
 
     let persistence = EnginePersistence::new(state.clone());
     match persistence.load_manifest(id).await {
@@ -234,12 +253,19 @@ pub async fn handle_get_terminal(
 
 pub async fn handle_get_log(
     State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     let id = match task_id.parse::<Uuid>() {
         Ok(id) => id,
         Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
     };
+
+    let branch_id = resolve_branch(&state, &headers);
+    let engine = TaskEngine::new(state.clone());
+    if engine.get_task(id, branch_id).is_err() {
+        return Json(serde_json::json!({"error": "Task not found"})).into_response();
+    }
 
     let persistence = EnginePersistence::new(state.clone());
     match persistence.load_manifest(id).await {

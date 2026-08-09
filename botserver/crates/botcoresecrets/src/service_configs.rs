@@ -189,6 +189,12 @@ impl SecretsManager {
     }
 
     pub async fn get_database_url(&self) -> Result<String> {
+        if let Ok(url) = std::env::var("DATABASE_URL") {
+            let url = url.trim().to_string();
+            if !url.is_empty() {
+                return Ok(url);
+            }
+        }
         let (host, port, db, user, pass) = self.get_database_config().await?;
         Ok(format!("postgres://{}:{}@{}:{}/{}", user, pass, host, port, db))
     }
