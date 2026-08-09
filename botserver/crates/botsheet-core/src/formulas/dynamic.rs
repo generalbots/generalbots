@@ -197,7 +197,7 @@ fn apply_bindings(calc: &str, bindings: &[(String, String)]) -> String {
 }
 
 fn collect_rows(range: &str, worksheet: &Worksheet) -> Vec<Vec<String>> {
-    if let Some((start, end)) = super::parse_range(range) {
+    if let Some((start, end)) = super::parse_range(range).map(|(s, e)| super::refs::clamp_range(s, e, worksheet)) {
         let mut out = Vec::new();
         for r in start.0..=end.0 {
             let mut row = Vec::new();
@@ -218,7 +218,7 @@ fn collect_rows(range: &str, worksheet: &Worksheet) -> Vec<Vec<String>> {
 }
 
 fn collect_cols(range: &str, worksheet: &Worksheet) -> Vec<Vec<String>> {
-    if let Some((start, end)) = super::parse_range(range) {
+    if let Some((start, end)) = super::parse_range(range).map(|(s, e)| super::refs::clamp_range(s, e, worksheet)) {
         let mut out = Vec::new();
         for c in start.1..=end.1 {
             let mut col = Vec::new();

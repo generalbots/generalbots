@@ -14,6 +14,10 @@
 
 All endpoints require a valid session token via `Authorization: Bearer <token>` header.
 
+> **⚠️ Not enforced yet.** The handlers currently resolve every request to a single hardcoded user identity, so any client can read or overwrite any document by id, and no per-document permission is checked. Real identity, tenancy scoping and a four-role ACL (owner / editor / commenter / viewer) are tracked in [generalbots#789](https://github.com/generalbots/generalbots/issues/789). Do not expose these endpoints to untrusted clients until it lands. See [Excel Parity Plan](../07-user-interface/apps/sheet-excel-parity.md).
+
+> **⚠️ Concurrency.** Every mutating endpoint currently loads the whole document, mutates it, and writes it back with no version check. Two clients editing different cells will lose one edit silently. Optimistic concurrency with a `version` field and `409 Conflict` responses is part of the same issue.
+
 ---
 
 ## Spreadsheet Operations
@@ -1047,9 +1051,11 @@ Uses AI to analyze or transform spreadsheet data.
 
 ### Collaborative Editing
 
-**`GET /api/sheet/ws/:sheet_id`**
+**`GET /ws/sheet/:sheet_id`**
 
 Establishes a WebSocket connection for real-time collaborative editing.
+
+> **⚠️ The current wire protocol addresses a cell as a single integer, `row * 26 + col`, with 26 hardcoded on both ends.** Any grid wider than 26 columns therefore delivers every remote edit to the wrong cell, and two clients configured differently corrupt each other's data. Conflict handling is last-write-wins with no sequence numbers, no reconnect recovery and no rendered presence. The replacement protocol — A1 addressing, server-authoritative sequencing with operation transformation, and oplog-based recovery — is tracked in [generalbots#791](https://github.com/generalbots/generalbots/issues/791). The message shapes below are the target protocol, not the current one.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -1237,8 +1243,37 @@ Returns metadata for a specific spreadsheet.
 
 ---
 
+## Endpoint status
+
+Endpoints that accept and persist a request but whose effect is not yet visible or enforced. Each is reachable and returns success; the gap is downstream.
+
+| Endpoint | Status | Note |
+|----------|--------|------|
+| `POST /api/sheet/format` | Partial | Style is stored and applied to the active cell only; number format codes are stored but not rendered |
+| `POST /api/sheet/formula` | Partial | A formula must be a single function call; `=SUM(A1:A3)+1`, `=A1&B1`, `=A1^2` and nested calls return `#ERROR!`. String literals are upper-cased |
+| `POST /api/sheet/cell` | Partial | Recalculation of dependents silently stops after 1000 cells |
+| `POST /api/sheet/merge` | Stored, not rendered | The grid does not draw merges |
+| `POST /api/sheet/freeze` | Stored, not rendered | — |
+| `POST /api/sheet/filter` | Stored, not applied | No rows are hidden |
+| `POST /api/sheet/sort` | Partial | Values move; formulas referencing them are not rewritten |
+| `POST /api/sheet/chart` | Stored, not rendered | Series data is snapshotted rather than bound to a range |
+| `POST /api/sheet/conditional-format` | Stored, not applied | — |
+| `POST /api/sheet/data-validation` | Stored, not enforced | `POST /api/sheet/validate-cell` works but the editor never calls it |
+| `POST /api/sheet/comment*` | Stored, not rendered | Threads are complete server-side; the grid draws no marker |
+| `POST /api/sheet/protect` | Stored, not enforced | — |
+| `POST /api/sheet/export` | Partial | CSV/TSV/JSON/HTML/Markdown work but emit unformatted values; ODS emits content XML rather than a complete package; PDF returns HTML bytes |
+| `POST /api/sheet/import` | Partial | `.xlsx` import drops defined names, validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, protection and print setup |
+| `POST /api/sheet/share` | Partial | No real ACL is written; see [#789](https://github.com/generalbots/generalbots/issues/789) |
+| `GET /api/sheet/list` | Partial | Fully deserialises every document to build the list |
+
+Full detail and the plan to close each gap: [Excel Parity Plan](../07-user-interface/apps/sheet-excel-parity.md).
+
+---
+
 ## See Also
 
+- [Sheet - Spreadsheets](../07-user-interface/apps/sheet.md) — user-facing feature reference
+- [Excel Parity Plan](../07-user-interface/apps/sheet-excel-parity.md) — current gaps and roadmap
 - [Files API](files-api.md) — file operations and Drive management
 - [CRM API](crm-api.md) — contact and account data integration
 - [Tasks API](tasks-api.md) — task tracking from spreadsheet data
