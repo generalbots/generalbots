@@ -36,6 +36,15 @@
     });
   }
 
+  function applyDynamic() {
+    const nameInput = document.getElementById("sheetName");
+    if (nameInput && (!nameInput.value || nameInput.value === "Untitled Spreadsheet")) {
+      nameInput.value = t("file.untitled_sheet");
+    }
+    const empty = document.querySelector("#sidebar-files .ss-empty-hint");
+    if (empty) empty.textContent = t("sidebar.none");
+  }
+
   function load(locale) {
     return fetch("/suite/sheet/locales/" + locale + ".json")
       .then(function (r) {
@@ -46,12 +55,14 @@
         strings = (data && data.strings) || {};
         localStorage.setItem("gb-sheet-locale", locale);
         localize();
+        applyDynamic();
         window.dispatchEvent(new CustomEvent("gb-sheet-locale", { detail: { locale: locale } }));
       })
       .catch(function () {
         if (locale !== "en") return load("en");
         strings = {};
         localize();
+        applyDynamic();
       });
   }
 

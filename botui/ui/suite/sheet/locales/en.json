@@ -102,6 +102,23 @@
     "common.strikethrough": "Strikethrough",
     "common.merge": "Merge Cells",
     "modal.custom_format": "Custom Number Format",
-    "common.share": "Share"
+    "common.share": "Share",
+    "sidebar.files": "📁 Files",
+    "sidebar.panels": "📊 Panels",
+    "sidebar.untitled": "Untitled Spreadsheet",
+    "sidebar.none": "No spreadsheets yet. Create one to start.",
+    "sidebar.my_sheets": "My Sheets",
+    "sidebar.new": "+ New",
+    "sidebar.sheets_count": "{0} sheet(s)",
+    "sidebar.load_error": "Error loading sheets.",
+    "sidebar.named_ranges": "📐 Named Ranges",
+    "sidebar.charts": "📊 Charts",
+    "sidebar.validations": "✓ Validations",
+    "sidebar.conditional_format": "🎨 Conditional Formatting",
+    "sidebar.external_links": "🔗 External Links",
+    "sidebar.comments": "💬 Comments",
+    "sidebar.protection": "🔒 Protection",
+    "sidebar.array_formulas": "🔢 Array Formulas",
+    "sidebar.advanced_ranges": "⚙ Advanced Actions"
   }
 }

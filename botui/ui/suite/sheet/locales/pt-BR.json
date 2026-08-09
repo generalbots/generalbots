@@ -102,6 +102,23 @@
     "common.strikethrough": "Tachado",
     "common.merge": "Mesclar células",
     "modal.custom_format": "Formato Numérico Personalizado",
-    "common.share": "Compartilhar"
+    "common.share": "Compartilhar",
+    "sidebar.files": "📁 Arquivos",
+    "sidebar.panels": "📊 Painéis",
+    "sidebar.untitled": "Planilha sem título",
+    "sidebar.none": "Nenhuma planilha. Crie uma nova para começar.",
+    "sidebar.my_sheets": "Minhas Planilhas",
+    "sidebar.new": "+ Nova",
+    "sidebar.sheets_count": "{0} planilha(s)",
+    "sidebar.load_error": "Erro ao carregar planilhas.",
+    "sidebar.named_ranges": "📐 Ranges Nomeados",
+    "sidebar.charts": "📊 Gráficos",
+    "sidebar.validations": "✓ Validações",
+    "sidebar.conditional_format": "🎨 Formatação Condicional",
+    "sidebar.external_links": "🔗 Links Externos",
+    "sidebar.comments": "💬 Comentários",
+    "sidebar.protection": "🔒 Proteção",
+    "sidebar.array_formulas": "🔢 Fórmulas de Matriz",
+    "sidebar.advanced_ranges": "⚙ Ações Avançadas"
   }
 }

@@ -89,20 +89,20 @@
     <div class="sheet-main">
         <aside class="sheet-sidebar" id="sheet-sidebar" style="width:240px;background:#0f172a;border-right:1px solid #334155;display:flex;flex-direction:column;">
             <div class="sidebar-tabs" style="display:flex;border-bottom:1px solid #334155;">
-                <button class="sidebar-tab active" data-sidebar-tab="files" style="flex:1;padding:8px;background:#1e293b;color:#f8fafc;border:none;cursor:pointer;font-size:12px;">📁 Arquivos</button>
-                <button class="sidebar-tab" data-sidebar-tab="panels" style="flex:1;padding:8px;background:#0f172a;color:#94a3b8;border:none;cursor:pointer;font-size:12px;">📊 Painéis</button>
+                <button class="sidebar-tab active" data-sidebar-tab="files" data-i18n="sidebar.files" style="flex:1;padding:8px;background:#1e293b;color:#f8fafc;border:none;cursor:pointer;font-size:12px;">📁 Arquivos</button>
+                <button class="sidebar-tab" data-sidebar-tab="panels" data-i18n="sidebar.panels" style="flex:1;padding:8px;background:#0f172a;color:#94a3b8;border:none;cursor:pointer;font-size:12px;">📊 Painéis</button>
             </div>
             <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files"></div>
             <div class="sidebar-content" id="sidebar-panels" data-sidebar-content="panels" style="display:none;flex-direction:column;padding:8px;gap:6px;">
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('named-ranges')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📐 Ranges Nomeados</button>
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('charts')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📊 Gráficos</button>
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('validations')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">✓ Validações</button>
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('conditional-formats')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🎨 Formatação Condicional</button>
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('external-links')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔗 Links Externos</button>
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('comments')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">💬 Comentários</button>
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('protection')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔒 Proteção</button>
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('array-formulas')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔢 Fórmulas de Matriz</button>
-                <button class="sidebar-panel-btn" onclick="openSheetPanel('advanced-ranges')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">⚙ Ações Avançadas</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.named_ranges" onclick="openSheetPanel('named-ranges')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📐 Ranges Nomeados</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.charts" onclick="openSheetPanel('charts')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📊 Gráficos</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.validations" onclick="openSheetPanel('validations')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">✓ Validações</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.conditional_format" onclick="openSheetPanel('conditional-formats')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🎨 Formatação Condicional</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.external_links" onclick="openSheetPanel('external-links')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔗 Links Externos</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.comments" onclick="openSheetPanel('comments')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">💬 Comentários</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.protection" onclick="openSheetPanel('protection')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔒 Proteção</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.array_formulas" onclick="openSheetPanel('array-formulas')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🔢 Fórmulas de Matriz</button>
+                <button class="sidebar-panel-btn" data-i18n="sidebar.advanced_ranges" onclick="openSheetPanel('advanced-ranges')" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">⚙ Ações Avançadas</button>
             </div>
         </aside>
 
@@ -144,7 +144,7 @@ function loadSidebar() {
     if (!el) return;
     fetch('/api/sheet/list').then(function(r){ return r.json(); }).then(function(items){
         if (!items || items.length === 0) {
-            el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-style:italic;">Nenhuma planilha. Crie uma nova para começar.</div>';
+            el.innerHTML = '<div class="ss-empty-hint" style="padding:24px;text-align:center;color:#94a3b8;font-style:italic;">' + (window.SheetI18n ? window.SheetI18n.t('sidebar.none') : 'Nenhuma planilha. Crie uma nova para começar.') + '</div>';
             return;
         }
         var html = '<div class="ss-sidebar" id="sheet-list-sidebar"><div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;font-size:14px;">Minhas Planilhas</h3><button class="btn-icon" onclick="newSheet()" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Nova</button></div><div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
