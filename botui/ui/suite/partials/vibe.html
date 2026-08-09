@@ -231,6 +231,18 @@ font-weight: 600;
 ">
 👥 Members
 </button>
+<button id="vibeGraphToggle" style="
+border: 1px solid var(--accent);
+background: transparent;
+color: var(--text);
+border-radius: 4px;
+padding: 2px 8px;
+cursor: pointer;
+margin-right: 12px;
+font-weight: 600;
+">
+⛓ Graph
+</button>
 <button class="vibe-browser-btn" onclick="document.getElementById('vibeBrowserModal').style.display='flex'" style="
 border: 1px solid var(--accent);
 background: transparent;
@@ -722,6 +734,21 @@ Enable CI/CD pipeline (automatic builds and deployments)
   </div>
 </div>
 
+<!-- Vibe Graph Panel + Capabilities -->
+<div id="vibeGraphPanel" style="display: none; position: absolute; right: 24px; bottom: 24px; width: 480px; height: 360px; z-index: 80; border: 1px solid var(--border, #333); border-radius: 10px; overflow: hidden; background: var(--surface, #14142a); box-shadow: 0 12px 40px rgba(0,0,0,0.45); flex-direction: column;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--border, #333); font-size: 12px; font-weight: 700; color: var(--text, #eee);">
+    <span>KNOWLEDGE GRAPH · <span id="vibeGraphUseCaseLabel">software_development</span></span>
+    <span>
+      <button onclick="VibeGraph && VibeGraph.togglePanel(true)" style="background: transparent; border: 1px solid var(--border, #333); color: var(--text, #eee); border-radius: 4px; padding: 1px 8px; cursor: pointer; margin-right: 6px;">⟳</button>
+      <button id="vibeGraphClose" style="background: transparent; border: none; color: var(--text-muted, #888); cursor: pointer; font-size: 14px;">✕</button>
+    </span>
+  </div>
+  <div style="flex: 1; min-height: 0; position: relative;">
+    <canvas id="vibeGraphCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+  </div>
+  <div id="vibeCapabilities" style="max-height: 120px; overflow-y: auto; border-top: 1px solid var(--border, #333); padding: 8px 12px; font-size: 11px; color: var(--text-muted, #aaa);"></div>
+</div>
+
 <script src="/suite/vibe/vibe-state.js"></script>
 <script src="/suite/vibe/vibe-helpers.js"></script>
 <script src="/suite/vibe/vibe-canvas.js"></script>
@@ -729,6 +756,7 @@ Enable CI/CD pipeline (automatic builds and deployments)
 <script src="/suite/vibe/vibe-websocket.js"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>
 <script src="/suite/vibe/vibe-deploy.js"></script>
+<script src="/suite/vibe/vibe-graph.js"></script>
 <script src="/suite/vibe/vibe-init.js"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
 <script src="/suite/vibe/vibe-new-project.js"></script>
