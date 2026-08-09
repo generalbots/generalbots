@@ -166,18 +166,32 @@
 
   function applyValidationMarkers(g, visible) {
     const vals = validationsFor();
-    if (!Object.keys(vals).length) return;
+    const hasVals = Object.keys(vals).length > 0;
     for (let r = visible.start; r < visible.end; r++) {
       for (let c = 0; c < g.totalCols; c++) {
-        if (!vals[r + "," + c]) continue;
+        const key = r + "," + c;
+        const d = g.cells.get(key);
+        const hasVal = hasVals && !!vals[key];
+        const hasComment = d && (d.has_comment || d.note);
+        if (!hasVal && !hasComment) continue;
         const node = g.bodyInner.querySelector('[data-row="' + r + '"][data-col="' + c + '"]');
         if (!node) continue;
-        if (!node.querySelector(".ss-validation-dot")) {
+        if (hasVal && !node.querySelector(".ss-validation-dot")) {
           const dot = document.createElement("span");
           dot.className = "ss-validation-dot";
           dot.style.cssText = "position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:#ef4444;";
           node.style.position = "relative";
           node.appendChild(dot);
+        }
+        if (hasComment && !node.querySelector(".ss-comment-marker")) {
+          const mark = document.createElement("span");
+          mark.className = "ss-comment-marker";
+          mark.style.cssText = "position:absolute;right:2px;bottom:2px;width:0;height:0;border-right:6px solid transparent;border-bottom:6px solid #f59e0b;";
+          node.style.position = "relative";
+          node.appendChild(mark);
+          if (d.note) {
+            mark.title = String(d.note);
+          }
         }
       }
     }
