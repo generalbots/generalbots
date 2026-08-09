@@ -18,6 +18,9 @@ futures = { workspace = true }
 # Database
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2"] }
 
+# Crates under test
+botbilling = { workspace = true }
+
 # HTTP mocking and testing
 wiremock = { workspace = true }
 cookie = { workspace = true }

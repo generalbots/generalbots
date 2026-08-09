@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-use wiremock::matchers::{body_string_contains, header, method, path};
+use wiremock::matchers::{body_string_contains, header, method, path, path_regex};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 pub struct MockZitadel {
@@ -303,8 +303,75 @@ impl MockZitadel {
         access_token
     }
 
-    pub async fn expect_token_refresh(&self) {
-        let access_token = format!("test_access_{}", Uuid::new_v4());
+    pub async fn mount_cloud_flow(&self, user_id: &str) {
+        let session_id = format!("test_session_{}", Uuid::new_v4());
+        let session_token = format!("test_session_token_{}", Uuid::new_v4());
+        let svc_token = format!("test_service_{}", Uuid::new_v4());
+
+        Mock::given(method("POST"))
+            .and(path("/management/v1/users/_search"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"totalResult": 0, "result": []})),
+            )
+            .mount(&self.server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/management/v1/users/human"))
+            .respond_with(
+                ResponseTemplate::new(201)
+                    .set_body_json(serde_json::json!({"userId": user_id})),
+            )
+            .mount(&self.server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path_regex(r"^/v2/users/[^/]+/password$"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({})))
+            .mount(&self.server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/oauth/v2/token"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "access_token": svc_token,
+                    "token_type": "Bearer",
+                    "expires_in": 3600,
+                    "scope": "urn:zitadel:iam:org:project:role:me",
+                })),
+            )
+            .mount(&self.server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/v2/sessions"))
+            .respond_with(
+                ResponseTemplate::new(201).set_body_json(serde_json::json!({
+                    "sessionId": session_id,
+                    "sessionToken": session_token,
+                })),
+            )
+            .mount(&self.server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path(format!("/v2/sessions/{}", session_id)))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "session": {
+                        "factors": {
+                            "user": { "id": user_id, "loginName": "test-user" }
+                        }
+                    }
+                })),
+            )
+            .mount(&self.server)
+            .await;
+    }
+
+    pub async fn expect_token_refresh(&self) {        let access_token = format!("test_access_{}", Uuid::new_v4());
         let refresh_token = format!("test_refresh_{}", Uuid::new_v4());
 
         let token_response = TokenResponse {
