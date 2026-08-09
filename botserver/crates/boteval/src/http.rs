@@ -4,9 +4,9 @@
 use crate::runner::LlmTarget;
 use async_trait::async_trait;
 use reqwest::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Message {
     pub role: String,
     pub content: String,

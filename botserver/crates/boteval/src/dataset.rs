@@ -41,6 +41,16 @@ impl Dataset {
         }
     }
 
+    /// Parses a dataset from its JSON representation.
+    pub fn from_json(bytes: &str) -> Result<Self, String> {
+        serde_json::from_str(bytes).map_err(|e| format!("invalid dataset json: {e}"))
+    }
+
+    /// Serializes the dataset as pretty JSON.
+    pub fn to_json(&self) -> Result<String, String> {
+        serde_json::to_string_pretty(self).map_err(|e| format!("dataset serialization failed: {e}"))
+    }
+
     pub fn push(&mut self, entry: DatasetEntry) {
         self.entries.push(entry);
     }

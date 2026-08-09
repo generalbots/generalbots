@@ -1,0 +1,4548 @@
+{
+  "name": "vibe-200",
+  "description": "Regression suite for the Vibe agent loop across use cases and languages",
+  "format": "jsonl",
+  "entries": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "prompt": "Write a function that reverses a string in Python.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "def ",
+          "reverse"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "prompt": "Escreva uma função que inverte uma string em Python.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "def ",
+          "inverter"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "prompt": "Explain the difference between the stack and the heap in memory.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "stack",
+          "heap"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000004",
+      "prompt": "Explique a diferença entre stack e heap na memória.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "pilha",
+          "stack",
+          "heap"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000005",
+      "prompt": "Here is code: for i in range(10): print(i.upper()). Find the bug and explain the fix.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "bug",
+          "fix"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000006",
+      "prompt": "Aqui está código: for i in range(10): print(i.upper()). Encontre o erro e explique a correção.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "erro",
+          "correção"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000007",
+      "prompt": "Write SQL to select all users created in the last month.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "SELECT",
+          "FROM"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000008",
+      "prompt": "Escreva SQL para selecionar todos os usuários criados no último mês.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "SELECT",
+          "FROM"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000009",
+      "prompt": "What is a unit test and what are its three typical parts?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "unit test"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000000a",
+      "prompt": "O que é um teste unitário e quais são suas três partes típicas?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "teste unitário"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000000b",
+      "prompt": "Explain the difference between git rebase and git merge.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "rebase",
+          "merge"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000000c",
+      "prompt": "Explique a diferença entre git rebase e git merge.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "rebase",
+          "merge"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000000d",
+      "prompt": "Write a Python list comprehension that doubles each number in a list.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "n * 2",
+          "for"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000000e",
+      "prompt": "Escreva uma compreensão de lista em Python que dobre cada número de uma lista.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "* 2",
+          "for"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000000f",
+      "prompt": "What does Big-O notation describe in algorithm analysis?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "complexity"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000010",
+      "prompt": "O que a notação Big-O descreve na análise de algoritmos?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "complexidade"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000011",
+      "prompt": "Explain HTTP status codes 200, 404, and 500.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "200",
+          "404",
+          "500"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000012",
+      "prompt": "Explique os códigos de status HTTP 200, 404 e 500.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "200",
+          "404",
+          "500"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000013",
+      "prompt": "Write a function that checks whether a number is prime.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "prime"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000014",
+      "prompt": "Escreva uma função que verifique se um número é primo.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "primo"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000015",
+      "prompt": "What is an API and how does it differ from a library?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "API"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000016",
+      "prompt": "O que é uma API e como ela difere de uma biblioteca?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "API"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000017",
+      "prompt": "What is a database index and why is it useful?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "index"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000018",
+      "prompt": "O que é um índice de banco de dados e por que ele é útil?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "índice"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000019",
+      "prompt": "What is continuous integration in software engineering?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "automated",
+          "build"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000001a",
+      "prompt": "O que é integração contínua em engenharia de software?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "automatizado",
+          "build"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000001b",
+      "prompt": "Write a regex pattern that validates a simple email address.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "@",
+          "regex"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000001c",
+      "prompt": "Escreva um padrão regex que valide um endereço de e-mail simples.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "@",
+          "regex"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000001d",
+      "prompt": "What is a deadlock in concurrent programming?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "deadlock"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000001e",
+      "prompt": "O que é um deadlock em programação concorrente?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "deadlock"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000001f",
+      "prompt": "What is dependency injection and why is it used?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "dependency"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000020",
+      "prompt": "O que é injeção de dependência e por que ela é usada?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "dependência"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000021",
+      "prompt": "Implement a binary search function over a sorted array.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "binary search"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000022",
+      "prompt": "Implemente uma função de busca binária sobre um array ordenado.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "busca binária"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000023",
+      "prompt": "What is the difference between TCP and UDP?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "TCP",
+          "UDP"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000024",
+      "prompt": "Qual é a diferença entre TCP e UDP?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "TCP",
+          "UDP"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000025",
+      "prompt": "Write a bash command that lists files larger than 100MB.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "find",
+          "size"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000026",
+      "prompt": "Escreva um comando bash que liste arquivos maiores que 100MB.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "find",
+          "tamanho"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000027",
+      "prompt": "What is a JSON Web Token and how is it used for authentication?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "JWT",
+          "token"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000028",
+      "prompt": "O que é um JSON Web Token e como ele é usado para autenticação?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "software_development",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "JWT",
+          "token"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000029",
+      "prompt": "A customer wants to open a new support ticket. What information should you collect?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "ticket",
+          "description"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000002a",
+      "prompt": "Um cliente quer abrir um novo ticket de suporte. Quais informações você deve coletar?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "ticket",
+          "descrição"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000002b",
+      "prompt": "Explain the standard refund policy to a customer.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "refund"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000002c",
+      "prompt": "Explique a política de reembolso padrão ao cliente.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "reembolso"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000002d",
+      "prompt": "A customer requests to speak with a human agent. How do you proceed?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "transfer",
+          "human"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000002e",
+      "prompt": "Um cliente pede para falar com um atendente humano. Como você procede?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "transferir",
+          "humano"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000002f",
+      "prompt": "A customer asks about the status of their order. What steps do you take?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "order",
+          "status"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000030",
+      "prompt": "Um cliente pergunta sobre o status do pedido dele. Quais passos você toma?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "pedido",
+          "status"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000031",
+      "prompt": "Explain the product return process to a customer.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "return"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000032",
+      "prompt": "Explique o processo de devolução de produto ao cliente.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "devolução"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000033",
+      "prompt": "Walk a customer through resetting their account password.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "password",
+          "reset"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000034",
+      "prompt": "Oriente um cliente a redefinir a senha da conta dele.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "senha",
+          "redefinir"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000035",
+      "prompt": "A customer wants to cancel their subscription. What is the process?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "cancel",
+          "subscription"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000036",
+      "prompt": "Um cliente quer cancelar a assinatura dele. Qual é o processo?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "cancelar",
+          "assinatura"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000037",
+      "prompt": "A customer complains that their shipment is late. How do you respond?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "apolog",
+          "shipment"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000038",
+      "prompt": "Um cliente reclama que a entrega está atrasada. Como você responde?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "desculpa",
+          "entrega"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000039",
+      "prompt": "Is a two-year-old laptop still under warranty? Explain how warranty works.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "warranty"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000003a",
+      "prompt": "Um notebook de dois anos ainda está na garantia? Explique como a garantia funciona.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "garantia"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000003b",
+      "prompt": "What support channels are available and how can a customer reach each one?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "email",
+          "phone"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000003c",
+      "prompt": "Quais canais de suporte estão disponíveis e como o cliente acessa cada um?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "e-mail",
+          "telefone"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000003d",
+      "prompt": "A customer's payment failed. List the steps to troubleshoot.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "payment",
+          "card"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000003e",
+      "prompt": "O pagamento de um cliente falhou. Liste os passos para diagnosticar.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "pagamento",
+          "cartão"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000003f",
+      "prompt": "A customer asks how their personal data is protected. What do you say?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "privacy",
+          "data"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000040",
+      "prompt": "Um cliente pergunta como os dados pessoais dele são protegidos. O que você responde?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "privacidade",
+          "dados"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000041",
+      "prompt": "What are the business hours for support?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "hours"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000042",
+      "prompt": "Quais são os horários de funcionamento do suporte?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "horário"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000043",
+      "prompt": "Explain the loyalty program benefits to a customer.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "points",
+          "loyalty"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000044",
+      "prompt": "Explique os benefícios do programa de fidelidade ao cliente.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "pontos",
+          "fidelidade"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000045",
+      "prompt": "A customer wants to redeem a gift code. Explain the steps.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "code",
+          "redeem"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000046",
+      "prompt": "Um cliente quer resgatar um código de presente. Explique os passos.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "código",
+          "resgatar"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000047",
+      "prompt": "A customer requests a copy of their invoice. How do you provide it?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "invoice"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000048",
+      "prompt": "Um cliente solicita uma cópia da nota fiscal dele. Como você fornece?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "nota fiscal"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000049",
+      "prompt": "A customer needs help installing the mobile app. Give setup guidance.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "install",
+          "app"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000004a",
+      "prompt": "Um cliente precisa de ajuda para instalar o aplicativo. Dê instruções de configuração.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "instalar",
+          "aplicativo"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000004b",
+      "prompt": "The customer insists on speaking to a manager. How do you de-escalate?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "manager",
+          "escalat"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000004c",
+      "prompt": "O cliente insiste em falar com um gerente. Como você reduz a escalação?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "gerente",
+          "escalar"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000004d",
+      "prompt": "A customer wants to suggest a new feature. Explain the process.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "feature",
+          "feedback"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000004e",
+      "prompt": "Um cliente quer sugerir um novo recurso. Explique o processo.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "recurso",
+          "feedback"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000004f",
+      "prompt": "How should a complaint about a defective product be handled end to end?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "replace",
+          "record"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000050",
+      "prompt": "Como uma reclamação sobre um produto defeituoso deve ser tratada de ponta a ponta?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "customer_support",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "substituir",
+          "registrar"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000051",
+      "prompt": "Explain the difference between net income and gross income.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "net",
+          "gross"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000052",
+      "prompt": "Explique a diferença entre lucro líquido e renda bruta.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "líquido",
+          "bruto"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000053",
+      "prompt": "List the main components of an income statement.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "revenue",
+          "expenses"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000054",
+      "prompt": "Liste os principais componentes de uma demonstração de resultados.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "receitas",
+          "despesas"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000055",
+      "prompt": "What is a balance sheet and what does it show?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "assets",
+          "liabilities"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000056",
+      "prompt": "O que é um balanço patrimonial e o que ele mostra?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "ativos",
+          "passivos"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000057",
+      "prompt": "What is the purpose of a cash flow statement?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "cash",
+          "flow"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000058",
+      "prompt": "Qual é o propósito de uma demonstração de fluxo de caixa?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "caixa",
+          "fluxo"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000059",
+      "prompt": "Define EBITDA and explain why companies use it.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "EBITDA"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000005a",
+      "prompt": "Defina EBITDA e explique por que as empresas o usam.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "EBITDA"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000005b",
+      "prompt": "What is the difference between gross margin and net margin?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "margin"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000005c",
+      "prompt": "Qual é a diferença entre margem bruta e margem líquida?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "margem"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000005d",
+      "prompt": "What does the current ratio measure in liquidity analysis?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "current assets",
+          "current liabilities"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000005e",
+      "prompt": "O que o índice de liquidez corrente mede?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "ativo circulante",
+          "passivo circulante"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000005f",
+      "prompt": "Explain the difference between depreciation and amortization.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "depreciation",
+          "amortization"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000060",
+      "prompt": "Explique a diferença entre depreciação e amortização.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "depreciação",
+          "amortização"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000061",
+      "prompt": "What is variance analysis and when is it used?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "variance",
+          "budget"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000062",
+      "prompt": "O que é análise de variação e quando ela é usada?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "variação",
+          "orçamento"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000063",
+      "prompt": "What is the break-even point and how is it calculated?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "break-even"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000064",
+      "prompt": "O que é o ponto de equilíbrio e como ele é calculado?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "equilíbrio"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000065",
+      "prompt": "What is the difference between CAPEX and OPEX?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "CAPEX",
+          "OPEX"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000066",
+      "prompt": "Qual é a diferença entre CAPEX e OPEX?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "CAPEX",
+          "OPEX"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000067",
+      "prompt": "Define working capital and explain its importance.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "working capital"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000068",
+      "prompt": "Defina capital de giro e explique sua importância.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "capital de giro"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000069",
+      "prompt": "What is revenue recognition and why is it important?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "revenue"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000006a",
+      "prompt": "O que é reconhecimento de receita e por que é importante?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "receita"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000006b",
+      "prompt": "What is portfolio diversification and what risk does it reduce?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "risk"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000006c",
+      "prompt": "O que é diversificação de carteira e qual risco ela reduz?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "risco"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000006d",
+      "prompt": "Describe the basic steps to build a simple revenue forecast.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "forecast"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000006e",
+      "prompt": "Descreva os passos básicos para construir uma previsão simples de receita.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "previsão"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000006f",
+      "prompt": "How is CAGR calculated and what does it represent?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "CAGR"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000070",
+      "prompt": "Como o CAGR é calculado e o que ele representa?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "CAGR"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000071",
+      "prompt": "What is goodwill on a balance sheet?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "goodwill",
+          "acquisition"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000072",
+      "prompt": "O que é goodwill em um balanço patrimonial?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "goodwill",
+          "aquisição"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000073",
+      "prompt": "List the typical components of the cost of goods sold.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "materials",
+          "labor"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000074",
+      "prompt": "Liste os componentes típicos do custo dos produtos vendidos.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "materiais",
+          "mão de obra"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000075",
+      "prompt": "Describe the main steps of a financial statement audit.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "audit"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000076",
+      "prompt": "Descreva as principais etapas de uma auditoria de demonstrações financeiras.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "auditoria"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000077",
+      "prompt": "What does return on equity measure and how is it computed?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "return on equity",
+          "shareholders"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000078",
+      "prompt": "O que o retorno sobre o patrimônio mede e como é calculado?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "financial_analysis",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "retorno sobre o patrimônio",
+          "acionistas"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000079",
+      "prompt": "Hello! How are you today?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "glad",
+          "help"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000007a",
+      "prompt": "Olá! Como você está hoje?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "alegria",
+          "ajudar"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000007b",
+      "prompt": "What can you help me with?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "help",
+          "questions"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000007c",
+      "prompt": "Com o que você pode me ajudar?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "ajudar",
+          "perguntas"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000007d",
+      "prompt": "Summarize this in one sentence: The bot assists customers with orders, refunds, and technical issues.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "customers"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000007e",
+      "prompt": "Resuma em uma frase: O bot ajuda clientes com pedidos, reembolsos e problemas técnicos.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "clientes"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000007f",
+      "prompt": "List three benefits of automation for businesses.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "efficiency",
+          "cost"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000080",
+      "prompt": "Liste três benefícios da automação para empresas.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "eficiência",
+          "custo"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000081",
+      "prompt": "Translate the word goodbye to Portuguese and the word obrigado to English.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "adeus",
+          "thank you"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000082",
+      "prompt": "Traduza a palavra goodbye para português e a palavra obrigado para inglês.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "adeus",
+          "thank you"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000083",
+      "prompt": "What is 15 percent of 200?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "30"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000084",
+      "prompt": "Quanto é 15 por cento de 200?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "30"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000085",
+      "prompt": "Convert 100 kilometers to miles.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "62"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000086",
+      "prompt": "Converta 100 quilômetros para milhas.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "62"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000087",
+      "prompt": "Write a short professional email requesting a meeting next week.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "meeting"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000088",
+      "prompt": "Escreva um e-mail profissional curto solicitando uma reunião na próxima semana.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "reunião"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000089",
+      "prompt": "What is the capital of France?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Paris"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000008a",
+      "prompt": "Qual é a capital da França?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Paris"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000008b",
+      "prompt": "Draft a polite message declining an invitation.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "thank you",
+          "unable"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000008c",
+      "prompt": "Redija uma mensagem educada recusando um convite.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "obrigado",
+          "impossível"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000008d",
+      "prompt": "Give three examples of renewable energy sources.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "solar",
+          "wind"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000008e",
+      "prompt": "Dê três exemplos de fontes de energia renovável.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "solar",
+          "eólica"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000008f",
+      "prompt": "What is the main cause of the seasons on Earth?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "axis",
+          "tilt"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000090",
+      "prompt": "Qual é a principal causa das estações do ano na Terra?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "eixo",
+          "inclinação"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000091",
+      "prompt": "Suggest a 3-step plan to learn a new language.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "practice"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000092",
+      "prompt": "Sugira um plano de 3 passos para aprender um novo idioma.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "prática"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000093",
+      "prompt": "Explain what a keyboard shortcut is and give one example.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Ctrl"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000094",
+      "prompt": "Explique o que é um atalho de teclado e dê um exemplo.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Ctrl"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000095",
+      "prompt": "How many days are in a leap year?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "366"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000096",
+      "prompt": "Quantos dias tem um ano bissexto?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "366"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000097",
+      "prompt": "Write a to-do list for a product launch week.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "launch",
+          "test"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000098",
+      "prompt": "Escreva uma lista de tarefas para a semana de lançamento de um produto.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "lançamento",
+          "teste"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000099",
+      "prompt": "What is the largest planet in our solar system?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Jupiter"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000009a",
+      "prompt": "Qual é o maior planeta do nosso sistema solar?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Júpiter"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000009b",
+      "prompt": "Explain the difference between weather and climate.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "short-term",
+          "long-term"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000009c",
+      "prompt": "Explique a diferença entre tempo e clima.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "curto prazo",
+          "longo prazo"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000009d",
+      "prompt": "Give an example of a healthy breakfast.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "protein"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000009e",
+      "prompt": "Dê um exemplo de café da manhã saudável.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "proteína"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000009f",
+      "prompt": "What should you do if you receive a suspicious email attachment?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "delete",
+          "sender"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a0",
+      "prompt": "O que você deve fazer se receber um anexo de e-mail suspeito?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "excluir",
+          "remetente"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a1",
+      "prompt": "Describe a backup strategy for important files.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "backup"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a2",
+      "prompt": "Descreva uma estratégia de backup para arquivos importantes.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "backup"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a3",
+      "prompt": "What is two-factor authentication?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "two",
+          "code"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a4",
+      "prompt": "O que é autenticação de dois fatores?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "dois",
+          "código"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a5",
+      "prompt": "Recommend a brief warm-up before exercising.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "stretch"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a6",
+      "prompt": "Recomende um aquecimento breve antes de se exercitar.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "alongamento"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a7",
+      "prompt": "Name three search engines.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Google"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a8",
+      "prompt": "Cite três mecanismos de busca.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Google"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000a9",
+      "prompt": "Explain why drinking water is important.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "hydrat"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000aa",
+      "prompt": "Explique por que beber água é importante.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "hidratação"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000ab",
+      "prompt": "Write a friendly reminder message for an overdue invoice.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "invoice",
+          "payment"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000ac",
+      "prompt": "Escreva uma mensagem amigável de lembrete para uma fatura vencida.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "fatura",
+          "pagamento"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000ad",
+      "prompt": "What is the square root of 144?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "12"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000ae",
+      "prompt": "Qual é a raiz quadrada de 144?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "12"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000af",
+      "prompt": "Give two tips for reducing screen time.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "break"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b0",
+      "prompt": "Dê duas dicas para reduzir o tempo de tela.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "pausas"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b1",
+      "prompt": "Convert 25 degrees Celsius to Fahrenheit.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "77"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b2",
+      "prompt": "Converta 25 graus Celsius para Fahrenheit.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "77"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b3",
+      "prompt": "Explain what a cookie is in web browsing.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "website",
+          "data"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b4",
+      "prompt": "Explique o que é um cookie na navegação web.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "site",
+          "dados"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b5",
+      "prompt": "What are the three primary colors?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "red",
+          "blue",
+          "yellow"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b6",
+      "prompt": "Quais são as três cores primárias?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "vermelho",
+          "azul",
+          "amarelo"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b7",
+      "prompt": "Describe how to set a strong password.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "length",
+          "symbols"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b8",
+      "prompt": "Descreva como definir uma senha forte.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "comprimento",
+          "símbolos"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000b9",
+      "prompt": "Suggest a good structure for a weekly status report.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "progress",
+          "blockers"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000ba",
+      "prompt": "Sugira uma boa estrutura para um relatório semanal de status.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "progresso",
+          "impedimentos"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000bb",
+      "prompt": "What time zone does UTC stand for?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Universal",
+          "Coordinated"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000bc",
+      "prompt": "O que significa o fuso horário UTC?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "Universal",
+          "Coordenado"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000bd",
+      "prompt": "Name three Git commands used every day.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "commit",
+          "push"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000be",
+      "prompt": "Cite três comandos Git usados diariamente.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "commit",
+          "push"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000bf",
+      "prompt": "Give one advantage and one disadvantage of working remotely.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "flexibility"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c0",
+      "prompt": "Dê uma vantagem e uma desvantagem do trabalho remoto.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "flexibilidade"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c1",
+      "prompt": "Explain what a PDF is.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "document",
+          "format"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c2",
+      "prompt": "Explique o que é um PDF.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "documento",
+          "formato"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c3",
+      "prompt": "How many sides does a hexagon have?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "6",
+          "six"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c4",
+      "prompt": "Quantos lados tem um hexágono?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "6",
+          "seis"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c5",
+      "prompt": "Write a polite phrase to ask for clarification.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "could you"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c6",
+      "prompt": "Escreva uma frase educada para pedir esclarecimento.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "poderia"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c7",
+      "prompt": "List two ways to reduce plastic waste.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "reuse",
+          "recycle"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c8",
+      "prompt": "Liste duas formas de reduzir o lixo plástico.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "reutilizar",
+          "reciclar"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000c9",
+      "prompt": "What does FM and AM stand for in radio?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "frequency",
+          "modulation"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000ca",
+      "prompt": "O que significam FM e AM no rádio?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "frequência",
+          "modulação"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000cb",
+      "prompt": "Give a short definition of machine learning.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "data",
+          "learn"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000cc",
+      "prompt": "Dê uma definição curta de aprendizado de máquina.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "dados",
+          "aprender"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000cd",
+      "prompt": "What is the difference between hardware and software?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "physical",
+          "programs"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000ce",
+      "prompt": "Qual é a diferença entre hardware e software?",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "físico",
+          "programas"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000cf",
+      "prompt": "Suggest a title for a presentation about customer satisfaction.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "customer"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000d0",
+      "prompt": "Sugira um título para uma apresentação sobre satisfação do cliente.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "cliente"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000d1",
+      "prompt": "Write a concise confirmation message for an appointment.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:en",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "confirmed",
+          "time"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "en"
+      }
+    },
+    {
+      "id": "00000000-0000-0000-0000-0000000000d2",
+      "prompt": "Escreva uma mensagem curta de confirmação para um compromisso.",
+      "system_prompt": null,
+      "context": null,
+      "tags": [
+        "general",
+        "lang:pt-BR",
+        "vibe"
+      ],
+      "contract": {
+        "must_contain": [
+          "confirmado",
+          "horário"
+        ],
+        "must_not_contain": [],
+        "json_schema": null,
+        "max_tokens": null,
+        "min_tokens": null,
+        "language": "pt-BR"
+      }
+    }
+  ]
+}
