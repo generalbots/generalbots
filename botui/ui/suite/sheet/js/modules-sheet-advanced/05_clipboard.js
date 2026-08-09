@@ -289,6 +289,44 @@
     fill: applyFill,
   };
 
+  function onKeyDown(e) {
+    const g = grid();
+    if (!g) return;
+    if (g.editingCell != null) return;
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key.toLowerCase() === "c") {
+      e.preventDefault();
+      copySelection();
+    } else if (mod && e.key.toLowerCase() === "x") {
+      e.preventDefault();
+      cutSelection();
+    } else if (mod && e.key.toLowerCase() === "v") {
+      e.preventDefault();
+      pasteToSelection();
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      clearSelectionCells();
+    } else if (e.key === "Escape") {
+      if (window.SheetAdvanced && window.SheetAdvanced.clearSelection) window.SheetAdvanced.clearSelection();
+    }
+  }
+
+  function wire() {
+    const g = grid();
+    if (!g) {
+      setTimeout(wire, 100);
+      return;
+    }
+    if (!document.__saClipBound) {
+      document.__saClipBound = true;
+      document.addEventListener("keydown", onKeyDown, true);
+    }
+  }
+
+  setTimeout(wire, 0);
+
   if (window.SheetCore) {
     window.SheetCore.applyFill = applyFill;
     window.SheetCore.copySelection = copySelection;
