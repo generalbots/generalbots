@@ -358,9 +358,14 @@ impl VmRow {
 
 fn sanitize_part(s: &str) -> String {
     let mut out = String::new();
+    let mut last_dash = false;
     for ch in s.chars().take(32) {
-        if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+        if ch.is_ascii_alphanumeric() {
             out.push(ch.to_ascii_lowercase());
+            last_dash = false;
+        } else if (ch == '-' || ch == '_' || ch.is_whitespace()) && !out.is_empty() && !last_dash {
+            out.push('-');
+            last_dash = true;
         }
     }
     if out.is_empty() {
@@ -406,6 +411,8 @@ mod tests {
             "postgres://127.0.0.1:1/nonexistent",
         );
         let pool = diesel::r2d2::Pool::builder()
+            .max_size(1)
+            .min_idle(Some(0))
             .build(manager)
             .expect("pool builder");
         let lifecycle = VmLifecycle::new(pool);

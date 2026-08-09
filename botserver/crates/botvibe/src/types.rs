@@ -274,11 +274,18 @@ pub enum VibeTelemetryEventType {
     ApprovalDenied,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VibeRunSignal {
+    Approved(Uuid),
+    Cancelled(Uuid),
+}
+
 pub trait VibeState: Send + Sync {
     fn db_pool(&self) -> &DbPool;
     fn broadcast_progress(&self, event: VibeProgressEvent);
     fn progress_sender(&self) -> Option<&broadcast::Sender<VibeProgressEvent>>;
     fn active_runs(&self) -> &Arc<RwLock<HashMap<Uuid, VibeRun>>>;
+    fn run_signal_sender(&self) -> Option<&broadcast::Sender<VibeRunSignal>>;
 }
 
 pub trait VibeLlmOps: Send + Sync {
@@ -354,6 +361,7 @@ CREATE INDEX IF NOT EXISTS idx_vibe_telemetry_use_case ON vibe_telemetry(use_cas
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn run_state_display() {

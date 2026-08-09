@@ -42,7 +42,7 @@ pub async fn run_axum_server(
 
     let mut api_router = api_setup::setup_api_routes();
 
-    let sub_router = sub_router::build_sub_router(&app_state, port, &mut api_router);
+    let sub_router = sub_router::build_sub_router(&app_state, port, &mut api_router).await;
 
     #[cfg(feature = "deployment")]
     {

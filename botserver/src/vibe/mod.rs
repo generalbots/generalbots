@@ -14,7 +14,7 @@ use botvibe::ops_api::{ops_router, OpsRoutes};
 use botvibe::projects::ProjectRegistry;
 use botvibe::projects_api::projects_router;
 use botvibe::rbac::ProjectRbac;
-use botvibe::types::{VibeProgressEvent, VibeRun, VibeState};
+use botvibe::types::{VibeProgressEvent, VibeRun, VibeRunSignal, VibeState};
 use botvibe::vm_lifecycle::VmLifecycle;
 use botvibe::vms_api::vms_router;
 use botvibe::{ToolRegistry, VibePromptManager, VibeTelemetry, VibeToolExecutor};
@@ -28,6 +28,7 @@ struct VibeStateImpl {
     pool: botvibe::types::DbPool,
     progress: Option<broadcast::Sender<VibeProgressEvent>>,
     runs: Arc<RwLock<HashMap<Uuid, VibeRun>>>,
+    signals: Option<broadcast::Sender<VibeRunSignal>>,
 }
 
 impl VibeState for VibeStateImpl {
@@ -48,15 +49,20 @@ impl VibeState for VibeStateImpl {
     fn active_runs(&self) -> &Arc<RwLock<HashMap<Uuid, VibeRun>>> {
         &self.runs
     }
+
+    fn run_signal_sender(&self) -> Option<&broadcast::Sender<VibeRunSignal>> {
+        self.signals.as_ref()
+    }
 }
 
-pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
+pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     let pool = app_state.conn.clone();
 
     let state: Arc<dyn VibeState> = Arc::new(VibeStateImpl {
         pool,
         progress: Some(broadcast::channel(128).0),
         runs: Arc::new(RwLock::new(HashMap::new())),
+        signals: Some(broadcast::channel(128).0),
     });
 
     let registry = ProjectRegistry::new(app_state.conn.clone());
@@ -81,11 +87,8 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     let prompt_manager = Arc::new(VibePromptManager::new());
     let permissions = Arc::new(botvibe::PermissionEngine::new());
     let skills = Arc::new(botvibe::SkillStore::new());
-    {
-        let skills = skills.clone();
-        futures::executor::block_on(async move {
-            skills.seed_bootstrap().await;
-        });
+    if let Err(e) = skills.seed_bootstrap().await {
+        log::error!("Vibe: bootstrap skills seeding failed: {e}");
     }
     let canvases = Arc::new(botvibe::CanvasStore::new());
     let issues = Arc::new(botvibe::IssueStore::new());
@@ -93,16 +96,11 @@ pub fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     let teams = Arc::new(botvibe::TeamStore::new());
 
     let tool_registry = Arc::new(ToolRegistry::new());
+    if let Err(e) = tool_registry
+        .register_m5_tools(skills.clone(), canvases.clone(), issues.clone())
+        .await
     {
-        let registry = tool_registry.clone();
-        let skills = skills.clone();
-        let canvases = canvases.clone();
-        let issues = issues.clone();
-        futures::executor::block_on(async move {
-            registry
-                .register_m5_tools(skills, canvases, issues)
-                .await;
-        });
+        log::error!("Vibe: M5 tool registration failed: {e}");
     }
     let tool_executor = Arc::new(VibeToolExecutor::new(tool_registry));
     let telemetry = Arc::new(VibeTelemetry::new());

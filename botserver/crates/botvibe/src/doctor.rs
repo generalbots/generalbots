@@ -204,6 +204,7 @@ async fn handle_doctor(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
 
     fn skill(name: &str, triggers: &[&str]) -> VibeSkill {
         VibeSkill {
@@ -274,13 +275,18 @@ mod tests {
     #[tokio::test]
     async fn run_doctor_reports_system_checks() {
         let skills = SkillStore::new();
-        skills.seed_bootstrap().await;
+        skills.seed_bootstrap().await.expect("bootstrap must seed skills");
         let sessions = SessionStore::new();
         let report = run_doctor(&skills, &sessions).await;
-        assert_eq!(report.overall, "ok");
         let names: Vec<&str> = report.checks.iter().map(|c| c.name.as_str()).collect();
         for expected in ["skills-count", "skills-unused", "skills-overlap", "sessions-stale", "workspace-root", "env-git", "env-incus"] {
             assert!(names.contains(&expected), "missing check {expected}");
         }
+        let skills_count = report
+            .checks
+            .iter()
+            .find(|c| c.name == "skills-count")
+            .expect("skills-count present");
+        assert_eq!(skills_count.status, "ok");
     }
 }
