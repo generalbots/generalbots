@@ -245,6 +245,9 @@ async fn cancel_run(
     Path(run_id): Path<Uuid>,
     Json(_req): Json<CancelRunRequest>,
 ) -> impl IntoResponse {
+    if let Some(tx) = api.state.run_signal_sender() {
+        let _ = tx.send(crate::types::VibeRunSignal::Cancelled(run_id));
+    }
     let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {
         run.transition(VibeRunState::Cancelled);
@@ -267,6 +270,9 @@ async fn approve_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
+    if let Some(tx) = api.state.run_signal_sender() {
+        let _ = tx.send(crate::types::VibeRunSignal::Approved(run_id));
+    }
     let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {
         for tool_call in &mut run.tool_calls {
@@ -275,9 +281,10 @@ async fn approve_run(
             }
         }
         info!("Vibe run approved: {run_id}");
+        run.transition(VibeRunState::Running);
         Json(ActionResponse {
             success: true,
-            message: Some("Pending tool calls approved".to_string()),
+            message: Some("Pending tool calls approved and run resumed".to_string()),
             error: None,
         })
     } else {
