@@ -167,15 +167,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn probe_url_template_defaults_to_incus_dial() {
+    fn probe_url_template_defaults_then_accepts_env_override() {
+        std::env::remove_var("VIBE_PROBE_URL_TEMPLATE");
         assert_eq!(
             probe_url("my-app-prod"),
             "http://my-app-prod.incus"
         );
-    }
-
-    #[test]
-    fn probe_url_template_accepts_env_override() {
         std::env::set_var("VIBE_PROBE_URL_TEMPLATE", "http://{container}.gb.solutions");
         assert_eq!(
             probe_url("my-app-prod"),

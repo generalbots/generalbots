@@ -405,7 +405,7 @@ impl VMetering {
         match plan {
             MeterPlan::PrivateCloud => Ok(()),
             MeterPlan::Free => {
-                let is_custom = project_type.to_ascii_lowercase() == "custom";
+                let is_custom = project_type.eq_ignore_ascii_case("custom");
                 if is_custom {
                     return Err("custom projects require the private-cloud plan".to_string());
                 }

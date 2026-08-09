@@ -153,7 +153,7 @@ mod tests {
     fn rejects_non_allowlisted_commands() {
         let cwd = std::env::temp_dir();
         let err = run("docker", &["ps".to_string()], &cwd, 5);
-        assert_eq!(err, Err(GuardError::CommandNotAllowed("docker".into())));
+        assert!(matches!(err, Err(GuardError::CommandNotAllowed(name)) if name == "docker"));
     }
 
     #[test]

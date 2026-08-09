@@ -20,7 +20,7 @@ pub mod log_tools;
 pub mod run_tools;
 pub mod test_tools;
 
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 /// Root that hosts every project workspace subdirectory.
 pub fn workspace_root() -> PathBuf {
@@ -32,7 +32,7 @@ pub fn workspace_root() -> PathBuf {
 /// Validate a project id: alphanumerics, dash, underscore, dot — no path
 /// separators, no traversal.
 pub fn sanitize_project_id(project: &str) -> Result<String, String> {
-    if project.is_empty() || project.len() > 128 {
+    if project.is_empty() || project.len() > 128 || project == "." || project == ".." {
         return Err("invalid project id: empty or too long".into());
     }
     if project.chars().any(|c| !(c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')) {
@@ -41,23 +41,25 @@ pub fn sanitize_project_id(project: &str) -> Result<String, String> {
     Ok(project.to_string())
 }
 
-/// Resolve a path inside the project workspace, refusing `..` escapes.
+/// Resolve a path inside the project workspace, refusing `..` escapes and
+/// absolute paths.
 pub fn resolve_workspace_path(project: &str, rel: &str) -> Result<PathBuf, String> {
     let project = sanitize_project_id(project)?;
     if rel.contains('\0') {
         return Err("path contains NUL byte".into());
     }
-    let root = workspace_root().join(&project);
-    let candidate = root.join(rel);
-    for comp in candidate.components() {
-        if matches!(comp, Component::ParentDir) || matches!(comp, Component::RootDir) {
-            return Err(format!("path escapes workspace: {rel}"));
-        }
-        if let Component::CurDir = comp {
-            return Err(format!("path uses '.' segments: {rel}"));
+    for seg in rel.split(['/', '\\']) {
+        match seg {
+            "." => return Err(format!("path uses '.' segments: {rel}")),
+            ".." => return Err(format!("path escapes workspace: {rel}")),
+            _ => {}
         }
     }
-    Ok(candidate)
+    if Path::new(rel).is_absolute() {
+        return Err(format!("path is absolute: {rel}"));
+    }
+    let root = workspace_root().join(&project);
+    Ok(root.join(rel))
 }
 
 /// Ensure the workspace subdir for a project exists.

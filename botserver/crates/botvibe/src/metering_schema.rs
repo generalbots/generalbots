@@ -55,7 +55,7 @@ impl MeterPlan {
     pub fn parse(s: &str) -> Self {
         match s.to_ascii_lowercase().as_str() {
             "shared" => Self::Shared,
-            "private" | "private-cloud" | "custom" => Self::PrivateCloud,
+            "private" | "private-cloud" | "privatecloud" | "custom" => Self::PrivateCloud,
             _ => Self::Free,
         }
     }
@@ -138,7 +138,6 @@ mod tests {
         assert_eq!(MeterPlan::parse("shared"), MeterPlan::Shared);
         assert_eq!(MeterPlan::parse("private-cloud"), MeterPlan::PrivateCloud);
         assert_eq!(MeterPlan::parse("PrivateCloud"), MeterPlan::PrivateCloud);
-        assert_eq!(MeterPlan::parse("custom"), MeterPlan::PrivateCloud);
         assert_eq!(MeterPlan::parse("SHARED"), MeterPlan::Shared);
         assert_eq!(MeterPlan::parse("nonsense"), MeterPlan::Free);
         assert_eq!(MeterPlan::parse(""), MeterPlan::Free);

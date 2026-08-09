@@ -65,7 +65,7 @@ impl SessionStore {
 
     pub async fn list(&self) -> Vec<VibeSession> {
         let mut sessions = self.sessions.read().await.clone();
-        sessions.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        sessions.sort_by_key(|s| std::cmp::Reverse(s.updated_at));
         sessions
     }
 
@@ -295,6 +295,8 @@ async fn resume_session(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::VibeToolCall;
+    use serde_json::json;
 
     fn bot_id() -> Uuid {
         Uuid::nil()
@@ -325,7 +327,7 @@ mod tests {
         let fork = store.fork(original.session_id).await.unwrap();
         assert_eq!(fork.parent_session_id, Some(original.session_id));
         assert_eq!(fork.run.as_ref().unwrap().tool_calls.len(), 1);
-        assert_eq!(store.fork(Uuid::new_v4()).await, None);
+        assert!(store.fork(Uuid::new_v4()).await.is_none());
     }
 
     #[tokio::test]
