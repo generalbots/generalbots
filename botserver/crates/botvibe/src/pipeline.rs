@@ -262,6 +262,9 @@ mod tests {
         fn run_signal_sender(&self) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeRunSignal>> {
             None
         }
+        fn llm_config(&self, _bot_id: &uuid::Uuid) -> Option<crate::types::LlmConfig> {
+            None
+        }
     }
 
     #[tokio::test]
