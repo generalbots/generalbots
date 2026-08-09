@@ -92,7 +92,7 @@ Each row links to the issue that closes it.
 | # | Gap | Consequence |
 |---|-----|-------------|
 | 28 | ~1,100 lines of dead CSS styling markup that does not exist; ~30 inline styles in the app HTML; ~180 inline styles in server-rendered fragments emitting classes no stylesheet defines. | Nothing is themeable and the real rules are hard to find. → issue 12 |
-| 29 | ~~Hardcoded Portuguese strings in the HTML and JS, while both locale catalogues sit unloaded.~~ **Partially shipped (2026-08-09)** | `locales/en.json` + `locales/pt-BR.json` are now loaded and applied to the toolbar via `data-i18n*` attributes; remaining inline strings are still hardcoded. → issue 12 |
+| 29 | ~~Hardcoded Portuguese strings in the HTML and JS, while both locale catalogues sit unloaded.~~ **Partially shipped (2026-08-09)** | `locales/en.json` + `locales/pt-BR.json` (118 keys) are loaded and applied to the toolbar, sidebar tabs, panel buttons, sheet name and empty states via `data-i18n*` + `SheetI18n.t`; server-rendered fragment strings remain hardcoded. → issue 12 |
 | 30 | No tests for Sheet. Not one. | Every regression reaches a user first. → issue 12 |
 
 ---
