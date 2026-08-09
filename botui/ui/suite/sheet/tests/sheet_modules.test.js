@@ -83,7 +83,7 @@ function loadModules() {
   sandbox.addEventListener = function () {};
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
-  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js"].forEach(function (f) {
+  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "10_i18n.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js"].forEach(function (f) {
     const code = fs.readFileSync(path.join(MODULES, f), "utf8");
     vm.runInContext(code, ctx, { filename: f });
   });
@@ -253,8 +253,36 @@ function runFormulaFill() {
       const a3 = g2.cells.get("2,0");
       assertEqual(a2 && a2.formula, "=$A$2+B3", "fill down keeps $A$2 anchor, shifts B2->B3");
       assertEqual(a3 && a3.formula, "=$A$2+B4", "fill down second row shifts B3->B4");
-      runCharts();
+      runPasteI18n();
     });
+  });
+}
+
+// paste: TSV from clipboard writes cell values starting at the selection anchor
+// i18n: t() returns loaded string or falls back to key
+function runPasteI18n() {
+  env.window.SheetAPI = { updateCell: function () { return Promise.resolve({ success: true }); }, load: function () { return Promise.resolve(null); } };
+  const g3 = {
+    cells: new Map(),
+    totalRows: 1000,
+    totalCols: 26,
+    lastRenderedRange: null,
+    requestRange: function () {},
+    selectCell: function () {},
+  };
+  env.window.SheetVirtualGrid = g3;
+  env.window.SheetCore.setGrid(g3);
+  env.window.SheetAdvanced.setRange(0, 0, 0, 0);
+  env.window.navigator.clipboard = { readText: function () { return Promise.resolve("p\tq\nr\ts"); } };
+  env.window.SheetCore.pasteToSelection().then(function () {
+    assertEqual(g3.cells.get("0,0").value, "p", "paste A1=p");
+    assertEqual(g3.cells.get("0,1").value, "q", "paste B1=q");
+    assertEqual(g3.cells.get("1,0").value, "r", "paste A2=r");
+    assertEqual(g3.cells.get("1,1").value, "s", "paste B2=s");
+    const I = env.window.SheetI18n;
+    assertTrue(!!I && typeof I.t === "function", "SheetI18n.t exposed");
+    assertEqual(I.t("missing.key.xyz"), "missing.key.xyz", "i18n falls back to key when unloaded");
+    runCharts();
   });
 }
 
