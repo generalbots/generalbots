@@ -284,9 +284,22 @@ Respond with JSON only:
         let task_id = Uuid::new_v4();
         let title = classification.suggested_name.clone().unwrap_or_else(|| classification.original_text.clone());
         let mut conn = self.pool.get()?;
+        let branch_id = {
+            #[derive(diesel::QueryableByName)]
+            #[diesel(check_for_backend(diesel::pg::Pg))]
+            struct BotBranchRow {
+                #[diesel(sql_type = DieselUuid)]
+                branch_id: Uuid,
+            }
+            sql_query("SELECT branch_id FROM bots WHERE id = $1 LIMIT 1")
+                .bind::<DieselUuid, _>(session.bot_id)
+                .get_result::<BotBranchRow>(&mut conn)
+                .map(|row| row.branch_id)
+                .unwrap_or_else(|_| Uuid::nil())
+        };
         sql_query("INSERT INTO tasks (id, title, description, status, priority, branch_id, created_at) VALUES ($1, $2, $3, 'pending', 'normal', $4, NOW())")
             .bind::<DieselUuid, _>(task_id).bind::<Text, _>(&title).bind::<Text, _>(&classification.original_text)
-            .bind::<DieselUuid, _>(session.bot_id)
+            .bind::<DieselUuid, _>(branch_id)
             .execute(&mut conn)?;
         Ok(IntentResult {
             success: true, intent_type: IntentType::Todo,

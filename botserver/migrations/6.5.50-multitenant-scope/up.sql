@@ -97,58 +97,333 @@ ALTER TABLE IF EXISTS oauth_microsoft_settings ADD COLUMN IF NOT EXISTS branch_i
 ALTER TABLE IF EXISTS research_searches ADD COLUMN IF NOT EXISTS branch_id uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
 
 -- indexes on the tenant column for every added column
-CREATE INDEX IF NOT EXISTS idx_hr_employees_branch         ON hr_employees(branch_id);
-CREATE INDEX IF NOT EXISTS idx_hr_recruitment_branch       ON hr_recruitment(branch_id);
-CREATE INDEX IF NOT EXISTS idx_hr_attendance_branch        ON hr_attendance(branch_id);
-CREATE INDEX IF NOT EXISTS idx_hr_review_cycles_branch     ON hr_review_cycles(branch_id);
-CREATE INDEX IF NOT EXISTS idx_hr_goals_branch             ON hr_goals(branch_id);
-CREATE INDEX IF NOT EXISTS idx_brazil_nfe_branch           ON brazil_nfe(branch_id);
-CREATE INDEX IF NOT EXISTS idx_brazil_nfse_branch          ON brazil_nfse(branch_id);
-CREATE INDEX IF NOT EXISTS idx_brazil_cte_branch           ON brazil_cte(branch_id);
-CREATE INDEX IF NOT EXISTS idx_brazil_sped_branch          ON brazil_sped(branch_id);
-CREATE INDEX IF NOT EXISTS idx_vision_analysis_branch      ON vision_analysis(branch_id);
-CREATE INDEX IF NOT EXISTS idx_erp_financial_branch        ON erp_financial(branch_id);
-CREATE INDEX IF NOT EXISTS idx_erp_inventory_branch        ON erp_inventory(branch_id);
-CREATE INDEX IF NOT EXISTS idx_erp_procurement_branch      ON erp_procurement(branch_id);
-CREATE INDEX IF NOT EXISTS idx_integrations_connectors_branch ON integrations_connectors(branch_id);
-CREATE INDEX IF NOT EXISTS idx_integrations_etl_jobs_branch ON integrations_etl_jobs(branch_id);
-CREATE INDEX IF NOT EXISTS idx_sales_deals_branch          ON sales_deals(branch_id);
-CREATE INDEX IF NOT EXISTS idx_sales_contacts_branch       ON sales_contacts(branch_id);
-CREATE INDEX IF NOT EXISTS idx_sales_activities_branch     ON sales_activities(branch_id);
-CREATE INDEX IF NOT EXISTS idx_minutes_meetings_branch     ON minutes_meetings(branch_id);
-CREATE INDEX IF NOT EXISTS idx_minutes_transcripts_branch  ON minutes_transcripts(branch_id);
-CREATE INDEX IF NOT EXISTS idx_minutes_documents_branch    ON minutes_documents(branch_id);
-CREATE INDEX IF NOT EXISTS idx_app_templates_branch        ON app_templates(branch_id);
-CREATE INDEX IF NOT EXISTS idx_app_template_deploys_branch ON app_template_deploys(branch_id);
-CREATE INDEX IF NOT EXISTS idx_itsm_incidents_branch       ON itsm_incidents(branch_id);
-CREATE INDEX IF NOT EXISTS idx_itsm_service_requests_branch ON itsm_service_requests(branch_id);
-CREATE INDEX IF NOT EXISTS idx_itsm_cmdb_branch            ON itsm_cmdb(branch_id);
-CREATE INDEX IF NOT EXISTS idx_itsm_kb_branch              ON itsm_kb(branch_id);
-CREATE INDEX IF NOT EXISTS idx_pos_products_branch         ON pos_products(branch_id);
-CREATE INDEX IF NOT EXISTS idx_pos_orders_branch           ON pos_orders(branch_id);
-CREATE INDEX IF NOT EXISTS idx_handoff_queue_branch        ON handoff_queue(branch_id);
-CREATE INDEX IF NOT EXISTS idx_conversation_analytics_branch ON conversation_analytics(branch_id);
-CREATE INDEX IF NOT EXISTS idx_handoff_channels_branch     ON handoff_channels(branch_id);
-CREATE INDEX IF NOT EXISTS idx_conversation_ratings_branch ON conversation_ratings(branch_id);
-CREATE INDEX IF NOT EXISTS idx_identity_kyc_workflows_branch ON identity_kyc_workflows(branch_id);
-CREATE INDEX IF NOT EXISTS idx_identity_signatures_branch  ON identity_signatures(branch_id);
-CREATE INDEX IF NOT EXISTS idx_identity_certificates_branch ON identity_certificates(branch_id);
-CREATE INDEX IF NOT EXISTS idx_timeclock_events_branch     ON timeclock_events(branch_id);
-CREATE INDEX IF NOT EXISTS idx_timeclock_records_branch    ON timeclock_records(branch_id);
-CREATE INDEX IF NOT EXISTS idx_timeclock_overtime_branch   ON timeclock_overtime(branch_id);
-CREATE INDEX IF NOT EXISTS idx_timeclock_reports_branch    ON timeclock_reports(branch_id);
-CREATE INDEX IF NOT EXISTS idx_banking_transactions_branch ON banking_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_banking_platforms_branch    ON banking_platforms(branch_id);
-CREATE INDEX IF NOT EXISTS idx_banking_reconcile_results_branch ON banking_reconcile_results(branch_id);
-CREATE INDEX IF NOT EXISTS idx_banking_reports_branch      ON banking_reports(branch_id);
-CREATE INDEX IF NOT EXISTS idx_gl_accounts_branch         ON gl_accounts(branch_id);
-CREATE INDEX IF NOT EXISTS idx_gl_journal_entries_branch  ON gl_journal_entries(branch_id);
-CREATE INDEX IF NOT EXISTS idx_gl_journal_lines_branch    ON gl_journal_lines(branch_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_items_branch     ON inventory_items(branch_id);
-CREATE INDEX IF NOT EXISTS idx_purchase_orders_branch     ON purchase_orders(branch_id);
-CREATE INDEX IF NOT EXISTS idx_purchase_order_items_branch ON purchase_order_items(branch_id);
-CREATE INDEX IF NOT EXISTS idx_m365_sharepoint_items_branch ON m365_sharepoint_items(branch_id);
-CREATE INDEX IF NOT EXISTS idx_m365_calendar_events_branch ON m365_calendar_events(branch_id);
-CREATE INDEX IF NOT EXISTS idx_m365_onedrive_files_branch  ON m365_onedrive_files(branch_id);
-CREATE INDEX IF NOT EXISTS idx_oauth_microsoft_settings_branch ON oauth_microsoft_settings(branch_id);
-CREATE INDEX IF NOT EXISTS idx_research_searches_branch ON research_searches(branch_id);
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'hr_employees') THEN
+        CREATE INDEX IF NOT EXISTS idx_hr_employees_branch ON hr_employees(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'hr_recruitment') THEN
+        CREATE INDEX IF NOT EXISTS idx_hr_recruitment_branch ON hr_recruitment(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'hr_attendance') THEN
+        CREATE INDEX IF NOT EXISTS idx_hr_attendance_branch ON hr_attendance(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'hr_review_cycles') THEN
+        CREATE INDEX IF NOT EXISTS idx_hr_review_cycles_branch ON hr_review_cycles(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'hr_goals') THEN
+        CREATE INDEX IF NOT EXISTS idx_hr_goals_branch ON hr_goals(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'brazil_nfe') THEN
+        CREATE INDEX IF NOT EXISTS idx_brazil_nfe_branch ON brazil_nfe(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'brazil_nfse') THEN
+        CREATE INDEX IF NOT EXISTS idx_brazil_nfse_branch ON brazil_nfse(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'brazil_cte') THEN
+        CREATE INDEX IF NOT EXISTS idx_brazil_cte_branch ON brazil_cte(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'brazil_sped') THEN
+        CREATE INDEX IF NOT EXISTS idx_brazil_sped_branch ON brazil_sped(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'vision_analysis') THEN
+        CREATE INDEX IF NOT EXISTS idx_vision_analysis_branch ON vision_analysis(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'erp_financial') THEN
+        CREATE INDEX IF NOT EXISTS idx_erp_financial_branch ON erp_financial(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'erp_inventory') THEN
+        CREATE INDEX IF NOT EXISTS idx_erp_inventory_branch ON erp_inventory(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'erp_procurement') THEN
+        CREATE INDEX IF NOT EXISTS idx_erp_procurement_branch ON erp_procurement(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'integrations_connectors') THEN
+        CREATE INDEX IF NOT EXISTS idx_integrations_connectors_branch ON integrations_connectors(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'integrations_etl_jobs') THEN
+        CREATE INDEX IF NOT EXISTS idx_integrations_etl_jobs_branch ON integrations_etl_jobs(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'sales_deals') THEN
+        CREATE INDEX IF NOT EXISTS idx_sales_deals_branch ON sales_deals(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'sales_contacts') THEN
+        CREATE INDEX IF NOT EXISTS idx_sales_contacts_branch ON sales_contacts(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'sales_activities') THEN
+        CREATE INDEX IF NOT EXISTS idx_sales_activities_branch ON sales_activities(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'minutes_meetings') THEN
+        CREATE INDEX IF NOT EXISTS idx_minutes_meetings_branch ON minutes_meetings(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'minutes_transcripts') THEN
+        CREATE INDEX IF NOT EXISTS idx_minutes_transcripts_branch ON minutes_transcripts(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'minutes_documents') THEN
+        CREATE INDEX IF NOT EXISTS idx_minutes_documents_branch ON minutes_documents(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'app_templates') THEN
+        CREATE INDEX IF NOT EXISTS idx_app_templates_branch ON app_templates(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'app_template_deploys') THEN
+        CREATE INDEX IF NOT EXISTS idx_app_template_deploys_branch ON app_template_deploys(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'itsm_incidents') THEN
+        CREATE INDEX IF NOT EXISTS idx_itsm_incidents_branch ON itsm_incidents(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'itsm_service_requests') THEN
+        CREATE INDEX IF NOT EXISTS idx_itsm_service_requests_branch ON itsm_service_requests(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'itsm_cmdb') THEN
+        CREATE INDEX IF NOT EXISTS idx_itsm_cmdb_branch ON itsm_cmdb(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'itsm_kb') THEN
+        CREATE INDEX IF NOT EXISTS idx_itsm_kb_branch ON itsm_kb(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pos_products') THEN
+        CREATE INDEX IF NOT EXISTS idx_pos_products_branch ON pos_products(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pos_orders') THEN
+        CREATE INDEX IF NOT EXISTS idx_pos_orders_branch ON pos_orders(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'handoff_queue') THEN
+        CREATE INDEX IF NOT EXISTS idx_handoff_queue_branch ON handoff_queue(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'conversation_analytics') THEN
+        CREATE INDEX IF NOT EXISTS idx_conversation_analytics_branch ON conversation_analytics(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'handoff_channels') THEN
+        CREATE INDEX IF NOT EXISTS idx_handoff_channels_branch ON handoff_channels(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'conversation_ratings') THEN
+        CREATE INDEX IF NOT EXISTS idx_conversation_ratings_branch ON conversation_ratings(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'identity_kyc_workflows') THEN
+        CREATE INDEX IF NOT EXISTS idx_identity_kyc_workflows_branch ON identity_kyc_workflows(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'identity_signatures') THEN
+        CREATE INDEX IF NOT EXISTS idx_identity_signatures_branch ON identity_signatures(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'identity_certificates') THEN
+        CREATE INDEX IF NOT EXISTS idx_identity_certificates_branch ON identity_certificates(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'timeclock_events') THEN
+        CREATE INDEX IF NOT EXISTS idx_timeclock_events_branch ON timeclock_events(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'timeclock_records') THEN
+        CREATE INDEX IF NOT EXISTS idx_timeclock_records_branch ON timeclock_records(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'timeclock_overtime') THEN
+        CREATE INDEX IF NOT EXISTS idx_timeclock_overtime_branch ON timeclock_overtime(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'timeclock_reports') THEN
+        CREATE INDEX IF NOT EXISTS idx_timeclock_reports_branch ON timeclock_reports(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'banking_transactions') THEN
+        CREATE INDEX IF NOT EXISTS idx_banking_transactions_branch ON banking_transactions(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'banking_platforms') THEN
+        CREATE INDEX IF NOT EXISTS idx_banking_platforms_branch ON banking_platforms(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'banking_reconcile_results') THEN
+        CREATE INDEX IF NOT EXISTS idx_banking_reconcile_results_branch ON banking_reconcile_results(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'banking_reports') THEN
+        CREATE INDEX IF NOT EXISTS idx_banking_reports_branch ON banking_reports(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'gl_accounts') THEN
+        CREATE INDEX IF NOT EXISTS idx_gl_accounts_branch ON gl_accounts(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'gl_journal_entries') THEN
+        CREATE INDEX IF NOT EXISTS idx_gl_journal_entries_branch ON gl_journal_entries(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'gl_journal_lines') THEN
+        CREATE INDEX IF NOT EXISTS idx_gl_journal_lines_branch ON gl_journal_lines(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'inventory_items') THEN
+        CREATE INDEX IF NOT EXISTS idx_inventory_items_branch ON inventory_items(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'purchase_orders') THEN
+        CREATE INDEX IF NOT EXISTS idx_purchase_orders_branch ON purchase_orders(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'purchase_order_items') THEN
+        CREATE INDEX IF NOT EXISTS idx_purchase_order_items_branch ON purchase_order_items(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'm365_sharepoint_items') THEN
+        CREATE INDEX IF NOT EXISTS idx_m365_sharepoint_items_branch ON m365_sharepoint_items(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'm365_calendar_events') THEN
+        CREATE INDEX IF NOT EXISTS idx_m365_calendar_events_branch ON m365_calendar_events(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'm365_onedrive_files') THEN
+        CREATE INDEX IF NOT EXISTS idx_m365_onedrive_files_branch ON m365_onedrive_files(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'oauth_microsoft_settings') THEN
+        CREATE INDEX IF NOT EXISTS idx_oauth_microsoft_settings_branch ON oauth_microsoft_settings(branch_id);
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'research_searches') THEN
+        CREATE INDEX IF NOT EXISTS idx_research_searches_branch ON research_searches(branch_id);
+    END IF;
+END $$;
