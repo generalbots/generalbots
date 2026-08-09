@@ -133,7 +133,7 @@ pub fn resolve_bot_scope(
     // a client-supplied bot_id may only reference a bot that belongs to the
     // caller's branch. Anonymous/internal callers pass None (server-resolved).
     match caller_branch {
-        Some(branch) => scope.filter(|s| s.branch_id == branch),
+        Some(branch) => scope.filter(|s: &BotScopeRow| s.branch_id == branch),
         None => scope,
     }
 }

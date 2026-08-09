@@ -212,7 +212,18 @@ fn get_work_path_default() -> String {
 /// Returns the stack base path.
 /// In production (system container with .env): /opt/gbo
 /// In development: ./botserver-stack
+/// The `--stack-path` CLI flag sets `BOTSERVER_STACK_PATH`/`GBO_STACK_PATH`.
 pub fn get_stack_path() -> String {
+    if let Ok(path) = std::env::var("BOTSERVER_STACK_PATH") {
+        if !path.trim().is_empty() {
+            return path;
+        }
+    }
+    if let Ok(path) = std::env::var("GBO_STACK_PATH") {
+        if !path.trim().is_empty() {
+            return path;
+        }
+    }
     let stack_dir = std::path::Path::new("./botserver-stack");
     let has_env = std::path::Path::new("./.env").exists()
         || std::path::Path::new("/opt/gbo/bin/.env").exists();

@@ -238,5 +238,13 @@ impl SecretsManager {
 }
 
 fn get_stack_path() -> String {
-    env::var("GBO_STACK_PATH").unwrap_or_else(|_| "/opt/gbo".to_string())
+    let botserver = env::var("BOTSERVER_STACK_PATH").ok().filter(|p| !p.trim().is_empty());
+    offer_stack_path(botserver).unwrap_or_else(|| "/opt/gbo".to_string())
+}
+
+fn offer_stack_path(configured: Option<String>) -> Option<String> {
+    match configured {
+        Some(path) => Some(path),
+        None => env::var("GBO_STACK_PATH").ok().filter(|p| !p.trim().is_empty()),
+    }
 }

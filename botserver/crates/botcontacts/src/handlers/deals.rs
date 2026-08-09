@@ -292,9 +292,12 @@ pub async fn update_lead_stage(
 
     let now = Utc::now();
     let stage = query.stage;
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| get_bot_context(&state));
 
     let old_stage: Option<Option<String>> = crm_deals::table
         .filter(crm_deals::id.eq(id))
+        .filter(crm_deals::branch_id.eq(branch_id))
         .select(crm_deals::stage)
         .first(&mut conn)
         .ok();
@@ -302,25 +305,32 @@ pub async fn update_lead_stage(
     let old_stage_str = old_stage.flatten();
     let probability = stage_probability(&stage);
 
-    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
-        .set((
-            crm_deals::stage.eq(&stage),
-            crm_deals::probability.eq(probability),
-            crm_deals::updated_at.eq(now),
-        ))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    diesel::update(
+        crm_deals::table
+            .filter(crm_deals::id.eq(id))
+            .filter(crm_deals::branch_id.eq(branch_id)),
+    )
+    .set((
+        crm_deals::stage.eq(&stage),
+        crm_deals::probability.eq(probability),
+        crm_deals::updated_at.eq(now),
+    ))
+    .execute(&mut conn)
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if stage == "won" || stage == "lost" || stage == "converted" {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id)))
-            .set(crm_deals::closed_at.eq(Some(now)))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        diesel::update(
+            crm_deals::table
+                .filter(crm_deals::id.eq(id))
+                .filter(crm_deals::branch_id.eq(branch_id)),
+        )
+        .set(crm_deals::closed_at.eq(Some(now)))
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(old) = old_stage_str {
         if old != stage {
-            let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
             (state.trigger_deal_stage_change)(&mut conn, id, &old, &stage, branch_id);
         }
     }
