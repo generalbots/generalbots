@@ -133,8 +133,8 @@ fn validate_json_schema(_schema: &serde_json::Value, response: &str) -> Result<(
 
 fn detect_language(text: &str) -> String {
     let text = text.to_ascii_lowercase();
-    let pt_markers = ["ção", "ão", " não", " que", " para", " você", " é "];
-    let en_markers = [" the ", " and ", " is ", " you ", " for ", " with "];
+    let pt_markers = [" olá", " tudo", "ção", "ão", " não", " que", " para", " você", " é "];
+    let en_markers = [" hello", " how", " the ", " and ", " is ", " you ", " for ", " with "];
     let pt = pt_markers.iter().filter(|m| text.contains(*m)).count();
     let en = en_markers.iter().filter(|m| text.contains(*m)).count();
     if pt > en {

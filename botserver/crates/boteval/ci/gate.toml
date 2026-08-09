@@ -3,7 +3,15 @@ max_failures: 0
 required_tags:
   - greeting
   - json
+  - software_development
+  - customer_support
+  - financial_analysis
+  - lang:en
+  - lang:pt-BR
 tag_pass_rates:
   greeting: 0.95
   json: 0.90
   summary: 0.85
+  software_development: 0.90
+  customer_support: 0.90
+  financial_analysis: 0.90
