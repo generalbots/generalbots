@@ -83,7 +83,7 @@ function loadModules() {
   sandbox.addEventListener = function () {};
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
-  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js"].forEach(function (f) {
+  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "14_widths.js"].forEach(function (f) {
     const code = fs.readFileSync(path.join(MODULES, f), "utf8");
     vm.runInContext(code, ctx, { filename: f });
   });
@@ -160,6 +160,42 @@ function runValidation() {
   assertTrue(validationValue({ validation_type: "list", allowed_values: ["Red", "Green"] }, "Red"), "list validation accepts Red");
   assertTrue(!validationValue({ validation_type: "list", allowed_values: ["Red", "Green"] }, "Blue"), "list validation rejects Blue");
   assertTrue(!validationValue({ validation_type: "integer", allowed_values: null }, "1.5"), "integer validation rejects 1.5");
+  runWidths();
+}
+
+// column-width math: colX sums widths; colWidth returns custom or default
+function runWidths() {
+  const sheet = { worksheets: [{ column_widths: { "0": 120, "1": 80 }, row_heights: { "0": 30 }, validations: {} }] };
+  env.window.__LOADED_SHEET = sheet;
+  env.window.SheetCore.api = function () { return null; };
+  env.window.SheetCore.rehydrateGrid = function () {};
+  const widthGrid = {
+    totalCols: 26,
+    totalRows: 100,
+    cells: new Map(),
+    bodyInner: { appendChild: function () {}, lastChild: { style: {} }, querySelector: function () { return null; }, getBoundingClientRect: function () { return { left: 0, top: 0 }; } },
+    headerRow: { appendChild: function () {}, querySelectorAll: function () { return []; }, style: {} },
+    headerColPool: [],
+    getOrCreateNode: function () { return { style: {} }; },
+    cellsMap: {},
+    render: function () {},
+    renderHeaders: function () {},
+    renderRow: function () {},
+    applyCellStyle: function () {},
+    editingCell: null,
+    requestRange: function () {},
+    lastRenderedRange: null,
+  };
+  env.window.SheetVirtualGrid = widthGrid;
+  env.window.SheetCore.setGrid(widthGrid);
+  env.window.SheetCore.refreshWidths();
+  assertEqual(env.window.SheetCore.colWidth(0), 120, "colWidth(0) = 120 (custom)");
+  assertEqual(env.window.SheetCore.colWidth(1), 80, "colWidth(1) = 80 (custom)");
+  assertEqual(env.window.SheetCore.colWidth(2), 96, "colWidth(2) = 96 (default)");
+  assertEqual(env.window.SheetCore.rowHeight(0), 30, "rowHeight(0) = 30 (custom)");
+  assertEqual(env.window.SheetCore.rowHeight(1), 24, "rowHeight(1) = 24 (default)");
+  // colX: HEADER(48) + w0 + w1 = 248
+  assertEqual(env.window.SheetCore.colX(2), 48 + 120 + 80, "colX(2) sums widths (248)");
   finalize();
 }
 
