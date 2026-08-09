@@ -38,6 +38,7 @@ pub mod gitflow;
 pub mod sessions;
 pub mod teams;
 pub mod capability_registry;
+pub mod pipeline;
 
 pub use types::{
     VibeContext, VibeLlmOps, VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState,
@@ -67,3 +68,4 @@ pub use gitflow::gitflow_tools;
 pub use sessions::{SessionRoutes, SessionStore, VibeSession, sessions_router};
 pub use teams::{TeamRoutes, TeamStore, VibeTeam, teams_router};
 pub use capability_registry::{build_capabilities, capabilities_for, Capability};
+pub use pipeline::{PipelineEngine, PipelineRunReport, PipelineStage, PipelineStageKind, PipelineStageReport, RunPipeline, StageStatus};

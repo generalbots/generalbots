@@ -85,6 +85,13 @@ pub struct CapabilitiesResponse {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct PipelineResponse {
+    pub success: bool,
+    pub pipeline: crate::pipeline::RunPipeline,
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CancelRunRequest {
     pub reason: Option<String>,
@@ -154,6 +161,7 @@ pub fn router(
         .route("/api/vibe/graph/run/:run_id", axum::routing::get(crate::knowledge_graph::get_run_graph))
         .route("/api/vibe/capabilities", axum::routing::get(list_capabilities))
         .route("/api/vibe/capabilities/:use_case", axum::routing::get(list_capabilities_for_use_case))
+        .route("/api/vibe/pipeline/:use_case", axum::routing::get(get_pipeline))
         .layer(axum::Extension(api))
 }
 
@@ -396,6 +404,17 @@ async fn list_capabilities_for_use_case(
     Json(CapabilitiesResponse {
         success: true,
         capabilities: filtered,
+        error: None,
+    })
+}
+
+async fn get_pipeline(
+    Path(use_case): Path<String>,
+) -> impl IntoResponse {
+    let uc = parse_use_case(&use_case).unwrap_or(VibeUseCase::SoftwareDevelopment);
+    Json(PipelineResponse {
+        success: true,
+        pipeline: crate::pipeline::RunPipeline::for_use_case(uc),
         error: None,
     })
 }
