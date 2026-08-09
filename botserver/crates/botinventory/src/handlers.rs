@@ -226,10 +226,11 @@ async fn create_po(
 
         for item in &payload.items {
             diesel::sql_query(
-                "INSERT INTO purchase_order_items (id, po_id, item_id, description, quantity, unit_price, total_price) \
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                "INSERT INTO purchase_order_items (id, branch_id, po_id, item_id, description, quantity, unit_price, total_price) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
             )
             .bind::<diesel::sql_types::Uuid, _>(&Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(&branch)
             .bind::<diesel::sql_types::Uuid, _>(&po_id)
             .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(&item.item_id)
             .bind::<diesel::sql_types::Text, _>(&item.description)

@@ -16,7 +16,7 @@ impl FraudEngine {
         Self { pool }
     }
 
-    pub async fn assess(&self, request: &FraudAssessmentRequest) -> FraudAssessmentResult {
+    pub async fn assess(&self, branch: Uuid, request: &FraudAssessmentRequest) -> FraudAssessmentResult {
         let mut conn = match self.pool.get() {
             Ok(c) => c,
             Err(_) => {
@@ -33,8 +33,8 @@ impl FraudEngine {
         let mut triggered = Vec::new();
         let mut total_score = 0i32;
 
-        // 1. Load active rules
-        let rules = rules::load_active_rules(&mut conn);
+        // 1. Load active rules scoped to the caller's branch
+        let rules = rules::load_active_rules(&mut conn, branch);
 
         // 2. Evaluate rules
         for rule in &rules {
@@ -46,14 +46,14 @@ impl FraudEngine {
         }
 
         // 3. Check blocklist
-        let blocked = self.check_blocklist(&mut conn, request).unwrap_or(false);
+        let blocked = self.check_blocklist(&mut conn, branch, request).unwrap_or(false);
         if blocked {
             total_score = 100;
             triggered.push("blocklist_match".into());
         }
 
         // 4. Check velocity
-        let velo = self.check_velocity(&mut conn, request).unwrap_or(false);
+        let velo = self.check_velocity(&mut conn, branch, request).unwrap_or(false);
         if velo {
             total_score += 30;
             triggered.push("velocity_threshold".into());
@@ -66,6 +66,7 @@ impl FraudEngine {
         // 6. Log event
         let _ = self.log_event(
             &mut conn,
+            branch,
             request,
             risk_score,
             &risk_level,
@@ -85,6 +86,7 @@ impl FraudEngine {
     fn check_blocklist(
         &self,
         conn: &mut PgConnection,
+        branch: Uuid,
         request: &FraudAssessmentRequest,
     ) -> Result<bool, diesel::result::Error> {
         let details = &request.details;
@@ -94,9 +96,10 @@ impl FraudEngine {
             if let Some(val) = details.get(check).and_then(|v| v.as_str()) {
                 let exists = diesel::sql_query(
                     "SELECT COUNT(*) as cnt FROM fraud_blocklist \
-                     WHERE block_type = $1 AND block_value = $2 \
+                     WHERE branch_id = $1 AND block_type = $2 AND block_value = $3 \
                      AND (expires_at IS NULL OR expires_at > NOW())",
                 )
+                .bind::<diesel::sql_types::Uuid, _>(branch)
                 .bind::<diesel::sql_types::Text, _>(check)
                 .bind::<diesel::sql_types::Text, _>(val)
                 .get_result::<BlocklistCount>(conn)
@@ -114,6 +117,7 @@ impl FraudEngine {
     fn check_velocity(
         &self,
         conn: &mut PgConnection,
+        branch: Uuid,
         request: &FraudAssessmentRequest,
     ) -> Result<bool, diesel::result::Error> {
         let ip = request.details.get("ip").and_then(|v| v.as_str());
@@ -125,10 +129,11 @@ impl FraudEngine {
             if let Some(val) = id_val {
                 let result = diesel::sql_query(
                     "SELECT COUNT(*) as cnt FROM fraud_velocity \
-                     WHERE identifier_type = $1 AND identifier = $2 \
-                     AND event_type = $3 \
+                     WHERE branch_id = $1 AND identifier_type = $2 AND identifier = $3 \
+                     AND event_type = $4 \
                      AND window_start > NOW() - INTERVAL '1 hour'",
                 )
+                .bind::<diesel::sql_types::Uuid, _>(branch)
                 .bind::<diesel::sql_types::Text, _>(id_type)
                 .bind::<diesel::sql_types::Text, _>(val)
                 .bind::<diesel::sql_types::Text, _>(&request.event_type)
@@ -147,6 +152,7 @@ impl FraudEngine {
     fn log_event(
         &self,
         conn: &mut PgConnection,
+        branch: Uuid,
         request: &FraudAssessmentRequest,
         risk_score: i32,
         risk_level: &str,
@@ -156,8 +162,6 @@ impl FraudEngine {
         let id = Uuid::new_v4();
         let rules_json: serde_json::Value =
             serde_json::to_value(triggered).unwrap_or_default();
-
-        let branch = request.branch_id.unwrap_or_else(Uuid::nil);
         diesel::sql_query(
             "INSERT INTO fraud_events (id, branch_id, event_type, entity_type, entity_id, \
              risk_score, risk_level, triggered_rules, action_taken, details) \
