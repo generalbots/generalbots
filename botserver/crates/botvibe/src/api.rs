@@ -19,6 +19,7 @@ use uuid::Uuid;
 pub struct CreateRunRequest {
     pub intent: String,
     pub use_case: Option<String>,
+    pub lang: Option<String>,
     pub auto_approve: Option<bool>,
     pub max_tool_calls: Option<u32>,
     pub timeout_seconds: Option<u64>,
@@ -140,6 +141,7 @@ async fn create_run(
 
     let config = VibeRunConfig {
         use_case,
+        lang: req.lang.unwrap_or_else(|| "en".to_string()),
         auto_approve: req.auto_approve.unwrap_or(false),
         max_tool_calls: req.max_tool_calls.unwrap_or(50),
         timeout_seconds: req.timeout_seconds.unwrap_or(300),
@@ -154,6 +156,7 @@ async fn create_run(
 
     let ctx = api.prompt_manager.build_context(
         run.use_case,
+        &run.config.lang,
         &run.intent,
         &[],
     );

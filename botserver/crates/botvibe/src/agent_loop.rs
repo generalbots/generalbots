@@ -79,7 +79,9 @@ impl AgentLoop {
     }
 
     async fn run_loop(&self, run: &mut VibeRun, max_steps: u32) {
-        let mut context = self.prompt_manager.build_context(run.use_case, &run.intent, &[]);
+        let mut context = self
+            .prompt_manager
+            .build_context(run.use_case, &run.config.lang, &run.intent, &[]);
         context.run_id = run.run_id;
 
         let triggered = self.skills.auto_trigger(&run.intent).await;
@@ -167,7 +169,7 @@ impl AgentLoop {
         run: &VibeRun,
     ) -> Result<String, String> {
         let prompt = self.prompt_manager.compose_prompt(context, &run.intent);
-        let system = self.prompt_manager.system_prompt_for(run.use_case);
+        let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
         let model = run.config.model.clone().unwrap_or_else(|| {
             std::env::var("LLM_MODEL").unwrap_or_else(|_| "gpt-4o-mini".to_string())
         });

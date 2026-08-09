@@ -280,11 +280,9 @@ mod tests {
 
     #[test]
     fn parse_ddg_results_respects_max() {
-        let html = format!(
-            "{}",
-            r#"<a class="result__a" href="https://a.org">A</a><a class="result__snippet" href="https://a.org">s1</a>
+        let html = r#"<a class="result__a" href="https://a.org">A</a><a class="result__snippet" href="https://a.org">s1</a>
                <a class="result__a" href="https://b.org">B</a><a class="result__snippet" href="https://b.org">s2</a>"#
-        );
+            .to_string();
         assert_eq!(parse_ddg_results(&html, 1).len(), 1);
         assert_eq!(parse_ddg_results("no markers here", 5).len(), 0);
     }

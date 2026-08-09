@@ -1,7 +1,7 @@
 use botvibe::harness::cmd::run;
-use std::path::PathBuf;
+use std::path::Path;
 
-fn git(cwd: &PathBuf, args: &[&str]) -> String {
+fn git(cwd: &Path, args: &[&str]) -> String {
     let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
     let out = run("git", &args, cwd, 60)
         .unwrap_or_else(|e| panic!("git {} failed: {e}", args.join(" ")));
@@ -22,8 +22,7 @@ fn full_git_flow_clone_status_diff_commit_push() {
     let remote = base.join("remote.git");
     let work = base.join("work");
 
-    let remote_pb = remote.clone();
-    git(&base, &["init", "--bare", remote_pb.to_str().unwrap()]);
+    git(&base, &["init", "--bare", remote.to_str().unwrap()]);
     git(&base, &["clone", remote.to_str().unwrap(), work.to_str().unwrap()]);
     git(&work, &["config", "user.name", "Test Bot"]);
     git(&work, &["config", "user.email", "test@generalbots.com"]);
@@ -52,6 +51,6 @@ fn full_git_flow_clone_status_diff_commit_push() {
 
 #[test]
 fn git_guard_rejects_unknown_commands() {
-    let out = run("definitely-not-a-real-binary", &[], &PathBuf::from("/tmp"), 5);
+    let out = run("definitely-not-a-real-binary", &[], std::path::Path::new("/tmp"), 5);
     assert!(out.is_err(), "unknown commands must be rejected");
 }
