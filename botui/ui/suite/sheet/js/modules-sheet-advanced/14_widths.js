@@ -148,6 +148,7 @@
     patchRender();
     g.render();
     if (window.SheetSort && window.SheetSort.refreshHandles) window.SheetSort.refreshHandles();
+    if (window.SheetFilter && window.SheetFilter.renderHeads) window.SheetFilter.renderHeads();
   }
 
   window.SheetWidths = {

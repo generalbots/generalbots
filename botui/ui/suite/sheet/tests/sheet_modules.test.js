@@ -83,7 +83,7 @@ function loadModules() {
   sandbox.addEventListener = function () {};
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
-  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "14_widths.js", "15_freeze.js"].forEach(function (f) {
+  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "14_widths.js", "15_freeze.js", "17_filter.js"].forEach(function (f) {
     const code = fs.readFileSync(path.join(MODULES, f), "utf8");
     vm.runInContext(code, ctx, { filename: f });
   });
@@ -205,6 +205,21 @@ function runFreeze() {
   const f = env.window.SheetFreeze.getFrozen();
   assertEqual(f.rows, 1, "frozen.rows = 1");
   assertEqual(f.cols, 0, "frozen.cols = 0");
+  runFilters();
+}
+
+// filter matching: list values, numeric ranges, contains
+function runFilters() {
+  const mf = env.window.SheetFilter.matchesFilter;
+  assertTrue(mf("", null), "matchesFilter noop is safe");
+  assertTrue(mf("Red", { values: ["Red", "Green"] }), "list filter accepts Red");
+  assertTrue(!mf("Blue", { values: ["Red", "Green"] }), "list filter rejects Blue");
+  assertTrue(mf("5", { condition: ">3" }), "numeric >3 accepts 5");
+  assertTrue(!mf("2", { condition: ">3" }), "numeric >3 rejects 2");
+  assertTrue(mf("10", { condition: ">=5", value2: "20" }), ">=5 accepts 10");
+  assertTrue(mf("Shipping", { condition: "contains:Ship" }), "contains matches Shipping");
+  assertTrue(!mf("Billing", { condition: "contains:Ship" }), "contains rejects Billing");
+  assertTrue(!mf("1.5", { condition: ">=5" }), ">=5 rejects 1.5");
   finalize();
 }
 
