@@ -122,21 +122,26 @@
   function applyFill(targetRow, targetCol) {
     const g = grid();
     const sel = window.SheetAdvanced ? window.SheetAdvanced.getSelection() : null;
-    if (!sel || !g) return;
+    if (!sel || !g) return Promise.resolve(null);
+    if (targetRow <= sel.endRow && targetCol <= sel.endCol) return Promise.resolve(null);
     const srcH = sel.endRow - sel.startRow + 1;
     const srcW = sel.endCol - sel.startCol + 1;
+    const rTo = Math.max(sel.endRow, targetRow);
+    const cTo = Math.max(sel.endCol, targetCol);
     const touched = [];
-    for (let r = sel.endRow + 1; r <= targetRow; r++) {
-      for (let c = sel.endCol + 1; c <= targetCol; c++) {
+    for (let r = sel.startRow; r <= rTo; r++) {
+      for (let c = sel.startCol; c <= cTo; c++) {
+        if (r <= sel.endRow && c <= sel.endCol) continue;
         const fill = computeFillCell(g, sel, r, c, srcH, srcW);
         if (fill) touched.push(r + "," + c);
       }
     }
-    if (!touched.length) return;
+    if (!touched.length) return Promise.resolve(null);
     beginBulk("Fill", touched);
     const updates = [];
-    for (let r = sel.endRow + 1; r <= targetRow; r++) {
-      for (let c = sel.endCol + 1; c <= targetCol; c++) {
+    for (let r = sel.startRow; r <= rTo; r++) {
+      for (let c = sel.startCol; c <= cTo; c++) {
+        if (r <= sel.endRow && c <= sel.endCol) continue;
         const fill = computeFillCell(g, sel, r, c, srcH, srcW);
         if (!fill) continue;
         const key = r + "," + c;
@@ -145,7 +150,7 @@
         updates.push(api().updateCell(ref, fill.value));
       }
     }
-    Promise.all(updates).then(function () {
+    return Promise.all(updates).then(function () {
       if (window.SheetCore && window.SheetCore.refreshGrid) window.SheetCore.refreshGrid();
       endBulk();
     });
@@ -202,7 +207,7 @@
         updates.push(api().updateCell(ref, ""));
       }
     }
-    Promise.all(updates).then(function () {
+    return Promise.all(updates).then(function () {
       if (window.SheetCore && window.SheetCore.refreshGrid) window.SheetCore.refreshGrid();
       endBulk();
     });
@@ -246,7 +251,7 @@
         updates.push(api().updateCell(ref, val));
       }
     }
-    Promise.all(updates).then(function () {
+    return Promise.all(updates).then(function () {
       if (window.SheetCore && window.SheetCore.refreshGrid) window.SheetCore.refreshGrid();
       endBulk();
     });
@@ -270,7 +275,7 @@
         updates.push(api().updateCell(ref, ""));
       }
     }
-    Promise.all(updates).then(function () {
+    return Promise.all(updates).then(function () {
       if (window.SheetCore && window.SheetCore.refreshGrid) window.SheetCore.refreshGrid();
       endBulk();
     });
