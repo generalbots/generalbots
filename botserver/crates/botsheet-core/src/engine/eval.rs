@@ -52,7 +52,7 @@ fn resolve_reference(r: &Reference, worksheet: &Worksheet) -> CellValue {
     let key = format!("{},{}", r.row, r.col);
     match worksheet.data.get(&key) {
         Some(cell) => {
-            if let Some(ref formula) = cell.formula {
+            if cell.formula.is_some() {
                 // A formula cell resolves to its cached value; the dependency
                 // engine recalculates it before consumers read it.
                 if let Some(ref v) = cell.value {

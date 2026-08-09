@@ -262,40 +262,32 @@ fn classify_word(word: &str) -> TokenKind {
 }
 
 fn looks_like_reference(word: &str) -> bool {
-    // A reference is letters (optionally `$`-prefixed) followed by digits,
-    // possibly separated by a colon for ranges (handled by the parser via two
-    // references; here we accept single references).
-    let mut chars = word.chars();
-    let mut seen_letters = false;
-    let mut seen_digits = false;
-    let mut after_dollar = false;
-    while let Some(c) = chars.next() {
-        match c {
-            '$' => {
-                after_dollar = true;
-            }
-            'A'..='Z' | 'a'..='z' => {
-                if after_dollar && seen_letters {
-                    return false;
-                }
-                after_dollar = false;
-                seen_letters = true;
-            }
-            '0'..='9' => {
-                if after_dollar && seen_letters {
-                    return false;
-                }
-                after_dollar = false;
-                if !seen_letters {
-                    // A bare number is not a reference.
-                    return false;
-                }
-                seen_digits = true;
-            }
-            _ => return false,
-        }
+    // A reference is: optional `$` column anchor, one or more letters,
+    // optional `$` row anchor, then one or more digits. Everything else
+    // (function names, bare numbers, `Sheet!Ref` handled by caller) is not
+    // a reference.
+    let bytes = word.as_bytes();
+    let mut i = 0usize;
+    if i < bytes.len() && bytes[i] == b'$' {
+        i += 1;
     }
-    seen_letters && seen_digits
+    let mut seen_letters = false;
+    while i < bytes.len() && bytes[i].is_ascii_alphabetic() {
+        i += 1;
+        seen_letters = true;
+    }
+    if !seen_letters {
+        return false;
+    }
+    if i < bytes.len() && bytes[i] == b'$' {
+        i += 1;
+    }
+    let mut seen_digits = false;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        i += 1;
+        seen_digits = true;
+    }
+    seen_digits && i == bytes.len()
 }
 
 #[cfg(test)]

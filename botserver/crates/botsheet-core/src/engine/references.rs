@@ -143,7 +143,7 @@ mod tests {
         let r = Reference::parse("A1").expect("parse");
         assert_eq!(r.translate(2, 3).to_string(), "D3");
         let mixed = Reference::parse("$A1").expect("parse");
-        assert_eq!(mixed.translate(2, 3).to_string(), "$A4");
+        assert_eq!(mixed.translate(2, 3).to_string(), "$A3");
     }
 
     #[test]

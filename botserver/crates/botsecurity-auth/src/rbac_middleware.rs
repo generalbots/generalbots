@@ -202,7 +202,9 @@ impl RoutePermission {
                     continue;
                 }
 
-                if pattern_part.starts_with(':') {
+                if pattern_part.starts_with(':')
+                    || (pattern_part.starts_with('{') && pattern_part.ends_with('}'))
+                {
                     continue;
                 }
 
@@ -212,7 +214,7 @@ impl RoutePermission {
             }
 
             pattern_parts.len() <= path_parts.len() || self.path_pattern.contains("**")
-        } else if self.path_pattern.contains(':') {
+        } else if self.path_pattern.contains(':') || (self.path_pattern.contains('{') && self.path_pattern.contains('}')) {
             let pattern_parts: Vec<&str> = self.path_pattern.split('/').collect();
             let path_parts: Vec<&str> = path.split('/').collect();
 
@@ -221,7 +223,9 @@ impl RoutePermission {
             }
 
             for (pattern_part, path_part) in pattern_parts.iter().zip(path_parts.iter()) {
-                if pattern_part.starts_with(':') {
+                if pattern_part.starts_with(':')
+                    || (pattern_part.starts_with('{') && pattern_part.ends_with('}'))
+                {
                     continue;
                 }
                 if *pattern_part != *path_part {
@@ -1197,6 +1201,19 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/projects/**", "POST", ""),
         RoutePermission::new("/api/projects/**", "PUT", ""),
         RoutePermission::new("/api/projects/**", "DELETE", ""),
+
+        // Vibe platform (dashboard reads for any logged-in user)
+        RoutePermission::new("/api/vibe/graph/**", "GET", ""),
+        RoutePermission::new("/api/vibe/capabilities/**", "GET", ""),
+        RoutePermission::new("/api/vibe/pipeline/**", "GET", ""),
+        RoutePermission::new("/api/vibe/metrics/**", "GET", ""),
+        RoutePermission::new("/api/vibe/runs/**", "GET", ""),
+        RoutePermission::new("/api/vibe/tools/**", "GET", ""),
+        RoutePermission::new("/api/vibe/events/**", "GET", ""),
+        RoutePermission::new("/api/vibe/teams/**", "GET", ""),
+        RoutePermission::new("/api/vibe/run/**", "POST", ""),
+        RoutePermission::new("/api/vibe/runs", "POST", ""),
+        RoutePermission::new("/api/vibe/teams", "POST", ""),
 
         // Goals
         RoutePermission::new("/api/goals/**", "GET", ""),

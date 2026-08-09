@@ -38,9 +38,8 @@ pub fn build_dependency_graph(worksheet: &Worksheet) -> HashMap<CellKey, HashSet
             continue;
         };
         for referenced in extract_referenced_cells(formula) {
-            if referenced == target {
-                continue;
-            }
+            // Self-references stay in the graph so `find_cycles` reports
+            // them (`#CIRC!`); recalc skips cyclic nodes in dependency order.
             deps.entry(referenced).or_default().insert(target);
         }
     }

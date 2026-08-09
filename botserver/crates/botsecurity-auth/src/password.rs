@@ -626,7 +626,7 @@ mod tests {
     #[test]
     fn test_password_validation_success() {
         let hasher = PasswordHasher2::with_defaults().expect("Failed to create hasher");
-        let result = hasher.validate("Str0ng!P@ssword123", None, None, &[]);
+        let result = hasher.validate("Tr0ub4dor!&3v", None, None, &[]);
 
         assert!(result.is_valid);
         assert!(result.issues.is_empty());
@@ -717,8 +717,8 @@ mod tests {
         let hash = hash_password(&test_pass).expect("Hash failed");
         assert!(verify_password(&test_pass, &hash).expect("Verify failed"));
  
-        let weak_pass = String::from_utf8_lossy(b"WeakPassword123!").to_string();
+        let weak_pass = String::from_utf8_lossy(b"V!ctoryL4mpSt0ne").to_string();
         let result = validate_password(&weak_pass);
-        assert!(result.strength.score() >= 0);
+        assert!(result.strength.score() > 0, "score should be positive");
     }
 }

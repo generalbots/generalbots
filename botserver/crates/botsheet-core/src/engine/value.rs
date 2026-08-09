@@ -43,7 +43,7 @@ impl CellValue {
     pub fn display(&self) -> String {
         match self {
             CellValue::Empty => String::new(),
-            CellValue::Number(n) => format_number(n),
+            CellValue::Number(n) => format_number(*n),
             CellValue::Text(s) => s.clone(),
             CellValue::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
             CellValue::Error(e) => format!("#{e}!"),
