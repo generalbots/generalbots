@@ -284,5 +284,8 @@
       setSelection(r1, c1, r2, c2);
       if (grid) grid.selectCell(Math.max(r1, r2), Math.max(c1, c2));
     },
+    clearSelection: function () {
+      clearSelection();
+    },
   };
 })();
