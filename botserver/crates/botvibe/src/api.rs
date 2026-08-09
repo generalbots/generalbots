@@ -83,7 +83,7 @@ pub struct CancelRunRequest {
     pub reason: Option<String>,
 }
 
-struct VibeApiInner {
+pub(crate) struct VibeApiInner {
     state: Arc<dyn VibeState>,
     prompt_manager: Arc<VibePromptManager>,
     tool_executor: Arc<VibeToolExecutor>,
@@ -91,6 +91,27 @@ struct VibeApiInner {
     permissions: crate::permissions::PermissionEngineRef,
     skills: Arc<crate::skills::SkillStore>,
     runs: Arc<RwLock<HashMap<Uuid, VibeRun>>>,
+}
+
+impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
+    fn snapshot_runs(
+        &self,
+    ) -> crate::knowledge_graph::GraphFuture<Vec<crate::knowledge_graph::RunNodeInfo>> {
+        let runs = Arc::clone(&self.runs);
+        Box::pin(async move {
+            runs.read()
+                .await
+                .values()
+                .map(|r| crate::knowledge_graph::RunNodeInfo {
+                    run_id: r.run_id.to_string(),
+                    use_case: r.use_case.to_string(),
+                    state: r.state.to_string(),
+                    intent: r.intent.clone(),
+                    tool_names: r.tool_calls.iter().map(|c| c.tool_name.clone()).collect(),
+                })
+                .collect()
+        })
+    }
 }
 
 pub fn router(
