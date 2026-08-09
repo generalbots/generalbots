@@ -473,7 +473,7 @@ pub async fn execute_command(
 }
 
 fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> {
-    botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid)
+    botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid, None)
         .map(|s| s.branch_id)
         .ok_or_else(|| "bot not found".to_string())
 }
@@ -688,7 +688,7 @@ async fn execute_tax(
     value: Option<String>,
 ) -> Result<Value, String> {
     let service = service.ok_or_else(|| "params.service is required (name or id)".to_string())?;
-    let scope = botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid)
+    let scope = botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid, None)
         .ok_or_else(|| "bot not found".to_string())?;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
     let result = botproducts::service_tax::calculate_service_tax_inner(
