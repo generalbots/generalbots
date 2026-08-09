@@ -441,7 +441,9 @@ pub async fn organization_context_middleware(
             .into_response();
         }
         (Some(claims), _) => Some(claims),
-        (None, Some(header)) => Some(header),
+        // Anonymous callers get no tenant context at all — a client-supplied
+        // header must never grant a tenant scope (issue #734).
+        (None, Some(_)) => None,
         (None, None) => None,
     };
 

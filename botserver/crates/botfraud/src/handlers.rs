@@ -77,7 +77,7 @@ async fn assess(
     headers: HeaderMap,
     payload: Json<FraudAssessmentRequest>,
 ) -> Result<Json<FraudAssessmentResult>, StatusCode> {
-    // Tenant is resolved exclusively from the JWT claims (issue #734); any
+// Tenant is resolved exclusively from the JWT claims (issue #734); any
     // branch_id sent by the client is ignored because it is untrusted input.
     let branch = resolve_branch(&headers);
     let result = state.engine.assess(branch, &payload.0).await;
