@@ -78,6 +78,13 @@ pub struct MetricsResponse {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct CapabilitiesResponse {
+    pub success: bool,
+    pub capabilities: Vec<crate::capability_registry::Capability>,
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CancelRunRequest {
     pub reason: Option<String>,
@@ -145,6 +152,8 @@ pub fn router(
         .route("/api/vibe/run/:run_id/execute", axum::routing::post(execute_run))
         .route("/api/vibe/graph/:use_case", axum::routing::get(crate::knowledge_graph::get_knowledge_graph))
         .route("/api/vibe/graph/run/:run_id", axum::routing::get(crate::knowledge_graph::get_run_graph))
+        .route("/api/vibe/capabilities", axum::routing::get(list_capabilities))
+        .route("/api/vibe/capabilities/:use_case", axum::routing::get(list_capabilities_for_use_case))
         .layer(axum::Extension(api))
 }
 
@@ -364,6 +373,31 @@ async fn list_runs(
 async fn list_tools(Extension(api): Extension<Arc<VibeApiInner>>) -> impl IntoResponse {
     let tools = api.tool_executor.registry().list_tools().await;
     Json(ListToolsResponse { tools })
+}
+
+async fn list_capabilities(Extension(api): Extension<Arc<VibeApiInner>>) -> impl IntoResponse {
+    let tools = api.tool_executor.registry().list_tools().await;
+    let capabilities = crate::capability_registry::build_capabilities(&tools);
+    Json(CapabilitiesResponse {
+        success: true,
+        capabilities,
+        error: None,
+    })
+}
+
+async fn list_capabilities_for_use_case(
+    Extension(api): Extension<Arc<VibeApiInner>>,
+    Path(use_case): Path<String>,
+) -> impl IntoResponse {
+    let uc = parse_use_case(&use_case).unwrap_or(VibeUseCase::SoftwareDevelopment);
+    let tools = api.tool_executor.registry().list_tools().await;
+    let capabilities = crate::capability_registry::build_capabilities(&tools);
+    let filtered = crate::capability_registry::capabilities_for(&capabilities, uc);
+    Json(CapabilitiesResponse {
+        success: true,
+        capabilities: filtered,
+        error: None,
+    })
 }
 
 async fn list_tools_for_use_case(
