@@ -75,12 +75,12 @@ pub fn configure_fraud_routes() -> Router<Arc<FraudState>> {
 async fn assess(
     State(state): State<Arc<FraudState>>,
     headers: HeaderMap,
-    mut payload: Json<FraudAssessmentRequest>,
+    payload: Json<FraudAssessmentRequest>,
 ) -> Result<Json<FraudAssessmentResult>, StatusCode> {
-    if payload.branch_id.is_none() {
-        payload.branch_id = Some(resolve_branch(&headers));
-    }
-    let result = state.engine.assess(&payload.0).await;
+    // Tenant is resolved exclusively from the JWT claims (issue #734); any
+    // branch_id sent by the client is ignored because it is untrusted input.
+    let branch = resolve_branch(&headers);
+    let result = state.engine.assess(branch, &payload.0).await;
     Ok(Json(result))
 }
 

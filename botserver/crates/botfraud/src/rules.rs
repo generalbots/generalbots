@@ -1,12 +1,13 @@
 use crate::types::{FraudAssessmentRequest, FraudRule};
 use diesel::prelude::*;
 
-pub fn load_active_rules(conn: &mut PgConnection) -> Vec<FraudRule> {
+pub fn load_active_rules(conn: &mut PgConnection, branch: uuid::Uuid) -> Vec<FraudRule> {
     diesel::sql_query(
         "SELECT id, branch_id, name, description, rule_type, condition_json, \
          action, severity, is_active, created_at \
-         FROM fraud_rules WHERE is_active = true ORDER BY severity DESC",
+         FROM fraud_rules WHERE is_active = true AND branch_id = $1 ORDER BY severity DESC",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
     .load::<RuleDbRow>(conn)
     .unwrap_or_default()
     .into_iter()

@@ -173,10 +173,11 @@ async fn create_entry(
 
         for line in &payload.lines {
             diesel::sql_query(
-                "INSERT INTO gl_journal_lines (id, entry_id, account_id, debit, credit, description) \
-                 VALUES ($1, $2, $3, $4, $5, $6)",
+                "INSERT INTO gl_journal_lines (id, branch_id, entry_id, account_id, debit, credit, description) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)",
             )
             .bind::<diesel::sql_types::Uuid, _>(&Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(&branch)
             .bind::<diesel::sql_types::Uuid, _>(&entry_id)
             .bind::<diesel::sql_types::Uuid, _>(&line.account_id)
             .bind::<diesel::sql_types::Numeric, _>(&line.debit)

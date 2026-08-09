@@ -355,20 +355,28 @@ impl SearchService {
         })
     }
 
-    pub async fn delete_document(&self, id: &str, source: SearchSource) -> Result<(), SearchError> {
+    pub async fn delete_document(
+        &self,
+        organization_id: Uuid,
+        id: &str,
+        source: SearchSource,
+    ) -> Result<(), SearchError> {
         let mut conn = self.pool.get().map_err(|e| {
             log::error!("Failed to get database connection: {e}");
             SearchError::DatabaseConnection
         })?;
 
-        diesel::sql_query("DELETE FROM search_index WHERE id = $1 AND source = $2")
-            .bind::<Text, _>(id)
-            .bind::<Text, _>(source.to_string())
-            .execute(&mut conn)
-            .map_err(|e| {
-                log::error!("Failed to delete document {}: {e}", id);
-                SearchError::DeleteFailed(e.to_string())
-            })?;
+        diesel::sql_query(
+            "DELETE FROM search_index WHERE organization_id = $1 AND id = $2 AND source = $3",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(organization_id)
+        .bind::<Text, _>(id)
+        .bind::<Text, _>(source.to_string())
+        .execute(&mut conn)
+        .map_err(|e| {
+            log::error!("Failed to delete document {}: {e}", id);
+            SearchError::DeleteFailed(e.to_string())
+        })?;
 
         debug!("Deleted document from index: id={} source={}", id, source);
         Ok(())
@@ -443,19 +451,26 @@ impl SearchService {
         Ok(result)
     }
 
-    pub async fn cleanup_old_index_entries(&self, before_date: DateTime<Utc>) -> Result<i64, SearchError> {
+    pub async fn cleanup_old_index_entries(
+        &self,
+        organization_id: Uuid,
+        before_date: DateTime<Utc>,
+    ) -> Result<i64, SearchError> {
         let mut conn = self.pool.get().map_err(|e| {
             log::error!("Failed to get database connection: {e}");
             SearchError::DatabaseConnection
         })?;
 
-        let result = diesel::sql_query("DELETE FROM search_index WHERE updated_at < $1 RETURNING id")
-            .bind::<Timestamptz, _>(before_date)
-            .execute(&mut conn)
-            .map_err(|e| {
-                log::error!("Failed to cleanup old index entries: {e}");
-                SearchError::DeleteFailed(e.to_string())
-            })?;
+        let result = diesel::sql_query(
+            "DELETE FROM search_index WHERE organization_id = $1 AND updated_at < $2 RETURNING id",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(organization_id)
+        .bind::<Timestamptz, _>(before_date)
+        .execute(&mut conn)
+        .map_err(|e| {
+            log::error!("Failed to cleanup old index entries: {e}");
+            SearchError::DeleteFailed(e.to_string())
+        })?;
 
         info!("Cleaned up {} old index entries", result);
         Ok(result as i64)

@@ -375,7 +375,7 @@ pub async fn execute_command(
         "banking.diagnosis" => {
             let period = str_of("period");
             let resp =
-                botbanking::cashflow::cashflow_diagnosis_inner(&state.conn, &bot_uuid, period.as_deref())
+                botbanking::cashflow::cashflow_diagnosis_inner(&state.conn, &bot_uuid, None, period.as_deref())
                     .await
                     .map_err(|e| e.to_string())?;
             Ok(serde_json::to_value(resp).map_err(|e| e.to_string())?)
@@ -387,6 +387,7 @@ pub async fn execute_command(
                 &state.conn,
                 state.drive.as_ref(),
                 &bot_uuid,
+                None,
                 Some(&file_key),
                 None,
                 period,

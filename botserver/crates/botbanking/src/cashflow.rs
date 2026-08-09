@@ -110,9 +110,13 @@ pub struct BotScopeRow {
     pub name: String,
 }
 
-pub fn resolve_bot_scope(pool: &botcore::shared::utils::DbPool, bot_id: &Uuid) -> Option<BotScopeRow> {
+pub fn resolve_bot_scope(
+    pool: &botcore::shared::utils::DbPool,
+    bot_id: &Uuid,
+    caller_branch: Option<Uuid>,
+) -> Option<BotScopeRow> {
     let mut conn = pool.get().ok()?;
-    if *bot_id == Uuid::nil() {
+    let scope = if *bot_id == Uuid::nil() {
         diesel::sql_query(
             "SELECT id, branch_id, name FROM bots \
              WHERE is_default_for_branch = true ORDER BY created_at ASC LIMIT 1",
@@ -124,6 +128,13 @@ pub fn resolve_bot_scope(pool: &botcore::shared::utils::DbPool, bot_id: &Uuid) -
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .get_result(&mut conn)
             .ok()
+    };
+    // Authorize the resolved scope against the caller's tenant (issue #734):
+    // a client-supplied bot_id may only reference a bot that belongs to the
+    // caller's branch. Anonymous/internal callers pass None (server-resolved).
+    match caller_branch {
+        Some(branch) => scope.filter(|s| s.branch_id == branch),
+        None => scope,
     }
 }
 
@@ -201,6 +212,7 @@ fn normalize_row(row: &CashflowRow) -> Result<(NaiveDate, String, f64, String, S
 /// so the existing reconciliation pipeline can process them later.
 pub async fn import_cashflow(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<CashflowImportRequest>,
 ) -> Result<Json<CashflowImportResponse>, (StatusCode, Json<serde_json::Value>)> {
     let err = |code: StatusCode, msg: &str| (code, Json(serde_json::json!({ "error": msg })));
@@ -210,7 +222,18 @@ pub async fn import_cashflow(
         .and_then(|s| Uuid::parse_str(s).ok())
         .unwrap_or(Uuid::nil());
     let drive = state.drive.as_ref();
-    match cashflow_import_inner(&state.conn, drive, &bot_id, req.file_key.as_deref(), req.rows, req.period).await {
+    let caller_branch = botcore::shared::tenant::branch_from_claims(&headers);
+    match cashflow_import_inner(
+        &state.conn,
+        drive,
+        &bot_id,
+        caller_branch,
+        req.file_key.as_deref(),
+        req.rows,
+        req.period,
+    )
+    .await
+    {
         Ok(resp) => Ok(Json(resp)),
         Err(msg) => Err(err(StatusCode::BAD_REQUEST, &msg)),
     }
@@ -223,11 +246,13 @@ pub async fn cashflow_import_inner(
     pool: &botcore::shared::utils::DbPool,
     drive: Option<&Arc<dyn botlib::traits::DriveRepository>>,
     bot_id: &Uuid,
+    caller_branch: Option<Uuid>,
     file_key: Option<&str>,
     rows: Option<Vec<CashflowRow>>,
     period: Option<String>,
 ) -> Result<CashflowImportResponse, String> {
-    let scope = resolve_bot_scope(pool, bot_id).ok_or_else(|| "Bot not found".to_string())?;
+    let scope = resolve_bot_scope(pool, bot_id, caller_branch)
+        .ok_or_else(|| "Bot not found".to_string())?;
 
     // Sheet content: explicit drive key or supplied rows.
     let csv_text = if let Some(file_key) = file_key {
@@ -328,6 +353,7 @@ pub async fn cashflow_import_inner(
 /// detail, plus the resolved tax rates so the LLM can reason and experiment.
 pub async fn cashflow_diagnosis(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Query(query): Query<DiagnosisQuery>,
 ) -> Result<Json<DiagnosisResponse>, (StatusCode, Json<serde_json::Value>)> {
     let err = |code: StatusCode, msg: &str| (code, Json(serde_json::json!({ "error": msg })));
@@ -336,7 +362,8 @@ pub async fn cashflow_diagnosis(
         .as_deref()
         .and_then(|s| Uuid::parse_str(s).ok())
         .unwrap_or(Uuid::nil());
-    match cashflow_diagnosis_inner(&state.conn, &bot_id, query.period.as_deref()).await {
+    let caller_branch = botcore::shared::tenant::branch_from_claims(&headers);
+    match cashflow_diagnosis_inner(&state.conn, &bot_id, caller_branch, query.period.as_deref()).await {
         Ok(resp) => Ok(Json(resp)),
         Err(msg) => Err(err(StatusCode::BAD_REQUEST, &msg)),
     }
@@ -348,9 +375,11 @@ pub async fn cashflow_diagnosis(
 pub async fn cashflow_diagnosis_inner(
     pool: &botcore::shared::utils::DbPool,
     bot_id: &Uuid,
+    caller_branch: Option<Uuid>,
     period_q: Option<&str>,
 ) -> Result<DiagnosisResponse, String> {
-    let scope = resolve_bot_scope(pool, bot_id).ok_or_else(|| "Bot not found".to_string())?;
+    let scope = resolve_bot_scope(pool, bot_id, caller_branch)
+        .ok_or_else(|| "Bot not found".to_string())?;
 
     let period = period_q.map(|p| p.to_string()).filter(|p| !p.trim().is_empty());
 
