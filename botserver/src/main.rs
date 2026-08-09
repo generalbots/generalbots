@@ -207,7 +207,9 @@ async fn main() -> std::io::Result<()> {
 
     let _ = rustls::crypto::ring::default_provider().install_default();
 
-    dotenvy::dotenv().ok();
+    if std::env::var("GBO_NO_DOTENV").as_deref() != Ok("1") {
+        dotenvy::dotenv().ok();
+    }
 
     let env_path_early = std::path::Path::new("./.env");
     let stack = botcore::shared::utils::get_stack_path();
@@ -306,6 +308,7 @@ async fn main() -> std::io::Result<()> {
     if let Some(idx) = args.iter().position(|a| a == "--stack-path") {
         if let Some(path) = args.get(idx + 1) {
             std::env::set_var("BOTSERVER_STACK_PATH", path);
+            std::env::set_var("GBO_STACK_PATH", path);
             info!("Using custom stack path: {}", path);
         }
     }
@@ -314,7 +317,9 @@ async fn main() -> std::io::Result<()> {
 
     trace!("Bootstrap config phase complete");
     trace!("Reloading dotenv...");
-    dotenv().ok();
+    if std::env::var("GBO_NO_DOTENV").as_deref() != Ok("1") {
+        dotenv().ok();
+    }
 
     let pool = init_database(&progress_tx).await?;
     info!("Database initialized - PostgreSQL connected");
