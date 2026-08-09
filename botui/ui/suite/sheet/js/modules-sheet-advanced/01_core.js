@@ -57,6 +57,7 @@
     sel = normalize(r1, c1, r2, c2);
     positionRangeBox();
     positionFillHandle();
+    window.dispatchEvent(new CustomEvent("gb-sheet-selection", { detail: sel }));
   }
 
   function clearSelection() {
