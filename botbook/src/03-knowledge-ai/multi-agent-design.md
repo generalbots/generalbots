@@ -13,7 +13,7 @@ This document outlines the complete implementation plan to make General Bots the
 1. [BOT Keyword - Multi-Agent System](#1-bot-keyword---multi-agent-system)
 2. [Chat UI Enhancements](#2-chat-ui-enhancements)
 3. [Conversational Banking (bank.gbai)](#3-conversational-banking-bankgbai)
-4. [Excel Clone (HTMX/Rust)](#4-excel-clone-htmxrust)
+4. [Sheets Editor (HTMX/Rust)](#4-sheets-editor-htmxrust)
 5. [Word Editor for .docx](#5-word-editor-for-docx)
 6. [M365/Office Competitive Analysis](#6-m365office-competitive-analysis)
 7. [Google/MS Graph API Compatibility](#7-googlems-graph-api-compatibility)
@@ -1796,7 +1796,7 @@ END SUB
 
 ---
 
-## 4. Excel Clone (HTMX/Rust)
+## 4. Sheets Editor (HTMX/Rust)
 
 ### Architecture
 
@@ -1818,7 +1818,7 @@ END SUB
 │         ▼                                                       │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │                    FORMULA ENGINE                        │   │
-│  │  - 400+ Excel functions                                  │   │
+│  │  - 400+ spreadsheet functions                                  │   │
 │  │  - Array formulas                                        │   │
 │  │  - Cross-sheet references                                │   │
 │  │  - Custom functions (BASIC integration)                  │   │

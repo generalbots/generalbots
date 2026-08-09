@@ -1,6 +1,6 @@
 # Sheet 🟡 BETA - Spreadsheets
 
-> **Excel-like spreadsheet with AI**
+> **AI spreadsheet with desktop-grade features**
 
 <img src="../../assets/suite/sheet-screen.svg" alt="Sheet Interface Screen" style="max-width: 100%; height: auto;">
 
@@ -16,7 +16,7 @@ Sheet is in **beta**, and the gap between it and a desktop spreadsheet is curren
 - **Partial** — present but incomplete or unreliable; the note says how.
 - **Planned** — modelled, or exposed in the API, but not yet functional end to end.
 
-The work to close the gap is tracked in [Excel Parity Plan](./sheet-excel-parity.md). Read that page before relying on Sheet for a workbook you cannot afford to lose.
+The work to close the gap is tracked in [Sheet Parity Plan](./sheet-parity-plan.md). Read that page before relying on Sheet for a workbook you cannot afford to lose.
 
 ---
 
@@ -59,7 +59,7 @@ Around 170 worksheet functions are implemented server-side, including the Micros
 
 #### Current formula limitations
 
-These are real and will bite immediately. Each is tracked in [Excel Parity Plan](./sheet-excel-parity.md).
+These are real and will bite immediately. Each is tracked in [Sheet Parity Plan](./sheet-parity-plan.md).
 
 | Limitation | Example | Result today |
 |---|---|---|
@@ -99,12 +99,12 @@ These are real and will bite immediately. Each is tracked in [Excel Parity Plan]
 | CSV | Available | Available | Exported values are unformatted |
 | TSV | Available | Available | — |
 | JSON | Available | Available | Internal document shape |
-| Excel `.xlsx` | Partial | Partial | Values, formulas, number format codes, cell styles, merged cells, column widths, row heights and frozen panes are read. **Defined names, data validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, sheet protection, print setup and external links are dropped.** |
+| `.xlsx` | Partial | Partial | Values, formulas, number format codes, cell styles, merged cells, column widths, row heights and frozen panes are read. **Defined names, data validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, sheet protection, print setup and external links are dropped.** |
 | Markdown | — | Available | — |
 | ODS | — | Partial | Emits content XML, not a complete `.ods` package |
 | PDF | — | Planned | — |
 
-> **Warning — opening an `.xlsx` from Drive.** Sheet can write the edited workbook back over the original file. Because import is lossy, features Sheet does not model are not preserved on that write. Until [Excel Parity Plan](./sheet-excel-parity.md) issue 8 lands, keep a copy of any workbook that contains charts, pivot tables, conditional formatting or data validation before editing it in Sheet.
+> **Warning — opening an `.xlsx` from Drive.** Sheet can write the edited workbook back over the original file. Because import is lossy, features Sheet does not model are not preserved on that write. Until [Sheet Parity Plan](./sheet-parity-plan.md) issue 8 lands, keep a copy of any workbook that contains charts, pivot tables, conditional formatting or data validation before editing it in Sheet.
 
 ---
 
@@ -119,7 +119,7 @@ Implemented today:
 | `F2` | Edit the active cell |
 | `Arrow` keys | Move the selection |
 
-Documented but **not yet implemented** — tracked in [Excel Parity Plan](./sheet-excel-parity.md):
+Documented but **not yet implemented** — tracked in [Sheet Parity Plan](./sheet-parity-plan.md):
 
 | Shortcut | Action |
 |----------|--------|
@@ -141,7 +141,7 @@ Documented but **not yet implemented** — tracked in [Excel Parity Plan](./shee
 
 ## Sheet via Chat
 
-The examples below show the intended conversational flow. Chat-driven sheet creation depends on the parity work in [Excel Parity Plan](./sheet-excel-parity.md); treat them as the target experience rather than a description of current behaviour.
+The examples below show the intended conversational flow. Chat-driven sheet creation depends on the parity work in [Sheet Parity Plan](./sheet-parity-plan.md); treat them as the target experience rather than a description of current behaviour.
 
 ### Creating a Sales Report
 
@@ -305,13 +305,13 @@ The examples below show the intended conversational flow. Chat-driven sheet crea
 
 Current grid limits are compiled in, not configurable:
 
-| Limit | Current value | Excel |
-|-------|---------------|-------|
+| Limit | Current value | Desktop spreadsheets |
+|-------|---------------|---------------------|
 | Columns | 26 | 16,384 (`XFD`) |
 | Rows | 1,200,000 | 1,048,576 |
 | Recalculated cells per edit | 1,000 (silently truncated) | unlimited |
 
-Aligning these with Excel is part of [Excel Parity Plan](./sheet-excel-parity.md) issues 4 and 6.
+Catching up to the desktop standard is part of [Sheet Parity Plan](./sheet-parity-plan.md) issues 4 and 6.
 
 ---
 
@@ -349,7 +349,7 @@ Charts are not rendered in the grid yet. The definition is stored and returned b
 
 ## See Also
 
-- [Excel Parity Plan](./sheet-excel-parity.md) — current gaps and the plan to close them
+- [Sheet Parity Plan](./sheet-parity-plan.md) — current gaps and the plan to close them
 - [Sheets API](../../08-rest-api-tools/sheets-api.md) — endpoint reference
 - [Suite Manual](../suite-manual.md) — complete user guide
 - [Drive](./drive.md) — file storage for imports

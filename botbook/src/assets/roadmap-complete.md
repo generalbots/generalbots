@@ -122,8 +122,8 @@ This table merges the proposed timeline with all features documented in botbook/
 | 7 | Analytics Reports | Your list + botbook | 08-rest-api-tools/analytics-api.md |
 | 8 | **Slack Channel** | botbook | 03-knowledge-ai/channels.md |
 | 9 | **Discord Channel** | botbook | 03-knowledge-ai/channels.md |
-| 10 | **Google Sheets** | botbook | Future |
-| 11 | **Excel Online** | botbook | Future |
+| 10 | **Google Workspace spreadsheets** | botbook | Future |
+| 11 | **Office Online spreadsheets** | botbook | Future |
 | 12 | **Whiteboard Collaboration** | botbook | 08-rest-api-tools/whiteboard-api.md |
 | 13 | **Player App (Media)** | botbook | 07-user-interface/apps/player.md |
 | 14 | **Sources App (Prompts)** | botbook | 07-user-interface/apps/sources.md |

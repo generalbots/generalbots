@@ -100,7 +100,7 @@ pub fn all_apps() -> Vec<AppDefinition> {
             "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points=\"14 2 14 8 20 8\"/><line x1=\"16\" y1=\"13\" x2=\"8\" y2=\"13\"/><line x1=\"16\" y1=\"17\" x2=\"8\" y2=\"17\"/>"),
         app("sheet", "Sheets", "office", "#0f9d58", "/suite/sheet/sheet.html",
             "Spreadsheets with formulas, charts and CSV import.",
-            "spreadsheet excel table",
+            "spreadsheet table",
             "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"3\" y1=\"9\" x2=\"21\" y2=\"9\"/><line x1=\"9\" y1=\"21\" x2=\"9\" y2=\"9\"/>"),
         app("slides", "Slides", "office", "#f59e0b", "/suite/slides/slides.html",
             "Presentation builder with themes and collaboration.",

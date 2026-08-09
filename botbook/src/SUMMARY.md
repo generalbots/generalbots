@@ -189,7 +189,7 @@
    - [Designer - Visual Builder](./07-user-interface/apps/designer.md)
    - [Docs - AI Writing](./07-user-interface/apps/docs.md)
    - [Sheet - Spreadsheets](./07-user-interface/apps/sheet.md)
-     - [Excel Parity Plan](./07-user-interface/apps/sheet-excel-parity.md)
+     - [Sheet Parity Plan](./07-user-interface/apps/sheet-parity-plan.md)
    - [Slides - Presentations](./07-user-interface/apps/slides.md)
    - [Canvas - Whiteboard](./07-user-interface/apps/canvas.md)
    - [Campaigns - Marketing](./07-user-interface/apps/campaigns.md)

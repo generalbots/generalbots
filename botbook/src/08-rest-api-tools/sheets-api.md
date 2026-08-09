@@ -14,7 +14,7 @@
 
 All endpoints require a valid session token via `Authorization: Bearer <token>` header.
 
-> **⚠️ Not enforced yet.** The handlers currently resolve every request to a single hardcoded user identity, so any client can read or overwrite any document by id, and no per-document permission is checked. Real identity, tenancy scoping and a four-role ACL (owner / editor / commenter / viewer) are tracked in [generalbots#789](https://github.com/generalbots/generalbots/issues/789). Do not expose these endpoints to untrusted clients until it lands. See [Excel Parity Plan](../07-user-interface/apps/sheet-excel-parity.md).
+> **⚠️ Not enforced yet.** The handlers currently resolve every request to a single hardcoded user identity, so any client can read or overwrite any document by id, and no per-document permission is checked. Real identity, tenancy scoping and a four-role ACL (owner / editor / commenter / viewer) are tracked in [generalbots#789](https://github.com/generalbots/generalbots/issues/789). Do not expose these endpoints to untrusted clients until it lands. See [Sheet Parity Plan](../07-user-interface/apps/sheet-parity-plan.md).
 
 > **⚠️ Concurrency.** Every mutating endpoint currently loads the whole document, mutates it, and writes it back with no version check. Two clients editing different cells will lose one edit silently. Optimistic concurrency with a `version` field and `409 Conflict` responses is part of the same issue.
 
@@ -319,7 +319,7 @@ Sets a formula in a cell.
 | `sheet_id` | string | Yes | Spreadsheet identifier |
 | `sheet_tab` | string | No | Sheet tab name |
 | `cell` | string | Yes | Cell reference |
-| `formula` | string | Yes | Excel/Google Sheets formula |
+| `formula` | string | Yes | Spreadsheet formula |
 
 **Response:**
 ```json
@@ -1266,14 +1266,14 @@ Endpoints that accept and persist a request but whose effect is not yet visible 
 | `POST /api/sheet/share` | Partial | No real ACL is written; see [#789](https://github.com/generalbots/generalbots/issues/789) |
 | `GET /api/sheet/list` | Partial | Fully deserialises every document to build the list |
 
-Full detail and the plan to close each gap: [Excel Parity Plan](../07-user-interface/apps/sheet-excel-parity.md).
+Full detail and the plan to close each gap: [Sheet Parity Plan](../07-user-interface/apps/sheet-parity-plan.md).
 
 ---
 
 ## See Also
 
 - [Sheet - Spreadsheets](../07-user-interface/apps/sheet.md) — user-facing feature reference
-- [Excel Parity Plan](../07-user-interface/apps/sheet-excel-parity.md) — current gaps and roadmap
+- [Sheet Parity Plan](../07-user-interface/apps/sheet-parity-plan.md) — current gaps and roadmap
 - [Files API](files-api.md) — file operations and Drive management
 - [CRM API](crm-api.md) — contact and account data integration
 - [Tasks API](tasks-api.md) — task tracking from spreadsheet data
