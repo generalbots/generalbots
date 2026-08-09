@@ -66,7 +66,7 @@ Each row links to the issue that closes it.
 | 13 | ~~No clipboard.~~ **Shipped (2026-08-09)** | Copy/cut/paste/copy TSV with multi-cell block support and fallback textarea for non-secure contexts. Pasting a block from another spreadsheet works. → issue 7 |
 | 14 | ~~No undo or redo. The buttons issue a request the server does not implement.~~ **Shipped (2026-08-09)** | Client-side 100-level undo/redo stack covering edits, paste, fill, cut and clear; toolbar buttons wired (`Ctrl+Z` / `Ctrl+Y`). → issue 7 |
 | 15 | ~~No fill handle, no `Ctrl+D`/`Ctrl+R`, no series extrapolation.~~ **Shipped (2026-08-09)** | Drag fill handle with numeric series extrapolation and `$`-anchor-aware formula translation; `Ctrl+D`/`Ctrl+R` fill down/right. → issue 7 |
-| 16 | The merge button merges a cell with itself. | A no-op that appears to work. → issue 7 |
+| 16 | ~~The merge button merges a cell with itself.~~ **Shipped (2026-08-09)** | The button merges the selected range; unmerge via `/api/sheet/unmerge`; merged regions render with the anchor spanning and covered cells hidden. → issue 7 |
 | 17 | ~~No worksheet tab bar exists in the markup.~~ **Shipped (2026-08-09)** | Client-rendered tab bar with add/switch/delete/rename wired to the worksheet endpoints; only the first worksheet is no longer reachable. → issue 12 |
 
 ### File fidelity
