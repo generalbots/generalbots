@@ -218,7 +218,8 @@ Respond with JSON only:
 
     /// Keyword/PT-phrase classifier. Works fully offline (no LLM) and always
     /// produces a concrete `suggested_name` for later resource creation.
-    fn classify_heuristic(intent: &str) -> Result<ClassifiedIntent, Box<dyn std::error::Error + Send + Sync>> {
+    /// Public so callers without LLM plumbing (e.g. Vibe tools) can classify.
+    pub fn classify_heuristic(intent: &str) -> Result<ClassifiedIntent, Box<dyn std::error::Error + Send + Sync>> {
         let lower = intent.to_lowercase();
         let (intent_type, confidence) =
             if has_any(&lower, &[
