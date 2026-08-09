@@ -107,40 +107,6 @@ pub fn detect_dialect(url: &str) -> SqlDialect {
 }
 
 #[cfg(test)]
-mod rusqlite_in_memory {
-    use super::{DbConnection, DbError, SqlDialect};
-    use rusqlite::Connection;
-
-    pub fn open(url: &str) -> Result<SqliteConnection, String> {
-        let conn = Connection::open(url).map_err(|e| e.to_string())?;
-        Ok(SqliteConnection { conn })
-    }
-
-    pub struct SqliteConnection {
-        conn: Connection,
-    }
-
-    impl DbConnection for SqliteConnection {
-        fn execute(&mut self, sql: &str) -> Result<u64, DbError> {
-            self.conn
-                .execute(sql, [])
-                .map(|n| n as u64)
-                .map_err(|e| DbError::Query(e.to_string()))
-        }
-        fn query_scalar(&mut self, sql: &str) -> Result<Option<String>, DbError> {
-            use rusqlite::OptionalExtension;
-            self.conn
-                .query_row(sql, [], |row| row.get::<_, String>(0))
-                .optional()
-                .map_err(|e| DbError::Query(e.to_string()))
-        }
-        fn dialect(&self) -> SqlDialect {
-            SqlDialect::Sqlite
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
 

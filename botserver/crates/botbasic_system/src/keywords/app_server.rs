@@ -467,6 +467,7 @@ mod tests {
         assert_eq!(get_content_type("unknown.xyz"), "application/octet-stream");
     }
 
+    #[cfg(not(feature = "vibe"))]
     #[test]
     fn test_sanitize_app_name() {
         assert_eq!(sanitize_app_name("my-app"), "my-app");

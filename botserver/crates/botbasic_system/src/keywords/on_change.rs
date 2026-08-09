@@ -220,7 +220,6 @@ mod tests {
             })
             .collect()
     }
-    use super::*;
 
     #[test]
     fn test_folder_provider_from_str() {

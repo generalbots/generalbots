@@ -227,8 +227,8 @@ impl I18nBundle {
 
 #[cfg(test)]
 mod tests {
-    use super::translation_parser::TranslationFile;
     use super::*;
+    use crate::i18n::translation_parser::TranslationFile;
 
     #[test]
     fn test_parse_simple_ftl() {
