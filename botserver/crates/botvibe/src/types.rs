@@ -367,6 +367,20 @@ CREATE INDEX IF NOT EXISTS idx_vibe_telemetry_run_id ON vibe_telemetry(run_id);
 CREATE INDEX IF NOT EXISTS idx_vibe_telemetry_event_type ON vibe_telemetry(event_type);
 CREATE INDEX IF NOT EXISTS idx_vibe_telemetry_timestamp ON vibe_telemetry(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_vibe_telemetry_use_case ON vibe_telemetry(use_case);
+
+CREATE TABLE IF NOT EXISTS vibe_email_outbox (
+    id UUID PRIMARY KEY,
+    bot_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+    recipient VARCHAR(320) NOT NULL,
+    subject VARCHAR(500) NOT NULL,
+    body TEXT NOT NULL DEFAULT '',
+    status VARCHAR(20) NOT NULL DEFAULT 'queued',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    sent_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_vibe_email_outbox_status ON vibe_email_outbox(status);
+CREATE INDEX IF NOT EXISTS idx_vibe_email_outbox_bot_id ON vibe_email_outbox(bot_id);
 ";
 
 #[cfg(test)]

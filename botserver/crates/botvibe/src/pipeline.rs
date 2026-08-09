@@ -281,8 +281,12 @@ mod tests {
         assert_eq!(report.run_id, run_id);
         for stage in &report.stages {
             assert!(!stage.tool_name.is_empty());
-            assert_eq!(stage.status, StageStatus::Failed, "autotask tools are stubs -> honest failure");
-            assert!(stage.error.as_deref().unwrap_or_default().contains("not wired up"));
+            assert_eq!(stage.status, StageStatus::Failed, "autotask tools run with empty args -> honest failure");
+            assert!(
+                stage.error.as_deref().is_some_and(|e| !e.is_empty()),
+                "stage must carry an honest error, got {:?}",
+                stage.error
+            );
         }
         let metrics = telemetry.get_run_metrics(run_id).await.expect("metrics recorded");
         assert_eq!(metrics.total_tool_calls, 3);

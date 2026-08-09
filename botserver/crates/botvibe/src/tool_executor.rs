@@ -84,20 +84,11 @@ impl ToolRegistry {
 
     fn register_builtin_tools(tools: &mut HashMap<String, RegisteredTool>) {
 
-        let autotask_tools = vec![
-            ("classify_intent", "Classifica a intenção do usuário usando o motor AutoTask", false),
-            ("compile_plan", "Compila um plano de execução a partir da intenção classificada", false),
-            ("execute_plan", "Executa um plano compilado de forma supervisionada", true),
-            ("create_and_execute", "Classifica, compila e executa em um único fluxo", true),
-        ];
-
-        for (name, desc, approval) in autotask_tools {
-            let schema = ToolSchema::new(name, desc)
-                .with_approval_if(approval)
-                .with_use_cases(vec![VibeUseCase::SoftwareDevelopment, VibeUseCase::CustomerSupport]);
-            tools.insert(name.to_string(), RegisteredTool {
+        // #796 — wired tools: real implementations (autotask, CRM, analysis).
+        for (name, schema, handler) in crate::wired_tools::autotask::autotask_tools() {
+            tools.insert(name.clone(), RegisteredTool {
                 descriptor: ToolDescriptor { schema, category: ToolCategory::Autotask },
-                handler: Arc::new(stub_tool_handler(name)),
+                handler,
             });
         }
 
@@ -161,38 +152,19 @@ impl ToolRegistry {
             });
         }
 
-        let crm_tools = vec![
-            ("search_contacts", "Busca contatos no CRM", false),
-            ("get_deals", "Obtém oportunidades do pipeline CRM", false),
-            ("create_ticket", "Cria ticket de suporte", false),
-            ("update_ticket", "Atualiza status de ticket", false),
-            ("send_email", "Envia e-mail ao contato", false),
-        ];
-
-        for (name, desc, approval) in crm_tools {
-            let schema = ToolSchema::new(name, desc)
-                .with_approval_if(approval)
-                .with_use_cases(vec![VibeUseCase::CustomerSupport]);
-            tools.insert(name.to_string(), RegisteredTool {
+        // #796 — CRM tools: contacts, deals, tickets, queued email.
+        for (name, schema, handler) in crate::wired_tools::crm::crm_tools() {
+            tools.insert(name.clone(), RegisteredTool {
                 descriptor: ToolDescriptor { schema, category: ToolCategory::Crm },
-                handler: Arc::new(stub_tool_handler(name)),
+                handler,
             });
         }
 
-        let analysis_tools = vec![
-            ("fetch_market_data", "Obtém dados de mercado em tempo real", false),
-            ("analyze_sentiment", "Analisa sentimento de mercado", false),
-            ("generate_report", "Gera relatório financeiro marcado", false),
-            ("detect_anomalies", "Detecta anomalias em séries temporais", false),
-        ];
-
-        for (name, desc, approval) in analysis_tools {
-            let schema = ToolSchema::new(name, desc)
-                .with_approval_if(approval)
-                .with_use_cases(vec![VibeUseCase::FinancialAnalysis]);
-            tools.insert(name.to_string(), RegisteredTool {
+        // #796 — analysis tools: market data, sentiment, reports, anomalies.
+        for (name, schema, handler) in crate::wired_tools::analysis::analysis_tools() {
+            tools.insert(name.clone(), RegisteredTool {
                 descriptor: ToolDescriptor { schema, category: ToolCategory::Analysis },
-                handler: Arc::new(stub_tool_handler(name)),
+                handler,
             });
         }
     }
@@ -442,20 +414,6 @@ fn deploy_app_handler() -> impl Fn(serde_json::Value, &dyn VibeState) -> ToolFut
                     error: Some(e.to_string()),
                     latency_ms: 0,
                 },
-            }
-        })
-    }
-}
-
-fn stub_tool_handler(name: &'static str) -> impl Fn(serde_json::Value, &dyn VibeState) -> ToolFuture + Send + Sync + 'static {
-    move |_args: serde_json::Value, _state: &dyn VibeState| {
-        let name = name.to_string();
-        Box::pin(async move {
-            VibeToolResult {
-                success: false,
-                data: serde_json::Value::Null,
-                error: Some(format!("tool '{name}' is not wired up yet")),
-                latency_ms: 0,
             }
         })
     }
