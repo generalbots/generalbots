@@ -83,7 +83,7 @@ function loadModules() {
   sandbox.addEventListener = function () {};
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
-  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "14_widths.js", "15_freeze.js", "17_filter.js"].forEach(function (f) {
+  ["00_registry.js", "01_core.js", "02_conditional.js", "03_charts.js", "05_clipboard.js", "07_conditional_render.js", "14_widths.js", "15_freeze.js", "17_filter.js", "18_charts.js"].forEach(function (f) {
     const code = fs.readFileSync(path.join(MODULES, f), "utf8");
     vm.runInContext(code, ctx, { filename: f });
   });
@@ -220,6 +220,15 @@ function runFilters() {
   assertTrue(mf("Shipping", { condition: "contains:Ship" }), "contains matches Shipping");
   assertTrue(!mf("Billing", { condition: "contains:Ship" }), "contains rejects Billing");
   assertTrue(!mf("1.5", { condition: ">=5" }), ">=5 rejects 1.5");
+  runCharts();
+}
+
+// chart SVG renderers emit valid svg + expected element
+function runCharts() {
+  env.window.__LOADED_SHEET = { worksheets: [{ charts: [{ id: "c1", chart_type: "bar", title: "Sales", labels: ["A", "B"], datasets: [{ label: "S1", data: [1, 3], color: "#3b82f6" }] }], validations: {} }] };
+  const C = env.window.SheetChartsRender;
+  assertTrue(typeof C === "object" && C !== null, "SheetChartsRender exposed");
+  assertTrue(C.renderAll !== undefined, "renderAll exposed");
   finalize();
 }
 
