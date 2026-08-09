@@ -32,6 +32,7 @@ pub fn create_new_spreadsheet() -> Spreadsheet {
         external_links: None,
     source_bucket: None,
     source_path: None,
+        source_bytes: None,
     }
 }
 
@@ -387,5 +388,6 @@ pub fn import_spreadsheet_bytes(
         external_links: None,
     source_bucket: None,
     source_path: None,
+        source_bytes: None,
     })
 }

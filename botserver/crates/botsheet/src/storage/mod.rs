@@ -7,7 +7,9 @@ pub mod xlsx_write;
 
 pub use import::*;
 pub use xlsx_read::load_xlsx_from_bytes;
-pub use xlsx_write::{apply_umya_style, convert_to_xlsx, extract_cell_style, get_col_letter};
+pub use xlsx_write::{
+    apply_umya_style, convert_to_xlsx, extract_cell_style, get_col_letter, merge_into_original,
+};
 
 use botsheet_core::state::{DriveOps, SheetSaveHook, SheetState};
 use botsheet_core::types::Spreadsheet;
@@ -143,12 +145,30 @@ pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
             None => return Ok(()),
         };
 
-        let xlsx_bytes = match convert_to_xlsx(sheet) {
-            Ok(b) => b,
-            Err(e) => {
-                log::error!("Failed to convert sheet to xlsx for save-back: {e}");
-                return Ok(());
-            }
+        let xlsx_bytes = match sheet.source_bytes {
+            // Non-destructive path (#788): rewrite only the cells Sheet owns
+            // inside the untouched original package, preserving charts, pivots,
+            // validation and conditional formatting.
+            Some(ref original) => match merge_into_original(original, sheet) {
+                Ok(b) => b,
+                Err(e) => {
+                    log::error!("Failed to merge xlsx save-back, falling back to regenerate: {e}");
+                    match convert_to_xlsx(sheet) {
+                        Ok(b) => b,
+                        Err(e2) => {
+                            log::error!("Failed to convert sheet to xlsx for save-back: {e2}");
+                            return Ok(());
+                        }
+                    }
+                }
+            },
+            None => match convert_to_xlsx(sheet) {
+                Ok(b) => b,
+                Err(e) => {
+                    log::error!("Failed to convert sheet to xlsx for save-back: {e}");
+                    return Ok(());
+                }
+            },
         };
 
         let d = drive.clone();

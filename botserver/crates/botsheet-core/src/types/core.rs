@@ -147,6 +147,12 @@ pub struct Spreadsheet {
     /// Original xlsx path in Drive.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_path: Option<String>,
+    /// Original xlsx package bytes, retained so the save-back hook can merge the
+    /// edited cells into the untouched original (preserving charts, pivots,
+    /// validation and other parts Sheet does not model) instead of regenerating
+    /// the package from the lossy JSON model (#788).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_bytes: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

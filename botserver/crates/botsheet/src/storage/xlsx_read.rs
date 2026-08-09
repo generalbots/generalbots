@@ -171,6 +171,7 @@ pub fn load_xlsx_from_bytes(
         updated_at: Utc::now(),
     source_bucket: None,
     source_path: None,
+        source_bytes: None,
     };
 
     Ok((spreadsheet, workbook))

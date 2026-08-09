@@ -8,7 +8,7 @@ use crate::types::{
     WorksheetMetaResponse,
 };
 use axum::{extract::State, http::StatusCode, Json};
-use botsheet_core::dependency_graph::{cell_key, recalc_cascade};
+use botsheet_core::dependency_graph::{cell_key, recalc_cascade_typed};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -18,12 +18,7 @@ use std::sync::Arc;
 const MAX_RECALC_CELLS: usize = 1000;
 
 fn reevaluate_cascade(worksheet: &mut Worksheet, changed: (u32, u32)) {
-    recalc_cascade(
-        worksheet,
-        cell_key(changed.0, changed.1),
-        |formula, ws| evaluate_formula(formula, ws).value,
-        MAX_RECALC_CELLS,
-    );
+    recalc_cascade_typed(worksheet, cell_key(changed.0, changed.1), MAX_RECALC_CELLS);
 }
 
 pub async fn handle_update_cell(
