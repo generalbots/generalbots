@@ -222,13 +222,9 @@ pub fn build_run_graph(run_id: &str, runs: &[RunNodeInfo]) -> Result<KnowledgeGr
     Ok(graph)
 }
 
-fn sort_graph(nodes: &mut Vec<GraphNode>, edges: &mut Vec<GraphEdge>) {
+fn sort_graph(nodes: &mut [GraphNode], edges: &mut [GraphEdge]) {
     nodes.sort_by(|a, b| a.id.cmp(&b.id));
-    edges.sort_by(|a, b| (a.source.clone(), a.target.clone(), a.relationship.clone()).cmp(&(
-        b.source.clone(),
-        b.target.clone(),
-        b.relationship.clone(),
-    )));
+    edges.sort_by_key(|e| (e.source.clone(), e.target.clone(), e.relationship.clone()));
 }
 
 /// Returns a knowledge graph for the given use case, built from live runs.

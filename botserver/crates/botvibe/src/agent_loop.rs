@@ -10,6 +10,8 @@ use tokio::time::{timeout, Duration};
 use uuid::Uuid;
 const DEFAULT_MAX_STEPS: u32 = 50;
 const DEFAULT_TIMEOUT_SECS: u64 = 300;
+const MAX_EMPTY_PARSE_RETRIES: u32 = 3;
+const MAX_TOOL_RESULT_CHARS: usize = 4000;
 
 pub struct AgentLoop {
     prompt_manager: Arc<VibePromptManager>,
@@ -92,6 +94,7 @@ impl AgentLoop {
                 .collect();
         }
 
+        let mut empty_parse_rounds: u32 = 0;
         for step in 0..max_steps {
             if run.state == VibeRunState::Cancelled {
                 info!("Vibe run {} cancelled at step {}", run.run_id, step);
@@ -131,24 +134,37 @@ impl AgentLoop {
             let tool_calls = self.parse_tool_calls(&llm_response);
 
             if tool_calls.is_empty() {
+                if !looks_like_tool_intent(&llm_response)
+                    || empty_parse_rounds + 1 >= MAX_EMPTY_PARSE_RETRIES
+                {
+                    context.add_assistant_message(llm_response);
+                    run.transition(VibeRunState::Completed);
+                    self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                    self.broadcast_event(run, "completed", "Agent finished — no more tool calls", 100);
+                    return;
+                }
+                empty_parse_rounds += 1;
                 context.add_assistant_message(llm_response);
-                run.transition(VibeRunState::Completed);
-                self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-                self.broadcast_event(run, "completed", "Agent finished — no more tool calls", 100);
-                return;
+                context.add_assistant_message(
+                    "Your previous response could not be parsed into tool calls. \
+                     Return a JSON object exactly like: \
+                     {\"tool_calls\": [{\"tool_name\": \"example_tool\", \"arguments\": {}}]} \
+                     — or, if the task is complete, answer plainly without any tool_calls key."
+                        .to_string(),
+                );
+                continue;
             }
-
-            context.add_assistant_message(format!(
-                "Proposed {} tool call(s): {}",
-                tool_calls.len(),
-                tool_calls
-                    .iter()
-                    .map(|tc| tc.tool_name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ));
+            empty_parse_rounds = 0;
+            context.add_assistant_message(llm_response);
 
             for tc in &tool_calls {
+                if (run.tool_calls.len() as u32) >= max_steps {
+                    info!(
+                        "Vibe run {} reached tool-call cap ({max_steps}) at step {}",
+                        run.run_id, step
+                    );
+                    break;
+                }
                 self.process_tool_call(run, &mut context, tc, step, max_steps)
                     .await;
             }
@@ -374,8 +390,9 @@ impl AgentLoop {
                     .unwrap_or_else(|| "No result".to_string());
 
                 context.add_assistant_message(format!(
-                    "Tool {} result: {result_summary}",
-                    tool_call.tool_name
+                    "Tool {} result: {}",
+                    tool_call.tool_name,
+                    truncate(&result_summary, MAX_TOOL_RESULT_CHARS)
                 ));
             }
             Err(e) => {
@@ -512,6 +529,25 @@ struct ExtractedToolCall {
     arguments: serde_json::Value,
 }
 
+/// True when the response mentions tool-call JSON keys, meaning the model
+/// attempted to call tools even if the payload could not be parsed.
+fn looks_like_tool_intent(response: &str) -> bool {
+    response.contains("tool_calls") || response.contains("tool_name")
+}
+
+/// Caps a string at `limit` characters, cutting on a char boundary and
+/// marking the truncation so long tool results stay visible but bounded.
+fn truncate(text: &str, limit: usize) -> String {
+    if text.len() <= limit {
+        return text.to_string();
+    }
+    let mut end = limit;
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}… (truncated)", &text[..end])
+}
+
 fn extract_json_object(s: &str) -> Option<String> {
     let mut depth = 0i32;
     let mut in_string = false;
@@ -574,6 +610,31 @@ mod tests {
         assert!(extract_json_object("no braces here").is_none());
         assert!(extract_json_object("").is_none());
         assert!(extract_json_object("unbalanced {").is_none());
+    }
+
+    #[test]
+    fn looks_like_tool_intent_detects_json_tool_phrases() {
+        assert!(looks_like_tool_intent(r#"{"tool_calls": []}"#));
+        assert!(looks_like_tool_intent(r#"use tool_name read_file"#));
+        assert!(!looks_like_tool_intent("no tools needed, task done"));
+        assert!(!looks_like_tool_intent(""));
+    }
+
+    #[test]
+    fn truncate_keeps_short_and_marks_long() {
+        assert_eq!(truncate("short", 100), "short");
+        let text = "a".repeat(5000);
+        let out = truncate(&text, 4000);
+        assert!(out.len() <= 4016);
+        assert!(out.ends_with("(truncated)"));
+        assert!(out.contains('…'));
+    }
+
+    #[test]
+    fn truncate_respects_char_boundaries() {
+        let text = "ç".repeat(3000);
+        let out = truncate(&text, 100);
+        assert!(out.is_char_boundary(out.len()));
     }
 
     #[test]
