@@ -6,7 +6,8 @@ use botvibe::tool_executor::{
     VibeToolExecutor,
 };
 use botvibe::types::{
-    DbPool, VibeProgressEvent, VibeRun, VibeState, VibeToolCall, VibeToolResult, VibeUseCase,
+    DbPool, VibeProgressEvent, VibeRun, VibeRunSignal, VibeState, VibeToolCall, VibeToolResult,
+    VibeUseCase,
 };
 use tokio::sync::{broadcast, RwLock};
 use uuid::Uuid;
@@ -33,6 +34,9 @@ impl VibeState for MockState {
     }
     fn active_runs(&self) -> &Arc<RwLock<HashMap<Uuid, VibeRun>>> {
         &self.runs
+    }
+    fn run_signal_sender(&self) -> Option<&broadcast::Sender<VibeRunSignal>> {
+        None
     }
 }
 

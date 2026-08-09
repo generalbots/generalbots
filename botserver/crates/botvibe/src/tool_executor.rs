@@ -74,16 +74,15 @@ struct RegisteredTool {
 
 impl ToolRegistry {
     pub fn new() -> Self {
-        let registry = Self {
-            tools: RwLock::new(HashMap::new()),
-        };
-        registry.register_builtin_tools();
-        registry.register_harness_tools();
-        registry
+        let mut tools = HashMap::new();
+        Self::register_builtin_tools(&mut tools);
+        Self::register_harness_tools(&mut tools);
+        Self {
+            tools: RwLock::new(tools),
+        }
     }
 
-    fn register_builtin_tools(&self) {
-        let mut tools = futures::executor::block_on(self.tools.write());
+    fn register_builtin_tools(tools: &mut HashMap<String, RegisteredTool>) {
 
         let autotask_tools = vec![
             ("classify_intent", "Classifica a intenção do usuário usando o motor AutoTask", false),
@@ -200,9 +199,8 @@ impl ToolRegistry {
 
     /// #747 — real harness tools: file/shell/git/logs/test operating on the
     /// project workspace, all sandboxed.
-    fn register_harness_tools(&self) {
+    fn register_harness_tools(tools: &mut HashMap<String, RegisteredTool>) {
         use crate::harness;
-        let mut tools = futures::executor::block_on(self.tools.write());
 
         let entries: Vec<(String, String, bool, ToolHandler)> = vec![
             ("file/read".into(), "Read a file from the project workspace".into(), false, harness::file_tools::file_read()),
@@ -258,7 +256,7 @@ impl ToolRegistry {
         skills: Arc<crate::skills::SkillStore>,
         canvases: Arc<crate::canvases::CanvasStore>,
         issues: Arc<crate::issues::IssueStore>,
-    ) {
+    ) -> Result<usize, String> {
         let mut tools = self.tools.write().await;
 
         let entries: Vec<(String, ToolSchema, ToolHandler)> = crate::skills::skill_tools(skills)
@@ -276,6 +274,7 @@ impl ToolRegistry {
                 handler,
             });
         }
+        Ok(tools.len())
     }
 
     pub async fn get_descriptor(&self, name: &str) -> Option<ToolDescriptor> {
