@@ -134,7 +134,12 @@
     };
 
     if (g.bodyInner) {
-      g.bodyInner.lastChild.style.width = totalColWidth() + "px";
+      g.bodyInner.style.width = totalColWidth() + "px";
+      if (rowHeights && Object.keys(rowHeights).length) {
+        let totalH = 0;
+        for (let i = 0; i < g.totalRows; i++) totalH += rowHeight(i);
+        g.bodyInner.style.height = totalH + "px";
+      }
     }
   }
 
