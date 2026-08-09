@@ -41,12 +41,6 @@
     color: var(--sentient-text-muted, #999);
 }
 
-.context-divider {
-    height: 1px;
-    background: var(--sentient-border, #e0e0e0);
-    margin: 6px 0;
-}
-
 /* =============================================================================
    MODALS
    ============================================================================= */
@@ -131,123 +125,10 @@
     border-top: 1px solid var(--sentient-border, #e0e0e0);
 }
 
-/* Share Modal */
-.share-input-group {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.share-input-group input,
-.share-input-group select {
-    padding: 10px 12px;
-    border: 1px solid var(--sentient-border, #e0e0e0);
-    border-radius: var(--sentient-radius-sm, 4px);
-    font-size: 14px;
-    background: var(--sentient-bg-primary, #ffffff);
-    color: var(--sentient-text-primary, #212121);
-}
-
-.share-input-group input {
-    flex: 1;
-}
-
-.share-input-group input:focus,
-.share-input-group select:focus {
-    outline: none;
-    border-color: var(--sentient-accent, #4285f4);
-}
-
-.share-link-section {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid var(--sentient-border, #e0e0e0);
-}
-
-.share-link-section h4 {
-    margin: 0 0 12px 0;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--sentient-text-primary, #212121);
-}
-
-.share-link-group {
-    display: flex;
-    gap: 8px;
-}
-
-.share-link-group input {
-    flex: 1;
-    padding: 10px 12px;
-    border: 1px solid var(--sentient-border, #e0e0e0);
-    border-radius: var(--sentient-radius-sm, 4px);
-    font-size: 13px;
-    background: var(--sentient-bg-secondary, #f5f5f5);
-    color: var(--sentient-text-secondary, #666);
-}
-
-/* Chart Modal */
-.chart-type-selector {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.chart-type-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 16px;
-    background: var(--sentient-bg-secondary, #f5f5f5);
-    border: 2px solid var(--sentient-border, #e0e0e0);
-    border-radius: var(--sentient-radius-md, 8px);
-    color: var(--sentient-text-secondary, #666);
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.chart-type-btn:hover {
-    border-color: var(--sentient-accent, #4285f4);
-    color: var(--sentient-accent, #4285f4);
-}
-
 .chart-type-btn.active {
     border-color: var(--sentient-accent, #4285f4);
     background: rgba(66, 133, 244, 0.1);
     color: var(--sentient-accent, #4285f4);
-}
-
-.chart-type-btn span {
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.chart-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.chart-options label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--sentient-text-primary, #212121);
-}
-
-.chart-options input {
-    padding: 10px 12px;
-    border: 1px solid var(--sentient-border, #e0e0e0);
-    border-radius: var(--sentient-radius-sm, 4px);
-    font-size: 14px;
-    background: var(--sentient-bg-primary, #ffffff);
-    color: var(--sentient-text-primary, #212121);
-}
-
-.chart-options input:focus {
-    outline: none;
-    border-color: var(--sentient-accent, #4285f4);
 }
 
 /* =============================================================================
@@ -255,15 +136,6 @@
    ============================================================================= */
 
 @media (max-width: 1024px) {
-    .chat-panel {
-        position: fixed;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 320px;
-        z-index: 100;
-        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
-    }
 
     .chat-panel.collapsed {
         transform: translateX(100%);
@@ -282,10 +154,6 @@
 
     .btn-primary span {
         display: none;
-    }
-
-    .chat-panel {
-        width: 100%;
     }
 }
 
@@ -328,16 +196,6 @@
 
     .sheet-content {
         display: block;
-    }
-
-    .sheet-grid-container {
-        overflow: visible;
-    }
-
-    .cell {
-        background: white !important;
-        color: black !important;
-        border-color: #ccc !important;
     }
 }
 
