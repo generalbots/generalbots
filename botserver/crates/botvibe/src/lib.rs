@@ -37,6 +37,7 @@ pub mod websearch;
 pub mod gitflow;
 pub mod sessions;
 pub mod teams;
+pub mod capability_registry;
 
 pub use types::{
     VibeContext, VibeLlmOps, VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState,
@@ -65,3 +66,4 @@ pub use websearch::websearch_tools;
 pub use gitflow::gitflow_tools;
 pub use sessions::{SessionRoutes, SessionStore, VibeSession, sessions_router};
 pub use teams::{TeamRoutes, TeamStore, VibeTeam, teams_router};
+pub use capability_registry::{build_capabilities, capabilities_for, Capability};
