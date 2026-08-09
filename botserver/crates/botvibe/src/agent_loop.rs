@@ -412,6 +412,41 @@ impl AgentLoop {
         let approval_timeout = Duration::from_secs(300);
         let start = tokio::time::Instant::now();
 
+        // Prefer the run-signal channel: approve/cancel publish the decision
+        // immediately, so a run awaiting approval resumes as soon as the
+        // operator approves, instead of polling a possibly-stale run snapshot.
+        if let Some(tx) = self.state.run_signal_sender() {
+            let mut rx = tx.subscribe();
+            loop {
+                let remaining = if start.elapsed() > approval_timeout {
+                    warn!("Approval timeout for run {run_id}");
+                    return false;
+                } else {
+                    approval_timeout.saturating_sub(start.elapsed())
+                };
+                match tokio::time::timeout(remaining, rx.recv()).await {
+                    Ok(Ok(crate::types::VibeRunSignal::Approved(id))) if id == run_id => {
+                        info!("Run {run_id} approved; resuming");
+                        return true;
+                    }
+                    Ok(Ok(crate::types::VibeRunSignal::Cancelled(id))) if id == run_id => {
+                        info!("Run {run_id} cancelled while awaiting approval");
+                        return false;
+                    }
+                    Ok(Ok(_)) => continue,
+                    Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => continue,
+                    Ok(Err(tokio::sync::broadcast::error::RecvError::Closed)) => {
+                        return false;
+                    }
+                    Err(_) => {
+                        warn!("Approval timeout for run {run_id}");
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // Fallback when no signal channel is wired: poll the active-runs map.
         loop {
             if start.elapsed() > approval_timeout {
                 warn!("Approval timeout for run {run_id}");
@@ -521,6 +556,7 @@ fn extract_json_object(s: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::sync::RwLock;
 
     #[test]
     fn extract_json_object_handles_nested_and_strings() {
@@ -575,6 +611,9 @@ mod tests {
         }
         fn active_runs(&self) -> &Arc<RwLock<std::collections::HashMap<Uuid, VibeRun>>> {
             &self.runs
+        }
+        fn run_signal_sender(&self) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeRunSignal>> {
+            None
         }
     }
 }

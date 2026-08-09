@@ -208,6 +208,14 @@ impl VibeTelemetry {
         if run_events.is_empty() {
             return None;
         }
+        if run_events.iter().any(|e| {
+            matches!(
+                e.event_type,
+                VibeTelemetryEventType::RunCompleted | VibeTelemetryEventType::RunFailed
+            )
+        }) {
+            return None;
+        }
 
         let use_case = run_events[0].use_case;
         let mut total_tool_calls = 0u32;
@@ -418,8 +426,8 @@ mod tests {
     #[tokio::test]
     async fn record_helpers_create_expected_event_types() {
         let telemetry = VibeTelemetry::new();
-        let run_id = Uuid::new_v4();
-        let mut run = crate::types::VibeRun::new(run_id, Uuid::nil(), Uuid::nil(), "i".into(), crate::types::VibeRunConfig::default());
+        let mut run = crate::types::VibeRun::new(Uuid::nil(), Uuid::nil(), Uuid::nil(), "i".into(), crate::types::VibeRunConfig::default());
+        let run_id = run.run_id;
 
         telemetry.record_run_start(&run).await;
         run.transition(crate::types::VibeRunState::Completed);

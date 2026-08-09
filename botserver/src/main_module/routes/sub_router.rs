@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use botcore::shared::state::AppState;
 
 #[cfg(feature = "deployment")]
-pub fn build_sub_router(
+pub async fn build_sub_router(
     app_state: &Arc<AppState>,
     port: u16,
     api_router: &mut Router<Arc<AppState>>,
 ) -> Router<()> {
-    let mut sub_router = inner_build_sub_router(app_state, port, api_router);
+    let mut sub_router = inner_build_sub_router(app_state, port, api_router).await;
     let dep_pool = app_state.conn.clone();
     let dep_router = crate::deployment::configure_deployment_routes(dep_pool);
     sub_router = sub_router.merge(dep_router);
@@ -17,15 +17,15 @@ pub fn build_sub_router(
 }
 
 #[cfg(not(feature = "deployment"))]
-pub fn build_sub_router(
+pub async fn build_sub_router(
     app_state: &Arc<AppState>,
     port: u16,
     api_router: &mut Router<Arc<AppState>>,
 ) -> Router<()> {
-    inner_build_sub_router(app_state, port, api_router)
+    inner_build_sub_router(app_state, port, api_router).await
 }
 
-fn inner_build_sub_router(
+async fn inner_build_sub_router(
     app_state: &Arc<AppState>,
     port: u16,
     api_router: &mut Router<Arc<AppState>>,
@@ -398,7 +398,7 @@ fn inner_build_sub_router(
     { sub_router = sub_router.merge(crate::basic::keywords::configure_db_routes().with_state(app_state.clone())); }
 
     #[cfg(feature = "vibe")]
-    { sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(app_state)); }
+    { sub_router = sub_router.merge(crate::vibe::configure_vibe_routes(app_state).await); }
 
     #[cfg(feature = "project")]
     {

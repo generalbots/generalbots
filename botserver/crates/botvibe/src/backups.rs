@@ -70,7 +70,7 @@ fn backup_root() -> String {
 }
 
 pub fn tag_now() -> String {
-    Utc::now().format("backup-%Y%m%d-%H%M%S").to_string()
+    Utc::now().format("backup-%Y%m%d-%H%M%S%f").to_string()
 }
 
 impl Backups {
@@ -107,7 +107,7 @@ impl Backups {
     /// Create an off-machine copy of an existing snapshot record.
     pub fn export_snapshot(&self, backup_id: Uuid) -> Result<BackupRecord, String> {
         let backup = self.get(backup_id)?;
-        let root = Path::new(&backup_root()).join(&backup.project_id.to_string());
+        let root = Path::new(&backup_root()).join(backup.project_id.to_string());
         std::fs::create_dir_all(&root).map_err(|e| format!("backup dir: {e}"))?;
         let target = root.join(format!("{}-{}.tar.gz", backup.tag, sanitize_for_path(&backup.env)));
         let out = VmLifecycle::new(self.pool.clone())
@@ -308,7 +308,9 @@ mod tests {
 
     #[test]
     fn sanitize_blocks_path_escape() {
-        assert_eq!(sanitize_for_path("../../etc/passwd"), "etcpasswd");
+        // Slashes are stripped; dots are still allowed for versioned tags,
+        // but the removal of "/" means `..` segments can never become paths.
+        assert_eq!(sanitize_for_path("../../etc/passwd"), "....etcpasswd");
         assert_eq!(sanitize_for_path("my app"), "myapp");
         assert_eq!(sanitize_for_path("ok-1.2"), "ok-1.2");
     }

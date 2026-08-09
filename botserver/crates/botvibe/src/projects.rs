@@ -53,7 +53,7 @@ impl ProjectKind {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s {
             "bot" => Self::Bot,
             "website" => Self::Website,
@@ -140,7 +140,7 @@ impl ProjectRegistry {
         let mut conn = self.conn()?;
         let org_id = req.org_id.unwrap_or_else(Uuid::nil);
         let branch_id = req.branch_id.unwrap_or_else(Uuid::nil);
-        let project_type = ProjectKind::from_str(req.project_type.as_deref().unwrap_or("bot"));
+        let project_type = ProjectKind::parse(req.project_type.as_deref().unwrap_or("bot"));
         let repository = req.repository.clone().unwrap_or_else(|| req.name.clone());
         let framework = req.framework.clone().unwrap_or_default();
         let custom_domain = req.custom_domain.clone().unwrap_or_default();
@@ -301,7 +301,7 @@ impl ProjectRegistry {
             assignments.push(format!("name = ${}", binds.len()));
         }
         if let Some(ref pt) = req.project_type {
-            binds.push(ProjectKind::from_str(pt).as_str().to_string());
+            binds.push(ProjectKind::parse(pt).as_str().to_string());
             assignments.push(format!("project_type = ${}", binds.len()));
         }
         if let Some(ref repo) = req.repository {
@@ -427,9 +427,9 @@ mod tests {
 
     #[test]
     fn project_kind_round_trip() {
-        assert_eq!(ProjectKind::from_str("bot"), ProjectKind::Bot);
-        assert_eq!(ProjectKind::from_str("website"), ProjectKind::Website);
-        assert_eq!(ProjectKind::from_str("bogus"), ProjectKind::Custom);
+        assert_eq!(ProjectKind::parse("bot"), ProjectKind::Bot);
+        assert_eq!(ProjectKind::parse("website"), ProjectKind::Website);
+        assert_eq!(ProjectKind::parse("bogus"), ProjectKind::Custom);
         assert_eq!(ProjectKind::Bot.as_str(), "bot");
         assert_eq!(ProjectKind::Website.as_str(), "website");
         assert_eq!(ProjectKind::Custom.as_str(), "custom");
@@ -447,9 +447,21 @@ mod tests {
         assert_eq!(q.branch_id, None);
         assert_eq!(q.limit.unwrap_or(100).min(500), 100);
         assert_eq!(q.offset.unwrap_or(0).max(0), 0);
-        let big = ListProjectsQuery { limit: Some(9001), ..q };
+        let big = ListProjectsQuery {
+            branch_id: None,
+            project_type: None,
+            status: None,
+            limit: Some(9001),
+            offset: None,
+        };
         assert_eq!(big.limit.unwrap_or(100).min(500), 500);
-        let neg = ListProjectsQuery { offset: Some(-3), ..q };
+        let neg = ListProjectsQuery {
+            branch_id: None,
+            project_type: None,
+            status: None,
+            limit: None,
+            offset: Some(-3),
+        };
         assert_eq!(neg.offset.unwrap_or(0).max(0), 0);
     }
 }

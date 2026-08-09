@@ -54,10 +54,15 @@ impl SkillStore {
         self.skills.read().await.clone()
     }
 
-    pub async fn seed_bootstrap(&self) {
+    pub async fn seed_bootstrap(&self) -> Result<usize, String> {
+        let mut seeded = 0usize;
         for (name, description, content, triggers) in crate::skill_loader::bootstrap_skill_definitions() {
-            self.register(name, description, content, triggers).await;
+            let installed = self.register(name, description, content, triggers).await;
+            if installed.enabled {
+                seeded += 1;
+            }
         }
+        Ok(seeded)
     }
 
     pub async fn apply(&self, names: &[String]) -> String {
@@ -312,7 +317,8 @@ mod tests {
     #[tokio::test]
     async fn seed_bootstrap_registers_all_skills() {
         let store = SkillStore::new();
-        store.seed_bootstrap().await;
+        let seeded = store.seed_bootstrap().await.expect("bootstrap must seed skills");
+        assert_eq!(seeded, 6);
         let skills = store.list().await;
         assert_eq!(skills.len(), 6);
         assert!(skills.iter().all(|s| s.enabled && !s.triggers.is_empty()));
