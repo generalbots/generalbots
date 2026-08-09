@@ -8,10 +8,7 @@
 //!
 //! The base URL comes from `VIBE_API_URL` (default `http://localhost:8080`).
 
-use botcore::shared::state::AppState;
-use botcore::shared::UserSession;
 use rhai::{Dynamic, Engine};
-use std::sync::Arc;
 
 const DEFAULT_VIBE_URL: &str = "http://localhost:8080";
 
@@ -76,11 +73,7 @@ fn http_json(
 
 /// `VIBE RUN "{intent}"` — creates an agent run in the Vibe subsystem and
 /// returns the run id plus the resolved use case.
-pub fn register_vibe_run_keyword(
-    _state: Arc<AppState>,
-    _user: UserSession,
-    engine: &mut Engine,
-) {
+pub fn register_vibe_run_keyword(engine: &mut Engine) {
     let result = engine.register_custom_syntax(
         ["VIBE", "RUN", "$expr$"],
         true,
@@ -110,11 +103,7 @@ pub fn register_vibe_run_keyword(
 }
 
 /// `VIBE STATUS "{run_id}"` — read the current run state and tool results.
-pub fn register_vibe_status_command(
-    _state: Arc<AppState>,
-    _user: UserSession,
-    engine: &mut Engine,
-) {
+pub fn register_vibe_status_command(engine: &mut Engine) {
     let result = engine.register_custom_syntax(
         ["VIBE", "STATUS", "$expr$"],
         true,
@@ -140,11 +129,7 @@ pub fn register_vibe_status_command(
 }
 
 /// `VIBE APPROVE "{run_id}"` — approve pending tool calls of a run.
-pub fn register_vibe_approve_command(
-    _state: Arc<AppState>,
-    _user: UserSession,
-    engine: &mut Engine,
-) {
+pub fn register_vibe_approve_command(engine: &mut Engine) {
     let result = engine.register_custom_syntax(
         ["VIBE", "APPROVE", "$expr$"],
         true,
@@ -170,11 +155,7 @@ pub fn register_vibe_approve_command(
 }
 
 /// `VIBE CANCEL "{run_id}"` — cancel a running or awaiting-approval run.
-pub fn register_vibe_cancel_command(
-    _state: Arc<AppState>,
-    _user: UserSession,
-    engine: &mut Engine,
-) {
+pub fn register_vibe_cancel_command(engine: &mut Engine) {
     let result = engine.register_custom_syntax(
         ["VIBE", "CANCEL", "$expr$"],
         true,
@@ -200,11 +181,7 @@ pub fn register_vibe_cancel_command(
 }
 
 /// `VIBE TOOLS` — list the tools the agent can use.
-pub fn register_vibe_tools_command(
-    _state: Arc<AppState>,
-    _user: UserSession,
-    engine: &mut Engine,
-) {
+pub fn register_vibe_tools_command(engine: &mut Engine) {
     let result = engine.register_custom_syntax(
         ["VIBE", "TOOLS"],
         true,
@@ -237,11 +214,7 @@ pub fn register_vibe_tools_command(
 }
 
 /// `VIBE EVENTS "{run_id}"` — fetch the latest progress events of a run.
-pub fn register_vibe_events_command(
-    _state: Arc<AppState>,
-    _user: UserSession,
-    engine: &mut Engine,
-) {
+pub fn register_vibe_events_command(engine: &mut Engine) {
     let result = engine.register_custom_syntax(
         ["VIBE", "EVENTS", "$expr$"],
         true,
@@ -273,5 +246,55 @@ pub fn register_vibe_events_command(
     );
     if let Err(e) = result {
         log::error!("Failed to register VIBE EVENTS syntax: {e}");
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_engine() -> Engine {
+        let mut engine = Engine::new();
+        register_vibe_run_keyword(&mut engine);
+        register_vibe_status_command(&mut engine);
+        register_vibe_approve_command(&mut engine);
+        register_vibe_cancel_command(&mut engine);
+        register_vibe_tools_command(&mut engine);
+        register_vibe_events_command(&mut engine);
+        engine
+    }
+
+    #[test]
+    fn vibe_run_keyword_registers_and_parses() {
+        let engine = make_engine();
+        engine
+            .compile(r#"VIBE RUN "deploy the app""#)
+            .expect("VIBE RUN should parse");
+    }
+
+    #[test]
+    fn vibe_status_parses_with_string_arg() {
+        let engine = make_engine();
+        engine
+            .compile(r#"VIBE STATUS "run-123""#)
+            .expect("VIBE STATUS should parse");
+    }
+
+    #[test]
+    fn vibe_approve_and_cancel_parse() {
+        let engine = make_engine();
+        engine.compile(r#"VIBE APPROVE "run-123""#).expect("VIBE APPROVE should parse");
+        engine.compile(r#"VIBE CANCEL "run-123""#).expect("VIBE CANCEL should parse");
+    }
+
+    #[test]
+    fn vibe_tools_parses_without_arguments() {
+        let engine = make_engine();
+        engine.compile("VIBE TOOLS").expect("VIBE TOOLS should parse");
+    }
+
+    #[test]
+    fn vibe_events_parses_with_run_id() {
+        let engine = make_engine();
+        engine.compile(r#"VIBE EVENTS "run-123""#).expect("VIBE EVENTS should parse");
     }
 }
