@@ -19,10 +19,10 @@
         </div>
         <div class="toolbar-center">
             <div class="toolbar-group">
-                <button class="btn-icon" id="undoBtn" title="Undo" hx-get="/api/sheet/load" hx-vals='{"id":"current","action":"undo"}' hx-swap="none">
+                <button class="btn-icon" id="undoBtn" title="Undo (Ctrl+Z)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
                 </button>
-                <button class="btn-icon" id="redoBtn" title="Redo" hx-get="/api/sheet/load" hx-vals='{"id":"current","action":"redo"}' hx-swap="none">
+                <button class="btn-icon" id="redoBtn" title="Redo (Ctrl+Y)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>
                 </button>
             </div>
@@ -263,9 +263,13 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
 <script src="/suite/js/auth-guard.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/00_registry.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/01_core.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/02_conditional.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/03_charts.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/04_undo.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/05_clipboard.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/06_tabs.js"></script>
 <script>
 /* Boot: load sheet data from per-window storage (avoids race with multiple windows) */
 (function(){

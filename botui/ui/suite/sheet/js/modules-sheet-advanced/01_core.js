@@ -1,5 +1,5 @@
 "use strict";
-/* Sheet advanced module: 01_core — range selection, clipboard, autofill, worksheet tabs */
+/* Sheet advanced module: 01_core — selection core, shared state facade, wiring */
 
 (function () {
   const COL_WIDTH = 96;
@@ -181,222 +181,7 @@
     if (preview) preview.style.display = "none";
     const pt = cellFromEvent(e);
     if (!pt || !sel) return;
-    applyFill(pt.row, pt.col);
-  }
-
-  function adjustFormula(formula, dr, dc) {
-    const re = /(\$?)([A-Z]+)(\$?)(\d+)/g;
-    return formula.replace(re, function (m, c1, letters, c2, digits) {
-      let col = colName(letters.length ? colIdx(letters) : 0);
-      let row = parseInt(digits, 10);
-      if (c1 !== "$") {
-        let ci = colIdx(letters) + dc;
-        ci = Math.max(0, ci);
-        col = colName(ci);
-      }
-      if (c2 !== "$") {
-        row = Math.max(1, row + dr);
-      }
-      return (c1 === "$" ? "$" : "") + col + (c2 === "$" ? "$" : "") + row;
-    });
-  }
-
-  function colIdx(name) {
-    let n = 0;
-    for (let i = 0; i < name.length; i++) n = n * 26 + (name.charCodeAt(i) - 64);
-    return n - 1;
-  }
-
-  function isNum(v) {
-    if (v == null || v === "") return false;
-    return !isNaN(Number(v));
-  }
-
-  function applyFill(targetRow, targetCol) {
-    if (!sel || !grid) return;
-    const srcH = sel.endRow - sel.startRow + 1;
-    const srcW = sel.endCol - sel.startCol + 1;
-    const updates = [];
-    for (let r = sel.endRow + 1; r <= targetRow; r++) {
-      for (let c = sel.endCol + 1; c <= targetCol; c++) {
-        const fill = computeFillCell(r, c, srcH, srcW);
-        if (!fill) continue;
-        const key = r + "," + c;
-        const ref = colName(c) + (r + 1);
-        grid.cells.set(key, { value: fill.value, formula: fill.isFormula ? fill.value : undefined });
-        updates.push(api().updateCell(ref, fill.value));
-      }
-    }
-    Promise.all(updates).then(function () {
-      grid.lastRenderedRange = null;
-      grid.requestRange();
-    });
-  }
-
-  function computeFillCell(targetRow, targetCol, srcH, srcW) {
-    let si = 0;
-    let sj = 0;
-    if (srcH === 1 && srcW === 1) {
-      si = 0;
-      sj = 0;
-    } else if (srcH === 1) {
-      sj = mod(targetCol - sel.startCol, srcW);
-    } else if (srcW === 1) {
-      si = mod(targetRow - sel.startRow, srcH);
-    } else {
-      si = mod(targetRow - sel.startRow, srcH);
-      sj = mod(targetCol - sel.startCol, srcW);
-    }
-    const srcR = sel.startRow + si;
-    const srcC = sel.startCol + sj;
-    const srcKey = srcR + "," + srcC;
-    const cell = grid.cells.get(srcKey);
-    if (!cell) return null;
-    if (cell.formula) {
-      const dr = targetRow - srcR;
-      const dc = targetCol - srcC;
-      return { value: adjustFormula(cell.formula, dr, dc), isFormula: true };
-    }
-    if (srcW === 1 && srcH >= 2 && targetRow > sel.endRow) {
-      const a = grid.cells.get(sel.startRow + "," + sel.startCol);
-      const b = grid.cells.get((sel.startRow + 1) + "," + sel.startCol);
-      if (a && b && isNum(a.value) && isNum(b.value)) {
-        const step = Number(b.value) - Number(a.value);
-        const count = targetRow - sel.endRow;
-        return { value: String(Number(b.value) + step * count), isFormula: false };
-      }
-    }
-    if (srcH === 1 && srcW >= 2 && targetCol > sel.endCol) {
-      const a = grid.cells.get(sel.startRow + "," + sel.startCol);
-      const b = grid.cells.get(sel.startRow + "," + (sel.startCol + 1));
-      if (a && b && isNum(a.value) && isNum(b.value)) {
-        const step = Number(b.value) - Number(a.value);
-        const count = targetCol - sel.endCol;
-        return { value: String(Number(b.value) + step * count), isFormula: false };
-      }
-    }
-    return { value: cell.value != null ? cell.value : "", isFormula: false };
-  }
-
-  function mod(n, m) {
-    return ((n % m) + m) % m;
-  }
-
-  function buildClipboardText() {
-    if (!sel) return "";
-    const rows = [];
-    for (let r = sel.startRow; r <= sel.endRow; r++) {
-      const cells = [];
-      for (let c = sel.startCol; c <= sel.endCol; c++) {
-        const v = cellValue(r, c);
-        cells.push(v.indexOf("\t") >= 0 || v.indexOf("\n") >= 0 ? '"' + v.replace(/"/g, '""') + '"' : v);
-      }
-      rows.push(cells.join("\t"));
-    }
-    return rows.join("\n");
-  }
-
-  async function copySelection() {
-    const text = buildClipboardText();
-    if (!text) return;
-    window.__gbClipboard = text;
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (_) {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand("copy"); } catch (__) {}
-      ta.remove();
-    }
-  }
-
-  function cutSelection() {
-    copySelection();
-    if (!sel) return;
-    const updates = [];
-    for (let r = sel.startRow; r <= sel.endRow; r++) {
-      for (let c = sel.startCol; c <= sel.endCol; c++) {
-        const ref = colName(c) + (r + 1);
-        grid.cells.set(r + "," + c, { value: "" });
-        updates.push(api().updateCell(ref, ""));
-      }
-    }
-    Promise.all(updates).then(function () {
-      grid.lastRenderedRange = null;
-      grid.requestRange();
-    });
-  }
-
-  async function pasteToSelection() {
-    if (!sel) return;
-    let text = "";
-    try {
-      text = await navigator.clipboard.readText();
-    } catch (_) {
-      text = window.__gbClipboard || "";
-    }
-    if (!text) return;
-    const lines = text.split(/\r?\n/);
-    while (lines.length && lines[lines.length - 1] === "") lines.pop();
-    const updates = [];
-    for (let i = 0; i < lines.length; i++) {
-      const cols = lines[i].split("\t");
-      for (let j = 0; j < cols.length; j++) {
-        const r = sel.startRow + i;
-        const c = sel.startCol + j;
-        if (r >= grid.totalRows || c >= grid.totalCols) continue;
-        const val = cols[j];
-        const ref = colName(c) + (r + 1);
-        grid.cells.set(r + "," + c, val.startsWith("=") ? { value: "", formula: val } : { value: val });
-        updates.push(api().updateCell(ref, val));
-      }
-    }
-    Promise.all(updates).then(function () {
-      grid.lastRenderedRange = null;
-      grid.requestRange();
-    });
-  }
-
-  function clearSelectionCells() {
-    if (!sel) return;
-    const updates = [];
-    for (let r = sel.startRow; r <= sel.endRow; r++) {
-      for (let c = sel.startCol; c <= sel.endCol; c++) {
-        const ref = colName(c) + (r + 1);
-        grid.cells.set(r + "," + c, { value: "" });
-        updates.push(api().updateCell(ref, ""));
-      }
-    }
-    Promise.all(updates).then(function () {
-      grid.lastRenderedRange = null;
-      grid.requestRange();
-    });
-  }
-
-  function onKeyDown(e) {
-    if (!grid) return;
-    const editing = grid.editingCell != null;
-    if (editing) return;
-    const t = e.target;
-    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-    const mod = e.ctrlKey || e.metaKey;
-    if (mod && e.key.toLowerCase() === "c") {
-      e.preventDefault();
-      copySelection();
-    } else if (mod && e.key.toLowerCase() === "x") {
-      e.preventDefault();
-      cutSelection();
-    } else if (mod && e.key.toLowerCase() === "v") {
-      e.preventDefault();
-      pasteToSelection();
-    } else if (e.key === "Delete" || e.key === "Backspace") {
-      e.preventDefault();
-      clearSelectionCells();
-    } else if (e.key === "Escape") {
-      clearSelection();
-    }
+    if (window.SheetCore && window.SheetCore.applyFill) window.SheetCore.applyFill(pt.row, pt.col);
   }
 
   function ensureFillPreview() {
@@ -407,118 +192,11 @@
     if (grid && grid.bodyInner) grid.bodyInner.appendChild(p);
   }
 
-  function renderTabBar() {
-    if (!hostEl || !tabBar) return;
-    const sheet = window.__LOADED_SHEET;
-    const idx = wsIndex();
-    tabBar.innerHTML = "";
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.className = "ss-tab-add";
-    addBtn.textContent = "+";
-    addBtn.title = "Nova planilha";
-    addBtn.addEventListener("click", addWorksheetClient);
-    tabBar.appendChild(addBtn);
-    if (!sheet || !sheet.worksheets || !sheet.worksheets.length) return;
-    sheet.worksheets.forEach(function (ws, i) {
-      const tab = document.createElement("div");
-      tab.className = "ss-tab" + (i === idx ? " ss-tab-active" : "");
-      tab.dataset.index = i;
-      const label = document.createElement("span");
-      label.textContent = ws.name;
-      label.addEventListener("dblclick", function () { renameWorksheetClient(i); });
-      tab.appendChild(label);
-      const del = document.createElement("button");
-      del.type = "button";
-      del.className = "ss-tab-del";
-      del.textContent = "×";
-      del.title = "Excluir planilha";
-      del.addEventListener("click", function (e) { e.stopPropagation(); deleteWorksheetClient(i); });
-      tab.appendChild(del);
-      tab.addEventListener("click", function () { switchWorksheetClient(i); });
-      tabBar.appendChild(tab);
-    });
-  }
-
-  function reloadSheetAfterMutation() {
-    return api().load(currentSheetId()).then(function (sheet) {
-      if (sheet) {
-        window.__LOADED_SHEET = sheet;
-        window.__SHEET_INITIAL_ID = sheet.id;
-      }
-      renderTabBar();
-      rehydrateGrid();
-      return sheet;
-    });
-  }
-
-  function rehydrateGrid() {
-    if (!grid) return;
-    const sheet = window.__LOADED_SHEET;
-    const idx = wsIndex();
-    if (!sheet || !sheet.worksheets || !sheet.worksheets[idx]) return;
-    const ws = sheet.worksheets[idx];
-    grid.cells = new Map();
-    if (ws.data) {
-      for (const cellRef in ws.data) {
-        grid.cells.set(cellRef, ws.data[cellRef]);
-      }
-    }
-    grid.requestSeq++;
-    grid.lastRenderedRange = null;
-    grid.requestRange();
-    clearSelection();
-  }
-
-  function switchWorksheetClient(i) {
-    window.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: i } }));
-    renderTabBar();
-    rehydrateGrid();
-  }
-
-  function addWorksheetClient() {
-    api().addWorksheet().then(function () {
-      reloadSheetAfterMutation().then(function () {
-        const sheet = window.__LOADED_SHEET;
-        if (sheet) switchWorksheetClient(sheet.worksheets.length - 1);
-      });
-    });
-  }
-
-  function deleteWorksheetClient(i) {
-    const sheet = window.__LOADED_SHEET;
-    if (!sheet || !sheet.worksheets || sheet.worksheets.length <= 1) return;
-    if (!window.confirm("Excluir planilha " + sheet.worksheets[i].name + "?")) return;
-    api().deleteWorksheet(i).then(function () {
-      reloadSheetAfterMutation().then(function () {
-        const idx = wsIndex();
-        if (idx >= sheet.worksheets.length) switchWorksheetClient(sheet.worksheets.length - 1);
-      });
-    });
-  }
-
-  function renameWorksheetClient(i) {
-    const sheet = window.__LOADED_SHEET;
-    if (!sheet || !sheet.worksheets || !sheet.worksheets[i]) return;
-    const name = window.prompt("Novo nome da planilha:", sheet.worksheets[i].name);
-    if (!name || !name.trim()) return;
-    api().renameWorksheet(i, name.trim()).then(function () {
-      sheet.worksheets[i].name = name.trim();
-      renderTabBar();
-    });
-  }
-
   function bindGridEvents() {
     if (!grid || !grid.bodyInner) return;
     if (grid.bodyInner.__saBound) return;
     grid.bodyInner.__saBound = true;
     grid.bodyInner.addEventListener("mousedown", onCellMDown, true);
-  }
-
-  function bindDocument() {
-    if (window.__saDocBound) return;
-    window.__saDocBound = true;
-    document.addEventListener("keydown", onKeyDown, true);
   }
 
   function wire() {
@@ -531,7 +209,6 @@
     ensureOverlays();
     ensureFillPreview();
     bindGridEvents();
-    bindDocument();
     if (hostEl) {
       if (!tabBar || !tabBar.isConnected) {
         tabBar = document.createElement("div");
@@ -540,7 +217,10 @@
         hostEl.appendChild(tabBar);
       }
     }
-    renderTabBar();
+    if (window.SheetCore) {
+      window.SheetCore.setTabBar(tabBar);
+      if (window.SheetCore.renderTabBar) window.SheetCore.renderTabBar();
+    }
   }
 
   function sync() {
@@ -553,11 +233,29 @@
     setTimeout(wire, 0);
     return {
       getSelection: function () { return sel; },
-      copy: copySelection,
-      cut: cutSelection,
-      paste: pasteToSelection,
-      fill: applyFill,
       sync: sync,
+    };
+  }
+
+  if (window.SheetCore) {
+    window.SheetCore.setSelection = setSelection;
+    window.SheetCore.getGrid = function () { return grid; };
+    window.SheetCore.setGrid = function (g) { grid = g; };
+    window.SheetCore.getHost = function () { return hostEl; };
+    window.SheetCore.setHost = function (h) { hostEl = h; };
+    window.SheetCore.getTabBar = function () { return tabBar; };
+    window.SheetCore.setTabBar = function (t) { tabBar = t; };
+    window.SheetCore.wsIndex = wsIndex;
+    window.SheetCore.api = api;
+    window.SheetCore.currentSheetId = currentSheetId;
+    window.SheetCore.colName = colName;
+    window.SheetCore.cellValue = cellValue;
+    window.SheetCore.setRange = setSelection;
+    window.SheetCore.refreshGrid = function () {
+      if (grid) {
+        grid.lastRenderedRange = null;
+        grid.requestRange();
+      }
     };
   }
 
@@ -565,5 +263,9 @@
     init: init,
     sync: sync,
     getSelection: function () { return sel; },
+    setRange: function (r1, c1, r2, c2) {
+      setSelection(r1, c1, r2, c2);
+      if (grid) grid.selectCell(Math.max(r1, r2), Math.max(c1, c2));
+    },
   };
 })();
