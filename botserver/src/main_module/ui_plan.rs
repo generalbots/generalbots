@@ -422,7 +422,7 @@ mod tests {
     #[test]
     fn test_rejects_too_many_steps() {
         let steps: Vec<serde_json::Value> = (0..300)
-            .map(|i| serde_json::json!({"op": "wait", "ms": 1}))
+            .map(|i| serde_json::json!({"op": "wait", "ms": i + 1}))
             .collect();
         let plan = serde_json::json!({"steps": steps});
         let raw: UiPlan = serde_json::from_value(plan).unwrap();
