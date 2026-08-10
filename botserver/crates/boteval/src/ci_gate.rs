@@ -11,6 +11,8 @@ pub struct CiGateConfig {
     pub max_failures: usize,
     pub required_tags: Vec<String>,
     pub tag_pass_rates: HashMap<String, f64>,
+    pub max_cost_per_task: f64,
+    pub harness_min_tool_calls: u32,
 }
 
 impl Default for CiGateConfig {
@@ -20,6 +22,8 @@ impl Default for CiGateConfig {
             max_failures: 0,
             required_tags: Vec::new(),
             tag_pass_rates: HashMap::new(),
+            max_cost_per_task: 0.0,
+            harness_min_tool_calls: 0,
         }
     }
 }
@@ -74,6 +78,37 @@ impl CiGate {
                 }
             }
         }
+        let task_count = report.per_entry.len();
+        if self.config.max_cost_per_task > 0.0 && task_count > 0 {
+            let per_task_cost = report.total_cost / task_count as f64;
+            if per_task_cost > self.config.max_cost_per_task {
+                reasons.push(format!(
+                    "average cost per task {:.4} > cap {:.4}",
+                    per_task_cost, self.config.max_cost_per_task
+                ));
+            }
+        }
+        if self.config.harness_min_tool_calls > 0 {
+            let harness_entries: Vec<&crate::runner::EntryReport> = report
+                .per_entry
+                .iter()
+                .filter(|e| e.tag.split(',').any(|t| t == "harness"))
+                .collect();
+            if harness_entries.is_empty() {
+                reasons.push("no harness-tagged tasks evaluated".to_string());
+            } else {
+                let offenders = harness_entries
+                    .iter()
+                    .filter(|e| e.tool_calls < self.config.harness_min_tool_calls)
+                    .count();
+                if offenders > 0 {
+                    reasons.push(format!(
+                        "{offenders} harness tasks used fewer than {} tool calls",
+                        self.config.harness_min_tool_calls
+                    ));
+                }
+            }
+        }
         if reasons.is_empty() {
             CiGateVerdict {
                 pass: true,
@@ -108,6 +143,8 @@ mod tests {
             },
             per_entry: vec![],
             per_tag: HashMap::new(),
+            total_cost: 0.0,
+            total_tool_calls: 0,
         }
     }
 
@@ -130,5 +167,57 @@ mod tests {
         let verdict = gate.evaluate(&report);
         assert!(!verdict.pass);
         assert_eq!(verdict.exit_code, 1);
+    }
+
+    #[test]
+    fn gate_fails_when_cost_cap_violated() {
+        let gate = CiGate::new(CiGateConfig {
+            max_cost_per_task: 0.10,
+            ..CiGateConfig::default()
+        });
+        let mut report = empty_report();
+        report.total_cost = 1.0;
+        report.score.total = 5;
+        let verdict = gate.evaluate(&report);
+        assert!(!verdict.pass);
+        assert!(
+            verdict
+                .reasons
+                .iter()
+                .any(|r| r.contains("cost per task"))
+        );
+    }
+
+    #[test]
+    fn gate_fails_when_harness_usage_below_floor() {
+        let gate = CiGate::new(CiGateConfig {
+            harness_min_tool_calls: 2,
+            ..CiGateConfig::default()
+        });
+        let mut report = empty_report();
+        report.total_cost = 0.0;
+        report.per_entry.push(crate::runner::EntryReport {
+            entry_id: uuid::Uuid::new_v4(),
+            tag: "software_development,harness".into(),
+            score: crate::scoring::Score {
+                total: 1,
+                passed: 1,
+                failed: 0,
+                skipped: 0,
+                rate: 1.0,
+            },
+            results: vec![],
+            response: "ok".into(),
+            cost: 0.0,
+            tool_calls: 0,
+        });
+        let verdict = gate.evaluate(&report);
+        assert!(!verdict.pass);
+        assert!(
+            verdict
+                .reasons
+                .iter()
+                .any(|r| r.contains("harness tasks used fewer"))
+        );
     }
 }

@@ -13,15 +13,18 @@ serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "1"
 log = "0.4"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 reqwest = { version = "0.12", features = ["json"], optional = true }
 async-trait = "0.1"
 uuid = { version = "1", features = ["v4", "serde"] }
 toml = "0.8"
+botvibe = { path = "../botvibe", optional = true }
+diesel = { version = "2", features = ["postgres", "r2d2"], optional = true }
 
 [features]
 default = []
 http = ["dep:reqwest"]
+vibe = ["dep:botvibe", "dep:diesel"]
 
 [[bin]]
 name = "boteval-run"

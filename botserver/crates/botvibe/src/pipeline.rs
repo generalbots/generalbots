@@ -21,6 +21,10 @@ pub enum PipelineStageKind {
     ClassifyIntent,
     CompilePlan,
     ExecutePlan,
+    BuildTest,
+    CommitPush,
+    PublishApp,
+    BindDomain,
 }
 
 impl PipelineStageKind {
@@ -30,6 +34,10 @@ impl PipelineStageKind {
             Self::ClassifyIntent => "classify_intent",
             Self::CompilePlan => "compile_plan",
             Self::ExecutePlan => "execute_plan",
+            Self::BuildTest => "test/run",
+            Self::CommitPush => "git/commit",
+            Self::PublishApp => "publish/project",
+            Self::BindDomain => "domain/bind",
         }
     }
 
@@ -38,6 +46,10 @@ impl PipelineStageKind {
             Self::ClassifyIntent => "Intent classification",
             Self::CompilePlan => "Plan compilation",
             Self::ExecutePlan => "Plan execution",
+            Self::BuildTest => "Build and test",
+            Self::CommitPush => "Commit and push",
+            Self::PublishApp => "Publish application",
+            Self::BindDomain => "Bind domain and TLS",
         }
     }
 }
@@ -49,6 +61,7 @@ pub struct PipelineStage {
     pub name: String,
     pub kind: PipelineStageKind,
     pub timeout_secs: u64,
+    pub requires_approval: bool,
 }
 
 /// Ordered pipeline definition for a use case.
@@ -73,17 +86,44 @@ impl RunPipeline {
         }
     }
 
+    /// Orchestrated build-test-publish pipeline (Issue #805). The last three
+    /// stages mutate external state and require per-step human approval.
+    pub fn deploy_pipeline(use_case: VibeUseCase) -> Self {
+        Self {
+            pipeline_id: format!("deploy/{}", use_case_str(use_case)),
+            use_case,
+            stages: vec![
+                stage("intent", PipelineStageKind::ClassifyIntent, 30),
+                stage("plan", PipelineStageKind::CompilePlan, 30),
+                stage_approval("build_test", PipelineStageKind::BuildTest, 300, false),
+                stage_approval("commit_push", PipelineStageKind::CommitPush, 60, true),
+                stage_approval("publish", PipelineStageKind::PublishApp, 300, true),
+                stage_approval("domain", PipelineStageKind::BindDomain, 60, true),
+            ],
+        }
+    }
+
     pub fn stage(&self, id: &str) -> Option<&PipelineStage> {
         self.stages.iter().find(|s| s.id == id)
     }
 }
 
 fn stage(id: &str, kind: PipelineStageKind, timeout_secs: u64) -> PipelineStage {
+    stage_approval(id, kind, timeout_secs, false)
+}
+
+fn stage_approval(
+    id: &str,
+    kind: PipelineStageKind,
+    timeout_secs: u64,
+    requires_approval: bool,
+) -> PipelineStage {
     PipelineStage {
         id: id.to_string(),
         name: kind.display_name().to_string(),
         kind,
         timeout_secs,
+        requires_approval,
     }
 }
 
@@ -125,6 +165,34 @@ impl PipelineEngine {
         Self { telemetry }
     }
 
+    async fn wait_for_approval(&self, state: &dyn VibeState, run_id: Uuid) -> bool {
+        let approval_timeout = std::time::Duration::from_secs(300);
+        let start = tokio::time::Instant::now();
+        if let Some(tx) = state.run_signal_sender() {
+            let mut rx = tx.subscribe();
+            loop {
+                let remaining = if start.elapsed() > approval_timeout {
+                    return false;
+                } else {
+                    approval_timeout.saturating_sub(start.elapsed())
+                };
+                match tokio::time::timeout(remaining, rx.recv()).await {
+                    Ok(Ok(crate::types::VibeRunSignal::Approved(id))) if id == run_id => {
+                        return true;
+                    }
+                    Ok(Ok(crate::types::VibeRunSignal::Cancelled(id))) if id == run_id => {
+                        return false;
+                    }
+                    Ok(Ok(_)) => continue,
+                    Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => continue,
+                    Ok(Err(tokio::sync::broadcast::error::RecvError::Closed)) => return false,
+                    Err(_) => return false,
+                }
+            }
+        }
+        false
+    }
+
     pub async fn run(
         &self,
         pipeline: &RunPipeline,
@@ -141,8 +209,34 @@ impl PipelineEngine {
                 run_id,
                 tool_name.to_string(),
                 serde_json::json!({}),
-                false,
+                stage.requires_approval,
             );
+            if stage.requires_approval {
+                let approved = self.wait_for_approval(state, run_id).await;
+                if !approved {
+                    reports.push(PipelineStageReport {
+                        stage_id: stage.id.clone(),
+                        stage_name: stage.name.clone(),
+                        tool_name: tool_name.to_string(),
+                        status: StageStatus::Failed,
+                        took_ms: 0,
+                        error: Some("Approval denied".to_string()),
+                    });
+                    self.telemetry
+                        .record_tool_call(ToolCallRecord {
+                            run_id,
+                            use_case,
+                            tool_name: tool_name.to_string(),
+                            latency_ms: 0,
+                            tokens: None,
+                            cost: 0.0,
+                            success: false,
+                            error: Some("Approval denied".to_string()),
+                        })
+                        .await;
+                    break;
+                }
+            }
             // The engine is the authorized orchestrator: approval policy is
             // decided upstream (e.g. the agent loop), not per stage here.
             tool_call.approved = true;
@@ -206,6 +300,30 @@ mod tests {
     use crate::types::VibeRun;
     use std::collections::HashMap;
     use tokio::sync::RwLock;
+
+    #[test]
+    fn deploy_pipeline_has_mutation_gates() {
+        let pipeline = RunPipeline::deploy_pipeline(VibeUseCase::SoftwareDevelopment);
+        assert_eq!(pipeline.stages.len(), 6);
+        assert!(pipeline.pipeline_id.starts_with("deploy/"));
+        assert_eq!(pipeline.stages[3].kind, PipelineStageKind::BuildTest);
+        assert_eq!(pipeline.stages[4].kind, PipelineStageKind::CommitPush);
+        assert_eq!(pipeline.stages[5].kind, PipelineStageKind::PublishApp);
+        assert!(pipeline.stages[0].requires_approval == false);
+        assert!(pipeline.stages[3].requires_approval == false);
+        assert!(pipeline.stages[4].requires_approval);
+        assert!(pipeline.stages[5].requires_approval);
+        assert!(pipeline.stage("domain").unwrap().requires_approval);
+        assert_eq!(pipeline.stage("domain").unwrap().name, "Bind domain and TLS");
+    }
+
+    #[test]
+    fn real_stage_kinds_map_to_registered_tools() {
+        assert_eq!(PipelineStageKind::BuildTest.tool_name(), "test/run");
+        assert_eq!(PipelineStageKind::CommitPush.tool_name(), "git/commit");
+        assert_eq!(PipelineStageKind::PublishApp.tool_name(), "publish/project");
+        assert_eq!(PipelineStageKind::BindDomain.tool_name(), "domain/bind");
+    }
 
     #[test]
     fn default_pipeline_has_three_ordered_stages() {

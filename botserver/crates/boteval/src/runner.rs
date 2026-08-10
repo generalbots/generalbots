@@ -12,6 +12,28 @@ use uuid::Uuid;
 #[async_trait]
 pub trait LlmTarget: Send + Sync {
     async fn complete(&self, system_prompt: Option<&str>, user_prompt: &str) -> Result<String, String>;
+
+    async fn complete_with_usage(
+        &self,
+        system_prompt: Option<&str>,
+        user_prompt: &str,
+    ) -> TaskOutcome {
+        match self.complete(system_prompt, user_prompt).await {
+            Ok(response) => TaskOutcome {
+                response,
+                cost: 0.0,
+                tool_calls: 0,
+            },
+            Err(_) => TaskOutcome::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TaskOutcome {
+    pub response: String,
+    pub cost: f64,
+    pub tool_calls: u32,
 }
 
 pub struct StaticTarget {
@@ -25,6 +47,19 @@ impl LlmTarget for StaticTarget {
     }
 }
 
+#[async_trait]
+pub trait HarnessTarget: Send + Sync {
+    async fn run(&self, prompt: &str) -> HarnessOutcome;
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct HarnessOutcome {
+    pub passed: bool,
+    pub tool_calls: u32,
+    pub cost: f64,
+    pub summary: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntryReport {
     pub entry_id: Uuid,
@@ -32,6 +67,8 @@ pub struct EntryReport {
     pub score: Score,
     pub results: Vec<CheckResult>,
     pub response: String,
+    pub cost: f64,
+    pub tool_calls: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,6 +77,8 @@ pub struct EvalReport {
     pub score: Score,
     pub per_entry: Vec<EntryReport>,
     pub per_tag: HashMap<String, Score>,
+    pub total_cost: f64,
+    pub total_tool_calls: u32,
 }
 
 pub async fn run_evaluation<T: LlmTarget + ?Sized>(
@@ -49,12 +88,80 @@ pub async fn run_evaluation<T: LlmTarget + ?Sized>(
     let mut per_entry = Vec::new();
     let mut all_results = Vec::new();
     let mut per_tag: HashMap<String, Vec<CheckResult>> = HashMap::new();
+    let mut total_cost = 0.0;
+    let mut total_tool_calls = 0;
     for entry in &dataset.entries {
-        let response = target
-            .complete(entry.system_prompt.as_deref(), &entry.prompt)
-            .await
-            .unwrap_or_default();
-        let results = validate_response(&entry.contract, &response);
+        let outcome = target
+            .complete_with_usage(entry.system_prompt.as_deref(), &entry.prompt)
+            .await;
+        let results = validate_response(&entry.contract, &outcome.response);
+        let score = Score::from_results(&results);
+        for tag in &entry.tags {
+            per_tag
+                .entry(tag.clone())
+                .or_default()
+                .extend(results.clone());
+        }
+        total_cost += outcome.cost;
+        total_tool_calls += outcome.tool_calls;
+        all_results.extend(results.clone());
+        per_entry.push(EntryReport {
+            entry_id: entry.id,
+            tag: entry.tags.join(","),
+            score,
+            results,
+            response: outcome.response,
+            cost: outcome.cost,
+            tool_calls: outcome.tool_calls,
+        });
+    }
+    let per_tag_score: HashMap<String, Score> = per_tag
+        .into_iter()
+        .map(|(tag, results)| (tag, Score::from_results(&results)))
+        .collect();
+    EvalReport {
+        dataset_name: dataset.name.clone(),
+        score: Score::from_results(&all_results),
+        per_entry,
+        per_tag: per_tag_score,
+        total_cost,
+        total_tool_calls,
+    }
+}
+
+pub async fn run_mixed_evaluation<T: LlmTarget + ?Sized, H: HarnessTarget + ?Sized>(
+    dataset: &Dataset,
+    llm: &T,
+    harness: &H,
+) -> EvalReport {
+    let mut per_entry = Vec::new();
+    let mut all_results = Vec::new();
+    let mut per_tag: HashMap<String, Vec<CheckResult>> = HashMap::new();
+    let mut total_cost = 0.0;
+    let mut total_tool_calls = 0;
+    for entry in &dataset.entries {
+        let (response, results, entry_cost, entry_tool_calls) =
+            if entry.tags.iter().any(|t| t == "harness") {
+                let ran = harness.run(&entry.prompt).await;
+                let results = vec![if ran.passed {
+                    CheckResult::pass("harness_passed")
+                } else {
+                    CheckResult::fail("harness_passed", "agent run did not complete")
+                }];
+                (ran.summary, results, ran.cost, ran.tool_calls)
+            } else {
+                let completed = llm
+                    .complete_with_usage(entry.system_prompt.as_deref(), &entry.prompt)
+                    .await;
+                (
+                    completed.response,
+                    validate_response(&entry.contract, &completed.response),
+                    completed.cost,
+                    completed.tool_calls,
+                )
+            };
+        total_cost += entry_cost;
+        total_tool_calls += entry_tool_calls;
         let score = Score::from_results(&results);
         for tag in &entry.tags {
             per_tag
@@ -69,6 +176,8 @@ pub async fn run_evaluation<T: LlmTarget + ?Sized>(
             score,
             results,
             response,
+            cost: entry_cost,
+            tool_calls: entry_tool_calls,
         });
     }
     let per_tag_score: HashMap<String, Score> = per_tag
@@ -80,6 +189,8 @@ pub async fn run_evaluation<T: LlmTarget + ?Sized>(
         score: Score::from_results(&all_results),
         per_entry,
         per_tag: per_tag_score,
+        total_cost,
+        total_tool_calls,
     }
 }
 

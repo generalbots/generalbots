@@ -23,21 +23,48 @@ pub fn vibe_benchmark() -> Dataset {
     let mut counter: u128 = 1;
 
     for use_case in USE_CASES {
-        for spec in use_case_tasks(use_case) {
+        let harness_idx: &[usize] = match use_case {
+            "software_development" => &[0, 3],
+            "customer_support" => &[0, 1],
+            "financial_analysis" => &[0, 2],
+            _ => &[],
+        };
+        for (index, spec) in use_case_tasks(use_case).iter().enumerate() {
             for lang in LANGS {
-                push_entry(&mut dataset, &mut counter, use_case, lang, &spec);
+                push_entry(
+                    &mut dataset,
+                    &mut counter,
+                    use_case,
+                    lang,
+                    spec,
+                    harness_idx.contains(&index),
+                );
             }
         }
     }
-    for spec in general_tasks() {
+    for (index, spec) in general_tasks().iter().enumerate() {
         for lang in LANGS {
-            push_entry(&mut dataset, &mut counter, "general", lang, &spec);
+            push_entry(
+                &mut dataset,
+                &mut counter,
+                "general",
+                lang,
+                spec,
+                index < 1,
+            );
         }
     }
     dataset
 }
 
-fn push_entry(dataset: &mut Dataset, counter: &mut u128, use_case: &str, lang: &str, spec: &TaskSpec) {
+fn push_entry(
+    dataset: &mut Dataset,
+    counter: &mut u128,
+    use_case: &str,
+    lang: &str,
+    spec: &TaskSpec,
+    harness: bool,
+) {
     let (prompt, contains, lang_code) = if lang == "en" {
         (spec.prompt_en, spec.contains_en, "en")
     } else {
@@ -51,12 +78,20 @@ fn push_entry(dataset: &mut Dataset, counter: &mut u128, use_case: &str, lang: &
         min_tokens: spec.min_tokens,
         language: Some(lang_code.into()),
     };
+    let mut tags: Vec<String> = vec![
+        use_case.to_string(),
+        format!("lang:{lang}"),
+        "vibe".to_string(),
+    ];
+    if harness {
+        tags.push("harness".to_string());
+    }
     dataset.push(DatasetEntry {
         id: Uuid::from_u128(*counter),
         prompt: prompt.to_string(),
         system_prompt: None,
         context: None,
-        tags: vec![use_case.to_string(), format!("lang:{lang}"), "vibe".to_string()],
+        tags,
         contract,
     });
     *counter += 1;
@@ -124,6 +159,20 @@ mod tests {
                 || entry.contract.json_schema.is_some();
             assert!(checked, "entry {} has an empty contract", entry.id);
         }
+    }
+
+    #[test]
+    fn benchmark_has_harness_tagged_tasks() {
+        let dataset = vibe_benchmark();
+        let harness_count = dataset
+            .entries
+            .iter()
+            .filter(|e| e.tags.iter().any(|t| t == "harness"))
+            .count();
+        assert!(
+            harness_count >= 8,
+            "expected at least 8 harness tasks, got {harness_count}"
+        );
     }
 
     #[test]

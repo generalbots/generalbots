@@ -1,10 +1,12 @@
 //! HTTP-target adapter. Wraps an OpenAI-compatible chat completions endpoint
 //! as an \`LlmTarget\` so the runner can hit a real model.
 
-use crate::runner::LlmTarget;
+use crate::runner::{LlmTarget, TaskOutcome};
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+
+const COST_PER_CHAR: f64 = 0.000002;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Message {
@@ -91,5 +93,20 @@ impl LlmTarget for OpenAiCompatibleTarget {
             .next()
             .map(|c| c.message.content)
             .unwrap_or_default())
+    }
+
+    async fn complete_with_usage(
+        &self,
+        system_prompt: Option<&str>,
+        user_prompt: &str,
+    ) -> TaskOutcome {
+        match self.complete(system_prompt, user_prompt).await {
+            Ok(response) => TaskOutcome {
+                cost: response.chars().count() as f64 * COST_PER_CHAR,
+                response,
+                tool_calls: 0,
+            },
+            Err(_) => TaskOutcome::default(),
+        }
     }
 }
