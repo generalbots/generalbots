@@ -6,9 +6,11 @@ const botCoderTerminal = {
     maxReconnectAttempts: 5,
 
     init: function() {
+        const container = document.getElementById('xtermContainer');
+        if (!container) return;
         if (!window.Terminal) {
             console.error('xterm.js not loaded. Cannot init terminal.');
-            document.getElementById('xtermContainer').innerHTML = '<div class="botcoder-error">Terminal library not found. Run "npm install xterm" to install it.</div>';
+            container.innerHTML = '<div class="botcoder-error">Terminal library not found. Run "npm install xterm" to install it.</div>';
             return;
         }
 
@@ -43,7 +45,16 @@ const botCoderTerminal = {
             scrollback: 10000
         });
 
-        this.term.open(document.getElementById('xtermContainer'));
+        this.term.open(container);
+
+        if (window.FitAddon) {
+            this.fitAddon = new window.FitAddon.FitAddon();
+            this.term.loadAddon(this.fitAddon);
+            setTimeout(() => { try { this.fitAddon.fit(); } catch (ignore) { } }, 100);
+        }
+        window.addEventListener('resize', () => {
+            if (this.fitAddon) { try { this.fitAddon.fit(); } catch (ignore) { } }
+        });
         
         this.term.onData(data => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -140,8 +151,5 @@ const botCoderTerminal = {
 };
 
 (function(){ var __cb = () => botCoderTerminal.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    botCoderTerminal.init();
-}
 
 window.botCoderTerminal = botCoderTerminal;

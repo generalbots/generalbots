@@ -4,34 +4,44 @@ const vibeMcp = {
     },
 
     refreshServers: async function() {
+        const listContainer = document.getElementById('mcpServerList');
+        if (listContainer) {
+            listContainer.innerHTML = '<div class="mcp-loading">Loading servers...</div>';
+        }
+
         try {
-            const listContainer = document.getElementById('mcpServerList');
-            if (listContainer) {
-                listContainer.innerHTML = '<div class="mcp-loading">Loading servers...</div>';
+            const response = await fetch('/api/sources/mcp');
+            if (!response.ok) throw new Error('Failed to fetch MCP servers (HTTP ' + response.status + ')');
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('MCP endpoint returned non-JSON response');
             }
 
-            const response = await fetch('/api/ui/sources/mcp');
-            if (!response.ok) throw new Error('Failed to fetch MCP servers');
-            
             const data = await response.json();
-            // Expected data structure: { servers: [...] }
-            this.renderServers(data.servers || []);
+            if (!data || !data.success) {
+                throw new Error((data && data.error) || 'MCP endpoint reported failure');
+            }
+
+            this.renderServers((data.data || []).map(s => ({
+                name: s.name,
+                command: (s.server_type || '') + (s.description ? ' — ' + s.description : ''),
+                enabled: s.enabled === true,
+                active: s.status === 'enabled' || s.status === 'ready',
+                tools: (s.tools_count !== undefined ? [{ name: s.tools_count + ' tool(s)' }] : [])
+            })));
         } catch (err) {
-            console.error(err);
-            const listContainer = document.getElementById('mcpServerList');
+            console.error('MCP servers failed to load:', err);
             if (listContainer) {
-                listContainer.innerHTML = `<div class="mcp-error">Error loading servers: ${err.message}</div>`;
+                listContainer.innerHTML = `<div class="mcp-error">Error loading servers: ${this._esc(err.message)}</div>`;
             }
         }
     },
 
     toggleServer: async function(name, enable) {
         try {
-            // Assume an endpoint to toggle enable/disable
-            const response = await fetch(`/api/ui/sources/mcp/${name}/enable`, {
+            const response = await fetch(`/api/sources/mcp/${encodeURIComponent(name)}/${enable ? 'enable' : 'disable'}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enable: enable })
+                headers: { 'Content-Type': 'application/json' }
             });
             if (response.ok) {
                 this.refreshServers();
@@ -93,15 +103,16 @@ const vibeMcp = {
             toolsHtml += `<div class="mcp-tool-more">+${tools.length - 3} more</div>`;
         }
         return toolsHtml;
+    },
+
+    _esc: function (str) {
+        if (str === null || str === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
     }
 };
 
-// Initialize when the script loads
 (function(){ var __cb = () => {
     vibeMcp.init();
 }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
-
-// Since HTMX loads this dynamically, also invoke init right away if DOM is already ready
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    vibeMcp.init();
-}
