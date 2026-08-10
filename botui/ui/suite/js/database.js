@@ -42,6 +42,7 @@ const DB = {
     },
 
     switchTab: function (tab) {
+        if (!document.getElementById('dbTabData') || !document.getElementById('dbTabStructure') || !document.getElementById('dbTabSql')) return;
         this.activeTab = tab;
         document.querySelectorAll('.db-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
         document.getElementById('dbTabData').style.display = tab === 'data' ? '' : 'none';
@@ -51,6 +52,7 @@ const DB = {
 
     refreshSchema: async function () {
         const list = document.getElementById('dbTableList');
+        if (!list) return;
         list.innerHTML = '<div class="db-loading">Loading…</div>';
 
         try {
@@ -91,7 +93,8 @@ const DB = {
     selectTable: async function (name) {
         this.currentTable = name;
         this.currentPage = 1;
-        document.getElementById('dbTableName').textContent = name;
+        const tableName = document.getElementById('dbTableName');
+        if (tableName) tableName.textContent = name;
         this._renderTableList();
         this._renderStructure(name);
         this.switchTab('data');
@@ -178,6 +181,7 @@ const DB = {
 
     _renderStructure: function (tableName) {
         const container = document.getElementById('dbStructure');
+        if (!container) return;
         const table = this.schema.find(t => t.name === tableName);
 
         if (!table) {
@@ -428,6 +432,3 @@ const DB = {
 };
 
 (function(){ var __cb = () => DB.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    DB.init();
-}
