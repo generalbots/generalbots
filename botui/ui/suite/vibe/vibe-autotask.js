@@ -14,7 +14,7 @@ currentProject = intent
 breadcrumb.innerHTML =
 '// DASHBOARD <span style="color: var(--text-secondary);margin:0 6px;">&gt;</span> // ' +
 esc(currentProject.toUpperCase()) +
-' <div style="float:right;"><button style="border: 1px solid var(--border);background: var(--bg);border-radius:4px;padding:2px 8px;cursor:pointer;">-</button><span style="font-size:11px;margin:0 8px;color: var(--text);">100%</span><button style="border: 1px solid var(--border);background: var(--bg);border-radius:4px;padding:2px 8px;cursor:pointer;">+</button></div>';
+' <div style="float:right;"><button data-vibe-zoom="-1" type="button" style="border: 1px solid var(--border);background: var(--bg);border-radius:4px;padding:2px 8px;cursor:pointer;">-</button><span data-vibe-zoom-label style="font-size:11px;margin:0 8px;color: var(--text);">100%</span><button data-vibe-zoom="1" type="button" style="border: 1px solid var(--border);background: var(--bg);border-radius:4px;padding:2px 8px;cursor:pointer;">+</button></div>';
 }
 
 var token =

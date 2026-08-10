@@ -434,12 +434,21 @@
         });
     }
 
+    function retry(fn, key) {
+        var n = (retry.count[key] = (retry.count[key] || 0) + 1);
+        if (n < 30) setTimeout(fn, 1000);
+    }
+    retry.count = {};
+
     /* ------------------------------------------------- sessions */
 
     function loadSessions() {
+        var list = q("vibeSessionsList");
+        if (!list) {
+            retry(loadSessions, "sessions");
+            return;
+        }
         api("/api/vibe/sessions").then(function (data) {
-            var list = q("vibeSessionsList");
-            if (!list) return;
             var sessions = (data && data.success && Array.isArray(data.sessions)) ? data.sessions : [];
             if (!sessions.length) {
                 list.innerHTML = '<div class="vibe-rd-empty">No sessions yet.</div>';

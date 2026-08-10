@@ -121,11 +121,30 @@ node.appendChild(dot);
 }
 
 stepsContainer.appendChild(node);
-stepsContainer.scrollLeft = stepsContainer.scrollWidth;
-taskNodes.push({
-title: title,
-description: description,
-meta: meta,
-});
-return node;
+    stepsContainer.scrollLeft = stepsContainer.scrollWidth;
+    taskNodes.push({
+        title: title,
+        description: description,
+        meta: meta,
+    });
+    return node;
 }
+
+var vibeZoomLevel = 100;
+
+function vibeSetZoom(delta) {
+    var steps = document.getElementById("vibeSteps");
+    if (!steps) return;
+    vibeZoomLevel = Math.min(160, Math.max(60, vibeZoomLevel + delta));
+    steps.style.zoom = vibeZoomLevel / 100;
+    var labels = document.querySelectorAll("[data-vibe-zoom-label]");
+    labels.forEach(function (label) {
+        label.textContent = vibeZoomLevel + "%";
+    });
+}
+
+document.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-vibe-zoom]");
+    if (!btn) return;
+    vibeSetZoom(parseInt(btn.getAttribute("data-vibe-zoom"), 10) || 0);
+});

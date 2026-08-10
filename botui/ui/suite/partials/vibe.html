@@ -303,7 +303,7 @@ font-weight: 600;
 ">
 🚀 Deploy
 </button>
-<button style="
+<button data-vibe-zoom="-1" type="button" style="
 border: 1px solid var(--border);
 background: var(--bg);
 border-radius: 4px;
@@ -312,12 +312,12 @@ cursor: pointer;
 ">
 -
 </button>
-<span style="
+<span data-vibe-zoom-label style="
 font-size: 11px;
 margin: 0 8px;
 color: var(--text);
 ">100%</span>
-<button style="
+<button data-vibe-zoom="1" type="button" style="
 border: 1px solid var(--border);
 background: var(--bg);
 border-radius: 4px;
@@ -374,7 +374,7 @@ and build the entire application for you.
 </p>
 <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 12px;">
 <button class="vibe-quick-btn" type="button"
-onclick="document.getElementById('vibeChatInput').value='Create an e-commerce app for selling handmade crafts with shopping cart and payments'; document.getElementById('vibeChatInput').focus();"
+onclick="vibeQuickSubmit('Create an e-commerce app for selling handmade crafts with shopping cart and payments')"
 style="
 padding: 8px 16px;
 border: 1px solid var(--border);
@@ -389,7 +389,7 @@ font-family: &quot;Fira Code&quot;, monospace;
 🛍️ E-Commerce App
 </button>
 <button class="vibe-quick-btn" type="button"
-onclick="document.getElementById('vibeChatInput').value='Build a CRM system with contacts, leads, and deal pipeline tracking'; document.getElementById('vibeChatInput').focus();"
+onclick="vibeQuickSubmit('Build a CRM system with contacts, leads, and deal pipeline tracking')"
 style="
 padding: 8px 16px;
 border: 1px solid var(--border);
@@ -404,7 +404,7 @@ font-family: &quot;Fira Code&quot;, monospace;
 📇 CRM System
 </button>
 <button class="vibe-quick-btn" type="button"
-onclick="document.getElementById('vibeChatInput').value='Create a project management dashboard with tasks, Kanban board, and team assignments'; document.getElementById('vibeChatInput').focus();"
+onclick="vibeQuickSubmit('Create a project management dashboard with tasks, Kanban board, and team assignments')"
 style="
 padding: 8px 16px;
 border: 1px solid var(--border);
@@ -421,7 +421,7 @@ font-family: &quot;Fira Code&quot;, monospace;
 </div>
 </div>
 
-<div id="vibeRunDockHost" hx-get="/suite/partials/vibe-run-panel.html" hx-trigger="load" style="display: none;"></div>
+<div id="vibeRunDockHost" hx-get="/suite/partials/vibe-run-panel.html" hx-trigger="load"></div>
 
 <!-- Vibe Chat Overlay -->
 <div id="vibeChatOverlay" style="

@@ -1209,6 +1209,7 @@ pub const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "POST", path: "/api/vibe/run/:run_id/approve", summary: "registered in crates/botvibe/src/api.rs" },
     ApiEndpoint { method: "POST", path: "/api/vibe/run/:run_id/cancel", summary: "registered in crates/botvibe/src/api.rs" },
     ApiEndpoint { method: "POST", path: "/api/vibe/run/:run_id/execute", summary: "registered in crates/botvibe/src/api.rs" },
+    ApiEndpoint { method: "GET", path: "/api/vibe/run/:run_id/grounding", summary: "registered in crates/botvibe/src/grounding.rs" },
     ApiEndpoint { method: "GET", path: "/api/vibe/runs", summary: "registered in crates/botvibe/src/api.rs" },
     ApiEndpoint { method: "GET", path: "/api/vibe/tools", summary: "registered in crates/botvibe/src/api.rs" },
     ApiEndpoint { method: "GET", path: "/api/vibe/tools/:use_case", summary: "registered in crates/botvibe/src/api.rs" },
