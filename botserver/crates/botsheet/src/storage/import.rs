@@ -4,11 +4,11 @@ use chrono::Utc;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-pub fn create_new_spreadsheet() -> Spreadsheet {
+pub fn create_new_spreadsheet(owner_id: &str) -> Spreadsheet {
     Spreadsheet {
         id: Uuid::new_v4().to_string(),
         name: "Untitled Spreadsheet".to_string(),
-        owner_id: crate::state::get_current_user_id(),
+        owner_id: owner_id.to_string(),
         worksheets: vec![crate::types::Worksheet {
             name: "Sheet1".to_string(),
             data: HashMap::new(),
@@ -25,6 +25,7 @@ pub fn create_new_spreadsheet() -> Spreadsheet {
             comments: None,
             protection: None,
             array_formulas: None,
+            tables: None,
         }],
         created_at: Utc::now(),
         updated_at: Utc::now(),
@@ -33,6 +34,7 @@ pub fn create_new_spreadsheet() -> Spreadsheet {
     source_bucket: None,
     source_path: None,
         source_bytes: None,
+        acl: HashMap::new(),
     }
 }
 
@@ -59,6 +61,7 @@ pub fn parse_csv_to_worksheets(
                     key,
                     crate::types::CellData {
                         value: Some(clean_value),
+                            typed: None,
                         formula: None,
                         style: None,
                         format: None,
@@ -88,6 +91,7 @@ pub fn parse_csv_to_worksheets(
         comments: None,
         protection: None,
         array_formulas: None,
+        tables: None,
     }])
 }
 
@@ -139,6 +143,7 @@ pub fn parse_xlsx_to_worksheets(
                                     } else {
                                         Some(value)
                                     },
+                                    typed: None,
                                     formula,
                                     style,
                                     format: number_format,
@@ -168,6 +173,7 @@ pub fn parse_xlsx_to_worksheets(
                     comments: None,
                     protection: None,
                     array_formulas: None,
+                    tables: None,
                 });
             }
 
@@ -244,6 +250,7 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
                             conditional_formats: None, charts: None,
                             comments: None, protection: None,
                             array_formulas: None,
+                            tables: None,
                         });
                     }
                     b"table:table-row" if in_table => {
@@ -254,6 +261,7 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
                             let key = format!("{current_row},{current_col}");
                             data.insert(key, crate::types::CellData {
                                 value: Some(cell_value.clone()),
+                                    typed: None,
                                 formula: None, style: None, format: None,
                                 note: None, locked: None, has_comment: None,
                                 array_formula_id: None,
@@ -292,6 +300,7 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
             conditional_formats: None, charts: None,
             comments: None, protection: None,
             array_formulas: None,
+            tables: None,
         });
     }
 
@@ -347,6 +356,7 @@ pub fn detect_spreadsheet_format(bytes: &[u8]) -> &'static str {
 pub fn import_spreadsheet_bytes(
     bytes: &[u8],
     filename: &str,
+    owner_id: &str,
 ) -> Result<Spreadsheet, String> {
     let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
     let detected = detect_spreadsheet_format(bytes);
@@ -380,7 +390,7 @@ pub fn import_spreadsheet_bytes(
     Ok(Spreadsheet {
         id: Uuid::new_v4().to_string(),
         name,
-        owner_id: crate::state::get_current_user_id(),
+        owner_id: owner_id.to_string(),
         worksheets,
         created_at: Utc::now(),
         updated_at: Utc::now(),
@@ -389,5 +399,6 @@ pub fn import_spreadsheet_bytes(
     source_bucket: None,
     source_path: None,
         source_bytes: None,
+        acl: HashMap::new(),
     })
 }

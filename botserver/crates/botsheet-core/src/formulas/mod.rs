@@ -18,8 +18,9 @@ pub use helpers::{
     split_args,
 };
 pub use refs::{
-    clamp_range, col_name_to_index, get_range_string_values, get_range_values, parse_cell_ref,
-    parse_range, resolve_cell_references, MAX_COL_INDEX, MAX_RANGE_CELLS, MAX_ROW_INDEX,
+    cell_to_a1, clamp_range, col_index_to_name, col_name_to_index, get_range_string_values,
+    get_range_values, parse_cell_ref, parse_range, resolve_cell_references, MAX_COL_INDEX,
+    MAX_RANGE_CELLS, MAX_ROW_INDEX,
 };
 
 use crate::types::{FormulaResult, Worksheet};
@@ -31,6 +32,16 @@ use crate::types::{FormulaResult, Worksheet};
 /// values. If the formula does not parse (for example a legacy quirk), we fall
 /// back to the string-dispatcher evaluator so nothing that used to work breaks.
 pub fn evaluate_formula(formula: &str, worksheet: &Worksheet) -> FormulaResult {
+    evaluate_formula_in(formula, std::slice::from_ref(worksheet), 0)
+}
+
+/// Formula evaluation against the worksheet set, so `Sheet2!A1` cross-sheet
+/// references resolve by name instead of erroring (#783).
+pub fn evaluate_formula_in(
+    formula: &str,
+    worksheets: &[Worksheet],
+    current: usize,
+) -> FormulaResult {
     if !formula.starts_with('=') {
         return FormulaResult {
             value: formula.to_string(),
@@ -40,13 +51,13 @@ pub fn evaluate_formula(formula: &str, worksheet: &Worksheet) -> FormulaResult {
     let body = &formula[1..];
     match crate::engine::parse(body) {
         Ok(expr) => {
-            let value = crate::engine::eval_expr(&expr, worksheet);
+            let value = crate::engine::eval_expr_in(&expr, worksheets, current);
             FormulaResult {
                 value: value.display(),
                 error: None,
             }
         }
-        Err(_) => evaluate_legacy(formula, worksheet),
+        Err(_) => evaluate_legacy(formula, &worksheets[current]),
     }
 }
 

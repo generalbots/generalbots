@@ -52,7 +52,10 @@ pub fn evaluate_map(expr: &str, worksheet: &Worksheet) -> Option<String> {
     if parts.len() < 2 {
         return Some("#ERROR!".to_string());
     }
-    let lambda = parts.last().unwrap().trim();
+    let Some(lambda) = parts.last() else {
+        return Some("#ERROR!".to_string());
+    };
+    let lambda = lambda.trim();
     let mut values: Vec<String> = Vec::new();
     for p in &parts[..parts.len() - 1] {
         values.extend(super::get_range_string_values(p.trim(), worksheet));

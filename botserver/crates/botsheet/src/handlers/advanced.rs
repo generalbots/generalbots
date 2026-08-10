@@ -1,11 +1,12 @@
-use crate::state::{get_current_user_id, load_sheet_by_id, save_sheet_to_drive, SheetState};
+use crate::auth::{resolve_user_id, SheetUser};
+use crate::state::SheetState;
 use crate::types::{
     AddExternalLinkRequest, CellData, ExternalLink, ListExternalLinksResponse, LockCellsRequest,
     ProtectSheetRequest, RefreshExternalLinkRequest, RemoveExternalLinkRequest, SaveResponse,
     UnprotectSheetRequest,
 };
 use axum::{
-    extract::{Query, State},
+    extract::{Extension, Query, State},
     http::StatusCode,
     Json,
 };
@@ -17,19 +18,25 @@ use uuid::Uuid;
 
 pub async fn handle_protect_sheet(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<ProtectSheetRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -46,13 +53,7 @@ pub async fn handle_protect_sheet(
 
     sheet.worksheets[req.worksheet_index].protection = Some(protection);
     sheet.updated_at = Utc::now();
-
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(&session, &state, &user_id, "sheet_mutation", serde_json::json!({ "sheet_id": req.sheet_id }));
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -63,19 +64,25 @@ pub async fn handle_protect_sheet(
 
 pub async fn handle_unprotect_sheet(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<UnprotectSheetRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -107,13 +114,7 @@ pub async fn handle_unprotect_sheet(
 
     worksheet.protection = None;
     sheet.updated_at = Utc::now();
-
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(&session, &state, &user_id, "sheet_mutation", serde_json::json!({ "sheet_id": req.sheet_id }));
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -124,19 +125,25 @@ pub async fn handle_unprotect_sheet(
 
 pub async fn handle_lock_cells(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<LockCellsRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -151,6 +158,7 @@ pub async fn handle_lock_cells(
             let key = format!("{row},{col}");
             let cell = worksheet.data.entry(key).or_insert_with(|| CellData {
                 value: None,
+                    typed: None,
                 formula: None,
                 style: None,
                 format: None,
@@ -164,12 +172,13 @@ pub async fn handle_lock_cells(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -187,19 +196,25 @@ pub async fn handle_lock_cells(
 
 pub async fn handle_add_external_link(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<AddExternalLinkRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     let link = ExternalLink {
         id: Uuid::new_v4().to_string(),
         source_path: req.source_path,
@@ -214,12 +229,13 @@ pub async fn handle_add_external_link(
     links.push(link);
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -230,19 +246,25 @@ pub async fn handle_add_external_link(
 
 pub async fn handle_refresh_external_link(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<RefreshExternalLinkRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if let Some(links) = &mut sheet.external_links {
         for link in links.iter_mut() {
             if link.id == req.link_id {
@@ -253,12 +275,13 @@ pub async fn handle_refresh_external_link(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -269,30 +292,37 @@ pub async fn handle_refresh_external_link(
 
 pub async fn handle_remove_external_link(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<RemoveExternalLinkRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if let Some(links) = &mut sheet.external_links {
         links.retain(|link| link.id != req.link_id);
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -303,20 +333,22 @@ pub async fn handle_remove_external_link(
 
 pub async fn handle_list_external_links(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListExternalLinksResponse>, (StatusCode, Json<serde_json::Value>)> {
     let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
-    let user_id = get_current_user_id();
-    let sheet = match load_sheet_by_id(&state, &user_id, &sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
-
-    let links = sheet.external_links.unwrap_or_default();
+            )
+        })?;
+    let sheet = session.sheet.read().await;
+    let links = sheet.external_links.clone().unwrap_or_default();
     Ok(Json(ListExternalLinksResponse { links }))
 }

@@ -76,7 +76,7 @@ pub async fn update_xlsx_cell(
     let cell = sheet.get_cell_mut((col + 1, row + 1));
 
     if let Some(f) = formula {
-        let formula_str = if f.starts_with('=') { &f[1..] } else { f };
+        let formula_str = if let Some(stripped) = f.strip_prefix('=') { stripped } else { f };
         cell.set_formula(formula_str);
     } else if let Some(v) = value {
         if let Ok(num) = v.parse::<f64>() {

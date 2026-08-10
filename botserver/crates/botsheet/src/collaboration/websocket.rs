@@ -1,12 +1,13 @@
 use super::{
-    get_collab_channels, get_presence, get_random_color, get_selections, get_typing, get_mentions,
-    MentionNotification, SelectionInfo, TypingIndicator, UserPresence,
+    ensure_sweep_started, get_collab_channels, get_presence, get_random_color, get_selections,
+    get_typing, get_mentions, MentionNotification, SelectionInfo, TypingIndicator, UserPresence,
 };
 use crate::types::CollabMessage;
 use axum::{
     extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Path, Query},
     response::IntoResponse,
 };
+use botsheet_core::formulas::cell_to_a1;
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
 
@@ -92,6 +93,7 @@ pub async fn handle_sheet_websocket(
 }
 
 pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: Option<(String, String)>) {
+    ensure_sweep_started();
     let (mut sender, mut receiver) = socket.split();
 
     let channels = get_collab_channels();
@@ -172,8 +174,7 @@ pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: 
                                             if let (Some(row), Some(col)) =
                                                 (collab_msg.row, collab_msg.col)
                                             {
-                                                user.current_cell =
-                                                    Some(format!("{},{}", row, col));
+                                                user.current_cell = cell_to_a1(row, col);
                                             }
                                             user.current_worksheet = collab_msg.worksheet_index;
                                             user.last_active = Utc::now();
@@ -194,7 +195,8 @@ pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: 
                                     indicators.push(TypingIndicator {
                                         user_id: user_id_clone.clone(),
                                         user_name: user_name_clone.clone(),
-                                        cell: format!("{},{}", row, col),
+                                        cell: cell_to_a1(row, col)
+                                            .unwrap_or_else(|| format!("{row},{col}")),
                                         worksheet_index: ws_idx,
                                         started_at: Utc::now(),
                                     });

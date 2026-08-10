@@ -153,9 +153,31 @@ pub struct Spreadsheet {
     /// the package from the lossy JSON model (#788).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_bytes: Option<Vec<u8>>,
+    /// Per-user access map: user id -> permission ("view" | "edit").
+    /// Owner access is implicit; legacy `default-user` sheets stay open (#789).
+    #[serde(default)]
+    pub acl: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A structured table (#790): a named rectangular range with header row.
+pub struct TableConfig {
+    pub id: String,
+    pub name: String,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
+    /// Whether the first row contains headers used for column filtering.
+    #[serde(default = "default_true")]
+    pub has_header_row: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Worksheet {
     pub name: String,
     pub data: HashMap<String, CellData>,
@@ -185,12 +207,20 @@ pub struct Worksheet {
     pub protection: Option<SheetProtection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub array_formulas: Option<Vec<ArrayFormula>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tables: Option<Vec<TableConfig>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CellData {
+    /// Raw display value as rendered in the grid.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
+    /// Typed value produced by the formula engine (#781). When present it is
+    /// the source of truth for arithmetic and format rendering; `value` is the
+    /// display string derived from it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub typed: Option<crate::engine::value::CellValue>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub formula: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

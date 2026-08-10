@@ -94,7 +94,10 @@ pub fn parse_format(code: &str) -> NumberFormat {
 fn split_currency(code: &str) -> Option<(String, String)> {
     for sym in ["R$ ", "R$", "$ ", "$", "€ ", "€", "£ ", "£"] {
         if code.starts_with(sym) {
-            return Some((sym.trim_end().to_string(), code[sym.len()..].to_string()));
+            return Some((
+                sym.trim_end().to_string(),
+                code.strip_prefix(sym).unwrap_or_default().to_string(),
+            ));
         }
     }
     None
@@ -168,6 +171,7 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
         }
         return super::value::format_number(n);
     }
+// Percent scales by 100: 0.125 with "0.0%" renders as "12.5%".
     let scaled = n * fmt.scale;
     let neg = scaled < 0.0;
     let abs = scaled.abs();
@@ -215,7 +219,7 @@ fn group_thousands(int_str: &str) -> String {
     let len = bytes.len();
     let mut out = String::new();
     for (i, b) in bytes.iter().enumerate() {
-        if i > 0 && (len - i) % 3 == 0 {
+        if i > 0 && (len - i).is_multiple_of(3) {
             out.push(',');
         }
         out.push(*b as char);
@@ -231,6 +235,20 @@ pub fn display_cell(value: &CellValue, format_code: Option<&str>) -> String {
             apply_format(value, code)
         }
         _ => value.display(),
+    }
+}
+
+
+/// Applies each cell's stored number format to its display `value`, keeping the
+/// raw `typed` value untouched so arithmetic and editing stay lossless (#785).
+/// Operates on a response clone; the persisted model keeps raw values.
+pub fn apply_formats_to_sheet(sheet: &mut crate::types::Spreadsheet) {
+    for ws in &mut sheet.worksheets {
+        for cell in ws.data.values_mut() {
+            if let (Some(typed), Some(code)) = (cell.typed.clone(), cell.format.clone()) {
+                cell.value = Some(display_cell(&typed, Some(&code)));
+            }
+        }
     }
 }
 
@@ -289,5 +307,57 @@ mod tests {
     fn display_falls_back() {
         assert_eq!(display_cell(&CellValue::Number(12.0), None), "12");
         assert_eq!(display_cell(&CellValue::Number(12.0), Some("General")), "12");
+    }
+    #[test]
+    fn apply_formats_to_sheet_renders_but_keeps_typed() {
+        let mut sheet = crate::types::Spreadsheet {
+            id: "t".into(),
+            name: "Test".into(),
+            owner_id: "me".into(),
+            worksheets: vec![crate::types::Worksheet {
+                tables: None,
+                name: "Sheet1".into(),
+                data: std::collections::HashMap::new(),
+                column_widths: None,
+                row_heights: None,
+                frozen_rows: None,
+                frozen_cols: None,
+                merged_cells: None,
+                filters: None,
+                hidden_rows: None,
+                validations: None,
+                conditional_formats: None,
+                charts: None,
+                comments: None,
+                protection: None,
+                array_formulas: None,
+            }],
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            named_ranges: None,
+            external_links: None,
+            source_bucket: None,
+            source_path: None,
+            source_bytes: None,
+            acl: std::collections::HashMap::new(),
+        };
+        sheet.worksheets[0].data.insert(
+            "0,0".into(),
+            crate::types::CellData {
+                value: Some("1234.5".into()),
+                typed: Some(CellValue::Number(1234.5)),
+                formula: None,
+                style: None,
+                format: Some("#,##0.00".into()),
+                note: None,
+                locked: None,
+                has_comment: None,
+                array_formula_id: None,
+            },
+        );
+        super::apply_formats_to_sheet(&mut sheet);
+        let cell = &sheet.worksheets[0].data["0,0"];
+        assert_eq!(cell.value.as_deref(), Some("1,234.50"));
+        assert_eq!(cell.typed, Some(CellValue::Number(1234.5)));
     }
 }

@@ -1,6 +1,7 @@
-use crate::state::{get_current_user_id, load_sheet_by_id, SheetState};
+use crate::auth::{resolve_user_id, SheetUser};
+use crate::state::SheetState;
 use crate::types::{PivotRequest, PivotResult};
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::{Extension, State}, http::StatusCode, Json};
 use serde_json::{json, Map, Value};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -73,18 +74,21 @@ fn collect_field_index(header_row: u32, start_col: u32, end_col: u32, data: &std
 
 pub async fn handle_pivot(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<PivotRequest>,
 ) -> Result<Json<PivotResult>, (StatusCode, Json<Value>)> {
-    let user_id = get_current_user_id();
-    let sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
-                Json(json!({ "error": e })),
-            ))
-        }
-    };
+                Json(serde_json::json!({ "error": e })),
+            )
+        })?;
+    let sheet = session.sheet.read().await.clone();
 
     let worksheet = match sheet.worksheets.first() {
         Some(w) => w,

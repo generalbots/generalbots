@@ -6,6 +6,7 @@
 //! giving nested calls, precedence, `&` and `^` real behaviour.
 
 pub mod ast;
+pub mod cross_sheet;
 pub mod eval;
 pub mod formats;
 pub mod lexer;
