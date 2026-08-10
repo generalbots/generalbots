@@ -99,7 +99,10 @@ fn cell_value_at(worksheet: &Worksheet, key: &str) -> CellValue {
 
 fn apply_unary(op: &str, v: CellValue) -> CellValue {
     match op {
-        "+" => CellValue::Number(v.as_number().unwrap_or(f64::NAN)),
+        "+" => match v.as_number() {
+            Some(n) => CellValue::Number(n),
+            None => CellValue::Error("VALUE!".to_string()),
+        },
         "-" => match v.as_number() {
             Some(n) => CellValue::Number(-n),
             None => CellValue::Error("VALUE!".to_string()),
@@ -281,5 +284,12 @@ mod tests {
     fn absolute_reference_unchanged_by_value() {
         let ws = ws_with(&[("0,0", "42")]);
         assert_eq!(ev("=$A$1", &ws), CellValue::Number(42.0));
+    }
+
+    #[test]
+    fn unary_plus_on_text_is_typed_error() {
+        let ws = ws_with(&[("0,0", "abc")]);
+        assert_eq!(ev("=+A1", &ws), CellValue::Error("VALUE!".to_string()));
+        assert_eq!(ev("=+5", &Worksheet::default()), CellValue::Number(5.0));
     }
 }

@@ -194,12 +194,107 @@ pub async fn handle_save_sheet(
     Json(req): Json<SaveRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref());
+    let action = req.action.as_deref().unwrap_or("save");
+
+    if action == "rename" {
+        let sheet_id = req.id.as_deref().ok_or_else(|| {
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "rename requires a sheet id" })),
+            )
+        })?;
+        let name = req.name.as_deref().ok_or_else(|| {
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "rename requires a name" })),
+            )
+        })?;
+        let session = state
+            .sessions
+            .get_or_load(&state, &user_id, sheet_id)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::NOT_FOUND,
+                    Json(serde_json::json!({ "error": e })),
+                )
+            })?;
+        {
+            let mut sheet = session.sheet.write().await;
+            sheet.name = name.to_string();
+            sheet.updated_at = Utc::now();
+        }
+        state.sessions.record(
+            &session,
+            &state,
+            &user_id,
+            "rename",
+            serde_json::json!({ "sheet_id": sheet_id, "name": name }),
+        );
+        return Ok(Json(SaveResponse {
+            id: sheet_id.to_string(),
+            success: true,
+            message: Some("Sheet renamed".to_string()),
+        }));
+    }
+
+    if req.worksheets.is_empty() {
+        // No full snapshot: flush the live session (which already holds the
+        // authoritative cell state), or create a blank document. This keeps
+        // the client from sending a lossy viewport-only dump over the wire.
+        if let Some(sheet_id) = req.id.as_deref() {
+            let session = state
+                .sessions
+                .get_or_load(&state, &user_id, sheet_id)
+                .await
+                .map_err(|e| {
+                    (
+                        StatusCode::NOT_FOUND,
+                        Json(serde_json::json!({ "error": e })),
+                    )
+                })?;
+            {
+                let mut sheet = session.sheet.write().await;
+                if let Some(name) = req.name.as_deref() {
+                    sheet.name = name.to_string();
+                }
+                sheet.updated_at = Utc::now();
+            }
+            if let Err(e) = session.persist_now(&state).await {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": e })),
+                ));
+            }
+            return Ok(Json(SaveResponse {
+                id: sheet_id.to_string(),
+                success: true,
+                message: Some("Sheet saved".to_string()),
+            }));
+        }
+
+        let mut sheet = create_new_spreadsheet(&user_id);
+        sheet.name = req.name.unwrap_or_else(|| "Untitled Spreadsheet".to_string());
+        sheet.updated_at = Utc::now();
+        let sheet_id = sheet.id.clone();
+        if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            ));
+        }
+        return Ok(Json(SaveResponse {
+            id: sheet_id,
+            success: true,
+            message: Some("Sheet saved".to_string()),
+        }));
+    }
 
     let sheet_id = req.id.unwrap_or_else(|| Uuid::new_v4().to_string());
 
     let sheet = Spreadsheet {
         id: sheet_id.clone(),
-        name: req.name,
+        name: req.name.unwrap_or_else(|| "Untitled Spreadsheet".to_string()),
         owner_id: user_id.clone(),
         worksheets: req.worksheets,
         created_at: Utc::now(),

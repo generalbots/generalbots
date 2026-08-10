@@ -109,7 +109,9 @@ fn row_passes(config: &FilterConfig, cell: Option<CellValue>) -> bool {
                     _ => true,
                 }
             }
-            _ => true,
+            // Unknown condition strings must never silently pass rows — a
+            // typo in a filter definition would otherwise show everything.
+            _ => false,
         };
         if !passes {
             return false;
@@ -269,5 +271,14 @@ mod tests {
             vec![(0, condition_filter("between", "10", Some("20")))],
         );
         assert_eq!(compute_hidden_rows(&w), vec![0, 2]);
+    }
+
+    #[test]
+    fn unknown_condition_never_silently_passes() {
+        let w = ws_with(
+            &[("0,0", "10"), ("1,0", "20")],
+            vec![(0, condition_filter("bogusop", "10", None))],
+        );
+        assert_eq!(compute_hidden_rows(&w), vec![0, 1]);
     }
 }

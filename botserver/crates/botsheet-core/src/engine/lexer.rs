@@ -108,8 +108,10 @@ pub fn lex(input: &str) -> LexResult<Vec<Token>> {
                     closed = true;
                     break;
                 }
-                s.push(bytes[i] as char);
-                i += 1;
+                let ch = input[i..].chars().next().unwrap_or('\u{fffd}');
+                s.push(ch);
+                i += ch.len_utf8();
+                continue;
             }
             if !closed {
                 return Err(LexError {
@@ -233,7 +235,10 @@ pub fn lex(input: &str) -> LexResult<Vec<Token>> {
         }
         return Err(LexError {
             offset: i,
-            message: format!("unexpected character '{}'", bytes[i] as char),
+            message: format!(
+                "unexpected character '{}'",
+                input[i..].chars().next().unwrap_or('\u{fffd}')
+            ),
         });
     }
 
@@ -359,5 +364,19 @@ mod tests {
             .map(|t| t.kind)
             .collect();
         assert_eq!(kinds[0], TokenKind::Ident("SUM".to_string()));
+    }
+
+    #[test]
+    fn decodes_utf8_inside_strings() {
+        let tokens = lex("=\"café\"+\"Σ\"&A1").expect("lex");
+        let kinds: Vec<&TokenKind> = tokens.iter().map(|t| &t.kind).collect();
+        let strs: Vec<&str> = kinds
+            .iter()
+            .filter_map(|k| match k {
+                TokenKind::Str(s) => Some(s.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(strs, vec!["café", "Σ"]);
     }
 }

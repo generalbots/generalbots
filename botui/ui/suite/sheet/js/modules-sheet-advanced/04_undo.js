@@ -15,6 +15,11 @@
     return window.SheetAPI || null;
   }
 
+  function t(key, fallback) {
+    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key);
+    return fallback || key;
+  }
+
   function colName(idx) {
     let n = idx + 1;
     let s = "";
@@ -152,7 +157,7 @@
       if (!suspended && !strVal.startsWith("=") && key && window.SheetCore && window.SheetCore.validateEdit) {
         const check = window.SheetCore.validateEdit(p.row, p.col, strVal);
         if (!check.valid) {
-          showToast(check.message || "Valor inválido");
+          showToast(check.message || t("toast.invalid_value", "Invalid value"));
           if (grid() && key) {
             const node = grid().bodyInner.querySelector('[data-row="' + p.row + '"][data-col="' + p.col + '"]');
             if (node) {

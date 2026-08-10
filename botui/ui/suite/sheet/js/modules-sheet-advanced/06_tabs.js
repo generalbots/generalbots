@@ -17,6 +17,17 @@
     return window.__SHEET_INITIAL_ID || "current";
   }
 
+  function t(key, fallback, params) {
+    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key, params);
+    let text = fallback || key;
+    if (params) {
+      Object.keys(params).forEach(function (p) {
+        text = text.replace(new RegExp("\\{" + p + "\\}", "g"), params[p]);
+      });
+    }
+    return text;
+  }
+
   function wsIndex() {
     if (window.SheetCore && window.SheetCore.wsIndex) return window.SheetCore.wsIndex();
     try {
@@ -42,7 +53,7 @@
     addBtn.type = "button";
     addBtn.className = "ss-tab-add";
     addBtn.textContent = "+";
-    addBtn.title = "Nova planilha";
+    addBtn.title = t("tabs.add", "New worksheet");
     addBtn.addEventListener("click", addWorksheetClient);
     tb.appendChild(addBtn);
     if (!sheet || !sheet.worksheets || !sheet.worksheets.length) return;
@@ -58,7 +69,7 @@
       del.type = "button";
       del.className = "ss-tab-del";
       del.textContent = "×";
-      del.title = "Excluir planilha";
+      del.title = t("tabs.delete", "Delete worksheet");
       del.addEventListener("click", function (e) { e.stopPropagation(); deleteWorksheetClient(i); });
       tab.appendChild(del);
       tab.addEventListener("click", function () { switchWorksheetClient(i); });
@@ -117,7 +128,7 @@
   function deleteWorksheetClient(i) {
     const sheet = window.__LOADED_SHEET;
     if (!sheet || !sheet.worksheets || sheet.worksheets.length <= 1) return;
-    if (!window.confirm("Excluir planilha " + sheet.worksheets[i].name + "?")) return;
+    if (!window.confirm(t("tabs.confirm_delete", "Delete worksheet {name}?", { name: sheet.worksheets[i].name }))) return;
     api().deleteWorksheet(i).then(function () {
       reloadSheetAfterMutation().then(function () {
         const idx = wsIndex();
@@ -129,7 +140,7 @@
   function renameWorksheetClient(i) {
     const sheet = window.__LOADED_SHEET;
     if (!sheet || !sheet.worksheets || !sheet.worksheets[i]) return;
-    const name = window.prompt("Novo nome da planilha:", sheet.worksheets[i].name);
+    const name = window.prompt(t("tabs.rename_prompt", "New worksheet name:"), sheet.worksheets[i].name);
     if (!name || !name.trim()) return;
     api().renameWorksheet(i, name.trim()).then(function () {
       sheet.worksheets[i].name = name.trim();

@@ -62,6 +62,9 @@ pub fn evaluate_atan2(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[6..expr.len() - 1];
     let parts: Vec<&str> = super::split_args(inner);
+    if parts.len() < 2 {
+        return None;
+    }
     let y: f64 = resolve_cell_value(parts[0].trim(), worksheet).parse().ok()?;
     let x: f64 = resolve_cell_value(parts[1].trim(), worksheet).parse().ok()?;
     Some(super::format_number(y.atan2(x)))

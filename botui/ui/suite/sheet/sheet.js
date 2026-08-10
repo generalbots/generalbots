@@ -84,12 +84,6 @@
     }
   }
 
-  function clearSelectionOverlay() {
-    if (VirtualGrid.selectionOverlay) {
-      VirtualGrid.selectionOverlay.style.display = "none";
-    }
-  }
-
   function positionSelectionOverlay(row, col) {
     if (!VirtualGrid.selectionOverlay) return;
     const cwFn = (window.SheetCore && window.SheetCore.colWidth) ? window.SheetCore.colWidth : function () { return COL_WIDTH; };
@@ -269,17 +263,13 @@
 
       this.renderRowHeaders(range);
 
-      // Renderização virtualizada das células
+      // Render the virtualised cells
       for (let r = range.start; r < range.end; r++) {
         this.renderRow(r);
       }
       for (let i = this.usedCount; i < this.pool.length; i++) {
         this.pool[i].style.display = "none";
       }
-    },
-
-    recycleAll: function () {
-      // no-op: o reaproveitamento é feito in-place usando this.pool e this.usedCount
     },
 
     getOrCreateNode: function () {
@@ -464,17 +454,6 @@
       sel.addRange(range);
     },
 
-    exitEditMode: function () {
-      if (this.editingCell) {
-        this.editingCell.blur();
-      }
-    },
-
-    markCellComputed: function (ref, result) {
-      const el = this.bodyInner.querySelector('[data-ref="' + ref + '"]');
-      if (el) el.dataset.formulaResult = result;
-    },
-
     applyCellStyle: function (node, cellData) {
       if (!cellData || !cellData.style) return;
       var s = cellData.style;
@@ -603,11 +582,6 @@
           end_col: endCol
         })
       }).then(function (r) { return r.json(); }).catch(function () { return { cells: {} }; });
-    },
-
-    list: function () {
-      return fetch("/api/sheet/list", { method: "GET" })
-        .then(function (r) { return r.json(); }).catch(function () { return []; });
     },
 
     load: function (id) {

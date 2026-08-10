@@ -79,11 +79,6 @@ impl DepGraph {
         self.recompute_cycles();
     }
 
-    /// The `referenced -> dependents` map, for topological traversal.
-    pub fn dependent_map(&self) -> &HashMap<CellKey, HashSet<CellKey>> {
-        &self.dependents
-    }
-
     /// Cells currently participating in reference cycles, cached since the
     /// last structural edit. Recalculation skips them.
     pub fn cycles(&self) -> &[CellKey] {
@@ -145,12 +140,6 @@ impl DepGraph {
     fn recompute_cycles(&mut self) {
         self.cycles = find_cycles_in(&self.dependents);
     }
-}
-
-/// Consumes the graph, returning the `referenced -> dependents` map (used by
-/// the legacy one-shot path).
-pub fn into_dependents(graph: DepGraph) -> HashMap<CellKey, HashSet<CellKey>> {
-    graph.dependents
 }
 
 /// Kahn-style cycle detection over a `referenced -> dependents` map: nodes

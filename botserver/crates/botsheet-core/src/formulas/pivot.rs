@@ -62,13 +62,31 @@ pub fn evaluate_pivotby(expr: &str, worksheet: &Worksheet) -> Option<String> {
     let col_data = super::get_range_string_values(parts[1].trim(), worksheet);
     let value_data = super::get_range_string_values(parts[2].trim(), worksheet);
     let agg = parts[3].trim().trim_matches('"').to_uppercase();
-    let mut out: Vec<String> = Vec::new();
-    for (i, row_key) in row_data.iter().enumerate() {
+    let mut cells: std::collections::BTreeMap<(String, String), Vec<f64>> = std::collections::BTreeMap::new();
+    for i in 0..row_data.len() {
+        let row_key = row_data[i].clone();
         let col_key = col_data.get(i).cloned().unwrap_or_default();
-        let val: f64 = value_data.get(i).and_then(|v| v.parse().ok()).unwrap_or(0.0);
-        out.push(format!("{}|{}|{}", row_key, col_key, format_number(val)));
+        if let Some(v) = value_data.get(i).and_then(|v| v.parse().ok()) {
+            cells.entry((row_key, col_key)).or_default().push(v);
+        }
     }
-    let _ = agg;
+    let mut out: Vec<String> = Vec::new();
+    for ((row_key, col_key), vals) in &cells {
+        let agg_val = match agg.as_str() {
+            "SUM" => vals.iter().sum::<f64>(),
+            "AVERAGE" | "AVG" | "MEAN" => if vals.is_empty() { 0.0 } else { vals.iter().sum::<f64>() / vals.len() as f64 },
+            "COUNT" => vals.len() as f64,
+            "MAX" => vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
+            "MIN" => vals.iter().cloned().fold(f64::INFINITY, f64::min),
+            "MEDIAN" => {
+                let mut s = vals.clone();
+                s.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                if s.is_empty() { 0.0 } else { s[s.len() / 2] }
+            }
+            _ => 0.0,
+        };
+        out.push(format!("{}|{}|{}", row_key, col_key, format_number(agg_val)));
+    }
     Some(out.join(","))
 }
 
@@ -141,7 +159,7 @@ pub fn evaluate_aggregate(expr: &str, worksheet: &Worksheet) -> Option<String> {
 }
 
 pub fn evaluate_percentile(expr: &str, worksheet: &Worksheet) -> Option<String> {
-    if !expr.starts_with("PERCENTILE(") || !expr.starts_with("PERCENTILE.INC(") {
+    if !expr.starts_with("PERCENTILE(") && !expr.starts_with("PERCENTILE.INC(") {
         return None;
     }
     let start = if expr.starts_with("PERCENTILE.INC(") { 16 } else { 11 };
