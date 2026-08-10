@@ -12,6 +12,8 @@ const DEFAULT_MAX_STEPS: u32 = 50;
 const DEFAULT_TIMEOUT_SECS: u64 = 300;
 const MAX_EMPTY_PARSE_RETRIES: u32 = 3;
 const MAX_TOOL_RESULT_CHARS: usize = 4000;
+const MAX_TOOL_RETRIES: u32 = 2;
+const MAX_VERIFY_FAILURES: u32 = 2;
 
 pub struct AgentLoop {
     prompt_manager: Arc<VibePromptManager>,
@@ -93,6 +95,7 @@ impl AgentLoop {
             .collect();
 
         let mut empty_parse_rounds: u32 = 0;
+        let mut verify_failures: u32 = 0;
         for step in 0..max_steps {
             if run.state == VibeRunState::Cancelled {
                 info!("Vibe run {} cancelled at step {}", run.run_id, step);
@@ -124,7 +127,7 @@ impl AgentLoop {
                 refs
             };
 
-            let llm_response = match self.call_llm(&context, run).await {
+            let llm_response = match self.call_llm(&context, run, &run.intent).await {
                 Ok(response) => response,
                 Err(e) => {
                     error!("LLM call failed at step {}: {}", step, e);
@@ -161,6 +164,7 @@ impl AgentLoop {
             empty_parse_rounds = 0;
             context.add_assistant_message(llm_response);
 
+            let mut step_mutated = false;
             for tc in &tool_calls {
                 if (run.tool_calls.len() as u32) >= max_steps {
                     info!(
@@ -169,8 +173,38 @@ impl AgentLoop {
                     );
                     break;
                 }
-                self.process_tool_call(run, &mut context, tc, step, max_steps)
-                    .await;
+                if self
+                    .process_tool_call(run, &mut context, tc, step, max_steps)
+                    .await
+                {
+                    step_mutated = true;
+                }
+            }
+
+            if step_mutated {
+                self.broadcast_event(
+                    run,
+                    "verifying",
+                    "Self-verifying latest changes",
+                    progress,
+                );
+                let verified = self.verify_latest(&mut context, run).await;
+                if !verified {
+                    verify_failures += 1;
+                    context.add_assistant_message(
+                        "Self-verification failed for the latest change. Recheck and correct it before proceeding."
+                            .to_string(),
+                    );
+                    if verify_failures >= MAX_VERIFY_FAILURES {
+                        run.transition(VibeRunState::Failed);
+                        run.error = Some("Self-verification failed repeatedly; stopping run.".to_string());
+                        self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                        self.broadcast_event(run, "failed", "Self-verification failed", 100);
+                        return;
+                    }
+                } else {
+                    verify_failures = 0;
+                }
             }
 
             tokio::task::yield_now().await;
@@ -187,8 +221,9 @@ impl AgentLoop {
         &self,
         context: &crate::types::VibeContext,
         run: &VibeRun,
+        user_message: &str,
     ) -> Result<String, String> {
-        let prompt = self.prompt_manager.compose_prompt(context, &run.intent);
+        let prompt = self.prompt_manager.compose_prompt(context, user_message);
         let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
         // Per-bot config (Issue #795): explicit run overrides > bot config.csv
         // via the state > environment > built-in defaults.
@@ -391,6 +426,21 @@ impl AgentLoop {
         Vec::new()
     }
 
+    async fn verify_latest(
+        &self,
+        context: &mut crate::types::VibeContext,
+        run: &VibeRun,
+    ) -> bool {
+        let question = "Verify the latest tool results above are consistent and complete. Reply with exactly VERIFIED or FAILED.";
+        context.add_user_message(question.to_string());
+        let response = match self.call_llm(context, run, question).await {
+            Ok(response) => response,
+            Err(_) => return false,
+        };
+        context.add_assistant_message(response.clone());
+        response.contains("VERIFIED") && !response.contains("FAILED")
+    }
+
     async fn process_tool_call(
         &self,
         run: &mut VibeRun,
@@ -398,7 +448,7 @@ impl AgentLoop {
         extracted: &ExtractedToolCall,
         step: u32,
         max_steps: u32,
-    ) {
+    ) -> bool {
         let schema_requires = self
             .tool_executor
             .registry()
@@ -470,19 +520,40 @@ impl AgentLoop {
                     tool_call.tool_name
                 ));
                 run.transition(VibeRunState::Running);
-                return;
+                return false;
             }
             tool_call.approved = true;
             run.transition(VibeRunState::Running);
         }
 
         let start = tokio::time::Instant::now();
-        match self
+        let executed_ok = match self
             .tool_executor
             .execute(&mut tool_call, run.use_case, self.state.as_ref())
             .await
         {
             Ok(()) => {
+                if !tool_call.requires_approval {
+                    let mut attempts: u32 = 1;
+                    while attempts < MAX_TOOL_RETRIES
+                        && tool_call
+                            .result
+                            .as_ref()
+                            .map(|r| !r.success)
+                            .unwrap_or(false)
+                    {
+                        attempts += 1;
+                        context.add_assistant_message(format!(
+                            "Tool {} reported failure; retry attempt {attempts}.",
+                            tool_call.tool_name
+                        ));
+                        let _ = self
+                            .tool_executor
+                            .execute(&mut tool_call, run.use_case, self.state.as_ref())
+                            .await;
+                    }
+                }
+
                 let latency = start.elapsed().as_millis() as u64;
                 let success = tool_call
                     .result
@@ -530,6 +601,7 @@ impl AgentLoop {
                     tool_call.tool_name,
                     truncate(&result_summary, MAX_TOOL_RESULT_CHARS)
                 ));
+                success
             }
             Err(e) => {
                 let latency = start.elapsed().as_millis() as u64;
@@ -557,10 +629,12 @@ impl AgentLoop {
                     "Tool {} failed: {e}. Continuing with next step.",
                     tool_call.tool_name
                 ));
+                false
             }
-        }
+        };
 
         run.tool_calls.push(tool_call);
+        executed_ok
     }
 
     async fn wait_for_approval(&self, run_id: Uuid) -> bool {
