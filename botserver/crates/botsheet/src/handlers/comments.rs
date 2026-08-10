@@ -1,4 +1,4 @@
-use crate::auth::{resolve_user_id, SheetUser};
+use crate::auth::{resolve_user_id, resolve_user_name, SheetUser};
 use crate::state::SheetState;
 use crate::types::{
     AddCommentRequest, CellComment, CellData, CommentReply, CommentWithLocation,
@@ -44,7 +44,7 @@ pub async fn handle_add_comment(
     let comment = CellComment {
         id: Uuid::new_v4().to_string(),
         author_id: user_id.clone(),
-        author_name: "User".to_string(),
+        author_name: resolve_user_name(user.as_deref()),
         content: req.content,
         created_at: Utc::now(),
         updated_at: Utc::now(),
@@ -123,7 +123,7 @@ pub async fn handle_reply_comment(
                 let reply = CommentReply {
                     id: Uuid::new_v4().to_string(),
                     author_id: user_id.clone(),
-                    author_name: "User".to_string(),
+                    author_name: resolve_user_name(user.as_deref()),
                     content: req.content,
                     created_at: Utc::now(),
                 };

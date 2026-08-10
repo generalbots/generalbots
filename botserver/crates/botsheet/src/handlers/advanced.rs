@@ -11,10 +11,26 @@ use axum::{
     Json,
 };
 use chrono::Utc;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::Hasher as _;
 use std::sync::Arc;
 use uuid::Uuid;
+
+/// SHA-256 of the password salted with the owner id. Not a KDF (a fast hash
+/// remains brute-forceable for weak passwords) but a real one-way function —
+/// the previous SipHash (`DefaultHasher`) was trivially reversible.
+fn hash_password(password: &str, salt: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(salt.as_bytes());
+    hasher.update(b":");
+    hasher.update(password.as_bytes());
+    hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
 
 pub async fn handle_protect_sheet(
     State(state): State<Arc<SheetState>>,
@@ -46,9 +62,7 @@ pub async fn handle_protect_sheet(
 
     let mut protection = req.protection;
     if let Some(password) = req.password {
-        let mut hasher = DefaultHasher::new();
-        password.hash(&mut hasher);
-        protection.password_hash = Some(format!("{:x}", hasher.finish()));
+        protection.password_hash = Some(hash_password(&password, &user_id));
     }
 
     sheet.worksheets[req.worksheet_index].protection = Some(protection);
@@ -94,10 +108,16 @@ pub async fn handle_unprotect_sheet(
     if let Some(protection) = &worksheet.protection {
         if let Some(hash) = &protection.password_hash {
             if let Some(password) = &req.password {
-                let mut hasher = DefaultHasher::new();
-                password.hash(&mut hasher);
-                let provided_hash = format!("{:x}", hasher.finish());
-                if &provided_hash != hash {
+                let provided_hash = hash_password(password, &user_id);
+                // Verify against the current scheme first; fall back to the
+                // legacy SipHash digest so sheets protected before the SHA-256
+                // upgrade still unlock.
+                let legacy = {
+                    let mut h = std::collections::hash_map::DefaultHasher::new();
+                    std::hash::Hash::hash(password, &mut h);
+                    format!("{:x}", h.finish())
+                };
+                if provided_hash != *hash && legacy != *hash {
                     return Err((
                         StatusCode::UNAUTHORIZED,
                         Json(serde_json::json!({ "error": "Invalid password" })),

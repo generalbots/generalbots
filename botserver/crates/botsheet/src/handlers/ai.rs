@@ -1,7 +1,6 @@
 use crate::state::SheetState;
 use crate::types::{SheetAiRequest, SheetAiResponse};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -189,7 +188,11 @@ async fn call_llm(prompt: &str) -> Result<String, String> {
 async fn perform_llm_request(prompt: &str) -> Result<String, String> {
     let llm_url = match std::env::var("BOT_AI_PROMPT_URL") {
         Ok(url) if !url.is_empty() => url,
-        _ => return Ok(generate_mock_response(prompt)),
+        _ => {
+            // Never fabricate an answer: an unconfigured LLM is a hard error
+            // the caller surfaces as 503, not a canned "analysis".
+            return Err("AI not configured: BOT_AI_PROMPT_URL is not set".to_string());
+        }
     };
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(60))
@@ -208,14 +211,4 @@ async fn perform_llm_request(prompt: &str) -> Result<String, String> {
         .map_err(|e| format!("HTTP request failed: {}", e))?;
     let text = resp.text().await.map_err(|e| format!("Failed to read response: {}", e))?;
     Ok(text)
-}
-
-fn generate_mock_response(prompt: &str) -> String {
-    let len = prompt.len();
-    let mut rng = rand::rng();
-    let tid = rng.random_range(1000..9999);
-    format!(
-        "[BOT_AI_PROMPT] Analysis complete (ticket #{tid}).\nPrompt length: {} chars.\nSummary: Based on the provided data, the key insight is that trends indicate positive momentum across all metrics. Further analysis recommended for detailed breakdown.",
-        len
-    )
 }
