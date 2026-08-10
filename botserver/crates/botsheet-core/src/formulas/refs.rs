@@ -46,6 +46,31 @@ pub fn col_name_to_index(name: &str) -> Option<u32> {
     Some(index)
 }
 
+/// Converts a zero-based column index into its name (`0 -> A`, `27 -> AB`).
+///
+/// Returns `None` beyond the addressable column [`MAX_COL_INDEX`].
+pub fn col_index_to_name(index: u32) -> Option<String> {
+    if index > MAX_COL_INDEX {
+        return None;
+    }
+    let mut name = String::new();
+    let mut n = index + 1;
+    while n > 0 {
+        let rem = (n - 1) % 26;
+        name.insert(0, (b'A' + rem as u8) as char);
+        n = (n - 1) / 26;
+    }
+    Some(name)
+}
+
+/// Formats zero-based grid coordinates as an A1 reference (`0,0 -> A1`).
+///
+/// Used wherever addresses cross the wire in human-readable form (collaboration
+/// cursors, exports, notifications) instead of `row,col` strings (#791).
+pub fn cell_to_a1(row: u32, col: u32) -> Option<String> {
+    Some(format!("{}{}", col_index_to_name(col)?, row + 1))
+}
+
 pub fn parse_range(range: &str) -> Option<((u32, u32), (u32, u32))> {
     let parts: Vec<&str> = range.split(':').collect();
     if parts.len() != 2 {
@@ -268,6 +293,7 @@ mod tests {
                 format!("{row},0"),
                 CellData {
                     value: Some("2".to_string()),
+                        typed: None,
                     formula: None,
                     style: None,
                     format: None,

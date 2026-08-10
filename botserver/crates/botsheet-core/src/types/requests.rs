@@ -56,6 +56,9 @@ pub struct ShareRequest {
     pub sheet_id: String,
     pub email: String,
     pub permission: String,
+    /// Explicit grant key (user id). When absent the grant is keyed by email.
+    #[serde(default)]
+    pub user_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -483,4 +486,54 @@ pub struct WorksheetMetaResponse {
     pub name: String,
     pub frozen_rows: u32,
     pub frozen_cols: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResizeRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    #[serde(default)]
+    pub row: Option<u32>,
+    #[serde(default)]
+    pub col: Option<u32>,
+    #[serde(default)]
+    pub height: Option<u32>,
+    #[serde(default)]
+    pub width: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PasteRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    /// Target cell for the top-left of the pasted block.
+    pub start_row: u32,
+    pub start_col: u32,
+    /// Raw HTML table fragment from the clipboard (Excel/Sheets flavor).
+    pub html: String,
+    /// Paste Special mode: "all" | "values" | "formats".
+    #[serde(default)]
+    pub mode: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TableRequest {
+    pub sheet_id: String,
+    pub worksheet_index: usize,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
+    #[serde(default)]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TableResponse {
+    pub id: String,
+    pub name: String,
+    pub start_row: u32,
+    pub start_col: u32,
+    pub end_row: u32,
+    pub end_col: u32,
 }

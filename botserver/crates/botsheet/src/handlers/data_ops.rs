@@ -1,29 +1,36 @@
-use crate::state::{get_current_user_id, load_sheet_by_id, save_sheet_to_drive, SheetState};
+use crate::auth::{resolve_user_id, SheetUser};
+use crate::state::SheetState;
 use crate::types::{
     CellData, ChartConfig, ChartOptions, ChartPosition, ChartRequest, ClearFilterRequest,
     ConditionalFormatRequest, ConditionalFormatRule, DeleteChartRequest, FilterConfig,
     FilterRequest, SaveResponse, SortRequest,
 };
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::{Extension, State}, http::StatusCode, Json};
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub async fn handle_sort_range(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<SortRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -82,13 +89,18 @@ pub async fn handle_sort_range(
         }
     }
 
+    // Re-sorting moves values between rows; recompute which rows the active
+    // filters hide so the grid stays consistent (#790).
+    worksheet.hidden_rows = Some(botsheet_core::filter::compute_hidden_rows(worksheet));
+
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -99,19 +111,25 @@ pub async fn handle_sort_range(
 
 pub async fn handle_filter_data(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<FilterRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -133,13 +151,18 @@ pub async fn handle_filter_data(
         },
     );
 
+    // Materialize the hidden rows the filter implies so grid views can render
+    // them without re-evaluating filter semantics (#790).
+    worksheet.hidden_rows = Some(botsheet_core::filter::compute_hidden_rows(worksheet));
+
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -150,19 +173,25 @@ pub async fn handle_filter_data(
 
 pub async fn handle_clear_filter(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<ClearFilterRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -179,13 +208,17 @@ pub async fn handle_clear_filter(
         }
     }
 
+    // Clearing a filter un-hides every row (#790).
+    worksheet.hidden_rows = Some(botsheet_core::filter::compute_hidden_rows(worksheet));
+
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -196,19 +229,25 @@ pub async fn handle_clear_filter(
 
 pub async fn handle_create_chart(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<ChartRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -238,12 +277,13 @@ pub async fn handle_create_chart(
     charts.push(chart);
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -254,19 +294,25 @@ pub async fn handle_create_chart(
 
 pub async fn handle_delete_chart(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<DeleteChartRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -280,12 +326,13 @@ pub async fn handle_delete_chart(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -296,19 +343,25 @@ pub async fn handle_delete_chart(
 
 pub async fn handle_conditional_format(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<ConditionalFormatRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -333,12 +386,13 @@ pub async fn handle_conditional_format(
     formats.push(rule);
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,

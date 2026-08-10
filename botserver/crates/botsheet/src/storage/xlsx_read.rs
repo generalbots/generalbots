@@ -65,6 +65,7 @@ pub fn load_xlsx_from_bytes(
                         key,
                         CellData {
                             value: Some(cell_value),
+                                typed: None,
                             formula,
                             style,
                             format: None,
@@ -152,6 +153,7 @@ pub fn load_xlsx_from_bytes(
             comments: None,
             protection: None,
             array_formulas: None,
+            tables: None,
         });
     }
 
@@ -172,6 +174,7 @@ pub fn load_xlsx_from_bytes(
     source_bucket: None,
     source_path: None,
         source_bytes: None,
+    acl: HashMap::new(),
     };
 
     Ok((spreadsheet, workbook))

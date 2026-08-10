@@ -336,8 +336,7 @@ office:version="1.2">
 }
 
 pub fn export_to_pdf_data(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
-    let html = export_to_html(sheet);
-    Ok(html.into_bytes())
+    crate::pdf::export_pdf(sheet)
 }
 
 pub fn export_to_markdown(sheet: &Spreadsheet) -> String {

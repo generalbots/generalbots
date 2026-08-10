@@ -443,7 +443,16 @@ async fn inner_build_sub_router(
             sheet_state.on_save = Some(crate::sheet::storage::create_save_back_hook(drive.clone()));
         }
         let sheet_state = Arc::new(sheet_state);
-        sub_router = sub_router.merge(crate::sheet::routes::configure_sheet_routes().with_state(sheet_state));
+        // Give the session store a state handle so idle-evicted dirty
+        // sessions can persist before dropping.
+        sheet_state.sessions.set_state_handle(sheet_state.clone());
+        sub_router = sub_router.merge(
+            crate::sheet::routes::configure_sheet_routes()
+                .layer(axum::middleware::from_fn(
+                    crate::sheet::user_middleware::sheet_user_middleware,
+                ))
+                .with_state(sheet_state),
+        );
     }
 
     #[cfg(feature = "canvas")]

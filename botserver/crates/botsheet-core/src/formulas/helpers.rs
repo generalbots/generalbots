@@ -88,27 +88,27 @@ pub fn evaluate_condition(condition: &str, worksheet: &Worksheet) -> bool {
 }
 
 pub fn matches_criteria(value: &str, criteria: &str) -> bool {
-    if criteria.starts_with(">=") {
-        if let (Ok(v), Ok(c)) = (value.parse::<f64>(), criteria[2..].parse::<f64>()) {
+    if let Some(rest) = criteria.strip_prefix(">=") {
+        if let (Ok(v), Ok(c)) = (value.parse::<f64>(), rest.parse::<f64>()) {
             return v >= c;
         }
-    } else if criteria.starts_with("<=") {
-        if let (Ok(v), Ok(c)) = (value.parse::<f64>(), criteria[2..].parse::<f64>()) {
+    } else if let Some(rest) = criteria.strip_prefix("<=") {
+        if let (Ok(v), Ok(c)) = (value.parse::<f64>(), rest.parse::<f64>()) {
             return v <= c;
         }
     } else if criteria.starts_with("<>") || criteria.starts_with("!=") {
         let c = &criteria[2..];
         return !value.eq_ignore_ascii_case(c);
-    } else if criteria.starts_with('>') {
-        if let (Ok(v), Ok(c)) = (value.parse::<f64>(), criteria[1..].parse::<f64>()) {
+    } else if let Some(rest) = criteria.strip_prefix('>') {
+        if let (Ok(v), Ok(c)) = (value.parse::<f64>(), rest.parse::<f64>()) {
             return v > c;
         }
-    } else if criteria.starts_with('<') {
-        if let (Ok(v), Ok(c)) = (value.parse::<f64>(), criteria[1..].parse::<f64>()) {
+    } else if let Some(rest) = criteria.strip_prefix('<') {
+        if let (Ok(v), Ok(c)) = (value.parse::<f64>(), rest.parse::<f64>()) {
             return v < c;
         }
-    } else if criteria.starts_with('=') {
-        return value.eq_ignore_ascii_case(&criteria[1..]);
+    } else if let Some(rest) = criteria.strip_prefix('=') {
+        return value.eq_ignore_ascii_case(rest);
     } else if criteria.contains('*') || criteria.contains('?') {
         let pattern = criteria.replace('*', ".*").replace('?', ".");
         if let Ok(re) = Regex::new(&format!("^{}$", pattern)) {

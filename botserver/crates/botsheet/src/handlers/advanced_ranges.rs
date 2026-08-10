@@ -1,11 +1,12 @@
-use crate::state::{get_current_user_id, load_sheet_by_id, save_sheet_to_drive, SheetState};
+use crate::auth::{resolve_user_id, SheetUser};
+use crate::state::SheetState;
 use crate::types::{
     ArrayFormula, ArrayFormulaRequest, CellData, CreateNamedRangeRequest,
     DeleteArrayFormulaRequest, DeleteNamedRangeRequest, ListNamedRangesResponse, NamedRange,
     SaveResponse, UpdateNamedRangeRequest,
 };
 use axum::{
-    extract::{Query, State},
+    extract::{Extension, Query, State},
     http::StatusCode,
     Json,
 };
@@ -16,19 +17,25 @@ use uuid::Uuid;
 
 pub async fn handle_array_formula(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<ArrayFormulaRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -56,6 +63,7 @@ pub async fn handle_array_formula(
             let key = format!("{row},{col}");
             let cell = worksheet.data.entry(key).or_insert_with(|| CellData {
                 value: None,
+                    typed: None,
                 formula: None,
                 style: None,
                 format: None,
@@ -72,12 +80,13 @@ pub async fn handle_array_formula(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "named_range_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -88,19 +97,25 @@ pub async fn handle_array_formula(
 
 pub async fn handle_delete_array_formula(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<DeleteArrayFormulaRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -122,12 +137,13 @@ pub async fn handle_delete_array_formula(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "named_range_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -138,19 +154,25 @@ pub async fn handle_delete_array_formula(
 
 pub async fn handle_create_named_range(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<CreateNamedRangeRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     let named_range = NamedRange {
         id: Uuid::new_v4().to_string(),
         name: req.name,
@@ -167,12 +189,13 @@ pub async fn handle_create_named_range(
     named_ranges.push(named_range);
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "named_range_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -183,19 +206,25 @@ pub async fn handle_create_named_range(
 
 pub async fn handle_update_named_range(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<UpdateNamedRangeRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if let Some(named_ranges) = &mut sheet.named_ranges {
         for range in named_ranges.iter_mut() {
             if range.id == req.range_id {
@@ -222,12 +251,13 @@ pub async fn handle_update_named_range(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "named_range_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -238,30 +268,37 @@ pub async fn handle_update_named_range(
 
 pub async fn handle_delete_named_range(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<DeleteNamedRangeRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if let Some(named_ranges) = &mut sheet.named_ranges {
         named_ranges.retain(|r| r.id != req.range_id);
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "named_range_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -272,20 +309,22 @@ pub async fn handle_delete_named_range(
 
 pub async fn handle_list_named_ranges(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListNamedRangesResponse>, (StatusCode, Json<serde_json::Value>)> {
     let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
-    let user_id = get_current_user_id();
-    let sheet = match load_sheet_by_id(&state, &user_id, &sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
-
-    let ranges = sheet.named_ranges.unwrap_or_default();
+            )
+        })?;
+    let sheet = session.sheet.read().await;
+    let ranges = sheet.named_ranges.clone().unwrap_or_default();
     Ok(Json(ListNamedRangesResponse { ranges }))
 }

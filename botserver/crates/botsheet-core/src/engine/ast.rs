@@ -61,7 +61,7 @@ impl fmt::Display for Expr {
 
 /// A cell reference with its absolute anchors preserved (#783).
 ///
-/// The struct lives in [`super::references`]; this re-import keeps the parser
+/// The struct lives in [`super::references`]; this re-export keeps the parser
 /// and evaluator APIs stable.
 pub use super::references::Reference;
 
@@ -81,7 +81,7 @@ fn infix_power(op: &str) -> Option<(u8, u8)> {
 
 fn prefix_power(op: &str) -> Option<u8> {
     Some(match op {
-        // Binds looser than `^` but tighter than `*`: `-2^2 = -(2^2) = -4`.
+// Binds looser than `^` but tighter than `*`: `-2^2 = -(2^2) = -4`.
         "+" | "-" => 10,
         _ => return None,
     })
@@ -133,8 +133,9 @@ impl<'a> Parser<'a> {
                     }
                     let _ = self.next();
                     if op == "^" {
-                        // Right-associative.
-                        let right = self.parse_expr(r)?;
+                        // Right-associative: the right side may consume another
+                        // `^` at the same precedence.
+                        let right = self.parse_expr(l)?;
                         left = Expr::Binary {
                             op: op.clone(),
                             left: Box::new(left),
@@ -255,7 +256,7 @@ impl<'a> Parser<'a> {
                     expr: Box::new(inner),
                 })
             }
-            TokenKind::Op(ref op) => Err(format!("cannot start expression with operator '{op}'")),
+TokenKind::Op(ref op) => Err(format!("cannot start expression with operator '{op}'")),
             TokenKind::LParen => {
                 let inner = self.parse_expr(0)?;
                 if !matches!(self.peek().kind, TokenKind::RParen) {
@@ -264,7 +265,7 @@ impl<'a> Parser<'a> {
                 let _ = self.next();
                 Ok(inner)
             }
-            TokenKind::Comma | TokenKind::Colon => Err(format!("unexpected {tok:?}")),
+TokenKind::Comma | TokenKind::Colon => Err(format!("unexpected {tok:?}")),
             TokenKind::RParen => Err("unbalanced ')'".to_string()),
             TokenKind::Eof => Err("unexpected end of formula".to_string()),
         }
@@ -273,11 +274,14 @@ impl<'a> Parser<'a> {
 
 fn raw_args(tokens: &[Token], start: usize, end: usize) -> String {
     let mut s = String::new();
-    for i in start..end.min(tokens.len()) {
-        match &tokens[i].kind {
-            TokenKind::Eof => break,
-            kind => s.push_str(&kind.to_string()),
-        }
+    for kind in tokens
+        .iter()
+        .take(end.min(tokens.len()))
+        .skip(start)
+        .map(|t| &t.kind)
+        .take_while(|k| !matches!(k, TokenKind::Eof))
+    {
+        s.push_str(&kind.to_string());
     }
     s
 }

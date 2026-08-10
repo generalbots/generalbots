@@ -106,6 +106,57 @@ pub fn get_random_color() -> String {
     colors[idx].to_string()
 }
 
+/// Presence rows older than this are considered stale and swept.
+const PRESENCE_TTL_SECS: i64 = 75;
+
+/// Typing rows older than this are swept (frontend also filters at 5s).
+const TYPING_TTL_SECS: i64 = 8;
+
+/// Removes zombie collaboration state: presence rows whose owners have not
+/// sent anything for the TTL, typing indicators beyond their lifetime, empty
+/// per-sheet maps, and broadcast channels without any live receiver (#791).
+///
+/// Runs on an interval task; correctness never depends on it because every
+/// clean disconnect removes its own rows, but abrupt tab closes, half-closed
+/// sockets and abandoned pages would otherwise keep stale entries forever.
+pub async fn sweep_collab_stale() {
+    let now = Utc::now();
+    {
+        let mut presence = get_presence().write().await;
+        presence.retain(|_sheet, users| {
+            users.retain(|u| (now - u.last_active).num_seconds() < PRESENCE_TTL_SECS);
+            !users.is_empty()
+        });
+    }
+    {
+        let mut typing = get_typing().write().await;
+        typing.retain(|_sheet, indicators| {
+            indicators.retain(|t| (now - t.started_at).num_seconds() < TYPING_TTL_SECS);
+            !indicators.is_empty()
+        });
+    }
+    {
+        let mut selections = get_selections().write().await;
+        selections.retain(|_sheet, sels| !sels.is_empty());
+    }
+    {
+        let mut channels = get_collab_channels().write().await;
+        channels.retain(|_sheet, tx| tx.receiver_count() > 0);
+    }
+}
+
+/// Starts the periodic sweeper once per process. Called from the WebSocket
+/// connect path so the task only exists on servers that actually collaborate.
+pub fn ensure_sweep_started() {
+    static SWEEP_STARTED: std::sync::Once = std::sync::Once::new();
+    SWEEP_STARTED.call_once(|| {
+        tokio::spawn(async loop {
+            tokio::time::sleep(std::time::Duration::from_secs(20)).await;
+            sweep_collab_stale().await;
+        });
+    });
+}
+
 pub async fn handle_get_collaborators(
     Path(sheet_id): Path<String>,
 ) -> impl IntoResponse {

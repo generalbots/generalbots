@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
+use crate::sessions::SessionStore;
 use crate::types::{Spreadsheet, SpreadsheetMetadata};
 
 /// Post-save hook that runs after `save_sheet_to_drive` persists the JSON.
@@ -12,6 +13,9 @@ pub type SheetSaveHook = Arc<dyn Fn(&Spreadsheet) -> Result<(), String> + Send +
 pub struct SheetState {
     pub drive: Option<Arc<dyn DriveOps>>,
     pub on_save: Option<SheetSaveHook>,
+    /// Live in-memory document sessions (#789): shared state, oplog,
+    /// versioning, debounced persistence and idle eviction.
+    pub sessions: SessionStore,
 }
 
 impl SheetState {
@@ -19,6 +23,7 @@ impl SheetState {
         Self {
             drive,
             on_save: None,
+            sessions: SessionStore::new(),
         }
     }
 }
@@ -44,8 +49,43 @@ pub fn get_user_sheets_path(user_id: &str) -> String {
     format!("users/{}/sheets", user_id)
 }
 
-pub fn get_current_user_id() -> String {
-    "default-user".to_string()
+/// Returns true when the sheet owner is the legacy placeholder, meaning
+/// pre-identity sheets remain readable for compatibility (#789).
+fn is_legacy_owned(owner: &str) -> bool {
+    owner.is_empty() || owner == "default-user"
+}
+
+/// Read access rule (#789): the owner, any shared user, and every legacy
+/// (pre-identity) sheet are readable; otherwise access is denied.
+pub fn can_read_sheet(user_id: &str, sheet: &crate::types::Spreadsheet) -> bool {
+    if sheet.owner_id == user_id {
+        return true;
+    }
+    if is_legacy_owned(&sheet.owner_id) {
+        return true;
+    }
+    sheet.acl.contains_key(user_id)
+}
+
+/// Write access rule (#789): owner, legacy sheets, or explicit `edit` grant.
+pub fn can_write_sheet(user_id: &str, sheet: &crate::types::Spreadsheet) -> bool {
+    if sheet.owner_id == user_id {
+        return true;
+    }
+    if is_legacy_owned(&sheet.owner_id) {
+        return true;
+    }
+    matches!(sheet.acl.get(user_id).map(String::as_str), Some("edit"))
+}
+
+/// Returns `Ok(())` when the user may mutate the sheet; otherwise an
+/// `Access denied` error suitable for a 403-style response.
+pub fn ensure_write_allowed(user_id: &str, sheet: &crate::types::Spreadsheet) -> Result<(), String> {
+    if can_write_sheet(user_id, sheet) {
+        Ok(())
+    } else {
+        Err("Access denied".to_string())
+    }
 }
 
 pub async fn save_sheet_to_drive(
@@ -115,6 +155,10 @@ pub async fn load_sheet_by_id(
     let sheet: crate::types::Spreadsheet =
         serde_json::from_slice(&bytes).map_err(|e| format!("Failed to parse sheet: {e}"))?;
 
+    if !can_read_sheet(user_id, &sheet) {
+        return Err("Access denied: sheet is not shared with this user".to_string());
+    }
+
     Ok(sheet)
 }
 
@@ -155,7 +199,7 @@ pub async fn list_sheets_from_drive(
         }
     }
 
-    sheets.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+    sheets.sort_by_key(|s| std::cmp::Reverse(s.updated_at));
 
     Ok(sheets)
 }

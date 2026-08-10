@@ -5,6 +5,7 @@
 //! logical errors and empty cells all carry their real type so arithmetic,
 //! comparisons and date math no longer depend on string round-tripping.
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// The typed value a formula evaluates to.
@@ -13,7 +14,8 @@ use std::fmt;
 /// stay booleans, and errors become `{"#ERR": "..."}` objects. Cells written
 /// through the legacy path continue to be plain strings, and empty is a shell
 /// the renderer treats as "no value".
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "t", content = "v", rename_all = "lowercase")]
 pub enum CellValue {
     Empty,
     Number(f64),
@@ -108,5 +110,40 @@ pub fn format_number(n: f64) -> String {
 impl fmt::Display for CellValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.display())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serde_roundtrip_preserves_variants() {
+        let cases = vec![
+            CellValue::Empty,
+            CellValue::Number(1.5),
+            CellValue::Number(2.0),
+            CellValue::Text("hello".into()),
+            CellValue::Bool(true),
+            CellValue::Error("#DIV/0!".into()),
+        ];
+        for c in cases {
+            let json = serde_json::to_string(&c).expect("serialize");
+            let back: CellValue = serde_json::from_str(&json).expect("deserialize");
+            assert_eq!(back, c, "round-trip mismatch for {json}");
+        }
+    }
+
+    #[test]
+    fn serde_shape_is_tagged_json() {
+        let json = serde_json::to_string(&CellValue::Number(42.0)).expect("serialize");
+        assert_eq!(json, r#"{"t":"number","v":42.0}"#);
+    }
+
+    #[test]
+    fn parse_detects_numeric_and_boolean_inputs() {
+        assert_eq!(CellValue::parse("123"), CellValue::Number(123.0));
+        assert_eq!(CellValue::parse("12.5"), CellValue::Number(12.5));
+        assert_eq!(CellValue::parse("TRUE"), CellValue::Bool(true));
+        assert_eq!(CellValue::parse("hello"), CellValue::Text("hello".into()));
     }
 }

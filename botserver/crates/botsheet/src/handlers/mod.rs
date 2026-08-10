@@ -4,6 +4,7 @@ pub mod ai;
 pub mod cell_ops;
 pub mod comments;
 pub mod crud;
+pub mod grid_ops;
 pub mod data_ops;
 pub mod named_ranges_csv;
 pub mod pivot;
@@ -36,6 +37,9 @@ pub use crud::{
 pub use data_ops::{
     handle_clear_filter, handle_conditional_format, handle_create_chart, handle_delete_chart,
     handle_filter_data, handle_sort_range,
+};
+pub use grid_ops::{
+    handle_paste, handle_resize, handle_table_create, handle_table_delete, handle_table_list,
 };
 pub use named_ranges_csv::{
     handle_export_named_ranges_csv, handle_import_named_ranges_csv,

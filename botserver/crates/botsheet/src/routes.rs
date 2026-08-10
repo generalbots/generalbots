@@ -10,6 +10,7 @@ use crate::handlers::{
     handle_evaluate_ai_prompt, handle_evaluate_formula,
     handle_export_named_ranges_csv, handle_export_sheet,
     handle_filter_data, handle_format_cells, handle_freeze_panes, handle_get_range,
+    handle_paste, handle_resize,
     handle_get_sheet_by_id, handle_import_named_ranges_csv, handle_import_sheet,
     handle_list_comments, handle_list_external_links, handle_list_named_ranges, handle_list_sheets,
     handle_load_from_drive, handle_load_sheet, handle_lock_cells, handle_merge_cells,
@@ -18,6 +19,7 @@ use crate::handlers::{
     handle_search_sheets, handle_share_sheet, handle_sheet_ai, handle_sort_range,
     handle_unmerge_cells, handle_unprotect_sheet, handle_update_cell, handle_update_named_range,
     handle_validate_cell, handle_worksheet_meta,
+    handle_table_create, handle_table_delete, handle_table_list,
 };
 use crate::handlers::worksheets::{
 add_worksheet, delete_worksheet, rename_worksheet, switch_worksheet,
@@ -83,6 +85,11 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/external-links", get(handle_list_external_links))
         .route("/api/sheet/array-formula", post(handle_array_formula))
         .route("/api/sheet/array-formula/delete", post(handle_delete_array_formula))
+        .route("/api/sheet/resize", post(handle_resize))
+        .route("/api/sheet/paste", post(handle_paste))
+        .route("/api/sheet/tables", get(handle_table_list))
+        .route("/api/sheet/table", post(handle_table_create))
+        .route("/api/sheet/table/delete", post(handle_table_delete))
         .route("/api/sheet/named-range", post(handle_create_named_range))
         .route("/api/sheet/named-range/update", post(handle_update_named_range))
         .route("/api/sheet/named-range/delete", post(handle_delete_named_range))

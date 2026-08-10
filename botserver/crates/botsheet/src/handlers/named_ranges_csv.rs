@@ -1,10 +1,11 @@
-use crate::state::{get_current_user_id, load_sheet_by_id, save_sheet_to_drive, SheetState};
+use crate::auth::{resolve_user_id, SheetUser};
+use crate::state::SheetState;
 use crate::types::{
     NamedRange, NamedRangesExportResponse, NamedRangesImportResponse,
 };
 use axum::{
     body::Bytes,
-    extract::{Query, State},
+    extract::{Extension, Query, State},
     http::StatusCode,
     Json,
 };
@@ -24,19 +25,22 @@ fn csv_escape(s: &str) -> String {
 
 pub async fn handle_export_named_ranges_csv(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<NamedRangesExportResponse>, (StatusCode, Json<Value>)> {
     let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
-    let user_id = get_current_user_id();
-    let sheet = match load_sheet_by_id(&state, &user_id, &sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
+    let sheet = session.sheet.read().await.clone();
 
     let mut csv = String::from("name,range,description\n");
     if let Some(ranges) = sheet.named_ranges.as_ref() {
@@ -63,20 +67,26 @@ pub async fn handle_export_named_ranges_csv(
 
 pub async fn handle_import_named_ranges_csv(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Query(params): Query<HashMap<String, String>>,
     body: Bytes,
 ) -> Result<Json<NamedRangesImportResponse>, (StatusCode, Json<Value>)> {
     let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(json!({ "error": e }))));
+    }
 
     let csv = String::from_utf8_lossy(&body).to_string();
 
@@ -138,12 +148,7 @@ pub async fn handle_import_named_ranges_csv(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(&session, &state, &user_id, "named_ranges_import", json!({ "added": added, "updated": updated }));
 
     Ok(Json(NamedRangesImportResponse {
         added,

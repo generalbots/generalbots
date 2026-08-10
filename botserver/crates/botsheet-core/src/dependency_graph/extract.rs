@@ -44,12 +44,27 @@ pub fn extract_referenced_cells(formula: &str) -> HashSet<CellKey> {
                 continue;
             }
             let token = &formula[start..i];
+            let is_cross_sheet = start > 0 && bytes[start - 1] == b'!';
+            let after = &formula[i..];
+            let is_range = after.starts_with(':');
+            if is_cross_sheet {
+                // `Sheet2!A1` and `Sheet2!A1:B3` reference another worksheet;
+                // the local dependency graph must not record the qualified
+                // cells as dependencies of this sheet (#783, #784).
+                if is_range {
+                    while i < n
+                        && (bytes[i].is_ascii_alphanumeric() || bytes[i] == b':' || bytes[i] == b'$')
+                    {
+                        i += 1;
+                    }
+                }
+                continue;
+            }
             if is_function_name(token) {
                 continue;
             }
             let parsed = parse_cell_ref(token);
-            let after = &formula[i..];
-            if after.starts_with(':') {
+            if is_range {
                 let range_end_relaxed = after.trim_start_matches(':');
                 let end_first = range_end_relaxed
                     .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '$')

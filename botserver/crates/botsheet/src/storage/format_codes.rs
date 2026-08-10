@@ -95,27 +95,22 @@ pub fn extract_cell_format_codes(bytes: &[u8]) -> Result<HashMap<u32, HashMap<St
             let re_nfid = Regex::new(r#"numFmtId="(\d+)""#)
                 .map_err(|e| format!("Regex error: {e}"))?;
 
-            loop {
-                match xfs_section[pos..].find("<xf") {
-                    Some(xf_start) => {
-                        let tag_begin = pos + xf_start;
-                        let tail = &xfs_section[tag_begin..];
-                        let tag_len = tail.find("/>").or_else(|| tail.find('>'))
-                            .map(|e| e + 2).unwrap_or(0);
-                        let tag = &tail[..tag_len.min(tail.len())];
+            while let Some(xf_start) = xfs_section[pos..].find("<xf") {
+                let tag_begin = pos + xf_start;
+                let tail = &xfs_section[tag_begin..];
+                let tag_len = tail.find("/>").or_else(|| tail.find('>'))
+                    .map(|e| e + 2).unwrap_or(0);
+                let tag = &tail[..tag_len.min(tail.len())];
 
-                        let fmt_id = re_nfid.captures(tag)
-                            .and_then(|c| c[1].parse::<u32>().ok());
+                let fmt_id = re_nfid.captures(tag)
+                    .and_then(|c| c[1].parse::<u32>().ok());
 
-                        xf_to_fmtid.push(fmt_id);
+                xf_to_fmtid.push(fmt_id);
 
-                        if tag_len == 0 {
-                            break;
-                        }
-                        pos = tag_begin + tag_len;
-                    }
-                    None => break,
+                if tag_len == 0 {
+                    break;
                 }
+                pos = tag_begin + tag_len;
             }
         }
     }

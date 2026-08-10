@@ -1,4 +1,5 @@
 use crate::types::{CellStyle, Spreadsheet};
+use botsheet_core::engine::value::CellValue;
 use std::io::Cursor;
 
 pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
@@ -33,12 +34,30 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
             let cell = umya_sheet.get_cell_mut((col, row));
 
             if let Some(ref formula) = cell_data.formula {
-                let formula_str = if formula.starts_with('=') {
-                    &formula[1..]
+                let formula_str = if let Some(stripped) = formula.strip_prefix('=') {
+                    stripped
                 } else {
                     formula.as_str()
                 };
                 cell.set_formula(formula_str);
+            } else if let Some(typed) = cell_data.typed.clone() {
+                // Prefer the typed payload (#781): keeps numbers exact and
+                // avoids re-parsing display strings.
+                match typed {
+                    CellValue::Number(n) => {
+                        cell.set_value_number(n);
+                    }
+                    CellValue::Bool(b) => {
+                        cell.set_value_bool(b);
+                    }
+                    CellValue::Text(s) => {
+                        cell.set_value_string(&s);
+                    }
+                    CellValue::Error(s) => {
+                        cell.set_value_string(&s);
+                    }
+                    CellValue::Empty => {}
+                }
             } else if let Some(ref value) = cell_data.value {
                 if let Ok(num) = value.parse::<f64>() {
                     cell.set_value_number(num);
@@ -359,12 +378,30 @@ pub fn merge_into_original(
             let cell = umya_sheet.get_cell_mut((col, row));
 
             if let Some(ref formula) = cell_data.formula {
-                let formula_str = if formula.starts_with('=') {
-                    &formula[1..]
+                let formula_str = if let Some(stripped) = formula.strip_prefix('=') {
+                    stripped
                 } else {
                     formula.as_str()
                 };
                 cell.set_formula(formula_str);
+            } else if let Some(typed) = cell_data.typed.clone() {
+                // Prefer the typed payload (#781): keeps numbers exact and
+                // avoids re-parsing display strings.
+                match typed {
+                    CellValue::Number(n) => {
+                        cell.set_value_number(n);
+                    }
+                    CellValue::Bool(b) => {
+                        cell.set_value_bool(b);
+                    }
+                    CellValue::Text(s) => {
+                        cell.set_value_string(&s);
+                    }
+                    CellValue::Error(s) => {
+                        cell.set_value_string(&s);
+                    }
+                    CellValue::Empty => {}
+                }
             } else if let Some(ref value) = cell_data.value {
                 if let Ok(num) = value.parse::<f64>() {
                     cell.set_value_number(num);

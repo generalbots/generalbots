@@ -1,29 +1,36 @@
-use crate::state::{get_current_user_id, load_sheet_by_id, save_sheet_to_drive, SheetState};
+use crate::auth::{resolve_user_id, SheetUser};
+use crate::state::SheetState;
 use crate::types::{
     AddCommentRequest, CellComment, CellData, CommentReply, CommentWithLocation,
     DeleteCommentRequest, ListCommentsRequest, ListCommentsResponse, ReplyCommentRequest,
     ResolveCommentRequest, SaveResponse,
 };
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::{Extension, State}, http::StatusCode, Json};
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub async fn handle_add_comment(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<AddCommentRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -52,6 +59,7 @@ pub async fn handle_add_comment(
 
     let cell = worksheet.data.entry(key).or_insert_with(|| CellData {
         value: None,
+            typed: None,
         formula: None,
         style: None,
         format: None,
@@ -63,12 +71,13 @@ pub async fn handle_add_comment(
     cell.has_comment = Some(true);
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -79,19 +88,25 @@ pub async fn handle_add_comment(
 
 pub async fn handle_reply_comment(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<ReplyCommentRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -119,12 +134,13 @@ pub async fn handle_reply_comment(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -135,19 +151,25 @@ pub async fn handle_reply_comment(
 
 pub async fn handle_resolve_comment(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<ResolveCommentRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -168,12 +190,13 @@ pub async fn handle_resolve_comment(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -184,19 +207,25 @@ pub async fn handle_resolve_comment(
 
 pub async fn handle_delete_comment(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<DeleteCommentRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
 
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -216,12 +245,13 @@ pub async fn handle_delete_comment(
     }
 
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -232,18 +262,21 @@ pub async fn handle_delete_comment(
 
 pub async fn handle_list_comments(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<ListCommentsRequest>,
 ) -> Result<Json<ListCommentsResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let sheet = match load_sheet_by_id(&state, &user_id, &req.sheet_id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
+    let sheet = session.sheet.read().await.clone();
 
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((

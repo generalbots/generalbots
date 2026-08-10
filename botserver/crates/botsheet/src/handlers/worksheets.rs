@@ -1,8 +1,9 @@
-use axum::{extract::State, http::StatusCode, response::Html, Json};
+use axum::{extract::{Extension, State}, http::StatusCode, response::Html, Json};
 use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::state::{get_current_user_id, load_sheet_by_id, save_sheet_to_drive, SheetState};
+use crate::auth::{resolve_user_id, SheetUser};
+use crate::state::SheetState;
 use crate::types::Spreadsheet;
 use crate::types::Worksheet;
 use crate::ui_fragments::sidebars::render_worksheet_grid_preview;
@@ -19,110 +20,130 @@ pub struct WorksheetActionRequest {
 
 pub async fn add_worksheet(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     let next_num = sheet.worksheets.len() + 1;
     let name = req
         .name
         .unwrap_or_else(|| format!("Planilha {}", next_num));
     let ws = Worksheet {
         name,
-        ..Worksheet::default()
+        data: std::collections::HashMap::new(),
+        column_widths: None,
+        row_heights: None,
+        frozen_rows: None,
+        frozen_cols: None,
+        merged_cells: None,
+        filters: None,
+        hidden_rows: None,
+        validations: None,
+        conditional_formats: None,
+        charts: None,
+        comments: None,
+        protection: None,
+        array_formulas: None,
+        tables: None,
     };
     sheet.worksheets.push(ws);
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(&session, &state, &user_id, "worksheet_add", serde_json::json!({}));
     Ok(Html(render_tabs(&sheet)))
 }
 
 pub async fn delete_worksheet(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     let idx = req.index.unwrap_or(0);
     if idx < sheet.worksheets.len() && sheet.worksheets.len() > 1 {
         sheet.worksheets.remove(idx);
     }
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(&session, &state, &user_id, "worksheet_delete", serde_json::json!({ "index": idx }));
     let new_idx = idx.min(sheet.worksheets.len().saturating_sub(1));
     Ok(Html(render_grid_for(&sheet, new_idx)))
 }
 
 pub async fn switch_worksheet(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let sheet = match load_sheet_by_id(&state, &user_id, &req.id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
+    let sheet = session.sheet.read().await;
     let idx = req.index.unwrap_or(0).min(sheet.worksheets.len().saturating_sub(1));
     Ok(Html(render_grid_for(&sheet, idx)))
 }
 
 pub async fn rename_worksheet(
     State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-    let mut sheet = match load_sheet_by_id(&state, &user_id, &req.id).await {
-        Ok(s) => s,
-        Err(e) => {
-            return Err((
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.id)
+        .await
+        .map_err(|e| {
+            (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": e })),
-            ))
-        }
-    };
+            )
+        })?;
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
     if let (Some(idx), Some(name)) = (req.index, req.name.as_ref()) {
         if idx < sheet.worksheets.len() {
             sheet.worksheets[idx].name = name.clone();
         }
     }
     sheet.updated_at = Utc::now();
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
+    state.sessions.record(&session, &state, &user_id, "worksheet_rename", serde_json::json!({ "name": req.name }));
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
