@@ -436,13 +436,24 @@ async fn list_capabilities_for_use_case(
     })
 }
 
+#[derive(Debug, Deserialize)]
+pub struct PipelineQuery {
+    pub mode: Option<String>,
+}
+
 async fn get_pipeline(
     Path(use_case): Path<String>,
+    Query(query): Query<PipelineQuery>,
 ) -> impl IntoResponse {
     let uc = parse_use_case(&use_case).unwrap_or(VibeUseCase::SoftwareDevelopment);
+    let pipeline = if query.mode.as_deref() == Some("deploy") {
+        crate::pipeline::RunPipeline::deploy_pipeline(uc)
+    } else {
+        crate::pipeline::RunPipeline::for_use_case(uc)
+    };
     Json(PipelineResponse {
         success: true,
-        pipeline: crate::pipeline::RunPipeline::for_use_case(uc),
+        pipeline,
         error: None,
     })
 }

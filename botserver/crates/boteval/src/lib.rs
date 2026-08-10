@@ -7,4 +7,6 @@ pub mod vibe_suite;
 
 #[cfg(feature = "http")]
 pub mod http;
+#[cfg(feature = "vibe")]
+pub mod live_agent;
 mod vibe_tasks;
