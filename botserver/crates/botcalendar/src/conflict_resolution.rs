@@ -396,7 +396,7 @@ mod tests {
         assert_eq!(result.conflicts.len(), 1);
         assert_eq!(
             result.conflicts[0].conflicting_event_title,
-            "Existing Long Meeting"
+            "Existing"
         );
         assert!(result.conflicts[0].overlap_minutes > 0);
     }

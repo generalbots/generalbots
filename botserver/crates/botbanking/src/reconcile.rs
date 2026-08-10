@@ -124,6 +124,7 @@ pub fn match_transactions(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::platform::DeliveryPlatform;
     use rust_decimal_macros::dec;
 
     fn bank(id: Uuid, amount: Decimal, when: DateTime<Utc>, plat: Option<DeliveryPlatform>) -> BankTransaction {

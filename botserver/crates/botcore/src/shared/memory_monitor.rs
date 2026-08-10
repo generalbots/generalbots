@@ -490,7 +490,7 @@ use super::*;
 #[test]
 fn test_memory_stats() {
     let stats = MemoryStats::current();
-    assert!(stats.rss_bytes > 0 || stats.virtual_bytes >= 0);
+    assert!(stats.rss_bytes > 0 || stats.virtual_bytes > 0);
 }
 
 #[test]

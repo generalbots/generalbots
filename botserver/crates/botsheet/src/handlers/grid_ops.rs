@@ -394,7 +394,7 @@ pub async fn handle_paste(
             if target_row >= crate::handlers::cell_ops::MAX_ROWS {
                 break;
             }
-            for (col_offset, cell) in cells.iter().enumerate() {
+            for col_offset in 0..cells.len() {
                 let target_col = req.start_col + col_offset as u32;
                 if target_col >= crate::handlers::cell_ops::MAX_COLS {
                     break;

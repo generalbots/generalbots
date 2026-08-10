@@ -254,7 +254,7 @@ impl ReconciliationEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::TimeZone;
+    use chrono::Utc;
 
     fn txn(amount: i64, hours_ago: i64, desc: &str, cp: Option<&str>) -> Transaction {
         Transaction {

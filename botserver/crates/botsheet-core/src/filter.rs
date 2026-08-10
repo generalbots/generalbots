@@ -209,7 +209,7 @@ mod tests {
         }
     }
 
-    fn list_filter(col: u32, values: Vec<String>) -> FilterConfig {
+    fn list_filter(values: Vec<String>) -> FilterConfig {
         FilterConfig {
             filter_type: "values".to_string(),
             values,
@@ -219,7 +219,7 @@ mod tests {
         }
     }
 
-    fn condition_filter(col: u32, condition: &str, value1: &str, value2: Option<&str>) -> FilterConfig {
+    fn condition_filter(condition: &str, value1: &str, value2: Option<&str>) -> FilterConfig {
         FilterConfig {
             filter_type: "condition".to_string(),
             values: Vec::new(),
@@ -239,7 +239,7 @@ mod tests {
     fn value_list_hides_non_matching_rows() {
         let w = ws_with(
             &[("0,0", "a"), ("1,0", "b"), ("2,0", "c")],
-            vec![(0, list_filter(0, vec!["a".to_string(), "c".to_string()]))],
+            vec![(0, list_filter(vec!["a".to_string(), "c".to_string()]))],
         );
         assert_eq!(compute_hidden_rows(&w), vec![1]);
     }
@@ -248,7 +248,7 @@ mod tests {
     fn numeric_gte_condition() {
         let w = ws_with(
             &[("0,0", "10"), ("1,0", "20"), ("2,0", "30")],
-            vec![(0, condition_filter(0, "gte", "20", None))],
+            vec![(0, condition_filter("gte", "20", None))],
         );
         assert_eq!(compute_hidden_rows(&w), vec![0]);
     }
@@ -257,7 +257,7 @@ mod tests {
     fn contains_condition() {
         let w = ws_with(
             &[("0,0", "apple"), ("1,0", "banana"), ("2,0", "pineapple")],
-            vec![(0, condition_filter(0, "contains", "apple", None))],
+            vec![(0, condition_filter("contains", "apple", None))],
         );
         assert_eq!(compute_hidden_rows(&w), vec![1]);
     }
@@ -266,7 +266,7 @@ mod tests {
     fn between_condition_hides_outside() {
         let w = ws_with(
             &[("0,0", "5"), ("1,0", "15"), ("2,0", "25")],
-            vec![(0, condition_filter(0, "between", "10", Some("20")))],
+            vec![(0, condition_filter("between", "10", Some("20")))],
         );
         assert_eq!(compute_hidden_rows(&w), vec![0, 2]);
     }

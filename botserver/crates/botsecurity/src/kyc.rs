@@ -217,9 +217,10 @@ mod tests {
     #[test]
     fn all_passing_checks_approves() {
         let mut p = KycService::start_profile(Uuid::new_v4(), Uuid::new_v4());
-        p.add_check(ComplianceCheck {
+        let profile_id = p.id;
+        KycService::add_check(&mut p, ComplianceCheck {
             id: Uuid::new_v4(),
-            profile_id: p.id,
+            profile_id,
             check_type: CheckType::SanctionsList,
             provider: "OFAC".into(),
             status: CheckStatus::Pass,

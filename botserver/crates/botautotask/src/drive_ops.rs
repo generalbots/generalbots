@@ -56,6 +56,10 @@ impl DriveOps for DriveRepositoryOps {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use botlib::traits::{
+        BoxFutureBool, BoxFutureDriveList, BoxFutureOptionDriveMeta, BoxFutureUnit,
+        BoxFutureVecDriveObject, BoxFutureVecString, BoxFutureVecU8,
+    };
 
     struct FakeRepo;
 

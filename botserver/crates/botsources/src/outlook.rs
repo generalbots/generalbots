@@ -125,10 +125,6 @@ impl OutlookService {
 mod tests {
     use super::*;
 
-    fn recipient(addr: &str) -> EmailRecipient {
-        EmailRecipient { name: None, address: addr.into() }
-    }
-
     #[test]
     fn build_urls_have_required_segments() {
         let client = SharePointClient::new("tid".into(), "tok".into());
