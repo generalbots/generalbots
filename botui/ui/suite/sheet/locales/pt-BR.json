@@ -119,6 +119,13 @@
     "sidebar.comments": "💬 Comentários",
     "sidebar.protection": "🔒 Proteção",
     "sidebar.array_formulas": "🔢 Fórmulas de Matriz",
-    "sidebar.advanced_ranges": "⚙ Ações Avançadas"
+    "sidebar.advanced_ranges": "⚙ Ações Avançadas",
+    "toast.invalid_value": "Valor inválido",
+    "tabs.add": "Nova planilha",
+    "tabs.delete": "Excluir planilha",
+    "tabs.confirm_delete": "Excluir planilha {name}?",
+    "tabs.rename_prompt": "Novo nome da planilha:",
+    "sidebar.load_first": "Carregue uma planilha primeiro.",
+    "panel.load_error": "Erro ao carregar painel."
   }
 }

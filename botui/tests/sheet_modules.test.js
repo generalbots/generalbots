@@ -7,7 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
-const MODULES = path.join(__dirname, "..", "js", "modules-sheet-advanced");
+const MODULES = path.join(__dirname, "..", "ui", "suite", "sheet", "js", "modules-sheet-advanced");
 
 let passed = 0;
 let failed = 0;

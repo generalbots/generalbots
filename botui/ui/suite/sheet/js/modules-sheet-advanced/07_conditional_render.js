@@ -19,6 +19,11 @@
     }
   }
 
+  function t(key, fallback) {
+    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key);
+    return fallback || key;
+  }
+
   function rulesFor() {
     const sheet = window.__LOADED_SHEET;
     if (!sheet || !sheet.worksheets || !sheet.worksheets[wsIndex()]) return [];
@@ -72,7 +77,7 @@
     const rule = validationForCell(row, col);
     if (!rule) return { valid: true, message: null };
     const valid = validateCellValue(value, rule);
-    return { valid: valid, message: valid ? null : (rule.error_message || "Valor inválido") };
+    return { valid: valid, message: valid ? null : (rule.error_message || t("toast.invalid_value", "Invalid value")) };
   }
 
   function num(v) {

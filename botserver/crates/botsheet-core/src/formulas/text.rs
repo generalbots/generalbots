@@ -32,6 +32,9 @@ pub fn evaluate_left(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[5..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.is_empty() {
+        return None;
+    }
     let text = resolve_cell_value(parts[0].trim().trim_matches('"'), worksheet);
     let num_chars: usize = if parts.len() > 1 {
         parts[1].trim().parse().unwrap_or(1)
@@ -47,6 +50,9 @@ pub fn evaluate_right(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[6..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.is_empty() {
+        return None;
+    }
     let text = resolve_cell_value(parts[0].trim().trim_matches('"'), worksheet);
     let num_chars: usize = if parts.len() > 1 {
         parts[1].trim().parse().unwrap_or(1)
@@ -233,8 +239,9 @@ pub fn evaluate_text(expr: &str, worksheet: &Worksheet) -> Option<String> {
     let parts: Vec<&str> = split_args(inner);
     if parts.len() != 2 { return None; }
     let val = resolve_cell_value(parts[0].trim(), worksheet);
-    let _fmt = parts[1].trim().trim_matches('"');
-    Some(val)
+    let fmt = parts[1].trim().trim_matches('"');
+    let cell = crate::engine::value::CellValue::parse(&val);
+    Some(crate::engine::formats::apply_format(&cell, fmt))
 }
 
 pub fn evaluate_value(expr: &str, worksheet: &Worksheet) -> Option<String> {

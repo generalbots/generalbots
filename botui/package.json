@@ -4,7 +4,7 @@
   "description": "**Version:** 6.2.0   **Purpose:** Web UI server for General Bots (Axum + HTMX + CSS)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/sheet_modules.test.js"
   },
   "keywords": [],
   "author": "",

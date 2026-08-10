@@ -72,6 +72,9 @@ pub fn evaluate_round(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[6..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.is_empty() {
+        return None;
+    }
     let num: f64 = resolve_cell_value(parts[0].trim(), worksheet)
         .parse()
         .ok()?;
@@ -90,6 +93,9 @@ pub fn evaluate_roundup(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[8..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.is_empty() {
+        return None;
+    }
     let num: f64 = resolve_cell_value(parts[0].trim(), worksheet)
         .parse()
         .ok()?;
@@ -108,6 +114,9 @@ pub fn evaluate_rounddown(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[10..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.is_empty() {
+        return None;
+    }
     let num: f64 = resolve_cell_value(parts[0].trim(), worksheet)
         .parse()
         .ok()?;
@@ -290,6 +299,9 @@ pub fn evaluate_ceiling(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[8..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.is_empty() {
+        return None;
+    }
     let num: f64 = resolve_cell_value(parts[0].trim(), worksheet).parse().ok()?;
     let sig: f64 = if parts.len() > 1 {
         parts[1].trim().parse().unwrap_or(1.0)
@@ -306,6 +318,9 @@ pub fn evaluate_floor(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[6..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.is_empty() {
+        return None;
+    }
     let num: f64 = resolve_cell_value(parts[0].trim(), worksheet).parse().ok()?;
     let sig: f64 = if parts.len() > 1 {
         parts[1].trim().parse().unwrap_or(1.0)
@@ -350,6 +365,9 @@ pub fn evaluate_log(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
     let inner = &expr[4..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.is_empty() {
+        return None;
+    }
     let num: f64 = resolve_cell_value(parts[0].trim(), worksheet).parse().ok()?;
     let base: f64 = if parts.len() > 1 {
         parts[1].trim().parse().unwrap_or(10.0)
@@ -400,6 +418,9 @@ pub fn evaluate_randbetween(expr: &str, worksheet: &Worksheet) -> Option<String>
     }
     let inner = &expr[12..expr.len() - 1];
     let parts: Vec<&str> = split_args(inner);
+    if parts.len() < 2 {
+        return None;
+    }
     let lo: i64 = resolve_cell_value(parts[0].trim(), worksheet).parse().ok()?;
     let hi: i64 = resolve_cell_value(parts[1].trim(), worksheet).parse().ok()?;
     if lo > hi { return Some("#NUM!".to_string()); }

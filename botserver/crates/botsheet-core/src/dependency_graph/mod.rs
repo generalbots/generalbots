@@ -10,7 +10,7 @@ pub use order::collect_dependents;
 
 use std::collections::{HashMap, HashSet};
 
-use crate::types::{CellData, Worksheet};
+use crate::types::Worksheet;
 
 pub type CellKey = (u32, u32);
 
@@ -91,21 +91,6 @@ pub fn recalc_cascade<F>(
     }
 }
 
-pub fn ensure_cell(worksheet: &mut Worksheet, row: u32, col: u32) {
-    let k = format!("{row},{col}");
-    worksheet.data.entry(k).or_insert_with(|| CellData {
-        value: None,
-        typed: None,
-        formula: None,
-        style: None,
-        format: None,
-        note: None,
-        locked: None,
-        has_comment: None,
-        array_formula_id: None,
-    });
-}
-
 /// Finds the cells that participate in a reference cycle, if any (#784).
 ///
 /// A formula cell is reported when it is reachable from itself through the
@@ -133,6 +118,7 @@ pub fn recalc_cascade_typed(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::CellData;
     use std::collections::HashMap;
 
     fn cell(formula: Option<&str>) -> CellData {

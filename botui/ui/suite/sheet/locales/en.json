@@ -119,6 +119,13 @@
     "sidebar.comments": "💬 Comments",
     "sidebar.protection": "🔒 Protection",
     "sidebar.array_formulas": "🔢 Array Formulas",
-    "sidebar.advanced_ranges": "⚙ Advanced Actions"
+    "sidebar.advanced_ranges": "⚙ Advanced Actions",
+    "toast.invalid_value": "Invalid value",
+    "tabs.add": "New worksheet",
+    "tabs.delete": "Delete worksheet",
+    "tabs.confirm_delete": "Delete worksheet {name}?",
+    "tabs.rename_prompt": "New worksheet name:",
+    "sidebar.load_first": "Load a spreadsheet first.",
+    "panel.load_error": "Error loading panel."
   }
 }
