@@ -129,6 +129,18 @@ impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
     }
 }
 
+impl VibeApiInner {
+    pub(crate) async fn grounding_for(&self, run_id: Uuid) -> Vec<crate::grounding::GroundingSource> {
+        let live_run = {
+            let runs = self.runs.read().await;
+            runs.get(&run_id).cloned()
+        };
+        let run = live_run.or_else(|| self.runs_store.get_run(run_id));
+        let events = self.telemetry.get_events_for_run(run_id, 100).await;
+        crate::grounding::build_grounding(run.as_ref(), &events)
+    }
+}
+
 pub fn router(
     state: Arc<dyn VibeState>,
     prompt_manager: Arc<VibePromptManager>,
@@ -159,6 +171,7 @@ pub fn router(
         .route("/api/vibe/metrics", axum::routing::get(get_global_metrics))
         .route("/api/vibe/metrics/:run_id", axum::routing::get(get_run_metrics))
         .route("/api/vibe/events/:run_id", axum::routing::get(get_run_events))
+        .route("/api/vibe/run/:run_id/grounding", axum::routing::get(crate::grounding::get_run_grounding))
         .route("/api/vibe/run/:run_id/execute", axum::routing::post(execute_run))
         .route("/api/vibe/graph/:use_case", axum::routing::get(crate::knowledge_graph::get_knowledge_graph))
         .route("/api/vibe/graph/run/:run_id", axum::routing::get(crate::knowledge_graph::get_run_graph))

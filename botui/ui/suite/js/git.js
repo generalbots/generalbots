@@ -147,7 +147,11 @@ const botCoderGit = {
     }
 };
 
-(function(){ var __cb = () => botCoderGit.init(); if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    botCoderGit.init();
-}
+(function () {
+    var __cb = botCoderGit.init.bind(botCoderGit);
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", __cb);
+    } else {
+        __cb();
+    }
+})();

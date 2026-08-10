@@ -87,12 +87,10 @@ impl AgentLoop {
         context.run_id = run.run_id;
 
         let triggered = self.skills.auto_trigger(&run.intent).await;
-        if !triggered.is_empty() {
-            context.kb_references = triggered
-                .iter()
-                .map(|s| s.content.clone())
-                .collect();
-        }
+        let mut grounding_refs: Vec<String> = triggered
+            .iter()
+            .map(|s| s.content.clone())
+            .collect();
 
         let mut empty_parse_rounds: u32 = 0;
         for step in 0..max_steps {
@@ -119,6 +117,12 @@ impl AgentLoop {
                 &format!("Step {}/{}", step + 1, max_steps),
                 progress,
             );
+
+            context.kb_references = {
+                let mut refs = grounding_refs.clone();
+                refs.extend(crate::grounding::sources_for_run(run));
+                refs
+            };
 
             let llm_response = match self.call_llm(&context, run).await {
                 Ok(response) => response,

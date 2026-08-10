@@ -21,6 +21,21 @@ callAutotask(text);
 }
 }
 
+function vibeQuickSubmit(text) {
+    var input = document.getElementById("vibeChatInput");
+    if (!input) return;
+    input.value = text;
+    var form = document.getElementById("vibeChatForm");
+    if (!form) return;
+    if (form.requestSubmit) {
+        form.requestSubmit();
+    } else {
+        form.dispatchEvent(
+            new Event("submit", { bubbles: true, cancelable: true }),
+        );
+    }
+}
+
 function setupPipelineTabs() {
 var container = document.querySelector(".vibe-pipeline");
 if (!container) return;
@@ -49,29 +64,36 @@ btn.textContent = sidebar.classList.contains("collapsed")
 }
 
 function setupWorkspaceAccordions() {
-var toggles = document.querySelectorAll(".as-workspace-toggle");
-toggles.forEach(function (toggle) {
-toggle.addEventListener("click", function () {
-var body = this.nextElementSibling;
-var arrow = this.querySelector(".as-workspace-arrow");
-if (body) {
-var isOpen = body.style.display !== "none";
-body.style.display = isOpen ? "none" : "";
-if (arrow) arrow.textContent = isOpen ? "▶" : "▼";
+    document.addEventListener("click", function (e) {
+        var toggle = e.target.closest(".as-workspace-toggle");
+        if (!toggle) return;
+        var body = toggle.nextElementSibling;
+        var arrow = toggle.querySelector(".as-workspace-arrow");
+        if (body) {
+            var isOpen = body.style.display !== "none";
+            body.style.display = isOpen ? "none" : "";
+            if (arrow) arrow.textContent = isOpen ? "▶" : "▼";
+        }
+    });
 }
-});
-});
+
+function setupSidebarActions() {
+    var agentBtn = document.getElementById("createAgentBtn");
+    if (agentBtn) agentBtn.addEventListener("click", vibeBreedAgent);
+    var wsBtn = document.getElementById("createWorkspaceBtn");
+    if (wsBtn) wsBtn.addEventListener("click", vibeCreateWorkspace);
 }
 
 function initVibe() {
-setupPipelineTabs();
-setupSidebarCollapse();
-setupWorkspaceAccordions();
+    setupPipelineTabs();
+    setupSidebarCollapse();
+    setupWorkspaceAccordions();
+    setupSidebarActions();
 
-var form = document.getElementById("vibeChatForm");
-if (form) form.addEventListener("submit", handleVibeSubmit);
+    var form = document.getElementById("vibeChatForm");
+    if (form) form.addEventListener("submit", handleVibeSubmit);
 
-connectVibeWs();
+    connectVibeWs();
 }
 
 if (document.readyState === "loading") {

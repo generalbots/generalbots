@@ -40,6 +40,7 @@ pub mod teams;
 pub mod capability_registry;
 pub mod pipeline;
 pub mod run_store;
+pub mod grounding;
 pub mod wired_tools;
 
 pub use types::{
