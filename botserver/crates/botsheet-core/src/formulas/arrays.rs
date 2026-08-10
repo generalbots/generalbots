@@ -6,6 +6,102 @@ fn parse_numbers(values: Vec<String>) -> Vec<f64> {
     values.iter().filter_map(|v| v.parse::<f64>().ok()).collect()
 }
 
+/// Splits a FILTER criterion on the first comparison operator.
+fn split_compare(cond: &str) -> Option<(&str, &str, &str)> {
+    for op in [">=", "<=", "<>", "!=", "=", ">", "<"] {
+        if let Some(pos) = cond.find(op) {
+            let left = cond[..pos].trim();
+            let right = cond[pos + op.len()..].trim();
+            if left.is_empty() || right.is_empty() {
+                return None;
+            }
+            return Some((left, op, right));
+        }
+    }
+    None
+}
+
+fn is_range(text: &str) -> bool {
+    super::refs::parse_range(text).is_some()
+}
+
+fn truthy(text: &str) -> bool {
+    let t = text.trim();
+    t.eq_ignore_ascii_case("TRUE") || t.parse::<f64>().map(|n| n != 0.0).unwrap_or(!t.is_empty())
+}
+
+fn compare_text(left: &str, op: &str, right: &str) -> bool {
+    let a = left.trim().trim_matches('"');
+    let b = right.trim().trim_matches('"');
+    match (a.parse::<f64>(), b.parse::<f64>()) {
+        (Ok(x), Ok(y)) => match op {
+            "=" => x == y,
+            "<>" | "!=" => x != y,
+            "<" => x < y,
+            ">" => x > y,
+            "<=" => x <= y,
+            ">=" => x >= y,
+            _ => false,
+        },
+        _ => match op {
+            "=" => a.eq_ignore_ascii_case(b),
+            "<>" | "!=" => !a.eq_ignore_ascii_case(b),
+            "<" => a.to_lowercase() < b.to_lowercase(),
+            ">" => a.to_lowercase() > b.to_lowercase(),
+            "<=" => a.to_lowercase() <= b.to_lowercase(),
+            ">=" => a.to_lowercase() >= b.to_lowercase(),
+            _ => false,
+        },
+    }
+}
+
+/// Builds the per-row include mask for a FILTER criterion. The criterion can
+/// be `TRUE`/`1` (keep all), a truthy criterion range, a scalar, or a
+/// comparison such as `A1:A3>10` or `B1:B3<>""`.
+fn filter_matches(values: &[String], cond: &str, worksheet: &Worksheet) -> Vec<bool> {
+    let n = values.len();
+    let all = || vec![true; n];
+    let none = || vec![false; n];
+    let cond = cond.trim();
+    if cond == "TRUE" || cond == "1" {
+        return all();
+    }
+    if cond == "FALSE" || cond == "0" {
+        return none();
+    }
+    if let Some((left, op, right)) = split_compare(cond) {
+        let lefts = if is_range(left) {
+            super::get_range_string_values(left, worksheet)
+        } else {
+            vec![super::resolve_cell_value(left, worksheet); n]
+        };
+        let rights = if is_range(right) {
+            super::get_range_string_values(right, worksheet)
+        } else {
+            vec![super::resolve_cell_value(right, worksheet); n]
+        };
+        return (0..n)
+            .map(|i| {
+                let l = lefts.get(i).cloned().unwrap_or_default();
+                let r = rights.get(i).cloned().unwrap_or_default();
+                compare_text(&l, op, &r)
+            })
+            .collect();
+    }
+    if is_range(cond) {
+        let crit = super::get_range_string_values(cond, worksheet);
+        return (0..n)
+            .map(|i| crit.get(i).map(|c| truthy(c)).unwrap_or(false))
+            .collect();
+    }
+    // Scalar criterion without an operator: expands to every row.
+    if truthy(cond) {
+        all()
+    } else {
+        none()
+    }
+}
+
 pub fn evaluate_filter(expr: &str, worksheet: &Worksheet) -> Option<String> {
     if !expr.starts_with("FILTER(") || !expr.ends_with(')') {
         return None;
@@ -22,7 +118,13 @@ pub fn evaluate_filter(expr: &str, worksheet: &Worksheet) -> Option<String> {
         if cond == "TRUE" || cond == "1" {
             values
         } else {
-            values.into_iter().filter(|v| v.parse::<f64>().map(|n| n != 0.0).unwrap_or(!v.is_empty())).collect()
+            let matches = filter_matches(&values, cond, worksheet);
+            values
+                .into_iter()
+                .zip(matches)
+                .filter(|(_, m)| *m)
+                .map(|(v, _)| v)
+                .collect()
         }
     } else {
         values
@@ -303,4 +405,69 @@ pub fn evaluate_trimrange(expr: &str, worksheet: &Worksheet) -> Option<String> {
     let values = super::get_range_string_values(parts[0].trim(), worksheet);
     let trimmed: Vec<String> = values.into_iter().filter(|v| !v.is_empty()).collect();
     Some(trimmed.join(","))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{CellData, Worksheet};
+    use std::collections::HashMap;
+
+    fn ws_with(values: &[(&str, &str)]) -> Worksheet {
+        let mut data = HashMap::new();
+        for (key, val) in values {
+            data.insert(
+                key.to_string(),
+                CellData {
+                    value: Some(val.to_string()),
+                    typed: None,
+                    formula: None,
+                    style: None,
+                    format: None,
+                    note: None,
+                    locked: None,
+                    has_comment: None,
+                    array_formula_id: None,
+                },
+            );
+        }
+        Worksheet {
+            data,
+            ..Worksheet::default()
+        }
+    }
+
+    fn ev(expr: &str, ws: &Worksheet) -> Option<String> {
+        evaluate_filter(expr, ws)
+    }
+
+    #[test]
+    fn true_criterion_keeps_all() {
+        let ws = ws_with(&[("0,0", "1"), ("1,0", "2"), ("2,0", "3")]);
+        assert_eq!(ev("FILTER(A1:A3,TRUE)", &ws), Some("1,2,3".to_string()));
+    }
+
+    #[test]
+    fn comparison_criterion_filters_rows() {
+        let ws = ws_with(&[("0,0", "1"), ("1,0", "10"), ("2,0", "3")]);
+        assert_eq!(ev("FILTER(A1:A3,A1:A3>2)", &ws), Some("10,3".to_string()));
+    }
+
+    #[test]
+    fn criterion_range_uses_truthiness() {
+        let ws = ws_with(&[("0,0", "a"), ("1,0", "b"), ("2,0", "c"), ("0,1", "TRUE"), ("1,1", "FALSE"), ("2,1", "TRUE")]);
+        assert_eq!(ev("FILTER(A1:A3,B1:B3)", &ws), Some("a,c".to_string()));
+    }
+
+    #[test]
+    fn scalar_criterion_expands() {
+        let ws = ws_with(&[("0,0", "1"), ("1,0", "2")]);
+        assert_eq!(ev("FILTER(A1:A2,\"x\")", &ws), Some("1,2".to_string()));
+    }
+
+    #[test]
+    fn not_equals_operator() {
+        let ws = ws_with(&[("0,0", "a"), ("1,0", "b"), ("2,0", "a")]);
+        assert_eq!(ev("FILTER(A1:A3,A1:A3<>\"a\")", &ws), Some("b".to_string()));
+    }
 }

@@ -1,4 +1,4 @@
-use crate::auth::{resolve_user_id, SheetUser};
+use crate::auth::{resolve_user_id, resolve_user_name, SheetUser};
 use crate::collaboration::broadcast_sheet_change;
 use crate::formulas::{evaluate_formula, evaluate_formula_in};
 use crate::state::SheetState;
@@ -155,7 +155,7 @@ pub async fn handle_update_cell(
     broadcast_sheet_change(
         &req.sheet_id,
         &user_id,
-        "User",
+        &resolve_user_name(user.as_deref()),
         req.row,
         req.col,
         &req.value,
