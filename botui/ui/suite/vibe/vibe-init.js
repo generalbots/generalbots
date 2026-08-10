@@ -8,7 +8,17 @@ input.value = "";
 
 vibeAddMsg("user", text);
 
+if (
+typeof window.VibeRun !== "undefined" &&
+window.VibeRun &&
+typeof window.VibeRun.start === "function"
+) {
+window.VibeRun.start(text).catch(function () {
 callAutotask(text);
+});
+} else {
+callAutotask(text);
+}
 }
 
 function setupPipelineTabs() {
