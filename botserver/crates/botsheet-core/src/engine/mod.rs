@@ -14,6 +14,6 @@ pub mod references;
 pub mod value;
 
 pub use ast::{parse, Expr};
-pub use eval::{eval_expr, evaluate_typed};
+pub use eval::{eval_expr, eval_expr_in, evaluate_typed, evaluate_typed_in};
 pub use references::Reference;
 pub use value::{format_number, CellValue};

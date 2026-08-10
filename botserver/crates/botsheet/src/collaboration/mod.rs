@@ -150,9 +150,11 @@ pub async fn sweep_collab_stale() {
 pub fn ensure_sweep_started() {
     static SWEEP_STARTED: std::sync::Once = std::sync::Once::new();
     SWEEP_STARTED.call_once(|| {
-        tokio::spawn(async loop {
-            tokio::time::sleep(std::time::Duration::from_secs(20)).await;
-            sweep_collab_stale().await;
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(20)).await;
+                sweep_collab_stale().await;
+            }
         });
     });
 }

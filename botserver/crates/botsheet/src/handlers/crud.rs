@@ -1,3 +1,4 @@
+use base64::Engine;
 use crate::export::{
     export_to_csv, export_to_html, export_to_json, export_to_markdown, export_to_ods,
     export_to_pdf_data, export_to_xlsx,
@@ -384,9 +385,10 @@ pub async fn handle_export_sheet(
                     Json(serde_json::json!({ "error": e })),
                 )
             })?;
+            let encoded = base64::engine::general_purpose::STANDARD.encode(&pdf);
             Ok((
                 [(axum::http::header::CONTENT_TYPE, "application/pdf")],
-                pdf,
+                encoded,
             ))
         }
         _ => Err((
