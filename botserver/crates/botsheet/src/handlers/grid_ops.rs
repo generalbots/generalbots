@@ -348,7 +348,7 @@ pub async fn handle_paste(
         Option<String>,
         Option<String>,
         Option<botsheet_core::engine::CellValue>,
-        Option<String>,
+        Option<crate::types::CellStyle>,
     )> = Vec::new();
     for (row_offset, cells) in grid.iter().enumerate() {
         let target_row = req.start_row + row_offset as u32;

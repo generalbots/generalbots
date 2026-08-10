@@ -196,7 +196,7 @@ impl PdfWriter {
 
     /// Serializes the object list with the catalog, pages tree, font object,
     /// xref table and trailer.
-    fn finish(mut self) -> Vec<u8> {
+    fn finish(self) -> Vec<u8> {
         let mut out: Vec<u8> = Vec::with_capacity(4096);
         out.extend_from_slice(b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
         let mut offsets: Vec<usize> = Vec::with_capacity(self.objects.len() + HEADER_OBJECTS as usize);

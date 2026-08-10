@@ -45,6 +45,7 @@ pub fn compute_hidden_rows(worksheet: &Worksheet) -> Vec<u32> {
                         .data
                         .get(&format!("{row},{col}"))
                         .and_then(|c| c.value.clone())
+                        .as_deref()
                         .map(CellValue::parse)
                 });
             !row_passes(config, cell)
@@ -78,39 +79,40 @@ fn row_passes(config: &FilterConfig, cell: Option<CellValue>) -> bool {
         }
     }
 
-    match config.condition.as_deref().map(|c| c.trim().to_ascii_lowercase()) {
-        None | Some("") => {}
-        Some(cond) => {
-            let needle = config.value1.as_deref().unwrap_or("");
-            let value = display.to_ascii_lowercase();
-            let needle = needle.to_ascii_lowercase();
-            let passes = match cond.as_str() {
-                "contains" => value.contains(&needle),
-                "notcontains" => !value.contains(&needle),
-                "equals" => value == needle,
-                "notequals" => value != needle,
-                "beginswith" => value.starts_with(&needle),
-                "endswith" => value.ends_with(&needle),
-                "gt" => compare_by_value(cell.as_ref(), config.value1.as_deref(), NumericCompare::Gt),
-                "lt" => compare_by_value(cell.as_ref(), config.value1.as_deref(), NumericCompare::Lt),
-                "gte" => compare_by_value(cell.as_ref(), config.value1.as_deref(), NumericCompare::Gte),
-                "lte" => compare_by_value(cell.as_ref(), config.value1.as_deref(), NumericCompare::Lte),
-                "between" => {
-                    let lo = config.value1.as_deref();
-                    let hi = config.value2.as_deref();
-                    match (lo, hi) {
-                        (Some(lo), Some(hi)) => {
-                            compare_by_value(cell.as_ref(), Some(lo), NumericCompare::Gte)
-                                && compare_by_value(cell.as_ref(), Some(hi), NumericCompare::Lte)
-                        }
-                        _ => true,
+    let condition = config.condition.as_deref().map(|c| c.trim().to_ascii_lowercase());
+    if condition.as_deref().is_none_or(|c| c.is_empty()) {
+        return true;
+    }
+    if let Some(cond) = condition {
+        let needle = config.value1.as_deref().unwrap_or("");
+        let value = display.to_ascii_lowercase();
+        let needle = needle.to_ascii_lowercase();
+        let passes = match cond.as_str() {
+            "contains" => value.contains(&needle),
+            "notcontains" => !value.contains(&needle),
+            "equals" => value == needle,
+            "notequals" => value != needle,
+            "beginswith" => value.starts_with(&needle),
+            "endswith" => value.ends_with(&needle),
+            "gt" => compare_by_value(cell.as_ref(), config.value1.as_deref(), NumericCompare::Gt),
+            "lt" => compare_by_value(cell.as_ref(), config.value1.as_deref(), NumericCompare::Lt),
+            "gte" => compare_by_value(cell.as_ref(), config.value1.as_deref(), NumericCompare::Gte),
+            "lte" => compare_by_value(cell.as_ref(), config.value1.as_deref(), NumericCompare::Lte),
+            "between" => {
+                let lo = config.value1.as_deref();
+                let hi = config.value2.as_deref();
+                match (lo, hi) {
+                    (Some(lo), Some(hi)) => {
+                        compare_by_value(cell.as_ref(), Some(lo), NumericCompare::Gte)
+                            && compare_by_value(cell.as_ref(), Some(hi), NumericCompare::Lte)
                     }
+                    _ => true,
                 }
-                _ => true,
-            };
-            if !passes {
-                return false;
             }
+            _ => true,
+        };
+        if !passes {
+            return false;
         }
     }
     true
