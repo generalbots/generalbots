@@ -29,8 +29,8 @@ pub struct SpanContext {
 impl SpanContext {
     /// Create a new root span context with a fresh trace_id and span_id.
     pub fn new(operation_name: impl Into<String>) -> Self {
-        let trace_id = Uuid::new_v4().to_string().replace('-', "");
-        let span_id = Uuid::new_v4().to_string()[..16].to_string();
+        let trace_id = Uuid::new_v4().simple().to_string();
+        let span_id = Uuid::new_v4().simple().to_string()[..16].to_string();
         Self {
             trace_id,
             span_id,
@@ -81,7 +81,7 @@ impl SpanContext {
     pub fn child_span(&self, operation_name: impl Into<String>) -> Self {
         Self {
             trace_id: self.trace_id.clone(),
-            span_id: Uuid::new_v4().to_string()[..16].to_string(),
+            span_id: Uuid::new_v4().simple().to_string()[..16].to_string(),
             parent_span_id: Some(self.span_id.clone()),
             trace_flags: self.trace_flags,
             sampled: self.sampled,
@@ -466,7 +466,7 @@ mod tests {
         let mut headers = http::HeaderMap::new();
         inject_context(&ctx, &mut headers);
         assert!(headers.contains_key("traceparent"));
-        let tp = headers.get("traceparent").ok().unwrap().to_str().ok().unwrap();
+        let tp = headers.get("traceparent").unwrap().to_str().unwrap();
         assert!(tp.starts_with("00-"));
     }
 
@@ -505,6 +505,6 @@ mod tests {
     #[test]
     fn test_elapsed_ms_non_negative() {
         let ctx = SpanContext::new("timer");
-        assert!(ctx.elapsed_ms() >= 0);
+        assert!(ctx.elapsed_ms() < 1000);
     }
 }

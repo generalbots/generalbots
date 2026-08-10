@@ -154,10 +154,35 @@ mod tests {
             IntentType::Schedule,
             "comercial_vendeu_diario",
         );
-        let (path, body) = script_for(&c, None);
+        let compiled = crate::intent_compiler::CompiledIntent {
+            id: Uuid::new_v4().to_string(),
+            intent_type: IntentType::Schedule,
+            plan_name: "comercial_vendeu_diario".into(),
+            plan_description: "daily report".into(),
+            steps: Vec::new(),
+            alternatives: Vec::new(),
+            confidence: 0.85,
+            risk_level: "low".into(),
+            estimated_duration_minutes: 5,
+            estimated_cost: 0.0,
+            resource_estimate: crate::intent_compiler::ResourceEstimate {
+                compute_hours: 0.0,
+                storage_gb: 0.0,
+                api_calls: 0,
+                llm_tokens: 0,
+                estimated_cost_usd: 0.0,
+            },
+            basic_program: Some("TALK \"relatorio gerado\"".into()),
+            requires_approval: false,
+            mcp_servers: Vec::new(),
+            external_apis: Vec::new(),
+            risks: Vec::new(),
+        };
+        let (path, body) = script_for(&c, Some(&compiled));
         assert!(path.contains("schedulers/"));
         assert!(!path.contains(' '));
         assert!(body.contains("SET SCHEDULE"));
+        assert!(body.contains("TALK \"relatorio gerado\""));
     }
 
     #[test]

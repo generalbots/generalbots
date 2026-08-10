@@ -518,19 +518,6 @@ mod tests {
         #[default]
         Chrome,
         Firefox,
-        Safari,
-        Edge,
-    }
-
-    impl BrowserType {
-        pub const fn browser_name(self) -> &'static str {
-            match self {
-                Self::Chrome => "chrome",
-                Self::Firefox => "firefox",
-                Self::Safari => "safari",
-                Self::Edge => "MicrosoftEdge",
-            }
-        }
     }
 
     #[derive(Debug, Clone)]
@@ -586,46 +573,6 @@ mod tests {
         pub const fn with_timeout(mut self, timeout: Duration) -> Self {
             self.timeout = timeout;
             self
-        }
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct E2EConfig {
-        browser: BrowserType,
-        headless: bool,
-        timeout: Duration,
-        pub window_width: u32,
-        pub window_height: u32,
-        pub screenshot_on_failure: bool,
-        screenshot_dir: String,
-    }
-
-    impl E2EConfig {
-        pub fn browser(&self) -> BrowserType {
-            self.browser
-        }
-        pub fn headless(&self) -> bool {
-            self.headless
-        }
-        pub fn timeout(&self) -> Duration {
-            self.timeout
-        }
-        pub fn screenshot_dir(&self) -> &str {
-            &self.screenshot_dir
-        }
-    }
-
-    impl Default for E2EConfig {
-        fn default() -> Self {
-            Self {
-                browser: BrowserType::Chrome,
-                headless: true,
-                timeout: Duration::from_secs(30),
-                window_width: 1920,
-                window_height: 1080,
-                screenshot_on_failure: true,
-                screenshot_dir: "./test-screenshots".to_string(),
-            }
         }
     }
 
@@ -1133,7 +1080,7 @@ mod tests {
     #[test]
     fn test_weba_state_creation() {
         let state = WebaState::new();
-        let _ = (&state);
+        let _ = &state;
     }
 
     #[test]

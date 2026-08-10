@@ -296,7 +296,7 @@ mod tests {
             data,
             ..Worksheet::default()
         };
-        let g = DepGraph::build(&w);
+        let mut g = DepGraph::build(&w);
         g.on_edit(&w, &[(0, 0), (0, 1), (0, 2)]);
         g.recalc_cascade_typed(&mut w, (0, 0), 1000);
         assert_eq!(w.data.get("0,1").and_then(|c| c.value.as_deref()), Some("101"));

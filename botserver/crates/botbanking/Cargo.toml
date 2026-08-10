@@ -12,6 +12,7 @@ botlib = { path = "../../../botlib" }
 bottax = { path = "../bottax" }
 chrono = { workspace = true, features = ["serde"] }
 rust_decimal = { workspace = true, features = ["serde-with-str", "db-diesel2-postgres"] }
+rust_decimal_macros = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 log = { workspace = true }

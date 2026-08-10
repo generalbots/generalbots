@@ -44,7 +44,9 @@ pub fn resolve_sheet_args(
             continue;
         }
         // Outside quotes: scan back over the sheet-name characters that
-        // precede the `!`, then split the cell token that follows it.
+        // precede the `!`, then split the cell token that follows it. The
+        // name characters were already emitted char-by-char above, so only
+        // the `!` + cell token (or the resolved value) is appended here.
         let mut start = i;
         while start > 0 && is_sheet_name_char(bytes[start - 1]) {
             start -= 1;
@@ -55,6 +57,7 @@ pub fn resolve_sheet_args(
         if !sheet_name.is_empty() && !cell_tok.is_empty() {
             match resolve_sheet_token(sheet_name, cell_tok, func_name, worksheets) {
                 Some(text) => {
+                    out.truncate(out.len() - (i - start));
                     out.push_str(&text);
                     i += advanced;
                     continue;
@@ -62,7 +65,7 @@ pub fn resolve_sheet_args(
                 None => {}
             }
         }
-        out.push_str(&raw[start..i + 1]);
+        out.push('!');
         out.push_str(cell_tok);
         i += advanced;
     }
@@ -267,13 +270,13 @@ mod tests {
     fn sheet_pair() -> Vec<Worksheet> {
         let mut ws1 = Worksheet::default();
         ws1.name = "Sheet1".to_string();
-        ws1.data = HashMap::from([("1,1".to_string(), cell("10"))]);
+        ws1.data = HashMap::from([("0,0".to_string(), cell("10"))]);
         let mut ws2 = Worksheet::default();
         ws2.name = "Sheet2".to_string();
         ws2.data = HashMap::from([
-            ("1,1".to_string(), cell("20")),
-            ("2,1".to_string(), cell("30")),
-            ("3,1".to_string(), cell("40")),
+            ("0,0".to_string(), cell("20")),
+            ("1,0".to_string(), cell("30")),
+            ("2,0".to_string(), cell("40")),
         ]);
         vec![ws1, ws2]
     }

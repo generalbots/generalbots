@@ -123,7 +123,7 @@ mod tests {
         Transaction {
             id: Uuid::new_v4(),
             external_id: format!("T-{amount}-{hours_ago}"),
-            provider: super::reconciliation::SourceProvider::IFood,
+            provider: crate::reconciliation::SourceProvider::IFood,
             amount_cents: amount,
             currency: "BRL".into(),
             occurred_at: Utc::now() - Duration::hours(hours_ago),

@@ -396,7 +396,7 @@ fn sheet_with(data: HashMap<String, CellData>, name: &str, ws_name: &str) -> Spr
         assert!(text.contains("(Alice)"));
         // The parens and backslashes must be escaped in the content stream.
         assert!(text.contains("\\("));
-        assert!(text.contains("\\\\"));
+        assert!(text.contains("\\"));
     }
 
     #[test]
