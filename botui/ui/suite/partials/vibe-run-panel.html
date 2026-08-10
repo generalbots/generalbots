@@ -1,0 +1,97 @@
+<link rel="stylesheet" href="/suite/vibe/vibe-run.css" />
+
+<!-- Vibe Run Dock — wave-2 (issues #806, #807) -->
+<div id="vibeRunDock" class="vibe-rd collapse">
+    <div class="vibe-rd-handle" id="vibeRunDockToggle" title="Toggle Run Dock">
+        <span style="font-size: 14px">🎛️</span>
+        <h3>RUN DOCK</h3>
+        <span id="vibeRunDockArrow" style="color: var(--text-muted)">▸</span>
+    </div>
+    <div class="vibe-rd-content">
+        <div class="vibe-rd-budget-row">
+            <label for="vibeRunBudget">Budget (USD)</label>
+            <input type="number" id="vibeRunBudget" min="0" step="0.25" value="2" />
+            <span style="flex: 1"></span>
+            <span id="vibeRunDockState" class="vibe-chip state-pending">IDLE</span>
+        </div>
+
+        <!-- Live run card -->
+        <div class="vibe-run-card" id="vibeRunCard">
+            <div class="vibe-rc-top">
+                <span class="vibe-rc-runid" id="vibeRunId">—</span>
+                <span>
+                    <span class="vibe-chip phase-chip" id="vibeRunPhase">PLANNING</span>
+                    <span class="vibe-chip state-pending" id="vibeRunState">PENDING</span>
+                </span>
+            </div>
+            <div class="vibe-rc-intent" id="vibeRunIntent"></div>
+            <div class="vibe-progress-track"><div class="vibe-progress-fill" id="vibeRunProgress"></div></div>
+            <div class="vibe-rc-meta">
+                <span id="vibeRunElapsed">0s</span>
+                <span id="vibeRunToolCalls">0 tool calls</span>
+                <span id="vibeRunOutcome"></span>
+            </div>
+        </div>
+
+        <!-- Budget / metering -->
+        <div class="vibe-run-card" id="vibeRunBudgetCard">
+            <div class="vibe-budget-meta">
+                <span class="spend" id="vibeBudgetSpend">$0.00 spent</span>
+                <span id="vibeBudgetCap">of $0.00</span>
+            </div>
+            <div class="vibe-budget-bar"><div class="vibe-budget-fill" id="vibeBudgetFill"></div></div>
+        </div>
+
+        <!-- Pipeline strip -->
+        <div class="vibe-rd-section" id="vibePipelineSection" style="display: none">
+            <h4>// PIPELINE</h4>
+            <div class="vibe-pipeline-strip" id="vibePipelineStrip"></div>
+        </div>
+
+        <!-- Approval card -->
+        <div class="vibe-approval-card" id="vibeApprovalCard">
+            <h4>⏸ APPROVAL REQUIRED</h4>
+            <div class="vibe-approval-tools" id="vibeApprovalTools"></div>
+            <div class="vibe-approval-actions">
+                <button type="button" id="vibeApproveBtn">✓ Approve & Resume</button>
+                <button type="button" id="vibeDenyBtn">✕ Deny & Cancel</button>
+            </div>
+        </div>
+
+        <!-- Grounding sources -->
+        <div class="vibe-rd-section" id="vibeSourcesSection" style="display: none">
+            <h4>// SOURCES</h4>
+            <div id="vibeSourcesList"></div>
+        </div>
+
+        <!-- Sessions -->
+        <div class="vibe-rd-section">
+            <h4>// SESSIONS (resume / fork)</h4>
+            <div id="vibeSessionsList">
+                <div class="vibe-rd-empty">No sessions yet.</div>
+            </div>
+        </div>
+
+        <!-- Run history -->
+        <div class="vibe-rd-section">
+            <h4>// RUNS</h4>
+            <div id="vibeRunsList">
+                <div class="vibe-rd-empty">No runs yet.</div>
+            </div>
+        </div>
+
+        <!-- Team runs -->
+        <div class="vibe-rd-section">
+            <h4>// TEAM RUNS</h4>
+            <div class="vibe-team-new">
+                <input type="text" id="vibeTeamName" placeholder="Team name (e.g. Ship Squad)" />
+                <input type="text" id="vibeTeamObjective" placeholder="Objective (e.g. review this PR)" />
+                <textarea id="vibeTeamMembers" placeholder="One member per line:&#10;Mantis #1 | review this PR&#10;Mantis #2 | run the tests"></textarea>
+                <button type="button" id="vibeTeamCreateBtn">Start Team Run</button>
+            </div>
+            <div id="vibeTeamsList" style="margin-top: 8px">
+                <div class="vibe-rd-empty">No teams yet.</div>
+            </div>
+        </div>
+    </div>
+</div>

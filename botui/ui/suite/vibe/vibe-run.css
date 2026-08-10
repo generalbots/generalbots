@@ -1,0 +1,386 @@
+/* Vibe wave-2 Run Dock (issue #806/#807) */
+
+#vibeRunDock {
+    position: absolute;
+    bottom: 24px;
+    right: 424px;
+    width: 340px;
+    max-height: calc(100% - 96px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--text);
+    z-index: 90;
+    font-size: 12px;
+}
+
+#vibeRunDock.collapsed {
+    width: 220px;
+}
+
+.vibe-rd-handle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--surface-hover);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+}
+
+.vibe-rd-handle h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    flex: 1;
+}
+
+#vibeRunDock.collapsed .vibe-rd-content {
+    display: none;
+}
+
+.vibe-rd-content {
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vibe-rd-budget-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vibe-rd-budget-row label {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+#vibeRunBudget {
+    width: 72px;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 11px;
+}
+
+.vibe-run-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--bg);
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vibe-run-card.visible {
+    display: flex;
+}
+
+.vibe-rc-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.vibe-rc-runid {
+    font-family: "Fira Code", monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.vibe-chip {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+}
+
+.vibe-chip.state-pending { background: var(--warning-light, #fef3c7); color: #92400e; }
+.vibe-chip.state-running { background: rgba(245, 166, 35, 0.18); color: #b45309; }
+.vibe-chip.state-awaiting_approval { background: rgba(247, 181, 0, 0.22); color: #92400e; }
+.vibe-chip.state-completed { background: rgba(132, 214, 105, 0.18); color: #3d7a24; }
+.vibe-chip.state-failed { background: rgba(239, 68, 68, 0.18); color: #b91c1c; }
+.vibe-chip.state-cancelled { background: var(--surface-active, #e5e7eb); color: var(--text-muted); }
+
+.vibe-chip.phase-chip { background: rgba(74, 108, 247, 0.15); color: #4a6cf7; }
+
+.vibe-rc-intent {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    word-wrap: break-word;
+    max-height: 48px;
+    overflow: hidden;
+}
+
+.vibe-rc-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.vibe-progress-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface-active, #e5e7eb);
+    overflow: hidden;
+}
+
+.vibe-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.5s;
+}
+
+.vibe-budget-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface-active, #e5e7eb);
+    overflow: hidden;
+}
+
+.vibe-budget-fill {
+    height: 100%;
+    width: 0%;
+    background: #4a6cf7;
+    border-radius: 3px;
+    transition: width 0.5s;
+}
+
+.vibe-budget-fill.near-cap {
+    background: #ef4444;
+}
+
+.vibe-budget-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.vibe-budget-meta .spend { color: #4a6cf7; }
+.vibe-budget-meta .spend.near-cap { color: #ef4444; font-weight: 700; }
+
+.vibe-pipeline-strip {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.vibe-stage-chip {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: transparent;
+}
+
+.vibe-stage-chip.active { border-color: var(--accent); color: var(--accent); }
+.vibe-stage-chip.done { background: rgba(132, 214, 105, 0.18); border-color: var(--accent); color: #3d7a24; }
+
+.vibe-approval-card {
+    border: 1px solid #f7b500;
+    background: rgba(247, 181, 0, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vibe-approval-card.visible {
+    display: flex;
+}
+
+.vibe-approval-card h4 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 800;
+    color: #92400e;
+}
+
+.vibe-approval-tools {
+    font-size: 10px;
+    color: var(--text);
+    max-height: 80px;
+    overflow-y: auto;
+    word-wrap: break-word;
+}
+
+.vibe-approval-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.vibe-approval-actions button {
+    flex: 1;
+    padding: 6px 0;
+    border-radius: 6px;
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#vibeApproveBtn {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+#vibeDenyBtn {
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+}
+
+.vibe-rd-section {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+}
+
+.vibe-rd-section h4 {
+    margin: 0 0 6px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.vibe-src-item {
+    font-size: 10px;
+    color: var(--text-secondary);
+    padding: 2px 0;
+    display: flex;
+    gap: 4px;
+}
+
+.vibe-session-item,
+.vibe-run-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+}
+
+.vibe-session-item .meta,
+.vibe-run-item .meta {
+    flex: 1;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vibe-session-item button,
+.vibe-run-item button,
+.vibe-team-new button {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.vibe-team-new {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vibe-team-new input,
+.vibe-team-new textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 11px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.vibe-team-new textarea {
+    resize: vertical;
+    min-height: 48px;
+}
+
+.vibe-team-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--bg);
+    margin-bottom: 8px;
+}
+
+.vibe-team-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.vibe-member-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.vibe-member-chip {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: var(--surface-hover);
+}
+
+.vibe-member-chip.working {
+    border-color: #f59e0b;
+    color: #b45309;
+}
+
+.vibe-member-chip.done {
+    border-color: var(--accent);
+    color: #3d7a24;
+}
+
+.vibe-member-chip.failed {
+    border-color: #ef4444;
+    color: #b91c1c;
+}
+
+.vibe-rd-empty {
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 4px 0;
+}
