@@ -58,9 +58,12 @@ impl VibeState for VibeStateImpl {
         self.signals.as_ref()
     }
 
-    /// Resolves the bot's LLM settings from its config.csv via ConfigManager
-    /// (Issue #795). `get_config` returns `Ok("")` on a miss, so empty values
-    /// are filtered out and fall through to the environment in the agent loop.
+    /// Resolves the bot's LLM settings via ConfigManager (Issue #795).
+    /// Sensitive keys (e.g. `llm-key`) come from Vault per-bot paths;
+    /// non-sensitive keys (url/model/provider) from the bot's Drive
+    /// config.csv via the `bot_configuration` table. `get_config` returns
+    /// `Ok("")` on a miss, so empty values are filtered out and fall through
+    /// to the environment in the agent loop.
     fn llm_config(&self, bot_id: &Uuid) -> Option<LlmConfig> {
         let value = |key: &str| {
             self.config

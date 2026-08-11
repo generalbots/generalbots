@@ -106,7 +106,7 @@ impl PdfWriter {
                 value: cell_to_text(value),
             });
         }
-        cells.sort_by(|a, b| (a.row, a.col).cmp(&(b.row, b.col)));
+        cells.sort_by_key(|a| (a.row, a.col));
 
         if cells.is_empty() {
             return Ok(());

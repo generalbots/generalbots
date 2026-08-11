@@ -49,7 +49,9 @@
 
   function fmt(n) {
     if (n == null) return "—";
-    return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    const num = Number(n);
+    if (isNaN(num)) return String(n);
+    return Number.isInteger(num) ? String(num) : num.toFixed(2);
   }
 
   function update() {

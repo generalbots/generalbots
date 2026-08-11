@@ -53,13 +53,20 @@
     const h = e.target;
     if (!g || !g.headerRow || !h || h.tagName !== "DIV") return;
     if (h.classList && (h.classList.contains("ss-sort-head") || h.classList.contains("ss-filter-head"))) return;
-    if (e.shiftKey || e.ctrlKey || e.metaKey) return;
     // Column header cells contain only the letter(s) as textContent
     const text = h.textContent || "";
     if (!/^[A-Z]+$/.test(text)) return;
     const col = colIdx(text);
     if (col < 0 || col >= g.totalCols) return;
     e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      // Multi-range selection: Ctrl+click on a header adds that column (#786).
+      if (window.SheetAdvanced && window.SheetAdvanced.addRange) {
+        window.SheetAdvanced.addRange(0, col, g.totalRows - 1, col);
+      }
+      return;
+    }
+    if (e.shiftKey) return;
     selectColumn(col);
   }
 
@@ -67,9 +74,17 @@
     const g = grid();
     const t = e.target;
     if (!g || !t || !t.dataset || t.dataset.row === undefined) return;
-    if (e.shiftKey || e.ctrlKey || e.metaKey) return;
     const row = parseInt(t.dataset.row, 10);
-    if (!isNaN(row)) selectRow(row);
+    if (isNaN(row)) return;
+    if (e.ctrlKey || e.metaKey) {
+      // Multi-range selection: Ctrl+click on a header adds that row (#786).
+      if (window.SheetAdvanced && window.SheetAdvanced.addRange) {
+        window.SheetAdvanced.addRange(row, 0, row, g.totalCols - 1);
+      }
+      return;
+    }
+    if (e.shiftKey) return;
+    selectRow(row);
   }
 
   function wire() {

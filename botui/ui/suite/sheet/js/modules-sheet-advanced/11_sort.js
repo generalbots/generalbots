@@ -185,14 +185,15 @@
     if (!g || !g.headerRow) return;
     g.headerRow.querySelectorAll(".ss-sort-head").forEach(function (el) { el.remove(); });
     g.headerRow.style.position = "relative";
-    const HEADER_WIDTH = 48;
-    const COL_WIDTH = 96;
-    for (let c = 0; c < g.totalCols; c++) {
+    const cols = g.visibleColRange ? g.visibleColRange() : { start: 0, end: g.totalCols };
+    for (let c = cols.start; c < cols.end; c++) {
+      const baseX = window.SheetCore && window.SheetCore.colX ? window.SheetCore.colX(c) : 0;
+      const w = window.SheetCore && window.SheetCore.colWidth ? window.SheetCore.colWidth(c) : COL_WIDTH;
       const head = document.createElement("div");
       head.className = "ss-sort-head";
       head.dataset.col = c;
       head.style.cssText =
-        "position:absolute;left:" + (HEADER_WIDTH + c * COL_WIDTH + COL_WIDTH - 20) +
+        "position:absolute;left:" + (baseX + w - 20) +
         "px;top:2px;width:16px;height:16px;color:#64748b;" +
         "cursor:pointer;z-index:6;font-size:10px;line-height:16px;text-align:center;";
       head.textContent = "⤨";

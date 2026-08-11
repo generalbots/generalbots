@@ -113,18 +113,30 @@ impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
         &self,
     ) -> crate::knowledge_graph::GraphFuture<Vec<crate::knowledge_graph::RunNodeInfo>> {
         let runs = Arc::clone(&self.runs);
+        let runs_store = self.runs_store.clone();
         Box::pin(async move {
-            runs.read()
-                .await
-                .values()
-                .map(|r| crate::knowledge_graph::RunNodeInfo {
+            let mut all: Vec<crate::knowledge_graph::RunNodeInfo> = Vec::new();
+            // Persisted runs (survive restarts, issue #799).
+            for r in runs_store.list_runs(500) {
+                all.push(crate::knowledge_graph::RunNodeInfo {
                     run_id: r.run_id.to_string(),
                     use_case: r.use_case.to_string(),
                     state: r.state.to_string(),
                     intent: r.intent.clone(),
                     tool_names: r.tool_calls.iter().map(|c| c.tool_name.clone()).collect(),
-                })
-                .collect()
+                });
+            }
+            // In-memory runs not yet flushed to Postgres.
+            for r in runs.read().await.values() {
+                all.push(crate::knowledge_graph::RunNodeInfo {
+                    run_id: r.run_id.to_string(),
+                    use_case: r.use_case.to_string(),
+                    state: r.state.to_string(),
+                    intent: r.intent.clone(),
+                    tool_names: r.tool_calls.iter().map(|c| c.tool_name.clone()).collect(),
+                });
+            }
+            all
         })
     }
 }

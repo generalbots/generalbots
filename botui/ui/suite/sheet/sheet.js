@@ -4,7 +4,7 @@
 (function () {
   const SIDEBAR_TAB_KEY = "sheet_sidebar_tab";
   const DEFAULT_TOTAL_ROWS = 1048576;
-  const DEFAULT_TOTAL_COLS = 26;
+  const DEFAULT_TOTAL_COLS = 16384;
   const CELL_COLS = DEFAULT_TOTAL_COLS;
   const COL_WIDTH = 96;
   const ROW_HEIGHT = 24;
@@ -137,7 +137,7 @@
       this.body.style.cssText = "position:relative;";
 
       const inner = document.createElement("div");
-      inner.style.cssText = "position:relative;height:" + (this.totalRows * ROW_HEIGHT) + "px;width:" + (HEADER_WIDTH + this.totalCols * COL_WIDTH) + "px;";
+      inner.style.cssText = "position:relative;height:" + (this.totalRows * ROW_HEIGHT) + "px;width:" + this.totalColsWidth() + "px;";
       this.body.appendChild(inner);
       this.bodyInner = inner;
 
@@ -176,18 +176,24 @@
       this.scrollTop = this.scrollArea.scrollTop;
       this.scrollLeft = this.scrollArea.scrollLeft;
       this.headerRow.style.transform = "translateX(" + (-this.scrollLeft) + "px)";
+      // Virtualized headers: the visible column window changes with the
+      // horizontal position, so the header row must re-render on every scroll.
+      this.renderHeaders();
       this.requestRange();
     },
 
     renderHeaders: function () {
+      const cols = this.visibleColRange();
       this.headerRow.innerHTML = "";
       const corner = document.createElement("div");
       corner.style.cssText = "width:" + HEADER_WIDTH + "px;background:#0f172a;border-right:1px solid #334155;flex-shrink:0;";
       this.headerRow.appendChild(corner);
-      for (let c = 0; c < this.totalCols; c++) {
+      // Virtualized headers: absolute-positioned inside the translated header
+      // row, so only the visible columns exist in the DOM (#786).
+      for (let c = cols.start; c < cols.end; c++) {
         const h = document.createElement("div");
         h.textContent = colName(c);
-        h.style.cssText = "width:" + COL_WIDTH + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:24px;font-size:11px;border-right:1px solid #334155;flex-shrink:0;";
+        h.style.cssText = "position:absolute;left:" + this.colXOf(c) + "px;width:" + this.colWidthOf(c) + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:24px;font-size:11px;border-right:1px solid #334155;flex-shrink:0;box-sizing:border-box;";
         this.headerRow.appendChild(h);
       }
       this.headerColPool = [];
@@ -213,10 +219,63 @@
       return { start: start, end: end };
     },
 
+    // Column virtualization (#786): only the columns intersecting the viewport
+    // are rendered and fetched, exactly like the row window above. colX/colWidth
+    // come from SheetCore (imported widths) or Defaults.
+    colWidthOf: function (c) {
+      if (window.SheetCore && window.SheetCore.colWidth) return window.SheetCore.colWidth(c);
+      return COL_WIDTH;
+    },
+
+    colXOf: function (c) {
+      if (window.SheetCore && window.SheetCore.colX) return window.SheetCore.colX(c);
+      return HEADER_WIDTH + c * COL_WIDTH;
+    },
+
+    totalColsWidth: function () {
+      if (!this.__totalColsWidth) {
+        this.__totalColsWidth = HEADER_WIDTH + this.totalCols * COL_WIDTH;
+      }
+      return this.__totalColsWidth;
+    },
+
+    // Column virtualization (#786): only columns intersecting the viewport
+    // render. The math lives in the widths module (unit-testable); the shell
+    // delegates to it when loaded and falls back to a local implementation.
+    visibleColRange: function () {
+      if (window.SheetCore && window.SheetCore.computeVisibleColRange) {
+        return window.SheetCore.computeVisibleColRange({
+          scrollLeft: this.scrollLeft,
+          viewportWidth: this.viewportWidth,
+          totalCols: this.totalCols,
+          colXOf: this.colXOf.bind(this),
+          colWidthOf: this.colWidthOf.bind(this),
+        });
+      }
+      const viewLeft = this.scrollLeft + HEADER_WIDTH;
+      const viewRight = viewLeft + this.viewportWidth;
+      let lo = 0;
+      let hi = this.totalCols - 1;
+      let start = 0;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (this.colXOf(mid) < viewLeft) { start = mid; lo = mid + 1; }
+        else { hi = mid - 1; }
+      }
+      start = Math.max(0, start);
+      let end = start + 1;
+      for (let c = start; c < this.totalCols; c++) {
+        if (this.colXOf(c) <= viewRight) end = c + 1;
+        else break;
+      }
+      return { start: start, end: Math.min(this.totalCols, end) };
+    },
+
     requestRange: function () {
       if (!this.viewportHeight) return;
       const range = this.visibleRowRange();
-      const rangeKey = range.start + ":" + range.end;
+      const cols = this.visibleColRange();
+      const rangeKey = range.start + ":" + range.end + "|" + cols.start + ":" + cols.end;
       if (this.lastRenderedRange === rangeKey) return;
       this.lastRenderedRange = rangeKey;
 
@@ -224,7 +283,7 @@
       this.renderRowHeaders(range);
 
       const seq = ++this.requestSeq;
-      SheetAPI.getRange(range.start, 0, range.end - 1, this.totalCols - 1)
+      SheetAPI.getRange(range.start, cols.start, range.end - 1, cols.end - 1)
         .then(function (data) {
           if (seq !== VirtualGrid.requestSeq) return;
           // Merge API cells without overwriting pre-loaded data (e.g. from Drive)
@@ -236,6 +295,7 @@
             }
           }
           if (data.total_rows) VirtualGrid.totalRows = Math.max(VirtualGrid.totalRows, data.total_rows);
+          if (data.total_cols) VirtualGrid.totalCols = Math.max(VirtualGrid.totalCols, data.total_cols);
           VirtualGrid.render();
         })
         .catch(function () {});
@@ -312,7 +372,7 @@
       var cellEl = this.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
       if (cellEl) cellEl.focus({preventScroll: true});
       if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
-        window.GBCollab.sendCursor(row * this.totalCols + col);
+        window.GBCollab.sendCursor(row, col);
       }
     },
 
@@ -323,8 +383,8 @@
       var viewRight = viewLeft + this.viewportWidth;
       var cellTop = row * ROW_HEIGHT;
       var cellBottom = cellTop + ROW_HEIGHT;
-      var cellLeft = HEADER_WIDTH + col * COL_WIDTH;
-      var cellRight = cellLeft + COL_WIDTH;
+      var cellLeft = this.colXOf(col);
+      var cellRight = cellLeft + this.colWidthOf(col);
       if (cellTop < viewTop) this.scrollArea.scrollTop = cellTop - 10;
       else if (cellBottom > viewBottom) this.scrollArea.scrollTop = cellBottom - this.viewportHeight + 10;
       if (cellLeft < viewLeft + HEADER_WIDTH) this.scrollArea.scrollLeft = cellLeft - HEADER_WIDTH - 10;
@@ -381,7 +441,7 @@
       if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
         const p = parseCellRef(ref);
         if (p) {
-          window.GBCollab.sendEdit({ position: p.row * VirtualGrid.totalCols + p.col, content: val, length: val.length });
+          window.GBCollab.sendEdit({ row: p.row, col: p.col, content: val, length: val.length });
           window.GBCollab.sendTypingStop();
         }
       }
@@ -432,7 +492,7 @@
         if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
           var ref = cell.dataset.ref || "";
           var p = parseCellRef(ref);
-          if (p) window.GBCollab.debouncedTypingStart(p.row * VirtualGrid.totalCols + p.col);
+          if (p) window.GBCollab.debouncedTypingStart(p.row, p.col);
         }
       }
     },
@@ -470,7 +530,8 @@
     },
 
     renderRow: function (row) {
-      for (let c = 0; c < this.totalCols; c++) {
+      const cols = this.visibleColRange();
+      for (let c = cols.start; c < cols.end; c++) {
         const ref = colName(c) + (row + 1);
         const key = row + "," + c;
         const cellData = this.cells.get(key);
@@ -484,9 +545,9 @@
         node.dataset.col = c;
         node.dataset.formula = formula;
         node.textContent = value;
-        node.style.left = (HEADER_WIDTH + c * COL_WIDTH) + "px";
+        node.style.left = this.colXOf(c) + "px";
         node.style.top = (row * ROW_HEIGHT) + "px";
-        node.style.width = COL_WIDTH + "px";
+        node.style.width = this.colWidthOf(c) + "px";
         node.style.height = ROW_HEIGHT + "px";
         // Reset style then apply cell-level style
         node.style.fontWeight = "";
@@ -701,6 +762,10 @@
       app: "sheet",
       docId: currentSheetId(),
       collaboratorsEl: document.getElementById("collaborators"),
+      opLogUrl: function (docId, since) {
+        return "/api/sheet/" + encodeURIComponent(docId) + "/ops?since=" + since;
+      },
+      opSeqOf: function (op) { return op.seq; },
       onConnect: function () {
         if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "online"; }
       },
@@ -708,9 +773,24 @@
         if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "offline"; }
       },
       onEdit: function (msg) {
-        if (!msg || !msg.position) return;
-        const row = Math.floor(msg.position / VirtualGrid.totalCols);
-        const col = msg.position % VirtualGrid.totalCols;
+        if (!msg) return;
+        // Server-oplog replay (#789): ops from the catch-up endpoint carry the
+        // payload under `payload` plus the assigned `seq`.
+        if (msg.payload !== undefined && msg.seq !== undefined) {
+          const pl = msg.payload || {};
+          msg.row = pl.row !== undefined ? pl.row : msg.row;
+          msg.col = pl.col !== undefined ? pl.col : msg.col;
+          msg.content = pl.value !== undefined ? pl.value : msg.content;
+        }
+        let row, col;
+        if (msg.row !== undefined && msg.col !== undefined) {
+          row = msg.row; col = msg.col;
+        } else if (msg.position !== undefined) {
+          row = Math.floor(msg.position / VirtualGrid.totalCols);
+          col = msg.position % VirtualGrid.totalCols;
+        } else {
+          return;
+        }
         const key = row + "," + col;
         const existing = VirtualGrid.cells.get(key) || {};
         VirtualGrid.cells.set(key, Object.assign({}, existing, { value: msg.content }));

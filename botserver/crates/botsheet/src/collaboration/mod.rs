@@ -234,6 +234,7 @@ pub async fn broadcast_sheet_change(
             col: Some(col),
             value: Some(value.to_string()),
             worksheet_index: Some(worksheet_index),
+            seq: None,
             timestamp: Utc::now(),
         };
         let _ = tx.send(msg);

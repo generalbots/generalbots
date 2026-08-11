@@ -181,7 +181,7 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("pos", "pos.sales.list", "List sales", "List point-of-sale orders and sales.", &[], Some("app://pos?order_id={order_id}"), false),
     cmd("retail", "retail.stock.list", "List stock", "List retail inventory and stock levels.", &[], Some("app://retail?product_id={product_id}"), false),
     cmd("hr", "hr.employees.list", "List employees", "List employees, onboarding and requests.", &[], Some("app://hr?employee_id={employee_id}"), false),
-    cmd("tax", "tax.calculate", "Calculate tax", "Calculate Brazilian service taxes for a service.", &[("service", "service name or id"), ("value", "optional amount")], None, false),
+    cmd("tax", "tax.calculate", "Calculate tax", "Calculate Brazilian service taxes for a service value or registered service.", &[("service", "optional service name or id"), ("value", "the service amount")], None, false),
     cmd("tax", "tax.documents.list", "List tax documents", "List Brazilian tax documents (NF-e, NFS-e, CT-e).", &[], Some("app://tax?doc_id={doc_id}"), false),
     cmd("compliance", "compliance.audit.list", "List audit log", "List compliance scans, audit log and evidence.", &[], Some("app://compliance?audit_id={audit_id}"), false),
     cmd("kyc", "kyc.verifications.list", "List verifications", "List KYC identity verifications.", &[], Some("app://kyc?verification_id={verification_id}"), false),
@@ -212,7 +212,7 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("player", "player.streams.list", "List streams", "List media streams.", &[], Some("app://player?media_id={media_id}"), false),
     // ——— Legacy core commands (kept for backward compatibility: the chat
     // prompt and executors reference these exact names) ———
-    cmd("tax", "service.tax", "Calculate service taxes", "Compute Brazilian service taxes for a registered service (IRPJ, CSLL, PIS/COFINS, ISS).", &[("service", "service name or id"), ("value", "optional amount; defaults to the service price")], None, false),
+    cmd("tax", "service.tax", "Calculate service taxes", "Compute Brazilian service taxes for a service value or registered service (IRPJ, CSLL, PIS/COFINS, ISS).", &[("service", "optional service name or id"), ("value", "the service amount; required when no service is given")], None, false),
     cmd("banking", "banking.diagnosis", "Financial diagnosis", "Cash-flow health of the account: revenue, expenses, net, pending reconciliation and tax rates.", &[("period", "optional YYYY-MM month filter")], None, false),
     cmd("banking", "banking.import", "Import cash-flow", "Import a month's cash-flow sheet (CSV stored in the bot drive) into the financial model.", &[("file_key", "drive path of the CSV"), ("period", "optional YYYY-MM")], None, false),
     cmd("drive", "drive.write", "Store a file", "Store a file (e.g. an invoice) in the bot drive under a folder path.", &[("path", "folder/file name"), ("content_base64", "the file bytes in base64")], None, false),

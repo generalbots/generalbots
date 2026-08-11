@@ -506,6 +506,14 @@ async fn handle_api_call(
         let _ = sink.send_bot_response(&progress).await;
     }
 
+    // Tax commands: models frequently omit the `value` param even when the
+    // user stated an amount. Recover it from the user's message (issue #722).
+    let params = if matches!(name.as_str(), "service.tax" | "tax.calculate") {
+        inject_tax_value_from_user(&params, user_text)
+    } else {
+        params
+    };
+
     match api_catalog::execute_command(state, bot_uuid, bot_name, user_id, &name, &params).await {
         Ok(result) => {
             if compose {
@@ -607,6 +615,48 @@ fn extract_deep_links(value: &serde_json::Value) -> Vec<String> {
         }
     }
     out
+}
+
+/// Injects a `value` param for tax commands when the model omitted it but the
+/// user's message contains a monetary amount ("R$ 10.000", "10000 reais").
+fn inject_tax_value_from_user(params: &serde_json::Value, user_text: &str) -> serde_json::Value {
+    let has_value = params
+        .get("value")
+        .and_then(|v| v.as_str())
+        .is_some_and(|v| !v.trim().is_empty());
+    if has_value {
+        return params.clone();
+    }
+    let amount = extract_money_amount(user_text);
+    match amount {
+        Some(value) => {
+            let mut params = params.clone();
+            if let serde_json::Value::Object(map) = &mut params {
+                map.insert("value".to_string(), serde_json::Value::String(value));
+            }
+            params
+        }
+        None => params.clone(),
+    }
+}
+
+/// Extracts a BRL amount from free text, e.g. "R$ 10.000,50" or "10.000 reais".
+/// Returns a normalized decimal string ("10000.50").
+fn extract_money_amount(text: &str) -> Option<String> {
+    let re = regex::Regex::new(r"(?i)R\$\s*([\d.,]+)|\b([\d.,]+)\s*reais").ok()?;
+    let caps = re.captures(text)?;
+    let raw = caps.get(1).or_else(|| caps.get(2))?.as_str();
+    let cleaned = raw.replace('.', "");
+    let normalized = if cleaned.contains(',') {
+        cleaned.replace(',', ".")
+    } else {
+        cleaned
+    };
+    if normalized.parse::<f64>().is_ok() {
+        Some(normalized)
+    } else {
+        None
+    }
 }
 
 /// Extracts the first `{"__api_call__": {...}}` object from a response,

@@ -172,8 +172,9 @@
   function applyValidationMarkers(g, visible) {
     const vals = validationsFor();
     const hasVals = Object.keys(vals).length > 0;
+    const cols = g.visibleColRange ? g.visibleColRange() : { start: 0, end: g.totalCols };
     for (let r = visible.start; r < visible.end; r++) {
-      for (let c = 0; c < g.totalCols; c++) {
+      for (let c = cols.start; c < cols.end; c++) {
         const key = r + "," + c;
         const d = g.cells.get(key);
         const hasVal = hasVals && !!vals[key];

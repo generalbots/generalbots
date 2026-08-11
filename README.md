@@ -1,6 +1,6 @@
 
 <center>
-<img src="https://generalbots.org/icons/general-bots-text.svg" />
+<img src="botui/ui/cloud/images/logo.svg" alt="General Bots" width="400" />
 </center>
 
 

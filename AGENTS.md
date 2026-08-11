@@ -204,7 +204,7 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
 {bucket} default.gbai/
 ├── default.gbdialog/   # scripts: start.bas, {tool}.bas, tables.bas
 ├── default.gbkb/       # knowledge base docs
-├── default.gbot/       # config.csv (LLM config)
+├── default.gbot/       # config.csv (non-sensitive LLM config; secrets → Vault)
 └── default.gbdrive/    # files/reports (optional)
 ```
 
@@ -249,26 +249,34 @@ DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
 /tmp/mc mb local/{bot}.gbai && /tmp/mc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/  # Upload bot
 ```
 
-### 🔧 LLM Configuration — config.csv
-**Location:** `local/{bot}.gbai/{bot}.gbot/config.csv`
+### 🔧 LLM Configuration — config.csv + Vault (secrets migrated)
+**Location (non-sensitive):** `local/{bot}.gbai/{bot}.gbot/config.csv`
+**Location (secrets):** Vault per-bot path `secret/gbo/{org_id}/{branch_id}/{bot_id}`
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| `llm-url` | Full URL for chat completions | `https://integrate.api.nvidia.com/v1/chat/completions` |
-| `llm-server` | Base server URL | `https://integrate.api.nvidia.com/v1` |
-| `llm-key` | API key for the LLM provider | `nvapi-...` or `sk-...` |
-| `llm-model` | Model identifier | `openai/gpt-oss-120b` |
-| `llm-provider` | Provider type | `openai` |
-| `system-prompt` | Bot personality/instructions | `You are the virtual assistant...` |
-| `history-limit` | Conversation history turns | `6` |
+| Field | Where it lives | Description |
+|-------|----------------|-------------|
+| `llm-url` | config.csv | Full URL for chat completions |
+| `llm-server` | config.csv | Base server URL |
+| `llm-key` | **Vault only** (sensitive — `is_sensitive_key`) | API key for the LLM provider |
+| `llm-model` | config.csv | Model identifier |
+| `llm-provider` | config.csv | Provider type |
+| `system-prompt` | config.csv | Bot personality/instructions |
+| `history-limit` | config.csv | Conversation history turns |
 
-**How it works:** 1) BotServer reads `config.csv` from Drive via drive_monitor on startup/change. 2) Per-bot config via `ConfigManager::get_config()`. 3) Falls back to env vars `LLM_URL`/`LLM_MODEL`/`LLM_KEY`. 4) Provider auto-detected from URL pattern.
+**How it works:** 1) drive_monitor syncs non-sensitive config.csv keys into the `bot_configuration` table (sensitive keys — e.g. `llm-key` — are IGNORED: "secrets must be configured via Vault"). 2) Per-bot config via `ConfigManager::get_config()`: sensitive keys → Vault per-bot path → DB fallback → env; non-sensitive → DB → env. 3) Falls back to env vars `LLM_URL`/`LLM_MODEL`/`LLM_KEY`. 4) Provider auto-detected from URL pattern.
 
-**Update model:**
+**Update model (non-sensitive):**
 ```bash
 /tmp/mc cp local/{bot}.gbai/{bot}.gbot/config.csv /tmp/config.csv
 sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
 /tmp/mc cp /tmp/config.csv local/{bot}.gbai/{bot}.gbot/config.csv   # auto-reloads
+```
+
+**Set LLM key (Vault):**
+```bash
+export VAULT_ADDR=<vault-addr> VAULT_SKIP_VERIFY=true VAULT_TOKEN=<root-token>
+# resolve org/branch from: SELECT org_id, branch_id FROM bots WHERE name = '<bot>';
+vault kv put secret/gbo/<org_id>/<branch_id>/<bot_id> llm-key=<api-key>
 ```
 
 ---
@@ -1004,7 +1012,7 @@ git push origin main
 
 ### WhatsApp Integration Testing
 1. Build with feature: `cargo check -p botserver --features whatsapp`
-2. Bot `config.csv` needs: `whatsapp-api-key`, `whatsapp-verify-token`, `whatsapp-phone-number-id`, `whatsapp-business-account-id`
+2. Bot secrets in Vault: `secret/gbo/00000000-0000-0000-0000-000000000000/{bot_id}/whatsapp` (whatsapp-api-key, whatsapp-verify-token, whatsapp-phone-number-id, whatsapp-business-account-id)
 3. Use localtunnel (lt) as reverse proxy; check message storage:
    `psql -h localhost -U postgres -d botserver -c "SELECT * FROM messages WHERE bot_id = '<bot_id>' ORDER BY created_at DESC LIMIT 5;"`
 

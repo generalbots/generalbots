@@ -124,7 +124,10 @@ fn row_passes(config: &FilterConfig, cell: Option<CellValue>) -> bool {
 /// case-insensitive string comparison against the raw stored value.
 fn cell_values_equal(cell: Option<&CellValue>, expected: &str) -> bool {
     match cell {
-        Some(CellValue::Number(n)) => expected.trim().parse::<f64>().map_or(false, |e| *n == e),
+        Some(CellValue::Number(n)) => expected
+            .trim()
+            .parse::<f64>()
+            .is_ok_and(|e| *n == e),
         Some(c) => c.display().eq_ignore_ascii_case(expected),
         None => expected.is_empty(),
     }

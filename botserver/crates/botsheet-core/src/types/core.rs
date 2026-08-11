@@ -115,6 +115,11 @@ pub struct CollabMessage {
     pub value: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub worksheet_index: Option<usize>,
+    /// Server-assigned monotonic sequence for the sheet session (#791). Every
+    /// state-changing message carries it; clients apply in order and use it as
+    /// the `since` argument of the ops catch-up endpoint on reconnect.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seq: Option<u64>,
     pub timestamp: DateTime<Utc>,
 }
 
@@ -366,4 +371,8 @@ pub struct SpreadsheetMetadata {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub worksheet_count: usize,
+    /// Per-user access map copied from the workbook so the lightweight
+    /// listing sidecar can enforce read access without loading cell data.
+    #[serde(default)]
+    pub acl: HashMap<String, String>,
 }

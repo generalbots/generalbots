@@ -366,6 +366,39 @@ pub async fn handle_get_sheet_by_id(
     Ok(Json(sheet))
 }
 
+/// Returns the ops recorded after `since` (0 = all), plus the current version
+/// so a reconnecting client can converge with the session state (#789, #791).
+pub async fn handle_sheet_ops(
+    State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
+    Path(sheet_id): Path<String>,
+    Query(q): Query<OpsQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &sheet_id)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            )
+        })?;
+
+    let version = session.version.load(std::sync::atomic::Ordering::SeqCst);
+    Ok(Json(serde_json::json!({
+        "version": version,
+        "ops": session.ops_since(q.since),
+    })))
+}
+
+#[derive(serde::Deserialize, Default)]
+pub struct OpsQuery {
+    #[serde(default)]
+    pub since: u64,
+}
+
 pub async fn handle_share_sheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,

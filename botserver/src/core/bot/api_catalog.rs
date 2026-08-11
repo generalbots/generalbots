@@ -22,6 +22,7 @@ use base64::Engine;
 use bigdecimal::BigDecimal;
 use botcore::shared::state::AppState;
 use diesel::RunQueryDsl;
+use rust_decimal::Decimal;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -169,7 +170,7 @@ pub fn api_command_instructions(role: &str) -> String {
 
     // Only the most common commands are named explicitly to avoid prompt bloat.
     lines.push("Common commands you may call directly:".to_string());
-    for name in ["apps.find", "api.find", "api.exec"] {
+    for name in ["apps.find", "api.find", "api.exec", "service.tax", "banking.diagnosis", "drive.list"] {
         if let Some(cmd) = command_by_name(name) {
             let params = cmd
                 .params
@@ -371,7 +372,7 @@ pub async fn execute_command(
     };
     let str_of = |key: &str| obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string());
     match name {
-        "service.tax" => execute_tax(state, &bot_uuid, str_of("service"), str_of("value")).await,
+        "service.tax" | "tax.calculate" => execute_tax(state, &bot_uuid, str_of("service"), str_of("value")).await,
         "banking.diagnosis" => {
             let period = str_of("period");
             let resp =
@@ -687,22 +688,71 @@ async fn execute_tax(
     service: Option<String>,
     value: Option<String>,
 ) -> Result<Value, String> {
-    let service = service.ok_or_else(|| "params.service is required (name or id)".to_string())?;
     let scope = botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid, None)
         .ok_or_else(|| "bot not found".to_string())?;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
-    let result = botproducts::service_tax::calculate_service_tax_inner(
-        &mut conn,
-        scope.branch_id,
-        &service,
-        None,
-        value.as_deref(),
-    )
-    .await;
+    let result = match service {
+        Some(service) => {
+            botproducts::service_tax::calculate_service_tax_inner(
+                &mut conn,
+                scope.branch_id,
+                &service,
+                None,
+                value.as_deref(),
+            )
+            .await
+        }
+        // No registered service named by the user: compute the breakdown for
+        // the raw value with the branch tax rates (issue #722).
+        None => calculate_anonymous_service_tax(&mut conn, &scope.branch_id, value.as_deref()),
+    };
     match result {
         Ok(v) => Ok(v),
         Err((_code, msg)) => Err(msg),
     }
+}
+
+/// Computes the tax breakdown for a service value without a registered
+/// service (chat asks like "calcular o imposto de um serviço de R$ 10.000").
+/// Rates come from `billing_tax_rates` for the branch; the audit row is
+/// persisted with a null service id.
+fn calculate_anonymous_service_tax(
+    conn: &mut diesel::PgConnection,
+    branch_id: &Uuid,
+    value: Option<&str>,
+) -> Result<serde_json::Value, (axum::http::StatusCode, String)> {
+    use std::str::FromStr as _;
+    let service_value = value
+        .map(Decimal::from_str)
+        .transpose()
+        .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Invalid value: {e}")))?
+        .ok_or_else(|| (axum::http::StatusCode::BAD_REQUEST, "Provide a 'value' for the service".to_string()))?;
+    let loaded = bottax::storage::load_rates_from_billing(conn, branch_id);
+    let rates = loaded.unwrap_or_default();
+    let source = if loaded.is_some() { "billing_tax_rates" } else { "default" };
+    let breakdown = bottax::calculator::calculate_service_tax(service_value, &rates);
+    if let Err((_code, msg)) = bottax::handlers::persist_calculation(
+        conn,
+        branch_id,
+        None,
+        None,
+        &breakdown,
+        source,
+    ) {
+        log::warn!("service.tax audit insert skipped: {msg}");
+    }
+    Ok(serde_json::json!({
+        "service": null,
+        "service_value": breakdown.service_value.to_string(),
+        "breakdown": breakdown,
+        "rates": {
+            "irpj_pct": rates.irpj_pct.to_string(),
+            "csll_pct": rates.csll_pct.to_string(),
+            "pis_cofins_pct": rates.pis_cofins_pct.to_string(),
+            "iss_pct": rates.iss_pct.to_string(),
+        },
+        "rate_source": source,
+    }))
 }
 
 async fn write_drive_file(state: &Arc<AppState>, bot_name: &str, path: &str, content_b64: &str) -> Result<Value, String> {

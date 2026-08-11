@@ -11,4 +11,5 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .route("/api/tax/cte", get(handlers::list_cte).post(handlers::create_cte))
         .route("/api/tax/sped", get(handlers::list_sped))
         .route("/api/tax/calculate", post(handlers::calculate_tax))
+        .route("/api/tax/calculations", get(handlers::list_calculations))
 }

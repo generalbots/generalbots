@@ -2,11 +2,18 @@ let currentSessionId = null;
 let isRecording = false;
 let recordedActions = [];
 
+function _browserAuthHeaders(extra) {
+    const headers = Object.assign({}, extra || {});
+    const token = localStorage.getItem('gb-access-token') || sessionStorage.getItem('gb-access-token') || '';
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    return headers;
+}
+
 async function initBrowser() {
     try {
         const resp = await fetch('/api/browser/session', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: _browserAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ headless: false })
         });
         const data = await resp.json();
@@ -25,7 +32,7 @@ async function executeAction(actionType, payload) {
     try {
         await fetch(`/api/browser/session/${currentSessionId}/execute`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: _browserAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ action_type: actionType, payload })
         });
         updateTimeline();
@@ -46,7 +53,7 @@ async function toggleRecording() {
     if (isRecording) {
         // Stop recording
         try {
-            await fetch(`/api/browser/session/${currentSessionId}/record/stop`, { method: 'POST' });
+            await fetch(`/api/browser/session/${currentSessionId}/record/stop`, { method: 'POST', headers: _browserAuthHeaders({}) });
             isRecording = false;
             btn.textContent = '⏺ Record';
             btn.classList.remove('recording-active');
@@ -56,7 +63,7 @@ async function toggleRecording() {
     } else {
         // Start recording
         try {
-            await fetch(`/api/browser/session/${currentSessionId}/record/start`, { method: 'POST' });
+            await fetch(`/api/browser/session/${currentSessionId}/record/start`, { method: 'POST', headers: _browserAuthHeaders({}) });
             isRecording = true;
             btn.textContent = '⏹ Stop Recording';
             btn.classList.add('recording-active');
@@ -92,7 +99,7 @@ async function browserClick(selector) {
 async function captureScreenshot() {
     if (!currentSessionId) return;
     try {
-        await fetch(`/api/browser/session/${currentSessionId}/screenshot`);
+        await fetch(`/api/browser/session/${currentSessionId}/screenshot`, { headers: _browserAuthHeaders({}) });
         // We'd render this to the gallery
         const gallery = document.getElementById('browserGallery');
         if (gallery) {
@@ -107,7 +114,7 @@ async function exportTest() {
         return;
     }
     try {
-        const resp = await fetch(`/api/browser/session/${currentSessionId}/record/export`);
+        const resp = await fetch(`/api/browser/session/${currentSessionId}/record/export`, { headers: _browserAuthHeaders({}) });
         const data = await resp.json();
 
         // Download test file

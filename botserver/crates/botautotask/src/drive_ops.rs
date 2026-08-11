@@ -14,6 +14,16 @@ use std::sync::Arc;
 pub struct DriveRepositoryOps(pub Arc<dyn DriveRepository>);
 
 fn bridge<T>(fut: impl std::future::Future<Output = Result<T, String>>) -> Result<T, BoxError> {
+    // Inside an async context (API handlers, chat pipeline) the runtime is
+    // already running — block on the current handle instead of spawning a
+    // second runtime ("Cannot start a runtime from within a runtime").
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        return tokio::task::block_in_place(move || {
+            handle
+                .block_on(fut)
+                .map_err(|e| box_error(format!("drive operation failed: {e}")))
+        });
+    }
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()

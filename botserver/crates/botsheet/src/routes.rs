@@ -11,7 +11,7 @@ use crate::handlers::{
     handle_export_named_ranges_csv, handle_export_sheet,
     handle_filter_data, handle_format_cells, handle_freeze_panes, handle_get_range,
     handle_paste, handle_resize,
-    handle_get_sheet_by_id, handle_import_named_ranges_csv, handle_import_sheet,
+    handle_get_sheet_by_id, handle_sheet_ops, handle_import_named_ranges_csv, handle_import_sheet,
     handle_list_comments, handle_list_external_links, handle_list_named_ranges, handle_list_sheets,
     handle_load_from_drive, handle_load_sheet, handle_lock_cells, handle_merge_cells,
     handle_new_sheet, handle_pivot, handle_protect_sheet, handle_refresh_external_link,
@@ -70,6 +70,7 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/ai/evaluate-prompt", post(handle_evaluate_ai_prompt))
         .route("/api/sheet/ai/batch-evaluate", post(handle_batch_evaluate_ai))
         .route("/api/sheet/:id", get(handle_get_sheet_by_id))
+        .route("/api/sheet/:id/ops", get(handle_sheet_ops))
         .route("/api/sheet/:id/collaborators", get(handle_get_collaborators))
         .route("/api/sheet/comment", post(handle_add_comment))
         .route("/api/sheet/comment/reply", post(handle_reply_comment))

@@ -11,6 +11,7 @@ use crate::api::{
 use crate::execution::script_for;
 use crate::intent_classifier::IntentClassifier;
 use crate::intent_compiler::IntentCompiler;
+use crate::ClassifiedIntent;
 use crate::types::{BotInfo, DbPool};
 use axum::{
     extract::{Path, Query, State},
@@ -48,6 +49,31 @@ pub(crate) fn canonical_bot_id(bot_id: Option<String>) -> Uuid {
         .unwrap_or_else(Uuid::nil)
 }
 
+/// Resolves a nil bot id to the default bot so chat-driven requests without
+/// an explicit bot still persist to a real bucket (vibe chat, autotask).
+fn resolve_effective_bot_id(pool: &DbPool, bot_id: Uuid) -> Uuid {
+    if bot_id != Uuid::nil() {
+        return bot_id;
+    }
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(_) => return bot_id,
+    };
+    sql_query("SELECT id FROM bots WHERE name = 'default' AND is_active = true LIMIT 1")
+        .get_result::<BotIdRow>(&mut conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|r| r.id)
+        .unwrap_or(bot_id)
+}
+
+#[derive(diesel::QueryableByName)]
+struct BotIdRow {
+    #[diesel(sql_type = DieselUuid)]
+    id: Uuid,
+}
+
 fn classifier_for(api: &Arc<AutoTaskApi>) -> IntentClassifier {
     IntentClassifier::new(
         api.state().db_pool().clone(),
@@ -77,17 +103,25 @@ pub async fn classify_intent(
 ) -> impl IntoResponse {
     info!("API classify intent: {}", &req.intent[..req.intent.len().min(50)]);
     let bot_id = canonical_bot_id(req.bot_id.clone());
+    let effective_bot_id = resolve_effective_bot_id(api.state().db_pool(), bot_id);
     match classifier_for(&api).classify_api(&req.intent, bot_id).await {
-        Ok(c) => Json(ClassifyIntentResponse {
-            success: true,
-            intent_type: c.intent_type.to_string(),
-            confidence: c.confidence,
-            suggested_name: c.suggested_name.clone(),
-            requires_clarification: c.requires_clarification,
-            clarification_question: c.clarification_question.clone(),
-            result: None,
-            error: None,
-        }),
+        Ok(c) => {
+            let result = if req.auto_process == Some(true) {
+                auto_process_classification(&api, effective_bot_id, &c).await
+            } else {
+                None
+            };
+            Json(ClassifyIntentResponse {
+                success: true,
+                intent_type: c.intent_type.to_string(),
+                confidence: c.confidence,
+                suggested_name: c.suggested_name.clone(),
+                requires_clarification: c.requires_clarification,
+                clarification_question: c.clarification_question.clone(),
+                result,
+                error: None,
+            })
+        }
         Err(e) => Json(ClassifyIntentResponse {
             success: false,
             intent_type: "UNKNOWN".to_string(),
@@ -98,6 +132,60 @@ pub async fn classify_intent(
             result: None,
             error: Some(err_msg("classify", &*e)),
         }),
+    }
+}
+
+/// Auto-process pipeline for chat-driven intents (vibe chat): classify →
+/// compile → persist the generated `.bas` to the bot's Drive bucket so
+/// DriveMonitor registers the automation. Returns the result payload the
+/// frontend renders as task nodes and progress messages.
+async fn auto_process_classification(
+    api: &Arc<AutoTaskApi>,
+    bot_id: Uuid,
+    classification: &ClassifiedIntent,
+) -> Option<crate::api::IntentResultResponse> {
+    let compiled = match compiler_for(api)
+        .compile_from_classification(classification, None, None)
+        .await
+    {
+        Ok(c) => Some(c),
+        Err(e) => {
+            warn!("auto_process LLM compile failed ({e}); using offline BASIC fallback");
+            None
+        }
+    };
+    let (relative_path, body) = script_for(classification, compiled.as_ref());
+    match persist_script(api, bot_id, &relative_path, &body) {
+        Ok((bucket, key)) => Some(crate::api::IntentResultResponse {
+            success: true,
+            message: format!("Automation created and registered: {bucket}/{key}"),
+            app_url: None,
+            task_id: Some(classification.id.clone()),
+            schedule_id: None,
+            tool_triggers: Vec::new(),
+            created_resources: vec![crate::api::CreatedResourceResponse {
+                resource_type: classification.intent_type.to_string().to_lowercase(),
+                name: classification
+                    .suggested_name
+                    .clone()
+                    .unwrap_or_else(|| "autotask".to_string()),
+                path: Some(key.clone()),
+            }],
+            next_steps: Vec::new(),
+        }),
+        Err(e) => {
+            warn!("auto_process persist failed: {e}");
+            Some(crate::api::IntentResultResponse {
+                success: false,
+                message: e,
+                app_url: None,
+                task_id: Some(classification.id.clone()),
+                schedule_id: None,
+                tool_triggers: Vec::new(),
+                created_resources: Vec::new(),
+                next_steps: Vec::new(),
+            })
+        }
     }
 }
 

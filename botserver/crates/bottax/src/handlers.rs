@@ -240,8 +240,8 @@ pub async fn list_sped(headers: HeaderMap) -> Result<Json<Vec<Sped>>, (StatusCod
 }
 
 /// Calculates service taxes (issue #722). Rates come from `billing_tax_rates`
-/// when present for the branch, otherwise built-in defaults. The calculation
-/// is returned immediately — no records are persisted per calculation.
+/// when present for the branch, otherwise built-in defaults. Every calculation
+/// is persisted to `tax_calculations` (migration 6.5.54) for audit.
 pub async fn calculate_tax(
     headers: HeaderMap,
     Json(req): Json<TaxCalculationRequest>,
@@ -257,5 +257,102 @@ pub async fn calculate_tax(
     let loaded = load_rates_from_billing(&mut conn, &branch);
     let rates = loaded.unwrap_or_default();
     let breakdown = crate::calculator::calculate_service_tax(service_value, &rates);
+    persist_calculation(
+        &mut conn,
+        &branch,
+        req.service_id,
+        req.service_name.as_deref(),
+        &breakdown,
+        if loaded.is_some() { "billing_tax_rates" } else { "default" },
+    )?;
     Ok(Json(breakdown))
+}
+
+/// Inserts an audit row for a tax calculation (issue #722 acceptance criteria).
+/// Shared by the REST handler and the chat `service.tax` catalog command.
+pub fn persist_calculation(
+    conn: &mut diesel::PgConnection,
+    branch: &Uuid,
+    service_id: Option<Uuid>,
+    service_name: Option<&str>,
+    breakdown: &crate::calculator::TaxBreakdown,
+    rate_source: &str,
+) -> Result<(), (StatusCode, String)> {
+    let eff: Decimal = breakdown.effective_rate;
+    diesel::sql_query(
+        "INSERT INTO tax_calculations \
+         (branch_id, service_id, service_name, service_value, irpj, csll, pis_cofins, iss, \
+          total_taxes, effective_rate, rate_source) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) \
+         ON CONFLICT DO NOTHING",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(service_id)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(service_name)
+    .bind::<diesel::sql_types::Numeric, _>(breakdown.service_value)
+    .bind::<diesel::sql_types::Numeric, _>(breakdown.irpj)
+    .bind::<diesel::sql_types::Numeric, _>(breakdown.csll)
+    .bind::<diesel::sql_types::Numeric, _>(breakdown.pis_cofins)
+    .bind::<diesel::sql_types::Numeric, _>(breakdown.iss)
+    .bind::<diesel::sql_types::Numeric, _>(breakdown.total_taxes)
+    .bind::<diesel::sql_types::Numeric, _>(eff)
+    .bind::<diesel::sql_types::Text, _>(rate_source)
+    .execute(conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(())
+}
+
+/// Lists persisted tax calculations (issue #722), branch-scoped by the
+/// server-minted JWT claim.
+pub async fn list_calculations(
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)] branch_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)] service_id: Option<Uuid>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)] service_name: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] service_value: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] irpj: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] csll: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] pis_cofins: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] iss: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] total_taxes: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] effective_rate: Decimal,
+        #[diesel(sql_type = diesel::sql_types::Text)] rate_source: String,
+    }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, branch_id, service_id, service_name, service_value, irpj, csll, \
+         pis_cofins, iss, total_taxes, effective_rate, rate_source \
+         FROM tax_calculations \
+         WHERE branch_id = $1 \
+         ORDER BY created_at DESC LIMIT 100",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    let items: Vec<serde_json::Value> = rows
+        .into_iter()
+        .map(|r| {
+            serde_json::json!({
+                "id": r.id,
+                "branch_id": r.branch_id,
+                "service_id": r.service_id,
+                "service_name": r.service_name,
+                "service_value": r.service_value.to_string(),
+                "irpj": r.irpj.to_string(),
+                "csll": r.csll.to_string(),
+                "pis_cofins": r.pis_cofins.to_string(),
+                "iss": r.iss.to_string(),
+                "total_taxes": r.total_taxes.to_string(),
+                "effective_rate": r.effective_rate.to_string(),
+                "rate_source": r.rate_source,
+            })
+        })
+        .collect();
+    Ok(Json(serde_json::json!({ "count": items.len(), "calculations": items })))
 }

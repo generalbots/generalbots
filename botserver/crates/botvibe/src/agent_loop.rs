@@ -225,8 +225,9 @@ impl AgentLoop {
     ) -> Result<String, String> {
         let prompt = self.prompt_manager.compose_prompt(context, user_message);
         let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
-        // Per-bot config (Issue #795): explicit run overrides > bot config.csv
-        // via the state > environment > built-in defaults.
+        // Per-bot config (Issue #795): explicit run overrides > config
+        // (Vault for secrets, Drive config.csv for the rest) via the state
+        // > environment > built-in defaults.
         let llm = self.state.llm_config(&run.bot_id);
         let model = run
             .config
