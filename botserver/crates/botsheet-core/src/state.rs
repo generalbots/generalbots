@@ -93,6 +93,25 @@ pub async fn save_sheet_to_drive(
     user_id: &str,
     sheet: &crate::types::Spreadsheet,
 ) -> Result<(), String> {
+    persist_sheet_to_drive(state, user_id, sheet).await?;
+
+    // Post-save hook (xlsx export back to original bucket/path)
+    if let Some(ref hook) = state.on_save {
+        hook(sheet)?;
+    }
+
+    Ok(())
+}
+
+/// Persists a sheet's JSON + listing sidecar WITHOUT firing the on-save xlsx
+/// export hook. Used by the load-from-drive path: merely opening a file must
+/// not rewrite the source .xlsx (which would drop charts via the umya
+/// round-trip), even though the load persists a working copy of the JSON.
+pub async fn persist_sheet_to_drive(
+    state: &SheetState,
+    user_id: &str,
+    sheet: &crate::types::Spreadsheet,
+) -> Result<(), String> {
     let drive = state
         .drive
         .as_ref()
@@ -105,11 +124,6 @@ pub async fn save_sheet_to_drive(
     drive
         .put_object("gbo", &path, content.into_bytes(), "application/json")
         .await?;
-
-    // Post-save hook (xlsx export back to original bucket/path)
-    if let Some(ref hook) = state.on_save {
-        hook(sheet)?;
-    }
 
     // Keep the lightweight listing sidecar in sync (#789, gap 24): listing a
     // library no longer deserialises every workbook, only this small record.
