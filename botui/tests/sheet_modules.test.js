@@ -355,6 +355,78 @@ function runCharts() {
   const C = env.window.SheetChartsRender;
   assertTrue(typeof C === "object" && C !== null, "SheetChartsRender exposed");
   assertTrue(C.renderAll !== undefined, "renderAll exposed");
+  runMultiRange();
+}
+
+// 01_core multi-range selection (Ctrl+click): ranges accumulate, dedupe, expose
+function runMultiRange() {
+  const SA = env.window.SheetAdvanced;
+  assertTrue(typeof SA === "object" && SA !== null, "SheetAdvanced exposed");
+  assertTrue(SA.getRanges !== undefined, "getRanges exposed");
+  assertTrue(SA.addRange !== undefined, "addRange exposed");
+  SA.addRange(1, 1, 3, 3);
+  SA.addRange(5, 0, 5, 2);
+  assertEqual(SA.getRanges().length, 2, "two ranges accumulate");
+  assertEqual(SA.getRanges()[0].startRow, 1, "first range startRow");
+  assertEqual(SA.getRanges()[1].endCol, 2, "second range endCol");
+  SA.addRange(1, 1, 3, 3);
+  assertEqual(SA.getRanges().length, 1, "adding same range toggles it off");
+  SA.addRange(9, 9, 10, 10);
+  assertEqual(SA.getRanges().length, 2, "re-added range accumulates again");
+  SA.clearSelection();
+  assertEqual(SA.getRanges().length, 0, "clearSelection clears multi-ranges");
+  runWidthsResize();
+}
+
+// 14_widths drag-resize API: resize column/row updates local widths
+function runWidthsResize() {
+  const W = env.window.SheetWidths;
+  assertTrue(typeof W === "object" && W !== null, "SheetWidths exposed");
+  assertTrue(W.resizeColumn !== undefined, "resizeColumn exposed");
+  assertTrue(W.resizeRow !== undefined, "resizeRow exposed");
+  const g6 = {
+    totalRows: 100,
+    totalCols: 26,
+    cells: makeCellMap({}),
+    bodyInner: { style: {}, appendChild: function () {}, addEventListener: function () {} },
+    headerRow: { style: {}, appendChild: function () {}, addEventListener: function () {}, children: [] },
+    root: null,
+    render: function () {},
+    lastRenderedRange: null,
+  };
+  env.window.SheetVirtualGrid = g6;
+  env.window.SheetCore.setGrid(g6);
+  W.resizeColumn(2, 200);
+  assertEqual(W.colWidth(2), 200, "resizeColumn updates local width");
+  W.resizeRow(3, 45);
+  assertEqual(W.rowHeight(3), 45, "resizeRow updates local height");
+  runVirtualCols();
+}
+
+// Virtualized columns (#786): visibleColRange returns only the window that
+// intersects the viewport at the current scrollLeft.
+function runVirtualCols() {
+  const compute = env.window.SheetCore && env.window.SheetCore.computeVisibleColRange;
+  assertTrue(typeof compute === "function", "computeVisibleColRange exposed");
+
+  const spec = function (scrollLeft, viewportWidth) {
+    return {
+      scrollLeft: scrollLeft,
+      viewportWidth: viewportWidth,
+      totalCols: 16384,
+      colXOf: function (c) { return 48 + c * 96; },
+      colWidthOf: function () { return 96; },
+    };
+  };
+
+  let range = compute(spec(0, 1000));
+  assertEqual(range.start, 0, "virtual start 0 at scrollLeft 0");
+  assertEqual(range.end - range.start <= 14, true, "virtual window fits viewport (1000px/96px)");
+
+  range = compute(spec(48 + 10000 * 96, 1000));
+  assertEqual(range.start > 9900, true, "virtual start follows scrollLeft");
+  assertEqual(range.end > range.start, true, "virtual end after start");
+  assertEqual(range.start < range.end && range.end <= 16384, true, "virtual window within 16384 cols");
   finalize();
 }
 

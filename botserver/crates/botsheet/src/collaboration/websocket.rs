@@ -2,9 +2,14 @@ use super::{
     ensure_sweep_started, get_collab_channels, get_presence, get_random_color, get_selections,
     get_typing, get_mentions, MentionNotification, SelectionInfo, TypingIndicator, UserPresence,
 };
+use crate::state::SheetState;
 use crate::types::CollabMessage;
+use std::sync::Arc;
 use axum::{
-    extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Path, Query},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        Path, Query, State,
+    },
     response::IntoResponse,
 };
 use botsheet_core::formulas::cell_to_a1;
@@ -85,14 +90,20 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
 
 pub async fn handle_sheet_websocket(
     ws: WebSocketUpgrade,
+    State(state): State<Arc<SheetState>>,
     Path(sheet_id): Path<String>,
     Query(q): Query<WsAuthQuery>,
 ) -> impl IntoResponse {
     let auth = extract_user_from_token(&q.token);
-    ws.on_upgrade(move |socket| handle_sheet_connection(socket, sheet_id, auth))
+    ws.on_upgrade(move |socket| handle_sheet_connection(socket, state, sheet_id, auth))
 }
 
-pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: Option<(String, String)>) {
+pub async fn handle_sheet_connection(
+    socket: WebSocket,
+    state: Arc<SheetState>,
+    sheet_id: String,
+    auth: Option<(String, String)>,
+) {
     ensure_sweep_started();
     let (mut sender, mut receiver) = socket.split();
 
@@ -141,6 +152,7 @@ pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: 
         col: None,
         value: None,
         worksheet_index: None,
+        seq: None,
         timestamp: Utc::now(),
     };
 
@@ -153,7 +165,8 @@ pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: 
     let sheet_id_clone = sheet_id.clone();
     let user_name_clone = user_name.clone();
     let user_color_clone = user_color.clone();
-
+    let state_clone = Arc::clone(&state);
+    
     let receive_task = tokio::spawn(async move {
         while let Some(msg) = receiver.next().await {
             match msg {
@@ -275,6 +288,97 @@ pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: 
                                     }
                                 }
                             }
+                            // Server-authoritative edit (#791): the client sends
+                            // intent (row/col/content), the session applies it,
+                            // records an oplog entry and stamps the message with
+                            // the assigned sequence. Other clients order their
+                            // local state by `seq` and use it as the catch-up
+                            // cursor if they missed anything.
+                            "edit" | "cell_update" => {
+                                if let (Some(row), Some(col), Some(content)) =
+                                    (collab_msg.row, collab_msg.col, collab_msg.value.as_ref())
+                                {
+                                    let session = match state_clone
+                                        .sessions
+                                        .get_or_load(&state_clone, &user_id_clone, &sheet_id_clone)
+                                        .await
+                                    {
+                                        Ok(s) => s,
+                                        Err(e) => {
+                                            log::warn!(
+                                                "collab edit on unknown sheet {}: {e}",
+                                                sheet_id_clone
+                                            );
+                                            continue;
+                                        }
+                                    };
+                                    {
+                                        let mut sheet = session.sheet.write().await;
+                                        let ws_idx = collab_msg
+                                            .worksheet_index
+                                            .unwrap_or(0)
+                                            .min(sheet.worksheets.len().saturating_sub(1));
+                                        let key = format!("{row},{col}");
+                                        let entry = sheet.worksheets[ws_idx]
+                                            .data
+                                            .entry(key)
+                                            .or_insert_with(|| crate::types::CellData {
+                                                value: None,
+                                                typed: None,
+                                                formula: None,
+                                                style: None,
+                                                format: None,
+                                                note: None,
+                                                locked: None,
+                                                has_comment: None,
+                                                array_formula_id: None,
+                                            });
+                                        entry.value = Some(content.clone());
+                                        entry.typed = Some(
+                                            botsheet_core::engine::CellValue::parse(content),
+                                        );
+                                        sheet.updated_at = Utc::now();
+                                    }
+                                    // Recalculate dependents through the cached dependency graph
+                                    // (#784). Everything happens under one
+                                    // short blocking write guard — no awaits in
+                                    // this path, so the spawn future stays Send.
+                                    let changed = (row, col);
+                                    {
+                                        let mut graphs = match session.dep_graphs.lock() {
+                                            Ok(guard) => guard,
+                                            Err(poisoned) => poisoned.into_inner(),
+                                        };
+                                        let index = collab_msg
+                                            .worksheet_index
+                                            .unwrap_or(0)
+                                            .min(graphs.len().saturating_sub(1));
+                                        let mut sheet = session.sheet.blocking_write();
+                                        let worksheet = &mut sheet.worksheets[index];
+                                        graphs[index].on_edit(worksheet, &[changed]);
+                                        graphs[index].recalc_cascade_typed(
+                                            worksheet,
+                                            changed,
+                                            1000,
+                                        );
+                                    }
+                                    let seq = state_clone.sessions.record(
+                                        &session,
+                                        &state_clone,
+                                        &user_id_clone,
+                                        "cell_update",
+                                        serde_json::json!({
+                                            "row": row,
+                                            "col": col,
+                                            "value": content,
+                                            "worksheet_index":
+                                                collab_msg.worksheet_index.unwrap_or(0),
+                                        }),
+                                    );
+                                    collab_msg.msg_type = "cell_update".to_string();
+                                    collab_msg.seq = Some(seq);
+                                }
+                            }
                             _ => {}
                         }
 
@@ -319,6 +423,7 @@ pub async fn handle_sheet_connection(socket: WebSocket, sheet_id: String, auth: 
         col: None,
         value: None,
         worksheet_index: None,
+        seq: None,
         timestamp: Utc::now(),
     };
 

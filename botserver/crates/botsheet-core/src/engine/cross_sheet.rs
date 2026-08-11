@@ -55,14 +55,12 @@ pub fn resolve_sheet_args(
         let (cell_tok, _) = split_ref_token(&raw[i + 1..]);
         let advanced = 1 + cell_tok.len();
         if !sheet_name.is_empty() && !cell_tok.is_empty() {
-            match resolve_sheet_token(sheet_name, cell_tok, func_name, worksheets) {
-                Some(text) => {
-                    out.truncate(out.len() - (i - start));
-                    out.push_str(&text);
-                    i += advanced;
-                    continue;
-                }
-                None => {}
+            if let Some(text) = resolve_sheet_token(sheet_name, cell_tok, func_name, worksheets)
+            {
+                out.truncate(out.len() - (i - start));
+                out.push_str(&text);
+                i += advanced;
+                continue;
             }
         }
         out.push('!');
@@ -161,7 +159,7 @@ fn aggregate_range(
             } else {
                 nums.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 let mid = nums.len() / 2;
-                let median = if nums.len() % 2 == 0 {
+                let median = if nums.len().is_multiple_of(2) {
                     (nums[mid - 1] + nums[mid]) / 2.0
                 } else {
                     nums[mid]
@@ -268,16 +266,20 @@ mod tests {
     }
 
     fn sheet_pair() -> Vec<Worksheet> {
-        let mut ws1 = Worksheet::default();
-        ws1.name = "Sheet1".to_string();
-        ws1.data = HashMap::from([("0,0".to_string(), cell("10"))]);
-        let mut ws2 = Worksheet::default();
-        ws2.name = "Sheet2".to_string();
-        ws2.data = HashMap::from([
-            ("0,0".to_string(), cell("20")),
-            ("1,0".to_string(), cell("30")),
-            ("2,0".to_string(), cell("40")),
-        ]);
+        let ws1 = Worksheet {
+            name: "Sheet1".to_string(),
+            data: HashMap::from([("0,0".to_string(), cell("10"))]),
+            ..Worksheet::default()
+        };
+        let ws2 = Worksheet {
+            name: "Sheet2".to_string(),
+            data: HashMap::from([
+                ("0,0".to_string(), cell("20")),
+                ("1,0".to_string(), cell("30")),
+                ("2,0".to_string(), cell("40")),
+            ]),
+            ..Worksheet::default()
+        };
         vec![ws1, ws2]
     }
 

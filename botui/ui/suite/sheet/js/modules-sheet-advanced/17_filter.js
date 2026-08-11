@@ -309,7 +309,8 @@
     const HEADER_WIDTH = 48;
     const COL_WIDTH = 96;
     const active = currentFilters();
-    for (let c = 0; c < g.totalCols; c++) {
+    const cols = g.visibleColRange ? g.visibleColRange() : { start: 0, end: g.totalCols };
+    for (let c = cols.start; c < cols.end; c++) {
       const head = document.createElement("div");
       head.className = "ss-filter-head";
       head.dataset.col = c;

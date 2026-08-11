@@ -286,8 +286,10 @@ pub trait VibeState: Send + Sync {
     fn progress_sender(&self) -> Option<&broadcast::Sender<VibeProgressEvent>>;
     fn active_runs(&self) -> &Arc<RwLock<HashMap<Uuid, VibeRun>>>;
     fn run_signal_sender(&self) -> Option<&broadcast::Sender<VibeRunSignal>>;
-    /// Per-bot LLM settings resolved from the bot's configuration
-    /// (Drive config.csv via ConfigManager). `None` means "use environment".
+    /// Per-bot LLM settings resolved from the bot's configuration via
+    /// ConfigManager — sensitive keys from Vault per-bot paths, non-sensitive
+    /// keys from Drive config.csv (bot_configuration table). `None` means
+    /// "use environment".
     fn llm_config(&self, bot_id: &Uuid) -> Option<LlmConfig>;
 }
 

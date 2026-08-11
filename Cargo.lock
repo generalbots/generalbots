@@ -2919,6 +2919,7 @@ dependencies = [
  "rss",
  "rust-embed",
  "rust-s3",
+ "rust_decimal",
  "rust_xlsxwriter",
  "rustls",
  "scopeguard",

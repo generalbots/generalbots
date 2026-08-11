@@ -5,6 +5,7 @@ pub mod cell_ops;
 pub mod comments;
 pub mod crud;
 pub mod grid_ops;
+pub mod paste_html;
 pub mod data_ops;
 pub mod named_ranges_csv;
 pub mod pivot;
@@ -30,7 +31,7 @@ pub use comments::{
     handle_resolve_comment,
 };
 pub use crud::{
-    handle_delete_sheet, handle_export_sheet, handle_get_sheet_by_id, handle_import_sheet,
+    handle_delete_sheet, handle_export_sheet, handle_get_sheet_by_id, handle_sheet_ops, handle_import_sheet,
     handle_list_sheets, handle_load_from_drive, handle_load_sheet, handle_new_sheet,
     handle_save_sheet, handle_search_sheets, handle_share_sheet,
 };

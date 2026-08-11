@@ -323,17 +323,25 @@ impl ConfigManager {
         map
     }
 
-    fn write_db_value(&self, bot_id: &uuid::Uuid, key: &str, value: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn write_db_value(
+        &self,
+        bot_id: &uuid::Uuid,
+        key: &str,
+        value: &str,
+        branch_id: Option<uuid::Uuid>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(mut conn) = self.pool.get() {
+            let branch = branch_id.unwrap_or_else(uuid::Uuid::nil);
             diesel::sql_query(
-                "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, created_at, updated_at) \
-                 VALUES ($1, $2, $3, $4, NOW(), NOW()) \
-                 ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, updated_at = NOW()"
+                "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, created_at, updated_at, branch_id) \
+                 VALUES ($1, $2, $3, $4, NOW(), NOW(), $5) \
+                 ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, updated_at = NOW(), branch_id = $5"
             )
             .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Text, _>(key)
             .bind::<diesel::sql_types::Text, _>(value)
+            .bind::<diesel::sql_types::Uuid, _>(branch)
             .execute(&mut conn)?;
         }
         Ok(())
@@ -471,7 +479,7 @@ impl ConfigManager {
         bot_id: &uuid::Uuid,
         key: &str,
         value: &str,
-        _branch_id: Option<uuid::Uuid>,
+        branch_id: Option<uuid::Uuid>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         if is_sensitive_key(key) {
             let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
@@ -479,7 +487,7 @@ impl ConfigManager {
             Self::write_vault_value(&path, key, value)
                 .map_err(|e| Box::new(std::io::Error::other(e)) as Box<dyn std::error::Error>)
         } else {
-            self.write_db_value(bot_id, key, value)
+            self.write_db_value(bot_id, key, value, branch_id)
         }
     }
 }

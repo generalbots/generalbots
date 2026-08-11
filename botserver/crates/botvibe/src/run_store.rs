@@ -25,6 +25,7 @@ pub fn ensure_vibe_schema(pool: &DbPool) -> Result<(), String> {
 }
 
 /// Write-through + read-back store for `vibe_runs`.
+#[derive(Clone)]
 pub struct VibeRunStore {
     pool: DbPool,
 }
@@ -81,12 +82,15 @@ impl VibeRunStore {
         let row = diesel::sql_query(
             "SELECT run_id, bot_id, session_id, user_id, state, use_case, \
                     config::text AS config, intent, tool_calls::text AS tool_calls, \
-                    created_at::text AS created_at, updated_at::text AS updated_at, \
-                    completed_at::text AS completed_at, error \
+                    to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at, \
+                    to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, \
+                    to_char(completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS completed_at, \
+                    error \
              FROM vibe_runs WHERE run_id = $1",
         )
         .bind::<diesel::sql_types::Uuid, _>(run_id)
         .get_result::<RunRow>(&mut conn)
+        .map_err(|e| log::warn!("run store: get_run query failed for {run_id}: {e}"))
         .ok()?;
         row.to_vibe_run().ok()
     }
@@ -100,13 +104,18 @@ impl VibeRunStore {
         let rows = diesel::sql_query(
             "SELECT run_id, bot_id, session_id, user_id, state, use_case, \
                     config::text AS config, intent, tool_calls::text AS tool_calls, \
-                    created_at::text AS created_at, updated_at::text AS updated_at, \
-                    completed_at::text AS completed_at, error \
+                    to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at, \
+                    to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, \
+                    to_char(completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS completed_at, \
+                    error \
              FROM vibe_runs ORDER BY created_at DESC LIMIT $1",
         )
         .bind::<diesel::sql_types::BigInt, _>(limit)
         .load::<RunRow>(&mut conn)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("run store: list_runs query failed: {e}");
+            Vec::new()
+        });
         rows.iter().filter_map(|r| r.to_vibe_run().ok()).collect()
     }
 }
@@ -145,16 +154,28 @@ struct RunRow {
 impl RunRow {
     fn to_vibe_run(&self) -> Result<VibeRun, String> {
         let config = serde_json::from_str::<crate::types::VibeRunConfig>(&self.config)
-            .map_err(|e| format!("run store: config parse: {e}"))?;
+            .map_err(|e| {
+                log::warn!("run store: config parse failed: {e}");
+                format!("run store: config parse: {e}")
+            })?;
         let tool_calls: Vec<crate::types::VibeToolCall> =
-            serde_json::from_str(&self.tool_calls)
-                .map_err(|e| format!("run store: tool_calls parse: {e}"))?;
-        let state: VibeRunState = serde_json::from_str(&format!("\"{}\"", self.state))
-            .map_err(|e| format!("run store: state parse: {e}"))?;
+            serde_json::from_str(&self.tool_calls).map_err(|e| {
+                log::warn!("run store: tool_calls parse failed: {e}");
+                format!("run store: tool_calls parse: {e}")
+            })?;
+        let state: VibeRunState = serde_json::from_str(&format!("\"{}\"", self.state)).map_err(
+            |e| {
+                log::warn!("run store: state parse failed: {e}");
+                format!("run store: state parse: {e}")
+            },
+        )?;
         let parse_ts = |s: &str| -> Result<chrono::DateTime<chrono::Utc>, String> {
             chrono::DateTime::parse_from_rfc3339(s)
                 .map(|d| d.with_timezone(&chrono::Utc))
-                .map_err(|e| format!("run store: timestamp parse: {e}"))
+                .map_err(|e| {
+                    log::warn!("run store: timestamp parse failed for {s:?}: {e}");
+                    format!("run store: timestamp parse: {e}")
+                })
         };
         Ok(VibeRun {
             run_id: self.run_id,

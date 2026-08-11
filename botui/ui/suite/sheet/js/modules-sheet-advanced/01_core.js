@@ -15,6 +15,8 @@
   let rangeBox = null;
   let fillHandle = null;
   let tabBar = null;
+  let multiRanges = [];
+  let multiBoxes = [];
 
   function colName(idx) {
     let n = idx + 1;
@@ -60,11 +62,72 @@
     window.dispatchEvent(new CustomEvent("gb-sheet-selection", { detail: sel }));
   }
 
-  function clearSelection() {
+  function rangeKey(r1, c1, r2, c2) {
+    return [r1, c1, r2, c2].join(",");
+  }
+
+  function addMultiRange(r1, c1, r2, c2) {
+    const norm = normalize(r1, c1, r2, c2);
+    const key = rangeKey(norm.startRow, norm.startCol, norm.endRow, norm.endCol);
+    const existing = multiRanges.findIndex(function (r) {
+      return rangeKey(r.startRow, r.startCol, r.endRow, r.endCol) === key;
+    });
+    if (existing >= 0) {
+      multiRanges.splice(existing, 1);
+    } else {
+      multiRanges.push(norm);
+    }
+    positionMultiOverlays();
+    clearSelectionOnly();
+  }
+
+  function positionMultiOverlays() {
+    if (!grid || !grid.bodyInner) return;
+    ensureOverlays();
+    while (multiBoxes.length < multiRanges.length) {
+      const box = document.createElement("div");
+      box.className = "ss-range-box";
+      box.style.cssText = "position:absolute;border:1px solid #38bdf8;background:rgba(56,189,248,0.08);pointer-events:none;z-index:10;display:none;";
+      grid.bodyInner.appendChild(box);
+      multiBoxes.push(box);
+    }
+    for (let i = 0; i < multiBoxes.length; i++) {
+      const box = multiBoxes[i];
+      const r = multiRanges[i];
+      if (!r) { box.style.display = "none"; continue; }
+      box.style.display = "block";
+      box.style.left = (cx(r.startCol) - 1) + "px";
+      box.style.top = (r.startRow * ROW_HEIGHT - 1) + "px";
+      box.style.width = (cx(r.endCol) + cw(r.endCol) - cx(r.startCol) + 2) + "px";
+      box.style.height = ((r.endRow - r.startRow + 1) * ROW_HEIGHT + 2) + "px";
+    }
+  }
+
+  function clearSelectionOnly() {
     sel = null;
     if (rangeBox) rangeBox.style.display = "none";
     if (fillHandle) fillHandle.style.display = "none";
   }
+
+  function clearMultiSelection() {
+    multiRanges = [];
+    if (multiBoxes) {
+      for (const box of multiBoxes) { if (box.isConnected) box.remove(); }
+      multiBoxes = [];
+    }
+  }
+
+  function clearSelection() {
+    clearSelectionOnly();
+    clearMultiSelection();
+  }
+
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && multiRanges.length > 0 && !e.ctrlKey && !e.metaKey) {
+      clearMultiSelection();
+      window.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: [] }));
+    }
+  });
 
   function cellValue(r, c) {
     const d = grid.cells.get(r + "," + c);
@@ -83,15 +146,19 @@
   }
 
   function cellFromEvent(e) {
+    if (!grid || !grid.bodyInner) return null;
     const rect = grid.bodyInner.getBoundingClientRect();
-    const x = e.clientX - rect.left - HEADER_WIDTH;
+    const xAbs = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    // Column hit-test via binary search over the virtualized grid (#786):
+    // colXOf(col) is a monotonically non-decreasing prefix.
+    let lo = 0;
+    let hi = grid.totalCols - 1;
     let col = 0;
-    let acc = 0;
-    for (let c = 0; c < grid.totalCols; c++) {
-      if (x < acc + cw(c)) { col = c; break; }
-      acc += cw(c);
-      col = c;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (cx(mid) <= xAbs) { col = mid; lo = mid + 1; }
+      else { hi = mid - 1; }
     }
     const row = Math.floor(y / ROW_HEIGHT);
     if (row < 0 || col < 0) return null;
@@ -138,6 +205,14 @@
     const c = parseInt(t.dataset.col, 10);
     if (isNaN(r) || isNaN(c)) return;
     e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      // Multi-range selection (#786, gap 12): Ctrl/Cmd+click toggles an
+      // additional range; the primary selection moves to the clicked cell.
+      addMultiRange(r, c, r, c);
+      setSelection(r, c, r, c);
+      window.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
+      return;
+    }
     if (e.shiftKey && sel) {
       setSelection(sel.startRow, sel.startCol, r, c);
     } else {
@@ -152,7 +227,14 @@
   function onDrag(e) {
     if (!dragging || !anchor) return;
     const pt = cellFromEvent(e);
-    if (pt) setSelection(anchor.row, anchor.col, pt.row, pt.col);
+    if (pt) {
+      if (e.ctrlKey || e.metaKey) {
+        addMultiRange(anchor.row, anchor.col, pt.row, pt.col);
+        window.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
+      } else {
+        setSelection(anchor.row, anchor.col, pt.row, pt.col);
+      }
+    }
   }
 
   function onDragEnd() {
@@ -286,6 +368,13 @@
     },
     clearSelection: function () {
       clearSelection();
+    },
+    getRanges: function () {
+      return multiRanges.slice();
+    },
+    addRange: function (r1, c1, r2, c2) {
+      addMultiRange(r1, c1, r2, c2);
+      window.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
     },
   };
 })();

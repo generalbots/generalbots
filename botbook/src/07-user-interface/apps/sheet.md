@@ -28,11 +28,11 @@ The work to close the gap is tracked in [Sheet Parity Plan](./sheet-parity-plan.
 |--------|--------|-------|
 | Edit a cell | Available | Double-click, `F2`, or type over the selection |
 | A1-style references | Available | `A1`, `A1:C10` |
-| Number, currency, date and percentage formats | Planned | Format codes are read from `.xlsx` and stored, but the grid renders the raw underlying value |
+| Number, currency, date and percentage formats | Available | Format codes are read from `.xlsx` and applied server-side to the display value (`R$ 1.234,50` renders correctly) |
 | Merge cells | Available | The merge button merges the selected range; unmerge supported; merged regions render with the anchor spanning |
-| Resize rows and columns | Partial | Imported widths and heights render; drag-resize not yet wired |
-| Range selection | Available | Drag, Shift+click extend, `Ctrl+A`, row/column via header clicks |
-| Multi-range selection (`Ctrl`+click) | Planned | — |
+| Resize rows and columns | Available | Imported widths and heights render; drag the column-header or row-gutter edge to resize, persisted via `/api/sheet/resize` |
+| Range selection | Available | Drag, Shift+click extend, `Ctrl+A`, row/column via header clicks; `Ctrl`+click / `Ctrl`+drag accumulate multi-ranges |
+| Multi-range selection (`Ctrl`+click) | Available | `Ctrl`+click toggles a cell, `Ctrl`+drag sweeps a block, `Ctrl`+click on a row/column header adds the whole row/column; `Esc` clears |
 | Freeze panes | Available | Freeze top row / first column / both via the toolbar; sticky render |
 | Cell comments and notes | Partial | Notes add/edit/clear via right-click; orange marker on noted cells; threaded comments via the sidebar panel |
 
@@ -99,12 +99,12 @@ These are real and will bite immediately. Each is tracked in [Sheet Parity Plan]
 | CSV | Available | Available | Exported values are unformatted |
 | TSV | Available | Available | — |
 | JSON | Available | Available | Internal document shape |
-| `.xlsx` | Partial | Partial | Values, formulas, number format codes, cell styles, merged cells, column widths, row heights and frozen panes are read. **Defined names, data validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, sheet protection, print setup and external links are dropped.** |
+| `.xlsx` | Partial | Partial | Values, formulas, number format codes, cell styles, merged cells, column widths, row heights, frozen panes, defined names and per-sheet protection are read. **Data validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, print setup and external links are dropped.** |
 | Markdown | — | Available | — |
+| PDF | — | Available | Real PDF 1.4 export — one page set per worksheet, repeated header row, `application/pdf` content type |
 | ODS | — | Partial | Emits content XML, not a complete `.ods` package |
-| PDF | — | Planned | — |
 
-> **Warning — opening an `.xlsx` from Drive.** Sheet can write the edited workbook back over the original file. Because import is lossy, features Sheet does not model are not preserved on that write. Until [Sheet Parity Plan](./sheet-parity-plan.md) issue 8 lands, keep a copy of any workbook that contains charts, pivot tables, conditional formatting or data validation before editing it in Sheet.
+> **Warning — opening an `.xlsx` from Drive.** The save-back is non-destructive: the original package is preserved and only edited cells are rewritten (issue 8). Features Sheet cannot model are not altered by an edit round-trip.
 
 ---
 
@@ -136,6 +136,7 @@ Documented but **not yet implemented** — tracked in [Sheet Parity Plan](./shee
 | `Alt+Enter` | Newline inside a cell |
 | `F4` | Cycle `$` anchors in a reference |
 | `Ctrl+Space` / `Shift+Space` | Select column / row |
+| `Ctrl+click` / `Ctrl+drag` | Multi-range selection (available — see Cells table) |
 
 ---
 
@@ -236,6 +237,7 @@ The examples below show the intended conversational flow. Chat-driven sheet crea
 | `/api/sheet/data-validation` | POST | Apply data validation rules |
 | `/api/sheet/ai` | POST | Query spreadsheet AI assistant |
 | `/api/sheet/:id` | GET | Get spreadsheet by ID |
+| `/api/sheet/:id/ops?since=N` | GET | Replay oplog entries after sequence `N` (collab reconnect recovery) |
 | `/ws/sheet/:sheet_id` | GET | WebSocket for collaborative editing |
 
 ### Create Spreadsheet Request
@@ -307,11 +309,11 @@ Current grid limits are compiled in, not configurable:
 
 | Limit | Current value | Desktop spreadsheets |
 |-------|---------------|---------------------|
-| Columns | 26 | 16,384 (`XFD`) |
-| Rows | 1,200,000 | 1,048,576 |
-| Recalculated cells per edit | 1,000 (silently truncated) | unlimited |
+| Column limit | 16,384 (`XFD`) — virtualised headers, cells and scroll; only the visible column window is rendered | 16,384 (`XFD`) |
+| Rows | 1,048,576 (aligned with the desktop standard) | 1,048,576 |
+| Recalculated cells per edit | 1,000 (logs and skips cycle members instead of silently truncating) | unlimited |
 
-Catching up to the desktop standard is part of [Sheet Parity Plan](./sheet-parity-plan.md) issues 4 and 6.
+Canvas rendering of the grid remains the open part of [Sheet Parity Plan](./sheet-parity-plan.md) issue 6.
 
 ---
 
@@ -327,15 +329,15 @@ Check it against the limitations table above first — `=SUM(A1:A3)+1`, `=A1&B1`
 
 ### A number is treated as text
 
-Values are stored as strings today, so a number typed with a thousands separator (`1,234.50`) or a currency symbol is not recognised as numeric and aggregates as zero. Type the bare number.
+Values typed with thousands separators or currency symbols are stored as text; type the bare number or use a formula to coerce. Formatted display of stored numbers follows the cell's format code.
 
 ### Cell formatting is not shown
 
-Number format codes are imported and stored but not rendered — a currency cell displays its raw value. Tracked as issue 5 in the parity plan.
+If a workbook opened from Drive loses its currency/date display, the cell may predate the format engine; re-applying the format from the toolbar refreshes it. Number format codes are applied server-side on load.
 
 ### A worksheet cannot be reached
 
-Only the first worksheet is reachable; the tab bar is not yet implemented. Tracked as issue 12.
+All worksheets are reachable through the tab bar (add/switch/delete/rename). If the tab bar does not render, reload the page; old cached pages predate it.
 
 ### Import lost part of the file
 

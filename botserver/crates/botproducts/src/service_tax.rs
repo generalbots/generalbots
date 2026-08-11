@@ -148,6 +148,17 @@ pub async fn calculate_service_tax_inner(
 
     let breakdown = bottax::calculator::calculate_service_tax(service_value, &rates);
 
+    if let Err((_code, msg)) = bottax::handlers::persist_calculation(
+        conn,
+        &branch_id,
+        Some(service.id),
+        Some(&service.name),
+        &breakdown,
+        source,
+    ) {
+        log::warn!("service.tax audit insert skipped: {msg}");
+    }
+
     Ok(json!({
         "service": {
             "id": service.id,

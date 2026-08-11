@@ -90,8 +90,9 @@
     let h = 0;
     for (let r = 0; r < f.rows; r++) h += rh(r);
     topLayer.style.height = h + "px";
+    const cols = g.visibleColRange ? g.visibleColRange() : { start: 0, end: g.totalCols };
     for (let r = 0; r < f.rows; r++) {
-      for (let c = 0; c < g.totalCols; c++) {
+      for (let c = cols.start; c < cols.end; c++) {
         const cell = document.createElement("div");
         const data = g.cells.get(r + "," + c);
         cell.style.cssText =

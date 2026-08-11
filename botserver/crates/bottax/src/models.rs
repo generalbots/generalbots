@@ -84,5 +84,9 @@ pub struct TaxCalculationRequest {
     pub service_value: String,
     pub branch_id: Option<String>,
     pub bot_id: Option<String>,
+    #[serde(default)]
+    pub service_id: Option<Uuid>,
+    #[serde(default)]
+    pub service_name: Option<String>,
 }
 

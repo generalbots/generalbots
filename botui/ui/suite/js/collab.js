@@ -160,6 +160,10 @@
     this.heartbeatTimer = null;
     this.typingTimer = null;
     this.user = readUser();
+    // Server-authoritative sequence cursor (#791): the last op seq applied to
+    // local state. On reconnect the client fetches every op after it from the
+    // session oplog before live messages arrive, so nothing is lost.
+    this.lastSeq = this.opts.lastSeq || 0;
     this.knownUsers = new Map();
     this.callbacks = {
       onPresence: this.opts.onPresence || function () {},
@@ -197,6 +201,7 @@
       this.connected = true;
       this._sendRaw({ msg_type: "hello", user_id: this.user.id, user_name: this.user.name, user_color: this.user.color, doc_id: this.docId });
       this._startHeartbeat();
+      this._catchUp();
       this.callbacks.onConnect(this.user);
     }.bind(this));
 
@@ -240,6 +245,29 @@
     if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
   };
 
+  GBCollab.prototype._catchUp = function () {
+    // Session-oplog recovery (#789, #791): asks the document's ops endpoint
+    // for every op after our cursor and applies them through onEdit before
+    // the live feed is trusted. The provider opts into it by passing
+    // `opLogUrl(docId, since)` and `opSeqOf(op) -> number|undefined`.
+    if (!this.opts.opLogUrl || !this.callbacks.onEdit) return;
+    if (!this.lastSeq) return;
+    const url = this.opts.opLogUrl(this.docId, this.lastSeq);
+    fetch(url)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (data) {
+        if (!data || !data.ops || !data.ops.length) return;
+        const seqOf = this.opts.opSeqOf || function (op) { return op.seq; };
+        data.ops.forEach(function (op) {
+          const seq = seqOf(op);
+          if (seq && seq <= this.lastSeq) return;
+          if (seq) this.lastSeq = seq;
+          this.callbacks.onEdit(op);
+        }.bind(this));
+      }.bind(this));
+  };
+
   GBCollab.prototype._dispatch = function (msg) {
     const t = msg.msg_type;
     if (t === "join" || t === "leave" || t === "presence" || t === "pong") {
@@ -254,6 +282,7 @@
     } else if (t === "selection") {
       this.callbacks.onSelection(msg);
     } else if (t === "edit" || t === "cell_update" || t === "slide_update" || t === "plan_update") {
+      if (typeof msg.seq === "number" && msg.seq > this.lastSeq) this.lastSeq = msg.seq;
       this.callbacks.onEdit(msg);
     } else if (t === "mention") {
       this._toastMention(msg);
@@ -284,17 +313,27 @@
     return this._sendRaw(msg);
   };
 
-  GBCollab.prototype.sendCursor = function (position) { return this.send("cursor", { position: position }); };
-  GBCollab.prototype.sendTypingStart = function (position) {
+  GBCollab.prototype.sendCursor = function (position, col) {
+    const payload = {};
+    if (position === undefined || position === null) return this.send("cursor", payload);
+    if (col === undefined) payload.position = position;
+    else { payload.row = position; payload.col = col; }
+    return this.send("cursor", payload);
+  };
+  GBCollab.prototype.sendTypingStart = function (position, col) {
     this._typingActive = true;
-    return this.send("typing_start", { position: position });
+    const payload = {};
+    if (position === undefined || position === null) return this.send("typing_start", payload);
+    if (col === undefined) payload.position = position;
+    else { payload.row = position; payload.col = col; }
+    return this.send("typing_start", payload);
   };
   GBCollab.prototype.sendTypingStop = function () {
     this._typingActive = false;
     return this.send("typing_stop");
   };
-  GBCollab.prototype.debouncedTypingStart = function (position) {
-    this.sendTypingStart(position);
+  GBCollab.prototype.debouncedTypingStart = function (position, col) {
+    this.sendTypingStart(position, col);
     if (this.typingTimer) clearTimeout(this.typingTimer);
     this.typingTimer = setTimeout(function () { this.sendTypingStop(); }.bind(this), TYPING_AWAY_MS);
   };
@@ -306,7 +345,14 @@
     return this.send("mention", { position: position, content: JSON.stringify({ to_user_id: toUserId, message: message }) });
   };
   GBCollab.prototype.sendEdit = function (opts) {
-    return this.send("edit", { position: opts.position, content: opts.content, length: opts.length, format: opts.format });
+    opts = opts || {};
+    // A1 addressing (#791): send row/col when the caller supplies them; the
+    // position encoding is kept for backwards compatibility with text apps.
+    if (opts.row !== undefined && opts.col !== undefined) {
+      const payload = { row: opts.row, col: opts.col, content: opts.content, length: opts.length, format: opts.format, removeLength: opts.removeLength };
+      return this.send("edit", payload);
+    }
+    return this.send("edit", { position: opts.position, content: opts.content, length: opts.length, format: opts.format, removeLength: opts.removeLength });
   };
 
   GBCollab.prototype.disconnect = function () {

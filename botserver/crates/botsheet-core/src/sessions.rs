@@ -114,6 +114,17 @@ impl SheetSession {
         save_sheet_to_drive(state, &owner, &snapshot).await
     }
 
+    /// Returns the ops recorded since `since_seq` (exclusive). A client that
+    /// reconnects asks for every op after the last one it applied, making the
+    /// oplog the recovery mechanism for collab sessions (#789, #791).
+    pub fn ops_since(&self, since_seq: u64) -> Vec<SheetOp> {
+        let log = match self.oplog.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        log.iter().filter(|op| op.seq > since_seq).cloned().collect()
+    }
+
     pub fn is_dirty(&self) -> bool {
         self.dirty.load(Ordering::SeqCst)
     }

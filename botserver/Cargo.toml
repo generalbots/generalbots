@@ -167,6 +167,7 @@ allbutooxmlsdk = [
 [dependencies]
 diesel_migrations = { workspace = true }
 bigdecimal = { workspace = true }
+rust_decimal = { workspace = true }
 
 # === CORE RUNTIME ===
 aes-gcm = { workspace = true }

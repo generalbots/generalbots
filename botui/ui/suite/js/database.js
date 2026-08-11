@@ -23,6 +23,8 @@ const DB = {
         const headers = { 'Content-Type': 'application/json' };
         const botId = this._getBotId();
         if (botId) headers['X-Bot-Id'] = botId;
+        const token = localStorage.getItem('gb-access-token') || sessionStorage.getItem('gb-access-token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
         return headers;
     },
 
