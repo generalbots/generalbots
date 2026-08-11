@@ -125,6 +125,14 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             builder = builder.with_jwt_manager(Arc::clone(manager));
         }
 
+        // Cloud login JWTs (handle_login/signup, minted with the persisted
+        // saas_jwt_secret) carry claim-light payloads (sub/email/org/branch,
+        // no iss/aud). The generic local-jwt provider rejects them, which used
+        // to degrade every cloud-authenticated suite request to anonymous.
+        builder = builder.with_provider(Arc::new(
+            crate::security::saas_jwt_auth::SaasJwtAuthProvider::new(jwt_secret.clone()),
+        ));
+
         let zitadel_configured = std::env::var("ZITADEL_ISSUER_URL").is_ok()
             && std::env::var("ZITADEL_CLIENT_ID").is_ok();
 

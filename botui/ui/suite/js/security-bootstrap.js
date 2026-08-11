@@ -276,7 +276,12 @@
           token ? token.substring(0, 20) + "..." : "NONE",
         );
 
-        if (token) {
+        // Do NOT overwrite an existing Authorization header: htmx passes
+        // event.detail.headers straight into the XHR, and the XHR interceptor
+        // below would then attach a second copy (Bearer A, Bearer A), which
+        // breaks server-side token parsing and silently degrades the request
+        // to anonymous. Only attach when absent.
+        if (token && !event.detail.headers["Authorization"]) {
           event.detail.headers["Authorization"] = "Bearer " + token;
           console.log("[GBSecurity] Authorization header added");
         } else {
@@ -354,14 +359,15 @@
       var self = this;
       var originalOpen = XMLHttpRequest.prototype.open;
       var originalSend = XMLHttpRequest.prototype.send;
+      var originalSetHeader = XMLHttpRequest.prototype.setRequestHeader;
 
-      XMLHttpRequest.prototype.open = function (
-        method,
-        url,
-        async,
-        user,
-        password,
-      ) {
+      XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
+        this._gbHeaders = this._gbHeaders || {};
+        this._gbHeaders[String(name).toLowerCase()] = value;
+        return originalSetHeader.apply(this, arguments);
+      };
+
+      XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
         this._gbUrl = url;
         this._gbMethod = method;
         return originalOpen.apply(this, arguments);
@@ -371,13 +377,17 @@
         var xhr = this;
         var token = self.getToken();
         var sessionId = self.getSessionId();
+        var headers = xhr._gbHeaders || {};
 
-        if (token && !this._gbSkipAuth) {
+        // Never duplicate an Authorization header already attached by the
+        // htmx:configRequest interceptor ("Bearer A, Bearer A" breaks server
+        // token parsing and silently downgrades requests to anonymous).
+        if (token && !this._gbSkipAuth && !headers["authorization"]) {
           try {
             this.setRequestHeader("Authorization", "Bearer " + token);
           } catch (e) {}
         }
-        if (sessionId && !this._gbSkipAuth) {
+        if (sessionId && !this._gbSkipAuth && !headers["x-session-id"]) {
           try {
             this.setRequestHeader("X-Session-ID", sessionId);
           } catch (e) {}

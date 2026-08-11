@@ -382,6 +382,7 @@ pub struct AuthProviderBuilder {
     zitadel_config: Option<ZitadelAuthConfig>,
     auth_config: Option<Arc<AuthConfig>>,
     api_key_provider: Option<Arc<ApiKeyAuthProvider>>,
+    extra_providers: Vec<Arc<dyn AuthProvider>>,
     fallback_enabled: bool,
 }
 
@@ -393,6 +394,7 @@ impl AuthProviderBuilder {
             zitadel_config: None,
             auth_config: None,
             api_key_provider: None,
+            extra_providers: Vec::new(),
             fallback_enabled: false,
         }
     }
@@ -422,6 +424,11 @@ impl AuthProviderBuilder {
         self
     }
 
+    pub fn with_provider(mut self, provider: Arc<dyn AuthProvider>) -> Self {
+        self.extra_providers.push(provider);
+        self
+    }
+
     pub fn with_fallback(mut self, enabled: bool) -> Self {
         self.fallback_enabled = enabled;
         self
@@ -442,6 +449,10 @@ impl AuthProviderBuilder {
 
         if let Some(api_key_provider) = self.api_key_provider {
             registry.register(api_key_provider).await;
+        }
+
+        for provider in self.extra_providers {
+            registry.register(provider).await;
         }
 
         registry
