@@ -994,6 +994,11 @@ async fn handle_login(
     let payload = base64_url_encode(payload_body.as_bytes());
     let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    tracing::info!(
+        "cloud login minted JWT for {} (secret fp {:?})",
+        body.email,
+        &service.config.jwt_secret[..8.min(service.config.jwt_secret.len())]
+    );
 
     let (user_name, found) = if let Some((_, fn_, ln_, _, _)) = &contact_opt {
         let n = [fn_.as_deref().unwrap_or(""), ln_.as_deref().unwrap_or("")]

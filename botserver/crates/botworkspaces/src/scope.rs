@@ -36,7 +36,10 @@ fn base64url_decode(input: &str) -> Option<Vec<u8>> {
 /// Extracts the `email` claim from a Bearer JWT Authorization header.
 pub fn email_from_jwt(headers: &HeaderMap) -> Option<String> {
     let auth = headers.get("authorization")?.to_str().ok()?;
-    let token = auth.strip_prefix("Bearer ")?;
+    let token = auth
+        .strip_prefix("Bearer ")
+        .map(|t| t.split(',').next().unwrap_or(t).trim())
+        ?;
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
         return None;
@@ -52,7 +55,10 @@ pub fn email_from_jwt(headers: &HeaderMap) -> Option<String> {
 /// cached entry carries the real user email used to scope CRM data.
 pub fn email_from_session(headers: &HeaderMap) -> Option<String> {
     let auth = headers.get("authorization")?.to_str().ok()?;
-    let token = auth.strip_prefix("Bearer ")?;
+    let token = auth
+        .strip_prefix("Bearer ")
+        .map(|t| t.split(',').next().unwrap_or(t).trim())
+        ?;
     if token.contains('.') {
         return None;
     }
@@ -86,7 +92,10 @@ pub fn email_from_user_id(headers: &HeaderMap, conn: &mut diesel::PgConnection) 
 /// branch scope; never derived from client input.
 pub fn branch_from_claim(headers: &HeaderMap) -> Option<Uuid> {
     let auth = headers.get("authorization")?.to_str().ok()?;
-    let token = auth.strip_prefix("Bearer ")?;
+    let token = auth
+        .strip_prefix("Bearer ")
+        .map(|t| t.split(',').next().unwrap_or(t).trim())
+        ?;
     if !token.contains('.') {
         return None;
     }

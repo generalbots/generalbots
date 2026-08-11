@@ -8,6 +8,7 @@ pub mod mfa;
 pub mod password;
 pub mod rate_limiter;
 pub mod rbac_middleware;
+pub mod saas_jwt_auth;
 pub mod request_limits;
 pub mod session;
 #[cfg(feature = "cache")]
