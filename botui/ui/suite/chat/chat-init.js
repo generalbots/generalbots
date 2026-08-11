@@ -128,6 +128,20 @@ function proceedWithChatInit() {
   fetch(authUrl, { headers: authHeaders })
     .then(function (response) { return response.json(); })
     .then(function (auth) {
+      // Stale or revoked suite token: the server resolved us as anonymous even
+      // though we sent a Bearer token. Self-heal by dropping the dead token and
+      // going through the login server again (redirect round-trip re-mints a
+      // valid suite session). Without this, all cookie-carrying apps (CRM,
+      // Drive, ...) silently scope to an empty anonymous branch.
+      if (!auth.is_authenticated && auth.status !== "authenticated" && gbToken) {
+        try {
+          localStorage.removeItem("gb-access-token");
+          sessionStorage.removeItem("gb-access-token");
+        } catch (e) {}
+        var loginUrl = window.GB_LOGIN_URL || "/login";
+        window.location.href = loginUrl + "?redirect=" + encodeURIComponent(window.location.href);
+        return;
+      }
       ChatState.currentUserId = auth.user_id;
       ChatState.currentSessionId = auth.session_id;
       ChatState.currentBotId = auth.bot_id || "default";
