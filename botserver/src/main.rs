@@ -336,22 +336,18 @@ async fn main() -> std::io::Result<()> {
 
     // Seed the fiscal Drive objects (invoice folder + cash-flow spreadsheets,
     // issues #722/#723/#724) once the drive client is available.
+    // PRODUCTION GUARD: demo seeding is opt-in ONLY via GB_ALLOW_SAMPLEDATA=1.
+    // Never enable it in prod — it pollutes customer branches with demo data.
     #[cfg(feature = "sampledata")]
-    if let Some(drive) = app_state.drive.clone() {
-        let seed_pool = app_state.conn.clone();
-        tokio::spawn(async move {
-            botsampledata::seed_drive_fiscal(&seed_pool, drive.as_ref()).await;
-        });
-    }
-
-    // #750 — seed the Pragmatismo reference bot payload (start.bas with VIBE
-    // bridge keywords, PROMPT.md, config.csv and MCP tool definitions) into
-    // the pragmatismo.gbai bucket.
-    #[cfg(feature = "sampledata")]
-    if let Some(drive) = app_state.drive.clone() {
-        tokio::spawn(async move {
-            botsampledata::seed_pragmatismo_payload(drive.as_ref()).await;
-        });
+    if std::env::var("GB_ALLOW_SAMPLEDATA").is_ok() {
+        if let Some(drive) = app_state.drive.clone() {
+            let seed_pool = app_state.conn.clone();
+            tokio::spawn(async move {
+                botsampledata::seed_drive_fiscal(&seed_pool, drive.as_ref()).await;
+            });
+        }
+    } else {
+        log::info!("botsampledata: skipped (set GB_ALLOW_SAMPLEDATA=1 to enable demo seeding)");
     }
 
     // Wire SESSION_CACHE into auth middleware so gb_xxx tokens resolve
