@@ -244,7 +244,13 @@ pub async fn init_database(
 
             #[cfg(feature = "sampledata")]
             {
-                botsampledata::seed_all(&pool);
+                // PRODUCTION GUARD: demo data never runs in prod unless
+                // explicitly enabled with GB_ALLOW_SAMPLEDATA=1.
+                if std::env::var("GB_ALLOW_SAMPLEDATA").is_ok() {
+                    botsampledata::seed_all(&pool);
+                } else {
+                    info!("botsampledata: DB demo seeding skipped (GB_ALLOW_SAMPLEDATA not set)");
+                }
             }
 
             #[cfg(feature = "saas")]
@@ -277,10 +283,14 @@ pub async fn init_database(
                     // products never pollute a real tenant.
                     #[cfg(feature = "sampledata")]
                     {
-                        botproducts::seed::seed_default_products(
-                            &mut conn,
-                            botsampledata::sample::SAMPLE_BRANCH_ID,
-                        );
+                        if std::env::var("GB_ALLOW_SAMPLEDATA").is_ok() {
+                            botproducts::seed::seed_default_products(
+                                &mut conn,
+                                botsampledata::sample::SAMPLE_BRANCH_ID,
+                            );
+                        } else {
+                            info!("botsampledata: product sample-catalog seeding skipped (GB_ALLOW_SAMPLEDATA not set)");
+                        }
                     }
                     #[cfg(not(feature = "sampledata"))]
                     {
