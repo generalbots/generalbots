@@ -183,6 +183,22 @@ pub fn parse_xlsx_to_worksheets(
                     super::format_codes::apply_format_codes(&mut worksheets, &format_map);
                 }
 
+                // Charts: umya-spreadsheet drops chart parts on read; extract
+                // them from the raw package and attach per sheet.
+                #[cfg(feature = "xlsx")]
+                match super::chart_read::extract_charts(bytes, &worksheets) {
+                    Ok(charts_by_ws) => {
+                        for (ws_index, charts) in charts_by_ws.into_iter().enumerate() {
+                            if !charts.is_empty() {
+                                if let Some(ws) = worksheets.get_mut(ws_index) {
+                                    ws.charts = Some(charts);
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => log::warn!("chart extraction skipped: {e}"),
+                }
+
                 return Ok(worksheets);
             }
         }

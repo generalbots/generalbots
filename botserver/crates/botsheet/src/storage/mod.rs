@@ -1,3 +1,5 @@
+#[cfg(feature = "xlsx")]
+pub mod chart_read;
 pub mod drive_ops;
 #[cfg(feature = "xlsx")]
 pub mod format_codes;

@@ -6,7 +6,7 @@ use crate::export::{
 use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::{
     delete_sheet_from_drive, list_sheets_from_drive,
-    save_sheet_to_drive, SheetState,
+    save_sheet_to_drive, persist_sheet_to_drive, SheetState,
 };
 use crate::storage::import::{import_spreadsheet_bytes, parse_csv_to_worksheets, parse_xlsx_to_worksheets};
 use crate::storage::import::create_new_spreadsheet;
@@ -182,8 +182,10 @@ pub async fn handle_load_from_drive(
         acl: HashMap::new(),
     };
 
-    // Persist to Drive so subsequent /api/sheet/range calls find the data
-    let _ = save_sheet_to_drive(&state, &user_id, &sheet).await;
+    // Persist to Drive so subsequent /api/sheet/range calls find the data.
+    // NOTE: must NOT trigger the on-save xlsx export hook — just opening a
+    // file would otherwise rewrite the source .xlsx and drop its charts.
+    let _ = persist_sheet_to_drive(&state, &user_id, &sheet).await;
 
     Ok(Json(sheet))
 }
