@@ -116,6 +116,17 @@ fn resolve_session_user(
     }
     drop(cache);
 
+    // In-memory cache miss — rehydrate from the persisted login_sessions
+    // table (parity with the auth middleware lookup in main.rs) so tokens
+    // minted before the last restart keep their identity.
+    if let Some(user_data) = botcoredirectory::auth_routes::session_from_persisted(&token) {
+        return (
+            user_data.user_id.clone(),
+            user_data.roles.clone(),
+            true,
+        );
+    }
+
     // Not an SSO-session token — try the cloud management JWT (signed with the
     // SaaS secret, subject = Zitadel user id). Verified signature required;
     // roles are resolved later through RBAC group membership.

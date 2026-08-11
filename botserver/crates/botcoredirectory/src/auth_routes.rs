@@ -83,6 +83,27 @@ pub fn remove_persisted_session(token: &str) {
     }
 }
 
+/// Rehydrates a session from the `login_sessions` table for in-memory cache
+/// misses (e.g. after a restart). Returns `None` when no row exists for the
+/// token or the stored payload cannot be parsed.
+pub fn session_from_persisted(token: &str) -> Option<SessionUserData> {
+    let pool = SESSION_POOL.get()?;
+    let mut conn = pool.get().ok()?;
+    use diesel::RunQueryDsl;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        user_data: String,
+    }
+    let row: Row = diesel::sql_query(
+        "SELECT user_data FROM login_sessions WHERE token = $1 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(token)
+    .get_result(&mut conn)
+    .ok()?;
+    serde_json::from_str(&row.user_data).ok()
+}
+
 const BOOTSTRAP_SECRET_ENV: &str = "GB_BOOTSTRAP_SECRET";
 
 #[derive(Debug, Deserialize)]
