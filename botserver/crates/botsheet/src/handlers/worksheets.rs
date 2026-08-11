@@ -1,4 +1,9 @@
-use axum::{extract::{Extension, State}, http::StatusCode, response::Html, Json};
+use axum::{
+    extract::{Extension, State},
+    http::{HeaderMap, StatusCode},
+    response::Html,
+    Json,
+};
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -7,6 +12,7 @@ use crate::state::SheetState;
 use crate::types::Spreadsheet;
 use crate::types::Worksheet;
 use crate::ui_fragments::sidebars::render_worksheet_grid_preview;
+use crate::ui_fragments::i18n::{Lang, t, tf};
 use chrono::Utc;
 
 #[derive(Debug, Deserialize)]
@@ -21,8 +27,10 @@ pub struct WorksheetActionRequest {
 pub async fn add_worksheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: HeaderMap,
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
+    let lang = Lang::from_headers(&headers);
     let user_id = resolve_user_id(user.as_deref());
     let session = state
         .sessions
@@ -41,7 +49,7 @@ pub async fn add_worksheet(
     let next_num = sheet.worksheets.len() + 1;
     let name = req
         .name
-        .unwrap_or_else(|| format!("Planilha {}", next_num));
+        .unwrap_or_else(|| tf(lang, "panel.sheet_n", &[("n", &next_num.to_string())]));
     let ws = Worksheet {
         name,
         data: std::collections::HashMap::new(),
@@ -63,14 +71,16 @@ pub async fn add_worksheet(
     sheet.worksheets.push(ws);
     sheet.updated_at = Utc::now();
     state.sessions.record(&session, &state, &user_id, "worksheet_add", serde_json::json!({}));
-    Ok(Html(render_tabs(&sheet)))
+    Ok(Html(render_tabs(&sheet, lang)))
 }
 
 pub async fn delete_worksheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: HeaderMap,
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
+    let lang = Lang::from_headers(&headers);
     let user_id = resolve_user_id(user.as_deref());
     let session = state
         .sessions
@@ -93,14 +103,16 @@ pub async fn delete_worksheet(
     sheet.updated_at = Utc::now();
     state.sessions.record(&session, &state, &user_id, "worksheet_delete", serde_json::json!({ "index": idx }));
     let new_idx = idx.min(sheet.worksheets.len().saturating_sub(1));
-    Ok(Html(render_grid_for(&sheet, new_idx)))
+    Ok(Html(render_grid_for(&sheet, new_idx, lang)))
 }
 
 pub async fn switch_worksheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: HeaderMap,
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
+    let lang = Lang::from_headers(&headers);
     let user_id = resolve_user_id(user.as_deref());
     let session = state
         .sessions
@@ -114,7 +126,7 @@ pub async fn switch_worksheet(
         })?;
     let sheet = session.sheet.read().await;
     let idx = req.index.unwrap_or(0).min(sheet.worksheets.len().saturating_sub(1));
-    Ok(Html(render_grid_for(&sheet, idx)))
+    Ok(Html(render_grid_for(&sheet, idx, lang)))
 }
 
 pub async fn rename_worksheet(
@@ -147,10 +159,14 @@ pub async fn rename_worksheet(
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-fn render_tabs(sheet: &Spreadsheet) -> String {
+fn render_tabs(sheet: &Spreadsheet, lang: Lang) -> String {
     let mut html = String::from(
         r##"<div class="ss-tabs" id="worksheet-tabs" data-active-index="0" style="display:flex;gap:2px;padding:8px;border-bottom:1px solid #334155;background:#0f172a;align-items:center;flex-wrap:wrap;">
-<button class="ss-tab-add" hx-post="/api/sheet/worksheets/add" hx-vals='{"id":"ID_PLACEHOLDER"}' hx-target="#worksheet-tabs" hx-swap="outerHTML" title="Nova Planilha" style="background:#3b82f6;color:white;border:none;width:28px;height:28px;border-radius:4px;cursor:pointer;flex-shrink:0;">+</button>"##
+<button class="ss-tab-add" hx-post="/api/sheet/worksheets/add" hx-vals='{"id":"ID_PLACEHOLDER"}' hx-target="#worksheet-tabs" hx-swap="outerHTML" title=""##,
+    );
+    html.push_str(&t(lang, "tabs.add_title"));
+    html.push_str(
+        r##"" style="background:#3b82f6;color:white;border:none;width:28px;height:28px;border-radius:4px;cursor:pointer;flex-shrink:0;">+</button>"##,
     );
     html = html.replace("ID_PLACEHOLDER", &sheet.id);
     for (i, ws) in sheet.worksheets.iter().enumerate() {
@@ -163,26 +179,28 @@ fn render_tabs(sheet: &Spreadsheet) -> String {
         html.push_str(&format!(
             r##"<div class="ss-tab{active}" data-index="{i}" style="{style}padding:6px 12px;border-radius:4px 4px 0 0;cursor:pointer;display:flex;align-items:center;gap:6px;flex-shrink:0;">
 <button type="button" hx-post="/api/sheet/worksheets/switch" hx-vals='{{"id":"{sid}","index":{i}}}' hx-target="#sheet-content" hx-swap="innerHTML" hx-on::after-request="window.dispatchEvent(new CustomEvent('gb-sheet-tab', {{detail:{{index:{i}}}}}))" style="background:none;border:none;color:inherit;font-weight:600;cursor:pointer;padding:0;font-size:13px;">{name}</button>
-<button type="button" class="ss-tab-del" hx-post="/api/sheet/worksheets/delete" hx-vals='{{"id":"{sid}","index":{i}}}' hx-target="#sheet-content" hx-swap="innerHTML" hx-confirm="Excluir {name}?" title="Excluir planilha" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">×</button>
+<button type="button" class="ss-tab-del" hx-post="/api/sheet/worksheets/delete" hx-vals='{{"id":"{sid}","index":{i}}}' hx-target="#sheet-content" hx-swap="innerHTML" hx-confirm="{confirm}" title="{del_title}" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">×</button>
 </div>"##,
             active = active_class,
             style = active_style,
             i = i,
             sid = sheet.id,
-            name = html_escape(&ws.name)
+            name = html_escape(&ws.name),
+            confirm = tf(lang, "tabs.confirm_delete", &[("name", &ws.name)]),
+            del_title = t(lang, "tabs.delete_title")
         ));
     }
     html.push_str("</div>");
     html
 }
 
-fn render_grid_for(sheet: &Spreadsheet, idx: usize) -> String {
+fn render_grid_for(sheet: &Spreadsheet, idx: usize, lang: Lang) -> String {
     let mut html = String::new();
-    html.push_str(&render_tabs(sheet));
+    html.push_str(&render_tabs(sheet, lang));
     if let Some(ws) = sheet.worksheets.get(idx) {
-        html.push_str(&render_worksheet_grid_preview(ws, idx));
+        html.push_str(&render_worksheet_grid_preview(ws, idx, lang));
     } else if let Some(ws) = sheet.worksheets.first() {
-        html.push_str(&render_worksheet_grid_preview(ws, 0));
+        html.push_str(&render_worksheet_grid_preview(ws, 0, lang));
     }
     html
 }

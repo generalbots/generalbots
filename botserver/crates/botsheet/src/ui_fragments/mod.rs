@@ -2,6 +2,9 @@ pub mod panels;
 pub mod sidebars;
 pub mod toolbar;
 pub mod modals;
+pub mod i18n;
+
+pub use i18n::{Lang, t, tf};
 
 use axum::{routing::{get, post}, Router};
 use botsheet_core::types::{Spreadsheet, SpreadsheetMetadata};
@@ -59,19 +62,20 @@ pub fn fmt_pct(v: f64) -> String {
     format!("{:.1}%", v)
 }
 
-pub fn err_fragment(msg: &str) -> String {
+pub fn err_fragment(lang: Lang, msg: &str) -> String {
     format!(
         r##"<div class="fragment-error" role="alert" style="padding:12px;border:1px solid #f87171;background:#7f1d1d;color:#fecaca;border-radius:6px;margin:8px 0;">
-<strong>Erro:</strong> {}</div>"##,
+<strong>{}</strong> {}</div>"##,
+        t(lang, "common.error_label"),
         html_escape(msg)
     )
 }
 
-pub fn empty_fragment(text: &str) -> String {
+pub fn empty_fragment(msg: &str) -> String {
     format!(
         r##"<div class="fragment-empty" style="padding:24px;text-align:center;color:#94a3b8;font-style:italic;">
 {}</div>"##,
-        html_escape(text)
+        html_escape(msg)
     )
 }
 
@@ -117,20 +121,20 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
 
 async fn health() -> &'static str { "ok" }
 
-pub fn render_metadata_card(m: &SpreadsheetMetadata) -> String {
+pub fn render_metadata_card(m: &SpreadsheetMetadata, lang: Lang) -> String {
     format!(
         r##"<div class="ss-metadata-card" onclick="loadSheet('{id}')" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">
 <div style="font-weight:600;color:#f8fafc;">{name}</div>
-<div style="font-size:12px;color:#94a3b8;margin-top:4px;">{worksheets} planilha(s) • Atualizado {updated}</div>
+<div style="font-size:12px;color:#94a3b8;margin-top:4px;">{count} • {updated}</div>
 </div>"##,
         id = html_escape(&m.id),
         name = html_escape(&m.name),
-        worksheets = m.worksheet_count,
-        updated = m.updated_at.format("%d/%m/%Y %H:%M")
+        count = tf(lang, "metadata.sheets_count", &[("n", &m.worksheet_count.to_string())]),
+        updated = tf(lang, "metadata.updated", &[("date", &m.updated_at.format("%d/%m/%Y %H:%M").to_string())])
     )
 }
 
-pub fn render_spreadsheet_summary(s: &Spreadsheet) -> String {
+pub fn render_spreadsheet_summary(s: &Spreadsheet, lang: Lang) -> String {
     let ws_count = s.worksheets.len();
     let cell_count: usize = s.worksheets.iter().map(|w| w.data.len()).sum();
     let named_count = s.named_ranges.as_ref().map(|v| v.len()).unwrap_or(0);
@@ -138,21 +142,25 @@ pub fn render_spreadsheet_summary(s: &Spreadsheet) -> String {
         r##"<div class="ss-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px;">
 <div class="ss-stat" style="padding:16px;background:#1e293b;border:1px solid #334155;border-radius:8px;">
 <div style="font-size:24px;font-weight:600;color:#3b82f6;">{ws_count}</div>
-<div style="font-size:12px;color:#94a3b8;">Planilhas</div>
+<div style="font-size:12px;color:#94a3b8;">{ws_label}</div>
 </div>
 <div class="ss-stat" style="padding:16px;background:#1e293b;border:1px solid #334155;border-radius:8px;">
 <div style="font-size:24px;font-weight:600;color:#10b981;">{cell_count}</div>
-<div style="font-size:12px;color:#94a3b8;">Células Preenchidas</div>
+<div style="font-size:12px;color:#94a3b8;">{cells_label}</div>
 </div>
 <div class="ss-stat" style="padding:16px;background:#1e293b;border:1px solid #334155;border-radius:8px;">
 <div style="font-size:24px;font-weight:600;color:#f59e0b;">{named_count}</div>
-<div style="font-size:12px;color:#94a3b8;">Ranges Nomeados</div>
+<div style="font-size:12px;color:#94a3b8;">{named_label}</div>
 </div>
 <div class="ss-stat" style="padding:16px;background:#1e293b;border:1px solid #334155;border-radius:8px;">
 <div style="font-size:24px;font-weight:600;color:#8b5cf6;">{owner}</div>
-<div style="font-size:12px;color:#94a3b8;">Proprietário</div>
+<div style="font-size:12px;color:#94a3b8;">{owner_label}</div>
 </div>
 </div>"##,
+        ws_label = t(lang, "common.sheets"),
+        cells_label = t(lang, "common.filled_cells"),
+        named_label = t(lang, "common.named_ranges"),
+        owner_label = t(lang, "common.owner"),
         owner = html_escape(&s.owner_id)
     )
 }
