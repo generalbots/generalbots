@@ -9,6 +9,7 @@
 <script src="/suite/js/campaigns/03_preview.js"></script>
 <script src="/suite/js/campaigns/04_monitor.js"></script>
 <script src="/suite/js/campaigns/05_actions.js"></script>
+<script src="/suite/js/campaigns/06_ai.js"></script>
 <script src="/suite/js/campaigns/99_init.js"></script>
 
 <div class="crm-container">
@@ -165,6 +166,8 @@
                     <button type="button" class="studio-tool-btn" data-editor-cmd="createLink" title="Link" data-editor-value="https://">🔗</button>
                     <button type="button" class="studio-tool-btn" data-editor-cmd="removeFormat" title="Clear formatting">⌫</button>
                     <span class="studio-tool-sep"></span>
+                    <button type="button" class="studio-tool-btn studio-ai-tool-btn" id="studio-ai-btn" title="Generate with AI">✨ AI Write</button>
+                    <span class="studio-tool-sep"></span>
                     <span class="studio-var-label">Variables:</span>
                     <button type="button" class="studio-var-btn" data-var="{{name}}">{{name}}</button>
                     <button type="button" class="studio-var-btn" data-var="{{company}}">{{company}}</button>
@@ -190,6 +193,55 @@
                 <button type="submit" class="btn-primary" data-i18n="campaign-save">Save Campaign</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- AI Content Generator Dialog -->
+<div id="studio-ai-dialog" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay"></div>
+    <div class="crm-modal-content" style="max-width:520px;">
+        <div class="crm-modal-header">
+            <h2>✨ AI Content Writer</h2>
+            <button class="crm-modal-close" id="studio-ai-close">×</button>
+        </div>
+        <div class="crm-form-group">
+            <label>Goal</label>
+            <textarea id="studio-ai-goal" rows="3" placeholder="e.g., Announce a 20% discount for returning customers this weekend"></textarea>
+        </div>
+        <div class="crm-form-group">
+            <label>Audience</label>
+            <input type="text" id="studio-ai-audience" placeholder="e.g., Existing customers aged 25-40 interested in tech">
+        </div>
+        <div class="crm-form-row">
+            <div class="crm-form-group">
+                <label>Tone</label>
+                <select id="studio-ai-tone">
+                    <option value="professional">Professional</option>
+                    <option value="casual">Casual</option>
+                    <option value="persuasive">Persuasive</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+            </div>
+            <div class="crm-form-group">
+                <label>Length</label>
+                <select id="studio-ai-length">
+                    <option value="short">Short</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="long">Long</option>
+                </select>
+            </div>
+            <div class="crm-form-group">
+                <label>&nbsp;</label>
+                <div class="studio-ai-channel-hint" id="studio-ai-channel-hint"></div>
+            </div>
+        </div>
+        <div class="studio-ai-variations" id="studio-ai-variations" style="display:none;"></div>
+        <div class="studio-ai-status" id="studio-ai-status" style="display:none;">Generating with AI…</div>
+        <div class="crm-form-actions">
+            <button type="button" class="btn-secondary" id="studio-ai-close-2" onclick="window.CampStudio.ai.closeDialog()">Cancel</button>
+            <button type="button" class="btn-primary" id="studio-ai-generate">✨ Generate</button>
+        </div>
     </div>
 </div>
 
