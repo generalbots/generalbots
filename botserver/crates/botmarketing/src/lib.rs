@@ -8,6 +8,7 @@ pub mod ip_router;
 pub mod lists;
 pub mod metrics;
 pub mod metrics_api;
+pub mod publish;
 pub mod routes;
 pub mod schema;
 pub mod state;

@@ -66,8 +66,8 @@ window.CampStudio.monitor = {
         '<td>' + (m.clicked || 0) + "</td>" +
         '<td>' + (m.replied || 0) + "</td>" +
         '<td class="studio-m-actions">' +
+        '<button class="campaign-action-btn primary" onclick="window.CampStudio.actions.openPublish(\'' + encodeURIComponent(r.id) + '\')">Publish 🚀</button> ' +
         '<button class="campaign-action-btn" onclick="window.CampStudio.actions.edit(\'' + encodeURIComponent(r.id) + '\')">Edit</button> ' +
-        '<button class="campaign-action-btn primary" onclick="window.CampStudio.actions.run(\'' + encodeURIComponent(r.id) + '\')">Run</button> ' +
         '<button class="campaign-action-btn" onclick="window.CampStudio.actions.remove(\'' + encodeURIComponent(r.id) + '\')" style="color:var(--danger,#ef4444);">Delete</button>' +
         "</td></tr>";
     }).join("");

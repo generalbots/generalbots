@@ -496,3 +496,21 @@
     padding: 4px;
     justify-content: center;
 }
+
+/* Publish dialog */
+.studio-publish-channels {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.studio-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text, #e2e8f0);
+}
+.studio-check input {
+    accent-color: var(--accent, #3b82f6);
+}

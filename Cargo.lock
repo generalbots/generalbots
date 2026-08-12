@@ -2263,6 +2263,7 @@ dependencies = [
  "anyhow",
  "axum",
  "bigdecimal",
+ "botinstagram",
  "botmultimodal",
  "botsecurity-core",
  "chrono",
