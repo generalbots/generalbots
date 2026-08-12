@@ -504,7 +504,8 @@ impl DriveConfig {
         let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
 
         let mut curl_args = vec!["-sf"];
-        if ca_cert.is_empty() || !std::path::Path::new(&ca_cert).exists() {
+        let skip_verify = std::env::var("VAULT_SKIP_VERIFY").map(|v| v == "true" || v == "1").unwrap_or(false);
+        if skip_verify || ca_cert.is_empty() || !std::path::Path::new(&ca_cert).exists() {
             curl_args.push("-k");
         } else {
             curl_args.push("--cacert");

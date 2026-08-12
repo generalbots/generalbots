@@ -10,6 +10,7 @@ repository = "https://github.com/GeneralBots/BotServer"
 [dependencies]
 argon2 = { workspace = true }
 axum = { workspace = true }
+base64 = { workspace = true }
 chrono = { workspace = true, features = ["serde", "clock"] }
 diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json", "numeric"] }
 hmac = { workspace = true }

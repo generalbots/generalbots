@@ -14,6 +14,9 @@ const MAX_EMPTY_PARSE_RETRIES: u32 = 3;
 const MAX_TOOL_RESULT_CHARS: usize = 4000;
 const MAX_TOOL_RETRIES: u32 = 2;
 const MAX_VERIFY_FAILURES: u32 = 2;
+// vibe33 #813 — transient provider failures must not kill the run.
+const MAX_LLM_RETRIES: u32 = 2;
+const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 3];
 
 pub struct AgentLoop {
     prompt_manager: Arc<VibePromptManager>,
@@ -127,12 +130,18 @@ impl AgentLoop {
                 refs
             };
 
-            let llm_response = match self.call_llm(&context, run, &run.intent).await {
+            let llm_response = match self
+                .call_llm_with_retry(&context, run, &run.intent)
+                .await
+            {
                 Ok(response) => response,
                 Err(e) => {
                     error!("LLM call failed at step {}: {}", step, e);
                     run.transition(VibeRunState::Failed);
-                    run.error = Some(format!("LLM call failed at step {step}: {e}"));
+                    run.error = Some(format!(
+                        "LLM call failed at step {step} after {} attempts: {e}",
+                        MAX_LLM_RETRIES + 1
+                    ));
                     self.telemetry.record_run_completion(run, 0, None, 0.0).await;
                     return;
                 }
@@ -212,10 +221,27 @@ impl AgentLoop {
                             .to_string(),
                     );
                     if verify_failures >= MAX_VERIFY_FAILURES {
+                        // vibe33 #814 — a repeated failed verification must
+                        // not soft-complete with unverified work. Fail the
+                        // run with a distinct verdict; the produced workspace
+                        // artifacts are NOT deleted, only the run verdict is
+                        // honest about them.
                         run.transition(VibeRunState::Failed);
-                        run.error = Some("Self-verification failed repeatedly; stopping run.".to_string());
+                        run.error = Some(
+                            "Self-verification failed repeatedly; run failed (produced artifacts remain in the workspace)."
+                                .to_string(),
+                        );
+                        warn!(
+                            "Vibe run {} self-verification failed repeatedly; run failed",
+                            run.run_id
+                        );
                         self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-                        self.broadcast_event(run, "failed", "Self-verification failed", 100);
+                        self.broadcast_event(
+                            run,
+                            "failed",
+                            "Self-verification failed repeatedly; run failed",
+                            100,
+                        );
                         return;
                     }
                 } else {
@@ -233,17 +259,10 @@ impl AgentLoop {
         }
     }
 
-    async fn call_llm(
-        &self,
-        context: &crate::types::VibeContext,
-        run: &VibeRun,
-        user_message: &str,
-    ) -> Result<String, String> {
-        let prompt = self.prompt_manager.compose_prompt(context, user_message);
-        let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
-        // Per-bot config (Issue #795): explicit run overrides > config
-        // (Vault for secrets, Drive config.csv for the rest) via the state
-        // > environment > built-in defaults.
+    /// Resolves (model, api_key, api_url) for a run: explicit run overrides >
+    /// per-bot config (Vault for secrets, Drive config.csv for the rest) >
+    /// environment > built-in defaults.
+    fn resolve_llm(&self, run: &VibeRun) -> (String, String, String) {
         let llm = self.state.llm_config(&run.bot_id);
         let model = run
             .config
@@ -266,8 +285,59 @@ impl AgentLoop {
             .or_else(|| llm.as_ref().map(|l| l.url.clone()))
             .or_else(|| std::env::var("LLM_URL").ok())
             .unwrap_or_else(|| "https://api.openai.com/v1/chat/completions".to_string());
+        (model, api_key, api_url)
+    }
 
-        let client = reqwest::Client::new();
+    /// vibe33 #813 — retries the LLM call with short backoff so transient
+    /// provider failures do not kill the whole run.
+    async fn call_llm_with_retry(
+        &self,
+        context: &crate::types::VibeContext,
+        run: &VibeRun,
+        user_message: &str,
+    ) -> Result<String, String> {
+        let mut last_error = String::new();
+        for attempt in 0..=MAX_LLM_RETRIES {
+            match self.call_llm(context, run, user_message).await {
+                Ok(response) => return Ok(response),
+                Err(e) => {
+                    last_error = e.clone();
+                    if attempt == MAX_LLM_RETRIES {
+                        break;
+                    }
+                    let backoff = LLM_RETRY_BACKOFF_SECS
+                        .get(attempt as usize)
+                        .copied()
+                        .unwrap_or(3);
+                    warn!(
+                        "Vibe run {} LLM call failed (attempt {}), retrying in {backoff}s: {e}",
+                        run.run_id,
+                        attempt + 1
+                    );
+                    tokio::time::sleep(Duration::from_secs(backoff)).await;
+                }
+            }
+        }
+        Err(last_error)
+    }
+
+    async fn call_llm(
+        &self,
+        context: &crate::types::VibeContext,
+        run: &VibeRun,
+        user_message: &str,
+    ) -> Result<String, String> {
+        let prompt = self.prompt_manager.compose_prompt(context, user_message);
+        let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
+        // Per-bot config (Issue #795): explicit run overrides > config
+        // (Vault for secrets, Drive config.csv for the rest) via the state
+        // > environment > built-in defaults.
+        let (model, api_key, api_url) = self.resolve_llm(run);
+
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(90))
+            .build()
+            .map_err(|e| format!("http client: {e}"))?;
         let tools = self.tool_schemas_for(run.use_case).await;
         let body = serde_json::json!({
             "model": model,
@@ -356,7 +426,26 @@ impl AgentLoop {
 
     /// Reads the entire HTTP body, classifying it as either an SSE stream
     /// (`data: ...` lines, Issue #794) or a plain JSON completion payload.
+    /// Bounded by `read_body_timeout()` so stalled provider streams fail
+    /// fast instead of hanging the whole run until the run-level timeout.
     async fn read_body(&self, mut resp: reqwest::Response) -> Result<serde_json::Value, String> {
+        let read_timeout = Duration::from_secs(90);
+        let result = timeout(
+            read_timeout,
+            Self::read_body_inner(&mut resp),
+        )
+        .await
+        .map_err(|_| "LLM response body read timed out".to_string());
+        match result {
+            Ok(inner) => inner,
+            Err(e) => {
+                log::warn!("read_body: {e}");
+                Err(e)
+            }
+        }
+    }
+
+    async fn read_body_inner(resp: &mut reqwest::Response) -> Result<serde_json::Value, String> {
         let content_type = resp
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
@@ -390,7 +479,10 @@ impl AgentLoop {
         system: &str,
         prompt: &str,
     ) -> Result<String, String> {
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(90))
+            .build()
+            .map_err(|e| format!("http client: {e}"))?;
         let body = serde_json::json!({
             "model": model,
             "messages": [
@@ -450,12 +542,32 @@ impl AgentLoop {
     ) -> bool {
         let question = "Verify the latest tool results above are consistent and complete. Reply with exactly VERIFIED or FAILED.";
         context.add_user_message(question.to_string());
-        let response = match self.call_llm(context, run, question).await {
+        let (model, api_key, api_url) = self.resolve_llm(run);
+        let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
+        let prompt = self.prompt_manager.compose_prompt(context, question);
+        // Use the plain (no-tools) call so the model replies with text
+        // (VERIFIED/FAILED) instead of a tool-call JSON envelope.
+        let response = match self
+            .call_llm_plain(&api_url, &api_key, &model, &system, &prompt)
+            .await
+        {
             Ok(response) => response,
-            Err(_) => return false,
+            Err(e) => {
+                // Verification is a gate, not a blocker: when the LLM is
+                // unavailable, keep the run going instead of failing work.
+                warn!(
+                    "Vibe run {} self-verification LLM call failed: {e}",
+                    run.run_id
+                );
+                return true;
+            }
         };
         context.add_assistant_message(response.clone());
-        response.contains("VERIFIED") && !response.contains("FAILED")
+        if response.contains("FAILED") {
+            false
+        } else {
+            response.contains("VERIFIED")
+        }
     }
 
     async fn process_tool_call(
@@ -575,10 +687,19 @@ impl AgentLoop {
                             "Tool {} reported failure; retry attempt {attempts}.",
                             tool_call.tool_name
                         ));
-                        let _ = self
+                        // vibe33 #815 — capture the retry outcome instead of
+                        // dropping it: the result/telemetry must reflect the
+                        // actual last attempt.
+                        if let Err(e) = self
                             .tool_executor
                             .execute(&mut tool_call, run.use_case, self.state.as_ref())
-                            .await;
+                            .await
+                        {
+                            warn!(
+                                "Vibe run {} tool {} retry {attempts} failed: {e}",
+                                run.run_id, tool_call.tool_name
+                            );
+                        }
                     }
                 }
 

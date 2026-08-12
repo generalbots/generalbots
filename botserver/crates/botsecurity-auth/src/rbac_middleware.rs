@@ -1263,6 +1263,12 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/vibe/vms/**", "DELETE", ""),
         RoutePermission::new("/api/vibe/metering/**", "GET", ""),
         RoutePermission::new("/api/vibe/metering/**", "POST", ""),
+        // Vibe sessions, skills and diagnostics for logged-in users.
+        RoutePermission::new("/api/vibe/sessions/**", "GET", ""),
+        RoutePermission::new("/api/vibe/sessions/**", "POST", ""),
+        RoutePermission::new("/api/vibe/skills/**", "GET", ""),
+        RoutePermission::new("/api/vibe/skills/**", "POST", ""),
+        RoutePermission::new("/api/vibe/doctor", "GET", ""),
 
         // Goals
         RoutePermission::new("/api/goals/**", "GET", ""),
