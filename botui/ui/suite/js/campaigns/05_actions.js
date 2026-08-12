@@ -108,6 +108,75 @@ window.CampStudio.actions = {
     }
   },
 
+  async openPublish(id) {
+    var st = window.CampStudio.state;
+    st.publishingId = id || null;
+    var dialog = document.getElementById("studio-publish-dialog");
+    var listSel = document.getElementById("studio-publish-list");
+    var desc = document.getElementById("studio-publish-desc");
+    if (!dialog || !listSel) return;
+
+    try {
+      var resp = await fetch("/api/crm/lists");
+      if (!resp.ok) throw new Error("Failed to load lists: " + resp.status);
+      var lists = await resp.json();
+      listSel.innerHTML = lists.map(function (l) {
+        return '<option value="' + l.id + '">' + escapeHtml(l.name) + " (" + (l.member_count || l.contact_count || 0) + ")</option>";
+      }).join("") || '<option value="">No lists</option>';
+    } catch (err) {
+      listSel.innerHTML = '<option value="">Error loading lists</option>';
+      console.error("openPublish lists error:", err);
+    }
+
+    var campaign = st.campaigns.find(function (c) { return c.id === decodeURIComponent(id); });
+    var channel = campaign ? (campaign.campaign_type || campaign.channel || "email") : "email";
+    if (desc) desc.textContent = "Fan-out of " + (campaign ? campaign.name : "campaign") + " (" + channel + ")";
+
+    var chk = document.querySelectorAll('[data-publish-channel]');
+    if (channel === "multi") {
+      chk.forEach(function (x) { x.checked = true; });
+    } else {
+      chk.forEach(function (x) { x.checked = x.dataset.publishChannel === channel; });
+    }
+
+    dialog.style.display = "flex";
+  },
+
+  closePublish() {
+    var dialog = document.getElementById("studio-publish-dialog");
+    if (dialog) dialog.style.display = "none";
+  },
+
+  async doPublish() {
+    var st = window.CampStudio.state;
+    var listId = document.getElementById("studio-publish-list").value;
+    if (!listId) { alert("Pick a recipient list."); return; }
+    var channels = [];
+    document.querySelectorAll('[data-publish-channel]:checked').forEach(function (x) {
+      channels.push(x.dataset.publishChannel);
+    });
+    if (channels.length === 0) { alert("Pick at least one channel."); return; }
+
+    var status = document.getElementById("studio-publish-status");
+    if (status) { status.style.display = "block"; status.textContent = "Publishing…"; }
+    try {
+      var resp = await fetch("/api/crm/campaigns/" + encodeURIComponent(st.publishingId) + "/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ list_id: listId, channels: channels }),
+      });
+      var data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || ("Publish failed: " + resp.status));
+      if (status) status.style.display = "none";
+      this.closePublish();
+      alert("Published: " + data.sent + " sent, " + data.failed + " failed across " + channels.join(", ") + ".");
+      window.CampStudio.monitor.load();
+    } catch (err) {
+      console.error("Publish error:", err);
+      if (status) { status.style.display = "block"; status.textContent = "Error: " + err.message; }
+    }
+  },
+
   async remove(id) {
     if (!confirm("Delete this campaign permanently?")) return;
     try {

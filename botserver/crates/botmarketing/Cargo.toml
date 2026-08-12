@@ -10,6 +10,7 @@ repository = "https://github.com/GeneralBots/BotServer"
 [dependencies]
 botsecurity-core = { workspace = true }
 botmultimodal = { path = "../botmultimodal" }
+botinstagram = { path = "../botinstagram" }
 anyhow = { workspace = true }
 axum = { workspace = true }
 bigdecimal = { workspace = true, features = ["serde"] }
