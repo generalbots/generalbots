@@ -428,3 +428,30 @@
 
 .studio-m-name { font-weight: 600; }
 .studio-m-actions { white-space: nowrap; text-align: right; }
+
+/* AI dialog */
+.studio-ai-tool-btn {
+    border: 1px solid #8b5cf6;
+    color: #c4b5fd;
+    font-weight: 600;
+}
+.studio-ai-tool-btn:hover {
+    background: #8b5cf6;
+    color: #fff;
+}
+.studio-ai-channel-hint {
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+    padding-top: 8px;
+}
+.studio-ai-variations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+.studio-ai-status {
+    color: #8b5cf6;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
