@@ -58,23 +58,42 @@ console.error('Failed to load ' + tab, e);
 
 async function fetchApi(url, options) {
 const res = await fetch(API_BASE + url, options);
+if (res.status === 401) {
+let tok = null;
+try {
+tok = (window.getGBAccessToken ? window.getGBAccessToken() : null) ||
+localStorage.getItem('gb-access-token') || localStorage.getItem('management_token');
+} catch (e) { tok = null; }
+if (!tok) {
+const loginUrl = window.GB_LOGIN_URL || '/login';
+window.location.href = loginUrl + '?redirect=' + encodeURIComponent(window.location.pathname);
+throw new Error('Not authenticated');
+}
+}
 if (!res.ok) throw new Error('API error: ' + res.status);
 return res.json();
 }
 
+function nameParts(name) {
+const parts = (name || '').trim().split(/\s+/);
+return { first: parts[0] || '', last: parts.slice(1).join(' ') };
+}
+
 async function loadEmployees() {
 const data = await fetchApi('/employees');
-employeesData = data.employees || [];
+employeesData = data.items || [];
 renderEmployees(employeesData);
 }
 
 function renderEmployees(employees) {
 const grid = document.getElementById('employeeGrid');
-grid.innerHTML = employees.map((e, i) => `
+grid.innerHTML = employees.map((e, i) => {
+const np = nameParts(e.name);
+return `
 <div class="employee-card">
-<div class="avatar avatar-${(i % 5) + 1}">${getInitials(e.first_name, e.last_name)}</div>
+<div class="avatar avatar-${(i % 5) + 1}">${getInitials(np.first, np.last)}</div>
 <div class="emp-info">
-<div class="emp-name">${esc(e.first_name)} ${esc(e.last_name)}</div>
+<div class="emp-name">${esc(e.name)}</div>
 <div class="emp-role">${esc(e.role)}</div>
 <div class="emp-dept">${esc(e.department)}</div>
 <span class="badge ${empStatusBadge(e.status)}">${esc(e.status)}</span>
@@ -84,7 +103,8 @@ grid.innerHTML = employees.map((e, i) => `
 <button class="btn-sm btn-terminate" onclick="terminateEmployee('${esc(e.id)}')">Terminate</button>
 </div>
 </div>
-`).join('');
+`;
+}).join('');
 }
 
 function getInitials(first, last) {
@@ -92,7 +112,7 @@ return ((first || '')[0] || '') + ((last || '')[0] || '');
 }
 
 function empStatusBadge(s) {
-const map = { active: 'badge-success', on_leave: 'badge-warning', terminated: 'badge-danger' };
+const map = { active: 'badge-success', on_leave: 'badge-warning', terminated: 'badge-danger', interview: 'badge-info' };
 return map[(s || '').toLowerCase()] || 'badge-neutral';
 }
 
@@ -101,9 +121,7 @@ const q = document.getElementById('empSearch').value.toLowerCase();
 const dept = document.getElementById('empDeptFilter').value;
 const status = document.getElementById('empStatusFilter').value;
 let filtered = employeesData;
-if (q) filtered = filtered.filter(e =>
-(e.first_name + ' ' + e.last_name).toLowerCase().includes(q) || e.role.toLowerCase().includes(q)
-);
+if (q) filtered = filtered.filter(e => (e.name || '').toLowerCase().includes(q) || (e.role || '').toLowerCase().includes(q));
 if (dept) filtered = filtered.filter(e => e.department === dept);
 if (status) filtered = filtered.filter(e => e.status === status);
 renderEmployees(filtered);
@@ -112,13 +130,14 @@ renderEmployees(filtered);
 function editEmployee(id) {
 const emp = employeesData.find(e => e.id === id);
 if (!emp) return;
+const np = nameParts(emp.name);
 document.getElementById('empModalTitle').textContent = 'Edit Employee';
-document.getElementById('empFirstName').value = emp.first_name;
-document.getElementById('empLastName').value = emp.last_name;
-document.getElementById('empEmail').value = emp.email;
-document.getElementById('empRole').value = emp.role;
-document.getElementById('empDept').value = emp.department;
-document.getElementById('empHireDate').value = emp.hire_date;
+document.getElementById('empFirstName').value = np.first;
+document.getElementById('empLastName').value = np.last;
+document.getElementById('empEmail').value = emp.email || '';
+document.getElementById('empRole').value = emp.role || '';
+document.getElementById('empDept').value = emp.department || '';
+document.getElementById('empHireDate').value = (emp.hired_at || '').slice(0, 10);
 document.getElementById('empForm').dataset.editId = id;
 openModal('empModal');
 }
@@ -126,16 +145,17 @@ openModal('empModal');
 async function handleEmpSubmit(e) {
 e.preventDefault();
 const editId = e.target.dataset.editId;
+const first = document.getElementById('empFirstName').value;
+const last = document.getElementById('empLastName').value;
 const payload = {
-first_name: document.getElementById('empFirstName').value,
-last_name: document.getElementById('empLastName').value,
+name: (first + ' ' + last).trim(),
 email: document.getElementById('empEmail').value,
 role: document.getElementById('empRole').value,
-department: document.getElementById('empDept').value,
-hire_date: document.getElementById('empHireDate').value
+department: document.getElementById('empDept').value
 };
 try {
 if (editId) {
+payload.status = 'active';
 await fetchApi('/employees/' + editId, {
 method: 'PUT',
 headers: { 'Content-Type': 'application/json' },
@@ -159,8 +179,20 @@ console.error('Save failed', err);
 
 async function terminateEmployee(id) {
 if (!confirm('Are you sure you want to terminate this employee?')) return;
+const emp = employeesData.find(e => e.id === id);
+if (!emp) return;
 try {
-await fetchApi('/employees/' + id + '/terminate', { method: 'POST' });
+await fetchApi('/employees/' + id, {
+method: 'PUT',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+name: emp.name,
+email: emp.email || '',
+role: emp.role || '',
+department: emp.department || '',
+status: 'terminated'
+})
+});
 loadEmployees();
 } catch (e) {
 console.error('Terminate failed', e);
@@ -169,9 +201,17 @@ console.error('Terminate failed', e);
 
 async function loadRecruitment() {
 const data = await fetchApi('/recruitment');
-jobsData = data.jobs || [];
+jobsData = (data.items || []).map(j => ({
+id: j.id,
+title: j.position,
+department: j.department,
+location: '—',
+posted_date: (j.opened_at || '').slice(0, 10),
+candidate_count: j.candidates || 0,
+status: j.status || ''
+}));
 renderJobs(jobsData);
-renderPipeline(data.pipeline || {});
+renderPipeline({});
 }
 
 function renderJobs(jobs) {
@@ -224,10 +264,17 @@ console.log('View job:', id);
 
 async function loadAttendance() {
 const data = await fetchApi('/attendance');
-attendanceData = data.records || [];
+attendanceData = (data.items || []).map(r => ({
+employee: r.employee_id || '—',
+department: '—',
+clock_in: (r.clock_in || '').slice(0, 16).replace('T', ' ') || '--',
+clock_out: (r.clock_out || '').slice(0, 16).replace('T', ' ') || '--',
+hours: r.hours_worked ? Number(r.hours_worked) : 0,
+status: r.clock_in ? 'present' : 'absent'
+}));
 renderAttendanceTable(attendanceData);
-renderDeptSummary(data.department_summary || []);
-renderAttendanceStats(data.stats || {});
+renderDeptSummary([]);
+renderAttendanceStats({});
 }
 
 function renderAttendanceTable(records) {

@@ -40,7 +40,17 @@
     initialized: false,
 
     getToken: function () {
-      return _accessToken || localStorage.getItem("gb-access-token") || null;
+      // Fresh SSO/login JWTs land in localStorage (suite-sso hop) or
+      // management_token (chat ?token= capture); a stale sessionStorage
+      // copy from a previous login must never shadow them — otherwise
+      // CRM/Drive silently degrade to anonymous and grids come back empty.
+      return (
+        _accessToken ||
+        localStorage.getItem("gb-access-token") ||
+        localStorage.getItem("management_token") ||
+        sessionStorage.getItem("gb-access-token") ||
+        null
+      );
     },
 
     getSessionId: function () {
@@ -204,7 +214,13 @@
       // Access token is stored in sessionStorage by setTokens() as a
       // fallback, so it survives page navigation. Primary storage is
       // the closure for XSS protection (Issue #575).
-      var storedAccess = sessionStorage.getItem(AUTH_KEYS.ACCESS_TOKEN) || localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
+      // Prefer localStorage over sessionStorage: freshly minted tokens
+      // (suite-sso hop, login redirect) land in localStorage while
+      // sessionStorage can still hold the previous (stale) session token.
+      var storedAccess =
+        localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN) ||
+        sessionStorage.getItem(AUTH_KEYS.ACCESS_TOKEN) ||
+        localStorage.getItem("management_token") || null;
       if (storedAccess) {
         _accessToken = storedAccess;
         console.log("[GBSecurity] Access token restored from sessionStorage/localStorage");
@@ -212,6 +228,15 @@
       var storedRefresh = sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
       if (storedRefresh) {
         _refreshToken = storedRefresh;
+      }
+      // If localStorage holds a newer token than the one restored above
+      // (e.g. suite-sso hop wrote localStorage after a stale sessionStorage
+      // token from a previous login), promote it into the closure so every
+      // request uses the freshly acquired credential.
+      var localToken = localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
+      if (localToken && localToken !== storedAccess) {
+        _accessToken = localToken;
+        console.log("[GBSecurity] Promoted localStorage token over stale sessionStorage copy");
       }
       // Also check token expiry from sessionStorage
       var storedExpires = sessionStorage.getItem(AUTH_KEYS.TOKEN_EXPIRES);
@@ -515,9 +540,13 @@
   window.getGBAccessToken = function () {
     var t = window.GBSecurity && window.GBSecurity.getToken();
     if (t) return t;
-    t = sessionStorage.getItem("gb-access-token");
+    // Fresh SSO credentials and chat ?token= captures always win over
+    // older session copies.
+    t = localStorage.getItem("gb-access-token");
     if (t) return t;
-    return localStorage.getItem("gb-access-token") || null;
+    t = localStorage.getItem("management_token");
+    if (t) return t;
+    return sessionStorage.getItem("gb-access-token") || null;
   };
 
   window.getGBRefreshToken = function () {

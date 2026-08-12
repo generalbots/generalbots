@@ -108,11 +108,18 @@ function proceedWithChatInit() {
 
   // Capture auth token passed back from the login server (?token=...) —
   // localStorage is origin-scoped, so the login domain's storage is not
-  // visible here. Consume the param and persist for this origin.
+  // visible here. Consume the param and persist for this origin, promoting
+  // it into every auth slot so the freshly acquired credential wins over
+  // any stale session token from a previous login.
   try {
     var urlTok = new URLSearchParams(window.location.search).get("token");
     if (urlTok) {
       localStorage.setItem("management_token", urlTok);
+      localStorage.setItem("gb-access-token", urlTok);
+      sessionStorage.setItem("gb-access-token", urlTok);
+      if (window.GBSecurity && window.GBSecurity.setTokens) {
+        window.GBSecurity.setTokens(urlTok, sessionStorage.getItem("gb-refresh-token"), null, true);
+      }
       var u = new URL(window.location.href);
       u.search = "";
       window.history.replaceState({}, "", u);
