@@ -39,6 +39,7 @@ pub struct CreateCampaignRequest {
     pub campaign_type: Option<String>,
     pub scheduled_at: Option<String>,
     pub budget: Option<f64>,
+    pub metrics: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,6 +49,7 @@ pub struct UpdateCampaignRequest {
     pub campaign_type: Option<String>,
     pub scheduled_at: Option<String>,
     pub budget: Option<f64>,
+    pub metrics: Option<serde_json::Value>,
 }
 
 pub async fn list_campaigns(
@@ -100,6 +102,24 @@ pub async fn create_campaign(
         DateTime::parse_from_rfc3339(&s).ok().map(|d| d.with_timezone(&Utc))
     });
 
+    // Campaign content (subject/body) and counters live in the metrics
+    // jsonb payload (Campaign Studio WYSIWYG editor persists content here).
+    let mut metrics = serde_json::json!({
+        "sent": 0,
+        "delivered": 0,
+        "failed": 0,
+        "opened": 0,
+        "clicked": 0,
+        "replied": 0
+    });
+    if let Some(extra) = req.metrics {
+        if let (Some(base), Some(extra_obj)) = (metrics.as_object_mut(), extra.as_object()) {
+            for (k, v) in extra_obj {
+                base.insert(k.clone(), v.clone());
+            }
+        }
+    }
+
     let campaign = CrmCampaign {
         id,
         branch_id,
@@ -109,14 +129,7 @@ pub async fn create_campaign(
         starts_at,
         ends_at: None,
         budget: req.budget.map(|b| bigdecimal::BigDecimal::try_from(b).unwrap_or_default()),
-        metrics: Some(serde_json::json!({
-            "sent": 0,
-            "delivered": 0,
-            "failed": 0,
-            "opened": 0,
-            "clicked": 0,
-            "replied": 0
-        })),
+        metrics: Some(metrics),
         run_offset: Some(0),
         pause_requested: Some(false),
         stop_requested: Some(false),
@@ -180,6 +193,25 @@ pub async fn update_campaign(
     if let Some(budget) = req.budget {
         diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
             .set(marketing_campaigns::budget.eq(bigdecimal::BigDecimal::try_from(budget).unwrap_or_default()))
+            .execute(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    }
+    if let Some(metrics) = req.metrics {
+        let mut stored: serde_json::Value = marketing_campaigns::table
+            .filter(marketing_campaigns::id.eq(id))
+            .select(marketing_campaigns::metrics)
+            .first(&mut conn)
+            .optional()
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?
+            .flatten()
+            .unwrap_or_else(|| serde_json::json!({}));
+        if let (Some(base), Some(extra_obj)) = (stored.as_object_mut(), metrics.as_object()) {
+            for (k, v) in extra_obj {
+                base.insert(k.clone(), v.clone());
+            }
+        }
+        diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(id)))
+            .set(marketing_campaigns::metrics.eq(Some(stored)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
