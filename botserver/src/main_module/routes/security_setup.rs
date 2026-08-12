@@ -110,10 +110,11 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
     let rbac_manager = Arc::new(RbacManager::new(rbac_config));
 
     let default_permissions = build_default_route_permissions();
+    let default_permission_count = default_permissions.len();
     rbac_manager.register_routes(default_permissions).await;
     info!(
         "RBAC Manager initialized with {} default route permissions",
-        rbac_manager.config().cache_ttl_seconds
+        default_permission_count
     );
 
     let auth_provider_registry = {

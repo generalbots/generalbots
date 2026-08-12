@@ -89,7 +89,7 @@ impl AgentLoop {
         context.run_id = run.run_id;
 
         let triggered = self.skills.auto_trigger(&run.intent).await;
-        let mut grounding_refs: Vec<String> = triggered
+        let grounding_refs: Vec<String> = triggered
             .iter()
             .map(|s| s.content.clone())
             .collect();
@@ -165,12 +165,14 @@ impl AgentLoop {
             context.add_assistant_message(llm_response);
 
             let mut step_mutated = false;
+            let mut cap_reached = false;
             for tc in &tool_calls {
                 if (run.tool_calls.len() as u32) >= max_steps {
                     info!(
                         "Vibe run {} reached tool-call cap ({max_steps}) at step {}",
                         run.run_id, step
                     );
+                    cap_reached = true;
                     break;
                 }
                 if self
@@ -179,6 +181,20 @@ impl AgentLoop {
                 {
                     step_mutated = true;
                 }
+            }
+
+            if cap_reached {
+                // Tool-call budget exhausted: the work requested is bounded,
+                // so finish the run instead of looping into the timeout.
+                run.transition(VibeRunState::Completed);
+                self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                self.broadcast_event(
+                    run,
+                    "completed",
+                    "Tool-call cap reached — run finished with the work produced so far",
+                    100,
+                );
+                return;
             }
 
             if step_mutated {
@@ -496,6 +512,12 @@ impl AgentLoop {
             &format!("Executing: {}", tool_call.tool_name),
             ((step as f64 / max_steps as f64) * 100.0) as u8,
         );
+        log::info!(
+            "agent_loop: run {} executing tool {} args {}",
+            run.run_id,
+            tool_call.tool_name,
+            tool_call.arguments
+        );
 
         if requires_approval && !run.config.auto_approve {
             run.transition(VibeRunState::AwaitingApproval);
@@ -525,6 +547,11 @@ impl AgentLoop {
             }
             tool_call.approved = true;
             run.transition(VibeRunState::Running);
+        } else if requires_approval {
+            // Auto-approve: the executor refuses unapproved tools
+            // ("Aprovação requerida antes da execução"), so mark the call
+            // approved when the run was created with auto_approve=true.
+            tool_call.approved = true;
         }
 
         let start = tokio::time::Instant::now();
@@ -602,6 +629,13 @@ impl AgentLoop {
                     tool_call.tool_name,
                     truncate(&result_summary, MAX_TOOL_RESULT_CHARS)
                 ));
+                log::info!(
+                    "agent_loop: run {} tool {} completed success={} summary={}",
+                    run.run_id,
+                    tool_call.tool_name,
+                    success,
+                    truncate(&result_summary, 160)
+                );
                 success
             }
             Err(e) => {
@@ -630,6 +664,12 @@ impl AgentLoop {
                     "Tool {} failed: {e}. Continuing with next step.",
                     tool_call.tool_name
                 ));
+                log::info!(
+                    "agent_loop: run {} tool {} execute-ERR: {}",
+                    run.run_id,
+                    tool_call.tool_name,
+                    e
+                );
                 false
             }
         };

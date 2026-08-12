@@ -47,9 +47,16 @@ pub fn file_write() -> ToolHandler {
             let project = str_arg(&args, "project");
             let path = str_arg(&args, "path");
             let content = str_arg(&args, "content");
+            log::info!("file_write called project={project} path={path} len={}", content.len());
             match write_rel_file(&project, &path, content.as_bytes()) {
-                Ok(()) => ok(json!({"project": project, "path": path, "bytes": content.len()})),
-                Err(e) => err(e),
+                Ok(()) => {
+                    log::info!("file_write OK project={project} path={path}");
+                    ok(json!({"project": project, "path": path, "bytes": content.len()}))
+                }
+                Err(e) => {
+                    log::info!("file_write ERR project={project} path={path}: {e}");
+                    err(e)
+                }
             }
         })
     })

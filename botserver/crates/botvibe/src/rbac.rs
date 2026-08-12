@@ -2,6 +2,7 @@ use diesel::prelude::*;
 use std::fmt;
 use uuid::Uuid;
 
+use crate::schema::ensure_schema_sql;
 use crate::types::DbPool;
 
 pub const PROJECT_MEMBERS_SCHEMA: &str = "
@@ -99,9 +100,7 @@ impl ProjectRbac {
 
     pub fn ensure_schema(&self) -> Result<(), String> {
         let mut conn = self.conn()?;
-        diesel::sql_query(PROJECT_MEMBERS_SCHEMA)
-            .execute(&mut conn)
-            .map_err(|e| format!("project_members schema: {e}"))?;
+        ensure_schema_sql(&mut conn, PROJECT_MEMBERS_SCHEMA, "project_members schema")?;
         Ok(())
     }
 

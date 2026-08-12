@@ -6,6 +6,7 @@
 //! operate on whatever projects actually exist. Scoped by `branch_id`
 //! (multi-tenant; nil UUID = global default-bot scope).
 
+use crate::schema::ensure_schema_sql;
 use crate::types::DbPool;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
@@ -130,9 +131,7 @@ impl ProjectRegistry {
     /// Idempotent schema bootstrap (mirror of the 6.5.49 migration).
     pub fn ensure_schema(&self) -> Result<(), String> {
         let mut conn = self.conn()?;
-        diesel::sql_query(VIBE_PROJECTS_SCHEMA)
-            .execute(&mut conn)
-            .map_err(|e| format!("vibe_projects schema: {e}"))?;
+        ensure_schema_sql(&mut conn, VIBE_PROJECTS_SCHEMA, "vibe_projects schema")?;
         Ok(())
     }
 

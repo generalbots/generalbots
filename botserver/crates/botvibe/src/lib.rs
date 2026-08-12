@@ -28,6 +28,7 @@ pub mod metering_schema;
 pub mod permissions;
 pub mod permissions_api;
 pub mod skills;
+pub mod schema;
 pub mod skill_loader;
 pub mod doctor;
 pub mod browser;

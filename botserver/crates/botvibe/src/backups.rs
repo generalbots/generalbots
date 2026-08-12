@@ -15,6 +15,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::schema::ensure_schema_sql;
 use crate::types::DbPool;
 use crate::vm_lifecycle::{VmInstance, VmLifecycle};
 
@@ -87,9 +88,7 @@ impl Backups {
 
     pub fn ensure_schema(&self) -> Result<(), String> {
         let mut conn = self.conn()?;
-        diesel::sql_query(VM_BACKUPS_SCHEMA)
-            .execute(&mut conn)
-            .map_err(|e| format!("vm_backups schema: {e}"))?;
+        ensure_schema_sql(&mut conn, VM_BACKUPS_SCHEMA, "vm_backups schema")?;
         Ok(())
     }
 

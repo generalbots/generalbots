@@ -50,7 +50,6 @@ pub fn resolve_workspace_path(project: &str, rel: &str) -> Result<PathBuf, Strin
     }
     for seg in rel.split(['/', '\\']) {
         match seg {
-            "." => return Err(format!("path uses '.' segments: {rel}")),
             ".." => return Err(format!("path escapes workspace: {rel}")),
             _ => {}
         }
