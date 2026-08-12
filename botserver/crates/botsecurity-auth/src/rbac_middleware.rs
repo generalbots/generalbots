@@ -1234,6 +1234,35 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/vibe/projects/**", "POST", ""),
         RoutePermission::new("/api/vibe/projects/**", "PUT", ""),
         RoutePermission::new("/api/vibe/projects/**", "DELETE", ""),
+        // Vibe project-scoped resources (members/backups/deployments/envs/
+        // metering/vms): authenticated users reach them; per-project RBAC
+        // (member/developer/owner) still gates sensitive operations.
+        RoutePermission::new("/api/vibe/projects/:project_id/**", "GET", ""),
+        RoutePermission::new("/api/vibe/projects/:project_id/**", "POST", ""),
+        RoutePermission::new("/api/vibe/projects/:project_id/**", "PUT", ""),
+        RoutePermission::new("/api/vibe/projects/:project_id/**", "DELETE", ""),
+        // Vibe canvas + collaboration surfaces for logged-in users.
+        RoutePermission::new("/api/vibe/canvases/**", "GET", ""),
+        RoutePermission::new("/api/vibe/canvases/**", "POST", ""),
+        RoutePermission::new("/api/vibe/canvases/**", "PUT", ""),
+        RoutePermission::new("/api/vibe/canvases/**", "DELETE", ""),
+        RoutePermission::new("/api/vibe/teams/**", "GET", ""),
+        RoutePermission::new("/api/vibe/teams/**", "POST", ""),
+        RoutePermission::new("/api/vibe/teams/**", "PUT", ""),
+        RoutePermission::new("/api/vibe/teams/**", "DELETE", ""),
+        RoutePermission::new("/api/vibe/issues/**", "GET", ""),
+        RoutePermission::new("/api/vibe/issues/**", "POST", ""),
+        RoutePermission::new("/api/vibe/issues/**", "PUT", ""),
+        RoutePermission::new("/api/vibe/issues/**", "DELETE", ""),
+        RoutePermission::new("/api/vibe/permissions/**", "GET", ""),
+        RoutePermission::new("/api/vibe/permissions/**", "POST", ""),
+        RoutePermission::new("/api/vibe/permissions/**", "PUT", ""),
+        RoutePermission::new("/api/vibe/permissions/**", "DELETE", ""),
+        RoutePermission::new("/api/vibe/vms/**", "GET", ""),
+        RoutePermission::new("/api/vibe/vms/**", "POST", ""),
+        RoutePermission::new("/api/vibe/vms/**", "DELETE", ""),
+        RoutePermission::new("/api/vibe/metering/**", "GET", ""),
+        RoutePermission::new("/api/vibe/metering/**", "POST", ""),
 
         // Goals
         RoutePermission::new("/api/goals/**", "GET", ""),
