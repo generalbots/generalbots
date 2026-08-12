@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use uuid::Uuid;
 
+pub use crate::schema::ensure_schema_sql;
 pub use crate::metering_schema::{
     EnforceResult, LimitRow, MeterKind, MeterPlan, UsageRow, UsageSummary, METERING_SCHEMA,
 };
@@ -42,9 +43,7 @@ impl VMetering {
 
     pub fn ensure_schema(&self) -> Result<(), String> {
         let mut conn = self.conn()?;
-        diesel::sql_query(METERING_SCHEMA)
-            .execute(&mut conn)
-            .map_err(|e| format!("metering schema: {e}"))?;
+        ensure_schema_sql(&mut conn, METERING_SCHEMA, "metering schema")?;
         Ok(())
     }
 

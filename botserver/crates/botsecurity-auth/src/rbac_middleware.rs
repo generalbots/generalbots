@@ -483,6 +483,18 @@ impl RbacManager {
         }
 
         if self.config.default_deny {
+            let path_matches: Vec<String> = routes
+                .iter()
+                .filter(|r| r.matches_path(path))
+                .map(|r| format!("{}/{}", r.method, r.path_pattern))
+                .collect();
+            log::info!(
+                "RBAC deny trace {} {}: {} routes, path-matches(method-agnostic): {:?}",
+                method,
+                path,
+                routes.len(),
+                path_matches
+            );
             AccessDecisionResult::deny("No matching route permission found")
         } else {
             AccessDecisionResult::allow("Default allow - no matching rule")
@@ -1212,8 +1224,16 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/vibe/events/**", "GET", ""),
         RoutePermission::new("/api/vibe/teams/**", "GET", ""),
         RoutePermission::new("/api/vibe/run/**", "POST", ""),
+        RoutePermission::new("/api/vibe/run/**", "GET", ""),
         RoutePermission::new("/api/vibe/runs", "POST", ""),
         RoutePermission::new("/api/vibe/teams", "POST", ""),
+        // Vibe project registry + VM lifecycle (#743/#744): creating a custom
+        // app (e.g. a node calculator) and raising its dev VM must work for
+        // any logged-in user.
+        RoutePermission::new("/api/vibe/projects/**", "GET", ""),
+        RoutePermission::new("/api/vibe/projects/**", "POST", ""),
+        RoutePermission::new("/api/vibe/projects/**", "PUT", ""),
+        RoutePermission::new("/api/vibe/projects/**", "DELETE", ""),
 
         // Goals
         RoutePermission::new("/api/goals/**", "GET", ""),
@@ -1854,5 +1874,16 @@ mod tests {
         let retrieved = manager.get_resource_acl("document", "doc-123").await;
         assert!(retrieved.is_some());
         assert_eq!(retrieved.as_ref().and_then(|a| a.owner_id), Some(owner_id));
+    }
+}
+
+#[cfg(test)]
+mod run_route_tests {
+    use super::*;
+    #[test]
+    fn run_get_matches_uuid_path() {
+        let r = RoutePermission::new("/api/vibe/run/**", "GET", "");
+        assert!(r.matches_path("/api/vibe/run/840abb94-d1ce-43ad-ac70-56443a6fa626"), "uuid path");
+        assert!(r.matches_path("/api/vibe/run/abc"), "short id");
     }
 }

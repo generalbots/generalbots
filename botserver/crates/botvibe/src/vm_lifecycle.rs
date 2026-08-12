@@ -14,6 +14,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::schema::ensure_schema_sql;
 use crate::types::DbPool;
 
 pub const VM_INSTANCES_SCHEMA: &str = r"
@@ -112,9 +113,7 @@ impl VmLifecycle {
 
     pub fn ensure_schema(&self) -> Result<(), String> {
         let mut conn = self.conn()?;
-        diesel::sql_query(VM_INSTANCES_SCHEMA)
-            .execute(&mut conn)
-            .map_err(|e| format!("vm schema: {e}"))?;
+        ensure_schema_sql(&mut conn, VM_INSTANCES_SCHEMA, "vm_instances schema")?;
         Ok(())
     }
 

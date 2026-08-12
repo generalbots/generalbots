@@ -45,6 +45,7 @@ impl std::fmt::Display for GuardError {
     }
 }
 
+#[derive(Debug)]
 pub struct RunOutput {
     pub exit_code: Option<i32>,
     pub stdout: String,
@@ -176,6 +177,24 @@ mod tests {
     fn allowlist_contains_harness_commands() {
         for cmd in ["git", "cat", "ls", "tail", "npm", "cargo", "python3"] {
             assert!(ALLOWED_COMMANDS.contains(cmd), "{cmd} must be allowlisted");
+        }
+    }
+}
+#[cfg(test)]
+mod harness_cmd_tests {
+    use super::*;
+
+    #[test]
+    fn runs_node_expression() {
+        let cwd = std::path::Path::new("/tmp/vibe-workspaces/calculator");
+        let out = run("node", &["index.js".to_string(), "2+3".to_string()], cwd, 10);
+        println!("result: {out:?}");
+        match out {
+            Ok(o) => {
+                assert_eq!(o.exit_code, Some(0));
+                assert_eq!(o.stdout.trim(), "5");
+            }
+            Err(e) => panic!("node run failed: {e:?}"),
         }
     }
 }

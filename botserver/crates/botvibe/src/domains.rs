@@ -15,6 +15,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::schema::ensure_schema_sql;
 use crate::caddy::{self, CaddyResult};
 use crate::types::DbPool;
 use crate::vm_lifecycle::VmLifecycle;
@@ -119,9 +120,7 @@ impl ProjectDomains {
 
     pub fn ensure_schema(&self) -> Result<(), String> {
         let mut conn = self.conn()?;
-        diesel::sql_query(PROJECT_DOMAINS_SCHEMA)
-            .execute(&mut conn)
-            .map_err(|e| format!("project domains schema: {e}"))?;
+        ensure_schema_sql(&mut conn, PROJECT_DOMAINS_SCHEMA, "project_domains schema")?;
         Ok(())
     }
 

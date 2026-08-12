@@ -311,7 +311,7 @@ mod tests {
         let refs = sources_for_run(&run);
         assert!(refs.iter().any(|r| r == "tool invoked: files/write"));
         assert_eq!(
-            refs.iter().filter(|r| r == "file: /tmp/app/main.rs").count(),
+            refs.iter().filter(|r| *r == "file: /tmp/app/main.rs").count(),
             1
         );
     }
@@ -329,7 +329,7 @@ mod tests {
         }
         let refs = sources_for_run(&run);
         assert_eq!(
-            refs.iter().filter(|r| r == "tool invoked: web/search").count(),
+            refs.iter().filter(|r| *r == "tool invoked: web/search").count(),
             1
         );
     }
