@@ -31,6 +31,11 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             id UUID PRIMARY KEY, employee_id UUID NOT NULL, title TEXT NOT NULL,
             completion INTEGER NOT NULL DEFAULT 0, due_date DATE NOT NULL,
             branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000')",
+        "ALTER TABLE hr_employees ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
+        "ALTER TABLE hr_recruitment ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
+        "ALTER TABLE hr_attendance ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
+        "ALTER TABLE hr_review_cycles ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
+        "ALTER TABLE hr_goals ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
     ] {
         diesel::sql_query(sql).execute(&mut conn).map_err(db::map_diesel_err)?;
     }
