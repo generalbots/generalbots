@@ -141,3 +141,290 @@
 .campaign-action-btn.primary:hover {
     opacity: 0.9;
 }
+
+/* ============ Campaign Studio ============ */
+.studio-modal-content {
+    width: min(960px, 94vw);
+    max-height: 92vh;
+    overflow-y: auto;
+}
+
+.crm-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.studio-editor-area {
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.studio-editor-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 8px;
+    background: var(--surface-2, #111827);
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.studio-tool-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text, #e2e8f0);
+    border-radius: 4px;
+    min-width: 28px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.studio-tool-btn:hover {
+    border-color: var(--accent, #3b82f6);
+    background: var(--surface-active, #1e293b);
+}
+
+.studio-tool-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--border, #333);
+    margin: 0 4px;
+}
+
+.studio-var-label {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+    margin-right: 4px;
+}
+
+.studio-var-btn {
+    border: 1px dashed var(--accent, #3b82f6);
+    background: transparent;
+    color: var(--accent, #3b82f6);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: monospace;
+}
+
+.studio-var-btn:hover {
+    background: var(--accent, #3b82f6);
+    color: #fff;
+}
+
+.studio-var {
+    background: rgba(59, 130, 246, 0.15);
+    border-radius: 3px;
+    padding: 0 3px;
+    color: var(--accent, #3b82f6);
+}
+
+.studio-editor {
+    min-height: 160px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.55;
+    outline: none;
+}
+
+.studio-editor:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-secondary, #888);
+    pointer-events: none;
+}
+
+.studio-editor h2, .studio-editor h3 { margin: 8px 0 4px; }
+.studio-editor p { margin: 0 0 8px; }
+
+.studio-preview-area {
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.studio-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: var(--surface-2, #111827);
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.studio-preview-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text, #e2e8f0);
+}
+
+.studio-device-btn {
+    font-size: 12px;
+    padding: 3px 10px;
+}
+
+.studio-preview-frame {
+    min-height: 260px;
+    padding: 18px;
+    background:
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 0) 0 0 / 18px 18px,
+        var(--surface-3, #0f172a);
+    display: flex;
+    align-items: flex-start;
+}
+
+.studio-device {
+    background: #fff;
+    color: #1e293b;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    flex-shrink: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+}
+
+/* WhatsApp */
+.studio-device-whatsapp { background: #0b141a; max-width: 375px; }
+.wa-header {
+    background: #202c33; color: #e9edef;
+    padding: 8px 12px; font-size: 13px; font-weight: 600;
+}
+.wa-bubble {
+    background: #005c4b; color: #e9edef;
+    border-radius: 8px 8px 8px 2px;
+    margin: 14px 10px; padding: 8px 12px;
+    max-width: 85%;
+    line-height: 1.45;
+}
+.wa-time {
+    text-align: right; font-size: 10px; color: rgba(233, 237, 239, 0.6); margin-top: 4px;
+}
+
+/* Instagram / Facebook post */
+.studio-device-instagram { background: #fff; }
+.studio-device-facebook { background: #fff; }
+.ig-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-bottom: 1px solid #f0f0f0;
+}
+.ig-avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #feda75, #fa7e1e, #d62976, #962fbf);
+}
+.ig-user { font-size: 12px; font-weight: 600; color: #262626; }
+.ig-image {
+    height: 190px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #f6f8fc, #e9edf5);
+    color: #94a3b8; font-size: 22px; gap: 6px;
+}
+.ig-image small { font-size: 11px; color: #94a3b8; }
+.ig-caption { padding: 10px; font-size: 12px; color: #262626; line-height: 1.5; }
+.ig-caption .ig-user { margin-right: 4px; }
+
+/* SMS */
+.studio-device-sms { background: #fff; padding: 12px; }
+.sms-preview { display: flex; flex-direction: column; gap: 8px; }
+.sms-bubble {
+    background: #e5e7eb; color: #1f2937;
+    border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5;
+}
+.sms-counter {
+    font-size: 11px; color: #6b7280; text-align: right;
+}
+.sms-counter.studio-sms-warn { color: #d97706; }
+.sms-counter.studio-sms-over { color: #dc2626; font-weight: 600; }
+
+/* Email address strip */
+.studio-email-address { border-top: 1px solid #cbd5e1; }
+
+/* ============ Unified monitor ============ */
+.studio-monitor-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 24px;
+}
+
+.studio-monitor-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.studio-chip {
+    border: 1px solid var(--border, #333);
+    background: transparent;
+    color: var(--text-secondary, #888);
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.studio-chip:hover {
+    border-color: var(--accent, #3b82f6);
+    color: var(--text, #e2e8f0);
+}
+
+.studio-chip.active {
+    background: var(--accent, #3b82f6);
+    border-color: var(--accent, #3b82f6);
+    color: #fff;
+}
+
+.studio-monitor-totals {
+    padding: 0 24px 8px;
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+}
+
+.studio-table-wrap {
+    padding: 0 24px 24px;
+    overflow-x: auto;
+}
+
+.studio-monitor-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--surface, #1a1a1a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.studio-monitor-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface-2, #111827);
+    color: var(--text-secondary, #888);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.studio-monitor-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border, #222);
+    color: var(--text, #e2e8f0);
+}
+
+.studio-monitor-table tbody tr:hover {
+    background: var(--surface-active, #1e293b);
+}
+
+.studio-m-name { font-weight: 600; }
+.studio-m-actions { white-space: nowrap; text-align: right; }

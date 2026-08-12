@@ -1,23 +1,25 @@
-<!-- Marketing Campaigns - Multi-Channel Marketing -->
+<!-- Marketing Campaign Studio - Multi-Channel Campaigns (WYSIWYG + unified monitor) -->
 <link rel="stylesheet" href="/suite/crm/crm.css">
 <link rel="stylesheet" href="/suite/campaigns/campaigns.css">
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/security-bootstrap.js"></script>
-<script src="/suite/js/campaigns.js"></script>
+<script src="/suite/js/campaigns/01_state.js"></script>
+<script src="/suite/js/campaigns/02_editor.js"></script>
+<script src="/suite/js/campaigns/03_preview.js"></script>
+<script src="/suite/js/campaigns/04_monitor.js"></script>
+<script src="/suite/js/campaigns/05_actions.js"></script>
+<script src="/suite/js/campaigns/99_init.js"></script>
 
 <div class="crm-container">
     <!-- Header -->
     <header class="crm-header">
         <div class="crm-header-left">
-            <h1 data-i18n="campaigns-title">Campaigns</h1>
+            <h1 data-i18n="campaigns-title">Campaign Studio</h1>
             <nav class="crm-tabs">
-                <button class="crm-tab active" data-view="all" data-i18n="campaigns-all">All Campaigns</button>
+                <button class="crm-tab active" data-view="all" data-i18n="campaigns-all">Monitor</button>
                 <button class="crm-tab" data-view="lists" data-i18n="campaigns-lists">Lists</button>
                 <button class="crm-tab" data-view="templates" data-i18n="campaigns-templates">Templates</button>
-                <button class="crm-tab" data-view="email" data-i18n="campaigns-email">Email</button>
-                <button class="crm-tab" data-view="whatsapp" data-i18n="campaigns-whatsapp">WhatsApp</button>
-                <button class="crm-tab" data-view="social" data-i18n="campaigns-social">Social</button>
             </nav>
         </div>
         <div class="crm-header-right">
@@ -30,18 +32,39 @@
         </div>
     </header>
 
-    <!-- Campaigns Grid -->
+    <!-- Unified Monitor -->
     <div id="campaigns-view" class="crm-view active">
-        <div class="campaigns-grid" id="campaignsList" 
-             hx-get="/api/crm/campaigns"
-             hx-trigger="load"
-             hx-swap="innerHTML">
-            <!-- Campaigns loaded via HTMX -->
-            <div class="pipeline-column" style="grid-column: 1 / -1;">
-                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
-                    Loading campaigns...
-                </div>
+        <div class="studio-monitor-toolbar">
+            <div class="studio-monitor-filters">
+                <button class="studio-chip active" data-monitor-filter="all">All</button>
+                <button class="studio-chip" data-monitor-filter="email">📧 Email</button>
+                <button class="studio-chip" data-monitor-filter="whatsapp">💬 WhatsApp</button>
+                <button class="studio-chip" data-monitor-filter="instagram">📸 Instagram</button>
+                <button class="studio-chip" data-monitor-filter="facebook">📘 Facebook</button>
+                <button class="studio-chip" data-monitor-filter="sms">✉️ SMS</button>
             </div>
+            <button class="btn-secondary" id="studio-monitor-refresh">⟳ Refresh</button>
+        </div>
+        <div class="studio-monitor-totals" id="studio-monitor-totals"></div>
+        <div class="studio-table-wrap">
+            <table class="studio-monitor-table">
+                <thead>
+                    <tr>
+                        <th>Campaign</th>
+                        <th>Channel</th>
+                        <th>Status</th>
+                        <th>Sent</th>
+                        <th>Delivered</th>
+                        <th>Opened</th>
+                        <th>Clicked</th>
+                        <th>Replied</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="studio-monitor-body">
+                    <tr><td colspan="9" style="padding:40px;text-align:center;color:var(--text-secondary,#888);">Loading campaigns…</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -52,7 +75,7 @@
                 <span>New List</span>
             </button>
         </div>
-        <div class="campaigns-grid" id="listsList" 
+        <div class="campaigns-grid" id="listsList"
              hx-get="/api/crm/lists"
              hx-trigger="load"
              hx-swap="innerHTML">
@@ -71,7 +94,7 @@
                 <span>New Template</span>
             </button>
         </div>
-        <div class="campaigns-grid" id="templatesList" 
+        <div class="campaigns-grid" id="templatesList"
              hx-get="/api/crm/templates"
              hx-trigger="load"
              hx-swap="innerHTML">
@@ -87,7 +110,7 @@
 <!-- Create/Edit Campaign Modal -->
 <div id="campaign-modal" class="crm-modal" style="display: none;">
     <div class="crm-modal-overlay" onclick="hideCampaignModal()"></div>
-    <div class="crm-modal-content">
+    <div class="crm-modal-content studio-modal-content">
         <div class="crm-modal-header">
             <h2 id="campaign-modal-title" data-i18n="campaign-create">Create Campaign</h2>
             <button class="crm-modal-close" onclick="hideCampaignModal()">
@@ -99,61 +122,78 @@
         <form id="campaign-form">
             <div class="crm-form-group">
                 <label for="campaign-name" data-i18n="campaign-name">Campaign Name</label>
-                <input type="text" id="campaign-name" name="name" required 
+                <input type="text" id="campaign-name" name="name" required
                        placeholder="e.g., Welcome Series">
             </div>
-            <div class="crm-form-group">
-                <label for="campaign-channel" data-i18n="campaign-channel">Channel</label>
-                <select id="campaign-channel" name="channel" required>
-                    <option value="email">📧 Email</option>
-                    <option value="whatsapp">💬 WhatsApp</option>
-                    <option value="instagram">📸 Instagram</option>
-                    <option value="facebook">📘 Facebook</option>
-                    <option value="multi">🔄 Multi-Channel</option>
-                </select>
+            <div class="crm-form-row">
+                <div class="crm-form-group">
+                    <label for="campaign-channel" data-i18n="campaign-channel">Channel</label>
+                    <select id="campaign-channel" name="channel" required>
+                        <option value="email">📧 Email</option>
+                        <option value="whatsapp">💬 WhatsApp</option>
+                        <option value="instagram">📸 Instagram</option>
+                        <option value="facebook">📘 Facebook</option>
+                        <option value="sms">✉️ SMS</option>
+                        <option value="multi">🔄 Multi-Channel</option>
+                    </select>
+                </div>
+                <div class="crm-form-group">
+                    <label for="campaign-budget" data-i18n="campaign-budget">Budget (optional)</label>
+                    <input type="number" id="campaign-budget" name="budget" step="0.01" placeholder="0.00">
+                </div>
+                <div class="crm-form-group">
+                    <label for="campaign-schedule" data-i18n="campaign-schedule">Schedule (optional)</label>
+                    <input type="datetime-local" id="campaign-schedule" name="scheduled_at">
+                </div>
             </div>
-            <div class="crm-form-group">
-                <label for="campaign-budget" data-i18n="campaign-budget">Budget (optional)</label>
-                <input type="number" id="campaign-budget" name="budget" step="0.01" 
-                       placeholder="0.00">
+            <div class="crm-form-group" id="campaign-subject-row">
+                <label for="campaign-subject">Subject</label>
+                <input type="text" id="campaign-subject" placeholder="e.g., Special offer inside — {{name}}">
             </div>
-            <div class="crm-form-group">
-                <label for="campaign-schedule" data-i18n="campaign-schedule">Schedule (optional)</label>
-                <input type="datetime-local" id="campaign-schedule" name="scheduled_at">
+
+            <div class="studio-editor-area">
+                <div class="studio-editor-toolbar">
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="bold" title="Bold"><b>B</b></button>
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="italic" title="Italic"><i>I</i></button>
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="underline" title="Underline"><u>U</u></button>
+                    <span class="studio-tool-sep"></span>
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="formatBlock" data-editor-value="h2" title="Heading">H2</button>
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="formatBlock" data-editor-value="h3" title="Subheading">H3</button>
+                    <span class="studio-tool-sep"></span>
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="insertUnorderedList" title="Bullets">• List</button>
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="insertOrderedList" title="Numbers">1. List</button>
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="createLink" title="Link" data-editor-value="https://">🔗</button>
+                    <button type="button" class="studio-tool-btn" data-editor-cmd="removeFormat" title="Clear formatting">⌫</button>
+                    <span class="studio-tool-sep"></span>
+                    <span class="studio-var-label">Variables:</span>
+                    <button type="button" class="studio-var-btn" data-var="{{name}}">{{name}}</button>
+                    <button type="button" class="studio-var-btn" data-var="{{company}}">{{company}}</button>
+                    <button type="button" class="studio-var-btn" data-var="{{email}}">{{email}}</button>
+                </div>
+                <div class="studio-editor" id="studio-editor" contenteditable="true"
+                     data-placeholder="Write your message here…"></div>
             </div>
+
+            <div class="studio-preview-area">
+                <div class="studio-preview-header">
+                    <span class="studio-preview-title">📺 Channel preview</span>
+                    <button type="button" class="btn-secondary studio-device-btn" id="studio-device-toggle">🖥 Desktop</button>
+                    <button type="button" class="btn-secondary studio-device-btn" id="studio-social-btn" style="display:none;">🚀 Publish to IG</button>
+                </div>
+                <div class="studio-preview-frame" id="studio-preview-frame">
+                    <div style="padding:24px;color:var(--text-secondary,#888);text-align:center;">Your preview appears here</div>
+                </div>
+            </div>
+
             <div class="crm-form-actions">
                 <button type="button" class="btn-secondary" onclick="hideCampaignModal()" data-i18n="cancel">Cancel</button>
-                <button type="submit" class="btn-primary" data-i18n="campaign-save">Create Campaign</button>
+                <button type="submit" class="btn-primary" data-i18n="campaign-save">Save Campaign</button>
             </div>
         </form>
     </div>
 </div>
 
-
-
 <script>
-function showCampaignModal(campaignId = null) {
-    const modal = document.getElementById('campaign-modal');
-    const title = document.getElementById('campaign-modal-title');
-    
-    if (campaignId) {
-        title.textContent = 'Edit Campaign';
-    } else {
-        title.textContent = 'Create Campaign';
-    }
-    
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-}
-
-function hideCampaignModal() {
-    const modal = document.getElementById('campaign-modal');
-    modal.style.display = 'none';
-    document.body.style.overflow = '';
-    
-    document.getElementById('campaign-form').reset();
-}
-
 function showListModal() {
     var existing = document.getElementById('coming-soon-banner');
     if (!existing) {
@@ -178,41 +218,20 @@ function showTemplateModal() {
     }
 }
 
-// Tab switching
+// Tab switching (lists/templates stay HTMX-driven; monitor renders via JS)
 document.querySelectorAll('.crm-tab[data-view]').forEach(tab => {
     tab.addEventListener('click', function() {
         document.querySelectorAll('.crm-tab[data-view]').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.crm-view').forEach(v => v.classList.remove('active'));
         this.classList.add('active');
-        
+
         const view = this.dataset.view;
-        
-        // Show the appropriate view
-        const viewElement = document.getElementById(`${view}-view`);
-        if (viewElement) {
-            viewElement.classList.add('active');
-        }
-        
-        // For channel filters, use the existing filter function
-        if (['all', 'email', 'whatsapp', 'social'].includes(view)) {
-            filterCampaigns(view);
+        const viewElement = document.getElementById(view + '-view');
+        if (viewElement) viewElement.classList.add('active');
+
+        if (view === 'all' && window.CampStudio) {
+            window.CampStudio.monitor.load();
         }
     });
 });
-
-function filterCampaigns(view) {
-    const cards = document.querySelectorAll('.campaign-card');
-    cards.forEach(card => {
-        if (view === 'all') {
-            card.style.display = '';
-        } else {
-            const channels = card.querySelector('.campaign-channels');
-            if (channels && channels.textContent.toLowerCase().includes(view)) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
-        }
-    });
-}
 </script>
