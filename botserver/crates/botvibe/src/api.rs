@@ -1,4 +1,5 @@
 use crate::agent_loop::AgentLoop;
+use crate::pipeline::{PipelineEngine, RunPipeline, StageStatus};
 use crate::prompt_manager::VibePromptManager;
 use crate::telemetry::VibeTelemetry;
 use crate::tool_executor::{ToolDescriptor, VibeToolExecutor};
@@ -8,6 +9,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use diesel::prelude::*;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -25,6 +27,10 @@ pub struct CreateRunRequest {
     pub timeout_seconds: Option<u64>,
     pub model: Option<String>,
     pub budget_cents: Option<u64>,
+    /// vibe33 #811 — when "deploy", the run executes through the graph
+    /// (PipelineEngine, approval-gated deploy pipeline) instead of the
+    /// agent loop.
+    pub pipeline_mode: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -62,6 +68,27 @@ pub struct ListRunsQuery {
     pub use_case: Option<String>,
     pub limit: Option<u32>,
     pub offset: Option<u32>,
+}
+
+/// Resolves a nil bot id to the default bot so chat-driven vibe runs
+/// (which carry no explicit bot) still resolve LLM config (Vault + config.csv).
+fn resolve_effective_bot_id(pool: &crate::types::DbPool) -> Uuid {
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(_) => return Uuid::nil(),
+    };
+    #[derive(diesel::QueryableByName)]
+    struct BotIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    diesel::sql_query("SELECT id FROM bots WHERE name = 'default' AND is_active = true LIMIT 1")
+        .get_result::<BotIdRow>(&mut conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|r| r.id)
+        .unwrap_or(Uuid::nil())
 }
 
 #[derive(Debug, Serialize)]
@@ -217,7 +244,7 @@ async fn create_run(
         budget_cents: req.budget_cents.unwrap_or(0),
     };
 
-    let run = VibeRun::new(Uuid::nil(), Uuid::nil(), Uuid::nil(), req.intent, config);
+    let run = VibeRun::new(resolve_effective_bot_id(api.state.db_pool()), Uuid::nil(), Uuid::nil(), req.intent, config);
     let run_id = run.run_id;
     let state_str = run.state.to_string();
     let uc_str = run.use_case.to_string();
@@ -254,6 +281,7 @@ async fn create_run(
         VibeProgressEvent::started(run_id.to_string(), "Vibe run created", 3),
     );
 
+    let pipeline_mode = req.pipeline_mode.clone();
     let api_clone = api.clone();
     tokio::spawn(async move {
         let run_opt = {
@@ -261,7 +289,56 @@ async fn create_run(
             runs.remove(&run_id)
         };
         if let Some(mut run) = run_opt {
-            agent_loop.execute_run(&mut run).await;
+            if pipeline_mode.as_deref() == Some("deploy") {
+                // vibe33 #811 — graph execution path: the deploy pipeline
+                // runs its stages through the tool executor with approval
+                // gates and fail-fast (failed stage skips the rest).
+                run.transition(VibeRunState::Running);
+                let engine = PipelineEngine::new(api_clone.telemetry.clone());
+                let pipeline = RunPipeline::deploy_pipeline(run.use_case);
+                let report = engine
+                    .run(
+                        &pipeline,
+                        run_id,
+                        run.use_case,
+                        &api_clone.tool_executor,
+                        api_clone.state.as_ref(),
+                        &run.intent,
+                    )
+                    .await;
+                let failed = report
+                    .stages
+                    .iter()
+                    .any(|s| s.status == StageStatus::Failed);
+                let skipped = report
+                    .stages
+                    .iter()
+                    .filter(|s| s.status == StageStatus::Skipped)
+                    .count();
+                if failed {
+                    run.transition(VibeRunState::Failed);
+                    run.error = Some(
+                        report
+                            .stages
+                            .iter()
+                            .find(|s| s.status == StageStatus::Failed)
+                            .and_then(|s| s.error.clone())
+                            .unwrap_or_else(|| "pipeline stage failed".to_string()),
+                    );
+                } else {
+                    run.transition(VibeRunState::Completed);
+                }
+                info!(
+                    "Vibe deploy pipeline {run_id}: {} stages, {skipped} skipped, failed={failed}",
+                    report.stages.len()
+                );
+                api_clone
+                    .telemetry
+                    .record_run_completion(&run, 0, None, 0.0)
+                    .await;
+            } else {
+                agent_loop.execute_run(&mut run).await;
+            }
             if let Err(e) = api_clone.runs_store.save_run(&run) {
                 error!("Vibe: persist run {run_id} failed: {e}");
             }
@@ -392,12 +469,26 @@ async fn list_runs(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Query(query): Query<ListRunsQuery>,
 ) -> impl IntoResponse {
-    let runs = api.runs.read().await;
     let limit = query.limit.unwrap_or(50).min(200) as usize;
     let offset = query.offset.unwrap_or(0) as usize;
 
-    let filtered: Vec<GetRunResponse> = runs
-        .values()
+    let (live, persisted) = {
+        let runs = api.runs.read().await;
+        (runs.clone(), api.runs_store.list_runs((limit + offset) as i64))
+    };
+
+    let mut merged: Vec<VibeRun> = persisted;
+    for run in live.into_values() {
+        if let Some(existing) = merged.iter_mut().find(|r| r.run_id == run.run_id) {
+            *existing = run;
+        } else {
+            merged.push(run);
+        }
+    }
+    merged.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+    let filtered: Vec<GetRunResponse> = merged
+        .iter()
         .skip(offset)
         .take(limit)
         .filter(|r| {
@@ -412,7 +503,7 @@ async fn list_runs(
                 .as_ref()
                 .is_none_or(|f| r.use_case.to_string() == *f)
         })
-        .map(run_to_response)
+        .map(|r| run_to_response(r))
         .collect();
 
     Json(filtered)
@@ -480,7 +571,42 @@ async fn list_tools_for_use_case(
 }
 
 async fn get_global_metrics(Extension(api): Extension<Arc<VibeApiInner>>) -> impl IntoResponse {
-    let metrics = api.telemetry.get_global_metrics().await;
+    let mut metrics = api.telemetry.get_global_metrics().await;
+
+    let mut runs: Vec<VibeRun> = api.runs_store.list_runs(1000);
+    for run in api.runs.read().await.values() {
+        match runs.iter_mut().find(|r| r.run_id == run.run_id) {
+            Some(existing) => *existing = run.clone(),
+            None => runs.push(run.clone()),
+        }
+    }
+    runs.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+
+    metrics.total_runs = 0;
+    metrics.completed_runs = 0;
+    metrics.failed_runs = 0;
+    for m in metrics.by_use_case.values_mut() {
+        m.total_runs = 0;
+        m.completed_runs = 0;
+        m.failed_runs = 0;
+    }
+    for run in runs.iter().rev() {
+        metrics.total_runs += 1;
+        let m = metrics.by_use_case.entry(run.use_case).or_default();
+        m.total_runs += 1;
+        match run.state {
+            VibeRunState::Completed => {
+                metrics.completed_runs += 1;
+                m.completed_runs += 1;
+            }
+            VibeRunState::Failed | VibeRunState::Cancelled => {
+                metrics.failed_runs += 1;
+                m.failed_runs += 1;
+            }
+            _ => {}
+        }
+    }
+
     Json(MetricsResponse {
         success: true,
         metrics: Some(serde_json::to_value(metrics).unwrap_or(serde_json::Value::Null)),

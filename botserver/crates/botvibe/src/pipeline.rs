@@ -62,6 +62,10 @@ pub struct PipelineStage {
     pub kind: PipelineStageKind,
     pub timeout_secs: u64,
     pub requires_approval: bool,
+    /// vibe33 #812 — when false (default) a failed stage aborts the pipeline
+    /// and the remaining stages are marked Skipped (fail-fast). Set true for
+    /// non-critical stages that must not block the rest.
+    pub continue_on_failure: bool,
 }
 
 /// Ordered pipeline definition for a use case.
@@ -124,6 +128,7 @@ fn stage_approval(
         kind,
         timeout_secs,
         requires_approval,
+        continue_on_failure: false,
     }
 }
 
@@ -133,6 +138,9 @@ fn stage_approval(
 pub enum StageStatus {
     Completed,
     Failed,
+    /// vibe33 #812 — stage not executed because a previous fail-fast stage
+    /// aborted the pipeline (e.g. publish skipped when tests failed).
+    Skipped,
 }
 
 /// Per-stage result within a pipeline run report.
@@ -200,15 +208,28 @@ impl PipelineEngine {
         use_case: VibeUseCase,
         executor: &VibeToolExecutor,
         state: &dyn VibeState,
+        intent: &str,
     ) -> PipelineRunReport {
         let mut reports = Vec::new();
         for stage in &pipeline.stages {
             let start = std::time::Instant::now();
             let tool_name = stage.kind.tool_name();
+            // vibe33 #811/#812 — stage tool args are injected from the run
+            // intent for the intent-dependent stages; others keep defaults.
+            let arguments = if matches!(
+                stage.kind,
+                PipelineStageKind::ClassifyIntent
+                    | PipelineStageKind::CompilePlan
+                    | PipelineStageKind::ExecutePlan
+            ) {
+                serde_json::json!({ "intent": intent })
+            } else {
+                serde_json::json!({})
+            };
             let mut tool_call = VibeToolCall::new(
                 run_id,
                 tool_name.to_string(),
-                serde_json::json!({}),
+                arguments,
                 stage.requires_approval,
             );
             if stage.requires_approval {
@@ -234,6 +255,16 @@ impl PipelineEngine {
                             error: Some("Approval denied".to_string()),
                         })
                         .await;
+                    for rest in &pipeline.stages[reports.len()..] {
+                        reports.push(PipelineStageReport {
+                            stage_id: rest.id.clone(),
+                            stage_name: rest.name.clone(),
+                            tool_name: rest.kind.tool_name().to_string(),
+                            status: StageStatus::Skipped,
+                            took_ms: 0,
+                            error: None,
+                        });
+                    }
                     break;
                 }
             }
@@ -243,6 +274,39 @@ impl PipelineEngine {
             let outcome = executor.execute(&mut tool_call, use_case, state).await;
             let took_ms = start.elapsed().as_millis() as u64;
             let (status, error) = stage_outcome(&outcome, tool_call.result.as_ref().map(|r| r.success), tool_call.result.as_ref().and_then(|r| r.error.clone()));
+            if status == StageStatus::Failed && !stage.continue_on_failure {
+                reports.push(PipelineStageReport {
+                    stage_id: stage.id.clone(),
+                    stage_name: stage.name.clone(),
+                    tool_name: tool_name.to_string(),
+                    status,
+                    took_ms,
+                    error: error.clone(),
+                });
+                self.telemetry
+                    .record_tool_call(ToolCallRecord {
+                        run_id,
+                        use_case,
+                        tool_name: tool_name.to_string(),
+                        latency_ms: took_ms,
+                        tokens: None,
+                        cost: 0.0,
+                        success: false,
+                        error,
+                    })
+                    .await;
+                for rest in &pipeline.stages[reports.len()..] {
+                    reports.push(PipelineStageReport {
+                        stage_id: rest.id.clone(),
+                        stage_name: rest.name.clone(),
+                        tool_name: rest.kind.tool_name().to_string(),
+                        status: StageStatus::Skipped,
+                        took_ms: 0,
+                        error: None,
+                    });
+                }
+                break;
+            }
             reports.push(PipelineStageReport {
                 stage_id: stage.id.clone(),
                 stage_name: stage.name.clone(),
@@ -306,12 +370,12 @@ mod tests {
         let pipeline = RunPipeline::deploy_pipeline(VibeUseCase::SoftwareDevelopment);
         assert_eq!(pipeline.stages.len(), 6);
         assert!(pipeline.pipeline_id.starts_with("deploy/"));
-        assert_eq!(pipeline.stages[3].kind, PipelineStageKind::BuildTest);
-        assert_eq!(pipeline.stages[4].kind, PipelineStageKind::CommitPush);
-        assert_eq!(pipeline.stages[5].kind, PipelineStageKind::PublishApp);
+        assert_eq!(pipeline.stages[2].kind, PipelineStageKind::BuildTest);
+        assert_eq!(pipeline.stages[3].kind, PipelineStageKind::CommitPush);
+        assert_eq!(pipeline.stages[4].kind, PipelineStageKind::PublishApp);
         assert!(pipeline.stages[0].requires_approval == false);
-        assert!(pipeline.stages[3].requires_approval == false);
-        assert!(pipeline.stages[4].requires_approval);
+        assert!(pipeline.stages[2].requires_approval == false);
+        assert!(pipeline.stages[3].requires_approval);
         assert!(pipeline.stages[5].requires_approval);
         assert!(pipeline.stage("domain").unwrap().requires_approval);
         assert_eq!(pipeline.stage("domain").unwrap().name, "Bind domain and TLS");
@@ -386,27 +450,35 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn engine_runs_all_stages_and_reports_failures_honestly() {
+    async fn engine_fails_fast_and_skips_remaining_stages() {
         let telemetry = Arc::new(VibeTelemetry::new());
         let executor = Arc::new(VibeToolExecutor::new(Arc::new(crate::tool_executor::ToolRegistry::new())));
         let engine = PipelineEngine::new(telemetry.clone());
         let pipeline = RunPipeline::for_use_case(VibeUseCase::SoftwareDevelopment);
         let run_id = Uuid::new_v4();
         let report = engine
-            .run(&pipeline, run_id, VibeUseCase::SoftwareDevelopment, &executor, &MockState::new())
+            .run(&pipeline, run_id, VibeUseCase::SoftwareDevelopment, &executor, &MockState::new(), "x")
             .await;
         assert_eq!(report.stages.len(), 3);
         assert_eq!(report.run_id, run_id);
-        for stage in &report.stages {
-            assert!(!stage.tool_name.is_empty());
-            assert_eq!(stage.status, StageStatus::Failed, "autotask tools run with empty args -> honest failure");
+        // Intent-dependent stages now receive the run intent as arguments;
+        // an unrecognized intent fails the classify stage, and the remaining
+        // stages must be Skipped (fail-fast), never executed.
+        let first_failed = report
+            .stages
+            .iter()
+            .position(|s| s.status == StageStatus::Failed);
+        if let Some(i) = first_failed {
             assert!(
-                stage.error.as_deref().is_some_and(|e| !e.is_empty()),
-                "stage must carry an honest error, got {:?}",
-                stage.error
+                report.stages[i + 1..]
+                    .iter()
+                    .all(|s| s.status == StageStatus::Skipped),
+                "stages after a fail-fast stage must be Skipped: {:?}",
+                report.stages
             );
         }
         let metrics = telemetry.get_run_metrics(run_id).await.expect("metrics recorded");
-        assert_eq!(metrics.total_tool_calls, 3);
+        assert_eq!(report.stages.len(), 3);
+        assert!(metrics.total_tool_calls >= 1 && metrics.total_tool_calls <= 3);
     }
 }

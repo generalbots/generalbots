@@ -109,7 +109,7 @@ impl ProjectRbac {
             return Ok(Vec::new());
         }
         diesel::sql_query(
-            "SELECT g.name FROM rbac_user_groups ug \
+            "SELECT g.name AS value FROM rbac_user_groups ug \
              JOIN rbac_groups g ON g.id = ug.group_id \
              WHERE ug.user_id = $1 AND g.is_active = true",
         )
@@ -122,7 +122,7 @@ impl ProjectRbac {
     pub fn resolve_role(&self, user_id: Uuid, project_id: Uuid) -> Result<ProjectRole, String> {
         let mut conn = self.conn()?;
         let direct: Option<StringCell> = diesel::sql_query(
-            "SELECT role FROM project_members \
+            "SELECT role AS value FROM project_members \
              WHERE project_id = $1 AND user_id = $2",
         )
         .bind::<diesel::sql_types::Uuid, _>(project_id)
@@ -142,7 +142,7 @@ impl ProjectRbac {
         let mut best = ProjectRole::Viewer;
         for name in &groups {
             let group_role: Option<StringCell> = diesel::sql_query(
-                "SELECT role FROM project_members \
+                "SELECT role AS value FROM project_members \
                  WHERE project_id = $1 AND group_name = $2",
             )
             .bind::<diesel::sql_types::Uuid, _>(project_id)

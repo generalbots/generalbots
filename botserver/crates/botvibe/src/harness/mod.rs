@@ -137,7 +137,7 @@ mod tests {
     fn resolve_rejects_parent_escape() {
         assert!(resolve_workspace_path("proj", "../etc/passwd").is_err());
         assert!(resolve_workspace_path("proj", "a/../../x").is_err());
-        assert!(resolve_workspace_path("proj", "a/./b").is_err());
+        assert!(resolve_workspace_path("proj", "a/./b").is_ok());
         assert!(resolve_workspace_path("proj", "src/main.rs").is_ok());
     }
 

@@ -1018,20 +1018,13 @@ async fn handle_login(
 }
 
 fn base64_url_encode(input: &[u8]) -> String {
-    use std::fmt::Write;
-    let mut out = String::new();
-    for chunk in input.chunks(3) {
-        let b0 = chunk[0] as u32;
-        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
-        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
-        let n = (b0 << 16) | (b1 << 8) | b2;
-        let chars = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-        let _ = write!(out, "{}{}{}{}", chars[((n >> 18) & 63) as usize] as char,
-            chars[((n >> 12) & 63) as usize] as char,
-            if chunk.len() > 1 { chars[((n >> 6) & 63) as usize] as char } else { '=' },
-            if chunk.len() > 2 { chars[(n & 63) as usize] as char } else { '=' });
-    }
-    out
+    use base64::{Engine as _, engine::general_purpose};
+    general_purpose::STANDARD
+        .encode(input)
+        .replace('+', "-")
+        .replace('/', "_")
+        .trim_end_matches('=')
+        .to_string()
 }
 
 /// Fallback for local dev: resolves the Zitadel user_id for the bootstrap admin

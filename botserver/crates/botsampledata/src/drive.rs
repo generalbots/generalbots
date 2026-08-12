@@ -51,22 +51,6 @@ fn build_cashflow_csv(year: u32, month_idx: u32) -> String {
     )
 }
 
-async fn put_if_missing(
-    drive: &dyn DriveRepository,
-    bucket: &str,
-    key: &str,
-    content_type: &str,
-    body: &[u8],
-) -> Result<(), String> {
-    if drive.object_exists(bucket, key).await.unwrap_or(false) {
-        return Ok(());
-    }
-    drive
-        .put_object(bucket, key, body.to_vec(), Some(content_type))
-        .await
-        .map_err(|e| format!("put {key}: {e}"))
-}
-
 /// Seeds the invoice folder and cash-flow spreadsheets of the default bot.
 pub async fn seed_drive_objects(
     pool: &botcore::shared::utils::DbPool,
