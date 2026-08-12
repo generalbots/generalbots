@@ -169,5 +169,6 @@ pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
         .route("/api/crm/metrics/aggregate", get(crate::metrics_api::get_aggregate_metrics_api))
 
         .route("/api/crm/ai/generate", post(crate::ai::generate_content_api))
+        .route("/api/crm/ai/image", post(crate::ai::generate_studio_image))
         .route("/api/crm/ai/personalize", post(crate::ai::personalize_api))
 }

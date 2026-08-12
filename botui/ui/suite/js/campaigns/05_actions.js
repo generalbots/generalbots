@@ -28,6 +28,14 @@ window.CampStudio.actions = {
         if (scheduleInput) scheduleInput.value = c.scheduled_at && c.scheduled_at.length > 16 ? c.scheduled_at.slice(0, 16) : (c.starts_at && c.starts_at.length > 16 ? c.starts_at.slice(0, 16) : "");
         if (subjectInput) subjectInput.value = metrics.subject || "";
         window.CampStudio.editor.setContent(metrics.body || "");
+        if (metrics.images && typeof metrics.images === "object") {
+          window.CampStudio.state.channelImages = {};
+          Object.keys(metrics.images).forEach(function (ch) {
+            if (Array.isArray(metrics.images[ch])) {
+              window.CampStudio.state.channelImages[ch] = metrics.images[ch].slice();
+            }
+          });
+        }
         window.CampStudio.events.emit("channel-changed", st.channel);
       }).catch(function (err) {
         console.error("Failed to load campaign for edit:", err);
@@ -68,6 +76,8 @@ window.CampStudio.actions = {
       campaign_type: channel,
       metrics: { subject: subject, body: body },
     };
+    var st = window.CampStudio.state;
+    if (st.channelImages) payload.metrics.images = st.channelImages;
     if (budget) payload.budget = parseFloat(budget);
     if (scheduled) {
       var d = new Date(scheduled);
