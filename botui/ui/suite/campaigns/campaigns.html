@@ -10,6 +10,7 @@
 <script src="/suite/js/campaigns/04_monitor.js"></script>
 <script src="/suite/js/campaigns/05_actions.js"></script>
 <script src="/suite/js/campaigns/06_ai.js"></script>
+<script src="/suite/js/campaigns/07_media.js"></script>
 <script src="/suite/js/campaigns/99_init.js"></script>
 
 <div class="crm-container">
@@ -167,6 +168,7 @@
                     <button type="button" class="studio-tool-btn" data-editor-cmd="removeFormat" title="Clear formatting">⌫</button>
                     <span class="studio-tool-sep"></span>
                     <button type="button" class="studio-tool-btn studio-ai-tool-btn" id="studio-ai-btn" title="Generate with AI">✨ AI Write</button>
+                    <button type="button" class="studio-tool-btn studio-img-tool-btn" id="studio-img-btn" title="Generate image">🖼 AI Image</button>
                     <span class="studio-tool-sep"></span>
                     <span class="studio-var-label">Variables:</span>
                     <button type="button" class="studio-var-btn" data-var="{{name}}">{{name}}</button>
@@ -188,11 +190,58 @@
                 </div>
             </div>
 
+            <div class="studio-media-strip" id="studio-media-strip">
+                    <span class="studio-media-empty">No images yet — click 🖼 AI Image.</span>
+                </div>
+
             <div class="crm-form-actions">
                 <button type="button" class="btn-secondary" onclick="hideCampaignModal()" data-i18n="cancel">Cancel</button>
                 <button type="submit" class="btn-primary" data-i18n="campaign-save">Save Campaign</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- AI Image Generator Dialog -->
+<div id="studio-img-dialog" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay"></div>
+    <div class="crm-modal-content" style="max-width:520px;">
+        <div class="crm-modal-header">
+            <h2>🖼 AI Image Generator</h2>
+            <button class="crm-modal-close" id="studio-img-close">×</button>
+        </div>
+        <div class="crm-form-group">
+            <label>Prompt</label>
+            <textarea id="studio-img-prompt" rows="3" placeholder="e.g., Modern coffee shop interior, warm light, product on wooden table, 4:5 vertical composition for Instagram"></textarea>
+        </div>
+        <div class="crm-form-row">
+            <div class="crm-form-group">
+                <label>Format</label>
+                <select id="studio-img-size">
+                    <option value="auto">Auto</option>
+                    <option value="4:5 portrait">4:5 Portrait (Instagram)</option>
+                    <option value="1:1 square">1:1 Square</option>
+                    <option value="16:9 landscape">16:9 Landscape</option>
+                    <option value="1080x1920 story">9:16 Story</option>
+                </select>
+            </div>
+            <div class="crm-form-group">
+                <label>Style</label>
+                <select id="studio-img-style">
+                    <option value="none">No style</option>
+                    <option value="photorealistic">Photorealistic</option>
+                    <option value="minimalist">Minimalist</option>
+                    <option value="vibrant">Vibrant</option>
+                    <option value="3d render">3D render</option>
+                </select>
+            </div>
+        </div>
+        <div class="studio-ai-channel-hint" id="studio-img-hint"></div>
+        <div class="studio-ai-status" id="studio-img-status" style="display:none;">Generating…</div>
+        <div class="crm-form-actions">
+            <button type="button" class="btn-secondary" id="studio-img-close-2" onclick="window.CampStudio.media.closeDialog()">Cancel</button>
+            <button type="button" class="btn-primary" id="studio-img-generate">🖼 Generate</button>
+        </div>
     </div>
 </div>
 

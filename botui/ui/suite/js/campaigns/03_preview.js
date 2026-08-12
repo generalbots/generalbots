@@ -67,10 +67,14 @@ window.CampStudio.preview = {
   renderInstagram: function (frame, html) {
     var el = this.container(320, 400, "studio-device-instagram");
     var caption = this.plainText(html) || "Your caption will appear here";
+    var img = window.CampStudio.media ? window.CampStudio.media.firstImage("instagram") : null;
+    var imageHtml = img
+      ? '<img src="' + img + '" alt="generated" style="width:100%;height:100%;object-fit:cover;">'
+      : '📸<br><small>1080×1350</small>';
     el.innerHTML =
       '<div class="ig-post">' +
       '<div class="ig-head"><span class="ig-avatar"></span><span class="ig-user">@your.brand</span></div>' +
-      '<div class="ig-image">📸<br><small>1080×1350</small></div>' +
+      '<div class="ig-image">' + imageHtml + "</div>" +
       '<div class="ig-caption"><span class="ig-user">@your.brand</span> ' + escapeHtml(caption).replace(/\n/g, "<br>") + "</div>" +
       "</div>";
     frame.innerHTML = "";
@@ -80,10 +84,14 @@ window.CampStudio.preview = {
   renderFacebook: function (frame, html) {
     var el = this.container(340, 260, "studio-device-facebook");
     var text = this.plainText(html) || "Your post will appear here";
+    var img = window.CampStudio.media ? window.CampStudio.media.firstImage("facebook") : null;
+    var imageHtml = img
+      ? '<img src="' + img + '" alt="generated" style="width:100%;height:100%;object-fit:cover;">'
+      : '📘<br><small>1200×630</small>';
     el.innerHTML =
       '<div class="fb-post">' +
       '<div class="ig-head"><span class="ig-avatar"></span><span class="ig-user">Your Page</span></div>' +
-      '<div class="ig-image">📘<br><small>1200×630</small></div>' +
+      '<div class="ig-image">' + imageHtml + "</div>" +
       '<div class="ig-caption">' + escapeHtml(text).replace(/\n/g, "<br>") + "</div>" +
       "</div>";
     frame.innerHTML = "";

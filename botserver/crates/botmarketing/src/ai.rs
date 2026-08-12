@@ -430,3 +430,45 @@ pub async fn personalize_api(
     personalize_content(&state, bot_id, internal_req).await
         .map(Json).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))
 }
+
+/// Studio image generation via BotModels (aggregated image-gen APIs).
+/// The browser never talks to BotModels directly: keys stay server-side.
+#[derive(Debug, Deserialize)]
+pub struct StudioImageRequest {
+    pub prompt: String,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+}
+
+struct StudioConfigAdapter<'a>(&'a crate::state::GetConfigFn);
+
+impl botmultimodal::multimodal::ConfigProvider for StudioConfigAdapter<'_> {
+    fn get_config(&self, bot_id: &uuid::Uuid, key: &str, default: Option<&str>) -> Option<String> {
+        (self.0)(bot_id, key, default).ok()
+    }
+}
+
+pub async fn generate_studio_image(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<StudioImageRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let bot_id = Uuid::nil();
+    let adapter = StudioConfigAdapter(&state.get_config);
+    let client = botmultimodal::multimodal::BotModelsClient::from_provider_all(&adapter, &bot_id);
+
+    if !client.is_enabled() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "BotModels image generation is not enabled. Set botmodels-enabled=true and botmodels-host/port/api-key in the bot configuration."
+                .to_string(),
+        ));
+    }
+
+    match client.generate_image(&req.prompt).await {
+        Ok(url) => Ok(Json(serde_json::json!({
+            "success": true,
+            "url": url,
+        }))),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Image generation failed: {e}"))),
+    }
+}
