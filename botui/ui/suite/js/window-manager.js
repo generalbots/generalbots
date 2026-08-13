@@ -263,12 +263,19 @@ if (typeof window.WindowManager === "undefined") {
       // Vendor scripts define globals (Terminal, _amdLoaderGlobal, etc.).
       // Re-injecting them in a second window breaks with "already declared"
       // errors, so skip src-based scripts that were already loaded once.
+      // NOTE: dedup is scoped PER WINDOW (not page-global) — app modules
+      // (vibe-*, chat-*, etc.) bind listeners to the fresh injected DOM and
+      // MUST re-run on every window open; only vendor bundles are skipped
+      // after their first load anywhere.
       body.innerHTML = tempDiv.innerHTML;
+      const VENDOR = /(xterm|vendor\/|amd-loader|monaco|@|three\.)/;
       window.__gbLoadedScripts = window.__gbLoadedScripts || {};
       scripts.forEach((s) => {
         const src = s.getAttribute("src");
-        if (src && window.__gbLoadedScripts[src]) return;
-        if (src) window.__gbLoadedScripts[src] = true;
+        if (src && VENDOR.test(src)) {
+          if (window.__gbLoadedScripts[src]) return;
+          window.__gbLoadedScripts[src] = true;
+        }
         body.appendChild(s);
       });
       if (window.htmx) htmx.process(body);
