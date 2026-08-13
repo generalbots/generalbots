@@ -434,11 +434,12 @@ async fn handle_signup(
     let token = jwt_sign(&header, &payload, service.config.jwt_secret.as_bytes())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    // Store the JWT in the global session cache so /api/auth/me recognizes it
+    // Store the JWT in the global session cache so /api/auth/me recognizes it.
+    // Persist to login_sessions so the session survives botserver restarts.
     {
-        use botcoredirectory::auth_routes::SESSION_CACHE;
+        use botcoredirectory::auth_routes::{SESSION_CACHE, persist_session};
         let mut cache = SESSION_CACHE.write().await;
-        cache.insert(token.clone(), botcoredirectory::auth_routes::SessionUserData {
+        let session_user = botcoredirectory::auth_routes::SessionUserData {
             user_id: new_bot_id.to_string(),
             email: body.email.clone(),
             username: bot_name.clone(),
@@ -449,7 +450,9 @@ async fn handle_signup(
             roles: vec!["user".to_string()],
             bucket: Some(format!("{}.gborg", org_slug)),
             created_at: chrono::Utc::now().timestamp(),
-        });
+        };
+        cache.insert(token.clone(), session_user.clone());
+        persist_session(&token, &session_user);
     }
 
     Ok(Json(serde_json::json!({
@@ -1018,10 +1021,12 @@ async fn handle_login(
     // Cache the session so /api/auth/me resolves the bearer token to a real
     // user (signup already stores it; login must too — otherwise the suite
     // treats freshly logged-in users as anonymous, issue #808 report).
+    // Persist to login_sessions so the session survives botserver restarts
+    // (same durability the suite-sso hop provides).
     {
-        use botcoredirectory::auth_routes::SESSION_CACHE;
+        use botcoredirectory::auth_routes::{SESSION_CACHE, persist_session};
         let mut cache = SESSION_CACHE.write().await;
-        cache.insert(token.clone(), botcoredirectory::auth_routes::SessionUserData {
+        let session_user = botcoredirectory::auth_routes::SessionUserData {
             user_id: sub.clone(),
             email: body.email.clone(),
             username: body.email.split('@').next().unwrap_or("user").to_string(),
@@ -1032,7 +1037,9 @@ async fn handle_login(
             roles: vec!["user".to_string()],
             bucket: None,
             created_at: chrono::Utc::now().timestamp(),
-        });
+        };
+        cache.insert(token.clone(), session_user.clone());
+        persist_session(&token, &session_user);
     }
 
     Ok(Json(serde_json::json!({
