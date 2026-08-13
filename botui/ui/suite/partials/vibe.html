@@ -41,7 +41,7 @@ align-items: center;
 gap: 8px;
 ">
 <span style="font-size: 18px; color: var(--accent)">🌱</span>
-mantis farm
+vibe farm
 </h2>
 <div style="
 display: flex;
@@ -49,8 +49,8 @@ gap: 12px;
 color: var(--text-muted);
 font-size: 14px;
 ">
-<span style="cursor: pointer" title="Home">⌂</span>
-<span style="cursor: pointer" title="Overview">◱</span>
+<span style="cursor: pointer" title="Home" onclick="vibeGoHome()">⌂</span>
+<span style="cursor: pointer" title="Overview" onclick="VibeGraph && VibeGraph.togglePanel()">◱</span>
 </div>
 </div>
 
@@ -66,7 +66,7 @@ font-size: 14px;
 <div class="as-agent-card" data-agent-id="1" style="border-left: 3px solid var(--accent)">
 <div class="as-agent-header">
 <span class="as-status-dot green"></span>
-<span class="as-agent-name">Mantis #1</span>
+<span class="as-agent-name">Vibe #1</span>
 <span class="as-drag-handle" style="margin-left: auto">⋮</span>
 </div>
 <div class="as-agent-body">
@@ -78,7 +78,7 @@ font-size: 14px;
 <div class="as-agent-card" data-agent-id="2">
 <div class="as-agent-header">
 <span class="as-status-dot yellow"></span>
-<span class="as-agent-name">Mantis #2</span>
+<span class="as-agent-name">Vibe #2</span>
 <span class="as-drag-handle" style="margin-left: auto">⋮</span>
 </div>
 <div class="as-agent-body">
@@ -90,7 +90,7 @@ font-size: 14px;
 <div class="as-agent-card" style="opacity: 0.6" data-agent-id="3">
 <div class="as-agent-header">
 <span class="as-status-dot gray"></span>
-<span class="as-agent-name">Mantis #3</span>
+<span class="as-agent-name">Vibe #3</span>
 <span class="as-drag-handle" style="margin-left: auto">⋮</span>
 </div>
 <div class="as-agent-body">
@@ -102,7 +102,7 @@ style="background: var(--surface-active, #ccc)">WILD</span>
 <div class="as-agent-card" style="opacity: 0.6" data-agent-id="4">
 <div class="as-agent-header">
 <span class="as-status-dot gray"></span>
-<span class="as-agent-name">Mantis #4</span>
+<span class="as-agent-name">Vibe #4</span>
 <span class="as-drag-handle" style="margin-left: auto">⋮</span>
 </div>
 <div class="as-agent-body">
@@ -116,7 +116,7 @@ style="background: var(--surface-active, #ccc)">WILD</span>
 <div style="padding: 0 8px">
 <button class="as-create-btn" id="createAgentBtn" type="button"
 style="width: calc(100% - 16px); margin: 8px">
-+ Create a New Mantis
++ Create a New Vibe
 </button>
 </div>
 </div>
@@ -136,10 +136,10 @@ border-left: 3px solid var(--accent);
 <span>E-Commerce App Development</span>
 </button>
 <div class="as-workspace-body" style="display: block">
-<div class="as-workspace-agent">Mantis #1</div>
-<div class="as-workspace-agent">Mantis #4</div>
+<div class="as-workspace-agent">Vibe #1</div>
+<div class="as-workspace-agent">Vibe #4</div>
 <div class="as-workspace-dropzone" data-workspace="ecommerce">
-Drag a Mantis to Include
+Drag a Vibe to Include
 </div>
 </div>
 </div>
@@ -150,9 +150,9 @@ Drag a Mantis to Include
 <span>Accountability App Development</span>
 </button>
 <div class="as-workspace-body" style="display: none">
-<div class="as-workspace-agent">Mantis #4</div>
+<div class="as-workspace-agent">Vibe #4</div>
 <div class="as-workspace-dropzone" data-workspace="accountability">
-Drag a Mantis to Include
+Drag a Vibe to Include
 </div>
 </div>
 </div>
@@ -372,7 +372,7 @@ color: var(--text-muted);
 max-width: 440px;
 line-height: 1.6;
 ">
-Describe what you want to build in the chat. Mantis #1 will
+Describe what you want to build in the chat. Vibe #1 will
 analyze your request, generate task nodes on this canvas,
 and build the entire application for you.
 </p>
@@ -454,7 +454,7 @@ align-items: center;
 <div style="display: flex; align-items: center; gap: 8px">
 <span class="as-status-dot green" id="vibeChatStatusDot"
 style="box-shadow: 0 0 8px var(--accent)"></span>
-<span style="font-size: 12px; font-weight: 600">Mantis #1</span>
+<span style="font-size: 12px; font-weight: 600">Vibe #1</span>
 </div>
 <span id="vibeChatStatusBadge" style="
 font-size: 10px;
@@ -595,7 +595,7 @@ border: none;
 
 <script src="/suite/vibe/vibe-state.js"></script>
 <script src="/suite/vibe/vibe-helpers.js"></script>
-<script src="/suite/vibe/vibe-canvas.js"></script>
+<script src="/suite/vibe/vibe-canvas.js?v=3"></script>
 <script src="/suite/vibe/vibe-agents.js"></script>
 <script src="/suite/vibe/vibe-websocket.js"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>

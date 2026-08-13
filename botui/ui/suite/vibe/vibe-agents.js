@@ -1,4 +1,4 @@
-function updateMantis1(status, detail) {
+function updateVibe1(status, detail) {
 var card = document.querySelector(
 '.as-agent-card[data-agent-id="1"]',
 );
@@ -111,7 +111,7 @@ function vibeBreedAgent() {
     card.setAttribute("draggable", "true");
     card.innerHTML =
         '<div class="as-agent-header"><span class="as-status-dot gray"></span>' +
-        '<span class="as-agent-name">Mantis #' + next + "</span>" +
+        '<span class="as-agent-name">Vibe #' + next + "</span>" +
         '<span class="as-drag-handle" style="margin-left:auto">⋮</span></div>' +
         '<div class="as-agent-body"><span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>' +
         '<span class="as-badge badge-wild" style="background: var(--surface-active, #ccc)">WILD</span></div>';
@@ -133,7 +133,7 @@ function vibeCreateWorkspace() {
         '<span class="as-workspace-arrow">▼</span><span>New Project ' + n + "</span></button>" +
         '<div class="as-workspace-body" style="display:block">' +
         '<div class="as-workspace-dropzone" data-workspace="' + slug + '">' +
-        "Drag a Mantis to Include</div></div>";
+        "Drag a Vibe to Include</div></div>";
     list.appendChild(item);
     return item;
 }
@@ -171,7 +171,7 @@ document.addEventListener("drop", function (e) {
     var card = document.querySelector(".as-agent-card.dragging");
     if (!card) return;
     var nameEl = card.querySelector(".as-agent-name");
-    var name = nameEl ? nameEl.textContent : "Mantis";
+    var name = nameEl ? nameEl.textContent : "Vibe";
     var prev = zone.previousElementSibling;
     if (prev && prev.className === "as-workspace-agent" && prev.textContent === name) {
         return;

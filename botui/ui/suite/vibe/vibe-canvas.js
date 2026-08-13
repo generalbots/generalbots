@@ -1,3 +1,23 @@
+function vibeGoHome() {
+var stepsContainer = document.getElementById("vibeSteps");
+if (stepsContainer) {
+stepsContainer.innerHTML = "";
+stepsContainer.style.display = "none";
+}
+var emptyState = document.getElementById("vibeCanvasEmpty");
+if (emptyState) emptyState.style.display = "flex";
+nodeIdCounter = 0;
+try { if (window.VibeDialogs) window.VibeDialogs.close(); } catch (e) {}
+try { if (window.VibeNewProject) window.VibeNewProject.close(); } catch (e) {}
+try { if (window.VibeMembers) window.VibeMembers.close(); } catch (e) {}
+try { if (window.VibeGraph) window.VibeGraph.togglePanel(false); } catch (e) {}
+var panel = document.getElementById("vibeStagePanel");
+if (panel) panel.classList.remove("visible");
+var tabs = document.querySelectorAll(".vibe-pipeline-tab");
+tabs.forEach(function (t) { t.classList.remove("active"); });
+if (tabs.length) tabs[0].classList.add("active");
+}
+
 function addTaskNode(title, description, meta) {
 var stepsContainer = document.getElementById("vibeSteps");
 if (!stepsContainer) return;
@@ -95,8 +115,8 @@ esc(status) +
 "</span>" +
 "</div>" +
 '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-'<span style="color: var(--text-muted);">Mantis Manager</span>' +
-'<span style="display:flex;align-items:center;gap:4px;"><span class="as-status-dot green"></span> Mantis #1</span>' +
+'<span style="color: var(--text-muted);">Vibe Manager</span>' +
+'<span style="display:flex;align-items:center;gap:4px;"><span class="as-status-dot green"></span> Vibe #1</span>' +
 "</div>" +
 "</div>" +
 '<div style="padding:8px 16px;font-size:10px;font-weight:700;color: var(--text-muted);">' +

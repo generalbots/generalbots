@@ -42,8 +42,8 @@ function vibeSafeEsc(text) {
     return d.innerHTML;
 }
 
-function vibeSafeMantis(status) {
-    if (typeof updateMantis1 === "function") updateMantis1(status);
+function vibeSafeVibe(status) {
+    if (typeof updateVibe1 === "function") updateVibe1(status);
 }
 
 function vibeSafeAgentCard(agentId, status, detail) {
@@ -116,7 +116,7 @@ function connectVibeWs() {
                         var pct = Math.round(
                             (data.current / data.total) * 100,
                         );
-                        vibeSafeMantis("working");
+                        vibeSafeVibe("working");
                         var bar = document.querySelector(
                             '.as-agent-card[data-agent-id="1"] .as-bar-fill',
                         );
@@ -217,9 +217,9 @@ function connectTaskProgressWs(taskId) {
                 data.event_type === "agent_thought" ||
                 data.step === "agent_thought"
             ) {
-                var agentLabel = (data.details || "mantis_1").replace(
-                    "mantis_",
-                    "Mantis #",
+                var agentLabel = (data.details || "vibe_1").replace(
+                    "vibe_",
+                    "Vibe #",
                 );
                 vibeSafeMsg(
                     "system",
@@ -296,7 +296,7 @@ function connectTaskProgressWs(taskId) {
                 } else if (data.current && data.total) {
                     pct = Math.round((data.current / data.total) * 100);
                 }
-                vibeSafeMantis("working");
+                vibeSafeVibe("working");
                 var bar = document.querySelector(
                     '.as-agent-card[data-agent-id="1"] .as-bar-fill',
                 );
@@ -331,7 +331,7 @@ function connectTaskProgressWs(taskId) {
                 data.event_type === "pipeline_complete" ||
                 data.step === "pipeline_complete"
             ) {
-                vibeSafeMantis("done");
+                vibeSafeVibe("done");
                 vibeSafeMsg(
                     "system",
                     "✅ Pipeline complete — all stages finished",
