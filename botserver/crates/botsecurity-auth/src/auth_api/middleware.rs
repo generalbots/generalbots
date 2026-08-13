@@ -51,6 +51,22 @@ pub async fn auth_middleware_with_providers(
         return response;
     }
 
+    if let Some(expected) = state.config.internal_token.as_deref() {
+        let supplied = request
+            .headers()
+            .get(&state.config.internal_token_header)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default();
+        if !supplied.is_empty() && supplied == expected {
+            info!("Internal token accepted for {} {}", method, path);
+            request.extensions_mut().insert(AuthenticatedUser::service("internal"));
+            request.extensions_mut().insert(PublicPathAllowed);
+            let response = next.run(request).await;
+            info!("Internal path response status: {}", response.status());
+            return response;
+        }
+    }
+
     let auth_header = request
         .headers()
         .get(header::AUTHORIZATION)

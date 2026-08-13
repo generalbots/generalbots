@@ -9,6 +9,8 @@ pub struct AuthConfig {
     pub public_paths: Vec<String>,
     pub bot_id_header: String,
     pub org_id_header: String,
+    pub internal_token: Option<String>,
+    pub internal_token_header: String,
 }
 
 impl Default for AuthConfig {
@@ -42,6 +44,8 @@ impl Default for AuthConfig {
             ],
             bot_id_header: "X-Bot-ID".to_string(),
             org_id_header: "X-Organization-ID".to_string(),
+            internal_token: None,
+            internal_token_header: "X-Internal-Token".to_string(),
         }
     }
 }
@@ -61,6 +65,12 @@ impl AuthConfig {
                         config.jwt_secret = Some(jwt_secret);
                     }
                 }
+            }
+        }
+
+        if let Ok(token) = std::env::var("INTERNAL_API_TOKEN") {
+            if !token.is_empty() {
+                config.internal_token = Some(token);
             }
         }
 

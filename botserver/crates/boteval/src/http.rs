@@ -5,8 +5,11 @@ use crate::runner::{LlmTarget, TaskOutcome};
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 const COST_PER_CHAR: f64 = 0.000002;
+const MAX_RETRIES: u32 = 2;
+const RETRY_DELAYS_SECS: [u64; 2] = [1, 3];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Message {
@@ -19,6 +22,8 @@ struct ChatRequest<'a> {
     pub model: &'a str,
     pub messages: Vec<Message>,
     pub temperature: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<u32>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -54,6 +59,48 @@ impl OpenAiCompatibleTarget {
 #[async_trait]
 impl LlmTarget for OpenAiCompatibleTarget {
     async fn complete(&self, system_prompt: Option<&str>, user_prompt: &str) -> Result<String, String> {
+        let mut attempt = 0;
+        loop {
+            match self.complete_once(system_prompt, user_prompt).await {
+                Ok(response) => return Ok(response),
+                Err(e) => {
+                    attempt += 1;
+                    if attempt > MAX_RETRIES {
+                        log::warn!("boteval task failed after {attempt} attempts: {e}");
+                        return Err(e);
+                    }
+                    log::warn!("boteval attempt {attempt} failed ({e}); retrying in {}s", RETRY_DELAYS_SECS[(attempt - 1) as usize]);
+                    tokio::time::sleep(Duration::from_secs(RETRY_DELAYS_SECS[(attempt - 1) as usize])).await;
+                }
+            }
+        }
+    }
+
+    async fn complete_with_usage(
+        &self,
+        system_prompt: Option<&str>,
+        user_prompt: &str,
+    ) -> TaskOutcome {
+        match self.complete(system_prompt, user_prompt).await {
+            Ok(response) => TaskOutcome {
+                cost: response.chars().count() as f64 * COST_PER_CHAR,
+                response,
+                tool_calls: 0,
+            },
+            Err(e) => {
+                log::error!("boteval task errored: {e}");
+                TaskOutcome::default()
+            }
+        }
+    }
+}
+
+impl OpenAiCompatibleTarget {
+    async fn complete_once(
+        &self,
+        system_prompt: Option<&str>,
+        user_prompt: &str,
+    ) -> Result<String, String> {
         let mut messages = Vec::new();
         if let Some(sys) = system_prompt {
             messages.push(Message {
@@ -69,6 +116,7 @@ impl LlmTarget for OpenAiCompatibleTarget {
             model: &self.model,
             messages,
             temperature: self.temperature,
+            max_tokens: Some(1024),
         };
         let response = self
             .client
@@ -93,20 +141,5 @@ impl LlmTarget for OpenAiCompatibleTarget {
             .next()
             .map(|c| c.message.content)
             .unwrap_or_default())
-    }
-
-    async fn complete_with_usage(
-        &self,
-        system_prompt: Option<&str>,
-        user_prompt: &str,
-    ) -> TaskOutcome {
-        match self.complete(system_prompt, user_prompt).await {
-            Ok(response) => TaskOutcome {
-                cost: response.chars().count() as f64 * COST_PER_CHAR,
-                response,
-                tool_calls: 0,
-            },
-            Err(_) => TaskOutcome::default(),
-        }
     }
 }

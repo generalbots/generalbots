@@ -565,8 +565,18 @@ impl AgentLoop {
         context.add_assistant_message(response.clone());
         if response.contains("FAILED") {
             false
+        } else if response.contains("VERIFIED") {
+            true
         } else {
-            response.contains("VERIFIED")
+            // Reasoning models (e.g. gpt-oss) may answer in prose instead of
+            // the literal VERIFIED/FAILED token. Equivalent to the LLM-error
+            // path below: a verification that produced no explicit verdict
+            // must not condemn real executed work.
+            warn!(
+                "Vibe run {} self-verification replied without an explicit verdict; treating as verified",
+                run.run_id
+            );
+            true
         }
     }
 

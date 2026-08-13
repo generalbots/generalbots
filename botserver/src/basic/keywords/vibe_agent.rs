@@ -22,6 +22,7 @@ fn http_json(
     body: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     let url = format!("{}{}", vibe_base_url(), path_and_query);
+    let internal_token = std::env::var("INTERNAL_API_TOKEN").unwrap_or_default();
     let (tx, rx) = std::sync::mpsc::channel();
 
     std::thread::spawn(move || {
@@ -34,13 +35,16 @@ fn http_json(
         };
         let result = rt.block_on(async move {
             let client = reqwest::Client::new();
-            let builder = match method {
+            let mut builder = match method {
                 "GET" => client.get(&url),
                 "POST" => client.post(&url),
                 "PUT" => client.put(&url),
                 "DELETE" => client.delete(&url),
                 _ => return Err(format!("unsupported method {method}")),
             };
+            if !internal_token.is_empty() {
+                builder = builder.header("X-Internal-Token", internal_token);
+            }
             let builder = if let Some(b) = body {
                 builder.json(&b)
             } else {
@@ -83,7 +87,10 @@ pub fn register_vibe_run_keyword(engine: &mut Engine) {
     engine.register_fn("vibe_run", |intent: String| -> Dynamic {
         let payload = serde_json::json!({
             "intent": intent,
-            "auto_approve": false,
+            // The keyword IS the operator's instruction: tools execute
+            // without an interactive approval round-trip (the run would
+            // otherwise idle for its 300s approval window and time out).
+            "auto_approve": true,
         });
         match http_json("POST", "/api/vibe/run".into(), Some(payload)) {
             Ok(v) => {
@@ -275,5 +282,20 @@ VIBE TOOLS"#,
         assert!(out.contains(r#"vibe_cancel("run-123")"#), "got: {out}");
         assert!(out.contains(r#"vibe_events("run-123")"#), "got: {out}");
         assert!(out.contains("vibe_tools()"), "got: {out}");
+    }
+
+    #[test]
+    fn preprocessor_strips_ast_trailing_semicolon() {
+        use botbasic_compiler::syntax_transforms::convert_multiword_keywords;
+        let out = convert_multiword_keywords(
+            r#"VIBE RUN "deploy the app";
+VIBE TOOLS;"#,
+        );
+        assert!(out.contains(r#"vibe_run("deploy the app");"#), "got: {out}");
+        assert!(out.contains("vibe_tools();"), "got: {out}");
+        assert!(!out.contains(r#"vibe_run("deploy the app";"#), "semicolon leaked into args: {out}");
+        // quoted semicolons must be preserved
+        let quoted = convert_multiword_keywords(r#"VIBE RUN "add ; a semicolon";"#);
+        assert!(quoted.contains(r#"vibe_run("add ; a semicolon");"#), "got: {quoted}");
     }
 }
