@@ -294,7 +294,7 @@
         
 
                         if (botName && botName !== 'default') {
-                            const resp = await fetch('/api/bot/config?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());
+                            const resp = await fetch('/api/bot/public?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());
                             if (resp.ok) {
                                 const config = await resp.json();
                                 const isPub = config.is_public === 'true' || config.is_public === true;

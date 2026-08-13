@@ -738,7 +738,7 @@ const Omnibox = {
       if (!botName || botName === "default") return;
 
       const response = await fetch(
-        `/api/bot/config?bot_name=${encodeURIComponent(botName)}&_=${Date.now()}`,
+        `/api/bot/public?bot_name=${encodeURIComponent(botName)}&_=${Date.now()}`,
       );
       if (response.ok) {
         const config = await response.json();
