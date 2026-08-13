@@ -595,7 +595,7 @@ pub fn convert_multiword_keywords(script: &str) -> String {
             // Zero-param keywords (e.g. CLEAR KB) have no trailing params, so make the param group optional
             let regex_str = if *min_params == 0 {
                 format!(
-                    r#"(?i)^(\s*)(.*?)\b{}(?:\s+(.*))?$"#,
+                    r#"(?i)^(\s*)(.*?)\b{}(?:\s+(.*))?\s*;?$"#,
                     pattern
                 )
             } else {
@@ -610,11 +610,16 @@ pub fn convert_multiword_keywords(script: &str) -> String {
                     if let Some(prefix_match) = caps.get(2) {
                         let indent = caps.get(1).map_or("", |m| m.as_str());
                         let prefix = prefix_match.as_str();
-                        let params_str = caps.get(3).map_or("", |m| m.as_str().trim());
+                        let mut params_str = caps.get(3).map_or("", |m| m.as_str().trim()).to_string();
+                        // The .ast files written by BasicCompiler append a
+                        // statement terminator ';' to every line. Strip it when
+                        // it sits OUTSIDE quoted strings so it never leaks into
+                        // the last function-call parameter (e.g. vibe_run("x";)).
+                        params_str = strip_trailing_stmt_semicolon(&params_str);
                         let mut params = if params_str.is_empty() {
                             Vec::new()
                         } else {
-                            parse_parameters(params_str)
+                            parse_parameters(&params_str)
                         };
                         let mut param_count = params.len();
 
@@ -712,6 +717,32 @@ pub fn convert_multiword_keywords(script: &str) -> String {
     }
 
     result
+}
+
+/// Removes a trailing statement terminator `;` from a parameter string,
+/// but only when the semicolon sits OUTSIDE quoted literals. The compiled
+/// `.ast` files produced by BasicCompiler append `;` to every line; without
+/// this the terminator leaks into the last function-call argument and the
+/// rewritten script fails to parse (e.g. `vibe_run("build an app";)`).
+fn strip_trailing_stmt_semicolon(s: &str) -> String {
+    let trimmed = s.trim_end();
+    if !trimmed.ends_with(';') {
+        return trimmed.to_string();
+    }
+    let mut in_quote: Option<char> = None;
+    for (i, c) in trimmed.char_indices() {
+        if let Some(q) = in_quote {
+            if c == q {
+                in_quote = None;
+            }
+        } else if c == '"' || c == '\'' {
+            in_quote = Some(c);
+        }
+        if c == ';' && in_quote.is_none() && i == trimmed.len() - 1 {
+            return trimmed[..i].to_string();
+        }
+    }
+    trimmed.to_string()
 }
 
 fn parse_parameters(params_str: &str) -> Vec<String> {

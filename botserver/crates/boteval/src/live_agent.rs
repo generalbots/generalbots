@@ -50,7 +50,7 @@ impl HarnessTarget for LiveHarnessTarget {
             config,
         );
         let registry = Arc::new(ToolRegistry::new());
-        let executor = VibeToolExecutor::new(registry);
+        let executor = Arc::new(VibeToolExecutor::new(registry));
         let telemetry = Arc::new(VibeTelemetry::new());
         let prompt_manager = Arc::new(VibePromptManager::new());
         let state = Arc::new(EvalVibeState::new());
@@ -89,12 +89,24 @@ impl HarnessTarget for LiveHarnessTarget {
 static EVAL_POOL: OnceLock<Box<DbPool>> = OnceLock::new();
 
 fn shared_pool() -> &'static DbPool {
-    EVAL_POOL
-        .get_or_init(|| {
-            let manager = ConnectionManager::new("postgres://eval-unused-host/eval");
-            Box::new(Pool::new(manager))
-        })
-        .as_ref()
+    EVAL_POOL.get_or_init(|| {
+        // The eval harness never contacts this database (only DB-scoped tools
+        // like domains/backups use the pool, and harness tasks are file/git/
+        // shell work). A lazy pool over an unreachable host is therefore fine;
+        // `min_idle(Some(0))` means build() does not attempt any connection.
+        let manager = ConnectionManager::new("postgres://eval-unused-host/eval");
+        match Pool::builder().max_size(1).min_idle(Some(0)).build(manager) {
+            Ok(pool) => Box::new(pool),
+            Err(e) => {
+                // Build only fails for invalid config values (e.g. max_size 0);
+                // the constants above are valid, so this is unreachable. Exit
+                // honestly instead of panicking from within a library call.
+                log::error!("eval pool build failed unexpectedly: {e}");
+                std::process::exit(1);
+            }
+        }
+    })
+    .as_ref()
 }
 
 struct EvalVibeState {
