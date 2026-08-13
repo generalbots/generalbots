@@ -8,6 +8,9 @@ use crate::types::{VibeState, VibeToolResult};
 use serde_json::json;
 use std::sync::Arc;
 
+const GIT_USER_NAME: &str = "Vibe Agent";
+const GIT_USER_EMAIL: &str = "vibe@gbo.local";
+
 fn ok(data: serde_json::Value) -> VibeToolResult {
     VibeToolResult { success: true, data, error: None, latency_ms: 0 }
 }
@@ -96,7 +99,16 @@ pub fn git_commit_tool() -> ToolHandler {
                 Ok(out) => return err(format!("git add failed: {}", out.stderr.trim())),
                 Err(e) => return err(e.to_string()),
             }
-            let commit_args = vec!["commit".to_string(), "-m".to_string(), message.clone()];
+            // `-c` config must precede the subcommand; the harness runs
+            // processes with env_clear(), so git has no user identity and the
+            // commit would otherwise fail with "Please tell me who you are".
+            let commit_args = vec![
+                format!("-c"), format!("user.name={GIT_USER_NAME}"),
+                format!("-c"), format!("user.email={GIT_USER_EMAIL}"),
+                "commit".to_string(),
+                "-m".to_string(),
+                message.clone(),
+            ];
             match run("git", &commit_args, &cwd, 30) {
                 Ok(out) if out.exit_code == Some(0) => ok(json!({
                     "message": message,
