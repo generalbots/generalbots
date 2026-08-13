@@ -1,6 +1,6 @@
 function callAutotask(intent) {
-updateMantis1("working");
-vibeAddMsg("system", "🔄 Mantis #1 is analyzing your request…");
+updateVibe1("working");
+vibeAddMsg("system", "🔄 Vibe #1 is analyzing your request…");
 
 connectTaskProgressWs(null);
 
@@ -43,7 +43,7 @@ body: JSON.stringify({ intent: intent, auto_process: true }),
 return r.json();
 })
 .then(function (data) {
-updateMantis1("done");
+updateVibe1("done");
 
 if (data.success && data.result) {
 var r = data.result;
@@ -125,7 +125,7 @@ addTaskNode("Analysis", intent, { status: "Planning" });
 }
 })
 .catch(function (err) {
-updateMantis1("done");
+updateVibe1("done");
 vibeAddMsg(
 "system",
 "⚠️ Backend unavailable — showing plan preview.",

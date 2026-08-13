@@ -39,7 +39,7 @@ const ThemeManager = (() => {
     { id: "neon-futurista", name: "🌃 Neon Futurist", file: "neon-futurista.css", category: "v15" },
     { id: "orange", name: "🍊 Orange", file: "orange.css" },
     { id: "cyberpunk", name: "🌉 Cyberpunk", file: "cyberpunk.css" },
-    { id: "retrowave", name: "🌴 Retrowave", file: "retrowave.css" },
+    { id: "retrowave", name: "🪄 Retrowave", file: "retrowave.css" },
     { id: "vapordream", name: "💭 Vapor Dream", file: "vapordream.css" },
     { id: "y2kglow", name: "✨ Y2K", file: "y2kglow.css" },
     { id: "3dbevel", name: "🔲 3D Bevel", file: "3dbevel.css" },

@@ -639,11 +639,11 @@
             }
         }
         renderRunCard();
-        if (typeof updateMantis1 === "function") {
+        if (typeof updateVibe1 === "function") {
             if (eventData.progress === 100 || /complete|done|evolved/i.test(step)) {
-                updateMantis1("done");
+                updateVibe1("done");
             } else {
-                updateMantis1("working");
+                updateVibe1("working");
             }
         }
         if (String(step).indexOf("team:member:") === 0) {

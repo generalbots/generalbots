@@ -23,7 +23,8 @@
     function loadPipeline() {
         if (stageCache) return Promise.resolve(stageCache);
         return D.api("/api/vibe/pipeline/software_development").then(function (data) {
-            stageCache = (data && (data.pipeline || data.stages)) || null;
+            var pipe = (data && (data.pipeline || data.stages)) || null;
+            stageCache = (pipe && pipe.stages) || pipe;
             return stageCache;
         }).catch(function () {
             return null;
