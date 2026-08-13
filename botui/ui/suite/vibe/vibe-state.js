@@ -11,4 +11,3 @@ var currentProject = "My App";
 var currentProjectId = null;
 var nodeIdCounter = 0;
 var taskProgressWs = null;
-var selectedDeploymentTarget = "internal";

@@ -1579,12 +1579,11 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // Browser
         RoutePermission::new("/api/browser/**", "GET", ""),
         RoutePermission::new("/api/browser/**", "POST", ""),
+        RoutePermission::new("/api/browser/**", "DELETE", ""),
 
-        // Terminal
-        RoutePermission::new("/api/terminal/**", "GET", "")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/terminal/**", "POST", "")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        // Terminal (sandboxed PTY sessions; any authenticated user)
+        RoutePermission::new("/api/terminal/**", "GET", ""),
+        RoutePermission::new("/api/terminal/**", "POST", ""),
 
         // People / Directory
         RoutePermission::new("/api/people/**", "GET", ""),

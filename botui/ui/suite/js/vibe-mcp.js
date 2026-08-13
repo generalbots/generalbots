@@ -10,7 +10,10 @@ const vibeMcp = {
         }
 
         try {
-            const response = await fetch('/api/sources/mcp');
+            const headers = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('gb-access-token') || sessionStorage.getItem('gb-access-token') || '';
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            const response = await fetch('/api/sources/mcp', { headers });
             if (!response.ok) throw new Error('Failed to fetch MCP servers (HTTP ' + response.status + ')');
             const contentType = response.headers.get('content-type') || '';
             if (!contentType.includes('application/json')) {
