@@ -158,7 +158,7 @@ function proceedWithChatInit() {
       } catch (e) {}
       
       // Check bot visibility — redirect private bots to login if not authenticated
-      fetch("/api/bot/config?bot_name=" + encodeURIComponent(botName))
+      fetch("/api/bot/public?bot_name=" + encodeURIComponent(botName))
         .then(function (r) { return r.json(); })
         .then(function (cfg) {
           var isPub = cfg.is_public === "true" || cfg.is_public === true;

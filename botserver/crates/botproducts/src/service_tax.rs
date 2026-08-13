@@ -54,7 +54,7 @@ pub async fn calculate_service_tax(
     Json(req): Json<ServiceTaxRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
     let branch_id = crate::get_bot_context(&state.pool, &state.get_default_bot);
     let result = calculate_service_tax_inner(

@@ -359,7 +359,7 @@ pub async fn create_product(
     Json(req): Json<CreateProductRequest>,
 ) -> Result<Json<Product>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -397,7 +397,7 @@ pub async fn create_product(
     diesel::insert_into(products::table)
         .values(&product)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(product))
 }
@@ -408,7 +408,7 @@ pub async fn list_products(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let has_token = headers
@@ -464,7 +464,7 @@ pub async fn list_products(
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(prods))
 }
@@ -475,7 +475,7 @@ pub async fn get_product(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ProductWithVariants>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     // Object-level authorization (issue #734): a product may only be read by
@@ -505,7 +505,7 @@ pub async fn update_product(
     Json(req): Json<UpdateProductRequest>,
 ) -> Result<Json<Product>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     // Object-level authorization: only the owning branch may modify a product.
@@ -516,48 +516,48 @@ pub async fn update_product(
     diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
         .set(products::updated_at.eq(now))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
 
     if let Some(name) = req.name {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::name.eq(name))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     if let Some(description) = req.description {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::description.eq(description))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     if let Some(price) = req.price {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::price.eq(bd(price)))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     if let Some(stock_quantity) = req.stock_quantity {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::stock_quantity.eq(stock_quantity))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     if let Some(is_active) = req.is_active {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::is_active.eq(is_active))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     if let Some(category) = req.category {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::category.eq(category))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     let product: Product = products::table
@@ -575,7 +575,7 @@ pub async fn delete_product(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     // Object-level authorization: only the owning branch may delete a product.
@@ -586,7 +586,7 @@ pub async fn delete_product(
         products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))),
     )
     .execute(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Delete error: {e}"); "Internal server error".to_string() }))?;
 
     if deleted == 0 {
         return Err((StatusCode::NOT_FOUND, "Product not found".to_string()));
@@ -602,7 +602,7 @@ pub async fn adjust_stock(
     Json(req): Json<AdjustStockRequest>,
 ) -> Result<Json<Product>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -629,7 +629,7 @@ pub async fn adjust_stock(
             products::updated_at.eq(now),
         ))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
 
     let movement = InventoryMovement {
     id: Uuid::new_v4(),
@@ -649,7 +649,7 @@ pub async fn adjust_stock(
     diesel::insert_into(inventory_movements::table)
         .values(&movement)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
 
     let updated: Product = products::table
         .filter(products::id.eq(id))
@@ -666,7 +666,7 @@ pub async fn create_service(
     Json(req): Json<CreateServiceRequest>,
 ) -> Result<Json<Service>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -698,7 +698,7 @@ pub async fn create_service(
     diesel::insert_into(services::table)
         .values(&service)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(service))
 }
@@ -709,7 +709,7 @@ pub async fn list_services(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<Service>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -744,7 +744,7 @@ pub async fn list_services(
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(svcs))
 }
@@ -754,7 +754,7 @@ pub async fn get_service(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Service>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let service: Service = services::table
@@ -771,7 +771,7 @@ pub async fn update_service(
     Json(req): Json<UpdateServiceRequest>,
 ) -> Result<Json<Service>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let now = Utc::now();
@@ -779,34 +779,34 @@ pub async fn update_service(
     diesel::update(services::table.filter(services::id.eq(id)))
         .set(services::updated_at.eq(now))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
 
     if let Some(name) = req.name {
         diesel::update(services::table.filter(services::id.eq(id)))
             .set(services::name.eq(name))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     if let Some(description) = req.description {
         diesel::update(services::table.filter(services::id.eq(id)))
             .set(services::description.eq(description))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     if let Some(hourly_rate) = req.hourly_rate {
         diesel::update(services::table.filter(services::id.eq(id)))
             .set(services::hourly_rate.eq(Some(bd(hourly_rate))))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     if let Some(is_active) = req.is_active {
         diesel::update(services::table.filter(services::id.eq(id)))
             .set(services::is_active.eq(is_active))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
     }
 
     let service: Service = services::table
@@ -822,12 +822,12 @@ pub async fn delete_service(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     diesel::delete(services::table.filter(services::id.eq(id)))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Delete error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -837,7 +837,7 @@ pub async fn list_categories(
     headers: HeaderMap,
 ) -> Result<Json<Vec<ProductCategory>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -849,7 +849,7 @@ pub async fn list_categories(
         .filter(product_categories::is_active.eq(true))
         .order(product_categories::sort_order.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(cats))
 }
@@ -860,7 +860,7 @@ pub async fn create_category(
     Json(req): Json<CreateCategoryRequest>,
 ) -> Result<Json<ProductCategory>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -893,7 +893,7 @@ pub async fn create_category(
     diesel::insert_into(product_categories::table)
         .values(&category)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(category))
 }
@@ -903,7 +903,7 @@ pub async fn list_price_lists(
     headers: HeaderMap,
 ) -> Result<Json<Vec<PriceList>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -915,7 +915,7 @@ pub async fn list_price_lists(
         .filter(price_lists::is_active.eq(true))
         .order(price_lists::name.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(lists))
 }
@@ -926,7 +926,7 @@ pub async fn create_price_list(
     Json(req): Json<CreatePriceListRequest>,
 ) -> Result<Json<PriceList>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -961,7 +961,7 @@ pub async fn create_price_list(
     diesel::insert_into(price_lists::table)
         .values(&price_list)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(price_list))
 }
@@ -971,7 +971,7 @@ pub async fn list_inventory_movements(
     Path(product_id): Path<Uuid>,
 ) -> Result<Json<Vec<InventoryMovement>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let movements: Vec<InventoryMovement> = inventory_movements::table
@@ -979,7 +979,7 @@ pub async fn list_inventory_movements(
         .order(inventory_movements::created_at.desc())
         .limit(100)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(movements))
 }
@@ -989,7 +989,7 @@ pub async fn get_product_stats(
     headers: HeaderMap,
 ) -> Result<Json<ProductStats>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -1081,7 +1081,7 @@ pub async fn list_low_stock(
     headers: HeaderMap,
 ) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
     })?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
@@ -1094,7 +1094,7 @@ pub async fn list_low_stock(
         .filter(products::stock_quantity.le(products::low_stock_threshold.nullable()))
         .order(products::stock_quantity.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
 
     Ok(Json(prods))
 }
@@ -1645,7 +1645,7 @@ async fn handle_product_detail_view(
 ) -> impl IntoResponse {
     let mut conn = match state.pool.get() {
         Ok(c) => c,
-        Err(e) => return Html(format!("<div class=\"error\">DB error: {e}</div>")),
+        Err(e) => { log::error!("botproducts DB error: {e}"); return Html(r#"<div class="error">Internal server error</div>"#.to_string()); }
     };
 
     let product: Product = match products::table
@@ -1718,7 +1718,7 @@ async fn handle_product_edit_form(
 ) -> impl IntoResponse {
     let mut conn = match state.pool.get() {
         Ok(c) => c,
-        Err(e) => return Html(format!("<div class=\"error\">DB error: {e}</div>")),
+        Err(e) => { log::error!("botproducts DB error: {e}"); return Html(r#"<div class="error">Internal server error</div>"#.to_string()); }
     };
 
     let product: Product = match products::table

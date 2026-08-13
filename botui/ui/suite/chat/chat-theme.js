@@ -37,7 +37,7 @@ function applyThemeData(themeData) {
 function loadBotConfig() {
   var botName = window.__INITIAL_BOT_NAME__ || "default";
 
-  fetch("/api/bot/config?bot_name=" + encodeURIComponent(botName) + "&_=" + Date.now())
+  fetch("/api/bot/public?bot_name=" + encodeURIComponent(botName) + "&_=" + Date.now())
     .then(function (response) { return response.json(); })
     .then(function (config) {
       if (!config) return;

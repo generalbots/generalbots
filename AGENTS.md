@@ -855,7 +855,7 @@ User visits `chat.generalbots.org` (proxied to port 3000): botui reads `Host` he
 | `POST` | `/api/cloud/domains` | JWT + super admin | Create mapping |
 | `PUT` | `/api/cloud/domains/{id}` | JWT + super admin | Update mapping |
 | `DELETE` | `/api/cloud/domains/{id}` | JWT + super admin | Delete mapping |
-| `GET` | `/api/domains/resolve?host=` | **Public** | Resolve hostname → bot name |
+| `GET` | `/api/domains/resolve?host=` | **Auth required** | Resolve hostname → bot name (bearer token; docs previously said public — behavior now matches auth-required) |
 
 ### Files Changed
 | File | Change |
