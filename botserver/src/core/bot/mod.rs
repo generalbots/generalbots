@@ -120,4 +120,4 @@ impl BotOrchestrator {
     }
 }
 
-pub use manager_ops::{get_default_bot, get_bot_config, check_bot_access, check_access_handler};
+pub use manager_ops::{get_default_bot, get_bot_config, check_bot_access, check_access_handler, get_public_bot_config};
