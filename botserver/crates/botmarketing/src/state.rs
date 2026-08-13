@@ -1,5 +1,5 @@
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
+use diesel::{OptionalExtension, RunQueryDsl};
 use diesel::PgConnection;
 use std::sync::Arc;
 
