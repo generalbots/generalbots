@@ -153,9 +153,10 @@ pub async fn run_mixed_evaluation<T: LlmTarget + ?Sized, H: HarnessTarget + ?Siz
                 let completed = llm
                     .complete_with_usage(entry.system_prompt.as_deref(), &entry.prompt)
                     .await;
+                let response = completed.response;
                 (
-                    completed.response,
-                    validate_response(&entry.contract, &completed.response),
+                    response.clone(),
+                    validate_response(&entry.contract, &response),
                     completed.cost,
                     completed.tool_calls,
                 )

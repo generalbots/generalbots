@@ -558,6 +558,13 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 
         (r#"HAS\s+ROLE"#, 1, 1, vec!["role"]),
         (r#"BOOK"#, 1, 1, vec!["event"]),
+
+        (r#"VIBE\s+RUN"#, 1, 1, vec!["intent"]),
+        (r#"VIBE\s+STATUS"#, 1, 1, vec!["run_id"]),
+        (r#"VIBE\s+APPROVE"#, 1, 1, vec!["run_id"]),
+        (r#"VIBE\s+CANCEL"#, 1, 1, vec!["run_id"]),
+        (r#"VIBE\s+EVENTS"#, 1, 1, vec!["run_id"]),
+        (r#"VIBE\s+TOOLS"#, 0, 0, vec![]),
     ];
 
     let mut result = String::new();
