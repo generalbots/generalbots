@@ -86,7 +86,7 @@ pub async fn send_campaign_email(
         .map(|html| inject_tracking_pixel(&html, open_token, &base_url));
 
     let mut conn = state.conn.get().map_err(|e| format!("DB connection failed: {}", e))?;
-    let (branch_id, _) = state.get_bot_context();
+    let (_, branch_id, _) = state.get_scope();
 
     diesel::insert_into(email_tracking::table)
         .values((
@@ -200,7 +200,7 @@ pub async fn send_bulk_campaign_emails(
     let mut sent = 0;
     let mut failed = 0;
 
-    let (bot_id, _) = state.get_bot_context();
+    let (_, _, bot_id) = state.get_scope();
 
     let campaign: CrmCampaign = marketing_campaigns::table
         .filter(marketing_campaigns::id.eq(campaign_id))

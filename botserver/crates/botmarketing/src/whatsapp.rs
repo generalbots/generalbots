@@ -152,7 +152,7 @@ pub async fn send_bulk_whatsapp_messages(
     let mut sent = 0;
     let mut failed = 0;
 
-    let (bot_id, _) = state.get_bot_context();
+    let (_, _, bot_id) = state.get_scope();
 
     let campaign: CrmCampaign = marketing_campaigns::table
         .filter(marketing_campaigns::id.eq(campaign_id))

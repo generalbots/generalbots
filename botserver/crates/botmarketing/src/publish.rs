@@ -54,7 +54,7 @@ pub async fn publish_campaign(
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Campaign not found".to_string()))?;
 
-    let (bot_id, _) = state.get_bot_context();
+    let (_, _, bot_id) = state.get_scope();
     let metrics = campaign.metrics.clone().unwrap_or_else(|| serde_json::json!({}));
     let subject = metrics
         .get("subject")

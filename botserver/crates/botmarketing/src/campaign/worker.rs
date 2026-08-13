@@ -184,7 +184,7 @@ impl CampaignWorker {
         let mut sent = 0;
         let mut failed = 0;
 
-        let (bot_id, _) = self.state.get_bot_context();
+        let (_, _, bot_id) = self.state.get_scope();
 
         for (idx, (recipient_id, email, name)) in recipients.iter().enumerate() {
             if idx < start_offset as usize {

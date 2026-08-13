@@ -125,20 +125,26 @@ pub fn branch_from_jwt(
     let email = email_from_jwt(headers)
         .or_else(|| email_from_session(headers))
         .or_else(|| email_from_user_id(headers, conn))?;
-    #[derive(diesel::QueryableByName)]
-    struct Row {
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        branch_id: Uuid,
-    }
-    diesel::sql_query(
-        "SELECT branch_id FROM crm_contacts WHERE email = $1 LIMIT 1",
-    )
-    .bind::<diesel::sql_types::Text, _>(email)
-    .get_result::<Row>(conn)
-    .optional()
-    .ok()
-    .flatten()
-    .map(|r| r.branch_id)
+    let contact_branch = {
+        #[derive(diesel::QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            branch_id: Uuid,
+        }
+        diesel::sql_query(
+            "SELECT branch_id FROM crm_contacts WHERE email = $1 LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Text, _>(&email)
+        .get_result::<Row>(conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|r| r.branch_id)
+    };
+    // Fall back to the user→org→branch binding when no CRM contact owns the
+    // email (issue #808: prod admins without a crm_contacts row were scoped
+    // to the nil branch → empty grids).
+    contact_branch.or_else(|| botsecurity_core::tenant::branch_from_user_binding(conn, &email))
 }
 
 /// Resolves the branch for the caller using a connection from the pool,

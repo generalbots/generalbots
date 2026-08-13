@@ -62,7 +62,7 @@ pub async fn list_templates(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (branch_id, _) = state.get_bot_context();
+    let (_, branch_id, _) = state.get_scope();
 
     let templates: Vec<MarketingTemplate> = marketing_templates::table
         .filter(marketing_templates::branch_id.eq(branch_id))
