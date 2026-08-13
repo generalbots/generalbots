@@ -962,8 +962,15 @@ async fn handle_login(
 
     // Mint verified tenant scope claims (issue #736): the branch comes from
     // the CRM contact owned by the authenticated identity — never from the
-    // client. The org owning the branch is resolved from the branches table.
-    let branch_scope: Option<Uuid> = contact_opt.as_ref().map(|(_, _, _, _, br)| *br);
+    // client. When the user has no CRM contact row, fall back to their org
+    // membership binding (users → user_organizations → branches) so suite
+    // apps scope to the caller's own workspace (issue #808 fix: prod admin
+    // without a crm_contacts row got nil-branch scoping → empty grids).
+    // The org owning the branch is resolved from the branches table.
+    let branch_scope: Option<Uuid> = contact_opt
+        .as_ref()
+        .map(|(_, _, _, _, br)| *br)
+        .or_else(|| resolve_branch_from_user_binding(&mut conn, &body.email));
     let org_scope: Option<Uuid> = branch_scope.and_then(|b| {
         #[derive(diesel::QueryableByName)]
         struct OrgRow {
@@ -1008,6 +1015,26 @@ async fn handle_login(
         (body.email.split('@').next().unwrap_or("User").to_string(), false)
     };
 
+    // Cache the session so /api/auth/me resolves the bearer token to a real
+    // user (signup already stores it; login must too — otherwise the suite
+    // treats freshly logged-in users as anonymous, issue #808 report).
+    {
+        use botcoredirectory::auth_routes::SESSION_CACHE;
+        let mut cache = SESSION_CACHE.write().await;
+        cache.insert(token.clone(), botcoredirectory::auth_routes::SessionUserData {
+            user_id: sub.clone(),
+            email: body.email.clone(),
+            username: body.email.split('@').next().unwrap_or("user").to_string(),
+            first_name: contact_opt.as_ref().and_then(|(_, fn_, _, _, _)| fn_.clone()),
+            last_name: contact_opt.as_ref().and_then(|(_, _, ln_, _, _)| ln_.clone()),
+            display_name: Some(user_name.clone()),
+            organization_id: org_scope.map(|o| o.to_string()),
+            roles: vec!["user".to_string()],
+            bucket: None,
+            created_at: chrono::Utc::now().timestamp(),
+        });
+    }
+
     Ok(Json(serde_json::json!({
         "status": "ok",
         "token": token,
@@ -1025,6 +1052,55 @@ fn base64_url_encode(input: &[u8]) -> String {
         .replace('/', "_")
         .trim_end_matches('=')
         .to_string()
+}
+
+/// Resolves the caller's workspace branch from their user→org membership
+/// binding (users → user_organizations → branches). Returns `None` when the
+/// user has no verified org binding — callers then omit the branch claim
+/// rather than minting an unverified scope.
+fn resolve_branch_from_user_binding(conn: &mut diesel::PgConnection, email: &str) -> Option<Uuid> {
+    #[derive(diesel::QueryableByName)]
+    struct UserRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    let user_id = diesel::sql_query("SELECT id FROM users WHERE email = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Text, _>(email)
+        .get_result::<UserRow>(conn)
+        .optional()
+        .ok()
+        .flatten()?
+        .id;
+
+    #[derive(diesel::QueryableByName)]
+    struct BindingRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+    }
+    let org_id = diesel::sql_query(
+        "SELECT org_id FROM user_organizations WHERE user_id = $1 ORDER BY is_default DESC, joined_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .get_result::<BindingRow>(conn)
+    .optional()
+    .ok()
+    .flatten()?
+    .org_id;
+
+    #[derive(diesel::QueryableByName)]
+    struct BranchRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    diesel::sql_query(
+        "SELECT id FROM branches WHERE org_id = $1 AND is_active = true ORDER BY created_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(org_id)
+    .get_result::<BranchRow>(conn)
+    .optional()
+    .ok()
+    .flatten()
+    .map(|r| r.id)
 }
 
 /// Fallback for local dev: resolves the Zitadel user_id for the bootstrap admin

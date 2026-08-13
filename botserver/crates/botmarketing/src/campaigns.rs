@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::{DateTime, Utc};
@@ -54,12 +54,15 @@ pub struct UpdateCampaignRequest {
 
 pub async fn list_campaigns(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<CrmCampaign>>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (branch_id, _) = state.get_bot_context();
+    let (_, default_branch_id, _) = state.get_scope();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or(default_branch_id);
 
     let campaigns: Vec<CrmCampaign> = marketing_campaigns::table
         .filter(marketing_campaigns::branch_id.eq(branch_id))
@@ -88,13 +91,16 @@ pub async fn get_campaign(
 
 pub async fn create_campaign(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(req): Json<CreateCampaignRequest>,
 ) -> Result<Json<CrmCampaign>, (StatusCode, String)> {
     let mut conn = state.conn.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (branch_id, _) = state.get_bot_context();
+    let (_, default_branch_id, _) = state.get_scope();
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or(default_branch_id);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -271,7 +277,7 @@ pub async fn send_campaign(
         .map_err(|_| (StatusCode::NOT_FOUND, "Campaign not found".to_string()))?;
 
     let campaign_type = campaign.campaign_type.clone();
-    let (bot_id, _) = state.get_bot_context();
+    let (_, _, bot_id) = state.get_scope();
 
     // Resolve recipients: explicit contact ids, then an explicit list id,
     // then whatever is already linked to this campaign. A misconfigured send

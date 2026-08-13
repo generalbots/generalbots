@@ -50,7 +50,7 @@ pub async fn list_lists(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (branch_id, _) = state.get_bot_context();
+    let (_, branch_id, _) = state.get_scope();
 
     let lists: Vec<MarketingList> = marketing_lists::table
         .filter(marketing_lists::branch_id.eq(branch_id))
@@ -85,7 +85,7 @@ pub async fn create_list(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let (branch_id, _) = state.get_bot_context();
+    let (_, branch_id, _) = state.get_scope();
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -180,7 +180,7 @@ pub async fn refresh_marketing_list(
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "List not found".to_string()))?;
 
-    let (branch_id, _) = state.get_bot_context();
+    let (_, branch_id, _) = state.get_scope();
 
     let query_text = list.query_text.as_deref().unwrap_or("");
     let list_type = list.list_type.as_str();

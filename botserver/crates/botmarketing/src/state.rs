@@ -57,19 +57,7 @@ impl AppState {
     }
 
     pub fn get_bot_context(&self) -> (uuid::Uuid, uuid::Uuid) {
-        use crate::schema::bots;
-
-        let Ok(mut conn) = self.conn.get() else {
-            return (uuid::Uuid::nil(), uuid::Uuid::nil());
-        };
-        let (bot_id, _bot_name) = (self.get_default_bot)(&mut conn);
-
-        let org_id = bots::table
-            .filter(bots::id.eq(bot_id))
-            .select(bots::org_id)
-            .first::<uuid::Uuid>(&mut conn)
-            .unwrap_or(uuid::Uuid::nil());
-
+        let (org_id, _, bot_id) = self.get_scope();
         (org_id, bot_id)
     }
 

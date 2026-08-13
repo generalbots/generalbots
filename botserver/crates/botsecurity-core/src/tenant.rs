@@ -90,3 +90,56 @@ pub fn email_from_claims(headers: &HeaderMap) -> Option<String> {
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
 }
+
+/// Resolves the user's workspace branch from their org membership binding
+/// (users → user_organizations → branches) when no server-minted claim and no
+/// CRM contact row are available. Returns `None` when the user has no verified
+/// binding — callers then fall back to their crate-level default context.
+pub fn branch_from_user_binding(
+    conn: &mut diesel::PgConnection,
+    email: &str,
+) -> Option<Uuid> {
+    use diesel::prelude::*;
+    #[derive(diesel::QueryableByName)]
+    struct UserRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    let user_id = diesel::sql_query("SELECT id FROM users WHERE email = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Text, _>(email)
+        .get_result::<UserRow>(conn)
+        .optional()
+        .ok()
+        .flatten()?
+        .id;
+
+    #[derive(diesel::QueryableByName)]
+    struct BindingRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+    }
+    let org_id = diesel::sql_query(
+        "SELECT org_id FROM user_organizations WHERE user_id = $1 ORDER BY is_default DESC, joined_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .get_result::<BindingRow>(conn)
+    .optional()
+    .ok()
+    .flatten()?
+    .org_id;
+
+    #[derive(diesel::QueryableByName)]
+    struct BranchRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    diesel::sql_query(
+        "SELECT id FROM branches WHERE org_id = $1 AND is_active = true ORDER BY created_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(org_id)
+    .get_result::<BranchRow>(conn)
+    .optional()
+    .ok()
+    .flatten()
+    .map(|r| r.id)
+}

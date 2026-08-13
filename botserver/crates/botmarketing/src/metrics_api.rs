@@ -226,8 +226,9 @@ pub async fn get_aggregate_metrics(
     })
 }
 
-fn get_default_context(state: &Arc<AppState>) -> (Uuid, Uuid) {
-    state.get_bot_context()
+fn get_default_context(state: &Arc<AppState>) -> Uuid {
+    let (_, branch_id, _) = state.get_scope();
+    branch_id
 }
 
 pub async fn get_campaign_metrics_api(
@@ -263,7 +264,7 @@ pub async fn get_campaign_timeseries_api(
 pub async fn get_aggregate_metrics_api(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<AggregateMetrics>, (StatusCode, String)> {
-    let (branch_id, _) = get_default_context(&state);
+    let branch_id = get_default_context(&state);
 
     match get_aggregate_metrics(&state, branch_id).await {
         Ok(metrics) => Ok(Json(metrics)),
