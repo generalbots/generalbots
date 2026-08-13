@@ -51,7 +51,17 @@ impl OpenAiCompatibleTarget {
             api_key: api_key.into(),
             model: model.into(),
             temperature: 0.0,
-            client: Client::new(),
+            // A stalled provider must fail fast, not block the whole gate
+            // (same lesson as the S3 boot hang: reqwest defaults to no
+            // timeout).
+            client: Client::builder()
+                .timeout(Duration::from_secs(90))
+                .connect_timeout(Duration::from_secs(10))
+                .build()
+                .unwrap_or_else(|e| {
+                    log::error!("boteval client build failed: {e}");
+                    Client::new()
+                }),
         }
     }
 }
