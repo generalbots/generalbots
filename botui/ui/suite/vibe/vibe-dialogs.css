@@ -1,0 +1,466 @@
+/* ============================================
+   VIBE PROFESSIONAL DIALOGS (#806 rewrite)
+   Shared modal framework for Schema / Git /
+   Terminal / Browser / Code / Deploy dialogs.
+   ============================================ */
+
+.vibe-dialog-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 120;
+    background: rgba(4, 6, 12, 0.72);
+    backdrop-filter: blur(3px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.vibe-dialog-mask.open {
+    display: flex;
+}
+
+.vibe-dialog {
+    display: flex;
+    flex-direction: column;
+    width: 88%;
+    max-width: 1120px;
+    height: 86%;
+    max-height: 780px;
+    background: var(--surface, #14142a);
+    border: 1px solid var(--border, #333);
+    border-radius: 12px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    font-family: "Fira Code", Consolas, monospace;
+}
+
+.vibe-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border, #333);
+    background: var(--surface-hover, #1c1c33);
+    flex-shrink: 0;
+}
+
+.vibe-dialog-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--text, #eee);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vibe-dialog-title .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent, #4a6cf7);
+    box-shadow: 0 0 6px var(--accent, #4a6cf7);
+}
+
+.vibe-dialog-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vibe-dialog-close {
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #888);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.vibe-dialog-close:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.vibe-dialog-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+.vibe-dialog-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border, #333);
+    background: var(--bg, #12121f);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.vibe-dialog-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg, #0e0e1a);
+}
+
+.vibe-dialog-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border, #333);
+    background: var(--surface, #14142a);
+    flex-shrink: 0;
+}
+
+.vibe-btn {
+    border: 1px solid var(--border, #444);
+    background: var(--surface, #1a1a2e);
+    color: var(--text, #eee);
+    font-family: "Fira Code", monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.vibe-btn:hover {
+    border-color: var(--accent, #4a6cf7);
+    color: var(--accent, #4a6cf7);
+}
+
+.vibe-btn.primary {
+    background: var(--accent, #4a6cf7);
+    border-color: var(--accent, #4a6cf7);
+    color: #fff;
+    font-weight: 600;
+}
+
+.vibe-btn.primary:hover {
+    filter: brightness(1.1);
+    color: #fff;
+}
+
+.vibe-btn.danger {
+    border-color: #f55555;
+    color: #f88888;
+}
+
+.vibe-btn.danger:hover {
+    background: rgba(245, 85, 85, 0.1);
+    color: #ff9a9a;
+}
+
+.vibe-input, .vibe-select, .vibe-textarea {
+    background: var(--bg, #12121f);
+    color: var(--text, #eee);
+    border: 1px solid var(--border, #333);
+    border-radius: 5px;
+    font-family: "Fira Code", Consolas, monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    outline: none;
+}
+
+.vibe-input:focus, .vibe-select:focus, .vibe-textarea:focus {
+    border-color: var(--accent, #4a6cf7);
+}
+
+.vibe-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.vibe-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text, #eee);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+}
+
+.vibe-list-item:hover {
+    background: var(--surface-hover, #1c1c33);
+}
+
+.vibe-list-item.active {
+    background: rgba(74, 108, 247, 0.12);
+    border-left-color: var(--accent, #4a6cf7);
+}
+
+.vibe-list-item .meta {
+    font-size: 10px;
+    color: var(--text-muted, #888);
+}
+
+.vibe-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.vibe-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.vibe-table th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-hover, #1c1c33);
+    color: var(--text, #eee);
+    text-align: left;
+    padding: 7px 10px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border, #333);
+    z-index: 1;
+    white-space: nowrap;
+}
+
+.vibe-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary, #bbb);
+    white-space: nowrap;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vibe-table tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.vibe-empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-muted, #666);
+    font-size: 12px;
+}
+
+.vibe-status {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+}
+
+.vibe-status.ok {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.vibe-status.err {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.vibe-status.warn {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+}
+
+.vibe-status.info {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+/* SQL editor */
+.vibe-sql-bar {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border, #333);
+    background: var(--surface, #14142a);
+    align-items: center;
+}
+
+.vibe-sql-bar .vibe-textarea {
+    flex: 1;
+    resize: none;
+    height: 58px;
+    line-height: 1.5;
+}
+
+/* Git */
+.vibe-commit-box {
+    padding: 10px;
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.vibe-commit-box .vibe-textarea {
+    width: 100%;
+    resize: none;
+    height: 54px;
+}
+
+.vibe-commit-box .vibe-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 7px;
+}
+
+.vibe-diff {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    font-size: 11px;
+    line-height: 1.6;
+    padding: 12px;
+}
+
+.vibe-diff line, .vibe-diff .add { color: #4ade80; }
+.vibe-diff .del { color: #f87171; }
+.vibe-diff .ctx { color: #94a3b8; }
+
+/* Terminal */
+.vibe-term-wrap {
+    flex: 1;
+    min-height: 0;
+    background: #0b0e17;
+    padding: 10px 0 10px 14px;
+    overflow: hidden;
+}
+
+.vibe-term-wrap .xterm {
+    height: 100%;
+}
+
+/* Browser */
+.vibe-browser-frame {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background: #0e1116;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.vibe-browser-frame img {
+    max-width: 100%;
+    border-radius: 4px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.vibe-browser-frame .vibe-empty {
+    color: #777;
+}
+
+.vibe-browser-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 10px;
+    color: var(--text-muted, #888);
+    border-top: 1px solid var(--border, #333);
+    background: var(--surface, #14142a);
+    flex-shrink: 0;
+}
+
+/* Code editor */
+.vibe-code-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    font-size: 11px;
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--text, #ddd);
+}
+
+.vibe-code-file:hover {
+    background: var(--surface-hover, #1c1c33);
+}
+
+.vibe-code-file.active {
+    background: rgba(74, 108, 247, 0.12);
+    color: var(--accent, #4a6cf7);
+}
+
+.vibe-code-editor {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.vibe-code-editor .vibe-textarea {
+    flex: 1;
+    border: none;
+    border-radius: 0;
+    resize: none;
+    font-size: 12px;
+    line-height: 1.6;
+    background: #0d1117;
+    padding: 14px;
+    tab-size: 4;
+}
+
+/* Pipeline stage panel */
+.vibe-stage-panel {
+    display: none;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border, #333);
+    background: var(--surface, #14142a);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.vibe-stage-panel.visible {
+    display: block;
+}
+
+.vibe-stage-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 11px;
+}
+
+.vibe-stage-row .idx {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    border: 1px solid var(--border, #444);
+    color: var(--text-muted, #999);
+    flex-shrink: 0;
+}
+
+.vibe-stage-row.done .idx {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: #22c55e;
+    color: #4ade80;
+}
+
+.vibe-stage-row.skipped .idx {
+    opacity: 0.4;
+}
+
+.vibe-stage-row.failed .idx {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #f87171;
+}

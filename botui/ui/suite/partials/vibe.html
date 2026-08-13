@@ -1,6 +1,7 @@
 <!-- Vibe Window — APP_CREATE Canvas + Agents IDE (Phase 7) -->
 <link rel="stylesheet" href="/suite/vibe/agents-sidebar.css" />
 <link rel="stylesheet" href="/suite/vibe/vibe.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe-dialogs.css" />
 
 <div class="vibe-container" id="vibeWindow">
 <!-- Pipeline Tabs -->
@@ -15,6 +16,9 @@
 // MONITOR
 </button>
 </div>
+
+<!-- Pipeline stage panel (real backend data) -->
+<div class="vibe-stage-panel" id="vibeStagePanel"></div>
 
 <!-- Main Content: Canvas + Sidebar -->
 <div class="vibe-body">
@@ -195,7 +199,7 @@ backdrop-filter: blur(4px);
 <span style="color: var(--text-secondary); margin: 0 6px">&gt;</span>
 // E-COMMERCE APP DEVELOPMENT
 <div style="float: right">
-<button class="vibe-db-btn" onclick="document.getElementById('vibeDbModal').style.display='flex'" style="
+<button class="vibe-db-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database Schema')" style="
 border: 1px solid var(--accent);
 background: transparent;
 color: var(--text);
@@ -207,7 +211,7 @@ font-weight: 600;
 ">
 🗄️ Schema
 </button>
-<button class="vibe-git-btn" onclick="document.getElementById('vibeGitModal').style.display='flex'" style="
+<button class="vibe-git-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')" style="
 border: 1px solid var(--accent);
 background: transparent;
 color: var(--text);
@@ -243,7 +247,7 @@ font-weight: 600;
 ">
 ⛓ Graph
 </button>
-<button class="vibe-browser-btn" onclick="document.getElementById('vibeBrowserModal').style.display='flex'" style="
+<button class="vibe-browser-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('browser', 'Base — Browser Session')" style="
 border: 1px solid var(--accent);
 background: transparent;
 color: var(--text);
@@ -255,7 +259,7 @@ font-weight: 600;
 ">
 🌐 Base
 </button>
-<button class="vibe-terminal-btn" onclick="document.getElementById('vibeTerminalModal').style.display='flex'" style="
+<button class="vibe-terminal-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Shell — Terminal')" style="
 border: 1px solid var(--accent);
 background: transparent;
 color: var(--text);
@@ -267,7 +271,7 @@ font-weight: 600;
 ">
 ⌨️ Shell
 </button>
-<button class="vibe-code-btn" onclick="document.getElementById('vibeEditorModal').style.display='flex'" style="
+<button class="vibe-code-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('code', 'Code — Workspace Editor')" style="
 border: 1px solid var(--accent);
 background: transparent;
 color: var(--text);
@@ -291,7 +295,7 @@ font-weight: 600;
 ">
 + New
 </button>
-<button class="vibe-deploy-btn" onclick="showDeploymentModal()" style="
+<button class="vibe-deploy-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deploy — Environments')" style="
 border: 1px solid var(--accent);
 background: var(--accent);
 color: var(--bg);
@@ -530,179 +534,17 @@ border: none;
 </div>
 </div>
 
-<!-- Editor Panel -->
-<div class="vibe-editor-modal" id="vibeEditorModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/editor.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Database Panel -->
-<div class="vibe-db-modal" id="vibeDbModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/database.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Git Panel -->
-<div class="vibe-git-modal" id="vibeGitModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/git-status.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Browser Panel -->
-<div class="vibe-browser-modal" id="vibeBrowserModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/browser-controls.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Terminal Panel -->
-<div class="vibe-terminal-modal" id="vibeTerminalModal" style="display: none; position: absolute; bottom: 24px; left: 300px; right: 24px; height: 350px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 4px; right: 8px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/terminal.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Preview Panel -->
-<div class="vibe-preview" id="vibePreview" style="display: none">
-<div class="vibe-preview-header">
-<span>// PREVIEW</span>
-<input type="text" class="vibe-preview-url" id="vibePreviewUrl" value="" readonly />
-</div>
-<div class="vibe-preview-content" id="vibePreviewContent"></div>
-</div>
-
-<!-- Deployment Panel -->
-<div class="vibe-deployment-modal" id="vibeDeploymentModal" style="display: none">
-<div class="vibe-deployment-overlay" onclick="closeDeploymentModal()"></div>
-<div class="vibe-deployment-panel" style="
-position: absolute;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-background: var(--surface);
-border-radius: 16px;
-box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
-width: 600px;
-max-width: 90%;
-max-height: 80vh;
-overflow-y: auto;
-border: 1px solid var(--border);
-z-index: 1000;
-">
-<div style="padding: 24px; border-bottom: 1px solid var(--border);">
-<h2 style="margin: 0; font-size: 20px; color: var(--text); display: flex; align-items: center; gap: 12px;">
-<span style="font-size: 24px">🚀</span>
-Deploy Your App
-</h2>
-<p style="margin: 8px 0 0; font-size: 14px; color: var(--text-muted);">
-Choose where to deploy your application
-</p>
-</div>
-
-<div style="padding: 24px">
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-<div class="deployment-option" id="deploymentInternal"
-onclick="selectDeploymentTarget('internal')" style="
-padding: 20px;
-border: 2px solid var(--border);
-border-radius: 12px;
-cursor: pointer;
-transition: all 0.2s;
-">
-<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-<span style="font-size: 32px">📱</span>
-<div>
-<h3 style="margin: 0; font-size: 16px; color: var(--text);">GB Platform</h3>
-<span style="font-size: 12px; color: var(--text-muted);">Internal</span>
-</div>
-</div>
-<ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-<li>Serve from {name}.gb.solutions</li>
-<li>Use GB API endpoints</li>
-<li>Fast iteration cycles</li>
-<li>Shared platform resources</li>
-</ul>
-</div>
-
-<div class="deployment-option" id="deploymentExternal"
-onclick="selectDeploymentTarget('external')" style="
-padding: 20px;
-border: 2px solid var(--border);
-border-radius: 12px;
-cursor: pointer;
-transition: all 0.2s;
-">
-<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-<span style="font-size: 32px">🌐</span>
-<div>
-<h3 style="margin: 0; font-size: 16px; color: var(--text);">Forgejo ALM</h3>
-<span style="font-size: 12px; color: var(--text-muted);">External</span>
-</div>
-</div>
-<ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-<li>Push to Git repository</li>
-<li>CI/CD pipeline automation</li>
-<li>Custom domain support</li>
-<li>Independent deployment</li>
-</ul>
-</div>
-</div>
-
-<div id="deploymentInternalConfig" style="margin-bottom: 24px">
-<h3 style="margin: 0 0 16px; font-size: 14px; color: var(--text);">Internal Deployment Settings</h3>
-<form id="internalDeployForm">
-<div style="margin-bottom: 16px">
-<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">App Route</label>
-<input type="text" id="deployRoute" placeholder="my-app" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
-<span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
-App will be available at: <span id="deployRoutePreview">my-app</span>.gb.solutions
-</span>
-</div>
-<div style="margin-bottom: 16px">
-<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer;">
-<input type="checkbox" id="deploySharedResources" checked style="margin: 0" />
-Use shared platform resources (database, cache, storage)
-</label>
-</div>
-</form>
-</div>
-
-<div id="deploymentExternalConfig" style="display: none; margin-bottom: 24px">
-<h3 style="margin: 0 0 16px; font-size: 14px; color: var(--text);">Forgejo Repository Settings</h3>
-<form id="externalDeployForm">
-<div style="margin-bottom: 16px">
-<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">Repository Name</label>
-<input type="text" id="deployRepoName" placeholder="my-app" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
-</div>
-<div style="margin-bottom: 16px">
-<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">Custom Domain (optional)</label>
-<input type="text" id="deployCustomDomain" placeholder="myapp.example.com" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
-</div>
-<div style="margin-bottom: 16px">
-<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer;">
-<input type="checkbox" id="deployCiCd" checked style="margin: 0" />
-Enable CI/CD pipeline (automatic builds and deployments)
-</label>
-</div>
-<div style="margin-bottom: 16px">
-<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">App Type</label>
-<select id="deployAppType" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;">
-<option value="htmx">HTMX App (Server-side rendering)</option>
-<option value="react">React App (SPA)</option>
-<option value="vue">Vue App (SPA)</option>
-</select>
-</div>
-</form>
-</div>
-
-<div style="display: flex; gap: 12px; justify-content: flex-end;">
-<button type="button" onclick="closeDeploymentModal()" style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text); font-size: 14px; cursor: pointer;">Cancel</button>
-<button type="button" id="deployButton" onclick="executeDeployment()" style="padding: 10px 20px; border: none; border-radius: 8px; background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer;">Deploy Now</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
+<!-- Vibe Professional Dialogs (#806 rewrite) — one mask, real API content per dialog -->
+<div class="vibe-dialog-mask" id="vibeDialogMask">
+    <div class="vibe-dialog">
+        <div class="vibe-dialog-head">
+            <div class="vibe-dialog-title" id="vibeDialogTitle"><span class="dot"></span>Dialog</div>
+            <div class="vibe-dialog-actions">
+                <button type="button" class="vibe-btn" onclick="window.VibeDialogs && window.VibeDialogs.close()">Close ✕</button>
+            </div>
+        </div>
+        <div class="vibe-dialog-body" id="vibeDialogBody"></div>
+    </div>
 </div>
 
 <div id="vibeNewProjectModal" style="display: none; position: absolute; inset: 0; z-index: 90;"></div>
@@ -757,10 +599,19 @@ Enable CI/CD pipeline (automatic builds and deployments)
 <script src="/suite/vibe/vibe-agents.js"></script>
 <script src="/suite/vibe/vibe-websocket.js"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>
-<script src="/suite/vibe/vibe-deploy.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=2"></script>
 <script src="/suite/vibe/vibe-run.js"></script>
 <script src="/suite/vibe/vibe-init.js"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
 <script src="/suite/vibe/vibe-new-project.js"></script>
 <script src="/suite/vibe/vibe-members.js"></script>
+<script src="/suite/vibe/vibe-dialogs.js"></script>
+<script src="/suite/vibe/vibe-dialog-db.js"></script>
+<script src="/suite/vibe/vibe-dialog-git.js"></script>
+<script src="/suite/vibe/vibe-dialog-terminal.js"></script>
+<script src="/suite/vibe/vibe-dialog-browser.js"></script>
+<script src="/suite/vibe/vibe-dialog-code.js"></script>
+<script src="/suite/vibe/vibe-dialog-deploy.js"></script>
+<script src="/suite/vibe/vibe-pipeline.js"></script>
+<script src="/suite/js/vendor/xterm/xterm.js"></script>
+<script src="/suite/js/vendor/xterm/addon-fit.js"></script>

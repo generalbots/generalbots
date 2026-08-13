@@ -403,7 +403,8 @@
 
     /* ------------------------------------------------- run create */
 
-    function start(intent) {
+    function start(intent, opts) {
+        opts = opts || {};
         var budgetInput = q("vibeRunBudget");
         var budget = budgetInput && parseFloat(budgetInput.value);
         var budgetCents = isFinite(budget) && budget > 0 ? Math.round(budget * 100) : 0;
@@ -413,7 +414,7 @@
             intent: intent,
             use_case: state.useCase,
             budget_cents: budgetCents,
-            auto_approve: false,
+            auto_approve: opts.auto_approve !== false,
         };
         return api("/api/vibe/run", {
             method: "POST",

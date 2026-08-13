@@ -30,6 +30,111 @@ pub struct OptionalWsQuery {
     task_id: Option<String>,
 }
 
+/// Generic WebSocket proxy for backend API WS endpoints (/api/terminal/ws,
+/// /api/browser/.../ws, etc.). reqwest-based proxy_api cannot tunnel WS
+/// upgrades, so API WS routes must be extened here with a real proxy that
+/// preserves the original path + query (id, token, ...).
+pub async fn api_ws_proxy(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    OriginalUri(uri): OriginalUri,
+) -> impl IntoResponse {
+    let forwarded_path = uri.path().to_string();
+    let forwarded_query = uri.query().map_or_else(String::new, |q| format!("?{q}"));
+    ws.on_upgrade(move |socket| {
+        handle_api_ws_proxy(socket, state, forwarded_path, forwarded_query)
+    })
+}
+
+async fn handle_api_ws_proxy(
+    client_socket: WebSocket,
+    state: AppState,
+    path: String,
+    query: String,
+) {
+    let backend_url = format!(
+        "{}{path}{query}",
+        state
+            .client
+            .base_url()
+            .replace("https://", "wss://")
+            .replace("http://", "ws://"),
+    );
+
+    info!("Proxying API WebSocket to: {backend_url}");
+
+    let backend_socket = if backend_url.starts_with("wss://") {
+        let Ok(tls_connector) = native_tls::TlsConnector::builder()
+            .danger_accept_invalid_certs(true)
+            .danger_accept_invalid_hostnames(true)
+            .build()
+        else {
+            error!("Failed to build TLS connector for API WebSocket proxy");
+            return;
+        };
+        let connector = tokio_tungstenite::Connector::NativeTls(tls_connector);
+        match connect_async_tls_with_config(&backend_url, None, false, Some(connector)).await {
+            Ok((socket, _)) => socket,
+            Err(e) => {
+                error!("Failed to connect to backend API WebSocket: {e}");
+                return;
+            }
+        }
+    } else {
+        match tokio_tungstenite::connect_async(&backend_url).await {
+            Ok((socket, _)) => socket,
+            Err(e) => {
+                error!("Failed to connect to backend API WebSocket: {e}");
+                return;
+            }
+        }
+    };
+
+    info!("Connected to backend API WebSocket");
+
+    let (mut client_tx, mut client_rx) = client_socket.split();
+    let (mut backend_tx, mut backend_rx) = backend_socket.split();
+
+    loop {
+        tokio::select! {
+            msg = client_rx.next() => {
+                match msg {
+                    Some(Ok(AxumMessage::Text(text))) => {
+                        if backend_tx.send(TungsteniteMessage::Text(text)).await.is_err() { break; }
+                    }
+                    Some(Ok(AxumMessage::Binary(data))) => {
+                        if backend_tx.send(TungsteniteMessage::Binary(data)).await.is_err() { break; }
+                    }
+                    Some(Ok(AxumMessage::Ping(data))) => {
+                        let _ = client_tx.send(AxumMessage::Pong(data)).await;
+                    }
+                    Some(Ok(AxumMessage::Pong(_))) => {}
+                    Some(Ok(AxumMessage::Close(_))) | None => break,
+                    Some(Err(_)) => break,
+                }
+            }
+            msg = backend_rx.next() => {
+                match msg {
+                    Some(Ok(TungsteniteMessage::Text(text))) => {
+                        if client_tx.send(AxumMessage::Text(text)).await.is_err() { break; }
+                    }
+                    Some(Ok(TungsteniteMessage::Binary(data))) => {
+                        if client_tx.send(AxumMessage::Binary(data)).await.is_err() { break; }
+                    }
+                    Some(Ok(TungsteniteMessage::Ping(data))) => {
+                        let _ = backend_tx.send(TungsteniteMessage::Pong(data)).await;
+                    }
+                    Some(Ok(TungsteniteMessage::Pong(_))) => {}
+                    Some(Ok(TungsteniteMessage::Close(_))) | None => break,
+                    Some(Err(_)) => break,
+                    _ => {}
+                }
+            }
+        }
+    }
+    debug!("[API_WS_PROXY:{path}] Proxy connection closed");
+}
+
 pub async fn ws_proxy(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,

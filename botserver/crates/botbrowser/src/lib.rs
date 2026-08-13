@@ -29,8 +29,13 @@ pub struct BrowserSession {
 
 impl BrowserSession {
     pub async fn new(headless: bool) -> Result<Self> {
+        let id = uuid::Uuid::new_v4().to_string();
+        // Unique per-session Chrome profile: avoids the singleton lock that
+        // kills concurrent launches (all sessions share the default profile).
+        let profile_dir = std::env::temp_dir().join(format!("gb-browser-{id}"));
         let mut builder = CdpBrowserConfig::builder()
             .no_sandbox()
+            .user_data_dir(&profile_dir)
             .viewport(chromiumoxide::handler::viewport::Viewport {
                 width: 1280,
                 height: 720,
@@ -69,7 +74,7 @@ impl BrowserSession {
         let url = page.url().await.ok().flatten().unwrap_or_default();
 
         Ok(Self {
-            id: uuid::Uuid::new_v4().to_string(),
+            id,
             created_at: Utc::now(),
             browser: Arc::new(Mutex::new(browser)),
             page: Arc::new(Mutex::new(page)),

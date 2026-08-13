@@ -335,7 +335,7 @@ impl ConfigManager {
             diesel::sql_query(
                 "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, created_at, updated_at, branch_id) \
                  VALUES ($1, $2, $3, $4, NOW(), NOW(), $5) \
-                 ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = $4, updated_at = NOW(), branch_id = $5"
+                 ON CONFLICT (branch_id, bot_id, config_key) DO UPDATE SET config_value = $4, updated_at = NOW()"
             )
             .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
             .bind::<diesel::sql_types::Uuid, _>(bot_id)

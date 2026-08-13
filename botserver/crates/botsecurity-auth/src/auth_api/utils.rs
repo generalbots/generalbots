@@ -41,6 +41,45 @@ pub fn extract_user_from_request(
         }
     }
 
+    // Browser WebSocket clients cannot set headers; allow the bearer
+    // token via `?token=` query param for WS upgrades (/api/terminal/ws)
+    // and XHR-delivered WebSocket session bootstraps.
+    if let Some(tok) = request
+        .uri()
+        .query()
+        .and_then(|q| {
+            q.split('&').find_map(|kv| {
+                let (k, v) = kv.split_once('=')?;
+                if k == "token" && !v.is_empty() {
+                    Some(v)
+                } else {
+                    None
+                }
+            })
+        })
+        .map(|v| v.replace("%20", " ").replace("%2B", "+").trim().to_string())
+    {
+        if let Some(token) = tok
+            .strip_prefix(&config.bearer_prefix)
+            .map(|s| s.to_string())
+            .or_else(|| {
+                if tok.starts_with("Bearer ") {
+                    None
+                } else {
+                    Some(tok.clone())
+                }
+            })
+        {
+            let mut user = validate_bearer_token_sync(&token)?;
+
+            if let Some(bot_id) = extract_bot_id_from_request(request, config) {
+                user = user.with_current_bot(bot_id);
+            }
+
+            return Ok(user);
+        }
+    }
+
     if let Some(session_id) = extract_session_from_cookies(request, &config.session_cookie_name) {
         let mut user = validate_session_sync(&session_id)?;
 
@@ -197,6 +236,7 @@ pub fn is_jwt_format(token: &str) -> bool {
 pub struct ExtractedAuthData {
     pub api_key: Option<String>,
     pub bearer_token: Option<String>,
+    pub query_token: Option<String>,
     pub session_id: Option<String>,
     pub user_id_header: Option<Uuid>,
     pub bot_id: Option<Uuid>,
@@ -209,6 +249,24 @@ impl ExtractedAuthData {
             .get(&config.api_key_header)
             .and_then(|v| v.to_str().ok())
             .map(|s| s.to_string());
+
+        // Browser WebSocket clients cannot set headers; allow the bearer token
+        // via the `?token=` query param for WS upgrades (/api/terminal/ws,
+        // /api/browser/.../ws) and XHR-delivered WS session bootstraps.
+        let query_token: Option<String> = request
+            .uri()
+            .query()
+            .and_then(|q| {
+                q.split('&').find_map(|kv| {
+                    let (k, v) = kv.split_once('=')?;
+                    if k == "token" && !v.is_empty() {
+                        Some(v)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .map(|v| v.replace("%20", " ").replace("%2B", "+").trim().to_string());
 
         // Debug: log raw Authorization header
         let raw_auth = request
@@ -259,6 +317,7 @@ impl ExtractedAuthData {
         Self {
             api_key,
             bearer_token,
+            query_token,
             session_id,
             user_id_header,
             bot_id,
@@ -316,6 +375,58 @@ pub async fn authenticate_with_extracted_data(
             Err(e) => {
                 warn!("Session validation failed: {:?}", e);
                 return Err(e);
+            }
+        }
+    }
+
+    if let Some(token) = data.query_token {
+        debug!("Authenticating query token (length={})", token.len());
+
+        // Browser WS clients may send the raw bearer token or the JWT itself.
+        let token = token
+            .strip_prefix(&config.bearer_prefix)
+            .map(|s| s.to_string())
+            .or_else(|| {
+                if token.starts_with("Bearer ") {
+                    None
+                } else {
+                    Some(token.clone())
+                }
+            });
+
+        if let Some(token) = token {
+            if is_jwt_format(&token) {
+                match registry.authenticate_token(&token).await {
+                    Ok(mut user) => {
+                        debug!(
+                            "Query-token JWT authentication successful for user: {}",
+                            user.user_id
+                        );
+                        if let Some(bid) = data.bot_id {
+                            user = user.with_current_bot(bid);
+                        }
+                        return Ok(user);
+                    }
+                    Err(e) => {
+                        debug!(
+                            "Query-token JWT authentication failed: {:?}, falling back to session validation",
+                            e
+                        );
+                    }
+                }
+            }
+
+            match validate_session_sync(&token) {
+                Ok(mut u) => {
+                    debug!("Query-token session validation successful");
+                    if let Some(bid) = data.bot_id {
+                        u = u.with_current_bot(bid);
+                    }
+                    return Ok(u);
+                }
+                Err(e) => {
+                    warn!("Query-token session validation failed: {:?}", e);
+                }
             }
         }
     }

@@ -11,10 +11,21 @@ if (breadcrumb) {
 currentProject = intent
 .substring(0, 40)
 .replace(/[^a-zA-Z0-9 ]/g, "");
-breadcrumb.innerHTML =
-'// DASHBOARD <span style="color: var(--text-secondary);margin:0 6px;">&gt;</span> // ' +
-esc(currentProject.toUpperCase()) +
-' <div style="float:right;"><button data-vibe-zoom="-1" type="button" style="border: 1px solid var(--border);background: var(--bg);border-radius:4px;padding:2px 8px;cursor:pointer;">-</button><span data-vibe-zoom-label style="font-size:11px;margin:0 8px;color: var(--text);">100%</span><button data-vibe-zoom="1" type="button" style="border: 1px solid var(--border);background: var(--bg);border-radius:4px;padding:2px 8px;cursor:pointer;">+</button></div>';
+var trail = document.createElement("span");
+trail.className = "vibe-trail";
+trail.textContent = "// " + (currentProject.toUpperCase() || "PROJECT");
+trail.style.color = "var(--text)";
+var oldTrail = breadcrumb.querySelector(".vibe-trail");
+if (oldTrail) {
+oldTrail.textContent = trail.textContent;
+} else {
+var arrow = document.createElement("span");
+arrow.style.cssText =
+"color: var(--text-secondary);margin: 0 6px";
+arrow.textContent = ">";
+breadcrumb.insertBefore(arrow, breadcrumb.querySelector('[style*="float: right"]') || null);
+breadcrumb.insertBefore(trail, breadcrumb.querySelector('[style*="float: right"]') || null);
+}
 }
 
 var token =
