@@ -61,7 +61,7 @@ function loadVibeProjects() {
             list.innerHTML = "";
             projects.forEach(function (p) {
                 var id = p.project_id || p.id;
-                var name = p.name || p.project_type || String(id).substring(0, 8);
+                var name = p.name || p.project_type || "Unnamed project";
                 var status = p.status || "";
                 var active =
                     typeof currentProjectId !== "undefined" &&
@@ -103,7 +103,7 @@ function loadVibeProjects() {
 
 function selectProject(p) {
     var id = p.project_id || p.id;
-    var name = p.name || String(id).substring(0, 8);
+    var name = p.name || "Unnamed project";
     if (typeof currentProject !== "undefined") currentProject = name;
     if (typeof currentProjectId !== "undefined") currentProjectId = id;
     var trail = document.querySelector(".vibe-trail");

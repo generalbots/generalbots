@@ -94,7 +94,8 @@
             state.projectId = sel.value || null;
             var label = document.getElementById("vibeDeployLabel");
             if (label && state.projectId) {
-                label.textContent = "project " + state.projectId.substring(0, 8);
+                var p = state.projects.find(function (x) { return x.id === state.projectId; });
+                label.textContent = p ? p.name : "project";
                 label.className = "vibe-status ok";
             }
             if (state.projectId) loadHistory();
@@ -144,11 +145,15 @@
         }
         var html = '<table class="vibe-table"><thead><tr><th>#</th><th>Env</th><th>Status</th><th>Run</th><th>When</th></tr></thead><tbody>';
         state.history.forEach(function (h, i) {
+            var run = h.run_id || h.id;
+            var runLabel = run ? "#" + String(run).substring(0, 4) : "—";
+            var when = h.created_at || h.ts || "";
+            if (when) when = String(when).replace("T", " ").substring(0, 16);
             html += "<tr><td>" + (state.history.length - i) + "</td>" +
                 "<td>" + D.esc(h.env || "—") + "</td>" +
                 "<td>" + D.esc(h.status || h.state || "?") + "</td>" +
-                "<td>" + D.esc(String(h.run_id || h.id || "").substring(0, 8)) + "</td>" +
-                "<td>" + D.esc(h.created_at || h.ts || "") + "</td></tr>";
+                "<td>" + D.esc(runLabel) + "</td>" +
+                "<td>" + D.esc(when || "—") + "</td></tr>";
         });
         html += "</tbody></table>";
         grid.innerHTML = html;
@@ -173,12 +178,14 @@
 
     function deployPipeline() {
         if (!state.projectId) return;
+        var proj = state.projects.find(function (x) { return x.id === state.projectId; });
+        var projName = proj ? proj.name : "project";
         var grid = document.getElementById("vibeDeployMain");
         if (grid) grid.innerHTML = '<div class="vibe-empty">Launching deploy pipeline (approval-gated)...</div>';
         D.api("/api/vibe/run", {
             method: "POST",
             body: {
-                intent: "Deploy project " + state.projectId,
+                intent: "Deploy " + projName,
                 use_case: "software_development",
                 pipeline_mode: "deploy",
                 auto_approve: false,
@@ -187,8 +194,8 @@
         }).then(function (data) {
             if (data && data.success) {
                 if (grid) {
-                    grid.innerHTML = '<div class="vibe-empty">Deploy pipeline started: <b>' +
-                        D.esc(String(data.run_id).substring(0, 8)) + "</b> — approve stages in the Run Dock.</div>";
+                    grid.innerHTML = '<div class="vibe-empty">Deploy pipeline started for <b>' +
+                        D.esc(projName) + "</b> — approve stages in the Run Dock.</div>";
                 }
                 setTimeout(loadHistory, 8000);
             } else {

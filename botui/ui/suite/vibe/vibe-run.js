@@ -41,7 +41,7 @@
     }
 
     function shortRunId(id) {
-        return id ? String(id).substring(0, 8) : "—";
+        return id ? "#" + String(id).substring(0, 4) : "—";
     }
 
     function setText(id, text) {
@@ -457,7 +457,7 @@
             }
             list.innerHTML = sessions.slice(0, 6).map(function (s) {
                 var runState = s.run ? s.run.state : "idle";
-                var st = String(s.session_id).substring(0, 8);
+                var st = "Session " + String(s.session_id).substring(0, 4);
                 return '<div class="vibe-session-item">' +
                     '<span class="vibe-chip ' + chipState(runState) + '">' + esc(runState) + "</span>" +
                     '<span class="meta" title="' + esc(s.intent) + '">' + esc(s.intent || st) + "</span>" +
