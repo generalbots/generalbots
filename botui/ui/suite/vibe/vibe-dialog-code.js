@@ -1,14 +1,20 @@
 /**
- * Vibe Code dialog — workspace file browser + editor.
- * Lists files via /api/editor/files, reads via
- * /api/editor/file/:path, saves via POST /api/editor/save
- * (name=path, content=body) — matching boteditor handlers.
+ * Vibe Code dialog — project workspace file browser + editor.
+ * Lists/reads/writes the SELECTED project's workspace files via
+ * /api/vibe/projects/:id/files (the real VIBE_WORKSPACE_ROOT output),
+ * NOT the bot's global /api/editor/* workspace.
  */
 (function () {
     "use strict";
 
     var D = window.VibeDialogs;
     var state = { files: [], current: null };
+
+    function selectedProjectId() {
+        return typeof window.currentProjectId !== "undefined" && window.currentProjectId
+            ? window.currentProjectId
+            : null;
+    }
 
     function sidebar() {
         var box = document.createElement("div");
@@ -68,7 +74,14 @@
 
     function loadFiles() {
         var list = document.getElementById("vibeCodeFileList");
-        D.api("/api/editor/files").then(function (data) {
+        if (!list) return;
+        var pid = selectedProjectId();
+        if (!pid) {
+            list.innerHTML = '<div class="vibe-empty">Select a project first.</div>';
+            state.files = [];
+            return;
+        }
+        D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files").then(function (data) {
             state.files = (data && data.files) || [];
             if (!list) return;
             if (!state.files.length) {
@@ -89,6 +102,8 @@
     }
 
     function openFile(name) {
+        var pid = selectedProjectId();
+        if (!pid) return;
         state.current = name;
         var ta = document.getElementById("vibeCodeContent");
         var nameEl = document.getElementById("vibeCodeFileName");
@@ -98,9 +113,11 @@
             nameEl.textContent = name;
             nameEl.className = "vibe-status ok";
         }
-        D.api("/api/editor/file/" + encodeURIComponent(name)).then(function (data) {
+        D.api(
+            "/api/vibe/projects/" + encodeURIComponent(pid) + "/files/content?path=" + encodeURIComponent(name),
+        ).then(function (data) {
             if (ta) ta.value = (data && data.content != null) ? String(data.content) : "";
-            if (status) status.textContent = "loaded " + name;
+            if (status) status.textContent = (data && data.success) ? "loaded " + name : "error loading " + name + ": " + ((data && data.error) || "failed");
         }).catch(function (err) {
             if (ta) ta.value = "";
             if (status) status.textContent = "error loading " + name + ": " + err;
@@ -108,16 +125,21 @@
     }
 
     function saveFile() {
+        var pid = selectedProjectId();
         var ta = document.getElementById("vibeCodeContent");
         var status = document.getElementById("vibeCodeStatusMsg");
+        if (!pid) {
+            if (status) status.textContent = "select a project first";
+            return;
+        }
         if (!state.current) {
             var name = prompt("File name to save (workspace root ok):");
             if (!name) return;
             state.current = name.trim();
         }
-        D.api("/api/editor/save", {
+        D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files", {
             method: "POST",
-            body: { name: state.current, content: ta ? ta.value : "" },
+            body: { path: state.current, content: ta ? ta.value : "" },
         }).then(function (data) {
             if (status) {
                 status.textContent = (data && data.success) ? "saved " + state.current : "save: " + ((data && data.error) || "failed");
@@ -129,12 +151,31 @@
     }
 
     function newFile() {
+        var pid = selectedProjectId();
+        if (!pid) return;
         var name = prompt("New file name:");
         if (!name) return;
+        name = name.trim();
+        if (!name) return;
         if (state.files.indexOf(name) === -1) state.files.push(name);
-        openFile(name);
-        loadFiles();
+        state.current = name;
+        var ta = document.getElementById("vibeCodeContent");
+        var nameEl = document.getElementById("vibeCodeFileName");
+        var status = document.getElementById("vibeCodeStatusMsg");
+        if (ta) ta.value = "";
+        if (nameEl) {
+            nameEl.textContent = name;
+            nameEl.className = "vibe-status ok";
+        }
+        if (status) status.textContent = "new file " + name + " (Save to create)";
     }
+
+    // Reload the file list when the user selects a different project in the
+    // sidebar, so the editor always reflects the active project's workspace.
+    document.addEventListener("gb:vibe-project", function () {
+        state = { files: [], current: null };
+        loadFiles();
+    });
 
     document.addEventListener("keydown", function (e) {
         if ((e.ctrlKey || e.metaKey) && e.key === "s") {

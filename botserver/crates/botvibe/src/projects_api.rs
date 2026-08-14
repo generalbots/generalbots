@@ -10,16 +10,18 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
 
+use crate::harness;
 use crate::metering::VMetering;
 use crate::projects::{
     CreateProjectRequest, ListProjectsQuery, Project, ProjectRegistryRef, UpdateProjectRequest,
 };
 use crate::rbac::{ProjectRbac, ProjectRole};
+use crate::vm_lifecycle::VmLifecycle;
 
 #[derive(Debug, Serialize)]
 pub struct ProjectResponse {
@@ -208,7 +210,182 @@ pub fn projects_router(
         .route("/api/vibe/projects/:project_id", get(get_project))
         .route("/api/vibe/projects/:project_id", put(update_project))
         .route("/api/vibe/projects/:project_id", delete(delete_project))
+        .route("/api/vibe/projects/:project_id/files", get(list_project_files))
+        .route("/api/vibe/projects/:project_id/files/content", get(read_project_file))
+        .route("/api/vibe/projects/:project_id/files", post(write_project_file))
         .layer(Extension(registry))
         .layer(Extension(rbac))
         .layer(Extension(metering))
+}
+
+// ── Workspace file browser (load a project's actual agent output) ────────────
+// The code editor used to read `/api/editor/files` (the bot's global editor
+// workspace), which is unrelated to the per-project Vibe workspace. These
+// endpoints expose the real `VIBE_WORKSPACE_ROOT/{slug}/` files so selecting
+// a project in the sidebar loads its source instead of nothing.
+
+#[derive(Debug, Deserialize)]
+pub struct WorkspaceFileQuery {
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct WriteWorkspaceFileRequest {
+    pub path: String,
+    pub content: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WorkspaceFilesResponse {
+    pub success: bool,
+    pub project_id: Option<Uuid>,
+    pub workspace: Option<String>,
+    pub files: Option<Vec<String>>,
+    pub path: Option<String>,
+    pub content: Option<String>,
+    pub bytes: Option<usize>,
+    pub error: Option<String>,
+}
+
+/// Canonical workspace directory key for a project: the ALM repo slug, which
+/// is the same key `collect_workspace_files` (publish) and the agent's
+/// `file/*` tools use for `VIBE_WORKSPACE_ROOT/{key}/`.
+fn workspace_key(project: &Project) -> String {
+    VmLifecycle::alm_repo(&project.name)
+}
+
+fn ws_ok(project_id: Uuid, key: String) -> WorkspaceFilesResponse {
+    WorkspaceFilesResponse {
+        success: true,
+        project_id: Some(project_id),
+        workspace: Some(key),
+        files: None,
+        path: None,
+        content: None,
+        bytes: None,
+        error: None,
+    }
+}
+
+fn ws_err(project_id: Option<Uuid>, key: Option<String>, msg: String) -> (StatusCode, Json<WorkspaceFilesResponse>) {
+    log::error!("Vibe workspace files API error: {msg}");
+    (
+        StatusCode::OK,
+        Json(WorkspaceFilesResponse {
+            success: false,
+            project_id,
+            workspace: key,
+            files: None,
+            path: None,
+            content: None,
+            bytes: None,
+            error: Some(msg),
+        }),
+    )
+}
+
+fn ws_forbidden(msg: String) -> (StatusCode, Json<WorkspaceFilesResponse>) {
+    log::warn!("Vibe workspace files API forbidden: {msg}");
+    (
+        StatusCode::FORBIDDEN,
+        Json(WorkspaceFilesResponse {
+            success: false,
+            project_id: None,
+            workspace: None,
+            files: None,
+            path: None,
+            content: None,
+            bytes: None,
+            error: Some(msg),
+        }),
+    )
+}
+
+async fn list_project_files(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<Uuid>,
+) -> (StatusCode, Json<WorkspaceFilesResponse>) {
+    if let Err(e) = rbac.require_role(user.user_id, id, ProjectRole::Viewer) {
+        return ws_forbidden(e);
+    }
+    let project = match registry.get(id) {
+        Ok(Some(p)) => p,
+        Ok(None) => return ws_err(Some(id), None, format!("project {id} not found")),
+        Err(e) => return ws_err(Some(id), None, e),
+    };
+    let key = workspace_key(&project);
+    match harness::list_rel(&key, "", 0) {
+        Ok(mut files) => {
+            files.sort();
+            let mut resp = ws_ok(id, key);
+            resp.files = Some(files);
+            (StatusCode::OK, Json(resp))
+        }
+        Err(e) => ws_err(Some(id), Some(key), e),
+    }
+}
+
+async fn read_project_file(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<WorkspaceFileQuery>,
+) -> (StatusCode, Json<WorkspaceFilesResponse>) {
+    if let Err(e) = rbac.require_role(user.user_id, id, ProjectRole::Viewer) {
+        return ws_forbidden(e);
+    }
+    let project = match registry.get(id) {
+        Ok(Some(p)) => p,
+        Ok(None) => return ws_err(Some(id), None, format!("project {id} not found")),
+        Err(e) => return ws_err(Some(id), None, e),
+    };
+    let key = workspace_key(&project);
+    match harness::read_rel_file(&key, &query.path, 4 * 1024 * 1024) {
+        Ok(bytes) => {
+            let content = String::from_utf8_lossy(&bytes).into_owned();
+            let mut resp = ws_ok(id, key);
+            resp.path = Some(query.path.clone());
+            resp.content = Some(content);
+            resp.bytes = Some(bytes.len());
+            (StatusCode::OK, Json(resp))
+        }
+        Err(e) => {
+            let mut resp = ws_err(Some(id), Some(key), e);
+            resp.1 .0.path = Some(query.path.clone());
+            resp
+        }
+    }
+}
+
+async fn write_project_file(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<Uuid>,
+    Json(req): Json<WriteWorkspaceFileRequest>,
+) -> (StatusCode, Json<WorkspaceFilesResponse>) {
+    if let Err(e) = rbac.require_role(user.user_id, id, ProjectRole::Developer) {
+        return ws_forbidden(e);
+    }
+    if req.path.trim().is_empty() {
+        return ws_err(Some(id), None, "path must not be empty".to_string());
+    }
+    let project = match registry.get(id) {
+        Ok(Some(p)) => p,
+        Ok(None) => return ws_err(Some(id), None, format!("project {id} not found")),
+        Err(e) => return ws_err(Some(id), None, e),
+    };
+    let key = workspace_key(&project);
+    match harness::write_rel_file(&key, &req.path, req.content.as_bytes()) {
+        Ok(()) => {
+            let mut resp = ws_ok(id, key);
+            resp.path = Some(req.path.clone());
+            resp.bytes = Some(req.content.len());
+            (StatusCode::OK, Json(resp))
+        }
+        Err(e) => ws_err(Some(id), Some(key), e),
+    }
 }
