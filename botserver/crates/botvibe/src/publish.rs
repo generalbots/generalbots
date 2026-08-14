@@ -6,6 +6,7 @@
 //! and records the deployment in the project payload (deployment history —
 //! #772 reads the same records).
 
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -13,7 +14,8 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::domains::{BindDomainRequest, ProjectDomains};
-use crate::projects::ProjectRegistry;
+use crate::harness;
+use crate::projects::{Project, ProjectRegistry};
 use crate::tool_executor::{ToolHandler, ToolSchema};
 use crate::types::{VibeState, VibeToolResult, VibeUseCase};
 use crate::vm_lifecycle::{CreateVmRequest, VmLifecycle};
@@ -45,6 +47,63 @@ pub fn publish_project_schema() -> ToolSchema {
 
 fn api_base() -> String {
     std::env::var("VIBE_API_URL").unwrap_or_else(|_| "http://localhost:8080".to_string())
+}
+
+/// Collect the project's source files from its workspace (the agent's actual
+/// output) so the deployment API can push them to the ALM repo instead of an
+/// empty app. The workspace dir is keyed by the ALM repo slug, falling back
+/// to the raw project id.
+fn collect_workspace_files(project: &Project) -> Vec<Value> {
+    let candidates = [
+        VmLifecycle::alm_repo(&project.name),
+        project.id.to_string(),
+    ];
+    for key in candidates {
+        let dir = harness::workspace_root().join(&key);
+        if !dir.is_dir() {
+            continue;
+        }
+        let mut out = Vec::new();
+        if walk_workspace(&dir, &dir, &mut out).is_ok() && !out.is_empty() {
+            log::info!(
+                "Vibe publish: packaged {} files from workspace '{key}'",
+                out.len()
+            );
+            return out;
+        }
+    }
+    log::warn!(
+        "Vibe publish: no workspace files found for project '{}' — deploying empty repo",
+        project.name
+    );
+    Vec::new()
+}
+
+fn walk_workspace(dir: &Path, root: &Path, out: &mut Vec<Value>) -> Result<(), String> {
+    let entries = std::fs::read_dir(dir).map_err(|e| format!("read_dir {dir:?}: {e}"))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("read_dir entry: {e}"))?;
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().to_string();
+        // Only source ships — skip VCS and heavy build/artifact directories.
+        if matches!(
+            name.as_str(),
+            ".git" | ".forgejo" | "node_modules" | "target" | "dist" | ".next" | "build"
+        ) {
+            continue;
+        }
+        if path.is_dir() {
+            walk_workspace(&path, root, out)?;
+            continue;
+        }
+        let rel = path.strip_prefix(root).map_err(|e| format!("strip prefix: {e}"))?;
+        let rel = rel.to_string_lossy().replace('\\', "/");
+        match std::fs::read(&path) {
+            Ok(bytes) => out.push(serde_json::json!({ "path": rel, "content": bytes })),
+            Err(e) => log::warn!("Vibe publish: skip unreadable file {rel}: {e}"),
+        }
+    }
+    Ok(())
 }
 
 async fn publish_project(args: Value, pool: crate::types::DbPool) -> VibeToolResult {
@@ -99,6 +158,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         }),
     };
 
+    let files = collect_workspace_files(&project);
     let body = serde_json::json!({
         "app_name": repo_name,
         "org": org,
@@ -106,6 +166,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         "environment": env,
         "target": target,
         "project_id": project_id,
+        "files": files,
     });
 
     let client = reqwest::Client::builder()
@@ -159,4 +220,59 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         "deployment": deployed,
         "history_key": "deployments"
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_project(name: &str) -> Project {
+        let now = chrono::Utc::now();
+        Project {
+            id: Uuid::new_v4(),
+            org_id: Uuid::nil(),
+            branch_id: Uuid::nil(),
+            name: name.to_string(),
+            project_type: "app-htmx".to_string(),
+            repository: String::new(),
+            framework: None,
+            custom_domain: None,
+            status: "active".to_string(),
+            environment: "development".to_string(),
+            payload: Value::Null,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    #[test]
+    fn collect_workspace_files_packages_source_and_skips_vcs() {
+        let tmp = std::env::temp_dir().join(format!("vibe-publish-test-{}", Uuid::new_v4()));
+        std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
+        let project = test_project("My Web App");
+        let slug = VmLifecycle::alm_repo(&project.name);
+        let dir = harness::workspace_root().join(&slug);
+        std::fs::create_dir_all(dir.join("src")).expect("mkdir src");
+        std::fs::create_dir_all(dir.join(".git")).expect("mkdir .git");
+        std::fs::write(dir.join("README.md"), b"# demo").expect("write README");
+        std::fs::write(dir.join("src/main.rs"), b"fn main() {}").expect("write main");
+        std::fs::write(dir.join(".git/config"), b"[core]").expect("write git config");
+
+        let files = collect_workspace_files(&project);
+        let paths: Vec<String> = files
+            .iter()
+            .map(|f| f["path"].as_str().unwrap_or_default().to_string())
+            .collect();
+        assert!(paths.contains(&"README.md".to_string()), "paths: {paths:?}");
+        assert!(paths.contains(&"src/main.rs".to_string()), "paths: {paths:?}");
+        assert!(
+            !paths.iter().any(|p| p.starts_with(".git")),
+            "VCS dirs must be excluded: {paths:?}"
+        );
+        let main = files.iter().find(|f| f["path"] == "src/main.rs").expect("main.rs");
+        let content: Vec<u8> = serde_json::from_value(main["content"].clone()).expect("content bytes");
+        assert_eq!(content, b"fn main() {}");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
 }
