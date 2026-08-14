@@ -409,7 +409,19 @@ impl AgentLoop {
                     .await;
             }
         };
-        Self::content_from_payload(&payload)
+        match Self::content_from_payload(&payload) {
+            Ok(content) => Ok(content),
+            Err(e) if e.contains("truncated") => {
+                // The stream ended mid-tool-argument (e.g. the model hit the
+                // output token cap while writing several large files). Retry
+                // non-streaming so a complete arguments document is returned
+                // instead of silently writing an empty/corrupt file.
+                warn!("LLM streaming truncated tool-call arguments ({e}); retrying non-streaming");
+                self.call_llm_nonstream(&api_url, &api_key, &model, &system, &prompt, &tools)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 
     /// Non-streaming fallback: identical request (tools + system prompt) but
@@ -478,10 +490,33 @@ impl AgentLoop {
     }
 
     /// Extracts either native tool calls (canonical envelope) or plain text
-    /// content from an OpenAI-style completion payload.
+    /// content from an OpenAI-style completion payload. Returns an error when
+    /// a tool call's `arguments` is non-empty but not valid JSON — that means
+    /// the stream was truncated mid-argument, and silently substituting `{}`
+    /// would write an empty/corrupt file.
     fn content_from_payload(payload: &serde_json::Value) -> Result<String, String> {
-        if let Some(calls) = native_tool_calls_from_value(payload) {
-            return Ok(canonical_tool_calls_json(&calls));
+        if let Some(calls) = payload["choices"][0]["message"]["tool_calls"].as_array() {
+            let mut has_call = false;
+            for tc in calls {
+                let name = tc["function"]["name"].as_str().unwrap_or_default();
+                let args_raw = tc["function"]["arguments"].as_str().unwrap_or_default();
+                if name.is_empty() && args_raw.is_empty() {
+                    continue;
+                }
+                has_call = true;
+                if !args_raw.is_empty()
+                    && serde_json::from_str::<serde_json::Value>(args_raw).is_err()
+                {
+                    return Err(
+                        "LLM tool-call arguments were truncated (invalid JSON)".to_string(),
+                    );
+                }
+            }
+            if has_call {
+                if let Some(calls) = native_tool_calls_from_value(payload) {
+                    return Ok(canonical_tool_calls_json(&calls));
+                }
+            }
         }
         let content = payload["choices"][0]["message"]["content"]
             .as_str()
@@ -1215,6 +1250,31 @@ mod tests {
             native_tool_calls_from_value(&serde_json::json!({"choices": [{"message": {"content": "hi"}}]}))
                 .is_none()
         );
+    }
+
+    #[test]
+    fn content_from_payload_errors_on_truncated_tool_arguments() {
+        // A stream cut off mid-argument leaves invalid JSON; it must be
+        // reported (so call_llm retries non-streaming) instead of silently
+        // substituting `{}` and writing an empty/corrupt file.
+        let truncated = serde_json::json!({
+            "choices": [{"message": {"tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "file/write", "arguments": "{\"path\": \"server.js\", \"content\": \"const app = req"}}
+            ]}}]
+        });
+        let err = AgentLoop::content_from_payload(&truncated).expect_err("must fail on truncation");
+        assert!(err.contains("truncated"), "error should flag truncation: {err}");
+
+        // A complete call with valid JSON arguments parses normally.
+        let valid = serde_json::json!({
+            "choices": [{"message": {"tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "file/write", "arguments": "{\"path\": \"server.js\", \"content\": \"ok\"}"}}
+            ]}}]
+        });
+        let out = AgentLoop::content_from_payload(&valid).expect("valid call parses");
+        assert!(out.contains("file/write") && out.contains("server.js"));
     }
 
     #[test]
