@@ -428,11 +428,17 @@ if (typeof window.WindowManager === "undefined") {
 
       const onDown = (e) => {
         if (e.target.closest(".window-dot") || e.target.closest("button")) return;
+        // Dragging a maximized window is nonsensical (it fills the screen),
+        // so restore it to its previous size/position first — standard
+        // desktop behavior.
+        const id = el.id.replace("window-", "");
+        const wd = this.openWindows.find((w) => w.id === id);
+        if (wd && wd.isMaximized) this.toggleMaximize(id);
         isDragging = true;
         startX = e.clientX; startY = e.clientY;
         initialLeft = parseInt(el.style.left || 0, 10);
         initialTop = parseInt(el.style.top || 0, 10);
-        this.focus(el.id.replace("window-", ""));
+        this.focus(id);
         document.addEventListener("mousemove", onMove);
         document.addEventListener("mouseup", onUp);
       };
