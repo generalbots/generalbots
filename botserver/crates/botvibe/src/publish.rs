@@ -142,10 +142,17 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     let vm = VmLifecycle::new(pool.clone())
         .create_project_vm(project_id, project.branch_id, &project.name, &vm_req)?;
 
+    // Self-hosted ALM (Forgejo) base URL: env → localhost default.
+    let alm_base = std::env::var("FORGEJO_URL")
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
+
     let target = match &domain {
         Some(d) => serde_json::json!({
             "External": {
-                "repo_url": format!("https://alm.pragmatismo.com.br/{org}/{repo_name}"),
+                "repo_url": format!("{}/{}/{}", alm_base.trim_end_matches('/'), org, repo_name),
                 "custom_domain": d,
                 "ci_cd_enabled": true
             }

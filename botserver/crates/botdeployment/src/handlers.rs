@@ -141,7 +141,10 @@ pub async fn deploy_project(
     };
 
     let forgejo_url = std::env::var("FORGEJO_URL")
-        .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
 
     let forgejo_token = std::env::var("FORGEJO_TOKEN").ok();
 
@@ -248,7 +251,10 @@ pub async fn stop_project(
         .to_string();
 
     let forgejo_url = std::env::var("FORGEJO_URL")
-        .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
     let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
 
     router.stop(&app_name, &org).await
@@ -269,7 +275,10 @@ pub async fn start_project(
         .to_string();
 
     let forgejo_url = std::env::var("FORGEJO_URL")
-        .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
     let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
 
     router.start(&app_name, &org).await
@@ -281,7 +290,10 @@ pub async fn get_project_status(
     axum::extract::Path((org, app_name)): axum::extract::Path<(String, String)>,
 ) -> Result<Json<DeployGatewayResponse>, DeploymentApiError> {
     let forgejo_url = std::env::var("FORGEJO_URL")
-        .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
     let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
 
     router.status(&app_name, &org).await
