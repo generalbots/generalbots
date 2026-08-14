@@ -37,7 +37,7 @@
         if (m.group_name) return "group " + m.group_name;
         if (m.user_name) return m.user_name;
         if (m.email) return m.email;
-        return m.user_id ? "user " + m.user_id : "unknown";
+        return "member";
     }
 
     function renderMembers(members) {

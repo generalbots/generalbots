@@ -73,8 +73,9 @@
                     mine.forEach(function (r) {
                         var st = String(r.state || "?").toUpperCase();
                         var cls = st === "COMPLETED" ? "ok" : st === "FAILED" ? "err" : "warn";
+                        var runLabel = (r.intent || "").trim().substring(0, 60) || "Run " + (r.run_id ? String(r.run_id).substring(0, 4) : "");
                         html += '<div class="vibe-stage-row"><span class="idx">•</span>' +
-                            '<span style="color:var(--text-secondary);">' + D.esc((r.intent || "").substring(0, 60) || String(r.run_id).substring(0, 8)) + "</span>" +
+                            '<span style="color:var(--text-secondary);">' + D.esc(runLabel) + "</span>" +
                             '<span class="vibe-status ' + cls + '">' + D.esc(st) + "</span></div>";
                     });
                 }

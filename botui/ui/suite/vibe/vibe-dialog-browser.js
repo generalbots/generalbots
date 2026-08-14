@@ -98,10 +98,10 @@
                 var closeBtn = document.getElementById("vibeBrowserCloseBtn");
                 if (closeBtn) closeBtn.style.display = "";
                 if (stateEl) {
-                    stateEl.textContent = "session " + String(data.id).substring(0, 8);
+                    stateEl.textContent = "session active";
                     stateEl.className = "vibe-status ok";
                 }
-                logLine("session created " + String(data.id).substring(0, 8), "ok");
+                logLine("session created", "ok");
                 navigate();
             } else {
                 if (btn) { btn.disabled = false; btn.textContent = "▶ New Session"; }
