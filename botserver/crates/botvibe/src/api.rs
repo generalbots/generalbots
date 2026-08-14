@@ -284,9 +284,18 @@ async fn create_run(
     let pipeline_mode = req.pipeline_mode.clone();
     let api_clone = api.clone();
     tokio::spawn(async move {
+        // #827 — keep a "running" placeholder in the map so the run stays
+        // queryable (GET /api/vibe/run/{id}) while the loop executes, instead
+        // of vanishing to `not_found` until it finishes.
         let run_opt = {
             let mut runs = api_clone.runs.write().await;
-            runs.remove(&run_id)
+            let taken = runs.remove(&run_id);
+            if let Some(snap) = taken.as_ref() {
+                let mut placeholder = snap.clone();
+                placeholder.transition(VibeRunState::Running);
+                runs.insert(run_id, placeholder);
+            }
+            taken
         };
         if let Some(mut run) = run_opt {
             if pipeline_mode.as_deref() == Some("deploy") {

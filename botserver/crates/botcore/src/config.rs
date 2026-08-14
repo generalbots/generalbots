@@ -260,6 +260,26 @@ impl ConfigManager {
 
     fn read_db_value(&self, bot_id: &uuid::Uuid, key: &str) -> Option<String> {
         if let Ok(mut conn) = self.pool.get() {
+            // Prefer the bot's real branch row. drive_monitor syncs config.csv
+            // under the workspace branch (which resolves to nil for slug
+            // "default"), so an unfiltered LIMIT 1 can return a stale
+            // nil-branch duplicate and shadow the bot's own config.
+            let (_, branch_id) = self.resolve_bot_identity(bot_id);
+            let row: Option<ConfigRow> = diesel::sql_query(
+                "SELECT config_value FROM bot_configuration \
+                 WHERE bot_id = $1 AND config_key = $2 AND branch_id = $3 \
+                 ORDER BY updated_at DESC LIMIT 1"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<diesel::sql_types::Text, _>(key)
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .get_result(&mut conn).ok();
+            if let Some(r) = row {
+                if !is_placeholder_value(&r.config_value) {
+                    return Some(r.config_value);
+                }
+            }
+            // fallback: any branch for this bot
             let row: Option<ConfigRow> = diesel::sql_query(
                 "SELECT config_value FROM bot_configuration \
                  WHERE bot_id = $1 AND config_key = $2 LIMIT 1"

@@ -399,8 +399,61 @@ impl AgentLoop {
 
         let payload = match self.read_body(resp).await {
             Ok(payload) => payload,
-            Err(e) => return Err(e),
+            Err(e) => {
+                // Streaming failed (e.g. truncated body on a large context) —
+                // retry non-streaming with the same tool set so function
+                // calling still works instead of failing the run.
+                warn!("LLM streaming read failed ({e}); retrying non-streaming");
+                return self
+                    .call_llm_nonstream(&api_url, &api_key, &model, &system, &prompt, &tools)
+                    .await;
+            }
         };
+        Self::content_from_payload(&payload)
+    }
+
+    /// Non-streaming fallback: identical request (tools + system prompt) but
+    /// `stream: false`, so the response is a single JSON document instead of
+    /// an SSE stream — more robust against truncated/decoded bodies.
+    async fn call_llm_nonstream(
+        &self,
+        api_url: &str,
+        api_key: &str,
+        model: &str,
+        system: &str,
+        prompt: &str,
+        tools: &[serde_json::Value],
+    ) -> Result<String, String> {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(90))
+            .build()
+            .map_err(|e| format!("http client: {e}"))?;
+        let body = serde_json::json!({
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 4096,
+            "tools": tools,
+            "tool_choice": "auto",
+            "stream": false,
+        });
+        let resp = client
+            .post(api_url)
+            .header("Authorization", format!("Bearer {api_key}"))
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| format!("HTTP request failed: {e}"))?;
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            return Err(format!("LLM returned status {status}: {text}"));
+        }
+        let payload = self.read_body(resp).await?;
         Self::content_from_payload(&payload)
     }
 
