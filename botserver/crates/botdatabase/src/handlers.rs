@@ -244,7 +244,25 @@ fn get_bot_conn(
     Ok(conn)
 }
 
-fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
+/// #824 — process-lifetime cache of the resolved per-bot database URL, so the
+/// empty-DB probe (a full `postgres::Client::connect` + round-trip) does not
+/// run on every schema/table/query request. The empty/non-empty state of a
+/// bot database is stable within a process lifetime (schema migrations happen
+/// at boot), so a static cache is safe here.
+fn bot_db_url_cache() -> &'static std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>> {
+    static CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>>> =
+        std::sync::OnceLock::new();
+    CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+async fn get_bot_database_url(
+    state: &AppState,
+    bot_id: uuid::Uuid,
+) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
+    if let Some(cached) = bot_db_url_cache().lock().map(|c| c.get(&bot_id).cloned()).unwrap_or(None) {
+        return Ok(cached);
+    }
+
     let db_name: String = {
         let pool = db::pool().map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
         let mut conn = pool.get().map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
@@ -275,27 +293,44 @@ fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, 
         .unwrap_or(&base_url);
     let bot_db_url = format!("{base}/{db_name}");
 
-    let empty = {
-        use postgres::NoTls;
-        let mut client = match postgres::Client::connect(&bot_db_url, NoTls) {
-            Ok(c) => c,
-            Err(_) => return Ok(main_url),
-        };
-        let row = match client.query_one(
-            "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'",
-            &[],
-        ) {
-            Ok(r) => r,
-            Err(_) => return Ok(main_url),
-        };
-        let n: i64 = row.get(0);
-        n == 0
-    };
-    if empty {
-        return Ok(main_url);
-    }
+    // `postgres::Client::connect` builds its own tokio runtime internally, so
+    // calling it on the axum async worker thread panics with "Cannot start a
+    // runtime from within a runtime" (observed at postgres-0.19.14
+    // config.rs:465 for every table >3 columns and every raw SQL query).
+    // The empty-database probe must run inside spawn_blocking.
+    let empty = tokio::task::spawn_blocking({
+        let bot_db_url = bot_db_url.clone();
+        move || -> Result<bool, ()> {
+            use postgres::NoTls;
+            let mut client = match postgres::Client::connect(&bot_db_url, NoTls) {
+                Ok(c) => c,
+                Err(_) => return Err(()),
+            };
+            let row = match client.query_one(
+                "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'",
+                &[],
+            ) {
+                Ok(r) => r,
+                Err(_) => return Err(()),
+            };
+            let n: i64 = row.get(0);
+            Ok(n == 0)
+        }
+    })
+    .await
+    .map_err(|e| internal_error(&format!("Bot database probe task failed: {e}")))?;
 
-    Ok(bot_db_url)
+    // Err (connect/query failure) or an empty database → use the main DB.
+    let resolved = if empty.unwrap_or(true) {
+        main_url
+    } else {
+        bot_db_url
+    };
+
+    if let Ok(mut cache) = bot_db_url_cache().lock() {
+        cache.insert(bot_id, resolved.clone());
+    }
+    Ok(resolved)
 }
 
 #[derive(QueryableByName, Debug)]
@@ -638,82 +673,35 @@ fn execute_via_postgres_sync(
     let mut client = postgres::Client::connect(db_url, postgres::NoTls)
         .map_err(|e| format!("Connection failed: {e}"))?;
 
-    let rows = client
-        .query(query, &[])
+    // Use the simple (text) query protocol: every value arrives as a String,
+    // so NUMERIC/arrays/enums and any other unmapped type degrade to text
+    // instead of a binary deserialization panic. This is the only panic-free
+    // path for a generic SQL runner over an arbitrary schema.
+    let messages = client
+        .simple_query(query)
         .map_err(|e| format!("Query failed: {e}"))?;
 
-    let mut columns = Vec::new();
-    if let Some(first) = rows.first() {
-        for i in 0..first.len() {
-            let col = first.columns().get(i).ok_or("Column index out of bounds")?;
-            columns.push(col.name().to_string());
+    let mut columns: Vec<String> = Vec::new();
+    for msg in &messages {
+        if let postgres::SimpleQueryMessage::RowDescription(cols) = msg {
+            columns = cols.iter().map(|c| c.name().to_string()).collect();
+            break;
         }
     }
 
-    let result: Vec<serde_json::Value> = rows
-        .iter()
-        .map(|row| {
+    let mut rows: Vec<serde_json::Value> = Vec::new();
+    for msg in &messages {
+        if let postgres::SimpleQueryMessage::Row(row) = msg {
             let mut obj = serde_json::Map::new();
-            for i in 0..row.len() {
-                let col = &row.columns()[i];
-                obj.insert(col.name().to_string(), pg_value_to_json(row, i, col.type_().name()));
+            for (i, col) in columns.iter().enumerate() {
+                let value = row.try_get(i).unwrap_or(None).map(str::to_string);
+                obj.insert(col.clone(), parse_cell(&value));
             }
-            serde_json::Value::Object(obj)
-        })
-        .collect();
-
-    Ok((columns, result))
-}
-
-fn pg_value_to_json(row: &postgres::Row, idx: usize, type_name: &str) -> serde_json::Value {
-    match type_name {
-        "bool" => row.get::<_, Option<bool>>(idx).map(serde_json::Value::Bool).unwrap_or(serde_json::Value::Null),
-        "int2" | "smallint" => row.get::<_, Option<i16>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "int4" | "integer" => row.get::<_, Option<i32>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "int8" | "bigint" => row.get::<_, Option<i64>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "float4" | "real" => row.get::<_, Option<f32>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "float8" | "double precision" => row.get::<_, Option<f64>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "numeric" | "decimal" => {
-            row.get::<_, Option<String>>(idx)
-                .map(serde_json::Value::String)
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "uuid" => {
-            row.get::<_, Option<uuid::Uuid>>(idx)
-                .map(|v| serde_json::json!(v.to_string()))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "timestamptz" | "timestamp with time zone" => {
-            row.get::<_, Option<chrono::DateTime<chrono::Utc>>>(idx)
-                .map(|v| serde_json::json!(v.to_rfc3339()))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "timestamp" | "timestamp without time zone" => {
-            row.get::<_, Option<chrono::NaiveDateTime>>(idx)
-                .map(|v| serde_json::json!(v.format("%Y-%m-%dT%H:%M:%S").to_string()))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "date" => {
-            row.get::<_, Option<chrono::NaiveDate>>(idx)
-                .map(|v| serde_json::json!(v.format("%Y-%m-%d").to_string()))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "json" | "jsonb" => {
-            row.get::<_, Option<serde_json::Value>>(idx)
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "bytea" => {
-            row.get::<_, Option<Vec<u8>>>(idx)
-                .map(|v| serde_json::json!(base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &v)))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        _ => {
-            row.try_get::<_, Option<String>>(idx)
-                .unwrap_or(None)
-                .map(serde_json::Value::String)
-                .unwrap_or(serde_json::Value::Null)
+            rows.push(serde_json::Value::Object(obj));
         }
     }
+
+    Ok((columns, rows))
 }
 
 async fn execute_via_postgres(
@@ -725,7 +713,7 @@ async fn execute_via_postgres(
     total_rows: i64,
     pk_column: Option<String>,
 ) -> Result<Json<TableDataResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let db_url = get_bot_database_url(&state, *bot_id)?;
+    let db_url = get_bot_database_url(&state, *bot_id).await?;
     let query = query.to_string();
 
     let result = tokio::task::spawn_blocking(move || execute_via_postgres_sync(&db_url, &query))
@@ -801,7 +789,7 @@ pub async fn execute_query(
         payload.query.clone()
     };
 
-    let db_url = get_bot_database_url(&state, bot_id)?;
+    let db_url = get_bot_database_url(&state, bot_id).await?;
     let query_clone = limited_query.clone();
 
     let pg_result = tokio::task::spawn_blocking(move || execute_via_postgres_sync(&db_url, &query_clone))
@@ -1298,7 +1286,7 @@ pub async fn export_table_csv(
         return Err(error_response("Invalid table name"));
     }
 
-    let db_url = get_bot_database_url(&state, bot_id)?;
+    let db_url = get_bot_database_url(&state, bot_id).await?;
     let query = format!("SELECT * FROM {safe_name}");
 
     let result = tokio::task::spawn_blocking(move || execute_via_postgres_sync(&db_url, &query))

@@ -66,9 +66,7 @@ impl AgentLoop {
         match result {
             Ok(()) => {
                 if run.state == VibeRunState::Running {
-                    run.transition(VibeRunState::Completed);
-                    self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-                    self.broadcast_event(run, "completed", "Agent loop completed successfully", 100);
+                    self.finish_truthfully(run, "Agent loop completed successfully").await;
                 }
             }
             Err(_) => {
@@ -82,6 +80,28 @@ impl AgentLoop {
                     timeout_duration.as_secs()
                 );
             }
+        }
+    }
+
+    /// #819 — a run that executed zero tool calls performed no work and must
+    /// not be reported as "Completed" (the model text-replied instead of acting).
+    /// This terminal helper fails the run with an honest verdict when no tool
+    /// ever ran, and otherwise completes it normally.
+    async fn finish_truthfully(&self, run: &mut VibeRun, completed_msg: &str) {
+        if run.tool_calls.is_empty() {
+            run.transition(VibeRunState::Failed);
+            run.error = Some("Agent produced no tool calls — no work was executed".to_string());
+            self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+            self.broadcast_event(
+                run,
+                "failed",
+                "No tool calls executed — run performed no work",
+                100,
+            );
+        } else {
+            run.transition(VibeRunState::Completed);
+            self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+            self.broadcast_event(run, "completed", completed_msg, 100);
         }
     }
 
@@ -154,9 +174,7 @@ impl AgentLoop {
                     || empty_parse_rounds + 1 >= MAX_EMPTY_PARSE_RETRIES
                 {
                     context.add_assistant_message(llm_response);
-                    run.transition(VibeRunState::Completed);
-                    self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-                    self.broadcast_event(run, "completed", "Agent finished — no more tool calls", 100);
+                    self.finish_truthfully(run, "Agent finished — no more tool calls").await;
                     return;
                 }
                 empty_parse_rounds += 1;
@@ -253,9 +271,7 @@ impl AgentLoop {
         }
 
         if run.state == VibeRunState::Running {
-            run.transition(VibeRunState::Completed);
-            self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-            self.broadcast_event(run, "completed", "Max steps reached — loop completed", 100);
+            self.finish_truthfully(run, "Max steps reached — loop completed").await;
         }
     }
 
@@ -942,9 +958,11 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
                 serde_json::Value::String(message["content"].as_str().unwrap_or_default().to_string() + text);
         }
         if let Some(deltas) = delta["tool_calls"].as_array() {
+            let Some(calls) = message["tool_calls"].as_array_mut() else {
+                continue;
+            };
             for delta_call in deltas {
                 let index = delta_call["index"].as_u64().unwrap_or(0) as usize;
-                let calls = message["tool_calls"].as_array_mut().unwrap();
                 while calls.len() <= index {
                     calls.push(serde_json::json!({
                         "id": "", "type": "function",
@@ -952,7 +970,6 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
                     }));
                 }
                 let entry = &mut calls[index];
-                eprintln!("DBG delta_call={delta_call} entry_before={entry}");
                 if let Some(id) = delta_call["id"].as_str() {
                     if !id.is_empty() {
                         entry["id"] = serde_json::Value::String(id.to_string());

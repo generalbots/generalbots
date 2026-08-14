@@ -485,7 +485,7 @@ async fn list_runs(
             merged.push(run);
         }
     }
-    merged.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    merged.sort_by_key(|r| std::cmp::Reverse(r.created_at));
 
     let filtered: Vec<GetRunResponse> = merged
         .iter()
@@ -503,7 +503,7 @@ async fn list_runs(
                 .as_ref()
                 .is_none_or(|f| r.use_case.to_string() == *f)
         })
-        .map(|r| run_to_response(r))
+        .map(run_to_response)
         .collect();
 
     Json(filtered)
@@ -580,7 +580,7 @@ async fn get_global_metrics(Extension(api): Extension<Arc<VibeApiInner>>) -> imp
             None => runs.push(run.clone()),
         }
     }
-    runs.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    runs.sort_by_key(|r| r.created_at);
 
     metrics.total_runs = 0;
     metrics.completed_runs = 0;

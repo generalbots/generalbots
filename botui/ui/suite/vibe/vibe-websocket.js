@@ -13,7 +13,7 @@ function vibeSafeStatus(status) {
     if (badge) {
         badge.textContent =
             status === "connected"
-                ? "EVOLVED"
+                ? "ONLINE"
                 : status === "connecting"
                 ? "CONNECTING…"
                 : "OFFLINE";

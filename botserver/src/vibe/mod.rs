@@ -121,10 +121,12 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     if let Err(e) = skills.seed_bootstrap().await {
         log::error!("Vibe: bootstrap skills seeding failed: {e}");
     }
-    let canvases = Arc::new(botvibe::CanvasStore::new());
-    let issues = Arc::new(botvibe::IssueStore::new());
-    let sessions = Arc::new(botvibe::SessionStore::new());
-    let teams = Arc::new(botvibe::TeamStore::new());
+    // #816 — write-through persistence so canvases/issues/sessions/teams
+    // survive server restarts (previously in-memory RwLock<Vec> only).
+    let canvases = Arc::new(botvibe::CanvasStore::with_persistence(app_state.conn.clone()));
+    let issues = Arc::new(botvibe::IssueStore::with_persistence(app_state.conn.clone()));
+    let sessions = Arc::new(botvibe::SessionStore::with_persistence(app_state.conn.clone()));
+    let teams = Arc::new(botvibe::TeamStore::with_persistence(app_state.conn.clone()));
 
     let tool_registry = Arc::new(ToolRegistry::new());
     if let Err(e) = tool_registry
