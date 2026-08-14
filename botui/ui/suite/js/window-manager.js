@@ -257,6 +257,11 @@ if (typeof window.WindowManager === "undefined") {
         const clone = document.createElement("script");
         Array.from(s.attributes).forEach((a) => clone.setAttribute(a.name, a.value));
         clone.textContent = s.textContent;
+        // Dynamic scripts are async by default and execute in arbitrary
+        // order, which breaks modules that depend on earlier ones (e.g.
+        // vibe-dialog-*.js registering into vibe-dialogs.js). Force
+        // insertion-order execution so the fragment's script order holds.
+        if (clone.hasAttribute("src")) clone.async = false;
         s.remove();
         return clone;
       });
