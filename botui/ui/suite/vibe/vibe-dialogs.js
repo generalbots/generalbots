@@ -52,6 +52,12 @@
         var body = document.getElementById("vibeDialogBody");
         var titleEl = document.getElementById("vibeDialogTitle");
         var builder = registry[name];
+        // Tear down and clear any previously open dialog before building the
+        // new one — otherwise switching dialogs (db → git → code) appends the
+        // new content on top of the stale body.
+        var prev = registry[current];
+        if (prev && prev.teardown) prev.teardown();
+        body.innerHTML = "";
         if (!builder) {
             body.innerHTML = '<div class="vibe-empty">Unknown dialog: ' + esc(name) + "</div>";
         } else {
