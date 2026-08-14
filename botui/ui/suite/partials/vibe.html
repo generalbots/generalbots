@@ -470,7 +470,10 @@ border: none;
     <div id="vibeMeterUsage" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, #999);"></div>
     <div id="vibeMembersList" style="margin-bottom: 16px;"></div>
     <div style="border-top: 1px solid var(--border, #333); padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-      <input id="vibeMemberTarget" placeholder="user UUID or group name" style="flex: 1; min-width: 160px; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
+      <div style="position: relative; flex: 1; min-width: 200px;">
+        <input id="vibeMemberTarget" placeholder="Search user by name or email…" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #999); font-size: 13px;" />
+        <div id="vibeMemberSuggest" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; max-height: 180px; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"></div>
+      </div>
       <select id="vibeMemberRole" style="padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;">
         <option value="viewer">viewer</option>
         <option value="developer">developer</option>
@@ -483,7 +486,10 @@ border: none;
       <button onclick="window.VibeMembers && window.VibeMembers.add()" style="padding: 8px 14px; border: none; border-radius: 6px; background: var(--accent, #4a6cf7); color: white; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
     </div>
     <div style="margin-top: 12px; border-top: 1px solid var(--border, #333); padding-top: 12px; display: flex; gap: 8px; align-items: center;">
-      <input id="vibeTransferTarget" placeholder="new owner user UUID" style="flex: 1; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
+      <div style="position: relative; flex: 1;">
+        <input id="vibeTransferTarget" placeholder="Search new owner by name or email…" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
+        <div id="vibeTransferSuggest" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; max-height: 180px; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"></div>
+      </div>
       <button onclick="window.VibeMembers && window.VibeMembers.transfer()" style="padding: 8px 14px; border: 1px solid #f77; background: transparent; color: #f88; border-radius: 6px; font-size: 13px; cursor: pointer;">Transfer Ownership</button>
     </div>
   </div>
@@ -515,7 +521,7 @@ border: none;
 <script src="/suite/vibe/vibe-init.js?v=4"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
 <script src="/suite/vibe/vibe-new-project.js?v=4"></script>
-<script src="/suite/vibe/vibe-members.js"></script>
+<script src="/suite/vibe/vibe-members.js?v=2"></script>
 <script src="/suite/vibe/vibe-dialogs.js?v=2"></script>
 <script src="/suite/vibe/vibe-dialog-db.js?v=5"></script>
 <script src="/suite/vibe/vibe-dialog-git.js"></script>

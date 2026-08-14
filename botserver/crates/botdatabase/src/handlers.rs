@@ -205,50 +205,22 @@ fn get_bot_conn(
     bot_id: uuid::Uuid,
 ) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, (StatusCode, Json<serde_json::Value>)> {
     let pool = get_bot_pool(state, bot_id)?;
-    let mut conn = pool
+    let conn = pool
         .get()
         .map_err(|e| internal_error(&format!("Database connection error: {e}")))?;
 
-    // A freshly-created per-bot database starts empty. When that happens the
-    // schema browser and table explorer would show nothing useful, so fall
-    // back to the main database (where suite data actually lives) so the app
-    // stays usable out of the box.
-    let table_count: i64 = {
-        #[derive(QueryableByName)]
-        struct C {
-            #[diesel(sql_type = diesel::sql_types::BigInt)]
-            n: i64,
-        }
-        let q = sql_query(
-            "SELECT count(*) AS n FROM information_schema.tables \
-             WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
-        )
-        .get_result::<C>(&mut conn)
-        .map(|c| c.n)
-        .unwrap_or(0);
-        q
-    };
-
-    if table_count == 0 {
-        log::info!(
-            "botdatabase: bot {} database is empty, falling back to main database",
-            bot_id
-        );
-        let main_pool = db::pool()
-            .map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
-        return main_pool
-            .get()
-            .map_err(|e| internal_error(&format!("Main DB connection error: {e}")));
-    }
-
+    // Always resolve to the bot's OWN database. Previously an empty per-bot
+    // database fell back to the platform's main (botserver) database, which
+    // leaked the internal schema (bots, messages, __diesel_schema_migrations,
+    // …) into the bot-facing DB dialog. An empty bot database now shows an
+    // empty schema instead.
     Ok(conn)
 }
 
-/// #824 — process-lifetime cache of the resolved per-bot database URL, so the
-/// empty-DB probe (a full `postgres::Client::connect` + round-trip) does not
-/// run on every schema/table/query request. The empty/non-empty state of a
-/// bot database is stable within a process lifetime (schema migrations happen
-/// at boot), so a static cache is safe here.
+/// Process-lifetime cache of the resolved per-bot database URL, so the
+/// `bots.database_name` lookup does not run on every schema/table/query
+/// request. The resolved name is stable within a process lifetime, so a
+/// static cache is safe here.
 fn bot_db_url_cache() -> &'static std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>> {
     static CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>>> =
         std::sync::OnceLock::new();
@@ -281,11 +253,9 @@ async fn get_bot_database_url(
         result.and_then(|r| r.database_name).ok_or_else(|| error_response("Bot database not configured"))?
     };
 
-    // A freshly-created per-bot database is empty. The schema browser already
-    // falls back to the main database in that case, so table-data loading must
-    // use the same database — otherwise clicking a table fails because the
-    // table does not exist in the empty per-bot database.
-    let main_url = state.database_url.clone();
+    // The bot's OWN database is always used. Falling back to the platform's
+    // main database here (as was previously done for empty per-bot databases)
+    // leaked the internal botserver schema into the DB dialog.
     let base_url = state.database_url.clone();
     let base = base_url
         .rfind('/')
@@ -293,44 +263,10 @@ async fn get_bot_database_url(
         .unwrap_or(&base_url);
     let bot_db_url = format!("{base}/{db_name}");
 
-    // `postgres::Client::connect` builds its own tokio runtime internally, so
-    // calling it on the axum async worker thread panics with "Cannot start a
-    // runtime from within a runtime" (observed at postgres-0.19.14
-    // config.rs:465 for every table >3 columns and every raw SQL query).
-    // The empty-database probe must run inside spawn_blocking.
-    let empty = tokio::task::spawn_blocking({
-        let bot_db_url = bot_db_url.clone();
-        move || -> Result<bool, ()> {
-            use postgres::NoTls;
-            let mut client = match postgres::Client::connect(&bot_db_url, NoTls) {
-                Ok(c) => c,
-                Err(_) => return Err(()),
-            };
-            let row = match client.query_one(
-                "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'",
-                &[],
-            ) {
-                Ok(r) => r,
-                Err(_) => return Err(()),
-            };
-            let n: i64 = row.get(0);
-            Ok(n == 0)
-        }
-    })
-    .await
-    .map_err(|e| internal_error(&format!("Bot database probe task failed: {e}")))?;
-
-    // Err (connect/query failure) or an empty database → use the main DB.
-    let resolved = if empty.unwrap_or(true) {
-        main_url
-    } else {
-        bot_db_url
-    };
-
     if let Ok(mut cache) = bot_db_url_cache().lock() {
-        cache.insert(bot_id, resolved.clone());
+        cache.insert(bot_id, bot_db_url.clone());
     }
-    Ok(resolved)
+    Ok(bot_db_url)
 }
 
 #[derive(QueryableByName, Debug)]

@@ -1,4 +1,4 @@
-use axum::extract::{Extension, Path};
+use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
 use axum::routing::{get, post, put};
 use axum::{Json, Router};
@@ -171,6 +171,56 @@ async fn remove_group_member(
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UserSearchQuery {
+    pub q: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UserSearchResponse {
+    pub success: bool,
+    pub users: Option<Vec<UserSearchHit>>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UserSearchHit {
+    pub id: Uuid,
+    pub username: String,
+    pub email: String,
+}
+
+async fn search_users(
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(_user): Extension<AuthenticatedUser>,
+    Query(query): Query<UserSearchQuery>,
+) -> Result<Json<UserSearchResponse>, (StatusCode, Json<UserSearchResponse>)> {
+    let q = query.q.unwrap_or_default().trim().to_string();
+    if q.len() < 2 {
+        return Ok(Json(UserSearchResponse {
+            success: true,
+            users: Some(Vec::new()),
+            error: None,
+        }));
+    }
+    match rbac.search_users(&q, 20) {
+        Ok(rows) => Ok(Json(UserSearchResponse {
+            success: true,
+            users: Some(
+                rows.into_iter()
+                    .map(|(id, username, email)| UserSearchHit { id, username, email })
+                    .collect(),
+            ),
+            error: None,
+        })),
+        Err(e) => Ok(Json(UserSearchResponse {
+            success: false,
+            users: None,
+            error: Some(e),
+        })),
+    }
+}
+
 async fn transfer_ownership(
     Extension(rbac): Extension<ProjectRbac>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -189,6 +239,10 @@ async fn transfer_ownership(
 
 pub fn members_router(rbac: ProjectRbac) -> Router {
     Router::new()
+        .route(
+            "/api/vibe/users/search",
+            get(search_users),
+        )
         .route(
             "/api/vibe/projects/:project_id/members",
             get(list_members),

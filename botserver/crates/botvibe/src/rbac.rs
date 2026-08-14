@@ -73,6 +73,9 @@ impl serde::Serialize for ProjectRole {
 pub struct ProjectMember {
     pub project_id: Uuid,
     pub user_id: Option<Uuid>,
+    /// Human-readable identity resolved from the `users` table so the UI never
+    /// shows a bare UUID.
+    pub user_name: Option<String>,
     pub group_name: Option<String>,
     pub role: ProjectRole,
     pub added_at: chrono::DateTime<chrono::Utc>,
@@ -243,6 +246,10 @@ impl ProjectRbac {
             #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
             user_id: Option<Uuid>,
             #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+            username: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+            email: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
             group_name: Option<String>,
             #[diesel(sql_type = diesel::sql_types::Text)]
             role: String,
@@ -250,9 +257,12 @@ impl ProjectRbac {
             added_at: chrono::DateTime<chrono::Utc>,
         }
         let rows = diesel::sql_query(
-            "SELECT project_id, user_id, group_name, role, added_at \
-             FROM project_members WHERE project_id = $1 \
-             ORDER BY added_at",
+            "SELECT pm.project_id, pm.user_id, u.username, u.email, pm.group_name, \
+                    pm.role, pm.added_at \
+             FROM project_members pm \
+             LEFT JOIN users u ON u.id = pm.user_id \
+             WHERE pm.project_id = $1 \
+             ORDER BY pm.added_at",
         )
         .bind::<diesel::sql_types::Uuid, _>(project_id)
         .load::<Row>(&mut conn)
@@ -262,10 +272,44 @@ impl ProjectRbac {
             .map(|r| ProjectMember {
                 project_id: r.project_id,
                 user_id: r.user_id,
+                user_name: r
+                    .username
+                    .filter(|s| !s.is_empty())
+                    .or_else(|| r.email.clone()),
                 group_name: r.group_name,
                 role: ProjectRole::parse(&r.role).unwrap_or(ProjectRole::Viewer),
                 added_at: r.added_at,
             })
+            .collect())
+    }
+
+    /// Search the local `users` table by username or email so the members UI
+    /// can offer a typeahead picker instead of asking for a raw UUID.
+    pub fn search_users(&self, query: &str, limit: i64) -> Result<Vec<(Uuid, String, String)>, String> {
+        let mut conn = self.conn()?;
+        #[derive(QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            username: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            email: String,
+        }
+        let like = format!("%{}%", query.replace('%', "\\%").replace('_', "\\_"));
+        let rows = diesel::sql_query(
+            "SELECT id, username, email FROM users \
+             WHERE is_active = true \
+               AND (username ILIKE $1 OR email ILIKE $1) \
+             ORDER BY username LIMIT $2",
+        )
+        .bind::<diesel::sql_types::Text, _>(&like)
+        .bind::<diesel::sql_types::BigInt, _>(limit)
+        .load::<Row>(&mut conn)
+        .map_err(|e| format!("search users: {e}"))?;
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.id, r.username, r.email))
             .collect())
     }
 
