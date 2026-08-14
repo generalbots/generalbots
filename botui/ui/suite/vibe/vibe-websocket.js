@@ -113,14 +113,8 @@ function connectVibeWs() {
                         return;
                     }
                     if (data.type === "step_progress") {
-                        var pct = Math.round(
-                            (data.current / data.total) * 100,
-                        );
-                        vibeSafeVibe("working");
-                        var bar = document.querySelector(
-                            '.as-agent-card[data-agent-id="1"] .as-bar-fill',
-                        );
-                        if (bar) bar.style.width = pct + "%";
+                        // Progress now lives in the Run Dock; the removed
+                        // fake agent card has no progress bar to update.
                         return;
                     }
 
@@ -288,20 +282,8 @@ function connectTaskProgressWs(taskId) {
                 data.event_type === "step_progress" ||
                 data.step === "step_progress"
             ) {
-                var pct = 0;
-                if (data.current_step && data.total_steps) {
-                    pct = Math.round(
-                        (data.current_step / data.total_steps) * 100,
-                    );
-                } else if (data.current && data.total) {
-                    pct = Math.round((data.current / data.total) * 100);
-                }
-                vibeSafeVibe("working");
-                var bar = document.querySelector(
-                    '.as-agent-card[data-agent-id="1"] .as-bar-fill',
-                );
-                if (bar) bar.style.width = pct + "%";
-
+                // Progress now lives in the Run Dock; the removed fake
+                // agent card has no progress bar to update.
                 var stageMap = {
                     Planning: "plan",
                     Building: "build",
