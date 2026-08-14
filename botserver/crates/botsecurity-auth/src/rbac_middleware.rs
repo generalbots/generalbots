@@ -1237,6 +1237,8 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // Vibe project-scoped resources (members/backups/deployments/envs/
         // metering/vms): authenticated users reach them; per-project RBAC
         // (member/developer/owner) still gates sensitive operations.
+        // User typeahead for the members dialog (no raw UUID pasting).
+        RoutePermission::new("/api/vibe/users/search", "GET", ""),
         RoutePermission::new("/api/vibe/projects/:project_id/**", "GET", ""),
         RoutePermission::new("/api/vibe/projects/:project_id/**", "POST", ""),
         RoutePermission::new("/api/vibe/projects/:project_id/**", "PUT", ""),

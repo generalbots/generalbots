@@ -11,11 +11,7 @@ try { if (window.VibeDialogs) window.VibeDialogs.close(); } catch (e) {}
 try { if (window.VibeNewProject) window.VibeNewProject.close(); } catch (e) {}
 try { if (window.VibeMembers) window.VibeMembers.close(); } catch (e) {}
 try { if (window.VibeGraph) window.VibeGraph.togglePanel(false); } catch (e) {}
-var panel = document.getElementById("vibeStagePanel");
-if (panel) panel.classList.remove("visible");
-var tabs = document.querySelectorAll(".vibe-pipeline-tab");
-tabs.forEach(function (t) { t.classList.remove("active"); });
-if (tabs.length) tabs[0].classList.add("active");
+if (window.VibePipeline) window.VibePipeline.activate("plan");
 }
 
 function addTaskNode(title, description, meta) {

@@ -4,21 +4,49 @@
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.css" />
 
 <div class="vibe-container" id="vibeWindow">
-<!-- Pipeline Tabs -->
-<div class="vibe-pipeline">
-<button class="vibe-pipeline-tab" data-stage="plan">// PLAN</button>
-<button class="vibe-pipeline-tab active" data-stage="build">
-// BUILD
-</button>
-<button class="vibe-pipeline-tab" data-stage="review">// REVIEW</button>
-<button class="vibe-pipeline-tab" data-stage="deploy">// DEPLOY</button>
-<button class="vibe-pipeline-tab" data-stage="monitor">
-// MONITOR
-</button>
+<!-- Ribbon toolbar: each stage tab exposes the big commands for that phase -->
+<div class="vibe-ribbon" id="vibeRibbon">
+<div class="vibe-ribbon-tabs">
+<button class="vibe-ribbon-tab" data-stage="plan">PLAN</button>
+<button class="vibe-ribbon-tab active" data-stage="build">BUILD</button>
+<button class="vibe-ribbon-tab" data-stage="review">REVIEW</button>
+<button class="vibe-ribbon-tab" data-stage="deploy">DEPLOY</button>
+<button class="vibe-ribbon-tab" data-stage="monitor">MONITOR</button>
+<span class="vibe-ribbon-spacer"></span>
+<span class="vibe-ribbon-status" id="vibeRibbonStatus"></span>
 </div>
-
-<!-- Pipeline stage panel (real backend data) -->
-<div class="vibe-stage-panel" id="vibeStagePanel"></div>
+<div class="vibe-ribbon-panel">
+<div class="vibe-ribbon-group" data-group="plan">
+<button class="vibe-ribbon-cmd" onclick="window.VibeNewProject.open()"><span class="rc-icon">➕</span><span class="rc-label">New Project</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.openDeepLink('designer', {})"><span class="rc-icon">🎨</span><span class="rc-label">Designer</span></button>
+<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database Schema')"><span class="rc-icon">🗄️</span><span class="rc-label">Database</span></button>
+</div>
+<div class="vibe-ribbon-group" data-group="build">
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('code', 'Code Editor')"><span class="rc-icon">💻</span><span class="rc-label">Code Editor</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Terminal')"><span class="rc-icon">⌨️</span><span class="rc-label">Terminal</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('browser', 'Browser')"><span class="rc-icon">🌐</span><span class="rc-label">Browser</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Source Control</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database')"><span class="rc-icon">🗄️</span><span class="rc-label">Database</span></button>
+</div>
+<div class="vibe-ribbon-group" data-group="review">
+<button class="vibe-ribbon-cmd" onclick="window.VibeRun && window.VibeRun.approve()"><span class="rc-icon">✓</span><span class="rc-label">Approve &amp; Resume</span></button>
+<button class="vibe-ribbon-cmd danger" onclick="window.VibeRun && window.VibeRun.deny()"><span class="rc-icon">✕</span><span class="rc-label">Deny &amp; Cancel</span></button>
+<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Review Changes</span></button>
+</div>
+<div class="vibe-ribbon-group" data-group="deploy">
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deploy')"><span class="rc-icon">🚀</span><span class="rc-label">Deploy</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Push</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeMembers && window.VibeMembers.open()"><span class="rc-icon">👥</span><span class="rc-label">Members</span></button>
+</div>
+<div class="vibe-ribbon-group" data-group="monitor">
+<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">📊</span><span class="rc-label">Metrics</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deployments')"><span class="rc-icon">🚀</span><span class="rc-label">Deployments</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Terminal')"><span class="rc-icon">⌨️</span><span class="rc-label">Logs</span></button>
+</div>
+</div>
+</div>
 
 <!-- Main Content: Canvas + Sidebar -->
 <div class="vibe-body">
@@ -110,114 +138,6 @@ backdrop-filter: blur(4px);
 <span style="color: var(--text-secondary); margin: 0 6px">&gt;</span>
 // E-COMMERCE APP DEVELOPMENT
 <div style="float: right">
-<button class="vibe-db-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database Schema')" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-🗄️ Schema
-</button>
-<button class="vibe-git-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-🌱 Source Control
-</button>
-<button class="vibe-members-btn" onclick="window.VibeMembers && window.VibeMembers.open()" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-👥 Members
-</button>
-<button id="vibeGraphToggle" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-⛓ Graph
-</button>
-<button class="vibe-browser-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('browser', 'Base — Browser Session')" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-🌐 Base
-</button>
-<button class="vibe-terminal-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Shell — Terminal')" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-⌨️ Shell
-</button>
-<button class="vibe-code-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('code', 'Code — Workspace Editor')" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-💻 Code
-</button>
-<button class="vibe-deploy-btn" onclick="window.VibeNewProject.open()" style="
-border: 1px solid var(--accent);
-background: var(--accent);
-color: var(--bg);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-+ New
-</button>
-<button class="vibe-deploy-btn" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deploy — Environments')" style="
-border: 1px solid var(--accent);
-background: var(--accent);
-color: var(--bg);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-🚀 Deploy
-</button>
 <button data-vibe-zoom="-1" type="button" style="
 border: 1px solid var(--border);
 background: var(--bg);

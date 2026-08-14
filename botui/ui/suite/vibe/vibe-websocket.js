@@ -293,18 +293,8 @@ function connectTaskProgressWs(taskId) {
                 };
                 var stageLabel = data.message || "";
                 var tabStage = stageMap[stageLabel];
-                if (tabStage) {
-                    var allTabs =
-                        document.querySelectorAll(".vibe-pipeline-tab");
-                    allTabs.forEach(function (t) {
-                        t.classList.remove("active");
-                    });
-                    var activeTab = document.querySelector(
-                        '.vibe-pipeline-tab[data-stage="' +
-                            tabStage +
-                            '"]',
-                    );
-                    if (activeTab) activeTab.classList.add("active");
+                if (tabStage && window.VibePipeline) {
+                    window.VibePipeline.activate(tabStage);
                 }
                 return;
             }

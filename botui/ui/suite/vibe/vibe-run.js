@@ -690,5 +690,7 @@
         start: start,
         focus: focus,
         onProgress: onProgress,
+        approve: approveRun,
+        deny: denyRun,
     };
 })();

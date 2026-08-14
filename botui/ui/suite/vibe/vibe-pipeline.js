@@ -1,118 +1,67 @@
 /**
- * Vibe Pipeline tabs (#806) — real stage data under each tab.
- * Clicking PLAN/BUILD/REVIEW/DEPLOY/MONITOR loads the pipeline
- * definition (/api/vibe/pipeline/:use_case) plus the latest runs
- * (/api/vibe/runs) into a stage panel under the canvas header.
+ * Vibe Ribbon (#806) — stage tabs (PLAN/BUILD/REVIEW/DEPLOY/MONITOR) each
+ * reveal the big command buttons that belong to that phase. Replaces the
+ * previous pipeline tabs which only showed a hardcoded tool string.
  */
 (function () {
     "use strict";
 
     var D = window.VibeDialogs;
-    var stageCache = null;
+    var STAGES = ["plan", "build", "review", "deploy", "monitor"];
 
-    function stageMap() {
-        return {
-            plan: { label: "PLAN", tool: "classify_intent, compile_plan" },
-            build: { label: "BUILD", tool: "execute_plan, file/write, shell/run" },
-            review: { label: "REVIEW", tool: "verify, build_test" },
-            deploy: { label: "DEPLOY", tool: "commit_push, publish, domain/bind" },
-            monitor: { label: "MONITOR", tool: "logs, metrics" },
-        };
-    }
-
-    function loadPipeline() {
-        if (stageCache) return Promise.resolve(stageCache);
-        return D.api("/api/vibe/pipeline/software_development").then(function (data) {
-            var pipe = (data && (data.pipeline || data.stages)) || null;
-            stageCache = (pipe && pipe.stages) || pipe;
-            return stageCache;
-        }).catch(function () {
-            return null;
-        });
-    }
-
-    function latestRuns() {
-        return D.api("/api/vibe/runs").then(function (data) {
-            return (data && data.runs) || [];
-        }).catch(function () {
-            return [];
-        });
-    }
-
-    function renderStage(stage) {
-        var panel = document.getElementById("vibeStagePanel");
-        if (!panel) return;
-        var tabs = document.querySelectorAll(".vibe-pipeline-tab");
+    function activate(stage) {
+        if (!stage || STAGES.indexOf(stage) === -1) stage = "build";
+        var tabs = document.querySelectorAll(".vibe-ribbon-tab");
+        var groups = document.querySelectorAll(".vibe-ribbon-group");
         tabs.forEach(function (t) {
             t.classList.toggle("active", t.getAttribute("data-stage") === stage);
         });
-        panel.classList.add("visible");
+        groups.forEach(function (g) {
+            g.classList.toggle("active", g.getAttribute("data-group") === stage);
+        });
+        loadStatus();
+    }
 
-        loadPipeline().then(function (pipe) {
-            latestRuns().then(function (runs) {
-                var s = stageMap()[stage] || stageMap().build;
-                var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
-                    '<span class="vibe-status info">' + s.label + "</span>" +
-                    '<span style="font-size:11px;color:var(--text-muted);">' + D.esc(s.tool) + "</span></div>";
-
-                var stages = pipe;
-                if (stages && stages.length) {
-                    html += '<div class="vibe-stage-row done"><span class="idx">✓</span><span>' +
-                        D.esc(s.label) + " stage — pipeline: " + D.esc(stages.map(function (x) { return x.name || x.id; }).join(" → ")) +
-                        "</span></div>";
+    function loadStatus() {
+        var el = document.getElementById("vibeRibbonStatus");
+        if (!el) return;
+        el.textContent = "· · ·";
+        D.api("/api/vibe/runs")
+            .then(function (data) {
+                var runs = (data && data.runs) || [];
+                if (!runs.length) {
+                    el.textContent = "no runs yet";
+                    return;
                 }
-
-                var mine = runs.filter(function (r) {
-                    return r && (r.state || "").toLowerCase() ===
-                        (stage === "monitor" ? "completed" : "running");
-                }).slice(0, 3);
-                if (!mine.length) mine = runs.slice(0, 2);
-
-                if (mine.length) {
-                    html += '<div class="vibe-stage-row"><span class="idx">↻</span><span style="color:var(--text);">Recent runs:</span></div>';
-                    mine.forEach(function (r) {
-                        var st = String(r.state || "?").toUpperCase();
-                        var cls = st === "COMPLETED" ? "ok" : st === "FAILED" ? "err" : "warn";
-                        var runLabel = (r.intent || "").trim().substring(0, 60) || "Run " + (r.run_id ? String(r.run_id).substring(0, 4) : "");
-                        html += '<div class="vibe-stage-row"><span class="idx">•</span>' +
-                            '<span style="color:var(--text-secondary);">' + D.esc(runLabel) + "</span>" +
-                            '<span class="vibe-status ' + cls + '">' + D.esc(st) + "</span></div>";
-                    });
-                }
-                panel.innerHTML = html;
+                var latest = runs[0];
+                var st = String(latest.state || "?").toUpperCase();
+                var intent = (latest.intent || "").trim().substring(0, 40);
+                el.textContent = "last run " + st + (intent ? " · " + intent : "");
+            })
+            .catch(function () {
+                el.textContent = "";
             });
-        });
     }
 
-    function bindTabs() {
-        var container = document.querySelector(".vibe-pipeline");
-        if (!container) return;
-        container.addEventListener("click", function (e) {
-            var tab = e.target.closest(".vibe-pipeline-tab");
+    function bind() {
+        var ribbon = document.getElementById("vibeRibbon");
+        if (!ribbon) return;
+        ribbon.addEventListener("click", function (e) {
+            var tab = e.target.closest(".vibe-ribbon-tab");
             if (!tab) return;
-            renderStage(tab.getAttribute("data-stage") || "build");
+            activate(tab.getAttribute("data-stage"));
         });
+        activate("build");
     }
 
-    document.addEventListener("gb:vibe-deeplink-loaded", function () {
-        bindTabs();
-    });
-
-    (function () {
-        var __cb = function () {
-            bindTabs();
-        };
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", __cb);
-        } else {
-            __cb();
-        }
-    })();
+    document.addEventListener("gb:vibe-deeplink-loaded", bind);
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bind);
+    } else {
+        bind();
+    }
 
     window.VibePipeline = {
-        render: renderStage,
-        invalidate: function () {
-            stageCache = null;
-        },
+        activate: activate,
     };
 })();

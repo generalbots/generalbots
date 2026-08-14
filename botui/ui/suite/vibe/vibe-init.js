@@ -37,18 +37,8 @@ function vibeQuickSubmit(text) {
 }
 
 function setupPipelineTabs() {
-var container = document.querySelector(".vibe-pipeline");
-if (!container) return;
-container.addEventListener("click", function (e) {
-var tab = e.target.closest(".vibe-pipeline-tab");
-if (!tab) return;
-container
-.querySelectorAll(".vibe-pipeline-tab")
-.forEach(function (t) {
-t.classList.remove("active");
-});
-tab.classList.add("active");
-});
+// The ribbon is wired by vibe-pipeline.js (tab → command-group switching).
+// Kept as a no-op entry point for backward compatibility.
 }
 
 function setupSidebarCollapse() {
