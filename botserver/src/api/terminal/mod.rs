@@ -1,10 +1,9 @@
 use std::collections::{HashMap, VecDeque};
+use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, Command};
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::broadcast;
 use uuid::Uuid;
 
 pub const TERMINAL_BUFFER_LINES: usize = 512;
@@ -17,14 +16,22 @@ pub struct TerminalLine {
     pub at: DateTime<Utc>,
 }
 
+/// A shell running inside a real pseudo-terminal (PTY).
+///
+/// Running the shell behind a PTY (rather than raw pipes) is what makes the
+/// terminal behave like a terminal: the kernel line discipline echoes typed
+/// characters, supports line editing, and emits the prompt. Raw output is
+/// forwarded to clients as-is (echo + newlines included), so xterm.js renders
+/// it correctly without any client-side emulation.
 pub struct TerminalSession {
     pub id: String,
     pub shell: String,
     pub cwd: String,
     pub created_at: DateTime<Utc>,
-    pub child: Mutex<Option<Child>>,
+    pub child: Mutex<Option<Box<dyn portable_pty::Child + Send + Sync>>>,
+    pub writer: Mutex<Option<Box<dyn Write + Send>>>,
+    pub master: Mutex<Option<Box<dyn portable_pty::MasterPty + Send>>>,
     pub exit_code: Mutex<Option<i32>>,
-    pub stdin_tx: Mutex<Option<mpsc::UnboundedSender<Vec<u8>>>>,
     pub buffer: Arc<Mutex<VecDeque<TerminalLine>>>,
     pub events: broadcast::Sender<String>,
 }
@@ -38,8 +45,9 @@ impl TerminalSession {
             cwd,
             created_at: Utc::now(),
             child: Mutex::new(None),
+            writer: Mutex::new(None),
+            master: Mutex::new(None),
             exit_code: Mutex::new(None),
-            stdin_tx: Mutex::new(None),
             buffer: Arc::new(Mutex::new(VecDeque::with_capacity(TERMINAL_BUFFER_LINES))),
             events: tx,
         }
@@ -53,7 +61,7 @@ impl TerminalSession {
         self.buffer.lock().map(|b| b.iter().cloned().collect()).unwrap_or_default()
     }
 
-    fn append_line(&self, data: String) {
+    fn append_output(&self, data: String) {
         if let Ok(mut buf) = self.buffer.lock() {
             if buf.len() >= TERMINAL_BUFFER_LINES {
                 buf.pop_front();
@@ -63,68 +71,77 @@ impl TerminalSession {
         let _ = self.events.send(data);
     }
 
+    /// Allocate a PTY pair and spawn the shell on the slave side.
     pub fn spawn(self: &Arc<Self>) -> Result<(), String> {
-        let parts: Vec<&str> = self.shell.split_whitespace().collect();
-        let program = parts.first().copied().unwrap_or("sh");
-        let args = parts.get(1..).unwrap_or(&[]).to_vec();
-        let mut cmd = Command::new(program);
-        cmd.args(args)
-            .arg("-i")
-            .arg("-c")
-            .arg("export PS1='\\u@\\h:\\w \\$ '; exec /bin/sh")
-            .current_dir(&self.cwd)
-            .env("TERM", "xterm-256color")
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped());
-        let mut child = cmd.spawn().map_err(|e| format!("spawn shell: {e}"))?;
-        let stdin = child.stdin.take().ok_or_else(|| "stdin unavailable".to_string())?;
-        let stdout = child.stdout.take().ok_or_else(|| "stdout unavailable".to_string())?;
-        let stderr = child.stderr.take().ok_or_else(|| "stderr unavailable".to_string())?;
-        *self.exit_code.lock().map_err(|_| "exit lock poisoned".to_string())? = None;
+        let pty_system = portable_pty::native_pty_system();
+        let pair = pty_system
+            .openpty(portable_pty::PtySize { rows: 24, cols: 80, pixel_width: 0, pixel_height: 0 })
+            .map_err(|e| format!("openpty: {e}"))?;
+
+        let mut cmd = portable_pty::CommandBuilder::new(&self.shell);
+        cmd.cwd(&self.cwd);
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("PS1", "\\u@\\h:\\w \\$ ");
+
+        let child = pair
+            .slave
+            .spawn_command(cmd)
+            .map_err(|e| format!("spawn shell: {e}"))?;
+        drop(pair.slave);
+
+        let master = pair.master;
+        let mut reader = master.try_clone_reader().map_err(|e| format!("clone reader: {e}"))?;
+        let writer = master.take_writer().map_err(|e| format!("take writer: {e}"))?;
+
         *self.child.lock().map_err(|_| "child lock poisoned".to_string())? = Some(child);
-
-        let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
-        *self.stdin_tx.lock().map_err(|_| "stdin lock poisoned".to_string())? = Some(tx);
-
-        tokio::spawn(async move {
-            let mut writer = stdin;
-            while let Some(bytes) = rx.recv().await {
-                if writer.write_all(&bytes).await.is_err() {
-                    break;
-                }
-            }
-        });
+        *self.writer.lock().map_err(|_| "writer lock poisoned".to_string())? = Some(writer);
+        *self.master.lock().map_err(|_| "master lock poisoned".to_string())? = Some(master);
+        *self.exit_code.lock().map_err(|_| "exit lock poisoned".to_string())? = None;
 
         let st = self.clone();
-        tokio::spawn(async move {
-            let mut reader = BufReader::new(stdout);
-            let mut line = String::new();
+        std::thread::spawn(move || {
+            let mut buf = [0u8; 8192];
             loop {
-                line.clear();
-                match reader.read_line(&mut line).await {
-                    Ok(0) | Err(_) => break,
-                    Ok(_) => st.append_line(line.trim_end_matches('\n').to_string()),
+                match reader.read(&mut buf) {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        let text = String::from_utf8_lossy(&buf[..n]).into_owned();
+                        st.append_output(text);
+                    }
+                    Err(e) => {
+                        log::debug!("terminal reader ended: {e}");
+                        break;
+                    }
                 }
             }
-            let mut reader = BufReader::new(stderr);
-            let mut line = String::new();
-            loop {
-                line.clear();
-                match reader.read_line(&mut line).await {
-                    Ok(0) | Err(_) => break,
-                    Ok(_) => st.append_line(line.trim_end_matches('\n').to_string()),
+            // Reader closed → the shell exited (or was killed). Mark it done
+            // so is_running()/reap() reflect reality.
+            if let Ok(mut exit) = st.exit_code.lock() {
+                if exit.is_none() {
+                    *exit = Some(0);
                 }
             }
         });
+
         Ok(())
     }
-pub fn write(&self, data: &str) -> Result<(), String> {
-        let guard = self.stdin_tx.lock().map_err(|_| "stdin lock poisoned".to_string())?;
-        if let Some(tx) = guard.as_ref() {
-            tx.send(data.as_bytes().to_vec()).map_err(|e| format!("stdin send: {e}"))?;
+
+    pub fn write(&self, data: &str) -> Result<(), String> {
+        let mut guard = self.writer.lock().map_err(|_| "writer lock poisoned".to_string())?;
+        if let Some(w) = guard.as_mut() {
+            w.write_all(data.as_bytes()).map_err(|e| format!("pty write: {e}"))?;
+            let _ = w.flush();
         }
         Ok(())
+    }
+
+    /// Resize the PTY (forwarded from the client's `resize <cols> <rows>`).
+    pub fn resize(&self, cols: u16, rows: u16) {
+        if let Ok(guard) = self.master.lock() {
+            if let Some(m) = guard.as_ref() {
+                let _ = m.resize(portable_pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 });
+            }
+        }
     }
 }
 
@@ -132,7 +149,7 @@ impl Drop for TerminalSession {
     fn drop(&mut self) {
         if let Ok(mut guard) = self.child.lock() {
             if let Some(child) = guard.as_mut() {
-                let _ = child.start_kill();
+                let _ = child.kill();
             }
         }
     }
@@ -190,22 +207,14 @@ impl TerminalManager {
 
     pub async fn kill_session(&self, id: &str) -> Result<(), String> {
         let session = self.get_session(id).ok_or_else(|| format!("session {id} not found"))?;
-        let mut child = {
+        {
             let mut guard = session.child.lock().map_err(|_| "child lock poisoned".to_string())?;
-            guard.take()
-        };
-        if let Some(child_ref) = child.as_mut() {
-            let _ = child_ref.start_kill();
-            match child_ref.kill().await {
-                Ok(()) => {}
-                Err(e) => log::warn!("kill session {id}: {e}"),
+            if let Some(child) = guard.as_mut() {
+                let _ = child.kill();
             }
-            if let Ok(status) = child_ref.wait().await {
-                let code = status.code();
-                if let Ok(mut exit) = session.exit_code.lock() {
-                    *exit = code;
-                }
-            }
+        }
+        if let Ok(mut exit) = session.exit_code.lock() {
+            *exit = Some(137);
         }
         self.sessions.lock().map_err(|_| "sessions lock poisoned".to_string())?.remove(id);
         Ok(())
@@ -233,8 +242,9 @@ pub fn sanitize_cwd(cwd: &str) -> String {
 }
 
 pub fn default_shell() -> String {
-    std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
+    std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string())
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -256,11 +266,11 @@ mod tests {
     fn history_ring_bounds_lines() {
         let session = TerminalSession::new("t1".into(), "/bin/sh".into(), "/tmp".into());
         for i in 0..(TERMINAL_BUFFER_LINES + 50) {
-            session.append_line(format!("line {i}"));
+            session.append_output(format!("line {i}\n"));
         }
         let history = session.history();
         assert_eq!(history.len(), TERMINAL_BUFFER_LINES);
-        assert_eq!(history.first().map(|l| l.data.as_str()), Some("line 50"));
+        assert_eq!(history.first().map(|l| l.data.as_str()), Some("line 50\n"));
     }
 
     #[test]
