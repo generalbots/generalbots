@@ -78,10 +78,14 @@ function setupWorkspaceAccordions() {
 }
 
 function setupSidebarActions() {
-    var agentBtn = document.getElementById("createAgentBtn");
-    if (agentBtn) agentBtn.addEventListener("click", vibeBreedAgent);
+    // "+ Create a New Project" opens the real New Project modal (the old
+    // handler created a DOM-only fake workspace — removed 2026-08-14).
     var wsBtn = document.getElementById("createWorkspaceBtn");
-    if (wsBtn) wsBtn.addEventListener("click", vibeCreateWorkspace);
+    if (wsBtn) {
+        wsBtn.addEventListener("click", function () {
+            if (window.VibeNewProject) window.VibeNewProject.open();
+        });
+    }
 }
 
 function initVibe() {

@@ -22,7 +22,10 @@
 
 <!-- Main Content: Canvas + Sidebar -->
 <div class="vibe-body">
-<!-- Agents & Workspaces Sidebar -->
+<!-- Projects Sidebar — real project registry (/api/vibe/projects).
+     The former "vibe farm" simulation (fake Vibe #1-#4 agent cards,
+     EVOLVED/BRED/WILD badges, drag-and-drop workspaces) had no backend
+     and was removed 2026-08-14. -->
 <aside class="agents-sidebar" id="agentsSidebar" style="background: var(--surface)">
 <div class="as-logo-section" style="
 padding: 16px;
@@ -41,7 +44,7 @@ align-items: center;
 gap: 8px;
 ">
 <span style="font-size: 18px; color: var(--accent)">🌱</span>
-vibe farm
+Vibe Studio
 </h2>
 <div style="
 display: flex;
@@ -56,106 +59,14 @@ font-size: 14px;
 
 <div class="as-section">
 <div class="as-section-header">
-<h3>Agents</h3>
+<h3>Projects</h3>
 <button class="as-collapse-btn" id="agentsSidebarCollapse" type="button">
 ◀
 </button>
 </div>
 
-<div class="as-agent-list" id="asAgentList">
-<div class="as-agent-card" data-agent-id="1" style="border-left: 3px solid var(--accent)">
-<div class="as-agent-header">
-<span class="as-status-dot green"></span>
-<span class="as-agent-name">Vibe #1</span>
-<span class="as-drag-handle" style="margin-left: auto">⋮</span>
-</div>
-<div class="as-agent-body">
-<span class="as-agent-icons">👀 ⚙️ ⚡</span>
-<span class="as-badge badge-evolved">EVOLVED</span>
-</div>
-</div>
-
-<div class="as-agent-card" data-agent-id="2">
-<div class="as-agent-header">
-<span class="as-status-dot yellow"></span>
-<span class="as-agent-name">Vibe #2</span>
-<span class="as-drag-handle" style="margin-left: auto">⋮</span>
-</div>
-<div class="as-agent-body">
-<span class="as-agent-icons">🥚</span>
-<span class="as-badge badge-bred">BRED</span>
-</div>
-</div>
-
-<div class="as-agent-card" style="opacity: 0.6" data-agent-id="3">
-<div class="as-agent-header">
-<span class="as-status-dot gray"></span>
-<span class="as-agent-name">Vibe #3</span>
-<span class="as-drag-handle" style="margin-left: auto">⋮</span>
-</div>
-<div class="as-agent-body">
-<span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>
-<span class="as-badge badge-wild"
-style="background: var(--surface-active, #ccc)">WILD</span>
-</div>
-</div>
-<div class="as-agent-card" style="opacity: 0.6" data-agent-id="4">
-<div class="as-agent-header">
-<span class="as-status-dot gray"></span>
-<span class="as-agent-name">Vibe #4</span>
-<span class="as-drag-handle" style="margin-left: auto">⋮</span>
-</div>
-<div class="as-agent-body">
-<span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>
-<span class="as-badge badge-wild"
-style="background: var(--surface-active, #ccc)">WILD</span>
-</div>
-</div>
-</div>
-
-<div style="padding: 0 8px">
-<button class="as-create-btn" id="createAgentBtn" type="button"
-style="width: calc(100% - 16px); margin: 8px">
-+ Create a New Vibe
-</button>
-</div>
-</div>
-
-<div class="as-section">
-<div class="as-section-header">
-<h3>Workspaces</h3>
-</div>
-
-<div class="as-workspace-list" id="asWorkspaceList">
-<div class="as-workspace-item">
-<button class="as-workspace-toggle" type="button" style="
-background: var(--bg);
-border-left: 3px solid var(--accent);
-">
-<span class="as-workspace-arrow">▼</span>
-<span>E-Commerce App Development</span>
-</button>
-<div class="as-workspace-body" style="display: block">
-<div class="as-workspace-agent">Vibe #1</div>
-<div class="as-workspace-agent">Vibe #4</div>
-<div class="as-workspace-dropzone" data-workspace="ecommerce">
-Drag a Vibe to Include
-</div>
-</div>
-</div>
-
-<div class="as-workspace-item">
-<button class="as-workspace-toggle" type="button">
-<span class="as-workspace-arrow">▶</span>
-<span>Accountability App Development</span>
-</button>
-<div class="as-workspace-body" style="display: none">
-<div class="as-workspace-agent">Vibe #4</div>
-<div class="as-workspace-dropzone" data-workspace="accountability">
-Drag a Vibe to Include
-</div>
-</div>
-</div>
+<div class="as-workspace-list" id="asProjectList">
+<div class="vibe-rd-empty" style="padding: 8px 12px; font-size: 12px;">Loading projects…</div>
 </div>
 
 <div style="padding: 0 8px">
@@ -454,7 +365,7 @@ align-items: center;
 <div style="display: flex; align-items: center; gap: 8px">
 <span class="as-status-dot green" id="vibeChatStatusDot"
 style="box-shadow: 0 0 8px var(--accent)"></span>
-<span style="font-size: 12px; font-weight: 600">Vibe #1</span>
+<span style="font-size: 12px; font-weight: 600">Vibe Assistant</span>
 </div>
 <span id="vibeChatStatusBadge" style="
 font-size: 10px;
@@ -593,20 +504,20 @@ border: none;
   <div id="vibeCapabilities" style="max-height: 120px; overflow-y: auto; border-top: 1px solid var(--border, #333); padding: 8px 12px; font-size: 11px; color: var(--text-muted, #aaa);"></div>
 </div>
 
-<script src="/suite/vibe/vibe-state.js"></script>
-<script src="/suite/vibe/vibe-helpers.js"></script>
-<script src="/suite/vibe/vibe-canvas.js?v=3"></script>
-<script src="/suite/vibe/vibe-agents.js"></script>
-<script src="/suite/vibe/vibe-websocket.js"></script>
+<script src="/suite/vibe/vibe-state.js?v=4"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=4"></script>
+<script src="/suite/vibe/vibe-canvas.js?v=4"></script>
+<script src="/suite/vibe/vibe-agents.js?v=4"></script>
+<script src="/suite/vibe/vibe-websocket.js?v=4"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=2"></script>
 <script src="/suite/vibe/vibe-run.js"></script>
-<script src="/suite/vibe/vibe-init.js"></script>
+<script src="/suite/vibe/vibe-init.js?v=4"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
-<script src="/suite/vibe/vibe-new-project.js"></script>
+<script src="/suite/vibe/vibe-new-project.js?v=4"></script>
 <script src="/suite/vibe/vibe-members.js"></script>
 <script src="/suite/vibe/vibe-dialogs.js"></script>
-<script src="/suite/vibe/vibe-dialog-db.js"></script>
+<script src="/suite/vibe/vibe-dialog-db.js?v=4"></script>
 <script src="/suite/vibe/vibe-dialog-git.js"></script>
 <script src="/suite/vibe/vibe-dialog-terminal.js"></script>
 <script src="/suite/vibe/vibe-dialog-browser.js"></script>

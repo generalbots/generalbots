@@ -175,12 +175,16 @@
         if (!sql || !sql.value.trim()) return;
         var grid = document.getElementById("vibeDbGrid");
         if (grid) grid.innerHTML = '<div class="vibe-empty">Running query...</div>';
+        // Backend QueryRequest field is `query` (not `sql`) — sending the
+        // wrong key returned 422 and the SQL runner never worked.
         D.api("/api/database/query", {
             method: "POST",
-            body: { sql: sql.value.trim() },
+            body: { query: sql.value.trim() },
         }).then(function (data) {
-            if (!data || !data.success) {
-                if (grid) grid.innerHTML = '<div class="vibe-empty">Query error: ' + D.esc((data && data.error) || "unknown") + "</div>";
+            // Backend returns {columns, rows, ...} — it has no `success`
+            // field; treat a missing columns array as failure.
+            if (!data || data.error || !Array.isArray(data.columns)) {
+                if (grid) grid.innerHTML = '<div class="vibe-empty">Query error: ' + D.esc((data && data.error) || (data && data.message) || "invalid response") + "</div>";
                 return;
             }
             state.cols = (data.columns || []).map(function (c) { return String(c); });

@@ -115,6 +115,21 @@ pub fn validate_response(contract: &Contract, response: &str) -> Vec<CheckResult
     results
 }
 
+/// #817 — enforces the `requires_tool_calls` contract clause against the
+/// actual tool-call count of a run. Returns `None` when the contract has no
+/// tool floor, so callers can skip it for plain-LLM entries.
+pub fn validate_tool_floor(contract: &Contract, tool_calls: u32) -> Option<CheckResult> {
+    let required = contract.requires_tool_calls?;
+    if tool_calls >= required {
+        Some(CheckResult::pass("requires_tool_calls"))
+    } else {
+        Some(CheckResult::fail(
+            "requires_tool_calls",
+            format!("agent made {tool_calls} tool calls, contract requires at least {required}"),
+        ))
+    }
+}
+
 fn approx_token_count(text: &str) -> usize {
     text.split_whitespace().count()
 }
@@ -178,6 +193,7 @@ mod tests {
             max_tokens: None,
             min_tokens: None,
             language: None,
+            requires_tool_calls: None,
         };
         let ok = validate_response(&c, "{\"ok\":true}");
         let bad = validate_response(&c, "not json");

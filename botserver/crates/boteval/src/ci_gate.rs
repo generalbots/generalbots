@@ -78,7 +78,9 @@ impl CiGate {
                 }
             }
         }
-        let task_count = report.per_entry.len();
+        // Task count falls back to score.total so hand-built reports (and
+        // runners without per-entry rows) still get a cost-per-task verdict.
+        let task_count = report.per_entry.len().max(report.score.total);
         if self.config.max_cost_per_task > 0.0 && task_count > 0 {
             let per_task_cost = report.total_cost / task_count as f64;
             if per_task_cost > self.config.max_cost_per_task {
@@ -186,6 +188,30 @@ mod tests {
                 .iter()
                 .any(|r| r.contains("cost per task"))
         );
+    }
+
+    #[test]
+    fn gate_toml_is_valid_and_complete() {
+        // Guards the shipped gate config against silent parse failures:
+        // past edits (JSON-style `key: value`, multi-line inline tables)
+        // broke `toml::from_str` and let the gate never actually run.
+        let raw = include_str!("../ci/gate.toml");
+        let cfg: CiGateConfig = toml::from_str(raw)
+            .expect("ci/gate.toml must remain valid TOML deserializing to CiGateConfig");
+        assert_eq!(cfg.min_pass_rate, 0.95);
+        assert_eq!(cfg.max_failures, 0);
+        assert_eq!(cfg.max_cost_per_task, 0.05);
+        assert_eq!(cfg.harness_min_tool_calls, 2);
+        assert_eq!(cfg.required_tags.len(), 4);
+        // tag_pass_rates must contain ONLY tag keys (a section placed too
+        // late would swallow top-level keys like max_cost_per_task).
+        assert_eq!(cfg.tag_pass_rates.len(), 4);
+        for tag in ["software_development", "customer_support", "financial_analysis", "general"] {
+            assert!(
+                cfg.tag_pass_rates.contains_key(tag),
+                "missing tag_pass_rates entry for {tag}"
+            );
+        }
     }
 
     #[test]

@@ -49,9 +49,8 @@ pub fn resolve_workspace_path(project: &str, rel: &str) -> Result<PathBuf, Strin
         return Err("path contains NUL byte".into());
     }
     for seg in rel.split(['/', '\\']) {
-        match seg {
-            ".." => return Err(format!("path escapes workspace: {rel}")),
-            _ => {}
+        if seg == ".." {
+            return Err(format!("path escapes workspace: {rel}"));
         }
     }
     if Path::new(rel).is_absolute() {

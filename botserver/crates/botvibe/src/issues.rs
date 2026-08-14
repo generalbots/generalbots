@@ -43,11 +43,23 @@ pub struct VibeIssue {
 
 pub struct IssueStore {
     issues: RwLock<Vec<VibeIssue>>,
+    pool: Option<crate::types::DbPool>,
 }
 
 impl IssueStore {
     pub fn new() -> Self {
-        Self { issues: RwLock::new(Vec::new()) }
+        Self {
+            issues: RwLock::new(Vec::new()),
+            pool: None,
+        }
+    }
+
+    /// #816 — write-through persistence so issues survive restarts.
+    pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        Self {
+            issues: RwLock::new(Vec::new()),
+            pool: Some(pool),
+        }
     }
 
     pub async fn create(&self, title: String, body: String, labels: Vec<String>, assignee: Option<String>) -> VibeIssue {
@@ -63,6 +75,11 @@ impl IssueStore {
         };
         let mut issues = self.issues.write().await;
         issues.push(issue.clone());
+        if let Some(pool) = &self.pool {
+            if let Err(e) = crate::catalog_persistence::save_issue(pool, &issue) {
+                log::error!("issue persist failed for {}: {e}", issue.issue_id);
+            }
+        }
         issue
     }
 
@@ -99,7 +116,13 @@ impl IssueStore {
             issue.labels = labels;
         }
         issue.updated_at = chrono::Utc::now();
-        Some(issue.clone())
+        let updated = issue.clone();
+        if let Some(pool) = &self.pool {
+            if let Err(e) = crate::catalog_persistence::save_issue(pool, &updated) {
+                log::error!("issue persist failed for {}: {e}", updated.issue_id);
+            }
+        }
+        Some(updated)
     }
 }
 

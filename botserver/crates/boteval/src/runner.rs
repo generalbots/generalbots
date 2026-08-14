@@ -1,7 +1,7 @@
 //! Evaluation runner. Iterates over a dataset, calls a target function to
 //! generate a response, validates it, and produces a final report.
 
-use crate::contracts::{validate_response, CheckResult};
+use crate::contracts::{validate_response, validate_tool_floor, CheckResult};
 use crate::dataset::Dataset;
 use crate::scoring::Score;
 use async_trait::async_trait;
@@ -143,11 +143,19 @@ pub async fn run_mixed_evaluation<T: LlmTarget + ?Sized, H: HarnessTarget + ?Siz
         let (response, results, entry_cost, entry_tool_calls) =
             if entry.tags.iter().any(|t| t == "harness") {
                 let ran = harness.run(&entry.prompt).await;
-                let results = vec![if ran.passed {
+                // #817 — a harness entry must satisfy BOTH its completion
+                // state AND its declared contract (must_contain, schema, tool
+                // floor, …). Previously only `ran.passed` was checked, so an
+                // agent that "completed" while ignoring the contract passed.
+                let mut results = vec![if ran.passed {
                     CheckResult::pass("harness_passed")
                 } else {
                     CheckResult::fail("harness_passed", "agent run did not complete")
                 }];
+                results.extend(validate_response(&entry.contract, &ran.summary));
+                if let Some(floor) = validate_tool_floor(&entry.contract, ran.tool_calls) {
+                    results.push(floor);
+                }
                 (ran.summary, results, ran.cost, ran.tool_calls)
             } else {
                 let completed = llm

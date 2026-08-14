@@ -80,6 +80,11 @@ pub struct Contract {
     pub max_tokens: Option<u32>,
     pub min_tokens: Option<u32>,
     pub language: Option<String>,
+    /// #817 — minimum number of tool calls the agent must make to satisfy
+    /// this entry. Enforced on harness entries (where tool-call counts are
+    /// real) so a text-only reply can never pass a "use the tools" contract.
+    #[serde(default)]
+    pub requires_tool_calls: Option<u32>,
 }
 
 impl Contract {
@@ -91,6 +96,7 @@ impl Contract {
             max_tokens: None,
             min_tokens: None,
             language: None,
+            requires_tool_calls: None,
         }
     }
 
@@ -102,6 +108,7 @@ impl Contract {
             max_tokens: None,
             min_tokens: None,
             language: None,
+            requires_tool_calls: None,
         }
     }
 }

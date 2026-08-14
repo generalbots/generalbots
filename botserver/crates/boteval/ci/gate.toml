@@ -4,11 +4,11 @@
 min_pass_rate = 0.95
 max_failures = 0
 required_tags = ["software_development", "customer_support", "financial_analysis", "general"]
-tag_pass_rates = {
-  software_development = 0.90,
-  customer_support = 0.90,
-  financial_analysis = 0.90,
-  general = 0.90,
-}
 max_cost_per_task = 0.05
 harness_min_tool_calls = 2
+
+[tag_pass_rates]
+software_development = 0.90
+customer_support = 0.90
+financial_analysis = 0.90
+general = 0.90
