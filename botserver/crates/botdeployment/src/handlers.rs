@@ -163,10 +163,20 @@ pub async fn deploy_project(
 
     let router = DeploymentRouter::new(forgejo_url, forgejo_token);
 
-    let generated_app = GeneratedApp::new(
-        config.app_name.clone(),
-        format!("{} project", config.project_type),
-    );
+    let generated_app = if request.files.is_empty() {
+        // No source files provided (e.g. bot projects deploy in gbdialog
+        // mode without an ALM repo, or the caller has nothing to push yet).
+        GeneratedApp::new(
+            config.app_name.clone(),
+            format!("{} project", config.project_type),
+        )
+    } else {
+        GeneratedApp {
+            name: config.app_name.clone(),
+            description: format!("{} project", config.project_type),
+            files: request.files,
+        }
+    };
 
     let result = router.deploy(config, generated_app).await
         .map_err(|e| DeploymentApiError::DeploymentFailed(e.to_string()))?;
