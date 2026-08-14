@@ -345,7 +345,10 @@ fn deploy_app_handler() -> impl Fn(serde_json::Value, &dyn VibeState) -> ToolFut
                 .map(|s| s.to_string());
 
             let forgejo_url = std::env::var("FORGEJO_URL")
-                .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+                .ok()
+                .or_else(|| std::env::var("ALM_URL").ok())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "http://localhost:4747".to_string());
             let forgejo_token = std::env::var("FORGEJO_TOKEN").ok();
 
             let (pt, dt) = match project_type.as_str() {
