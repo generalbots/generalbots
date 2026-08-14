@@ -116,6 +116,12 @@ async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::TerminalSes
                             let _ = socket.send(Message::Text("pong".into())).await;
                             continue;
                         }
+                        // xterm.js sends `resize <cols> <rows>`; forward it to
+                        // the PTY instead of feeding it to the shell.
+                        if let Some((cols, rows)) = parse_resize(&text) {
+                            session.resize(cols, rows);
+                            continue;
+                        }
                         session.write(&text).ok();
                     }
                     Some(Ok(Message::Binary(bytes))) => {
@@ -131,8 +137,8 @@ async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::TerminalSes
             }
             event = events_rx.recv() => {
                 match event {
-                    Ok(line) => {
-                        let payload = serde_json::json!({ "type": "output", "data": line });
+                    Ok(data) => {
+                        let payload = serde_json::json!({ "type": "output", "data": data });
                         if socket.send(Message::Text(payload.to_string())).await.is_err() {
                             break;
                         }
@@ -147,11 +153,33 @@ async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::TerminalSes
     }
 }
 
+/// Parses an xterm.js resize control message: `resize <cols> <rows>`.
+fn parse_resize(text: &str) -> Option<(u16, u16)> {
+    let rest = text.strip_prefix("resize ")?;
+    let mut parts = rest.split_whitespace();
+    let cols: u16 = parts.next()?.parse().ok()?;
+    let rows: u16 = parts.next()?.parse().ok()?;
+    Some((cols, rows))
+}
+
 async fn send_history(session: &Arc<super::TerminalSession>, socket: &mut WebSocket) {
     for line in session.history() {
         let payload = serde_json::json!({ "type": "output", "data": line.data });
         if socket.send(Message::Text(payload.to_string())).await.is_err() {
             break;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_resize_accepts_valid_and_rejects_garbage() {
+        assert_eq!(parse_resize("resize 120 40"), Some((120, 40)));
+        assert_eq!(parse_resize("resize 0 0"), Some((0, 0)));
+        assert_eq!(parse_resize("resize nope 40"), None);
+        assert_eq!(parse_resize("echo hi"), None);
     }
 }

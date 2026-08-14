@@ -79,8 +79,9 @@
                 (token ? "&token=" + encodeURIComponent(token) : "");
             ws = new WebSocket(url);
             ws.onopen = function () {
-                term.write("\r\n\x1b[32m✓ connected — vibe workspace shell\x1b[0m\r\n");
-                term.write("\x1b[33m$ \x1b[0m");
+                // The PTY shell prints its own prompt — no client-side prompt
+                // is needed (a fake prompt would double up with the real one).
+                term.write("\x1b[32m✓ connected — vibe workspace shell\x1b[0m\r\n");
             };
             ws.onmessage = function (ev) {
                 try {
