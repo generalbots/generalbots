@@ -111,7 +111,7 @@ esc(status) +
 "</div>" +
 '<div style="display:flex;justify-content:space-between;align-items:center;">' +
 '<span style="color: var(--text-muted);">Vibe Manager</span>' +
-'<span style="display:flex;align-items:center;gap:4px;"><span class="as-status-dot green"></span> Vibe #1</span>' +
+'<span style="display:flex;align-items:center;gap:4px;"><span class="as-status-dot green"></span> Vibe Assistant</span>' +
 "</div>" +
 "</div>" +
 '<div style="padding:8px 16px;font-size:10px;font-weight:700;color: var(--text-muted);">' +
