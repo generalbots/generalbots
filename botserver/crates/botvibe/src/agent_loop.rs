@@ -15,8 +15,8 @@ const MAX_TOOL_RESULT_CHARS: usize = 4000;
 const MAX_TOOL_RETRIES: u32 = 2;
 const MAX_VERIFY_FAILURES: u32 = 2;
 // vibe33 #813 — transient provider failures must not kill the run.
-const MAX_LLM_RETRIES: u32 = 2;
-const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 3];
+const MAX_LLM_RETRIES: u32 = 4;
+const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 2, 4, 8];
 
 pub struct AgentLoop {
     prompt_manager: Arc<VibePromptManager>,
@@ -587,6 +587,9 @@ impl AgentLoop {
                             .iter()
                             .filter_map(|tc| {
                                 let name = tc.get("tool_name")?.as_str()?.to_string();
+                                if name.is_empty() {
+                                    return None;
+                                }
                                 let args = tc
                                     .get("arguments")
                                     .cloned()
@@ -1059,6 +1062,11 @@ fn native_tool_calls_from_value(payload: &serde_json::Value) -> Option<Vec<Extra
         .iter()
         .filter_map(|tc| {
             let name = tc["function"]["name"].as_str()?.to_string();
+            // SSE deltas can leave a placeholder entry with no name — skip
+            // it instead of forwarding an empty tool name to the executor.
+            if name.is_empty() {
+                return None;
+            }
             let arguments = tc["function"]["arguments"]
                 .as_str()
                 .and_then(|a| serde_json::from_str::<serde_json::Value>(a).ok())
