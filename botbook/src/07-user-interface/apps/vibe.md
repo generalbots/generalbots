@@ -87,6 +87,14 @@ Create, list, and kill terminal sessions via `POST /api/terminal/create`, `GET /
 - Branch management → `GET /api/git/branches`, `POST /api/git/branch/:name`
 - Log → `GET /api/git/log`
 
+### VM Hosting (incus)
+Projects can be hosted on a real container: the `vm/instances` API creates an
+incus container per project (tier → CPU/RAM: `small` 1cpu/1GiB, `medium` 2/2,
+`large` 4/4) with `VIBE_PROJECT=1` set. Workspace files are copied in and the
+app runs on port 80 — `GET /api/vm/instances` reports real incus state
+(`running`/`stopped`) read from `incus list --format json`. The dev user must
+be in the `incus-admin` group to talk to the incus socket.
+
 ### Deployment
 Click **Deploy** to package the project workspace and push it to the
 self-hosted Forgejo (ALM) instance. The publish path (`/api/deployment/deploy`)
