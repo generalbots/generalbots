@@ -119,15 +119,23 @@ fn is_error_code(s: &str) -> bool {
 }
 
 /// Formats a number the way a spreadsheet displays it: integers without a
-/// decimal point, other values trimmed to six significant decimals.
+/// decimal point, other values trimmed to nine decimal places, and very small
+/// magnitudes in scientific notation so `1e-10` is not shown as `0`.
 pub fn format_number(n: f64) -> String {
     if n.fract() == 0.0 {
         // `{:.0}` (not `as i64`) — an `as` cast saturates for magnitudes beyond
         // i64 (e.g. =10^20), silently showing a wrong value.
         format!("{:.0}", n)
     } else {
-        let s = format!("{:.6}", n);
-        s.trim_end_matches('0').trim_end_matches('.').to_string()
+        let abs = n.abs();
+        if abs > 0.0 && abs < 1e-9 {
+            // A fixed decimal width would round these to zero; keep them
+            // visible with scientific notation.
+            format!("{n:e}")
+        } else {
+            let s = format!("{:.9}", n);
+            s.trim_end_matches('0').trim_end_matches('.').to_string()
+        }
     }
 }
 
@@ -169,5 +177,15 @@ mod tests {
         assert_eq!(CellValue::parse("12.5"), CellValue::Number(12.5));
         assert_eq!(CellValue::parse("TRUE"), CellValue::Bool(true));
         assert_eq!(CellValue::parse("hello"), CellValue::Text("hello".into()));
+    }
+
+    #[test]
+    fn format_number_preserves_small_values() {
+        // A non-zero value must never display as "0".
+        assert_eq!(format_number(0.0000001), "0.0000001");
+        assert_eq!(format_number(1e-10), "1e-10");
+        assert_eq!(format_number(1.0 / 3.0), "0.333333333");
+        assert_eq!(format_number(0.1), "0.1");
+        assert_eq!(format_number(42.0), "42");
     }
 }
