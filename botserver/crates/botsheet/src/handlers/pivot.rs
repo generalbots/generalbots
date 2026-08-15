@@ -2,6 +2,7 @@ use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::SheetState;
 use crate::types::{PivotRequest, PivotResult};
 use axum::{extract::{Extension, State}, http::StatusCode, Json};
+use botsheet_core::engine::value::CellValue;
 use serde_json::{json, Map, Value};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -57,7 +58,13 @@ fn cell_to_string(v: Option<&crate::types::CellData>) -> String {
 }
 
 fn cell_to_number(v: Option<&crate::types::CellData>) -> Option<f64> {
-    cell_to_string(v).trim().parse::<f64>().ok()
+    // Only typed Numbers aggregate; text that merely looks numeric (`0123`)
+    // must not be summed. Untyped cells (CSV/ODS) keep the parse fallback.
+    match v.and_then(|c| c.typed.as_ref()) {
+        Some(CellValue::Number(n)) => Some(*n),
+        Some(_) => None,
+        None => cell_to_string(v).trim().parse::<f64>().ok(),
+    }
 }
 
 fn collect_field_index(header_row: u32, start_col: u32, end_col: u32, data: &std::collections::HashMap<String, crate::types::CellData>) -> std::collections::HashMap<String, u32> {
