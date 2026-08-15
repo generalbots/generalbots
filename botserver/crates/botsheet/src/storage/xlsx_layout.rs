@@ -262,6 +262,9 @@ pub fn extract_print_setup(sheet: &umya_spreadsheet::Worksheet) -> Option<PrintS
         margin_bottom: Some(*margins.get_bottom()),
         margin_header: Some(*margins.get_header()),
         margin_footer: Some(*margins.get_footer()),
+        // Print titles are extracted separately (extract_print_titles) and
+        // merged on the import path; the layout writer has no titles source.
+        print_titles: None,
         odd_header,
         odd_footer,
     })

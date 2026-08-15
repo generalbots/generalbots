@@ -44,7 +44,8 @@ impl ProbeReport {
 
 /// Probe URL for a container; env `VIBE_PROBE_URL_TEMPLATE` may contain
 /// `{container}` (default `http://{container}.incus` — matches the Caddy
-/// dial used by #770).
+/// dial used by #770). When the container's IP is resolvable, the probe
+/// dials `http://{ip}:{VIBE_APP_PORT}` instead (see `VmOps::probe`).
 pub fn probe_url(container: &str) -> String {
     let tmpl = std::env::var("VIBE_PROBE_URL_TEMPLATE")
         .unwrap_or_else(|_| "http://{container}.incus".to_string());
@@ -89,7 +90,17 @@ impl VmOps {
             report.error = Some("container not running".to_string());
             return Ok(report);
         }
-        let url = probe_url(&vm.container_name);
+        // Prefer the container's real IPv4 (the host cannot resolve
+        // `{container}.incus` DNS names); fall back to the name template.
+        let url = match lifecycle.linux_ip(&vm.container_name) {
+            Ok(Some(ip)) => {
+                let tmpl = std::env::var("VIBE_PROBE_URL_TEMPLATE")
+                    .unwrap_or_else(|_| "http://{container}:{port}".to_string());
+                let port = std::env::var("VIBE_APP_PORT").unwrap_or_else(|_| "80".to_string());
+                tmpl.replace("{container}", &ip).replace("{port}", &port)
+            }
+            _ => probe_url(&vm.container_name),
+        };
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(5))
             .build()
