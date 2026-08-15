@@ -548,6 +548,7 @@ pub async fn list_calendars_db(
 
 pub async fn get_calendar(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
     let pool = state.clone();
@@ -571,6 +572,7 @@ pub async fn get_calendar(
 
 pub async fn update_calendar(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateCalendarRequest>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
@@ -626,6 +628,7 @@ pub async fn update_calendar(
 
 pub async fn delete_calendar(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> StatusCode {
     let pool = state.clone();
@@ -707,6 +710,7 @@ pub async fn list_events(
 
 pub async fn get_event(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
     let pool = state.clone();
@@ -799,6 +803,7 @@ pub async fn create_event(
 
 pub async fn update_event(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
@@ -853,6 +858,7 @@ pub async fn update_event(
 
 pub async fn delete_event(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> StatusCode {
     let pool = state.clone();
@@ -886,6 +892,7 @@ pub async fn delete_event(
 
 pub async fn share_calendar(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
     Json(input): Json<ShareCalendarRequest>,
 ) -> Result<Json<CalendarShareRecord>, StatusCode> {
@@ -937,6 +944,7 @@ pub async fn share_calendar(
 
 pub async fn export_ical(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(calendar_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let pool = state.clone();
@@ -1517,6 +1525,7 @@ async fn caldav_calendars(State(state): State<Arc<DbPool>>) -> impl IntoResponse
 
 async fn caldav_calendar(
     State(state): State<Arc<DbPool>>,
+    headers: axum::http::HeaderMap,
     Path(calendar_id_str): Path<String>,
 ) -> impl IntoResponse {
     let pool = state.clone();
@@ -1578,6 +1587,7 @@ async fn caldav_calendar(
 
 async fn caldav_event(
     State(state): State<Arc<DbPool>>,
+    headers: axum::http::HeaderMap,
     Path((_calendar_id_str, event_id_str)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let pool = state.clone();
@@ -1697,6 +1707,7 @@ pub struct EventsQuery {
 
 pub async fn ui_events_list(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Query(query): Query<EventsQuery>,
 ) -> Html<String> {
     let pool = state.clone();
@@ -1805,6 +1816,7 @@ Create Event
 
 pub async fn ui_event_detail(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Html<String> {
     let pool = state.clone();
@@ -2114,6 +2126,7 @@ pub struct MonthQuery {
 
 pub async fn ui_month_view(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Query(query): Query<MonthQuery>,
 ) -> Html<String> {
     let pool = state.clone();
@@ -2235,6 +2248,7 @@ pub struct DayQuery {
 
 pub async fn ui_day_events(
     State(state): State<Arc<DbPool>>,
+        headers: axum::http::HeaderMap,
     Query(query): Query<DayQuery>,
 ) -> Html<String> {
     let pool = state.clone();
