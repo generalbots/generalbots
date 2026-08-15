@@ -106,15 +106,9 @@ mod llm_impl {
         let combined_content = load_templates(&template_path)?;
         let generated_html = generate_html_from_prompt(llm, &combined_content, &prompt_str).await?;
 
-        let forgejo_url = std::env::var("FORGEJO_URL")
-            .ok()
-            .or_else(|| std::env::var("ALM_URL").ok())
-            .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| "http://localhost:4747".to_string());
-        let forgejo_token = std::env::var("FORGEJO_TOKEN")
-            .map_err(|e| format!("FORGEJO_TOKEN not set: {e}"))?;
-        let org = std::env::var("FORGEJO_DEFAULT_ORG")
-            .unwrap_or_else(|_| "generalbots".to_string());
+        let (forgejo_url, alm_token, alm_org) = botcoresecrets::alm_config();
+        let forgejo_token = alm_token;
+        let org = if alm_org.is_empty() { "generalbots".to_string() } else { alm_org };
 
         let client = botdeployment::ForgejoClient::new(forgejo_url, forgejo_token);
         let repo = client.create_repository(&org, &alias_str, &prompt_str, false).await

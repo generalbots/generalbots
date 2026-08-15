@@ -166,6 +166,48 @@ impl SecretsManager {
         (url, token, default_org)
     }
 
+    /// Vibe runtime endpoints (Caddy admin API + Vibe API base URL).
+    /// Vault-first (`secret/gbo/system/app`), env fallback, then defaults.
+    pub fn get_app_runtime(&self) -> (String, String) {
+        let self_owned = self.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async move { self_owned.get_secret(SecretPaths::APP).await.ok() })
+            } else { None };
+            let _ = tx.send(result);
+        });
+        if let Ok(Some(secrets)) = rx.recv() {
+            let caddy_api_url = secrets
+                .get("caddy_api_url")
+                .cloned()
+                .unwrap_or_default()
+                .replace("localhost", "127.0.0.1");
+            let vibe_api_url = secrets
+                .get("vibe_api_url")
+                .cloned()
+                .unwrap_or_default()
+                .replace("localhost", "127.0.0.1");
+            if !caddy_api_url.is_empty() || !vibe_api_url.is_empty() {
+                let caddy = if caddy_api_url.is_empty() {
+                    std::env::var("CADDY_API_URL").unwrap_or_else(|_| "http://127.0.0.1:2019".to_string())
+                } else {
+                    caddy_api_url
+                };
+                let vibe = if vibe_api_url.is_empty() {
+                    std::env::var("VIBE_API_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_string())
+                } else {
+                    vibe_api_url
+                };
+                return (caddy, vibe);
+            }
+        }
+        let caddy = std::env::var("CADDY_API_URL").unwrap_or_else(|_| "http://127.0.0.1:2019".to_string());
+        let vibe = std::env::var("VIBE_API_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_string());
+        (caddy, vibe)
+    }
+
     pub fn get_jwt_secret_sync(&self) -> String {
         let self_owned = self.clone();
         let (tx, rx) = std::sync::mpsc::channel();
@@ -333,4 +375,18 @@ impl SecretsManager {
         let _ = org_id;
         Ok("default".to_string())
     }
+}
+
+/// Vault-first ALM (Forgejo) resolver: `secret/gbo/alm` → env → localhost.
+pub fn alm_config() -> (String, String, String) {
+    SecretsManager::get()
+        .map(|s| s.get_alm_config())
+        .unwrap_or_default()
+}
+
+/// Vault-first runtime endpoints resolver: `secret/gbo/system/app` → env → defaults.
+pub fn app_runtime() -> (String, String) {
+    SecretsManager::get()
+        .map(|s| s.get_app_runtime())
+        .unwrap_or_default()
 }
