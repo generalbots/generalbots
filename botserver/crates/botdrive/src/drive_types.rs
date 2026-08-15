@@ -375,3 +375,51 @@ pub struct UploadChunkBody {
     pub scope: Option<FileScope>,
     pub user_id: Option<String>,
 }
+
+// ====== Public share links (token-based, revocable) ======
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePublicLinkBody {
+    pub bucket: Option<String>,
+    pub path: String,
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+    /// Optional RFC3339 expiry (e.g. "2026-12-31T23:59:59Z").
+    pub expires_at: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CreatePublicLinkResponse {
+    pub token: String,
+    pub url: String,
+    pub created_at: String,
+    pub expires_at: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RevokePublicLinkBody {
+    pub token: Option<String>,
+    pub bucket: Option<String>,
+    pub path: Option<String>,
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PublicLinkItem {
+    pub token: String,
+    pub url: String,
+    pub bucket: String,
+    pub path: String,
+    pub created_at: String,
+    pub expires_at: Option<String>,
+    pub revoked: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListPublicLinksParams {
+    pub path: Option<String>,
+    pub bucket: Option<String>,
+    pub scope: Option<FileScope>,
+    pub user_id: Option<String>,
+}

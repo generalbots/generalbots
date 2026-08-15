@@ -56,7 +56,14 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route("/api/files/trash/move", axum_post(crate::drive::drive_handlers::trash_file))
             .route("/api/files/trash/restore", axum_post(crate::drive::drive_handlers::restore_trash))
             .route("/api/files/trash/empty", axum_post(crate::drive::drive_handlers::empty_trash))
-            .route("/api/files/upload-binary", axum_post(crate::drive::drive_handlers::upload_file_binary));
+            .route("/api/files/upload-binary", axum_post(crate::drive::drive_handlers::upload_file_binary))
+            // Public share links (token-based). The download endpoint is
+            // registered here but served anonymously via the
+            // /api/files/public allowlist in security_setup.rs.
+            .route("/api/files/share-link", axum_post(crate::drive::drive_handlers::create_public_link))
+            .route("/api/files/share-links", axum_get(crate::drive::drive_handlers::list_public_links))
+            .route("/api/files/revoke-link", axum_post(crate::drive::drive_handlers::revoke_public_link))
+            .route("/api/files/public/:token", axum_get(crate::drive::drive_handlers::public_link_download));
     }
 
     api_router = api_router
