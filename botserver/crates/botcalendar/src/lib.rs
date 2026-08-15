@@ -20,6 +20,60 @@ use uuid::Uuid;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
+/// Resolves the caller's (org_id, bot_id) scope from the Authorization
+/// header. The branch comes from the server-minted JWT claim or the
+/// user→org binding fallback (botsecurity-core); the org is the branch's
+/// owning tenant and the bot is the branch's default bot. Falls back to nil
+/// (global/default scope) for anonymous callers — matching the legacy
+/// behavior while making authenticated requests see their own data.
+fn resolve_scope(
+    headers: &axum::http::HeaderMap,
+    conn: &mut diesel::PgConnection,
+) -> (Uuid, Uuid) {
+    use diesel::sql_query;
+    let Some(branch_id) = botsecurity_core::tenant::branch_from_claims(headers)
+        .or_else(|| {
+            botsecurity_core::tenant::email_from_claims(headers)
+                .or_else(|| session_email(headers))
+                .and_then(|email| botsecurity_core::tenant::branch_from_user_binding(conn, &email))
+        })
+    else {
+        return (Uuid::nil(), Uuid::nil());
+    };
+
+    #[derive(diesel::QueryableByName)]
+    struct ScopeRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        bot_id: Uuid,
+    }
+    let row = sql_query(
+        "SELECT b.org_id, COALESCE((SELECT id FROM bots WHERE branch_id = b.id \
+         ORDER BY is_default_for_branch DESC, created_at ASC LIMIT 1), '00000000-0000-0000-0000-000000000000') AS bot_id \
+         FROM branches b WHERE b.id = $1 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .get_result::<ScopeRow>(conn)
+    .optional()
+    .ok()
+    .flatten();
+    match row {
+        Some(r) => (r.org_id, r.bot_id),
+        None => (Uuid::nil(), Uuid::nil()),
+    }
+}
+
+/// Resolves the user email from an opaque suite session token (`gb_*`) in the
+/// Authorization header via the shared session cache lookup.
+fn session_email(headers: &axum::http::HeaderMap) -> Option<String> {
+    let auth = headers.get("authorization").and_then(|v| v.to_str().ok())?;
+    let token = auth
+        .strip_prefix("Bearer ")
+        .or_else(|| auth.strip_prefix("bearer "))?;
+    botsecurity_core::lookup_session_cache(token).map(|u| u.email)
+}
+
 pub trait SecretsProvider: Send + Sync + 'static {
     fn get_value(&self, path: &str, key: &str) -> Option<String>;
 }
@@ -412,11 +466,14 @@ pub fn get_bot_context_from_secrets(secrets: &dyn SecretsProvider) -> (Uuid, Uui
 }
 
 pub async fn create_calendar(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Json(input): Json<CreateCalendarRequest>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
     let owner_id = Uuid::nil();
     let now = Utc::now();
 
@@ -455,10 +512,13 @@ pub async fn create_calendar(
 }
 
 pub async fn list_calendars_db(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
 ) -> Result<Json<Vec<CalendarRecord>>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -476,7 +536,7 @@ pub async fn list_calendars_db(
 }
 
 pub async fn get_calendar(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
     let pool = state.clone();
@@ -496,7 +556,7 @@ pub async fn get_calendar(
 }
 
 pub async fn update_calendar(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateCalendarRequest>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
@@ -543,7 +603,7 @@ pub async fn update_calendar(
 }
 
 pub async fn delete_calendar(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> StatusCode {
     let pool = state.clone();
@@ -569,11 +629,14 @@ pub async fn delete_calendar(
 }
 
 pub async fn list_events(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Query(query): Query<EventQuery>,
 ) -> Result<Json<Vec<CalendarEvent>>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -615,7 +678,7 @@ pub async fn list_events(
 }
 
 pub async fn get_event(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
     let pool = state.clone();
@@ -638,11 +701,14 @@ pub async fn get_event(
 }
 
 pub async fn create_event(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
     let owner_id = Uuid::nil();
     let now = Utc::now();
 
@@ -701,7 +767,7 @@ pub async fn create_event(
 }
 
 pub async fn update_event(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
@@ -752,7 +818,7 @@ pub async fn update_event(
 }
 
 pub async fn delete_event(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> StatusCode {
     let pool = state.clone();
@@ -779,7 +845,7 @@ pub async fn delete_event(
 }
 
 pub async fn share_calendar(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
     Json(input): Json<ShareCalendarRequest>,
 ) -> Result<Json<CalendarShareRecord>, StatusCode> {
@@ -812,7 +878,7 @@ pub async fn share_calendar(
 }
 
 pub async fn export_ical(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(calendar_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let pool = state.clone();
@@ -848,12 +914,15 @@ pub async fn export_ical(
 }
 
 pub async fn import_ical(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(calendar_id): Path<Uuid>,
     body: String,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
     let owner_id = Uuid::nil();
 
     let events = import_from_ical(&body, &owner_id.to_string(), calendar_id);
@@ -908,7 +977,10 @@ pub async fn import_ical(
 
 pub async fn list_calendars_api(State(state): State<Arc<DbPool>>) -> Json<serde_json::Value> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -948,7 +1020,10 @@ pub async fn list_calendars_api(State(state): State<Arc<DbPool>>) -> Json<serde_
 
 pub async fn list_calendars_html(State(state): State<Arc<DbPool>>) -> Html<String> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -992,7 +1067,10 @@ pub async fn list_calendars_html(State(state): State<Arc<DbPool>>) -> Html<Strin
 
 pub async fn upcoming_events_api(State(state): State<Arc<DbPool>>) -> Json<serde_json::Value> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
     let now = Utc::now();
     let end = now + chrono::Duration::days(7);
 
@@ -1035,7 +1113,10 @@ pub async fn upcoming_events_api(State(state): State<Arc<DbPool>>) -> Json<serde
 
 pub async fn upcoming_events_html(State(state): State<Arc<DbPool>>) -> Html<String> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
     let now = Utc::now();
     let end = now + chrono::Duration::days(7);
 
@@ -1160,11 +1241,14 @@ pub struct ConflictCheckResponse {
 }
 
 pub async fn check_conflicts_api(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Json(req): Json<ConflictCheckRequest>,
 ) -> Result<Json<ConflictCheckResponse>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
@@ -1359,7 +1443,7 @@ async fn caldav_calendars(State(state): State<Arc<DbPool>>) -> impl IntoResponse
 }
 
 async fn caldav_calendar(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(calendar_id_str): Path<String>,
 ) -> impl IntoResponse {
     let pool = state.clone();
@@ -1417,7 +1501,7 @@ async fn caldav_calendar(
 }
 
 async fn caldav_event(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path((_calendar_id_str, event_id_str)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let pool = state.clone();
@@ -1451,7 +1535,7 @@ async fn caldav_event(
 }
 
 async fn caldav_put_event(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path((calendar_id_str, event_id_str)): Path<(String, String)>,
     body: String,
 ) -> impl IntoResponse {
@@ -1465,7 +1549,10 @@ async fn caldav_put_event(
     }
 
     let event = parsed_events[0].clone();
-    let (org_id, bot_id) = (Uuid::nil(), Uuid::nil());
+    let (org_id, bot_id) = match state.get() {
+        Ok(mut conn) => resolve_scope(&headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    };
     let owner_id = Uuid::nil();
     let now = Utc::now();
 
@@ -1530,7 +1617,7 @@ pub struct EventsQuery {
 }
 
 pub async fn ui_events_list(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Query(query): Query<EventsQuery>,
 ) -> Html<String> {
     let pool = state.clone();
@@ -1635,7 +1722,7 @@ Create Event
 }
 
 pub async fn ui_event_detail(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Html<String> {
     let pool = state.clone();
@@ -1941,7 +2028,7 @@ pub struct MonthQuery {
 }
 
 pub async fn ui_month_view(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Query(query): Query<MonthQuery>,
 ) -> Html<String> {
     let pool = state.clone();
@@ -2059,7 +2146,7 @@ pub struct DayQuery {
 }
 
 pub async fn ui_day_events(
-    State(state): State<Arc<DbPool>>,
+    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Query(query): Query<DayQuery>,
 ) -> Html<String> {
     let pool = state.clone();
