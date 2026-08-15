@@ -4,7 +4,20 @@ pub mod drive_ops;
 #[cfg(feature = "xlsx")]
 pub mod format_codes;
 pub mod import;
+pub mod import_binary;
+pub mod import_ods;
+pub mod xlsx_comments;
+pub mod xlsx_external_links;
+pub mod xlsx_layout;
+pub mod xlsx_layout_patch;
+pub mod xlsx_passthrough;
 pub mod xlsx_read;
+pub mod xlsx_rename;
+pub mod xlsx_rich_text;
+pub mod xlsx_rules;
+pub mod xlsx_shared_strings;
+pub mod xlsx_workbook;
+pub mod xlsx_workbook_patch;
 pub mod xlsx_write;
 
 pub use import::*;
@@ -132,8 +145,13 @@ pub async fn save_workbook_to_drive(
     Ok(())
 }
 
-/// Creates a post-save hook that exports the sheet back to its original
-/// .xlsx location in Drive whenever the sheet is saved.
+/// Creates a post-save hook that exports the sheet back to Drive as xlsx.
+///
+/// The export is written BESIDE the original source file (`<name>.gbsheet.xlsx`)
+/// rather than overwriting it. The umya-spreadsheet round-trip cannot yet
+/// preserve every unmodelled part (notably pivot tables), so overwriting the
+/// source would corrupt the user's file — this keeps the original untouched
+/// until a true zip-level preserve-and-passthrough lands (#788).
 /// Runs asynchronously via tokio::spawn (fire-and-forget) to avoid
 /// blocking the tokio runtime from within a sync closure.
 pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
@@ -147,10 +165,14 @@ pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
             None => return Ok(()),
         };
 
+        // Non-destructive destination: a sibling file, never the source.
+        let base = src_path
+            .strip_suffix(".xlsx")
+            .or_else(|| src_path.strip_suffix(".xlsm"))
+            .unwrap_or(&src_path);
+        let dest_path = format!("{base}.gbsheet.xlsx");
+
         let xlsx_bytes = match sheet.source_bytes {
-            // Non-destructive path (#788): rewrite only the cells Sheet owns
-            // inside the untouched original package, preserving charts, pivots,
-            // validation and conditional formatting.
             Some(ref original) => match merge_into_original(original, sheet) {
                 Ok(b) => b,
                 Err(e) => {
@@ -178,7 +200,7 @@ pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
             if let Err(e) = d
                 .put_object(
                     &src_bucket,
-                    &src_path,
+                    &dest_path,
                     xlsx_bytes,
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 )

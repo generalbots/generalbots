@@ -1,11 +1,12 @@
 //! Formula AST and Pratt parser (#782, #783).
 //!
 //! The parser builds a typed syntax tree from the lexer stream using the Pratt
-//! (precedence-climbing) method, which gives correct operator precedence and
-//! left associativity: `2^3^2 = 512`, `-2^2 = -4`, `=A1&B1` concatenation, and
-//! nested function calls all fall out of the binding powers below. `$` anchors
-//! survive into [`Reference`] so fill and paste can translate references
-//! correctly.
+//! (precedence-climbing) method, which gives spreadsheet-correct operator
+//! precedence and associativity: `^` is left-associative (`2^3^2 = (2^3)^2 =
+//! 64`) and unary minus binds tighter than `^` (`-2^2 = (-2)^2 = 4`), while
+//! `=A1&B1` concatenation and nested function calls all fall out of the
+//! binding powers below. `$` anchors survive into [`Reference`] so fill and
+//! paste can translate references correctly.
 
 use std::fmt;
 
@@ -72,17 +73,17 @@ fn infix_power(op: &str) -> Option<(u8, u8)> {
         "=" | "<>" | "<" | ">" | "<=" | ">=" => (5, 6),
         "+" | "-" => (7, 8),
         "*" | "/" => (9, 10),
-        // (11, 10): the right operand binds one power below the operator, so
-        // `2^3^2` parses right-to-left as 2^(3^2) = 512.
-        "^" => (11, 10),
+        // (11, 12): the right operand binds one power above the operator, so
+        // `^` is left-associative exactly like a spreadsheet: 2^3^2 = (2^3)^2.
+        "^" => (11, 12),
         _ => return None,
     })
 }
 
 fn prefix_power(op: &str) -> Option<u8> {
     Some(match op {
-// Binds looser than `^` but tighter than `*`: `-2^2 = -(2^2) = -4`.
-        "+" | "-" => 10,
+        // Binds tighter than `^` (spreadsheet negation): `-2^2 = (-2)^2 = 4`.
+        "+" | "-" => 12,
         _ => return None,
     })
 }
@@ -132,23 +133,12 @@ impl<'a> Parser<'a> {
                         break;
                     }
                     let _ = self.next();
-                    if op == "^" {
-                        // Right-associative: the right side may consume another
-                        // `^` at the same precedence.
-                        let right = self.parse_expr(l)?;
-                        left = Expr::Binary {
-                            op: op.clone(),
-                            left: Box::new(left),
-                            right: Box::new(right),
-                        };
-                    } else {
-                        let right = self.parse_expr(r)?;
-                        left = Expr::Binary {
-                            op: op.clone(),
-                            left: Box::new(left),
-                            right: Box::new(right),
-                        };
-                    }
+                    let right = self.parse_expr(r)?;
+                    left = Expr::Binary {
+                        op: op.clone(),
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    };
                     continue;
                 }
             }
@@ -321,23 +311,29 @@ mod tests {
     }
 
     #[test]
-    fn exponent_is_right_associative() {
-        // 2^3^2 must parse as 2^(3^2).
+    fn exponent_is_left_associative() {
+        // 2^3^2 must parse as (2^3)^2, matching spreadsheet semantics.
         let e = parse_ok("2^3^2");
         match e {
-            Expr::Binary { op, right, .. } => {
+            Expr::Binary { op, left, .. } => {
                 assert_eq!(op, "^");
-                assert!(matches!(*right, Expr::Binary { op: ref o, .. } if o == "^"));
+                assert!(matches!(*left, Expr::Binary { op: ref o, .. } if o == "^"));
             }
             other => panic!("expected binary ^, got {other:?}"),
         }
     }
 
     #[test]
-    fn unary_minus_binds_loosely() {
-        // -2^2 == -(2^2)
+    fn unary_minus_binds_tighter_than_exponent() {
+        // -2^2 == (-2)^2, matching spreadsheet semantics.
         let e = parse_ok("-2^2");
-        assert!(matches!(e, Expr::Unary { .. }));
+        match e {
+            Expr::Binary { op, left, .. } => {
+                assert_eq!(op, "^");
+                assert!(matches!(*left, Expr::Unary { op: ref o, .. } if o == "-"));
+            }
+            other => panic!("expected binary ^ with unary left, got {other:?}"),
+        }
     }
 
     #[test]

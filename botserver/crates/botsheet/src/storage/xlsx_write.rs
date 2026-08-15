@@ -54,7 +54,7 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
                         cell.set_value_string(&s);
                     }
                     CellValue::Error(s) => {
-                        cell.set_value_string(&s);
+                        cell.set_error(&s);
                     }
                     CellValue::Empty => {}
                 }
@@ -344,92 +344,13 @@ pub fn get_col_letter(col: u32) -> String {
     result
 }
 
-/// Merges the edited model cells into the ORIGINAL xlsx package (#788).
-///
-/// Gap 20 was the destructive save-back: the hook regenerated the whole
-/// workbook from the lossy JSON model, stripping charts, pivots, validation,
-/// conditional formatting and every other unmodelled part. This function loads
-/// the original package and rewrites only the cells Sheet owns — values,
-/// formulas, styles and number formats — leaving everything else byte-for-byte
-/// untouched.
+/// Rewrites the edited cells into the ORIGINAL xlsx package via zip-level
+/// preserve-and-passthrough (#788). The real implementation lives in
+/// [`crate::storage::xlsx_passthrough`], which copies every unmodelled part
+/// (charts, drawings, pivot tables, VML, macros) byte-for-byte.
 pub fn merge_into_original(
     original_bytes: &[u8],
     sheet: &Spreadsheet,
 ) -> Result<Vec<u8>, String> {
-    let cursor = std::io::Cursor::new(original_bytes.to_vec());
-    let mut workbook = umya_spreadsheet::reader::xlsx::read_reader(cursor, true)
-        .map_err(|e| format!("Failed to read original xlsx for merge: {e}"))?;
-
-    for (ws_idx, worksheet) in sheet.worksheets.iter().enumerate() {
-        let Some(umya_sheet) = workbook.get_sheet_mut(&ws_idx) else {
-            continue;
-        };
-
-        for (key, cell_data) in &worksheet.data {
-            let parts: Vec<&str> = key.split(',').collect();
-            if parts.len() != 2 {
-                continue;
-            }
-            let row: u32 = parts[0].parse().unwrap_or(0) + 1;
-            let col: u32 = parts[1].parse().unwrap_or(0) + 1;
-            if row == 0 || col == 0 {
-                continue;
-            }
-            let cell = umya_sheet.get_cell_mut((col, row));
-
-            if let Some(ref formula) = cell_data.formula {
-                let formula_str = if let Some(stripped) = formula.strip_prefix('=') {
-                    stripped
-                } else {
-                    formula.as_str()
-                };
-                cell.set_formula(formula_str);
-            } else if let Some(typed) = cell_data.typed.clone() {
-                // Prefer the typed payload (#781): keeps numbers exact and
-                // avoids re-parsing display strings.
-                match typed {
-                    CellValue::Number(n) => {
-                        cell.set_value_number(n);
-                    }
-                    CellValue::Bool(b) => {
-                        cell.set_value_bool(b);
-                    }
-                    CellValue::Text(s) => {
-                        cell.set_value_string(&s);
-                    }
-                    CellValue::Error(s) => {
-                        cell.set_value_string(&s);
-                    }
-                    CellValue::Empty => {}
-                }
-            } else if let Some(ref value) = cell_data.value {
-                if let Ok(num) = value.parse::<f64>() {
-                    cell.set_value_number(num);
-                } else if value.eq_ignore_ascii_case("true")
-                    || value.eq_ignore_ascii_case("false")
-                {
-                    cell.set_value_bool(value.eq_ignore_ascii_case("true"));
-                } else {
-                    cell.set_value_string(value);
-                }
-            }
-
-            if let Some(ref style) = cell_data.style {
-                apply_umya_style(cell, style);
-            }
-
-            if let Some(ref fmt) = cell_data.format {
-                if !fmt.is_empty() {
-                    let mut nf = umya_spreadsheet::structs::NumberingFormat::default();
-                    nf.set_format_code(fmt.as_str());
-                    cell.get_style_mut().set_numbering_format(nf);
-                }
-            }
-        }
-    }
-
-    let mut out = std::io::Cursor::new(Vec::new());
-    umya_spreadsheet::writer::xlsx::write_writer(&workbook, &mut out)
-        .map_err(|e| format!("Failed to write merged xlsx: {e}"))?;
-    Ok(out.into_inner())
+    crate::storage::xlsx_passthrough::merge_into_original(original_bytes, sheet)
 }

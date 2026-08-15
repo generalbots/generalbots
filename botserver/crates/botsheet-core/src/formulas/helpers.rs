@@ -7,7 +7,9 @@ use super::refs::parse_cell_ref;
 
 pub fn format_number(num: f64) -> String {
     if num.fract() == 0.0 {
-        format!("{}", num as i64)
+        // `{:.0}` (not `as i64`) — an `as` cast saturates for magnitudes beyond
+        // i64 (e.g. =10^20), silently showing a wrong value.
+        format!("{:.0}", num)
     } else {
         format!("{:.6}", num)
             .trim_end_matches('0')

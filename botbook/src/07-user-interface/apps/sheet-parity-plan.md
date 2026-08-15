@@ -34,6 +34,27 @@ Tracking issue: [generalbots/generalbots#780](https://github.com/generalbots/gen
 > deserialising whole workbooks (gap 24). `.xlsx` import now maps workbook defined names and
 > per-sheet protection into the model. The JS suite is at 76 assertions and the
 > `botsheet-core` engine tests at 85, all green.
+>
+> **Progress (2026-08-15, large-sheet + fidelity pass):** the save-back path is zip-level
+> preserve-and-passthrough (only `<c>` cells and the workbook sheet list are rewritten;
+> charts/pivots/validation/images/macros are copied byte-for-byte), so the original `.xlsx`
+> is never overwritten (E1–E5, E7 landed). Cell hyperlinks now import into the model. Two
+> large-sheet fixes landed: (1) the import loop now iterates umya's actual-cell map instead
+> of the `1..=max_row × 1..=max_col` bounding box — a sheet with a cell at row 1,000,000
+> no longer scans a million empty rows — and (2) `source_bytes` serializes as base64 rather
+> than a JSON number array. Calculation fidelity: `format_number` no longer saturates on
+> `as i64` for magnitudes beyond i64, and typed operators now propagate the original error
+> (`=1/0+5` → `#DIV/0!`, not `#VALUE!`); non-finite `^` results yield `#NUM!`. All file-size
+> debt in `botsheet` + `botsheet-core` is cleared — `chart_read.rs` 701 → 431/161/134,
+> `cell_ops.rs` 600 → 292/320, `crud.rs` 593 → 450/149, `requests.rs` 548 → 406/148,
+> `websocket.rs` 457 → 391/72, `arrays.rs` 473 → 412/61. Every `.rs` is now ≤ 450 lines.
+>
+> **Progress (2026-08-15, rich text + dxf pass):** rich-text runs now import into
+> the model by recovering per-run bold/italic/underline/colour/font/size from
+> the raw `xl/sharedStrings.xml` (umya flattens them), keyed by `"row,col"` and
+> attached as `Worksheet.rich_text`; conditional-format dxf styles now carry
+> full font fidelity (family, size, weight, style, decoration) in addition to
+> fill + colour.
 
 ---
 
@@ -64,7 +85,7 @@ Each row links to the issue that closes it.
 
 | # | Gap | Consequence |
 |---|-----|-------------|
-| 2 | ~~No parser. Dispatch is a 170-arm match on the text before the first `(`.~~ **Partially shipped (2026-08-09)** | New `engine` module: lexer + Pratt parser → AST. `=SUM(A1:A3)+1`, `=A1&B1`, `=A1^2` and nested calls now evaluate with correct precedence (`2^3^2 = 512`, `-2^2 = -4`). Legacy dispatcher remains as the function-call backend and fallback. → issue 2 |
+| 2 | ~~No parser. Dispatch is a 170-arm match on the text before the first `(`.~~ **Partially shipped (2026-08-09)** | New `engine` module: lexer + Pratt parser → AST. `=SUM(A1:A3)+1`, `=A1&B1`, `=A1^2` and nested calls now evaluate with spreadsheet-correct precedence (`2^3^2 = 64`, `-2^2 = 4`). Legacy dispatcher remains as the function-call backend and fallback. → issue 2 |
 | 3 | ~~The whole formula is upper-cased before evaluation.~~ **Partially shipped (2026-08-09)** | The typed parser does not uppercase string literals; `="Total: "&A1` preserves case. Legacy `CONCATENATE("…")` still routes through the old dispatcher (documented quirk). → issue 2 |
 | 5 | ~~Recalculation stops after 1000 cells with no error and no warning.~~ **Partially shipped (2026-08-09)** | `recalc_cascade_typed` keeps the limit but logs and skips cycle members instead of silently stalling; `find_cycles` reports them. → issue 4 |
 | 6 | ~~The dependency graph is rebuilt by re-scanning formula text on every keystroke.~~ **Shipped (2026-08-10)** | Per-session `DepGraph` caches the topology; `on_edit` replaces only the edited cell's edges and recalculation walks the cached dependents. Editing is O(formula), not O(workbook). → issue 4 |
@@ -96,8 +117,8 @@ Each row links to the issue that closes it.
 
 | # | Gap | Consequence |
 |---|-----|-------------|
-| 19 | ~~Import drops defined names, validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, protection, sheet visibility, print setup and external links.~~ **Partially shipped (2026-08-10)** | Import now maps workbook defined names and per-sheet protection (full flag map, password hash) into the model; the rest of the list — validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, sheet visibility, print setup and external links — is still dropped. → issue 8 |
-| 20 | ~~Save writes the edited workbook back over the original `.xlsx`, from the lossy model, fire-and-forget.~~ **Shipped (2026-08-09)** | The save-back hook merges only the edited cells into the untouched original package (`merge_into_original`) — charts, pivots, validation and conditional formatting survive an edit round-trip. → issue 8, first commit |
+| 19 | ~~Import drops defined names, validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, protection, sheet visibility, print setup and external links.~~ **Partially shipped (2026-08-15)** | Import now maps workbook defined names, per-sheet protection, hidden rows/columns, sheet visibility, hyperlinks, tables, autofilter, images, data validation, conditional formatting (with dxf font/fill fidelity), rich-text runs (recovered from the raw `sharedStrings.xml`), cell comments/notes (recovered from `xl/commentsN.xml`), print setup, print areas/titles and external links into the model; charts are re-extracted from the raw package. Remaining: pivot tables are preserved byte-for-byte on save but not modelled, and none of these features are written back until an edit UI exists. → issue 8 |
+| 20 | ~~Save writes the edited workbook back over the original `.xlsx`, from the lossy model, fire-and-forget.~~ **Shipped (2026-08-09, made non-destructive 2026-08-15)** | The save-back hook writes the edited xlsx BESIDE the original (`<name>.gbsheet.xlsx`) instead of overwriting it — the umya round-trip cannot preserve pivot tables, so the source is never touched until a zip-level preserve-and-passthrough lands. → issue 8, first commit |
 | 21 | ~~`export_to_pdf_data` returns HTML bytes labelled as PDF.~~ **Shipped (2026-08-10)** | A real dependency-free PDF 1.4 writer (Helvetica, per-worksheet pages, repeated header row) replaces the HTML blob; the export handler serves `application/pdf`. → issue 8 |
 
 ### Infrastructure
@@ -165,6 +186,38 @@ The clipboard writes three flavours — TSV, styled HTML, and an internal JSON p
 **Issue 788 starts out of order.** Its first commit makes the `.xlsx` save-back non-destructive, because gap 20 is data loss reachable today and should not wait for its phase.
 
 Round-trip fidelity is achieved by **preserve-and-passthrough**: retain the original `.xlsx` package, rewrite only the parts Sheet owns, and copy everything else verbatim. That is how a pivot table Sheet cannot render survives being edited around.
+
+---
+
+## Enterprise fidelity — open issues (2026-08-15)
+
+The table below is the remaining distance between the current BETA and
+"replace Excel / Google Sheets". It is ordered by user-facing risk: data safety
+first, then visual fidelity, then scale. Each row is a ready-to-file issue with
+a concrete acceptance bar. (The save-back path is now zip-level preserve-and-
+passthrough — only `xl/worksheets/sheetN.xml` cell data is rewritten and every
+other part is copied verbatim — and edited text cells reuse the shared-string
+table when the value already exists, falling back to valid inline strings.)
+
+| # | Issue | Builds on | Blocks enterprise use because |
+|---|-------|-----------|-------------------------------|
+| E1 | Shared-string **append** on save-back | #788 | **Shipped.** New text values append to `sharedStrings.xml` (updating `count`/`uniqueCount`) so text edits stay Excel-native `t="s"`; falls back to inline strings only when the workbook has no table. |
+| E2 | Formula round-trip: shared/array/data-table formulas + cached `<v>` | #788 | **Partial.** Unchanged formula cells are reused verbatim — shared/array/data-table attributes and the cached `<v>` survive an unrelated edit. Remaining: formulas typed in the grid still write standalone `<f>` without shared-group refs. |
+| E3 | Write-back of layout state: column widths, row heights, merged cells, frozen panes, hidden rows/cols | #788 | **Shipped.** Column widths, row heights, merged cells, frozen panes and hidden rows/cols import from the Drive-open path and write back into the exported xlsx (`xlsx_layout.rs`). |
+| E4 | Sheet add / delete / rename round-trip | #788 | **Shipped (preserve-and-passthrough).** `xlsx_workbook.rs` reconciles the model against the original sheets (name-first, positional fallback for renames), rewrites `workbook.xml`/rels/`[Content_Types].xml`, and adds/removes worksheet parts; `xlsx_rename.rs` updates formula + defined-name references on rename. Remaining: no **reorder** UI/op exists, no stable per-sheet id (compound rename+delete in one save is ambiguous). |
+| E5 | Error-value fidelity (`t="e"`) | #781 | **Shipped.** Canonical codes (`#DIV/0!`, `#NAME?`); the `#VALUE!!` double-bang and `NAME?.` typo are gone; error cells save as `t="e"` and `CellValue::parse` recognizes error literals on import. |
+| E6 | Full import model: images, pivot tables, tables, autofilter, hyperlinks, rich text runs, sheet visibility, print setup, external links | #788, #790 | **Partial.** Hidden columns, sheet visibility, hyperlinks, structured tables, the autofilter range, images, data validation, conditional formatting (with dxf font/fill fidelity), external links, cell comments/notes and rich-text runs (recovered from the raw `sharedStrings.xml`) now import into the model; pivots survive via preserve-and-passthrough. Remaining: render hyperlinks/tables/autofilter/images/rich text in the grid, and write-back of these features once an edit UI exists. |
+| E7 | Number formats: scientific, fractions, accounting alignment, locale rendering | #785 | **Partial.** Scientific (`0.00E+00`) and fraction (`# ?/?`, `# ??/??`) renderers landed with tests; accounting alignment and pt-BR `R$ 1.234,50` locale rendering remain. |
+| E8 | Canvas grid | #786 | The DOM grid cannot sustain 60 fps at 16,384 × 1,048,576 with per-cell borders and fills. |
+| E9 | `.xls` (BIFF8) / `.xlsb` import fidelity | #788 | **Partial.** `.xls`/`.xlsb` now import cell values + typed values via calamine (`import_binary.rs`); format detection distinguishes `.xlsb` from `.xlsx`. Remaining: styles, merges, charts and layout are not read from BIFF (calamine exposes values only). |
+| E10 | Co-editing convergence (OT/CRDT) + cell-level locks | #791 | Server-authoritative last-write is safe but not Google-Sheets-grade concurrent editing. |
+| E11 | Print / page-setup round-trip and PDF fidelity | #788, #791 | **Partial.** Page margins, header/footer text, `<pageSetup>`, manual page breaks, print areas and print titles (`_xlnm.Print_Area` / `_xlnm.Print_Titles`) now import into the model; the elements round-trip byte-for-byte through preserve-and-passthrough. Remaining: write-back once a print UI exists. |
+| E12 | Performance budgets asserted in CI | all | The budgets below are aspirational until measured by a benchmark gate. |
+
+Each lands the same way the shipped phases did: preserve-and-passthrough for
+anything the model cannot represent, model expansion for the parts Sheet
+renders, and canvas/CRDT only where the DOM and last-write-wins are provably
+insufficient.
 
 ---
 

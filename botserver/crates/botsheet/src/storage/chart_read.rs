@@ -2,12 +2,21 @@
 //! charts when loading a workbook, so this module walks the raw .xlsx
 //! package (drawings + chart parts) and rebuilds ChartConfig objects so the
 //! Sheets UI can render charts loaded from Drive files.
+//!
+//! Chart XML parsing lives in [`chart_parse`]; range resolution in
+//! [`chart_ranges`].
 
 use crate::types::{ChartConfig, ChartDataset, ChartOptions, ChartPosition, Worksheet};
 use quick_xml::events::Event;
 use std::collections::HashMap;
 use std::io::Cursor;
 use uuid::Uuid;
+
+mod chart_parse;
+mod chart_ranges;
+
+use self::chart_parse::{parse_chart, ParsedChart};
+use self::chart_ranges::{resolve_range_labels, resolve_range_values, resolve_single_cell};
 
 const PALETTE: [&str; 8] = [
     "#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7", "#06b6d4", "#f97316", "#ec4899",
@@ -17,19 +26,6 @@ const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 180;
 const CELL_WIDTH_PX: u32 = 64;
 const CELL_HEIGHT_PX: u32 = 20;
-
-struct ParsedSeries {
-    name: String,
-    cat_ref: String,
-    val_ref: String,
-}
-
-struct ParsedChart {
-    chart_type: String,
-    title: String,
-    legend_pos: Option<String>,
-    series: Vec<ParsedSeries>,
-}
 
 /// Extracts charts from an .xlsx package. Returns one entry per worksheet
 /// (index-aligned with `worksheets`); entries are empty when the sheet has
@@ -375,272 +371,6 @@ fn parse_drawing(xml: &[u8], rels: &HashMap<String, String>) -> Vec<(String, Cha
     out
 }
 
-fn map_chart_type(name: &[u8]) -> &'static str {
-    match name {
-        b"pieChart" | b"pie3DChart" | b"doughnutChart" | b"doughnut3DChart" => "pie",
-        b"lineChart" | b"line3DChart" | b"scatterChart" | b"areaChart" | b"area3DChart" => "line",
-        b"barChart" | b"bar3DChart" | b"colChart" | b"col3DChart" | b"radarChart" => "bar",
-        _ => "bar",
-    }
-}
-
-/// Parses a chart part into type/title/legend/series references.
-fn parse_chart(xml: &[u8]) -> ParsedChart {
-    let mut chart = ParsedChart {
-        chart_type: "bar".to_string(),
-        title: String::new(),
-        legend_pos: None,
-        series: Vec::new(),
-    };
-
-    let mut reader = quick_xml::Reader::from_reader(xml);
-    let mut buf = Vec::new();
-    let mut stack: Vec<Vec<u8>> = Vec::new();
-    let mut in_title = false;
-    let mut plot_area_seen = false;
-    let mut title_text = String::new();
-
-    let stack_ends_with = |stack: &Vec<Vec<u8>>, expected: &[&[u8]]| -> bool {
-        if stack.len() < expected.len() {
-            return false;
-        }
-        let start = stack.len() - expected.len();
-        expected
-            .iter()
-            .enumerate()
-            .all(|(i, exp)| stack[start + i].as_slice() == *exp)
-    };
-
-    let ser_index = |stack: &Vec<Vec<u8>>| -> usize {
-        stack.iter().filter(|s| s.as_slice() == b"ser").count()
-    };
-
-    loop {
-        match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                let name_q = e.name();
-                let name = local_name(name_q.as_ref());
-                match name {
-                    b"plotArea" => plot_area_seen = true,
-                    b"title" => in_title = true,
-                    b"ser" => chart.series.push(ParsedSeries {
-                        name: String::new(),
-                        cat_ref: String::new(),
-                        val_ref: String::new(),
-                    }),
-                    _ => {}
-                }
-                if !plot_area_seen && matches!(name, b"barChart" | b"lineChart" | b"pieChart"
-                    | b"scatterChart" | b"doughnutChart" | b"areaChart" | b"radarChart"
-                    | b"bar3DChart" | b"line3DChart" | b"pie3DChart" | b"colChart"
-                    | b"col3DChart" | b"area3DChart" | b"doughnut3DChart")
-                {
-                    // Chart type element appears inside plotArea; remember the
-                    // first one encountered. The plotArea_started flag is set
-                    // when the chart-type element itself is seen.
-                    plot_area_seen = true;
-                    chart.chart_type = map_chart_type(name).to_string();
-                }
-                stack.push(name.to_vec());
-            }
-            Ok(Event::Empty(ref e)) => {
-                let name_q = e.name();
-                let name = local_name(name_q.as_ref());
-                if name == b"legendPos" {
-                    for attr in e.attributes().flatten() {
-                        if local_name(attr.key.as_ref()) == b"val" {
-                            chart.legend_pos = Some(attr_value(&attr));
-                        }
-                    }
-                }
-            }
-            Ok(Event::Text(ref t)) => {
-                let Ok(text) = t.unescape() else {
-                    continue;
-                };
-                let text = text.trim();
-                if text.is_empty() {
-                    continue;
-                }
-                if in_title
-                    && !stack.iter().any(|s| s.as_slice() == b"plotArea")
-                    && stack_ends_with(&stack, &[b"title", b"tx", b"rich", b"p", b"r", b"t"])
-                {
-                    title_text.push_str(text);
-                    continue;
-                }
-                if stack_ends_with(&stack, &[b"ser", b"tx", b"strRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"tx", b"v"])
-                {
-                    let idx = ser_index(&stack).saturating_sub(1);
-                    if let Some(s) = chart.series.get_mut(idx) {
-                        s.name.push_str(text);
-                    }
-                } else if stack_ends_with(&stack, &[b"ser", b"cat", b"strRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"cat", b"numRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"cat", b"strLit", b"pt", b"v"])
-                    || stack_ends_with(&stack, &[b"ser", b"cat", b"numLit", b"pt", b"v"])
-                {
-                    let idx = ser_index(&stack).saturating_sub(1);
-                    if let Some(s) = chart.series.get_mut(idx) {
-                        s.cat_ref.push_str(text);
-                    }
-                } else if stack_ends_with(&stack, &[b"ser", b"val", b"numRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"val", b"strRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"val", b"numLit", b"pt", b"v"])
-                    || stack_ends_with(&stack, &[b"ser", b"val", b"strLit", b"pt", b"v"])
-                {
-                    let idx = ser_index(&stack).saturating_sub(1);
-                    if let Some(s) = chart.series.get_mut(idx) {
-                        s.val_ref.push_str(text);
-                    }
-                }
-            }
-            Ok(Event::End(ref e)) => {
-                let name_q = e.name();
-                let name = local_name(name_q.as_ref());
-                if name == b"title" {
-                    in_title = false;
-                }
-                stack.pop();
-            }
-            Ok(Event::Eof) | Err(_) => break,
-            _ => {}
-        }
-        buf.clear();
-    }
-
-    chart.title = title_text.trim().to_string();
-    chart
-}
-
-fn parse_range_bounds(range: &str) -> Option<(u32, u32, u32, u32)> {
-    let cell_part = range.split('!').next_back().unwrap_or(range);
-    let cell_part = cell_part.replace('$', "");
-    let parts: Vec<&str> = cell_part.split(':').collect();
-    if parts.len() > 2 {
-        return None;
-    }
-    let (r1, c1) = parse_cell_ref(parts[0])?;
-    let (r2, c2) = parts
-        .get(1)
-        .and_then(|p| parse_cell_ref(p))
-        .unwrap_or((r1, c1));
-    Some((r1.min(r2), c1.min(c2), r1.max(r2), c1.max(c2)))
-}
-
-/// Resolves a chart range reference against the matching worksheet and
-/// returns the cell strings in row-major order.
-fn resolve_range_values(
-    range: &str,
-    default_ws: usize,
-    worksheets: &[Worksheet],
-) -> Vec<f64> {
-    let Some((ws_idx, r0, _c0, r1, c1)) = resolve_ref(range, default_ws, worksheets) else {
-        return Vec::new();
-    };
-    let mut values = Vec::new();
-    for r in r0..=r1 {
-        for c in _c0..=c1 {
-            let key = format!("{r},{c}");
-            if let Some(cell) = worksheets[ws_idx].data.get(&key) {
-                if let Some(num) = parse_number(cell) {
-                    values.push(num);
-                }
-            }
-        }
-    }
-    values
-}
-
-fn resolve_range_labels(
-    range: &str,
-    default_ws: usize,
-    worksheets: &[Worksheet],
-) -> Vec<String> {
-    let Some((ws_idx, r0, c0, r1, c1)) = resolve_ref(range, default_ws, worksheets) else {
-        return Vec::new();
-    };
-    let mut labels = Vec::new();
-    for r in r0..=r1 {
-        for c in c0..=c1 {
-            let key = format!("{r},{c}");
-            if let Some(cell) = worksheets[ws_idx].data.get(&key) {
-                labels.push(cell.value.clone().unwrap_or_default());
-            }
-        }
-    }
-    labels
-}
-
-fn resolve_single_cell(
-    range: &str,
-    default_ws: usize,
-    worksheets: &[Worksheet],
-) -> Option<String> {
-    let (ws_idx, r0, _c0, _r1, _c1) = resolve_ref(range, default_ws, worksheets)?;
-    let key = format!("{r0},{_c0}");
-    worksheets[ws_idx].data.get(&key).and_then(|c| c.value.clone())
-}
-
-fn resolve_ref(
-    range: &str,
-    default_ws: usize,
-    worksheets: &[Worksheet],
-) -> Option<(usize, u32, u32, u32, u32)> {
-    let (sheet_part, cell_part) = match range.split_once('!') {
-        Some((s, c)) => (Some(s), c),
-        None => (None, range),
-    };
-    let ws_idx = match sheet_part {
-        Some(name) => {
-            let name = name.trim_matches('\'');
-            worksheets
-                .iter()
-                .position(|w| w.name.eq_ignore_ascii_case(name))
-                .unwrap_or(default_ws)
-        }
-        None => default_ws,
-    };
-    let (r0, c0, r1, c1) = parse_range_bounds(cell_part)?;
-    Some((ws_idx, r0, c0, r1, c1))
-}
-
-fn parse_number(cell: &crate::types::CellData) -> Option<f64> {
-    if let Some(typed) = &cell.typed {
-        if let botsheet_core::engine::value::CellValue::Number(n) = typed {
-            return Some(*n);
-        }
-    }
-    cell.value
-        .as_deref()
-        .and_then(|v| v.trim().parse::<f64>().ok())
-}
-
-fn parse_cell_ref(cell_ref: &str) -> Option<(u32, u32)> {
-    let mut col_str = String::new();
-    let mut row_str = String::new();
-
-    for c in cell_ref.chars() {
-        if c.is_ascii_alphabetic() {
-            col_str.push(c.to_ascii_uppercase());
-        } else if c.is_ascii_digit() {
-            row_str.push(c);
-        }
-    }
-
-    if col_str.is_empty() || row_str.is_empty() {
-        return None;
-    }
-
-    let col = col_str
-        .chars()
-        .fold(0u32, |acc, c| acc * 26 + (c as u32 - 'A' as u32 + 1));
-
-    let row: u32 = row_str.parse().ok()?;
-
-    Some((row.saturating_sub(1), col.saturating_sub(1)))
-}
 #[cfg(test)]
 mod tests {
     use super::*;

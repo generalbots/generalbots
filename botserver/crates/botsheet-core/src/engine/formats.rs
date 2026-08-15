@@ -5,6 +5,7 @@
 //! display string. The grid previously stored formats without applying them;
 //! this is the engine that makes `R$ 1.234,50` display correctly.
 
+use super::format_render::{render_fraction, render_scientific};
 use super::value::CellValue;
 
 /// The parsed structure of a number format.
@@ -26,6 +27,10 @@ pub struct NumberFormat {
     pub scale: f64,
     /// For date formats, the format string in chrono syntax where derivable.
     pub date_format: Option<String>,
+    /// Scientific notation (`0.00E+00`, `#.##E-00`).
+    pub scientific: bool,
+    /// Fraction denominator digit count (`# ?/?` → 1, `# ??/??` → 2).
+    pub fraction_denominator: Option<usize>,
 }
 
 impl Default for NumberFormat {
@@ -39,6 +44,8 @@ impl Default for NumberFormat {
             currency: None,
             scale: 1.0,
             date_format: None,
+            scientific: false,
+            fraction_denominator: None,
         }
     }
 }
@@ -62,6 +69,34 @@ pub fn parse_format(code: &str) -> NumberFormat {
         fmt.is_date = true;
         fmt.date_format = detect_date_format(code);
         return fmt;
+    }
+
+    // Scientific notation (`0.00E+00`, `#.##E-00`).
+    let upper = code.to_ascii_uppercase();
+    if upper.contains("E+") || upper.contains("E-") {
+        fmt.scientific = true;
+        let mantissa = code.split(|c| c == 'E' || c == 'e').next().unwrap_or("0");
+        fmt.min_decimal_digits = mantissa
+            .split_once('.')
+            .map(|(_, frac)| {
+                frac.chars()
+                    .take_while(|c| *c == '0' || *c == '#')
+                    .filter(|c| *c == '0')
+                    .count()
+            })
+            .unwrap_or(0);
+        return fmt;
+    }
+
+    // Fractions (`# ?/?`, `# ??/??`): the `?` count after the slash sets the
+    // denominator precision.
+    if let Some(slash) = code.rfind('/') {
+        let denom = &code[slash + 1..];
+        let qmarks = denom.chars().filter(|c| *c == '?').count();
+        if qmarks > 0 {
+            fmt.fraction_denominator = Some(qmarks);
+            return fmt;
+        }
     }
 
     let mut rest = code.to_string();
@@ -160,7 +195,7 @@ pub fn apply_format(value: &CellValue, code: &str) -> String {
         CellValue::Text(t) => t.clone(),
         CellValue::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
         CellValue::Empty => String::new(),
-        CellValue::Error(e) => format!("#{e}!"),
+        CellValue::Error(e) => e.clone(),
     }
 }
 
@@ -170,6 +205,12 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
             return date.format(df).to_string();
         }
         return super::value::format_number(n);
+    }
+    if fmt.scientific {
+        return render_scientific(n, fmt.min_decimal_digits);
+    }
+    if let Some(denom_digits) = fmt.fraction_denominator {
+        return render_fraction(n, denom_digits);
     }
 // Percent scales by 100: 0.125 with "0.0%" renders as "12.5%".
     let scaled = n * fmt.scale;
@@ -290,6 +331,21 @@ mod tests {
     }
 
     #[test]
+    fn scientific_notation() {
+        let f = parse_format("0.00E+00");
+        assert!(f.scientific);
+        assert_eq!(render_number(12345.0, &f), "1.23E+04");
+        assert_eq!(render_number(0.0012, &f), "1.20E-03");
+    }
+
+    #[test]
+    fn fractions() {
+        assert_eq!(render_number(0.5, &parse_format("# ?/?")), "1/2");
+        assert_eq!(render_number(1.5, &parse_format("# ?/?")), "1 1/2");
+        assert_eq!(render_number(1.0 / 3.0, &parse_format("# ??/??")), "1/3");
+    }
+
+    #[test]
     fn date_format() {
         let f = parse_format("yyyy-mm-dd");
         assert!(f.is_date);
@@ -316,6 +372,16 @@ mod tests {
             owner_id: "me".into(),
             worksheets: vec![crate::types::Worksheet {
                 tables: None,
+                hidden_columns: None,
+                sheet_state: None,
+                hyperlinks: None,
+                print_setup: None,
+                autofilter: None,
+                row_page_breaks: None,
+                column_page_breaks: None,
+                images: None,
+                print_areas: None,
+                rich_text: None,
                 name: "Sheet1".into(),
                 data: std::collections::HashMap::new(),
                 column_widths: None,

@@ -1,8 +1,19 @@
 use crate::types::Spreadsheet;
+use botsheet_core::engine::value::CellValue;
 
 use chrono::Utc;
 use std::collections::HashMap;
 use uuid::Uuid;
+
+/// Maps umya sheet state to the model visibility string (`None` = visible).
+fn sheet_visibility(sheet: &umya_spreadsheet::Worksheet) -> Option<String> {
+    use umya_spreadsheet::structs::SheetStateValues;
+    match sheet.get_state() {
+        SheetStateValues::Hidden => Some("hidden".to_string()),
+        SheetStateValues::VeryHidden => Some("veryHidden".to_string()),
+        SheetStateValues::Visible => None,
+    }
+}
 
 pub fn create_new_spreadsheet(owner_id: &str) -> Spreadsheet {
     Spreadsheet {
@@ -26,13 +37,23 @@ pub fn create_new_spreadsheet(owner_id: &str) -> Spreadsheet {
             protection: None,
             array_formulas: None,
             tables: None,
+            hidden_columns: None,
+            sheet_state: None,
+            hyperlinks: None,
+            print_setup: None,
+            autofilter: None,
+            row_page_breaks: None,
+            column_page_breaks: None,
+            images: None,
+            print_areas: None,
+            rich_text: None,
         }],
         created_at: Utc::now(),
         updated_at: Utc::now(),
         named_ranges: None,
         external_links: None,
-    source_bucket: None,
-    source_path: None,
+        source_bucket: None,
+        source_path: None,
         source_bytes: None,
         acl: HashMap::new(),
     }
@@ -45,14 +66,12 @@ pub fn parse_csv_to_worksheets(
 ) -> Result<Vec<crate::types::Worksheet>, String> {
     let content = String::from_utf8_lossy(bytes);
     let mut data: HashMap<String, crate::types::CellData> = HashMap::new();
-
     for (row_idx, line) in content.lines().enumerate() {
         let cols: Vec<&str> = if delimiter == b'\t' {
             line.split('\t').collect()
         } else {
             line.split(',').collect()
         };
-
         for (col_idx, value) in cols.iter().enumerate() {
             let clean_value = value.trim().trim_matches('"').to_string();
             if !clean_value.is_empty() {
@@ -61,7 +80,7 @@ pub fn parse_csv_to_worksheets(
                     key,
                     crate::types::CellData {
                         value: Some(clean_value),
-                            typed: None,
+                        typed: None,
                         formula: None,
                         style: None,
                         format: None,
@@ -74,7 +93,6 @@ pub fn parse_csv_to_worksheets(
             }
         }
     }
-
     Ok(vec![crate::types::Worksheet {
         name: sheet_name.to_string(),
         data,
@@ -92,6 +110,16 @@ pub fn parse_csv_to_worksheets(
         protection: None,
         array_formulas: None,
         tables: None,
+        hidden_columns: None,
+        sheet_state: None,
+        hyperlinks: None,
+        print_setup: None,
+        autofilter: None,
+        row_page_breaks: None,
+        column_page_breaks: None,
+        images: None,
+        print_areas: None,
+        rich_text: None,
     }])
 }
 
@@ -100,80 +128,93 @@ pub fn parse_xlsx_to_worksheets(
     ext: &str,
 ) -> Result<Vec<crate::types::Worksheet>, String> {
     if ext == "ods" {
-        return parse_ods_to_worksheets(bytes);
+        return super::import_ods::parse_ods_to_worksheets(bytes);
     }
 
     if ext == "xlsx" || ext == "xlsm" || ext == "xls" {
-        let cursor = std::io::Cursor::new(bytes);
-        if let Ok(workbook) = umya_spreadsheet::reader::xlsx::read_reader(cursor, true) {
+        if let Ok(workbook) = umya_spreadsheet::reader::xlsx::read_reader(std::io::Cursor::new(bytes), true) {
             let mut worksheets = Vec::new();
 
             for sheet in workbook.get_sheet_collection() {
                 let mut data: HashMap<String, crate::types::CellData> = HashMap::new();
-                let (max_col, max_row) = sheet.get_highest_column_and_row();
 
-                for row in 1..=max_row {
-                    for col in 1..=max_col {
-                        if let Some(cell) = sheet.get_cell((col, row)) {
-                            let value = cell.get_value().to_string();
-                            let formula = if cell.get_formula().is_empty() {
+                // Iterate actual cells (umya's map), not the 1..=max bounding box.
+                for ((col, row), cell) in sheet.get_collection_to_hashmap() {
+                    let cell = cell.as_ref();
+                    let value = cell.get_value().to_string();
+                    let formula = if cell.get_formula().is_empty() {
+                        None
+                    } else {
+                        Some(format!("={}", cell.get_formula()))
+                    };
+
+                    if value.is_empty() && formula.is_none() {
+                        continue;
+                    }
+
+                    let key = format!("{},{}", row - 1, col - 1);
+                    let style = super::xlsx_write::extract_cell_style(cell);
+
+                    // Format code (e.g. "$#,##0.00") so the type survives round-trip.
+                    let number_format = cell.get_style().get_number_format()
+                        .map(|nf| nf.get_format_code().to_string())
+                        .filter(|c| c != "General" && !c.is_empty());
+
+                    // Typed value (#781/#785): keeps the numeric type for format rendering.
+                    let typed = match cell.get_value_number() {
+                        Some(n) => CellValue::Number(n),
+                        None => CellValue::parse(&value),
+                    };
+
+                    data.insert(
+                        key,
+                        crate::types::CellData {
+                            value: if value.is_empty() {
                                 None
                             } else {
-                                Some(format!("={}", cell.get_formula()))
-                            };
-
-                            if value.is_empty() && formula.is_none() {
-                                continue;
-                            }
-
-                            let key = format!("{},{}", row - 1, col - 1);
-                            let style = super::xlsx_write::extract_cell_style(cell);
-
-                            // Extract number format code (e.g. "$#,##0.00", "yyyy-mm-dd", "0%")
-                            // to preserve cell type across round-trip xlsx → JSON → xlsx
-                            let number_format = cell.get_style().get_number_format()
-                                .map(|nf| nf.get_format_code().to_string())
-                                .filter(|c| c != "General" && !c.is_empty());
-
-                            data.insert(
-                                key,
-                                crate::types::CellData {
-                                    value: if value.is_empty() {
-                                        None
-                                    } else {
-                                        Some(value)
-                                    },
-                                    typed: None,
-                                    formula,
-                                    style,
-                                    format: number_format,
-                                    note: None,
-                                    locked: None,
-                                    has_comment: None,
-                                    array_formula_id: None,
-                                },
-                            );
-                        }
-                    }
+                                Some(value)
+                            },
+                            typed: Some(typed),
+                            formula,
+                            style,
+                            format: number_format,
+                            note: None,
+                            locked: None,
+                            has_comment: None,
+                            array_formula_id: None,
+                        },
+                    );
                 }
-
+                let layout = super::xlsx_layout::extract_layout(sheet);
+                let hyperlinks = super::xlsx_layout::extract_hyperlinks(sheet);
+                let structures = super::xlsx_layout::extract_structures(sheet);
                 worksheets.push(crate::types::Worksheet {
                     name: sheet.get_name().to_string(),
                     data,
-                    column_widths: None,
-                    row_heights: None,
-                    frozen_rows: None,
-                    frozen_cols: None,
-                    merged_cells: None,
+                    column_widths: layout.column_widths,
+                    row_heights: layout.row_heights,
+                    frozen_rows: layout.frozen_rows,
+                    frozen_cols: layout.frozen_cols,
+                    merged_cells: layout.merged_cells,
                     filters: None,
-                    hidden_rows: None,
-                    validations: None,
-                    conditional_formats: None,
+                    hidden_rows: layout.hidden_rows,
+                    validations: super::xlsx_rules::extract_validations(sheet),
+                    conditional_formats: super::xlsx_rules::extract_conditional_formats(sheet),
                     charts: None,
                     comments: None,
                     protection: None,
                     array_formulas: None,
-                    tables: None,
+                    tables: structures.tables,
+                    hidden_columns: layout.hidden_columns,
+                    sheet_state: sheet_visibility(sheet),
+                    hyperlinks,
+                    print_setup: super::xlsx_layout::extract_print_setup(sheet),
+                    autofilter: structures.autofilter,
+                    row_page_breaks: structures.row_page_breaks,
+                    column_page_breaks: structures.column_page_breaks,
+                    images: super::xlsx_layout::extract_images(sheet),
+                    print_areas: None,
+                    rich_text: None,
                 });
             }
 
@@ -183,8 +224,7 @@ pub fn parse_xlsx_to_worksheets(
                     super::format_codes::apply_format_codes(&mut worksheets, &format_map);
                 }
 
-                // Charts: umya-spreadsheet drops chart parts on read; extract
-                // them from the raw package and attach per sheet.
+                // umya drops charts on read; extract from the raw package.
                 #[cfg(feature = "xlsx")]
                 match super::chart_read::extract_charts(bytes, &worksheets) {
                     Ok(charts_by_ws) => {
@@ -199,6 +239,43 @@ pub fn parse_xlsx_to_worksheets(
                     Err(e) => log::warn!("chart extraction skipped: {e}"),
                 }
 
+                // Print areas + titles live in workbook defined names (#788 E11).
+                let print_areas = super::xlsx_layout::extract_print_areas(&workbook);
+                for (sheet_index, areas) in print_areas {
+                    if let Some(ws) = worksheets.get_mut(sheet_index) {
+                        ws.print_areas = Some(areas);
+                    }
+                }
+                let print_titles = super::xlsx_layout::extract_print_titles(&workbook);
+                for (sheet_index, titles) in print_titles {
+                    if let Some(ws) = worksheets.get_mut(sheet_index) {
+                        let setup = ws.print_setup.get_or_insert_with(Default::default);
+                        setup.print_titles = Some(titles);
+                    }
+                }
+
+                // Rich-text runs (E6): umya flattens them, so recover from the
+                // raw sharedStrings.xml + sheet parts.
+                let rich_text_by_sheet = super::xlsx_rich_text::extract_rich_text_all(bytes);
+                for (sheet_index, rich_text) in rich_text_by_sheet {
+                    if let Some(ws) = worksheets.get_mut(sheet_index) {
+                        ws.rich_text = Some(rich_text);
+                    }
+                }
+
+                // Cell comments / notes (gap 27): recover from xl/commentsN.xml.
+                let comments_by_sheet = super::xlsx_comments::extract_comments(bytes);
+                for (sheet_index, comments) in comments_by_sheet {
+                    if let Some(ws) = worksheets.get_mut(sheet_index) {
+                        for key in comments.keys() {
+                            if let Some(cell) = ws.data.get_mut(key) {
+                                cell.has_comment = Some(true);
+                            }
+                        }
+                        ws.comments = Some(comments);
+                    }
+                }
+
                 return Ok(worksheets);
             }
         }
@@ -207,144 +284,13 @@ pub fn parse_xlsx_to_worksheets(
     Err("Failed to parse spreadsheet".to_string())
 }
 
-fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, String> {
-    use quick_xml::events::Event;
-    use quick_xml::Reader;
-
-    let mut reader = Reader::from_str(xml_content);
-
-    let mut worksheets = Vec::new();
-    let mut data: HashMap<String, crate::types::CellData> = HashMap::new();
-    let mut sheet_name = String::new();
-    let mut current_row: u32 = 0;
-    let mut current_col: u32 = 0;
-    let mut in_table = false;
-    let mut cell_value = String::new();
-    let mut in_text_p = false;
-    let mut buf = Vec::new();
-
-    loop {
-        match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                match e.name().as_ref() {
-                    b"table:table" => {
-                        in_table = true;
-                        current_row = 0;
-                        data = HashMap::new();
-                        for attr in e.attributes().flatten() {
-                            if attr.key.as_ref() == b"table:name" {
-                                sheet_name = String::from_utf8_lossy(&attr.value).to_string();
-                            }
-                        }
-                        if sheet_name.is_empty() {
-                            sheet_name = "Sheet1".to_string();
-                        }
-                    }
-                    b"table:table-row" if in_table => {
-                        current_col = 0;
-                    }
-                    b"table:table-cell" if in_table => {
-                        cell_value.clear();
-                    }
-                    b"text:p" => {
-                        in_text_p = true;
-                    }
-                    _ => {}
-                }
-            }
-            Ok(Event::End(ref e)) => {
-                match e.name().as_ref() {
-                    b"table:table" if in_table => {
-                        in_table = false;
-                        worksheets.push(crate::types::Worksheet {
-                            name: sheet_name.clone(),
-                            data: data.clone(),
-                            column_widths: None, row_heights: None,
-                            frozen_rows: None, frozen_cols: None,
-                            merged_cells: None, filters: None,
-                            hidden_rows: None, validations: None,
-                            conditional_formats: None, charts: None,
-                            comments: None, protection: None,
-                            array_formulas: None,
-                            tables: None,
-                        });
-                    }
-                    b"table:table-row" if in_table => {
-                        current_row += 1;
-                    }
-                    b"table:table-cell" if in_table => {
-                        if !cell_value.is_empty() {
-                            let key = format!("{current_row},{current_col}");
-                            data.insert(key, crate::types::CellData {
-                                value: Some(cell_value.clone()),
-                                    typed: None,
-                                formula: None, style: None, format: None,
-                                note: None, locked: None, has_comment: None,
-                                array_formula_id: None,
-                            });
-                        }
-                        current_col += 1;
-                    }
-                    b"text:p" => {
-                        in_text_p = false;
-                    }
-                    _ => {}
-                }
-            }
-            Ok(Event::Text(ref e)) => {
-                if in_text_p {
-                    if let Ok(text) = e.unescape() {
-                        cell_value.push_str(&text);
-                    }
-                }
-            }
-            Ok(Event::Eof) => break,
-            Err(e) => return Err(format!("XML parse error: {e}")),
-            _ => {}
-        }
-        buf.clear();
-    }
-
-    if worksheets.is_empty() {
-        worksheets.push(crate::types::Worksheet {
-            name: "Sheet1".to_string(),
-            data: HashMap::new(),
-            column_widths: None, row_heights: None,
-            frozen_rows: None, frozen_cols: None,
-            merged_cells: None, filters: None,
-            hidden_rows: None, validations: None,
-            conditional_formats: None, charts: None,
-            comments: None, protection: None,
-            array_formulas: None,
-            tables: None,
-        });
-    }
-
-    Ok(worksheets)
-}
-
-pub fn parse_ods_to_worksheets(bytes: &[u8]) -> Result<Vec<crate::types::Worksheet>, String> {
-    use std::io::Cursor;
-    use zip::ZipArchive;
-
-    let cursor = Cursor::new(bytes);
-    let mut zip = ZipArchive::new(cursor)
-        .map_err(|e| format!("Failed to open ODS zip: {e}"))?;
-
-    let mut content_xml = zip.by_name("content.xml")
-        .map_err(|_| "content.xml not found in ODS".to_string())?;
-
-    let mut xml_string = String::new();
-    std::io::Read::read_to_string(&mut content_xml, &mut xml_string)
-        .map_err(|e| format!("Failed to read content.xml: {e}"))?;
-
-    parse_ods_xml(&xml_string)
-}
-
 pub fn detect_spreadsheet_format(bytes: &[u8]) -> &'static str {
     if bytes.len() >= 4 {
         if &bytes[0..4] == b"PK\x03\x04" {
-            let content_str = String::from_utf8_lossy(&bytes[0..500.min(bytes.len())]);
+            let content_str = String::from_utf8_lossy(&bytes[0..4096.min(bytes.len())]);
+            if content_str.contains("xl/workbook.bin") {
+                return "xlsb";
+            }
             if content_str.contains("xl/") || content_str.contains("[Content_Types].xml") {
                 return "xlsx";
             }
@@ -379,8 +325,9 @@ pub fn import_spreadsheet_bytes(
 
     let worksheets = match detected {
         "xlsx" | "xlsm" => parse_xlsx_to_worksheets(bytes, "xlsx")?,
-        "xls" => parse_xlsx_to_worksheets(bytes, "xls")?,
-        "ods" => parse_ods_to_worksheets(bytes)?,
+        "xls" => super::import_binary::parse_binary_to_worksheets(bytes, "xls")?,
+        "xlsb" => super::import_binary::parse_binary_to_worksheets(bytes, "xlsb")?,
+        "ods" => super::import_ods::parse_ods_to_worksheets(bytes)?,
         "csv" => parse_csv_to_worksheets(bytes, b',', "Sheet1")?,
         "tsv" => parse_csv_to_worksheets(bytes, b'\t', "Sheet1")?,
         _ => {
@@ -389,7 +336,7 @@ pub fn import_spreadsheet_bytes(
             } else if ext == "tsv" || ext == "txt" {
                 parse_csv_to_worksheets(bytes, b'\t', "Sheet1")?
             } else if ext == "ods" {
-                parse_ods_to_worksheets(bytes)?
+                super::import_ods::parse_ods_to_worksheets(bytes)?
             } else {
                 return Err(format!("Unsupported format: {detected}"));
             }
@@ -411,9 +358,9 @@ pub fn import_spreadsheet_bytes(
         created_at: Utc::now(),
         updated_at: Utc::now(),
         named_ranges: None,
-        external_links: None,
-    source_bucket: None,
-    source_path: None,
+        external_links: super::xlsx_external_links::extract_external_links(bytes),
+        source_bucket: None,
+        source_path: None,
         source_bytes: None,
         acl: HashMap::new(),
     })

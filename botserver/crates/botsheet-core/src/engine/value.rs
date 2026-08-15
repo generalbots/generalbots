@@ -38,6 +38,9 @@ impl CellValue {
         if let Ok(n) = t.parse::<f64>() {
             return CellValue::Number(n);
         }
+        if is_error_code(t) {
+            return CellValue::Error(t.to_string());
+        }
         CellValue::Text(t.to_string())
     }
 
@@ -48,7 +51,7 @@ impl CellValue {
             CellValue::Number(n) => format_number(*n),
             CellValue::Text(s) => s.clone(),
             CellValue::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
-            CellValue::Error(e) => format!("#{e}!"),
+            CellValue::Error(e) => e.clone(),
         }
     }
 
@@ -96,11 +99,32 @@ fn parse_bool(s: &str) -> Result<bool, ()> {
     }
 }
 
+/// Recognises the canonical spreadsheet error codes (ECMA-376 `ST_CellType`
+/// error literals plus the internal `#ERROR!` catch-all).
+fn is_error_code(s: &str) -> bool {
+    matches!(
+        s,
+        "#DIV/0!"
+            | "#N/A"
+            | "#NAME?"
+            | "#NULL!"
+            | "#NUM!"
+            | "#REF!"
+            | "#VALUE!"
+            | "#SPILL!"
+            | "#CALC!"
+            | "#GETTING_DATA"
+            | "#ERROR!"
+    )
+}
+
 /// Formats a number the way a spreadsheet displays it: integers without a
 /// decimal point, other values trimmed to six significant decimals.
 pub fn format_number(n: f64) -> String {
     if n.fract() == 0.0 {
-        format!("{}", n as i64)
+        // `{:.0}` (not `as i64`) — an `as` cast saturates for magnitudes beyond
+        // i64 (e.g. =10^20), silently showing a wrong value.
+        format!("{:.0}", n)
     } else {
         let s = format!("{:.6}", n);
         s.trim_end_matches('0').trim_end_matches('.').to_string()

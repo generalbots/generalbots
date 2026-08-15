@@ -1,4 +1,5 @@
 use crate::types::{CellData, MergedCell, NamedRange, SheetProtection, Spreadsheet, Worksheet};
+use botsheet_core::engine::value::CellValue;
 use chrono::Utc;
 use std::collections::HashMap;
 use std::io::Cursor;
@@ -60,12 +61,19 @@ pub fn load_xlsx_from_bytes(
                         });
 
                     let cell_value = value.clone();
+                    // Typed value (#781/#785): numbers keep their numeric type
+                    // (date serials included) so the number-format engine can
+                    // render them; everything else falls back to string parsing.
+                    let typed = match cell.get_value_number() {
+                        Some(n) => CellValue::Number(n),
+                        None => CellValue::parse(&value),
+                    };
                     let has_comment = note.is_some();
                     data.insert(
                         key,
                         CellData {
                             value: Some(cell_value),
-                                typed: None,
+                            typed: Some(typed),
                             formula,
                             style,
                             format: None,
@@ -193,6 +201,16 @@ pub fn load_xlsx_from_bytes(
             protection,
             array_formulas: None,
             tables: None,
+            hidden_columns: None,
+            sheet_state: None,
+            hyperlinks: None,
+            print_setup: None,
+            autofilter: None,
+            row_page_breaks: None,
+            column_page_breaks: None,
+            images: None,
+            print_areas: None,
+            rich_text: None,
         });
     }
 

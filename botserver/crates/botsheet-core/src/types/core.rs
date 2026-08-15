@@ -1,6 +1,34 @@
+use super::media::SheetImage;
+use super::print_setup::PrintSetup;
+use super::rich_text::RichTextRun;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+/// Serde helper that (de)serializes `Option<Vec<u8>>` as a base64 string.
+/// A raw `Vec<u8>` serializes as a JSON number array (1 MB xlsx → ~5 MB JSON).
+mod base64_opt_bytes {
+    use base64::engine::general_purpose::STANDARD;
+    use base64::Engine as _;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(bytes: &Option<Vec<u8>>, s: S) -> Result<S::Ok, S::Error> {
+        match bytes {
+            Some(b) => s.serialize_str(&STANDARD.encode(b)),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Vec<u8>>, D::Error> {
+        match Option::<String>::deserialize(d)? {
+            Some(s) => STANDARD
+                .decode(s.as_bytes())
+                .map(Some)
+                .map_err(serde::de::Error::custom),
+            None => Ok(None),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CellComment {
@@ -152,11 +180,12 @@ pub struct Spreadsheet {
     /// Original xlsx path in Drive.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_path: Option<String>,
-    /// Original xlsx package bytes, retained so the save-back hook can merge the
-    /// edited cells into the untouched original (preserving charts, pivots,
-    /// validation and other parts Sheet does not model) instead of regenerating
-    /// the package from the lossy JSON model (#788).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Original xlsx package bytes for the save-back merge (#788); base64.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "base64_opt_bytes",
+        default
+    )]
     pub source_bytes: Option<Vec<u8>>,
     /// Per-user access map: user id -> permission ("view" | "edit").
     /// Owner access is implicit; legacy `default-user` sheets stay open (#789).
@@ -182,6 +211,19 @@ fn default_true() -> bool {
     true
 }
 
+/// A hyperlink attached to a cell (E6). External URLs round-trip through the
+/// worksheet relationships; internal links are stored inline as `location=`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Hyperlink {
+    /// Target URL, or the internal location when `is_internal` is true.
+    pub url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tooltip: Option<String>,
+    /// True for an internal reference (e.g. `Sheet2!A1`), false for a URL.
+    #[serde(default)]
+    pub is_internal: bool,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Worksheet {
     pub name: String,
@@ -201,6 +243,8 @@ pub struct Worksheet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hidden_rows: Option<Vec<u32>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub hidden_columns: Option<Vec<u32>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub validations: Option<HashMap<String, ValidationRule>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conditional_formats: Option<Vec<ConditionalFormatRule>>,
@@ -214,6 +258,33 @@ pub struct Worksheet {
     pub array_formulas: Option<Vec<ArrayFormula>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tables: Option<Vec<TableConfig>>,
+    /// Sheet visibility from `<sheet state="...">`: "hidden" or "veryHidden".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sheet_state: Option<String>,
+    /// Hyperlinks keyed by `"row,col"` (0-based, matching `data`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hyperlinks: Option<HashMap<String, Hyperlink>>,
+    /// Page setup, margins and header/footer (E11).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub print_setup: Option<PrintSetup>,
+    /// AutoFilter range in A1 notation, e.g. "A1:D10" (E6).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub autofilter: Option<String>,
+    /// Manual page breaks: 1-based row indices (E11).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub row_page_breaks: Option<Vec<u32>>,
+    /// Manual page breaks: 1-based column indices (E11).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub column_page_breaks: Option<Vec<u32>>,
+    /// Images anchored to the sheet, 0-based row/col (E6).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub images: Option<Vec<SheetImage>>,
+    /// Print areas as A1 ranges, e.g. "A1:D10" (E11).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub print_areas: Option<Vec<String>>,
+    /// Rich-text runs keyed by `"row,col"` (0-based), run-formatted cells only (E6).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rich_text: Option<HashMap<String, Vec<RichTextRun>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
