@@ -8,6 +8,7 @@
 pub mod ast;
 pub mod cross_sheet;
 pub mod eval;
+pub mod format_render;
 pub mod formats;
 pub mod lexer;
 pub mod references;

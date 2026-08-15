@@ -23,7 +23,7 @@ pub fn eval_expr_in(expr: &Expr, worksheets: &[Worksheet], current: usize) -> Ce
         Expr::Literal(v) => v.clone(),
         Expr::Name(name) => CellValue::Text(name.clone()),
         Expr::Reference(r) => resolve_reference(r, worksheets, current),
-        Expr::Range(_, _) => CellValue::Error("VALUE!".to_string()),
+        Expr::Range(_, _) => CellValue::Error("#VALUE!".to_string()),
         Expr::Unary { op, expr } => {
             let v = eval_expr_in(expr, worksheets, current);
             apply_unary(op, v)
@@ -42,11 +42,9 @@ pub fn eval_expr_in(expr: &Expr, worksheets: &[Worksheet], current: usize) -> Ce
             let resolved_args = resolve_sheet_args(raw, name, worksheets);
             let formula = format!("={name}({resolved_args})");
             let result = evaluate_function_call(&formula, &worksheets[current]);
-            if let Some(err) = result.error {
-                CellValue::Error(err)
-            } else {
-                CellValue::parse(&result.value)
-            }
+            // The legacy dispatcher reports errors as a `#…` value (its `error`
+            // field is a human message such as "Invalid formula", never a code).
+            CellValue::parse(&result.value)
         }
     }
 }
@@ -68,10 +66,10 @@ fn resolve_reference(r: &Reference, worksheets: &[Worksheet], current: usize) ->
         {
             return cell_value_at(ws, &key);
         }
-        return CellValue::Error("REF!".to_string());
+        return CellValue::Error("#REF!".to_string());
     }
     let Some(ws) = worksheets.get(current) else {
-        return CellValue::Error("REF!".to_string());
+        return CellValue::Error("#REF!".to_string());
     };
     cell_value_at(ws, &key)
 }
@@ -98,24 +96,35 @@ fn cell_value_at(worksheet: &Worksheet, key: &str) -> CellValue {
 }
 
 fn apply_unary(op: &str, v: CellValue) -> CellValue {
+    // Error propagation: =-A1 where A1 is #DIV/0! must stay #DIV/0!.
+    if let CellValue::Error(e) = &v {
+        return CellValue::Error(e.clone());
+    }
     match op {
         "+" => match v.as_number() {
             Some(n) => CellValue::Number(n),
-            None => CellValue::Error("VALUE!".to_string()),
+            None => CellValue::Error("#VALUE!".to_string()),
         },
         "-" => match v.as_number() {
             Some(n) => CellValue::Number(-n),
-            None => CellValue::Error("VALUE!".to_string()),
+            None => CellValue::Error("#VALUE!".to_string()),
         },
         "%" => match v.as_number() {
             Some(n) => CellValue::Number(n / 100.0),
-            None => CellValue::Error("VALUE!".to_string()),
+            None => CellValue::Error("#VALUE!".to_string()),
         },
-        _ => CellValue::Error("NAME?.".to_string()),
+        _ => CellValue::Error("#NAME?".to_string()),
     }
 }
 
 fn apply_binary(op: &str, l: CellValue, r: CellValue) -> CellValue {
+    // Error propagation: =1/0+5 must yield #DIV/0!, not #VALUE!.
+    if let CellValue::Error(e) = &l {
+        return CellValue::Error(e.clone());
+    }
+    if let CellValue::Error(e) = &r {
+        return CellValue::Error(e.clone());
+    }
     if op == "&" {
         return CellValue::Text(format!("{}{}", text_of(&l), text_of(&r)));
     }
@@ -131,15 +140,23 @@ fn apply_binary(op: &str, l: CellValue, r: CellValue) -> CellValue {
             "*" => CellValue::Number(a * b),
             "/" => {
                 if b == 0.0 {
-                    CellValue::Error("DIV/0!".to_string())
+                    CellValue::Error("#DIV/0!".to_string())
                 } else {
                     CellValue::Number(a / b)
                 }
             }
-            "^" => CellValue::Number(a.powf(b)),
-            _ => CellValue::Error("VALUE!".to_string()),
+            "^" => {
+                let result = a.powf(b);
+                // Negative-base fractional powers and overflow yield #NUM!.
+                if result.is_finite() {
+                    CellValue::Number(result)
+                } else {
+                    CellValue::Error("#NUM!".to_string())
+                }
+            }
+            _ => CellValue::Error("#VALUE!".to_string()),
         },
-        _ => CellValue::Error("VALUE!".to_string()),
+        _ => CellValue::Error("#VALUE!".to_string()),
     }
 }
 
@@ -176,7 +193,7 @@ fn text_of(v: &CellValue) -> String {
         CellValue::Text(s) => s.clone(),
         CellValue::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
         CellValue::Empty => String::new(),
-        CellValue::Error(e) => format!("#{e}!"),
+        CellValue::Error(e) => e.clone(),
     }
 }
 
@@ -194,7 +211,7 @@ pub fn evaluate_typed_in(formula: &str, worksheets: &[Worksheet], current: usize
     };
     match super::ast::parse(body) {
         Ok(expr) => eval_expr_in(&expr, worksheets, current),
-        Err(_) => CellValue::Error("ERROR!".to_string()),
+        Err(_) => CellValue::Error("#ERROR!".to_string()),
     }
 }
 
@@ -239,13 +256,13 @@ mod tests {
     }
 
     #[test]
-    fn exponent_is_right_associative() {
-        assert_eq!(ev("=2^3^2", &Worksheet::default()), CellValue::Number(512.0));
+    fn exponent_is_left_associative() {
+        assert_eq!(ev("=2^3^2", &Worksheet::default()), CellValue::Number(64.0));
     }
 
     #[test]
-    fn unary_minus_binds_looser_than_exponent() {
-        assert_eq!(ev("=-2^2", &Worksheet::default()), CellValue::Number(-4.0));
+    fn unary_minus_binds_tighter_than_exponent() {
+        assert_eq!(ev("=-2^2", &Worksheet::default()), CellValue::Number(4.0));
     }
 
     #[test]
@@ -270,7 +287,7 @@ mod tests {
 
     #[test]
     fn division_by_zero_is_typed_error() {
-        assert_eq!(ev("=1/0", &Worksheet::default()), CellValue::Error("DIV/0!".to_string()));
+        assert_eq!(ev("=1/0", &Worksheet::default()), CellValue::Error("#DIV/0!".to_string()));
     }
 
     #[test]
@@ -289,7 +306,21 @@ mod tests {
     #[test]
     fn unary_plus_on_text_is_typed_error() {
         let ws = ws_with(&[("0,0", "abc")]);
-        assert_eq!(ev("=+A1", &ws), CellValue::Error("VALUE!".to_string()));
+        assert_eq!(ev("=+A1", &ws), CellValue::Error("#VALUE!".to_string()));
         assert_eq!(ev("=+5", &Worksheet::default()), CellValue::Number(5.0));
+    }
+
+    #[test]
+    fn error_propagates_through_operators() {
+        // =1/0 is #DIV/0!, and it must survive arithmetic and concatenation.
+        assert_eq!(ev("=1/0+5", &Worksheet::default()), CellValue::Error("#DIV/0!".to_string()));
+        assert_eq!(ev("=1/0*2", &Worksheet::default()), CellValue::Error("#DIV/0!".to_string()));
+    }
+
+    #[test]
+    fn negative_base_fractional_power_is_num_error() {
+        // =(-8)^(1/3) has no real result; must be #NUM!, not NaN.
+        let ws = ws_with(&[("0,0", "-8")]);
+        assert_eq!(ev("=A1^(1/3)", &ws), CellValue::Error("#NUM!".to_string()));
     }
 }

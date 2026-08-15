@@ -99,7 +99,8 @@ These are real and will bite immediately. Each is tracked in [Sheet Parity Plan]
 | CSV | Available | Available | Exported values are unformatted |
 | TSV | Available | Available | — |
 | JSON | Available | Available | Internal document shape |
-| `.xlsx` | Partial | Partial | Values, formulas, number format codes, cell styles, merged cells, column widths, row heights, frozen panes, defined names and per-sheet protection are read. **Data validation, conditional formatting, charts, images, pivot tables, tables, autofilter, hidden rows, hyperlinks, rich text runs, print setup and external links are dropped.** |
+| `.xlsx` | Partial | Partial | Values, formulas, number format codes, cell styles, merged cells, column widths, row heights, frozen panes, hidden rows/columns, defined names, per-sheet protection, tables, autofilter, hyperlinks, images, data validation, conditional formatting (with font/fill fidelity), rich-text runs, comments/notes, print setup, print areas/titles and external links are read. **Pivot tables are still dropped from the model** — charts and rich text are re-extracted from the raw package, and pivot tables are preserved byte-for-byte on save but not modelled. |
+| `.xls` / `.xlsb` | Partial | — | Cell values and typed cells are read via calamine; styles, merges, charts and layout are not (BIFF reader exposes values only). |
 | Markdown | — | Available | — |
 | PDF | — | Available | Real PDF 1.4 export — one page set per worksheet, repeated header row, `application/pdf` content type |
 | ODS | — | Partial | Emits content XML, not a complete `.ods` package |
@@ -341,7 +342,7 @@ All worksheets are reachable through the tab bar (add/switch/delete/rename). If 
 
 ### Import lost part of the file
 
-See the import table above for exactly what is dropped. Charts, pivot tables, conditional formatting and data validation do not survive import today.
+See the import table above for exactly what is dropped. Pivot tables are still not modelled on import (they survive an edit round-trip byte-for-byte but do not render); rich-text runs now import but are not yet rendered in the grid.
 
 ### Chart is not displayed
 

@@ -1,26 +1,21 @@
-use base64::Engine;
-use crate::export::{
-    export_to_csv, export_to_html, export_to_json, export_to_markdown, export_to_ods,
-    export_to_pdf_data, export_to_xlsx,
-};
 use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::{
-    delete_sheet_from_drive, list_sheets_from_drive,
+    delete_sheet_from_drive, list_sheets_from_drive, load_sheet_from_drive,
     save_sheet_to_drive, persist_sheet_to_drive, SheetState,
 };
-use crate::storage::import::{import_spreadsheet_bytes, parse_csv_to_worksheets, parse_xlsx_to_worksheets};
+use crate::storage::import::{parse_csv_to_worksheets, parse_xlsx_to_worksheets};
 use crate::storage::import::create_new_spreadsheet;
 use crate::types::{
-    ExportRequest, LoadFromDriveRequest, LoadQuery, SaveRequest,
+    LoadFromDriveRequest, LoadQuery, SaveRequest,
     SaveResponse, SearchQuery, ShareRequest, Spreadsheet, SpreadsheetMetadata,
 };
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
-    response::IntoResponse,
     Json,
 };
 use chrono::Utc;
+use sha2::Digest;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -159,7 +154,20 @@ pub async fn handle_load_from_drive(
     };
 
     let user_id = resolve_user_id(user.as_deref());
-    let sheet_id = Uuid::new_v4().to_string();
+    // Deterministic working-copy id: SHA-256(bucket|path) truncated to a v4
+    // UUID, so reopening the same source reuses its prior edits.
+    let digest = sha2::Sha256::digest(format!("{}|{}", req.bucket, req.path).as_bytes());
+    let mut id_bytes = [0u8; 16];
+    id_bytes.copy_from_slice(&digest[..16]);
+    let sheet_id = Uuid::from_bytes(id_bytes).to_string();
+
+    // Reuse an existing working copy (with any prior edits) when present.
+    if let Ok(mut existing) = load_sheet_from_drive(&state, &user_id, &Some(sheet_id.clone())).await
+    {
+        botsheet_core::engine::formats::apply_formats_to_sheet(&mut existing);
+        return Ok(Json(existing));
+    }
+
     let sheet = Spreadsheet {
         id: sheet_id.clone(),
         name: sheet_name,
@@ -171,9 +179,7 @@ pub async fn handle_load_from_drive(
         external_links: None,
         source_bucket: Some(req.bucket.clone()),
         source_path: Some(req.path.clone()),
-        // Retain the original package so the save-back hook can merge the
-        // edited cells into the untouched original instead of regenerating
-        // the workbook from the lossy model (#788).
+        // Retain the original package for the save-back merge (#788).
         source_bytes: if ext == "xlsx" || ext == "xlsm" {
             Some(bytes.clone())
         } else {
@@ -182,12 +188,13 @@ pub async fn handle_load_from_drive(
         acl: HashMap::new(),
     };
 
-    // Persist to Drive so subsequent /api/sheet/range calls find the data.
-    // NOTE: must NOT trigger the on-save xlsx export hook — just opening a
-    // file would otherwise rewrite the source .xlsx and drop its charts.
+    // Persist (no export hook — opening must not rewrite the source).
     let _ = persist_sheet_to_drive(&state, &user_id, &sheet).await;
 
-    Ok(Json(sheet))
+    // Return a display-formatted clone; the persisted model keeps raw values.
+    let mut response = sheet.clone();
+    botsheet_core::engine::formats::apply_formats_to_sheet(&mut response);
+    Ok(Json(response))
 }
 
 pub async fn handle_save_sheet(
@@ -303,10 +310,10 @@ pub async fn handle_save_sheet(
         updated_at: Utc::now(),
         named_ranges: None,
         external_links: None,
-    source_bucket: None,
-    source_path: None,
+        source_bucket: None,
+        source_path: None,
         source_bytes: None,
-    acl: HashMap::new(),
+        acl: HashMap::new(),
     };
 
     if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
@@ -440,135 +447,4 @@ pub async fn handle_share_sheet(
         success: true,
         message: Some(format!("Shared with {} as {}", req.email, req.permission)),
     }))
-}
-
-pub async fn handle_export_sheet(
-    State(state): State<Arc<SheetState>>,
-    user: Option<Extension<SheetUser>>,
-    Json(req): Json<ExportRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
-
-    let session = state
-        .sessions
-        .get_or_load(&state, &user_id, &req.id)
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": e })),
-            )
-        })?;
-    let sheet = session.sheet.read().await.clone();
-
-    match req.format.as_str() {
-        "csv" => {
-            let csv = export_to_csv(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/csv")], csv))
-        }
-        "xlsx" => {
-            let xlsx = export_to_xlsx(&sheet).map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": e })),
-                )
-            })?;
-            Ok((
-                [(
-                    axum::http::header::CONTENT_TYPE,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )],
-                xlsx,
-            ))
-        }
-        "json" => {
-            let json = export_to_json(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "application/json")], json))
-        }
-        "html" => {
-            let html = export_to_html(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], html))
-        }
-        "ods" => {
-            let ods = export_to_ods(&sheet).map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": e })),
-                )
-            })?;
-            Ok((
-                [(
-                    axum::http::header::CONTENT_TYPE,
-                    "application/vnd.oasis.opendocument.spreadsheet",
-                )],
-                ods,
-            ))
-        }
-        "md" | "markdown" => {
-            let md = export_to_markdown(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/markdown")], md))
-        }
-        "pdf" => {
-            let pdf = export_to_pdf_data(&sheet).map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": e })),
-                )
-            })?;
-            let encoded = base64::engine::general_purpose::STANDARD.encode(&pdf);
-            Ok((
-                [(axum::http::header::CONTENT_TYPE, "application/pdf")],
-                encoded,
-            ))
-        }
-        _ => Err((
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "Unsupported format" })),
-        )),
-    }
-}
-
-pub async fn handle_import_sheet(
-    State(state): State<Arc<SheetState>>,
-    user: Option<Extension<SheetUser>>,
-    mut multipart: axum::extract::Multipart,
-) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
-    let mut file_bytes: Option<Vec<u8>> = None;
-    let mut filename = "import.xlsx".to_string();
-
-    while let Ok(Some(field)) = multipart.next_field().await {
-        if field.name() == Some("file") {
-            filename = field.file_name().unwrap_or("import.xlsx").to_string();
-            if let Ok(bytes) = field.bytes().await {
-                file_bytes = Some(bytes.to_vec());
-            }
-        }
-    }
-
-    let bytes = file_bytes.ok_or_else(|| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "No file uploaded" })),
-        )
-    })?;
-
-    let mut sheet = import_spreadsheet_bytes(&bytes, &filename, &user_id).map_err(|e| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": e })),
-        )
-    })?;
-
-    let user_id = resolve_user_id(user.as_deref());
-    sheet.owner_id = user_id.clone();
-
-    if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e })),
-        ));
-    }
-
-    Ok(Json(sheet))
 }

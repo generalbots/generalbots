@@ -142,7 +142,9 @@ async function previewFile(path) {
                 });
                 if (sheetResp.ok) {
                     var sheetData = await sheetResp.json();
-                    sheetData.id = 'drive-' + ts;
+                    // Keep the server-assigned sheet id (deterministic per
+                    // source file) so edits persist to the same document and
+                    // link back to the source xlsx for save-back.
                     window.__SHEET_DATA_MAP[winId].loadedSheet = sheetData;
                     window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
                 } else {

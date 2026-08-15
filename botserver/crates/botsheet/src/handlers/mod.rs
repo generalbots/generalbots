@@ -2,11 +2,13 @@ pub mod advanced;
 pub mod advanced_ranges;
 pub mod ai;
 pub mod cell_ops;
+pub mod cell_structure;
 pub mod comments;
 pub mod crud;
 pub mod grid_ops;
 pub mod paste_html;
 pub mod data_ops;
+pub mod export_import;
 pub mod named_ranges_csv;
 pub mod pivot;
 pub mod validation;
@@ -23,18 +25,22 @@ pub use advanced_ranges::{
 };
 pub use ai::{handle_batch_evaluate_ai, handle_evaluate_ai_prompt, handle_sheet_ai};
 pub use cell_ops::{
-    handle_evaluate_formula, handle_format_cells, handle_freeze_panes, handle_get_range,
-    handle_merge_cells, handle_unmerge_cells, handle_update_cell, handle_worksheet_meta,
+    handle_evaluate_formula, handle_format_cells, handle_update_cell,
+};
+pub use cell_structure::{
+    handle_freeze_panes, handle_get_range, handle_merge_cells, handle_unmerge_cells,
+    handle_worksheet_meta,
 };
 pub use comments::{
     handle_add_comment, handle_delete_comment, handle_list_comments, handle_reply_comment,
     handle_resolve_comment,
 };
 pub use crud::{
-    handle_delete_sheet, handle_export_sheet, handle_get_sheet_by_id, handle_sheet_ops, handle_import_sheet,
+    handle_delete_sheet, handle_get_sheet_by_id, handle_sheet_ops,
     handle_list_sheets, handle_load_from_drive, handle_load_sheet, handle_new_sheet,
     handle_save_sheet, handle_search_sheets, handle_share_sheet,
 };
+pub use export_import::{handle_export_sheet, handle_import_sheet};
 pub use data_ops::{
     handle_clear_filter, handle_conditional_format, handle_create_chart, handle_delete_chart,
     handle_filter_data, handle_sort_range,

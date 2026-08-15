@@ -67,6 +67,16 @@ pub async fn add_worksheet(
         protection: None,
         array_formulas: None,
         tables: None,
+        hidden_columns: None,
+        sheet_state: None,
+        hyperlinks: None,
+        print_setup: None,
+        autofilter: None,
+        row_page_breaks: None,
+        column_page_breaks: None,
+        images: None,
+        print_areas: None,
+        rich_text: None,
     };
     sheet.worksheets.push(ws);
     sheet.updated_at = Utc::now();
