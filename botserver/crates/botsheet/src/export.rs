@@ -1,5 +1,17 @@
 use base64::Engine;
-use botsheet_core::types::{CellStyle, Spreadsheet};
+use botsheet_core::engine::value::CellValue;
+use botsheet_core::types::{CellData, CellStyle, Spreadsheet};
+
+/// The numeric value a cell should export as: a typed `Number`, or — for
+/// untyped cells (CSV/ODS) — a display value that parses as a float. A typed
+/// `Text` (`0123`) stays text so it is never exported as the number 123.
+fn cell_number(cell: &CellData) -> Option<f64> {
+    match cell.typed.as_ref() {
+        Some(CellValue::Number(n)) => Some(*n),
+        Some(_) => None,
+        None => cell.value.as_deref()?.trim().parse::<f64>().ok(),
+    }
+}
 
 pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<String, String> {
     let mut workbook = rust_xlsxwriter::Workbook::new();
@@ -30,7 +42,7 @@ pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<String, String> {
                 worksheet
                     .write_formula_with_format(row, col, formula.as_str(), &format)
                     .map_err(|e| e.to_string())?;
-            } else if let Ok(num) = value.parse::<f64>() {
+            } else if let Some(num) = cell_number(cell) {
                 worksheet
                     .write_number_with_format(row, col, num, &format)
                     .map_err(|e| e.to_string())?;
@@ -302,19 +314,18 @@ office:version="1.2">
             xml.push_str("<table:table-row>\n");
             for col in 0..=max_col {
                 let key = format!("{row},{col}");
-                let value = ws
-                    .data
-                    .get(&key)
+                let cell = ws.data.get(&key);
+                let value = cell
                     .and_then(|c| c.value.clone())
                     .unwrap_or_default();
-                let formula = ws.data.get(&key).and_then(|c| c.formula.clone());
+                let formula = cell.and_then(|c| c.formula.clone());
 
                 if let Some(f) = formula {
                     xml.push_str(&format!(
                         "<table:table-cell table:formula=\"{}\">\n<text:p>{}</text:p>\n</table:table-cell>\n",
                         f, value
                     ));
-                } else if let Ok(num) = value.parse::<f64>() {
+                } else if let Some(num) = cell.and_then(cell_number) {
                     xml.push_str(&format!(
                         "<table:table-cell office:value-type=\"float\" office:value=\"{}\">\n<text:p>{}</text:p>\n</table:table-cell>\n",
                         num, value
