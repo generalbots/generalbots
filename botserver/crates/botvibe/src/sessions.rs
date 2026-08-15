@@ -276,6 +276,8 @@ async fn resume_session(
         llm_key: None,
         llm_url: None,
         budget_cents: session.budget_cents,
+        project_id: None,
+        project_name: None,
     };
 
     let mut run = VibeRun::new(session.bot_id, session.session_id, session.user_id, session.intent.clone(), config);

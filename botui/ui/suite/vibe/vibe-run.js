@@ -410,11 +410,19 @@
         var budgetCents = isFinite(budget) && budget > 0 ? Math.round(budget * 100) : 0;
         state.budgetCents = budgetCents;
         uiMsg("🔄 Starting Vibe run: " + intent.substring(0, 80) + "…");
+        // Attach the currently selected project (if any) so the agent edits
+        // the right workspace and the deploy pipeline targets the right VM.
+        var pid = null;
+        if (typeof currentProjectId !== "undefined" && currentProjectId) pid = currentProjectId;
+        var pname = null;
+        if (typeof currentProject !== "undefined" && currentProject) pname = currentProject;
         var body = {
             intent: intent,
             use_case: state.useCase,
             budget_cents: budgetCents,
             auto_approve: opts.auto_approve !== false,
+            project_id: pid,
+            project_name: pname,
         };
         return api("/api/vibe/run", {
             method: "POST",

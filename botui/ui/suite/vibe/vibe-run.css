@@ -1,5 +1,16 @@
 /* Vibe wave-2 Run Dock (issue #806/#807) */
 
+/* The dock host is an absolute overlay spanning the vibe window (the
+   sibling chat overlay anchors the same way). Without this the dock's
+   `bottom/right` resolved against the desktop document — rendering the
+   log panel in the middle of the designer instead of bottom-right. */
+#vibeRunDockHost {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 90;
+}
+
 #vibeRunDock {
     position: absolute;
     bottom: 24px;
@@ -16,6 +27,7 @@
     color: var(--text);
     z-index: 90;
     font-size: 12px;
+    pointer-events: auto;
 }
 
 #vibeRunDock.collapsed {

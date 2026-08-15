@@ -95,6 +95,11 @@ pub struct VibeRunConfig {
     /// Per-bot LLM endpoint override (over env `LLM_URL`).
     pub llm_url: Option<String>,
     pub budget_cents: u64,
+    /// Vibe project this run operates on (uuid string); drives the deploy
+    /// pipeline stage args and the agent's `project` workspace key.
+    pub project_id: Option<String>,
+    /// Project name as seen by the agent (workspace key, e.g. `calculator`).
+    pub project_name: Option<String>,
 }
 
 impl Default for VibeRunConfig {
@@ -109,6 +114,8 @@ impl Default for VibeRunConfig {
             llm_key: None,
             llm_url: None,
             budget_cents: 0,
+            project_id: None,
+            project_name: None,
         }
     }
 }
