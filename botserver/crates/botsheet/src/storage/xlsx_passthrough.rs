@@ -328,7 +328,7 @@ fn replace_or_insert_cell(
     }
 
     // Empty (self-closing) sheetData: expand it in place.
-    if let Some(pos) = xml.find("<sheetData/>") {
+    if xml.contains("<sheetData/>") {
         let expanded = format!("<sheetData><row r=\"{row}\">{replacement}</row></sheetData>");
         return Ok(xml.replacen("<sheetData/>", &expanded, 1));
     }

@@ -3,8 +3,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::core::*;
-
 #[derive(Debug, Deserialize)]
 pub struct SheetAiRequest {
     pub command: String,
