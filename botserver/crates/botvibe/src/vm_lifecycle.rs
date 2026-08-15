@@ -304,14 +304,14 @@ impl VmLifecycle {
 
 #[derive(diesel::QueryableByName)]
 struct VmRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    project_id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    org_id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    branch_id: String,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    project_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     project_name: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -334,12 +334,11 @@ struct VmRow {
 
 impl VmRow {
     fn into_vm(self) -> VmInstance {
-        let branch_id = Uuid::parse_str(&self.branch_id).unwrap_or_default();
         VmInstance {
-            id: Uuid::parse_str(&self.id).unwrap_or_default(),
-            project_id: Uuid::parse_str(&self.project_id).unwrap_or_default(),
-            org_id: Uuid::parse_str(&self.org_id).unwrap_or_default(),
-            branch_id,
+            id: self.id,
+            project_id: self.project_id,
+            org_id: self.org_id,
+            branch_id: self.branch_id,
             project_name: self.project_name.clone(),
             env: self.env,
             tier: self.tier,
@@ -349,7 +348,7 @@ impl VmRow {
             error: self.error,
             created_at: self.created_at,
             updated_at: self.updated_at,
-            alm_org: VmLifecycle::alm_org(branch_id),
+            alm_org: VmLifecycle::alm_org(self.branch_id),
             alm_repo: VmLifecycle::alm_repo(&self.project_name),
         }
     }

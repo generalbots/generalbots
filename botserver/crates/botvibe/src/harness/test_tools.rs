@@ -24,7 +24,7 @@ pub fn test_run() -> ToolHandler {
         Box::pin(async move {
             let project = args.get("project").and_then(|v| v.as_str()).unwrap_or_default().to_string();
             let command = args.get("command").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            let mut argv: Vec<String> = args.get("args")
+            let argv: Vec<String> = args.get("args")
                 .and_then(|v| v.as_array())
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string).map(String::from)).collect())
                 .unwrap_or_default();
