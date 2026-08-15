@@ -6,9 +6,10 @@ use crate::types::{
     CellData, FreezePanesRequest, MergeCellsRequest, MergedCell, RangeRequest, RangeResponse,
     SaveResponse, WorksheetMetaResponse,
 };
+use crate::ui_fragments::Lang;
 use axum::{
     extract::{Extension, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::Utc;
@@ -203,6 +204,7 @@ pub async fn handle_freeze_panes(
 pub async fn handle_get_range(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: HeaderMap,
     Json(req): Json<RangeRequest>,
 ) -> Result<Json<RangeResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref());
@@ -228,6 +230,7 @@ pub async fn handle_get_range(
     }
 
     let worksheet = &sheet.worksheets[req.worksheet_index];
+    let locale = Lang::from_headers(&headers).number_locale();
 
     let mut cells: HashMap<String, CellData> = HashMap::new();
     for row in req.start_row..=req.end_row {
@@ -238,8 +241,9 @@ pub async fn handle_get_range(
                 // Apply the stored number format to the display value while the
                 // raw typed value stays available for arithmetic (#785).
                 if let (Some(typed), Some(code)) = (c.typed.as_ref(), c.format.as_deref()) {
-                    c.value =
-                        Some(botsheet_core::engine::formats::display_cell(typed, Some(code)));
+                    c.value = Some(botsheet_core::engine::formats::display_cell_locale(
+                        typed, Some(code), locale,
+                    ));
                 }
                 cells.insert(key, c);
             }

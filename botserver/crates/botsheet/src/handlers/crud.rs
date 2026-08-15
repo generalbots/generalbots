@@ -1,17 +1,13 @@
 use crate::auth::{resolve_user_id, SheetUser};
-use crate::state::{
-    delete_sheet_from_drive, list_sheets_from_drive, load_sheet_from_drive,
-    save_sheet_to_drive, persist_sheet_to_drive, SheetState,
-};
-use crate::storage::import::{parse_csv_to_worksheets, parse_xlsx_to_worksheets};
-use crate::storage::import::create_new_spreadsheet;
-use crate::types::{
-    LoadFromDriveRequest, LoadQuery, SaveRequest,
-    SaveResponse, SearchQuery, ShareRequest, Spreadsheet, SpreadsheetMetadata,
-};
+use crate::state::{delete_sheet_from_drive, list_sheets_from_drive, load_sheet_from_drive,
+    persist_sheet_to_drive, save_sheet_to_drive, SheetState};
+use crate::storage::import::{create_new_spreadsheet, parse_csv_to_worksheets, parse_xlsx_to_worksheets};
+use crate::types::{LoadFromDriveRequest, LoadQuery, SaveRequest, SaveResponse, SearchQuery,
+    ShareRequest, Spreadsheet, SpreadsheetMetadata};
+use crate::ui_fragments::Lang;
 use axum::{
     extract::{Extension, Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use chrono::Utc;
@@ -69,6 +65,7 @@ pub async fn handle_search_sheets(
 pub async fn handle_load_sheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: HeaderMap,
     Query(query): Query<LoadQuery>,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref());
@@ -92,13 +89,14 @@ pub async fn handle_load_sheet(
         })?;
 
     let mut sheet = session.sheet.read().await.clone();
-    botsheet_core::engine::formats::apply_formats_to_sheet(&mut sheet);
+    botsheet_core::engine::formats::apply_formats_to_sheet_locale(&mut sheet, Lang::from_headers(&headers).number_locale());
     Ok(Json(sheet))
 }
 
 pub async fn handle_load_from_drive(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: HeaderMap,
     Json(req): Json<LoadFromDriveRequest>,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
     let drive = state.drive.as_ref().ok_or_else(|| {
@@ -162,9 +160,10 @@ pub async fn handle_load_from_drive(
     let sheet_id = Uuid::from_bytes(id_bytes).to_string();
 
     // Reuse an existing working copy (with any prior edits) when present.
+    let locale = Lang::from_headers(&headers).number_locale();
     if let Ok(mut existing) = load_sheet_from_drive(&state, &user_id, &Some(sheet_id.clone())).await
     {
-        botsheet_core::engine::formats::apply_formats_to_sheet(&mut existing);
+        botsheet_core::engine::formats::apply_formats_to_sheet_locale(&mut existing, locale);
         return Ok(Json(existing));
     }
 
@@ -193,7 +192,7 @@ pub async fn handle_load_from_drive(
 
     // Return a display-formatted clone; the persisted model keeps raw values.
     let mut response = sheet.clone();
-    botsheet_core::engine::formats::apply_formats_to_sheet(&mut response);
+    botsheet_core::engine::formats::apply_formats_to_sheet_locale(&mut response, locale);
     Ok(Json(response))
 }
 
@@ -248,9 +247,8 @@ pub async fn handle_save_sheet(
     }
 
     if req.worksheets.is_empty() {
-        // No full snapshot: flush the live session (which already holds the
-        // authoritative cell state), or create a blank document. This keeps
-        // the client from sending a lossy viewport-only dump over the wire.
+        // No full snapshot: flush the live session (authoritative), or create
+        // a blank document — the client never sends a viewport-only dump.
         if let Some(sheet_id) = req.id.as_deref() {
             let session = state
                 .sessions
@@ -357,6 +355,7 @@ pub async fn handle_delete_sheet(
 pub async fn handle_get_sheet_by_id(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: HeaderMap,
     Path(sheet_id): Path<String>,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref());
@@ -371,12 +370,12 @@ pub async fn handle_get_sheet_by_id(
             )
         })?;
     let mut sheet = session.sheet.read().await.clone();
-    botsheet_core::engine::formats::apply_formats_to_sheet(&mut sheet);
+    botsheet_core::engine::formats::apply_formats_to_sheet_locale(&mut sheet, Lang::from_headers(&headers).number_locale());
     Ok(Json(sheet))
 }
 
-/// Returns the ops recorded after `since` (0 = all), plus the current version
-/// so a reconnecting client can converge with the session state (#789, #791).
+/// Returns the ops after `since` (0 = all) plus the version, so a reconnecting
+/// client can converge with the session state (#789, #791).
 pub async fn handle_sheet_ops(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,

@@ -36,6 +36,15 @@ impl Lang {
             Lang::En
         }
     }
+
+    /// Number-format locale for this language: pt-BR swaps the thousands and
+    /// decimal separators (`1.234,50`).
+    pub fn number_locale(self) -> botsheet_core::engine::formats::NumberLocale {
+        match self {
+            Lang::Pt => botsheet_core::engine::formats::NumberLocale::PT,
+            Lang::En => botsheet_core::engine::formats::NumberLocale::EN,
+        }
+    }
 }
 
 const EN: &[(&str, &str)] = &[
