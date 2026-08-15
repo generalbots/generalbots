@@ -475,10 +475,11 @@
             if (window.__BOT_IS_PUBLIC__ === true) return;
             self.clearTokens();
             sessionStorage.setItem('gb-signed-out', 'true');
-            var path = window.location.pathname + window.location.hash;
+            // Full URL, not pathname: a relative redirect would resolve
+            // against the login host after auth and bounce back (login loop).
             window.location.href =
               (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
-              encodeURIComponent(path);
+              encodeURIComponent(window.location.href);
           }, 5000);
           window.__checkBotPublicStatusPromise.then(function () {
             clearTimeout(timer);
@@ -490,10 +491,10 @@
             }
             self.clearTokens();
             sessionStorage.setItem('gb-signed-out', 'true');
-            var path = window.location.pathname + window.location.hash;
+            // Full URL — see comment above (login loop fix).
             window.location.href =
               (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
-              encodeURIComponent(path);
+              encodeURIComponent(window.location.href);
           });
           return;
         }
@@ -504,10 +505,11 @@
         self.clearTokens();
         sessionStorage.setItem('gb-signed-out', 'true');
 
-        var currentPath = window.location.pathname + window.location.hash;
+        // Full URL — a relative redirect would resolve against the login
+        // host after auth and bounce back to the login page (login loop).
         window.location.href =
           (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
-          encodeURIComponent(currentPath);
+          encodeURIComponent(window.location.href);
       });
 
       window.addEventListener("gb:auth:login", function (event) {
