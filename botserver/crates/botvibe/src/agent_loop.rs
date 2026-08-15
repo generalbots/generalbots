@@ -17,6 +17,11 @@ const MAX_VERIFY_FAILURES: u32 = 2;
 // vibe33 #813 — transient provider failures must not kill the run.
 const MAX_LLM_RETRIES: u32 = 6;
 const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 2, 4, 8, 12, 16];
+// Some providers (e.g. tabitoken.com behind Cloudflare) reject the default
+// reqwest/curl User-Agent with a 403 WAF block. Send a browser UA so the
+// agent loop's LLM calls are not mistaken for scraping.
+const LLM_USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36";
 
 pub struct AgentLoop {
     prompt_manager: Arc<VibePromptManager>,
@@ -352,6 +357,7 @@ impl AgentLoop {
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
+            .user_agent(LLM_USER_AGENT)
             .build()
             .map_err(|e| format!("http client: {e}"))?;
         let tools = self.tool_schemas_for(run.use_case).await;
@@ -438,6 +444,7 @@ impl AgentLoop {
     ) -> Result<String, String> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
+            .user_agent(LLM_USER_AGENT)
             .build()
             .map_err(|e| format!("http client: {e}"))?;
         let body = serde_json::json!({
@@ -585,6 +592,7 @@ impl AgentLoop {
     ) -> Result<String, String> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
+            .user_agent(LLM_USER_AGENT)
             .build()
             .map_err(|e| format!("http client: {e}"))?;
         let body = serde_json::json!({
@@ -612,6 +620,25 @@ impl AgentLoop {
         let payload = self.read_body(resp).await?;
         Self::content_from_payload(&payload)
     }
+
+/// Parses a self-verification reply into a verdict. Reasoning models often
+/// restate earlier failures before the verdict ("the first test FAILED but
+/// was corrected"); a naive `contains()` would read the historical mention
+/// as the verdict and condemn real executed work. The LAST verdict token in
+/// the reply wins, so a trailing "VERIFIED" after a historical "FAILED" is
+/// respected (and vice versa). Returns `None` when no explicit verdict token
+/// is present.
+fn last_verdict(response: &str) -> Option<bool> {
+    let last_failed = response.rfind("FAILED");
+    let last_verified = response.rfind("VERIFIED");
+    match (last_failed, last_verified) {
+        // VERIFIED appearing after FAILED (or only VERIFIED present) -> pass.
+        (Some(f), Some(v)) => Some(v > f),
+        (Some(_), None) => Some(false),
+        (None, Some(_)) => Some(true),
+        (None, None) => None,
+    }
+}
 
     fn parse_tool_calls(&self, llm_response: &str) -> Vec<ExtractedToolCall> {
         if let Some(json_start) = llm_response.find('{') {
@@ -670,20 +697,20 @@ impl AgentLoop {
             }
         };
         context.add_assistant_message(response.clone());
-        if response.contains("FAILED") {
-            false
-        } else if response.contains("VERIFIED") {
-            true
-        } else {
-            // Reasoning models (e.g. gpt-oss) may answer in prose instead of
-            // the literal VERIFIED/FAILED token. Equivalent to the LLM-error
-            // path below: a verification that produced no explicit verdict
-            // must not condemn real executed work.
-            warn!(
-                "Vibe run {} self-verification replied without an explicit verdict; treating as verified",
-                run.run_id
-            );
-            true
+        match Self::last_verdict(&response) {
+            Some(false) => false,
+            Some(true) => true,
+            None => {
+                // Reasoning models (e.g. gpt-oss) may answer in prose instead of
+                // the literal VERIFIED/FAILED token. Equivalent to the LLM-error
+                // path below: a verification that produced no explicit verdict
+                // must not condemn real executed work.
+                warn!(
+                    "Vibe run {} self-verification replied without an explicit verdict; treating as verified",
+                    run.run_id
+                );
+                true
+            }
         }
     }
 
@@ -722,19 +749,10 @@ impl AgentLoop {
             tool_call.approved = true;
         }
 
-        self.telemetry
-            .record_tool_call(ToolCallRecord {
-                run_id: run.run_id,
-                use_case: run.use_case,
-                tool_name: tool_call.tool_name.clone(),
-                latency_ms: 0,
-                tokens: None,
-                cost: 0.0,
-                success: false,
-                error: None,
-            })
-            .await;
-
+        // NOTE: no placeholder ToolCallFailed record here — the real outcome
+        // is recorded after execution. A pre-execution record with
+        // success=false would emit a phantom tool_call_failed event for every
+        // tool call (even successful ones), polluting metrics and the UI.
         self.broadcast_event(
             run,
             "executing_tool",
@@ -1192,6 +1210,17 @@ mod tests {
     use super::*;
     use serde_json::json;
     use tokio::sync::RwLock;
+
+    #[test]
+    fn last_verdict_uses_final_token() {
+        // Historical FAILED mention must not override a trailing VERIFIED.
+        assert_eq!(AgentLoop::last_verdict("The first test FAILED but was corrected. VERIFIED"), Some(true));
+        assert_eq!(AgentLoop::last_verdict("Looks good. VERIFIED"), Some(true));
+        assert_eq!(AgentLoop::last_verdict("FAILED: server.js still missing"), Some(false));
+        assert_eq!(AgentLoop::last_verdict("Everything passed: VERIFIED. Wait, no — FAILED"), Some(false));
+        assert_eq!(AgentLoop::last_verdict("No explicit verdict here"), None);
+        assert_eq!(AgentLoop::last_verdict(""), None);
+    }
 
     #[test]
     fn extract_json_object_handles_nested_and_strings() {

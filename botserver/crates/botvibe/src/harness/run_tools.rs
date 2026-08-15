@@ -33,11 +33,24 @@ pub fn run_command() -> ToolHandler {
             if command.is_empty() {
                 return err("command is required".into());
             }
+            // Tolerant parsing: models often send `command: "npm install"` as
+            // a single string. Split so the allowlist sees `npm` (allowed).
+            let (program, extra): (String, Vec<String>) = if argv.is_empty()
+                && command.split_whitespace().count() > 1
+            {
+                let mut parts = command.split_whitespace();
+                (
+                    parts.next().unwrap_or_default().to_string(),
+                    parts.map(str::to_string).collect(),
+                )
+            } else {
+                (command.clone(), argv.clone())
+            };
             let cwd = match ensure_workspace(&project) {
                 Ok(p) => p,
                 Err(e) => return err(e),
             };
-            match run(&command, &argv, &cwd, timeout) {
+            match run(&program, &extra, &cwd, timeout) {
                 Ok(out) if out.exit_code == Some(0) => ok(json!({
                     "exit_code": out.exit_code,
                     "stdout": out.stdout,
