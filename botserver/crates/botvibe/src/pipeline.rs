@@ -209,13 +209,19 @@ impl PipelineEngine {
         executor: &VibeToolExecutor,
         state: &dyn VibeState,
         intent: &str,
+        project_id: Option<&str>,
+        project_name: Option<&str>,
     ) -> PipelineRunReport {
         let mut reports = Vec::new();
         for stage in &pipeline.stages {
             let start = std::time::Instant::now();
             let tool_name = stage.kind.tool_name();
             // vibe33 #811/#812 — stage tool args are injected from the run
-            // intent for the intent-dependent stages; others keep defaults.
+            // intent for the intent-dependent stages; the project-scoped
+            // stages (test/run, git/commit, publish/project, domain/bind)
+            // receive the run's project context so validation passes and the
+            // tools operate on the right project instead of failing with
+            // "Parâmetro obrigatório ausente: 'project'" (issue #8xx).
             let arguments = if matches!(
                 stage.kind,
                 PipelineStageKind::ClassifyIntent
@@ -224,7 +230,24 @@ impl PipelineEngine {
             ) {
                 serde_json::json!({ "intent": intent })
             } else {
-                serde_json::json!({})
+                match stage.kind {
+                    PipelineStageKind::PublishApp => serde_json::json!({
+                        "project_id": project_id.unwrap_or(""),
+                        "env": "production",
+                    }),
+                    PipelineStageKind::BindDomain => serde_json::json!({
+                        "project_id": project_id.unwrap_or(""),
+                        "env": "production",
+                        "domain": format!("{}.gb.solutions", project_name.unwrap_or("app")),
+                    }),
+                    PipelineStageKind::BuildTest | PipelineStageKind::CommitPush => {
+                        serde_json::json!({
+                            "project": project_name.unwrap_or(""),
+                            "project_id": project_id.unwrap_or(""),
+                        })
+                    }
+                    _ => serde_json::json!({}),
+                }
             };
             let mut tool_call = VibeToolCall::new(
                 run_id,
@@ -457,7 +480,7 @@ mod tests {
         let pipeline = RunPipeline::for_use_case(VibeUseCase::SoftwareDevelopment);
         let run_id = Uuid::new_v4();
         let report = engine
-            .run(&pipeline, run_id, VibeUseCase::SoftwareDevelopment, &executor, &MockState::new(), "x")
+            .run(&pipeline, run_id, VibeUseCase::SoftwareDevelopment, &executor, &MockState::new(), "x", None, None)
             .await;
         assert_eq!(report.stages.len(), 3);
         assert_eq!(report.run_id, run_id);

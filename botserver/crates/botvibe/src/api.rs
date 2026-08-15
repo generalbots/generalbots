@@ -31,6 +31,13 @@ pub struct CreateRunRequest {
     /// (PipelineEngine, approval-gated deploy pipeline) instead of the
     /// agent loop.
     pub pipeline_mode: Option<String>,
+    /// Vibe project this run operates on (uuid string). When set, the
+    /// deploy pipeline and the agent's harness tools resolve the project
+    /// workspace instead of guessing from the intent text.
+    pub project_id: Option<String>,
+    /// Project name (workspace key) — the value the agent passes to
+    /// file/run/git tools as `project`.
+    pub project_name: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -242,9 +249,17 @@ async fn create_run(
         llm_key: None,
         llm_url: None,
         budget_cents: req.budget_cents.unwrap_or(0),
+        project_id: req.project_id.clone(),
+        project_name: req.project_name.clone(),
     };
 
-    let run = VibeRun::new(resolve_effective_bot_id(api.state.db_pool()), Uuid::nil(), Uuid::nil(), req.intent, config);
+    let intent = match (&req.project_name, req.intent.as_str()) {
+        (Some(name), raw) if !name.is_empty() && !raw.to_lowercase().contains(name.to_lowercase().as_str()) => {
+            format!("In project {name}: {raw}")
+        }
+        _ => req.intent,
+    };
+    let run = VibeRun::new(resolve_effective_bot_id(api.state.db_pool()), Uuid::nil(), Uuid::nil(), intent, config);
     let run_id = run.run_id;
     let state_str = run.state.to_string();
     let uc_str = run.use_case.to_string();
@@ -305,6 +320,8 @@ async fn create_run(
                 run.transition(VibeRunState::Running);
                 let engine = PipelineEngine::new(api_clone.telemetry.clone());
                 let pipeline = RunPipeline::deploy_pipeline(run.use_case);
+                let project_id = run.config.project_id.clone();
+                let project_name = run.config.project_name.clone();
                 let report = engine
                     .run(
                         &pipeline,
@@ -313,6 +330,8 @@ async fn create_run(
                         &api_clone.tool_executor,
                         api_clone.state.as_ref(),
                         &run.intent,
+                        project_id.as_deref(),
+                        project_name.as_deref(),
                     )
                     .await;
                 let failed = report

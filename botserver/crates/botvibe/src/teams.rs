@@ -161,6 +161,8 @@ impl TeamCoordinator {
             llm_key: None,
             llm_url: None,
             budget_cents: 0,
+            project_id: None,
+            project_name: None,
         };
         let mut run = VibeRun::new(
             Uuid::nil(),

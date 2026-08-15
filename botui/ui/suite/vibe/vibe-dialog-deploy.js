@@ -161,9 +161,14 @@
 
     function probeEnv() {
         if (!state.projectId) return;
+        // Probe the project's deployed environment (production for a
+        // published app) instead of hardcoding "development" — the project
+        // registry stores the env per project (e.g. calculator → production).
+        var proj = state.projects.find(function (x) { return x.id === state.projectId; });
+        var env = (proj && (proj.environment || proj.env)) || "production";
         var grid = document.getElementById("vibeDeployMain");
-        if (grid) grid.innerHTML = '<div class="vibe-empty">Probing environment...</div>';
-        D.api("/api/vibe/projects/" + encodeURIComponent(state.projectId) + "/envs/development/probe", {
+        if (grid) grid.innerHTML = '<div class="vibe-empty">Probing environment (' + D.esc(env) + ")...</div>";
+        D.api("/api/vibe/projects/" + encodeURIComponent(state.projectId) + "/envs/" + encodeURIComponent(env) + "/probe", {
             method: "POST",
             body: {},
         }).then(function (data) {
@@ -190,6 +195,7 @@
                 pipeline_mode: "deploy",
                 auto_approve: false,
                 project_id: state.projectId,
+                project_name: projName,
             },
         }).then(function (data) {
             if (data && data.success) {
