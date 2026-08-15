@@ -10,10 +10,15 @@ pub(crate) fn render_scientific(n: f64, decimal_digits: usize) -> String {
     if n == 0.0 {
         return format!("0.{}E+00", "0".repeat(decimal_digits));
     }
-    let exp = n.abs().log10().floor() as i32;
+    let mut exp = n.abs().log10().floor() as i32;
     let mantissa = n / 10f64.powi(exp);
     let factor = 10f64.powi(decimal_digits as i32);
-    let rounded = (mantissa * factor).round() / factor;
+    let mut rounded = (mantissa * factor).round() / factor;
+    // Normalize a rounding carry: 9.999 → 10.00 must become 1.00E+01.
+    if rounded.abs() >= 10.0 {
+        rounded /= 10.0;
+        exp += 1;
+    }
     format!("{:.*}E{:+03}", decimal_digits, rounded, exp)
 }
 

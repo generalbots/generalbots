@@ -39,6 +39,9 @@ fn scientific_notation() {
     assert!(f.scientific);
     assert_eq!(render_number(12345.0, &f), "1.23E+04");
     assert_eq!(render_number(0.0012, &f), "1.20E-03");
+    // A rounding carry must re-normalise, not emit `10.00E+02`.
+    assert_eq!(render_number(999.9, &f), "1.00E+03");
+    assert_eq!(render_number(-999.9, &f), "-1.00E+03");
 }
 
 #[test]
