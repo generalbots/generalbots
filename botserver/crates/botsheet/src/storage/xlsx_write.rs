@@ -87,7 +87,8 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
 
         if let Some(ref widths) = worksheet.column_widths {
             for (col_idx, width) in widths {
-                let col_letter = get_col_letter(*col_idx);
+                // Model columns are 0-based; `get_col_letter` is 1-based.
+                let col_letter = get_col_letter(col_idx + 1);
                 let col_dim = umya_sheet.get_column_dimension_mut(&col_letter);
                 col_dim.set_width(*width as f64);
             }
@@ -95,7 +96,7 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
 
         if let Some(ref heights) = worksheet.row_heights {
             for (row_idx, height) in heights {
-                let row_dim = umya_sheet.get_row_dimension_mut(row_idx);
+                let row_dim = umya_sheet.get_row_dimension_mut(&(row_idx + 1));
                 row_dim.set_height(*height as f64);
             }
         }
