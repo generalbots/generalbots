@@ -164,6 +164,9 @@ pub async fn get_email_content_htmx(
     // accounts instead of fetching live from IMAP by a non-UID UUID (the
     // previous path always failed → clicks rendered nothing).
     let pool = state.pool.clone();
+    // `id` is used again for the rendered HTML after the closure, so the
+    // closure gets its own copy.
+    let id_for_content = id.clone();
     let content = tokio::task::spawn_blocking(move || -> Result<EmailContent, String> {
         use diesel::sql_query;
         let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
@@ -206,7 +209,7 @@ pub async fn get_email_content_htmx(
             .unwrap_or_default();
         let to = row.to_addresses.unwrap_or_default();
         Ok(EmailContent {
-            id: id.clone(),
+            id: id_for_content,
             from_name: row.from_address.clone(),
             from_email: row.from_address,
             to,
@@ -326,8 +329,6 @@ pub async fn list_labels_htmx(
 
     axum::response::Html(html)
 }
-
-use uuid::Uuid;
 
 #[derive(Debug, QueryableByName, serde::Serialize)]
 pub struct SignatureRow {

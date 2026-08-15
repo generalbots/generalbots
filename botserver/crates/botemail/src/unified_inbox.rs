@@ -81,8 +81,11 @@ pub async fn list_unified_inbox(
         })
         .collect();
 
-    let account_ids: Vec<uuid::Uuid> = accounts.iter().map(|a| a.id).collect();
+    let mut account_ids: Vec<uuid::Uuid> = accounts.iter().map(|a| a.id).collect();
 
+    // Restrict to a single account when the `account` filter is set (the
+    // array bind is dynamic, so narrowing the vector avoids a conditional
+    // extra SQL placeholder that Diesel chains cannot express).
     let filter_account = params.get("account").and_then(|v| {
         if v == "all" {
             None
@@ -90,34 +93,30 @@ pub async fn list_unified_inbox(
             uuid::Uuid::parse_str(v).ok()
         }
     });
+    if let Some(acc) = filter_account {
+        account_ids.retain(|id| *id == acc);
+    }
 
     let pool2 = state.pool.clone();
     let folder2 = folder.clone();
-    let acc_ids2 = account_ids.clone();
-    let filter_account2 = filter_account;
+    let acc_ids2 = account_ids;
     let messages_result = tokio::task::spawn_blocking(move || {
         use diesel::sql_query;
         let mut db = pool2.get().map_err(|e| format!("DB pool error: {e}"))?;
-        let mut sql = String::from(
+        let sql = String::from(
             "SELECT id, account_id, message_id_header, in_reply_to, subject, normalized_subject, \
              from_address, to_addresses, body_text, body_html, has_attachments, folder, uid, \
              flags, is_read, is_flagged, received_at, synced_at \
-             FROM email_messages WHERE account_id = ANY($1) AND folder = $2",
+             FROM email_messages WHERE account_id = ANY($1) AND folder = $2 \
+             ORDER BY received_at DESC LIMIT $3 OFFSET $4",
         );
-        if filter_account2.is_some() {
-            sql.push_str(" AND account_id = $5");
-        }
-        sql.push_str(" ORDER BY received_at DESC LIMIT $3 OFFSET $4");
 
-        let mut q = sql_query(&sql)
+        sql_query(&sql)
             .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(&acc_ids2)
             .bind::<diesel::sql_types::Text, _>(&folder2)
             .bind::<diesel::sql_types::BigInt, _>(per_page)
-            .bind::<diesel::sql_types::BigInt, _>(offset);
-        if let Some(ref acc_id) = filter_account2 {
-            q = q.bind::<diesel::sql_types::Uuid, _>(*acc_id);
-        }
-        q.load::<EmailMessageRow>(&mut db)
+            .bind::<diesel::sql_types::BigInt, _>(offset)
+            .load::<EmailMessageRow>(&mut db)
             .map_err(|e| format!("Query failed: {e}"))
     })
     .await;
