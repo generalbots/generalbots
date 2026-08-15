@@ -309,12 +309,15 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
             }
         });
 
+    let border = extract_border(style.get_borders());
+
     if font_weight.is_some()
         || font_style.is_some()
         || text_decoration.is_some()
         || color.is_some()
         || background.is_some()
         || text_align.is_some()
+        || border.is_some()
     {
         Some(CellStyle {
             font_family,
@@ -326,10 +329,49 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
             background,
             text_align,
             vertical_align,
-            border: None,
+            border,
         })
     } else {
         None
+    }
+}
+
+/// Reduces a cell's borders to a single CSS border string (the model has one
+/// `border` field, not per-side). The first non-`none` side wins — most tables
+/// set all four sides identically, so the top/left representative is correct.
+fn extract_border(borders: Option<&umya_spreadsheet::structs::Borders>) -> Option<String> {
+    let borders = borders?;
+    let side = [
+        borders.get_top(),
+        borders.get_left(),
+        borders.get_bottom(),
+        borders.get_right(),
+    ]
+    .into_iter()
+    .find(|b| b.get_border_style() != "none")?;
+    let style = border_style_to_css(side.get_border_style())?;
+    let argb = side.get_color().get_argb();
+    let color = if argb.len() >= 8 {
+        format!("#{}", &argb[2..])
+    } else if argb.is_empty() {
+        "#000000".to_string()
+    } else {
+        format!("#{argb}")
+    };
+    Some(format!("{style} {color}"))
+}
+
+/// Maps an OOXML border style to a CSS border width/style.
+fn border_style_to_css(style: &str) -> Option<&'static str> {
+    match style {
+        "thin" | "hair" => Some("1px solid"),
+        "medium" => Some("2px solid"),
+        "thick" => Some("3px solid"),
+        "dashed" => Some("1px dashed"),
+        "dotted" => Some("1px dotted"),
+        "double" => Some("3px double"),
+        "none" | "" => None,
+        _ => Some("1px solid"),
     }
 }
 
