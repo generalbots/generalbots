@@ -29,7 +29,7 @@ vibe = ["dep:botvibe", "dep:diesel"]
 [[bin]]
 name = "boteval-run"
 path = "src/bin/boteval_run.rs"
-required-features = ["http"]
+required-features = ["http", "vibe"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

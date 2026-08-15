@@ -743,6 +743,9 @@ curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health   # health c
 grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
 ```
 
+### ⚠️ Vibe Testing — REUSE the Same Project (VM disk space)
+Each Vibe project raises its own Incus VM (`incus launch images:ubuntu/24.04`, see `botserver/crates/botvibe/src/vm_incus.rs`). Every new project spawns a fresh Ubuntu container that consumes host disk — repeated "New Project" runs during testing stack up VMs and can exhaust the disk (this machine hit **100% full**). **When testing Vibe, reuse an existing project instead of creating a new one.** Only create a new project when a clean, isolated VM is genuinely required, and clean up after: `incus delete --force <container>` (or reuse the VM). Before spawning more VMs check `df -h /` and `incus list`.
+
 ---
 
 ## ☁️ Cloud SaaS Product Architecture (CRM + Default Bot)

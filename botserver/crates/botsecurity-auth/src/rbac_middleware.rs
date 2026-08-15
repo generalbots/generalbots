@@ -1237,6 +1237,8 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // Vibe project-scoped resources (members/backups/deployments/envs/
         // metering/vms): authenticated users reach them; per-project RBAC
         // (member/developer/owner) still gates sensitive operations.
+        // User typeahead for the members dialog (no raw UUID pasting).
+        RoutePermission::new("/api/vibe/users/search", "GET", ""),
         RoutePermission::new("/api/vibe/projects/:project_id/**", "GET", ""),
         RoutePermission::new("/api/vibe/projects/:project_id/**", "POST", ""),
         RoutePermission::new("/api/vibe/projects/:project_id/**", "PUT", ""),
@@ -1579,12 +1581,11 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // Browser
         RoutePermission::new("/api/browser/**", "GET", ""),
         RoutePermission::new("/api/browser/**", "POST", ""),
+        RoutePermission::new("/api/browser/**", "DELETE", ""),
 
-        // Terminal
-        RoutePermission::new("/api/terminal/**", "GET", "")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/terminal/**", "POST", "")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        // Terminal (sandboxed PTY sessions; any authenticated user)
+        RoutePermission::new("/api/terminal/**", "GET", ""),
+        RoutePermission::new("/api/terminal/**", "POST", ""),
 
         // People / Directory
         RoutePermission::new("/api/people/**", "GET", ""),

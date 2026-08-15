@@ -21,6 +21,8 @@ pub(crate) struct TaskSpec {
     pub min_tokens: Option<u32>,
     /// Maximum tokens hint, when relevant.
     pub max_tokens: Option<u32>,
+    /// #817 — minimum tool calls required for harness-tagged entries.
+    pub requires_tool_calls: Option<u32>,
 }
 
 macro_rules! spec {
@@ -33,6 +35,7 @@ macro_rules! spec {
             forbid: &[],
             min_tokens: None,
             max_tokens: None,
+            requires_tool_calls: None,
         }
     };
 }

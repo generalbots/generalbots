@@ -175,7 +175,7 @@ pub struct GeneratedApp {
     pub files: Vec<GeneratedFile>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedFile {
     pub path: String,
     pub content: Vec<u8>,
@@ -223,6 +223,10 @@ pub struct DeploymentRequest {
     /// gated by the caller's role on that project (admin+ required).
     #[serde(default)]
     pub project_id: Option<uuid::Uuid>,
+    /// The project's source files to deploy, relative paths to bytes. When
+    /// present, these are pushed to the ALM repo instead of an empty app.
+    #[serde(default)]
+    pub files: Vec<GeneratedFile>,
 }
 
 #[derive(Debug, Serialize)]

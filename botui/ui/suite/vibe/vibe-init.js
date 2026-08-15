@@ -37,18 +37,8 @@ function vibeQuickSubmit(text) {
 }
 
 function setupPipelineTabs() {
-var container = document.querySelector(".vibe-pipeline");
-if (!container) return;
-container.addEventListener("click", function (e) {
-var tab = e.target.closest(".vibe-pipeline-tab");
-if (!tab) return;
-container
-.querySelectorAll(".vibe-pipeline-tab")
-.forEach(function (t) {
-t.classList.remove("active");
-});
-tab.classList.add("active");
-});
+// The ribbon is wired by vibe-pipeline.js (tab → command-group switching).
+// Kept as a no-op entry point for backward compatibility.
 }
 
 function setupSidebarCollapse() {
@@ -78,10 +68,14 @@ function setupWorkspaceAccordions() {
 }
 
 function setupSidebarActions() {
-    var agentBtn = document.getElementById("createAgentBtn");
-    if (agentBtn) agentBtn.addEventListener("click", vibeBreedAgent);
+    // "+ Create a New Project" opens the real New Project modal (the old
+    // handler created a DOM-only fake workspace — removed 2026-08-14).
     var wsBtn = document.getElementById("createWorkspaceBtn");
-    if (wsBtn) wsBtn.addEventListener("click", vibeCreateWorkspace);
+    if (wsBtn) {
+        wsBtn.addEventListener("click", function () {
+            if (window.VibeNewProject) window.VibeNewProject.open();
+        });
+    }
 }
 
 function initVibe() {

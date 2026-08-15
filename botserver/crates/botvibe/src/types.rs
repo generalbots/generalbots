@@ -383,6 +383,59 @@ CREATE TABLE IF NOT EXISTS vibe_email_outbox (
 
 CREATE INDEX IF NOT EXISTS idx_vibe_email_outbox_status ON vibe_email_outbox(status);
 CREATE INDEX IF NOT EXISTS idx_vibe_email_outbox_bot_id ON vibe_email_outbox(bot_id);
+
+-- #816 — canvases/issues/sessions/teams were in-memory RwLock<Vec> and
+-- vanished on restart. These tables are the write-through persistence layer.
+CREATE TABLE IF NOT EXISTS vibe_canvases (
+    canvas_id UUID PRIMARY KEY,
+    title TEXT NOT NULL,
+    project TEXT,
+    content JSONB NOT NULL DEFAULT '{}',
+    share_token VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_vibe_canvases_project ON vibe_canvases(project);
+CREATE INDEX IF NOT EXISTS idx_vibe_canvases_share_token ON vibe_canvases(share_token);
+
+CREATE TABLE IF NOT EXISTS vibe_issues (
+    issue_id UUID PRIMARY KEY,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL DEFAULT '',
+    labels JSONB NOT NULL DEFAULT '[]',
+    state VARCHAR(20) NOT NULL DEFAULT 'open',
+    assignee TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_vibe_issues_state ON vibe_issues(state);
+
+CREATE TABLE IF NOT EXISTS vibe_sessions (
+    session_id UUID PRIMARY KEY,
+    parent_session_id UUID,
+    bot_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    intent TEXT NOT NULL DEFAULT '',
+    use_case VARCHAR(50) NOT NULL DEFAULT 'software_development',
+    budget_cents BIGINT NOT NULL DEFAULT 0,
+    run JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_vibe_sessions_bot_id ON vibe_sessions(bot_id);
+CREATE INDEX IF NOT EXISTS idx_vibe_sessions_updated_at ON vibe_sessions(updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS vibe_teams (
+    team_id UUID PRIMARY KEY,
+    name TEXT NOT NULL,
+    objective TEXT NOT NULL DEFAULT '',
+    members JSONB NOT NULL DEFAULT '[]',
+    shared_tasks JSONB NOT NULL DEFAULT '[]',
+    status VARCHAR(20) NOT NULL DEFAULT 'running',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_vibe_teams_status ON vibe_teams(status);
 ";
 
 #[cfg(test)]

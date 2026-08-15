@@ -37,6 +37,11 @@ fn create_api_router() -> Router<AppState> {
     Router::new()
         .route("/health", get(api_health))
         .route("/client-error", axum::routing::post(handle_client_error))
+        // Backend API WebSocket endpoints (/api/terminal/ws, /api/browser/.../ws)
+        // need a real WS proxy — the reqwest-based fallback cannot tunnel
+        // upgrades. These routes must come BEFORE the fallback.
+        .route("/terminal/ws", get(api_ws_proxy))
+        .route("/browser/session/:id/agent/ws", get(api_ws_proxy))
         .fallback(any(proxy_api))
 }
 

@@ -41,7 +41,7 @@
     }
 
     function shortRunId(id) {
-        return id ? String(id).substring(0, 8) : "—";
+        return id ? "#" + String(id).substring(0, 4) : "—";
     }
 
     function setText(id, text) {
@@ -403,7 +403,8 @@
 
     /* ------------------------------------------------- run create */
 
-    function start(intent) {
+    function start(intent, opts) {
+        opts = opts || {};
         var budgetInput = q("vibeRunBudget");
         var budget = budgetInput && parseFloat(budgetInput.value);
         var budgetCents = isFinite(budget) && budget > 0 ? Math.round(budget * 100) : 0;
@@ -413,7 +414,7 @@
             intent: intent,
             use_case: state.useCase,
             budget_cents: budgetCents,
-            auto_approve: false,
+            auto_approve: opts.auto_approve !== false,
         };
         return api("/api/vibe/run", {
             method: "POST",
@@ -456,7 +457,7 @@
             }
             list.innerHTML = sessions.slice(0, 6).map(function (s) {
                 var runState = s.run ? s.run.state : "idle";
-                var st = String(s.session_id).substring(0, 8);
+                var st = "Session " + String(s.session_id).substring(0, 4);
                 return '<div class="vibe-session-item">' +
                     '<span class="vibe-chip ' + chipState(runState) + '">' + esc(runState) + "</span>" +
                     '<span class="meta" title="' + esc(s.intent) + '">' + esc(s.intent || st) + "</span>" +
@@ -638,11 +639,11 @@
             }
         }
         renderRunCard();
-        if (typeof updateMantis1 === "function") {
+        if (typeof updateVibe1 === "function") {
             if (eventData.progress === 100 || /complete|done|evolved/i.test(step)) {
-                updateMantis1("done");
+                updateVibe1("done");
             } else {
-                updateMantis1("working");
+                updateVibe1("working");
             }
         }
         if (String(step).indexOf("team:member:") === 0) {
@@ -689,5 +690,7 @@
         start: start,
         focus: focus,
         onProgress: onProgress,
+        approve: approveRun,
+        deny: denyRun,
     };
 })();

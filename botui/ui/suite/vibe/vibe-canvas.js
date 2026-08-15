@@ -1,3 +1,19 @@
+function vibeGoHome() {
+var stepsContainer = document.getElementById("vibeSteps");
+if (stepsContainer) {
+stepsContainer.innerHTML = "";
+stepsContainer.style.display = "none";
+}
+var emptyState = document.getElementById("vibeCanvasEmpty");
+if (emptyState) emptyState.style.display = "flex";
+nodeIdCounter = 0;
+try { if (window.VibeDialogs) window.VibeDialogs.close(); } catch (e) {}
+try { if (window.VibeNewProject) window.VibeNewProject.close(); } catch (e) {}
+try { if (window.VibeMembers) window.VibeMembers.close(); } catch (e) {}
+try { if (window.VibeGraph) window.VibeGraph.togglePanel(false); } catch (e) {}
+if (window.VibePipeline) window.VibePipeline.activate("plan");
+}
+
 function addTaskNode(title, description, meta) {
 var stepsContainer = document.getElementById("vibeSteps");
 if (!stepsContainer) return;
@@ -7,18 +23,11 @@ if (emptyState) emptyState.style.display = "none";
 
 nodeIdCounter++;
 meta = meta || {};
-var fileCount =
-meta.estimated_files ||
-meta.files ||
-Math.floor(Math.random() * 15 + 3);
-var time =
-meta.estimated_time ||
-meta.time ||
-Math.floor(Math.random() * 20 + 5) + "m";
-var tokens =
-meta.estimated_tokens ||
-meta.tokens ||
-"~" + Math.floor(Math.random() * 30 + 10) + "k tokens";
+// Only real values are shown — the previous Math.random() estimates
+// fabricated file/time/token counts (removed 2026-08-14).
+var fileCount = meta.estimated_files || meta.files || null;
+var time = meta.estimated_time || meta.time || null;
+var tokens = meta.estimated_tokens || meta.tokens || null;
 var status = meta.status || "Planning";
 var fileList = meta.fileList || [];
 var isFirst = stepsContainer.children.length === 0;
@@ -65,17 +74,19 @@ node.style.cssText =
 (isFirst ? "132,214,105,0.15" : "0,0,0,0.05") +
 ");position:relative;flex-shrink:0;animation:nodeIn 0.4s ease;";
 
+var metaRow = [];
+if (fileCount) metaRow.push(fileCount + " files");
+if (time) metaRow.push(time);
+if (tokens) metaRow.push(tokens);
+var metaHtml = metaRow.length
+? '<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:10px;color: var(--text-muted);">' +
+  metaRow.map(function (m) { return "<span>" + esc(m) + "</span>"; }).join("") +
+  "</div>"
+: "";
+
 node.innerHTML =
 '<div style="padding:12px 16px;border-bottom: 1px solid var(--border);">' +
-'<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:10px;color: var(--text-muted);">' +
-"<span>" +
-fileCount +
-" files</span><span>" +
-time +
-"</span><span>" +
-tokens +
-"</span>" +
-"</div>" +
+metaHtml +
 '<h4 style="margin:0 0 8px 0;font-size:14px;color: var(--text);font-weight:700;">' +
 esc(title) +
 "</h4>" +
@@ -95,15 +106,14 @@ esc(status) +
 "</span>" +
 "</div>" +
 '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-'<span style="color: var(--text-muted);">Mantis Manager</span>' +
-'<span style="display:flex;align-items:center;gap:4px;"><span class="as-status-dot green"></span> Mantis #1</span>' +
+'<span style="color: var(--text-muted);">Vibe Manager</span>' +
+'<span style="display:flex;align-items:center;gap:4px;"><span class="as-status-dot green"></span> Vibe Assistant</span>' +
 "</div>" +
 "</div>" +
 '<div style="padding:8px 16px;font-size:10px;font-weight:700;color: var(--text-muted);">' +
 '<div data-toggle="' +
 nodeId +
 "-files\" style=\"padding:4px 0;cursor:pointer;user-select:none;\" onclick=\"(function(el){var t=document.getElementById(el.getAttribute('data-toggle'));if(t){t.style.display=t.style.display==='none'?'':'none';var a=el.querySelector('span');if(a)a.textContent=t.style.display==='none'?'▶':'▼';}})(this)\">// SUB-TASKS <span style=\"float:right;\">▶</span></div>" +
-'<div style="padding:4px 0;cursor:pointer;">// LOGS <span style="float:right;">▶</span></div>' +
 "</div>" +
 subTasksHtml;
 

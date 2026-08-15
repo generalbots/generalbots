@@ -137,11 +137,17 @@ fn browser_screenshot() -> ToolHandler {
                         Ok(b) => b,
                         Err(e) => return err(format!("CDP body error: {e}")),
                     };
-                    let path = format!("/tmp/browser_{tab_id}_{}.png", chrono::Utc::now().timestamp());
-                    if let Err(e) = std::fs::write(&path, &bytes) {
-                        return err(format!("Failed to write screenshot: {e}"));
-                    }
-                    ok(json!({ "screenshot": path, "bytes": bytes.len() }))
+                    // #818 — return the image inline (base64 data URL) so the
+                    // screenshot surfaces directly in chat, matching the
+                    // botbrowser API contract, instead of a /tmp path the
+                    // client cannot render.
+                    use base64::Engine;
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                    ok(json!({
+                        "image_base64": b64,
+                        "mime_type": "image/png",
+                        "size_bytes": bytes.len(),
+                    }))
                 }
                 Ok(resp) => err(format!("CDP returned status {}", resp.status())),
                 Err(e) => err(format!("CDP request failed: {e}")),

@@ -125,7 +125,10 @@ fn git_pr() -> ToolHandler {
             };
 
             let forgejo_url = std::env::var("FORGEJO_URL")
-                .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+                .ok()
+                .or_else(|| std::env::var("ALM_URL").ok())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "http://localhost:4747".to_string());
             let token = match std::env::var("FORGEJO_TOKEN").ok() {
                 Some(t) if !t.is_empty() => t,
                 _ => return err("FORGEJO_TOKEN is not configured".into()),
@@ -200,7 +203,7 @@ mod tests {
     #[test]
     fn parse_forgejo_repo_handles_url_forms() {
         assert_eq!(
-            parse_forgejo_repo("https://alm.pragmatismo.com.br/generalbots/botserver.git"),
+            parse_forgejo_repo("https://localhost:4747/generalbots/botserver.git"),
             Some(("generalbots".to_string(), "botserver".to_string()))
         );
         assert_eq!(

@@ -17,8 +17,8 @@
     --destructive: 0 100% 40%; /* Red */
     --destructive-foreground: 0 0% 100%; /* White */
     --border: 0 0% 25%; /* #404040 - Dark border */
-    --win-border-width: 2px;
-    --win-border-color: rgba(0,0,0,0.5);
+    --win-border-width: 4px;
+    --win-border-color: hsl(var(--bevel-dark));
     --win-border-active: #0000aa;
     --input: 0 0% 100%; /* White input bg */
     --ring: 240 100% 50%; /* Blue focus ring */
@@ -147,6 +147,27 @@ select {
     border-color: hsl(var(--bevel-light)) hsl(var(--bevel-dark))
         hsl(var(--bevel-dark)) hsl(var(--bevel-light));
     box-shadow: none;
+}
+
+/* Windows - classic raised bevel (thick Win95 frame) */
+.window-element-glass,
+.window-element {
+    border-style: solid;
+    border-width: 4px;
+    border-color: hsl(var(--bevel-light)) hsl(var(--bevel-dark))
+        hsl(var(--bevel-dark)) hsl(var(--bevel-light));
+    box-shadow: 2px 2px 0 0 hsla(var(--bevel-dark) / 0.5);
+}
+
+.window-element-glass.window-focused,
+.window-element.window-focused {
+    border-color: #0000aa #0000aa #0000aa #0000aa;
+    box-shadow: 2px 2px 0 0 hsla(var(--bevel-dark) / 0.5),
+        inset 2px 2px 0 0 hsl(var(--bevel-light));
+}
+
+.window-header-glass {
+    border-bottom: 2px solid hsl(var(--bevel-dark));
 }
 
 /* Scrollbar styling */

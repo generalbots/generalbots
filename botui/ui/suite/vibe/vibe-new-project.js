@@ -19,7 +19,9 @@
         custom: ["node", "python", "htmx", "html"]
     };
 
-    var state = { kind: 0, tier: 0, env: 0 };
+    // name kept in state so Kind/Tier/Env re-renders do not discard the
+    // user's typed value (fixes #821).
+    var state = { kind: 0, tier: 0, env: 0, name: "" };
 
     function esc(s) {
         var d = document.createElement("div");
@@ -57,7 +59,7 @@
             '<button type="button" class="vibe-np-close" onclick="window.VibeNewProject.close()">&times;</button></div>' +
             '<div class="vibe-np-body">' +
             '<label class="vibe-np-label">Name</label>' +
-            '<input type="text" id="vnpName" class="vibe-np-input" placeholder="e.g. autoremAppes-app" value="' + esc(currentProject) + '">' +
+            '<input type="text" id="vnpName" class="vibe-np-input" placeholder="e.g. my-project" value="' + esc(state.name) + '">' +
             '<label class="vibe-np-label">Kind</label>' +
             '<div class="vibe-np-kinds">' + kindHtml() + "</div>" +
             '<label class="vibe-np-label">Env tier</label>' +
@@ -100,6 +102,14 @@
                 });
             });
         });
+        // Persist the typed name in state so re-renders (Kind/Tier/Env
+        // changes) do not discard it (fixes #821).
+        var nameInput = document.getElementById("vnpName");
+        if (nameInput) {
+            nameInput.addEventListener("input", function () {
+                state.name = this.value;
+            });
+        }
         renderKindActive();
         var create = document.getElementById("vnpCreateBtn");
         if (create) create.addEventListener("click", submitCreate);
@@ -129,6 +139,7 @@
         var err = document.getElementById("vnpErr");
         var nameInput = document.getElementById("vnpName");
         var name = nameInput ? nameInput.value.trim() : "";
+        if (name) state.name = name;
         var kind = KINDS[state.kind];
         var tier = TIERS[state.tier];
         var env = ENVS[state.env];
@@ -167,8 +178,12 @@
             await raiseDevVm(project, env, kind.id, tier);
             if (typeof currentProject !== "undefined") currentProject = name;
             if (typeof currentProjectId !== "undefined") currentProjectId = project.id;
+            state.name = "";
             close();
             document.dispatchEvent(new CustomEvent("gb:vibe-project", {
+                detail: { project: name, id: project.id }
+            }));
+            document.dispatchEvent(new CustomEvent("gb:vibe-project-created", {
                 detail: { project: name, id: project.id }
             }));
             if (typeof vibeAddMsg === "function") {

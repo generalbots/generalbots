@@ -107,7 +107,10 @@ mod llm_impl {
         let generated_html = generate_html_from_prompt(llm, &combined_content, &prompt_str).await?;
 
         let forgejo_url = std::env::var("FORGEJO_URL")
-            .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+            .ok()
+            .or_else(|| std::env::var("ALM_URL").ok())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "http://localhost:4747".to_string());
         let forgejo_token = std::env::var("FORGEJO_TOKEN")
             .map_err(|e| format!("FORGEJO_TOKEN not set: {e}"))?;
         let org = std::env::var("FORGEJO_DEFAULT_ORG")

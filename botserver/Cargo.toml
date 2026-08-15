@@ -191,6 +191,7 @@ hmac = { workspace = true }
 log = { workspace = true }
 num-format = { workspace = true }
 once_cell = { workspace = true }
+portable-pty = "0.9"
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "multipart", "stream", "json", "blocking"] }

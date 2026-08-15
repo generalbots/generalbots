@@ -32,6 +32,22 @@ Each task is represented as a node on the horizontal canvas showing:
 
 Canvas state is **persisted in localStorage** (`vibe-canvas-nodes`) and restored on page load.
 
+### Ribbon Toolbar
+Commands are grouped by pipeline stage so each tab shows only the actions that
+apply to that phase:
+
+| Stage | Commands |
+|-------|----------|
+| **PLAN** | New Project · Designer · Knowledge Graph · Database |
+| **BUILD** | Code Editor · Terminal · Browser · Source Control · Database |
+| **REVIEW** | Approve & Resume · Deny & Cancel · Knowledge Graph · Review Changes |
+| **DEPLOY** | Deploy · Push · Members |
+| **MONITOR** | Metrics · Deployments · Logs |
+
+Every command maps to a real handler (dialogs, run approve/deny, project create,
+members typeahead, knowledge-graph panel, designer deep-link). `review` commands
+only take effect while a run is actually waiting at an approval gate.
+
 ### Command Palette
 Press `Cmd+K` (or `Ctrl+K`) to open the command palette:
 
@@ -72,7 +88,17 @@ Create, list, and kill terminal sessions via `POST /api/terminal/create`, `GET /
 - Log → `GET /api/git/log`
 
 ### Deployment
-Click **Deploy** to trigger `POST /api/bots/:id/deploy`. Real-time progress streams via the task progress WebSocket, shown in the chat panel.
+Click **Deploy** to package the project workspace and push it to the
+self-hosted Forgejo (ALM) instance. The publish path (`/api/deployment/deploy`)
+now sends the actual workspace files (skipping `.git`, `node_modules`, `target`,
+etc.) so `ForgejoClient::push_app` commits real source — not an empty app —
+before the CI/CD workflow runs.
+
+Forgejo runs locally like the other stack components: `localhost:4747`, with
+credentials self-provisioned into Vault `secret/gbo/alm` (url/username/password/
+API token/runner token) during botserver bootstrap. Consumers resolve
+`FORGEJO_URL → ALM_URL → http://localhost:4747` (no hardcoded remote URL).
+Real-time progress streams via the task progress WebSocket, shown in the chat panel.
 
 ---
 
@@ -109,7 +135,15 @@ Payload is a free-form JSONB pragma used by agents (deploy hints, hooks, manifes
 
 ### Real Tool Harness
 
-The tool registry no longer returns stubs — the harness (`botvibe/src/harness/`) implements sandboxed tools operating on a per-project workspace under `VIBE_WORKSPACE_ROOT` (default `/opt/gbo/data/vibe-workspaces/{project}`):
+The tool registry no longer returns stubs — the harness (`botvibe/src/harness/`) implements sandboxed tools operating on a per-project workspace under `VIBE_WORKSPACE_ROOT` (default `/opt/gbo/data/vibe-workspaces/{project}`).
+
+LLM configuration resolves per-bot with the bot's **real branch** preferred
+(fixing a bug where a stale `nil`-branch `bot_configuration` row shadowed the
+active config and caused every run to fail with `401`). Streamed tool-call
+arguments that arrive truncated (invalid JSON) are detected and the turn is
+retried non-streaming, so `file/write` never silently emits an empty/corrupt
+file. Runs remain queryable during execution (`state=running`) and project
+creation is idempotent (re-`POST`ing the same name returns the existing project).
 
 | Tool | Description | Approval |
 |------|-------------|----------|

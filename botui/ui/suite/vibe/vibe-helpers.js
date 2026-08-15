@@ -76,7 +76,7 @@ dot.className = "as-status-dot green";
 dot.style.boxShadow = "0 0 8px var(--accent)";
 }
 if (badge) {
-badge.textContent = "EVOLVED";
+badge.textContent = "ONLINE";
 badge.style.background = "var(--accent)";
 badge.style.color = "var(--bg)";
 }

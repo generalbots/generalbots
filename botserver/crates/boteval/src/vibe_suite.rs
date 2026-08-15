@@ -77,6 +77,7 @@ fn push_entry(
         max_tokens: spec.max_tokens,
         min_tokens: spec.min_tokens,
         language: Some(lang_code.into()),
+        requires_tool_calls: spec.requires_tool_calls,
     };
     let mut tags: Vec<String> = vec![
         use_case.to_string(),

@@ -15,8 +15,8 @@ const MAX_TOOL_RESULT_CHARS: usize = 4000;
 const MAX_TOOL_RETRIES: u32 = 2;
 const MAX_VERIFY_FAILURES: u32 = 2;
 // vibe33 #813 — transient provider failures must not kill the run.
-const MAX_LLM_RETRIES: u32 = 2;
-const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 3];
+const MAX_LLM_RETRIES: u32 = 4;
+const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 2, 4, 8];
 
 pub struct AgentLoop {
     prompt_manager: Arc<VibePromptManager>,
@@ -66,9 +66,7 @@ impl AgentLoop {
         match result {
             Ok(()) => {
                 if run.state == VibeRunState::Running {
-                    run.transition(VibeRunState::Completed);
-                    self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-                    self.broadcast_event(run, "completed", "Agent loop completed successfully", 100);
+                    self.finish_truthfully(run, "Agent loop completed successfully").await;
                 }
             }
             Err(_) => {
@@ -82,6 +80,28 @@ impl AgentLoop {
                     timeout_duration.as_secs()
                 );
             }
+        }
+    }
+
+    /// #819 — a run that executed zero tool calls performed no work and must
+    /// not be reported as "Completed" (the model text-replied instead of acting).
+    /// This terminal helper fails the run with an honest verdict when no tool
+    /// ever ran, and otherwise completes it normally.
+    async fn finish_truthfully(&self, run: &mut VibeRun, completed_msg: &str) {
+        if run.tool_calls.is_empty() {
+            run.transition(VibeRunState::Failed);
+            run.error = Some("Agent produced no tool calls — no work was executed".to_string());
+            self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+            self.broadcast_event(
+                run,
+                "failed",
+                "No tool calls executed — run performed no work",
+                100,
+            );
+        } else {
+            run.transition(VibeRunState::Completed);
+            self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+            self.broadcast_event(run, "completed", completed_msg, 100);
         }
     }
 
@@ -154,9 +174,7 @@ impl AgentLoop {
                     || empty_parse_rounds + 1 >= MAX_EMPTY_PARSE_RETRIES
                 {
                     context.add_assistant_message(llm_response);
-                    run.transition(VibeRunState::Completed);
-                    self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-                    self.broadcast_event(run, "completed", "Agent finished — no more tool calls", 100);
+                    self.finish_truthfully(run, "Agent finished — no more tool calls").await;
                     return;
                 }
                 empty_parse_rounds += 1;
@@ -253,9 +271,7 @@ impl AgentLoop {
         }
 
         if run.state == VibeRunState::Running {
-            run.transition(VibeRunState::Completed);
-            self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-            self.broadcast_event(run, "completed", "Max steps reached — loop completed", 100);
+            self.finish_truthfully(run, "Max steps reached — loop completed").await;
         }
     }
 
@@ -383,8 +399,73 @@ impl AgentLoop {
 
         let payload = match self.read_body(resp).await {
             Ok(payload) => payload,
-            Err(e) => return Err(e),
+            Err(e) => {
+                // Streaming failed (e.g. truncated body on a large context) —
+                // retry non-streaming with the same tool set so function
+                // calling still works instead of failing the run.
+                warn!("LLM streaming read failed ({e}); retrying non-streaming");
+                return self
+                    .call_llm_nonstream(&api_url, &api_key, &model, &system, &prompt, &tools)
+                    .await;
+            }
         };
+        match Self::content_from_payload(&payload) {
+            Ok(content) => Ok(content),
+            Err(e) if e.contains("truncated") => {
+                // The stream ended mid-tool-argument (e.g. the model hit the
+                // output token cap while writing several large files). Retry
+                // non-streaming so a complete arguments document is returned
+                // instead of silently writing an empty/corrupt file.
+                warn!("LLM streaming truncated tool-call arguments ({e}); retrying non-streaming");
+                self.call_llm_nonstream(&api_url, &api_key, &model, &system, &prompt, &tools)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Non-streaming fallback: identical request (tools + system prompt) but
+    /// `stream: false`, so the response is a single JSON document instead of
+    /// an SSE stream — more robust against truncated/decoded bodies.
+    async fn call_llm_nonstream(
+        &self,
+        api_url: &str,
+        api_key: &str,
+        model: &str,
+        system: &str,
+        prompt: &str,
+        tools: &[serde_json::Value],
+    ) -> Result<String, String> {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(90))
+            .build()
+            .map_err(|e| format!("http client: {e}"))?;
+        let body = serde_json::json!({
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 4096,
+            "tools": tools,
+            "tool_choice": "auto",
+            "stream": false,
+        });
+        let resp = client
+            .post(api_url)
+            .header("Authorization", format!("Bearer {api_key}"))
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| format!("HTTP request failed: {e}"))?;
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            return Err(format!("LLM returned status {status}: {text}"));
+        }
+        let payload = self.read_body(resp).await?;
         Self::content_from_payload(&payload)
     }
 
@@ -409,10 +490,33 @@ impl AgentLoop {
     }
 
     /// Extracts either native tool calls (canonical envelope) or plain text
-    /// content from an OpenAI-style completion payload.
+    /// content from an OpenAI-style completion payload. Returns an error when
+    /// a tool call's `arguments` is non-empty but not valid JSON — that means
+    /// the stream was truncated mid-argument, and silently substituting `{}`
+    /// would write an empty/corrupt file.
     fn content_from_payload(payload: &serde_json::Value) -> Result<String, String> {
-        if let Some(calls) = native_tool_calls_from_value(payload) {
-            return Ok(canonical_tool_calls_json(&calls));
+        if let Some(calls) = payload["choices"][0]["message"]["tool_calls"].as_array() {
+            let mut has_call = false;
+            for tc in calls {
+                let name = tc["function"]["name"].as_str().unwrap_or_default();
+                let args_raw = tc["function"]["arguments"].as_str().unwrap_or_default();
+                if name.is_empty() && args_raw.is_empty() {
+                    continue;
+                }
+                has_call = true;
+                if !args_raw.is_empty()
+                    && serde_json::from_str::<serde_json::Value>(args_raw).is_err()
+                {
+                    return Err(
+                        "LLM tool-call arguments were truncated (invalid JSON)".to_string(),
+                    );
+                }
+            }
+            if has_call {
+                if let Some(calls) = native_tool_calls_from_value(payload) {
+                    return Ok(canonical_tool_calls_json(&calls));
+                }
+            }
         }
         let content = payload["choices"][0]["message"]["content"]
             .as_str()
@@ -518,6 +622,9 @@ impl AgentLoop {
                             .iter()
                             .filter_map(|tc| {
                                 let name = tc.get("tool_name")?.as_str()?.to_string();
+                                if name.is_empty() {
+                                    return None;
+                                }
                                 let args = tc
                                     .get("arguments")
                                     .cloned()
@@ -565,8 +672,18 @@ impl AgentLoop {
         context.add_assistant_message(response.clone());
         if response.contains("FAILED") {
             false
+        } else if response.contains("VERIFIED") {
+            true
         } else {
-            response.contains("VERIFIED")
+            // Reasoning models (e.g. gpt-oss) may answer in prose instead of
+            // the literal VERIFIED/FAILED token. Equivalent to the LLM-error
+            // path below: a verification that produced no explicit verdict
+            // must not condemn real executed work.
+            warn!(
+                "Vibe run {} self-verification replied without an explicit verdict; treating as verified",
+                run.run_id
+            );
+            true
         }
     }
 
@@ -932,9 +1049,11 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
                 serde_json::Value::String(message["content"].as_str().unwrap_or_default().to_string() + text);
         }
         if let Some(deltas) = delta["tool_calls"].as_array() {
+            let Some(calls) = message["tool_calls"].as_array_mut() else {
+                continue;
+            };
             for delta_call in deltas {
                 let index = delta_call["index"].as_u64().unwrap_or(0) as usize;
-                let calls = message["tool_calls"].as_array_mut().unwrap();
                 while calls.len() <= index {
                     calls.push(serde_json::json!({
                         "id": "", "type": "function",
@@ -942,7 +1061,6 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
                     }));
                 }
                 let entry = &mut calls[index];
-                eprintln!("DBG delta_call={delta_call} entry_before={entry}");
                 if let Some(id) = delta_call["id"].as_str() {
                     if !id.is_empty() {
                         entry["id"] = serde_json::Value::String(id.to_string());
@@ -979,6 +1097,11 @@ fn native_tool_calls_from_value(payload: &serde_json::Value) -> Option<Vec<Extra
         .iter()
         .filter_map(|tc| {
             let name = tc["function"]["name"].as_str()?.to_string();
+            // SSE deltas can leave a placeholder entry with no name — skip
+            // it instead of forwarding an empty tool name to the executor.
+            if name.is_empty() {
+                return None;
+            }
             let arguments = tc["function"]["arguments"]
                 .as_str()
                 .and_then(|a| serde_json::from_str::<serde_json::Value>(a).ok())
@@ -1127,6 +1250,31 @@ mod tests {
             native_tool_calls_from_value(&serde_json::json!({"choices": [{"message": {"content": "hi"}}]}))
                 .is_none()
         );
+    }
+
+    #[test]
+    fn content_from_payload_errors_on_truncated_tool_arguments() {
+        // A stream cut off mid-argument leaves invalid JSON; it must be
+        // reported (so call_llm retries non-streaming) instead of silently
+        // substituting `{}` and writing an empty/corrupt file.
+        let truncated = serde_json::json!({
+            "choices": [{"message": {"tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "file/write", "arguments": "{\"path\": \"server.js\", \"content\": \"const app = req"}}
+            ]}}]
+        });
+        let err = AgentLoop::content_from_payload(&truncated).expect_err("must fail on truncation");
+        assert!(err.contains("truncated"), "error should flag truncation: {err}");
+
+        // A complete call with valid JSON arguments parses normally.
+        let valid = serde_json::json!({
+            "choices": [{"message": {"tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "file/write", "arguments": "{\"path\": \"server.js\", \"content\": \"ok\"}"}}
+            ]}}]
+        });
+        let out = AgentLoop::content_from_payload(&valid).expect("valid call parses");
+        assert!(out.contains("file/write") && out.contains("server.js"));
     }
 
     #[test]

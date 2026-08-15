@@ -100,8 +100,13 @@ impl S3Repository {
         // Rebuild URL with correct base + signature params
         let signed_url = format!("{}?{}", path_url, query);
 
-        // Download using reqwest
-        let client = reqwest::Client::new();
+        // Download using reqwest — MUST have timeouts: a stalled S3 endpoint
+        // blocks the whole boot (drive_compiler runs before the HTTP server).
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(20))
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
         let response = client
             .get(&signed_url)
             .send()
@@ -383,7 +388,11 @@ impl S3Repository {
         headers.insert("authorization", auth.parse()
             .map_err(|e| anyhow::anyhow!("invalid auth header: {}", e))?);
 
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(20))
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
         let resp = client.put(&url_str)
             .headers(headers)
             .send()

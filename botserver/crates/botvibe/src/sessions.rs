@@ -25,11 +25,23 @@ pub struct VibeSession {
 
 pub struct SessionStore {
     sessions: RwLock<Vec<VibeSession>>,
+    pool: Option<crate::types::DbPool>,
 }
 
 impl SessionStore {
     pub fn new() -> Self {
-        Self { sessions: RwLock::new(Vec::new()) }
+        Self {
+            sessions: RwLock::new(Vec::new()),
+            pool: None,
+        }
+    }
+
+    /// #816 — write-through persistence so sessions survive restarts.
+    pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        Self {
+            sessions: RwLock::new(Vec::new()),
+            pool: Some(pool),
+        }
     }
 
     pub async fn create(
@@ -55,7 +67,16 @@ impl SessionStore {
         };
         let mut sessions = self.sessions.write().await;
         sessions.push(session.clone());
+        self.persist(&session).await;
         session
+    }
+
+    /// Persists a session snapshot (or logs on failure — never panics).
+    async fn persist(&self, session: &VibeSession) {
+        let Some(pool) = &self.pool else { return };
+        if let Err(e) = crate::catalog_persistence::save_session(pool, session) {
+            log::error!("session persist failed for {}: {e}", session.session_id);
+        }
     }
 
     pub async fn get(&self, session_id: Uuid) -> Option<VibeSession> {
@@ -86,6 +107,7 @@ impl SessionStore {
         if let Some(existing) = sessions.iter_mut().find(|s| s.session_id == fork.session_id) {
             *existing = fork.clone();
         }
+        self.persist(&fork).await;
         Some(fork)
     }
 
@@ -97,7 +119,10 @@ impl SessionStore {
             run.state = VibeRunState::Pending;
         }
         session.updated_at = chrono::Utc::now();
-        Some(session.clone())
+        let updated = session.clone();
+        drop(sessions);
+        self.persist(&updated).await;
+        Some(updated)
     }
 }
 
@@ -280,10 +305,20 @@ async fn resume_session(
             let mut runs = state_runs.write().await;
             runs.insert(run_id, run.clone());
         }
-        let mut sessions = sessions.sessions.write().await;
-        if let Some(session) = sessions.iter_mut().find(|s| s.session_id == session_id) {
-            session.run = Some(run);
-            session.updated_at = chrono::Utc::now();
+        let updated = {
+            let mut sessions = sessions.sessions.write().await;
+            let session = sessions.iter_mut().find(|s| s.session_id == session_id);
+            match session {
+                Some(session) => {
+                    session.run = Some(run);
+                    session.updated_at = chrono::Utc::now();
+                    Some(session.clone())
+                }
+                None => None,
+            }
+        };
+        if let Some(session) = updated {
+            sessions.persist(&session).await;
         }
     });
 

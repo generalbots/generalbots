@@ -425,6 +425,19 @@ pub async fn csrf_middleware(
         return next.run(request).await;
     }
 
+    // Skip CSRF for the internal service token (X-Internal-Token): the auth
+    // middleware already validated it against INTERNAL_API_TOKEN and inserted
+    // the service identity — e.g. the VIBE RUN BASIC keyword calling back into
+    // the local API. Same loopback rationale as X-User-ID above.
+    let is_internal_service = request
+        .headers()
+        .get("X-Internal-Token")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| !v.is_empty());
+    if is_internal_service {
+        return next.run(request).await;
+    }
+
     let header_token = request
         .headers()
         .get(&config.header_name)

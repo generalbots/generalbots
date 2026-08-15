@@ -141,7 +141,10 @@ pub async fn deploy_project(
     };
 
     let forgejo_url = std::env::var("FORGEJO_URL")
-        .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
 
     let forgejo_token = std::env::var("FORGEJO_TOKEN").ok();
 
@@ -163,10 +166,20 @@ pub async fn deploy_project(
 
     let router = DeploymentRouter::new(forgejo_url, forgejo_token);
 
-    let generated_app = GeneratedApp::new(
-        config.app_name.clone(),
-        format!("{} project", config.project_type),
-    );
+    let generated_app = if request.files.is_empty() {
+        // No source files provided (e.g. bot projects deploy in gbdialog
+        // mode without an ALM repo, or the caller has nothing to push yet).
+        GeneratedApp::new(
+            config.app_name.clone(),
+            format!("{} project", config.project_type),
+        )
+    } else {
+        GeneratedApp {
+            name: config.app_name.clone(),
+            description: format!("{} project", config.project_type),
+            files: request.files,
+        }
+    };
 
     let result = router.deploy(config, generated_app).await
         .map_err(|e| DeploymentApiError::DeploymentFailed(e.to_string()))?;
@@ -238,7 +251,10 @@ pub async fn stop_project(
         .to_string();
 
     let forgejo_url = std::env::var("FORGEJO_URL")
-        .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
     let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
 
     router.stop(&app_name, &org).await
@@ -259,7 +275,10 @@ pub async fn start_project(
         .to_string();
 
     let forgejo_url = std::env::var("FORGEJO_URL")
-        .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
     let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
 
     router.start(&app_name, &org).await
@@ -271,7 +290,10 @@ pub async fn get_project_status(
     axum::extract::Path((org, app_name)): axum::extract::Path<(String, String)>,
 ) -> Result<Json<DeployGatewayResponse>, DeploymentApiError> {
     let forgejo_url = std::env::var("FORGEJO_URL")
-        .unwrap_or_else(|_| "https://alm.pragmatismo.com.br".to_string());
+        .ok()
+        .or_else(|| std::env::var("ALM_URL").ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "http://localhost:4747".to_string());
     let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
 
     router.status(&app_name, &org).await

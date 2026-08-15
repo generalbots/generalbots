@@ -1,0 +1,22 @@
+# sample-node-app — systemd unit for running inside an incus container.
+# Install: copy to /etc/systemd/system/ then
+#   systemctl daemon-reload && systemctl enable --now sample-node-app
+[Unit]
+Description=sample-node-app (Node.js HTTP service)
+After=network.target
+
+[Service]
+Type=simple
+User=app
+WorkingDirectory=/opt/gbo/apps/sample-node-app
+Environment=NODE_ENV=production
+Environment=APP_NAME=sample-node-app
+Environment=APP_VERSION=1.0.0
+Environment=PORT=8080
+ExecStart=/usr/bin/node /opt/gbo/apps/sample-node-app/server.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
