@@ -213,13 +213,21 @@ pub struct EmailData {
     pub read: bool,
 }
 
+#[derive(Debug, diesel::QueryableByName)]
 pub struct EmailSummary {
+    #[diesel(sql_type = Text)]
     pub id: String,
+    #[diesel(sql_type = Text)]
     pub from_name: String,
+    #[diesel(sql_type = Text)]
     pub from_email: String,
+    #[diesel(sql_type = Text)]
     pub subject: String,
+    #[diesel(sql_type = Text)]
     pub preview: String,
+    #[diesel(sql_type = Text)]
     pub date: String,
+    #[diesel(sql_type = Bool)]
     pub read: bool,
 }
 
