@@ -94,18 +94,31 @@ fn get_format(path: &str) -> String {
 }
 
 async fn get_file_info(
-    State(_state): State<Arc<dyn DriveStore>>,
+    State(state): State<Arc<dyn DriveStore>>,
     Path((bot_id, path)): Path<(String, String)>,
 ) -> Result<Json<MediaInfo>, PlayerError> {
     let filename = path.rsplit('/').next().unwrap_or(&path).to_string();
     let mime_type = get_mime_type(&path).to_string();
     let format = get_format(&path);
 
+    // Fetch the object so `size` reflects the real file (the DriveStore trait
+    // exposes only `get_object_bytes`, so the byte length is the available
+    // size signal). Missing files surface an honest error instead of a fake
+    // zero-byte entry.
+    let full_path = format!("{bot_id}.gbdrive/{path}");
+    let bytes = state
+        .get_object_bytes(&format!("{bot_id}.gbai"), &full_path)
+        .await
+        .map_err(|e| PlayerError {
+            error: format!("Failed to get file: {e}"),
+            code: "FILE_NOT_FOUND".to_string(),
+        })?;
+
     let info = MediaInfo {
         path: format!("{bot_id}/{path}"),
         filename,
         mime_type,
-        size: 0,
+        size: bytes.len() as u64,
         duration: None,
         width: None,
         height: None,

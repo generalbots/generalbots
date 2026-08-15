@@ -142,7 +142,7 @@ pub async fn dashboard_bots(State(state): State<Arc<AppState>>) -> Html<String> 
 
     let bots: Vec<BotRow> = diesel::sql_query(
         "SELECT b.name, b.description, b.is_active as active,
-         (SELECT COUNT(*) FROM message_history mh WHERE mh.session_id IN (SELECT id FROM user_sessions WHERE bot_id = b.bot_id)) as chat_count
+         (SELECT COUNT(*) FROM message_history mh WHERE mh.session_id IN (SELECT id FROM user_sessions WHERE bot_id = b.id)) as chat_count
          FROM bots b ORDER BY chat_count DESC LIMIT 5",
     )
     .load::<BotRow>(&mut conn)

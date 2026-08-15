@@ -129,9 +129,11 @@ pub async fn delete_group(
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
 
-    match auth_service.list_organizations().await {
+    let delete_url = format!("{}/metadata/organization/{}", auth_service.api_url(), group_id);
+    // `http_delete` already performs the request and returns the parsed body.
+    match auth_service.http_delete(delete_url).await {
         Ok(_) => {
-            info!("Group {} deleted/deactivated", group_id);
+            info!("Group {} deleted successfully", group_id);
             Ok(Json(SuccessResponse {
                 success: true,
                 message: Some(format!("Group {} deleted successfully", group_id)),
@@ -141,9 +143,9 @@ pub async fn delete_group(
         Err(e) => {
             log::error!("Failed to delete group: {}", e);
             Err((
-                StatusCode::NOT_FOUND,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
-                    error: "Group not found".to_string(),
+                    error: "Failed to delete group".to_string(),
                     details: Some(e.to_string()),
                 }),
             ))
@@ -275,30 +277,86 @@ pub async fn get_group_settings(
 
 
 pub async fn get_group_permissions(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     info!("Getting permissions for group: {}", group_id);
 
-    let permissions = serde_json::json!({
+    let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
+
+    // `http_get` already performs the request and returns the parsed JSON body.
+    let metadata = auth_service
+        .http_get(format!("{}/metadata/organization/{}", auth_service.api_url(), group_id))
+        .await
+        .map_err(|e| {
+            log::error!("Error getting group permissions: {}", e);
+            (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Group not found".to_string(),
+                    details: Some(e.to_string()),
+                }),
+            )
+        })?;
+
+    let permissions = metadata
+        .get("value")
+        .and_then(|v| v.as_str())
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
+        .and_then(|group_data| group_data.get("permissions").cloned())
+        .and_then(|p| p.as_array().map(|a| a.clone()))
+        .unwrap_or_default();
+
+    Ok(Json(serde_json::json!({
         "group_id": group_id,
-        "permissions": [],
+        "permissions": permissions,
         "inherited": true,
         "source": "organization"
-    });
-    Ok(Json(permissions))
+    })))
 }
 
 
 pub async fn get_group_analytics(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     info!("Getting analytics for group: {}", group_id);
 
+    let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
+
+    // `http_get` already performs the request and returns the parsed JSON body.
+    let metadata = auth_service
+        .http_get(format!("{}/metadata/organization/{}", auth_service.api_url(), group_id))
+        .await
+        .map_err(|e| {
+            log::error!("Error getting group analytics: {}", e);
+            (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Group not found".to_string(),
+                    details: Some(e.to_string()),
+                }),
+            )
+        })?;
+
+    let group_data = metadata
+        .get("value")
+        .and_then(|v| v.as_str())
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok());
+
+    let member_count = group_data
+        .as_ref()
+        .and_then(|g| g.get("members"))
+        .and_then(|m| m.as_array())
+        .map(|a| a.len())
+        .unwrap_or(0);
+
+    // "active_users" would require per-user session tracking per group;
+    // "kbs_shared" would require cross-referencing KB grants. Both are
+    // reported as 0 (no tracked state) rather than fabricated numbers.
     let analytics = serde_json::json!({
         "group_id": group_id,
-        "member_count": 0,
+        "member_count": member_count,
         "active_users": 0,
         "kbs_shared": 0
     });

@@ -9,6 +9,7 @@ use bigdecimal::{BigDecimal, ToPrimitive};
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use diesel::prelude::*;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -23,6 +24,20 @@ struct CountRow {
 
 fn bd_to_f64(bd: &BigDecimal) -> f64 {
     bd.to_f64().unwrap_or(0.0)
+}
+
+const DEFAULT_QUOTA_LIMITS: &[(&str, i64)] = &[
+    ("invoices", 100),
+    ("team", 50),
+    ("bots", 10),
+];
+
+fn parse_quota_limit(value: &serde_json::Value) -> Option<i64> {
+    match value {
+        serde_json::Value::Number(n) => n.as_i64(),
+        serde_json::Value::String(s) => s.trim().parse::<i64>().ok(),
+        _ => None,
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -292,13 +307,34 @@ async fn handle_dashboard_quotas(
     .map(|r| r.count)
     .unwrap_or(0);
 
-    let bot_limit = 10;
+    #[derive(diesel::QueryableByName)]
+    struct QuotaRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        quota_key: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        quota_limit: i64,
+    }
+    let quota_rows: Vec<QuotaRow> = diesel::sql_query(
+        "SELECT quota_key, quota_limit FROM billing_quota_settings WHERE branch_id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .load(&mut conn)
+    .unwrap_or_default();
+
+    let mut quota_limits: HashMap<String, i64> = HashMap::new();
+    for &(key, default) in DEFAULT_QUOTA_LIMITS {
+        quota_limits.insert(key.to_string(), default);
+    }
+    for row in quota_rows {
+        quota_limits.insert(row.quota_key, row.quota_limit);
+    }
+
+    let invoice_limit = quota_limits.get("invoices").copied().unwrap_or(100);
+    let team_limit = quota_limits.get("team").copied().unwrap_or(50);
+    let bot_limit = quota_limits.get("bots").copied().unwrap_or(10);
+
     let bot_pct = (bot_count as f64 / bot_limit as f64 * 100.0).min(100.0);
-
-    let team_limit = 50;
     let team_pct = (contact_count as f64 / team_limit as f64 * 100.0).min(100.0);
-
-    let invoice_limit = 100;
     let invoice_pct = (invoice_count as f64 / invoice_limit as f64 * 100.0).min(100.0);
 
     let html = format!(
@@ -372,15 +408,46 @@ struct UpgradeRequest {
 }
 
 async fn handle_subscription_upgrade(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
     Json(req): Json<UpgradeRequest>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({
-        "success": true,
-        "plan_id": req.plan_id,
-        "message": "Subscription upgraded successfully",
-        "effective_date": chrono::Utc::now().to_rfc3339()
-    }))
+    let Ok(mut conn) = state.pool.get() else {
+        return Json(serde_json::json!({
+            "success": false,
+            "error": "Database unavailable"
+        }));
+    };
+
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(&state.pool, &state.get_default_bot));
+
+    match diesel::sql_query(
+        "UPDATE billing_recurring \
+         SET plan_name = $1, status = 'active', updated_at = NOW() \
+         WHERE branch_id = $2",
+    )
+    .bind::<diesel::sql_types::Text, _>(&req.plan_id)
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .execute(&mut conn)
+    {
+        Ok(rows) if rows > 0 => Json(serde_json::json!({
+            "success": true,
+            "plan_id": req.plan_id,
+            "message": "Subscription upgraded successfully"
+        })),
+        Ok(_) => Json(serde_json::json!({
+            "success": false,
+            "error": "No active subscription found for this branch"
+        })),
+        Err(e) => {
+            tracing::error!("Failed to upgrade subscription: {e}");
+            Json(serde_json::json!({
+                "success": false,
+                "error": "Failed to upgrade subscription"
+            }))
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -389,37 +456,144 @@ struct CancelRequest {
 }
 
 async fn handle_subscription_cancel(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
     Json(req): Json<CancelRequest>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({
-        "success": true,
-        "message": "Subscription cancelled",
-        "reason": req.reason,
-        "effective_date": chrono::Utc::now().to_rfc3339()
-    }))
+    let Ok(mut conn) = state.pool.get() else {
+        return Json(serde_json::json!({
+            "success": false,
+            "error": "Database unavailable"
+        }));
+    };
+
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(&state.pool, &state.get_default_bot));
+
+    match diesel::sql_query(
+        "UPDATE billing_recurring \
+         SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW() \
+         WHERE branch_id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .execute(&mut conn)
+    {
+        Ok(rows) if rows > 0 => Json(serde_json::json!({
+            "success": true,
+            "message": "Subscription cancelled",
+            "reason": req.reason
+        })),
+        Ok(_) => Json(serde_json::json!({
+            "success": false,
+            "error": "No active subscription found for this branch"
+        })),
+        Err(e) => {
+            tracing::error!("Failed to cancel subscription: {e}");
+            Json(serde_json::json!({
+                "success": false,
+                "error": "Failed to cancel subscription"
+            }))
+        }
+    }
 }
 
 async fn handle_admin_billing_quotas(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
     Json(quotas): Json<serde_json::Value>,
 ) -> impl IntoResponse {
+    let Ok(mut conn) = state.pool.get() else {
+        return Json(serde_json::json!({
+            "success": false,
+            "error": "Database unavailable"
+        }));
+    };
+
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(&state.pool, &state.get_default_bot));
+
+    let now = chrono::Utc::now();
+    let mut saved: usize = 0;
+
+    if let Some(obj) = quotas.as_object() {
+        for (key, value) in obj {
+            let Some(limit) = parse_quota_limit(value) else {
+                continue;
+            };
+            let key = key.trim().to_lowercase();
+            if key.is_empty() || key.len() > 64 {
+                continue;
+            }
+            let result = diesel::sql_query(
+                "INSERT INTO billing_quota_settings \
+                 (id, branch_id, quota_key, quota_limit, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $4, $5, $5) \
+                 ON CONFLICT (branch_id, quota_key) \
+                 DO UPDATE SET quota_limit = EXCLUDED.quota_limit, updated_at = $5",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .bind::<diesel::sql_types::Text, _>(&key)
+            .bind::<diesel::sql_types::BigInt, _>(limit)
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .execute(&mut conn);
+
+            if result.is_ok() {
+                saved += 1;
+            }
+        }
+    }
+
     Json(serde_json::json!({
-        "success": true,
-        "message": "Quotas updated successfully",
-        "quotas": quotas
+        "success": saved > 0,
+        "saved": saved,
+        "message": format!("Quotas updated ({saved} values saved)")
     }))
 }
 
 async fn handle_admin_billing_alerts(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
     Json(settings): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({
-        "success": true,
-        "message": "Alert settings updated successfully",
-        "settings": settings
-    }))
+    let Ok(mut conn) = state.pool.get() else {
+        return Json(serde_json::json!({
+            "success": false,
+            "error": "Database unavailable"
+        }));
+    };
+
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(&state.pool, &state.get_default_bot));
+
+    let settings_json = serde_json::to_string(&settings).unwrap_or_else(|_| "{}".to_string());
+    let now = chrono::Utc::now();
+
+    let result = diesel::sql_query(
+        "INSERT INTO billing_alert_settings (id, branch_id, settings, created_at, updated_at) \
+         VALUES ($1, $2, $3::jsonb, $4, $4) \
+         ON CONFLICT (branch_id) DO UPDATE SET settings = EXCLUDED.settings, updated_at = $4",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .bind::<diesel::sql_types::Text, _>(&settings_json)
+    .bind::<diesel::sql_types::Timestamptz, _>(now)
+    .execute(&mut conn);
+
+    match result {
+        Ok(_) => Json(serde_json::json!({
+            "success": true,
+            "message": "Alert settings updated successfully",
+            "settings": settings
+        })),
+        Err(e) => {
+            tracing::error!("Failed to persist billing alert settings: {e}");
+            Json(serde_json::json!({
+                "success": false,
+                "error": "Failed to save alert settings"
+            }))
+        }
+    }
 }
 
 async fn handle_invoices(

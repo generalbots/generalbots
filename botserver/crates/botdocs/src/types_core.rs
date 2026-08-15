@@ -261,7 +261,10 @@ pub struct ExportQuery {
 
 #[derive(Debug, Deserialize)]
 pub struct DocsAiRequest {
-    pub command: String,
+    // The editor UI sends `{id, action, prompt}` — `command` is the longer
+    // natural-language variant, so it must be optional to accept both shapes.
+    #[serde(default)]
+    pub command: Option<String>,
     #[serde(default)]
     pub action: Option<String>,
     #[serde(default)]
@@ -272,6 +275,8 @@ pub struct DocsAiRequest {
     pub selected_text: Option<String>,
     #[serde(default)]
     pub doc_id: Option<String>,
+    #[serde(default)]
+    pub prompt: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

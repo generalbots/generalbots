@@ -253,22 +253,41 @@ async fn update_cors_settings(
 }
 
 async fn list_audit_logs(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<AuditLogEntry>>, SecurityError> {
-    let logs = vec![
-        AuditLogEntry {
-            id: Uuid::new_v4(),
-            timestamp: Utc::now(),
-            user_id: Some(Uuid::new_v4()),
-            action: "login".to_string(),
-            resource: "session".to_string(),
-            resource_id: None,
-            ip_address: Some("192.168.1.100".to_string()),
-            user_agent: Some("Mozilla/5.0".to_string()),
-            success: true,
-            details: None,
-        },
-    ];
+    let events = crate::audit_log::list_audit_events(&state, 100);
+    let logs = events
+        .into_iter()
+        .map(|ev| AuditLogEntry {
+            id: ev
+                .get("id")
+                .and_then(|v| v.as_str())
+                .and_then(|s| Uuid::parse_str(s).ok())
+                .unwrap_or_else(Uuid::new_v4),
+            timestamp: ev
+                .get("timestamp")
+                .and_then(|v| v.as_str())
+                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                .map(|t| t.with_timezone(&Utc))
+                .unwrap_or_else(Utc::now),
+            user_id: ev.get("actor_id").and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok()),
+            action: ev
+                .get("action")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown")
+                .to_string(),
+            resource: ev
+                .get("target_type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            resource_id: ev.get("target_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            ip_address: None,
+            user_agent: None,
+            success: ev.get("success").and_then(|v| v.as_bool()).unwrap_or(true),
+            details: ev.get("details").cloned(),
+        })
+        .collect();
     Ok(Json(logs))
 }
 

@@ -4,7 +4,8 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use chrono::Utc;
+use chrono::{Datelike, Utc};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -137,27 +138,85 @@ async fn handle_move_stage(
 }
 
 async fn handle_forecast(
-    State(_state): State<Arc<CrateState>>,
+    State(state): State<Arc<CrateState>>,
     Query(query): Query<ForecastQuery>,
 ) -> Result<Json<SalesForecast>, (StatusCode, String)> {
     let bot_id = query.bot_id.unwrap_or(Uuid::nil());
-    let monthly_inputs = vec![
-        MonthlyInput {
-            year: Utc::now().format("%Y").to_string().parse().unwrap_or(2025),
-            month: Utc::now().format("%m").to_string().parse().unwrap_or(1),
-            predicted_value: 150000.0,
-            deal_count: 12,
-        },
-    ];
+    let mut conn = state
+        .db_pool
+        .get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
 
-    let history = vec![HistoricalTrend {
-        period: "last_quarter".to_string(),
-        total_value: 500000.0,
-        won_value: 125000.0,
-        lost_value: 75000.0,
-        win_rate: 0.25,
-        deal_count: 40,
-    }];
+    #[derive(diesel::QueryableByName)]
+    struct DealRow {
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Float8>)]
+        value: Option<f64>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Bool>)]
+        won: Option<bool>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Varchar>)]
+        stage: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+        created_at: chrono::DateTime<Utc>,
+    }
+
+    let deals: Vec<DealRow> = diesel::sql_query(
+        "SELECT value, won, stage, created_at FROM crm_deals WHERE bot_id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .load(&mut conn)
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to load deals: {e}")))?;
+
+    let now = Utc::now();
+    let now_year = now.year();
+    let now_month = now.month();
+
+    let mut open_value: f64 = 0.0;
+    let mut open_count: i32 = 0;
+    let mut won_value: f64 = 0.0;
+    let mut lost_value: f64 = 0.0;
+    let mut won_count: i32 = 0;
+    let mut total_count: i32 = 0;
+
+    for deal in &deals {
+        total_count += 1;
+        let value = deal.value.unwrap_or(0.0);
+        let stage = deal.stage.as_deref().unwrap_or("");
+        let is_won = deal.won == Some(true) || stage == "won" || stage == "converted";
+        let is_lost = deal.won == Some(false) || stage == "lost";
+        if is_won {
+            won_value += value;
+            won_count += 1;
+        } else if is_lost {
+            lost_value += value;
+        } else if deal.created_at.year() == now_year && deal.created_at.month() == now_month {
+            open_value += value;
+            open_count += 1;
+        }
+    }
+
+    let monthly_inputs = if open_count > 0 {
+        vec![MonthlyInput {
+            year: now_year,
+            month: now_month,
+            predicted_value: open_value,
+            deal_count: open_count,
+        }]
+    } else {
+        Vec::new()
+    };
+
+    let history = if total_count > 0 {
+        vec![HistoricalTrend {
+            period: "current".to_string(),
+            total_value: won_value + lost_value,
+            won_value,
+            lost_value,
+            win_rate: won_count as f64 / total_count as f64,
+            deal_count: total_count,
+        }]
+    } else {
+        Vec::new()
+    };
 
     let historical_win_rate = ForecastService::analyze_historical_trends(&history);
     let forecast = ForecastService::build_monthly_forecast(bot_id, &monthly_inputs, historical_win_rate);

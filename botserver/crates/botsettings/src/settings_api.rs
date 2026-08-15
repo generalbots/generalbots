@@ -1,7 +1,7 @@
 use axum::{
     extract::State,
     http::StatusCode,
-    response::{Html, IntoResponse, Json},
+    response::{Html, IntoResponse},
     routing::{get, post},
     Router,
 };
@@ -11,38 +11,20 @@ use std::sync::Arc;
 
 use botcore::shared::state::AppState;
 
-pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/api/user/profile", get(user_profile_get).put(user_profile_put))
-        .route("/api/user/password", post(user_password))
-        .route("/api/user/api-keys", get(api_keys_list).post(api_keys_create))
-        .route("/api/user/webhooks", get(webhooks_list).post(webhooks_create))
-        .route("/api/user/billing/plan", get(billing_plan))
-        .route("/api/user/billing/invoices", get(billing_invoices))
-        .route("/api/user/billing/payment-methods", get(billing_payment_methods))
-        .route("/api/user/data/export", post(data_export))
-        .route("/api/user/notifications/preferences", get(notif_prefs_get).put(notif_prefs_put))
-        .route("/api/oauth/google/connect", post(oauth_google))
-        .route("/api/oauth/microsoft/connect", post(oauth_microsoft))
-        .route("/api/oauth/github/connect", post(oauth_github))
-        .route("/api/groups/create", post(groups_create))
-        .route("/api/users/create", post(users_create))
-}
+use crate::settings_billing;
+use crate::settings_credentials;
+use crate::settings_profile;
 
-fn get_conn(
-    state: &Arc<AppState>,
-) -> Option<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>> {
-    state.conn.get().ok()
-}
-
-#[derive(Debug, diesel::QueryableByName)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-struct TextRow {
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-    value: Option<String>,
-}
-
-fn first_user(conn: &mut diesel::PgConnection) -> Option<uuid::Uuid> {
+/// Resolves the authenticated user from the bearer session (fix #830).
+///
+/// The token is looked up in the persisted `login_sessions` table (the same
+/// store the auth middleware rehydrates from), and the stored `user_id` is
+/// mapped to a stable UUID the same way `resolve_user_role` does — never the
+/// first row of the `users` table.
+/// Fallback user resolution for fragment handlers without a request context.
+/// Returns the first user row — these are read-only UI fragments (storage,
+/// 2FA status) where the session may be anonymous.
+pub fn first_user(conn: &mut diesel::PgConnection) -> Option<uuid::Uuid> {
     #[derive(Debug, diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
     struct IdRow {
@@ -55,7 +37,111 @@ fn first_user(conn: &mut diesel::PgConnection) -> Option<uuid::Uuid> {
         .map(|r| r.id)
 }
 
-fn read_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str) -> serde_json::Value {
+pub fn resolve_user_id(
+    state: &Arc<AppState>,
+    headers: &axum::http::HeaderMap,
+) -> Result<uuid::Uuid, (StatusCode, Html<String>)> {
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|a| a.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
+    let Some(token) = token else {
+        return Err((StatusCode::UNAUTHORIZED, Html("Missing bearer token".to_string())));
+    };
+
+    let mut conn = get_conn(state)
+        .ok_or((StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())))?;
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct SessionRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        user_data: String,
+    }
+
+    let row: Option<SessionRow> = diesel::sql_query(
+        "SELECT user_data FROM login_sessions WHERE token = $1 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(&token)
+    .get_result(&mut conn)
+    .ok();
+
+    let Some(row) = row else {
+        return Err((StatusCode::UNAUTHORIZED, Html("No valid session for token".to_string())));
+    };
+
+    let parsed: serde_json::Value = serde_json::from_str(&row.user_data).unwrap_or_default();
+    let uid = parsed.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
+    if uid.is_empty() {
+        return Err((StatusCode::UNAUTHORIZED, Html("Invalid session user".to_string())));
+    }
+
+    match uuid::Uuid::parse_str(uid) {
+        Ok(u) => Ok(u),
+        Err(_) => Ok(uuid::Uuid::new_v5(
+            &uuid::Uuid::NAMESPACE_DNS,
+            format!("zitadel:{uid}").as_bytes(),
+        )),
+    }
+}
+
+/// Whether the resolved user holds an admin group (RBAC).
+fn is_admin_user(state: &Arc<AppState>, user_id: uuid::Uuid) -> bool {
+    let Ok(mut conn) = state.conn.get() else {
+        return false;
+    };
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct GroupName {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+    }
+    let names: Vec<GroupName> = diesel::sql_query(
+        "SELECT g.name FROM rbac_groups g \
+         JOIN rbac_user_groups ug ON ug.group_id = g.id \
+         WHERE ug.user_id = $1 AND g.is_active = true",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .load(&mut conn)
+    .unwrap_or_default();
+    names.iter().any(|g| g.name.to_lowercase().contains("admin"))
+}
+
+pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/api/user/profile", get(settings_profile::user_profile_get).put(settings_profile::user_profile_put))
+        .route("/api/user/password", post(settings_profile::user_password))
+        .route("/api/user/api-keys", get(settings_credentials::api_keys_list).post(settings_credentials::api_keys_create))
+        .route("/api/user/api-keys/:key_id", axum::routing::delete(settings_credentials::api_keys_delete))
+        .route("/api/user/webhooks", get(settings_credentials::webhooks_list).post(settings_credentials::webhooks_create))
+        .route("/api/user/webhooks/:webhook_id", axum::routing::delete(settings_credentials::webhooks_delete))
+        .route("/api/user/billing/plan", get(settings_billing::billing_plan))
+        .route("/api/user/billing/invoices", get(settings_billing::billing_invoices))
+        .route("/api/user/billing/payment-methods", get(settings_billing::billing_payment_methods))
+        .route("/api/user/data/export", post(settings_billing::data_export))
+        .route("/api/user/notifications/preferences", get(notif_prefs_get).put(notif_prefs_put))
+        .route("/api/oauth/google/connect", post(oauth_google))
+        .route("/api/oauth/microsoft/connect", post(oauth_microsoft))
+        .route("/api/oauth/github/connect", post(oauth_github))
+        .route("/api/groups/create", post(groups_create))
+        .route("/api/users/create", post(users_create))
+}
+
+pub fn get_conn(
+    state: &Arc<AppState>,
+) -> Option<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>> {
+    state.conn.get().ok()
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct TextRow {
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    value: Option<String>,
+}
+
+pub fn read_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str) -> serde_json::Value {
     diesel::sql_query(
         "SELECT preference_value::text AS value FROM user_preferences WHERE user_id = $1 AND preference_key = $2",
     )
@@ -68,7 +154,7 @@ fn read_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str) ->
     .unwrap_or(serde_json::Value::Null)
 }
 
-fn write_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str, value: &serde_json::Value) {
+pub fn write_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str, value: &serde_json::Value) {
     let json = value.to_string();
     let _ = diesel::sql_query(
         "INSERT INTO user_preferences (id, user_id, preference_key, preference_value, created_at, updated_at)
@@ -83,426 +169,93 @@ fn write_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str, v
     .execute(conn);
 }
 
-pub async fn user_profile_get(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
-    };
-
-    #[derive(Debug, diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct UserRow {
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        username: String,
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        email: String,
-    }
-
-    let user: Option<UserRow> = first_user(&mut conn)
-        .and_then(|id| {
-            diesel::sql_query("SELECT username, email FROM users WHERE id = $1")
-                .bind::<diesel::sql_types::Uuid, _>(id)
-                .get_result::<UserRow>(&mut conn)
-                .ok()
-        });
-
-    match user {
-        Some(u) => (
-            StatusCode::OK,
-            Html(format!(
-                r#"<div class="profile-fields">
-    <div class="form-group"><label>Username</label><input type="text" name="username" value="{username}" readonly></div>
-    <div class="form-group"><label>Email</label><input type="email" name="email" value="{email}"></div>
-    <div class="form-group"><label>Display Name</label><input type="text" name="display_name" placeholder="John Doe"></div>
-</div>"#,
-                username = u.username,
-                email = u.email,
-            )),
-        ),
-        None => (StatusCode::OK, Html(String::new())),
-    }
-}
-
-#[derive(Deserialize)]
-pub struct ProfileForm {
-    pub username: Option<String>,
-    pub email: Option<String>,
-    pub display_name: Option<String>,
-}
-
-pub async fn user_profile_put(
-    State(state): State<Arc<AppState>>,
-    axum::extract::Form(form): axum::extract::Form<ProfileForm>,
-) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
-    };
-
-    let Some(user_id) = first_user(&mut conn) else {
-        return (StatusCode::NOT_FOUND, Html("No user found".to_string()));
-    };
-
-    if let Some(email) = form.email.as_deref() {
-        if !email.trim().is_empty() {
-            let _ = diesel::sql_query("UPDATE users SET email = $1, updated_at = NOW() WHERE id = $2")
-                .bind::<diesel::sql_types::Text, _>(email)
-                .bind::<diesel::sql_types::Uuid, _>(user_id)
-                .execute(&mut conn);
-        }
-    }
-
-    if let Some(name) = form.display_name.as_deref() {
-        if !name.trim().is_empty() {
-            write_pref(&mut conn, user_id, "display_name", &serde_json::json!(name));
-        }
-    }
-
-    (StatusCode::OK, Html("Profile updated".to_string()))
-}
-
-#[derive(Deserialize)]
-pub struct PasswordForm {
-    pub current_password: Option<String>,
-    pub new_password: Option<String>,
-    pub confirm_password: Option<String>,
-}
-
-pub async fn user_password(
-    State(state): State<Arc<AppState>>,
-    axum::extract::Form(form): axum::extract::Form<PasswordForm>,
-) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
-    };
-
-    let Some(user_id) = first_user(&mut conn) else {
-        return (StatusCode::NOT_FOUND, Html("No user found".to_string()));
-    };
-
-    let new_pass = form.new_password.unwrap_or_default();
-    let confirm = form.confirm_password.unwrap_or_default();
-    if new_pass.len() < 8 {
-        return (StatusCode::BAD_REQUEST, Html("Password must be at least 8 characters".to_string()));
-    }
-    if new_pass != confirm {
-        return (StatusCode::BAD_REQUEST, Html("Passwords do not match".to_string()));
-    }
-
-    let hash = match hash_password(&new_pass) {
-        Ok(h) => h,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to hash password".to_string())),
-    };
-
-    let _ = diesel::sql_query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2")
-        .bind::<diesel::sql_types::Text, _>(&hash)
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .execute(&mut conn);
-
-    (StatusCode::OK, Html("Password updated successfully".to_string()))
-}
-
-pub async fn api_keys_list(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return Html(String::new()),
-    };
-    let Some(user_id) = first_user(&mut conn) else {
-        return Html(r#"<div class="empty-state"><p>No API keys</p></div>"#.to_string());
-    };
-
-    let keys = read_pref(&mut conn, user_id, "api_keys");
-    let items = keys.as_array().cloned().unwrap_or_default();
-    if items.is_empty() {
-        return Html(r#"<div class="empty-state"><p>No API keys</p></div>"#.to_string());
-    }
-
-    let mut html = String::new();
-    for key in items {
-        let name = key.get("name").and_then(|v| v.as_str()).unwrap_or("key");
-        let prefix = key.get("prefix").and_then(|v| v.as_str()).unwrap_or("gb_••••");
-        html.push_str(&format!(
-            r#"<div class="api-key-item"><span class="api-key-name">{name}</span><code class="api-key-value">{prefix}</code><button class="btn-icon" onclick="alert('Revoke key')">×</button></div>"#
-        ));
-    }
-    Html(html)
-}
-
-#[derive(Deserialize)]
-pub struct ApiKeyForm {
-    pub name: Option<String>,
-}
-
-pub async fn api_keys_create(
-    State(state): State<Arc<AppState>>,
-    axum::extract::Form(form): axum::extract::Form<ApiKeyForm>,
-) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
-    };
-    let Some(user_id) = first_user(&mut conn) else {
-        return (StatusCode::NOT_FOUND, Html("No user found".to_string()));
-    };
-
-    let name = form.name.unwrap_or_else(|| "API Key".to_string());
-    let mut existing = read_pref(&mut conn, user_id, "api_keys")
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    let prefix = format!("gb_{}", random_key(8));
-    existing.push(serde_json::json!({ "name": name, "prefix": prefix, "created_at": chrono::Utc::now().to_rfc3339() }));
-    write_pref(&mut conn, user_id, "api_keys", &serde_json::json!(existing));
-
-    (StatusCode::OK, Html(format!("Created API key <code>{prefix}…</code>")))
-}
-
-pub async fn webhooks_list(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return Html(String::new()),
-    };
-    let Some(user_id) = first_user(&mut conn) else {
-        return Html(r#"<div class="empty-state"><p>No webhooks</p></div>"#.to_string());
-    };
-
-    let hooks = read_pref(&mut conn, user_id, "webhooks");
-    let items = hooks.as_array().cloned().unwrap_or_default();
-    if items.is_empty() {
-        return Html(r#"<div class="empty-state"><p>No webhooks configured</p></div>"#.to_string());
-    }
-
-    let mut html = String::new();
-    for hook in items {
-        let url = hook.get("url").and_then(|v| v.as_str()).unwrap_or("");
-        let events = hook.get("events").and_then(|v| v.as_str()).unwrap_or("all");
-        html.push_str(&format!(
-            r#"<div class="webhook-item"><span class="webhook-url">{url}</span><span class="webhook-events">{events}</span></div>"#
-        ));
-    }
-    Html(html)
-}
-
-#[derive(Deserialize)]
-pub struct WebhookForm {
-    pub url: Option<String>,
-    pub events: Option<String>,
-}
-
-pub async fn webhooks_create(
-    State(state): State<Arc<AppState>>,
-    axum::extract::Form(form): axum::extract::Form<WebhookForm>,
-) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
-    };
-    let Some(user_id) = first_user(&mut conn) else {
-        return (StatusCode::NOT_FOUND, Html("No user found".to_string()));
-    };
-
-    let url = form.url.unwrap_or_default();
-    if url.trim().is_empty() {
-        return (StatusCode::BAD_REQUEST, Html("Webhook URL is required".to_string()));
-    }
-
-    let mut existing = read_pref(&mut conn, user_id, "webhooks")
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    existing.push(serde_json::json!({
-        "url": url,
-        "events": form.events.unwrap_or_else(|| "all".to_string()),
-        "created_at": chrono::Utc::now().to_rfc3339(),
-    }));
-    write_pref(&mut conn, user_id, "webhooks", &serde_json::json!(existing));
-
-    (StatusCode::OK, Html("Webhook registered".to_string()))
-}
-
-pub async fn billing_plan(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return Html(String::new()),
-    };
-
-    #[derive(Debug, diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct PlanRow {
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        plan: String,
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        status: String,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Numeric>)]
-        amount: Option<bigdecimal::BigDecimal>,
-    }
-
-    let plan: Option<PlanRow> = diesel::sql_query(
-        "SELECT COALESCE(plan_id, 'free') AS plan, COALESCE(status, 'active') AS status, amount
-         FROM billing_recurring ORDER BY created_at DESC LIMIT 1",
-    )
-    .get_result(&mut conn)
-    .ok();
-
-    match plan {
-        Some(p) => Html(format!(
-            r#"<div class="plan-card">
-    <span class="plan-name">{plan}</span>
-    <span class="plan-status {status}">{status}</span>
-    <span class="plan-amount">{amount}</span>
-</div>"#,
-            status = p.status,
-            amount = p.amount.map(|a| format!("${a:.2}")).unwrap_or_else(|| "$0.00".to_string()),
-            plan = p.plan,
-        )),
-        None => Html(
-            r#"<div class="plan-card"><span class="plan-name">free</span><span class="plan-status active">active</span><span class="plan-amount">$0.00</span></div>"#
-                .to_string(),
-        ),
-    }
-}
-
-pub async fn billing_invoices(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => return Html(String::new()),
-    };
-
-    #[derive(Debug, diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct InvRow {
-        #[diesel(sql_type = diesel::sql_types::Varchar)]
-        number: String,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Numeric>)]
-        total: Option<bigdecimal::BigDecimal>,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Varchar>)]
-        status: Option<String>,
-        #[diesel(sql_type = diesel::sql_types::Timestamptz)]
-        created_at: chrono::DateTime<chrono::Utc>,
-    }
-
-    let rows: Vec<InvRow> = diesel::sql_query(
-        "SELECT invoice_number AS number, total, status, created_at FROM billing_invoices ORDER BY created_at DESC LIMIT 8",
-    )
-    .load(&mut conn)
-    .unwrap_or_default();
-
-    if rows.is_empty() {
-        return Html(r#"<div class="empty-state"><p>No invoices yet</p></div>"#.to_string());
-    }
-
-    let mut html = String::new();
-    for r in rows {
-        html.push_str(&format!(
-            r#"<div class="invoice-item"><span class="invoice-number">#{number}</span><span class="invoice-status {status}">{status}</span><span class="invoice-total">{total}</span><span class="invoice-date">{date}</span></div>"#,
-            number = r.number,
-            status = r.status.as_deref().unwrap_or("—"),
-            total = r.total.map(|t| format!("${t:.2}")).unwrap_or_else(|| "-".to_string()),
-            date = r.created_at.format("%b %d, %Y"),
-        ));
-    }
-    Html(html)
-}
-
-pub async fn billing_payment_methods(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let _ = state;
-    Html(
-        r#"<div class="payment-methods"><div class="payment-method"><span class="method-icon">💳</span><span class="method-label">No payment method on file</span></div></div>"#
-            .to_string(),
-    )
-}
-
-pub async fn data_export(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
-    let mut conn = match get_conn(&state) {
-        Some(c) => c,
-        None => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "success": false, "message": "Database unavailable" })),
-            );
-        }
-    };
-
-    #[derive(Debug, diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct CountRow {
-        #[diesel(sql_type = diesel::sql_types::BigInt)]
-        count: i64,
-    }
-
-    let users: i64 = diesel::sql_query("SELECT COUNT(*)::bigint AS count FROM users")
-        .get_result(&mut conn)
-        .map(|r: CountRow| r.count)
-        .unwrap_or(0);
-    let bots: i64 = diesel::sql_query("SELECT COUNT(*)::bigint AS count FROM bots")
-        .get_result(&mut conn)
-        .map(|r: CountRow| r.count)
-        .unwrap_or(0);
-    let messages: i64 = diesel::sql_query("SELECT COUNT(*)::bigint AS count FROM message_history")
-        .get_result(&mut conn)
-        .map(|r: CountRow| r.count)
-        .unwrap_or(0);
-
-    let payload = serde_json::json!({
-        "exported_at": chrono::Utc::now().to_rfc3339(),
-        "counts": { "users": users, "bots": bots, "messages": messages },
-    });
-
-    (
-        StatusCode::OK,
-        Json(serde_json::json!({
-            "success": true,
-            "message": "Data export generated",
-            "data": payload,
-        })),
-    )
-}
 
 #[derive(Deserialize)]
 pub struct NotifPrefsForm {
-    pub email_notifications: Option<String>,
-    pub push_notifications: Option<String>,
+    pub email_dm: Option<String>,
+    pub email_mentions: Option<String>,
+    pub email_digest: Option<String>,
+    pub email_marketing: Option<String>,
+    pub push_enabled: Option<String>,
+    pub push_sound: Option<String>,
+    pub desktop_notifications: Option<String>,
+    pub badge_count: Option<String>,
 }
 
-pub async fn notif_prefs_get(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+fn on_or_true(v: &Option<String>) -> bool {
+    v.as_deref().map(|s| s == "on" || s == "true").unwrap_or(false)
+}
+
+pub async fn notif_prefs_get(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return Html(String::new()),
+        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html(String::new())),
     };
-    let Some(user_id) = first_user(&mut conn) else {
-        return Html(String::new());
+    let user_id = match resolve_user_id(&state, &headers) {
+        Ok(id) => id,
+        Err(e) => return e,
     };
 
     let prefs = read_pref(&mut conn, user_id, "notifications");
-    let email = prefs.get("email").and_then(|v| v.as_bool()).unwrap_or(true);
-    let push = prefs.get("push").and_then(|v| v.as_bool()).unwrap_or(true);
+    let email_dm = prefs.get("email_dm").and_then(|v| v.as_bool()).unwrap_or(true);
+    let email_mentions = prefs.get("email_mentions").and_then(|v| v.as_bool()).unwrap_or(true);
+    let email_digest = prefs.get("email_digest").and_then(|v| v.as_bool()).unwrap_or(false);
+    let email_marketing = prefs.get("email_marketing").and_then(|v| v.as_bool()).unwrap_or(false);
+    let push_enabled = prefs.get("push_enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+    let push_sound = prefs.get("push_sound").and_then(|v| v.as_bool()).unwrap_or(true);
+    let desktop_notifications = prefs.get("desktop_notifications").and_then(|v| v.as_bool()).unwrap_or(true);
+    let badge_count = prefs.get("badge_count").and_then(|v| v.as_bool()).unwrap_or(true);
 
-    Html(format!(
+    (StatusCode::OK, Html(format!(
         r#"<div class="preference-list">
-    <label class="checkbox-label"><input type="checkbox" name="email_notifications" {email_ck}> Email notifications</label>
-    <label class="checkbox-label"><input type="checkbox" name="push_notifications" {push_ck}> Push notifications</label>
+    <label class="checkbox-label"><input type="checkbox" name="email_dm" {email_dm_ck}> Direct messages</label>
+    <label class="checkbox-label"><input type="checkbox" name="email_mentions" {email_mentions_ck}> Mentions</label>
+    <label class="checkbox-label"><input type="checkbox" name="email_digest" {email_digest_ck}> Weekly digest</label>
+    <label class="checkbox-label"><input type="checkbox" name="email_marketing" {email_marketing_ck}> Marketing</label>
+    <label class="checkbox-label"><input type="checkbox" name="push_enabled" {push_enabled_ck}> Push notifications</label>
+    <label class="checkbox-label"><input type="checkbox" name="push_sound" {push_sound_ck}> Sound</label>
+    <label class="checkbox-label"><input type="checkbox" name="desktop_notifications" {desktop_ck}> Desktop notifications</label>
+    <label class="checkbox-label"><input type="checkbox" name="badge_count" {badge_ck}> Badge count</label>
 </div>"#,
-        email_ck = if email { "checked" } else { "" },
-        push_ck = if push { "checked" } else { "" },
-    ))
+        email_dm_ck = if email_dm { "checked" } else { "" },
+        email_mentions_ck = if email_mentions { "checked" } else { "" },
+        email_digest_ck = if email_digest { "checked" } else { "" },
+        email_marketing_ck = if email_marketing { "checked" } else { "" },
+        push_enabled_ck = if push_enabled { "checked" } else { "" },
+        push_sound_ck = if push_sound { "checked" } else { "" },
+        desktop_ck = if desktop_notifications { "checked" } else { "" },
+        badge_ck = if badge_count { "checked" } else { "" },
+    )))
 }
 
 pub async fn notif_prefs_put(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Form(form): axum::extract::Form<NotifPrefsForm>,
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
         None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
     };
-    let Some(user_id) = first_user(&mut conn) else {
-        return (StatusCode::NOT_FOUND, Html("No user found".to_string()));
+    let user_id = match resolve_user_id(&state, &headers) {
+        Ok(id) => id,
+        Err(e) => return e,
     };
 
-    let email = form.email_notifications.as_deref() == Some("on") || form.email_notifications.as_deref() == Some("true");
-    let push = form.push_notifications.as_deref() == Some("on") || form.push_notifications.as_deref() == Some("true");
-    write_pref(&mut conn, user_id, "notifications", &serde_json::json!({ "email": email, "push": push }));
+    let prefs = serde_json::json!({
+        "email_dm": on_or_true(&form.email_dm),
+        "email_mentions": on_or_true(&form.email_mentions),
+        "email_digest": on_or_true(&form.email_digest),
+        "email_marketing": on_or_true(&form.email_marketing),
+        "push_enabled": on_or_true(&form.push_enabled),
+        "push_sound": on_or_true(&form.push_sound),
+        "desktop_notifications": on_or_true(&form.desktop_notifications),
+        "badge_count": on_or_true(&form.badge_count),
+    });
+    write_pref(&mut conn, user_id, "notifications", &prefs);
 
     (StatusCode::OK, Html("Notification preferences saved".to_string()))
 }
@@ -519,8 +272,10 @@ async fn oauth_github() -> impl IntoResponse {
 
 fn oauth_connect(provider: &str) -> (StatusCode, Html<String>) {
     (
-        StatusCode::OK,
-        Html(format!("{provider} OAuth flow initiated — authorization URL returned by the identity provider.")),
+        StatusCode::NOT_IMPLEMENTED,
+        Html(format!(
+            "<div class=\"oauth-error\">{provider} OAuth is not implemented yet — no authorization flow exists for this provider.</div>"
+        )),
     )
 }
 
@@ -533,12 +288,21 @@ pub struct GroupCreateForm {
 
 pub async fn groups_create(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Form(form): axum::extract::Form<GroupCreateForm>,
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
         None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
     };
+    let user_id = match resolve_user_id(&state, &headers) {
+        Ok(id) => id,
+        Err(e) => return e,
+    };
+    if !is_admin_user(&state, user_id) {
+        return (StatusCode::FORBIDDEN, Html("Admin role required".to_string()));
+    }
+
     let name = form.name.unwrap_or_default();
     let display = form.display_name.clone().unwrap_or_else(|| name.clone());
     if name.trim().is_empty() {
@@ -547,12 +311,13 @@ pub async fn groups_create(
 
     let _ = diesel::sql_query(
         "INSERT INTO rbac_groups (id, name, display_name, description, is_active, created_by, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, true, NULL, NOW(), NOW())",
+         VALUES ($1, $2, $3, $4, true, $5, NOW(), NOW())",
     )
     .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
     .bind::<diesel::sql_types::Text, _>(&name)
     .bind::<diesel::sql_types::Text, _>(&display)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(form.description)
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
     .execute(&mut conn);
 
     (StatusCode::OK, Html(format!("Group <strong>{display}</strong> created")))
@@ -568,12 +333,21 @@ pub struct UserCreateForm {
 
 pub async fn users_create(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Form(form): axum::extract::Form<UserCreateForm>,
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
         None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
     };
+    let caller_id = match resolve_user_id(&state, &headers) {
+        Ok(id) => id,
+        Err(e) => return e,
+    };
+    if !is_admin_user(&state, caller_id) {
+        return (StatusCode::FORBIDDEN, Html("Admin role required".to_string()));
+    }
+
     let username = form.username.unwrap_or_default();
     let email = form.email.unwrap_or_default();
     let password = form.password.unwrap_or_default();
@@ -587,9 +361,9 @@ pub async fn users_create(
     };
     let is_admin = form.role.as_deref() == Some("admin");
 
-    let _ = diesel::sql_query(
+    let inserted = diesel::sql_query(
         "INSERT INTO users (id, username, email, password_hash, is_active, is_admin, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, true, $5, NOW(), NOW())",
+         VALUES ($1, $2, $3, $4, true, $5, NOW(), NOW()) ON CONFLICT (email) DO NOTHING",
     )
     .bind::<diesel::sql_types::Uuid, _>(uuid::Uuid::new_v4())
     .bind::<diesel::sql_types::Text, _>(&username)
@@ -598,10 +372,17 @@ pub async fn users_create(
     .bind::<diesel::sql_types::Bool, _>(is_admin)
     .execute(&mut conn);
 
-    (StatusCode::OK, Html(format!("User <strong>{username}</strong> created")))
+    match inserted {
+        Ok(1) => (StatusCode::OK, Html(format!("User <strong>{username}</strong> created"))),
+        Ok(_) => (StatusCode::CONFLICT, Html("A user with this email already exists".to_string())),
+        Err(e) => {
+            log::error!("users_create insert failed: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to create user".to_string()))
+        }
+    }
 }
 
-fn hash_password(password: &str) -> anyhow::Result<String> {
+pub fn hash_password(password: &str) -> anyhow::Result<String> {
     use argon2::password_hash::{rand_core::OsRng, SaltString};
     use argon2::{Argon2, PasswordHasher};
 
@@ -613,7 +394,7 @@ fn hash_password(password: &str) -> anyhow::Result<String> {
         .to_string())
 }
 
-fn random_key(len: usize) -> String {
+pub fn random_key(len: usize) -> String {
     use rand::Rng;
     const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let mut rng = rand::rng();

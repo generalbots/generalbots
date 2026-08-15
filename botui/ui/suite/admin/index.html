@@ -23,7 +23,7 @@
             <a
                 href="#dashboard"
                 class="nav-item active"
-                hx-get="/api/admin/dashboard"
+                hx-get="/suite/admin/admin-dashboard.html"
                 hx-target="#admin-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -47,7 +47,7 @@
             <a
                 href="#users"
                 class="nav-item"
-                hx-get="/api/admin/users"
+                hx-get="/suite/admin/users.html"
                 hx-target="#admin-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -71,7 +71,7 @@
             <a
                 href="#groups"
                 class="nav-item"
-                hx-get="/api/admin/groups"
+                hx-get="/suite/admin/groups.html"
                 hx-target="#admin-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -96,6 +96,7 @@
                 href="#bots"
                 class="nav-item"
                 hx-get="/api/admin/bots"
+                hx-trigger="click"
                 hx-target="#admin-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -120,7 +121,7 @@
             <a
                 href="#dns"
                 class="nav-item"
-                hx-get="/api/admin/dns"
+                hx-get="/suite/admin/dns.html"
                 hx-target="#admin-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -146,6 +147,7 @@
                 href="#audit"
                 class="nav-item"
                 hx-get="/api/admin/audit"
+                hx-trigger="click"
                 hx-target="#admin-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -172,7 +174,7 @@
             <a
                 href="#billing"
                 class="nav-item"
-                hx-get="/api/admin/billing"
+                hx-get="/suite/admin/billing.html"
                 hx-target="#admin-content"
                 hx-swap="innerHTML"
                 hx-push-url="false"
@@ -222,7 +224,7 @@
     <main class="admin-main">
         <div
             id="admin-content"
-            hx-get="/api/admin/dashboard"
+            hx-get="/suite/admin/admin-dashboard.html"
             hx-trigger="load"
             hx-swap="innerHTML"
         >

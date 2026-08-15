@@ -88,12 +88,32 @@ pub async fn ops_metrics_summary(State(state): State<Arc<AppState>>) -> impl Int
     .map(|r: CountRow| r.count)
     .unwrap_or(0);
 
+    #[derive(Debug, diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct LatencyRow {
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Double>)]
+        avg_ms: Option<f64>,
+    }
+    let avg_ms: f64 = diesel::sql_query(
+        "SELECT AVG(processing_time_ms)::float8 AS avg_ms FROM message_history WHERE created_at > NOW() - INTERVAL '24 hours'",
+    )
+    .get_result::<LatencyRow>(&mut conn)
+    .ok()
+    .and_then(|r| r.avg_ms)
+    .unwrap_or(0.0);
+
+    let latency_text = if avg_ms > 0.0 {
+        format!("{avg_ms:.0} ms")
+    } else {
+        "--".to_string()
+    };
+
     Html(format!(
         r#"<div class="ops-summary">
     <div class="summary-stat"><span class="summary-value">{requests}</span><span class="summary-label">Requests (24h)</span></div>
     <div class="summary-stat"><span class="summary-value">{sessions}</span><span class="summary-label">Active Sessions (24h)</span></div>
     <div class="summary-stat"><span class="summary-value">0</span><span class="summary-label">Errors (24h)</span></div>
-    <div class="summary-stat"><span class="summary-value">--</span><span class="summary-label">Avg Latency</span></div>
+    <div class="summary-stat"><span class="summary-value">{latency_text}</span><span class="summary-label">Avg Latency</span></div>
 </div>"#
     ))
 }
@@ -135,7 +155,7 @@ pub async fn ops_endpoints_performance(State(state): State<Arc<AppState>>) -> im
 
     let rows: Vec<BotRow> = diesel::sql_query(
         "SELECT b.name, COUNT(mh.id)::bigint AS count
-         FROM bots b LEFT JOIN user_sessions us ON us.bot_id = b.bot_id
+         FROM bots b LEFT JOIN user_sessions us ON us.bot_id = b.id
          LEFT JOIN message_history mh ON mh.session_id = us.id AND mh.created_at > NOW() - INTERVAL '24 hours'
          GROUP BY b.id, b.name ORDER BY count DESC LIMIT 6",
     )

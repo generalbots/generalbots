@@ -1,0 +1,31 @@
+# CI gate configuration for the Vibe benchmark (boteval-run --gate gate.toml).
+#
+# Vibe2 (#800): the gate is a regression block on the LIVE agent loop, not a
+# chat-LLM smoke test. CI runs:
+#
+#   boteval-run --dataset datasets/vibe-200.json \
+#     --endpoint $LLM_URL --api-key $LLM_KEY --model $LLM_MODEL \
+#     --harness-workspace /tmp/vibe-eval-ws --gate gate.toml
+#
+# Exit code 0 = merge allowed, 1 = merge blocked.
+
+# Overall pass-rate floor (fraction of all contract checks).
+min_pass_rate = 0.95
+
+# Any failed entry blocks the merge — the suite is deterministic and cheap.
+max_failures = 0
+
+# Tags that must be present and evaluated in the run.
+required_tags = ["software_development", "customer_support", "financial_analysis", "harness"]
+
+# Per-tag pass-rate floors. Harness tasks run through the live agent loop and
+# additionally must satisfy the tool-call floor below.
+tag_pass_rates = { software_development = 0.95, customer_support = 0.95, financial_analysis = 0.95, harness = 0.9 }
+
+# Average LLM cost per task (USD). 0 disables the check; keep it set so a
+# prompt/agent regression that inflates token usage blocks the merge.
+max_cost_per_task = 0.10
+
+# Harness-tagged entries must invoke at least this many harness tool calls
+# (file/read, test/run, git/*, shell). 0 would disable the check.
+harness_min_tool_calls = 2

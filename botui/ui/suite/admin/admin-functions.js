@@ -134,10 +134,27 @@
     hideModal("bulk-invite-modal");
   }
 
+  function getCurrentOrgId() {
+    return localStorage.getItem("currentOrganizationId") || "";
+  }
+
+  function refreshInvitations() {
+    if (typeof htmx !== "undefined") {
+      htmx.ajax("GET", "/api/admin/dashboard/invitations", ".invitation-list");
+    } else {
+      location.reload();
+    }
+  }
+
   function sendInvitation() {
     const email = document.getElementById("invite-email")?.value;
     const role = document.getElementById("invite-role")?.value || "member";
+    const orgId = getCurrentOrgId();
 
+    if (!orgId) {
+      showNotification("Select an organization first", "error");
+      return;
+    }
     if (!email) {
       showNotification("Please enter an email address", "error");
       return;
@@ -146,15 +163,19 @@
     fetch("/api/admin/invitations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, role }),
+      body: JSON.stringify({ org_id: orgId, email, role }),
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
           showNotification("Invitation sent to " + email, "success");
           closeInviteMemberModal();
+          refreshInvitations();
         } else {
-          showNotification("Failed to send invitation: " + data.error, "error");
+          showNotification(
+            "Failed to send invitation: " + (data.error || "unknown error"),
+            "error",
+          );
         }
       })
       .catch((err) => showNotification("Error: " + err.message, "error"));
@@ -163,11 +184,16 @@
   function sendBulkInvitations() {
     const emailsText = document.getElementById("bulk-emails")?.value || "";
     const role = document.getElementById("bulk-role")?.value || "member";
+    const orgId = getCurrentOrgId();
     const emails = emailsText
       .split(/[\n,;]+/)
       .map((e) => e.trim())
       .filter((e) => e);
 
+    if (!orgId) {
+      showNotification("Select an organization first", "error");
+      return;
+    }
     if (emails.length === 0) {
       showNotification("Please enter at least one email address", "error");
       return;
@@ -176,27 +202,38 @@
     fetch("/api/admin/invitations/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ emails, role }),
+      body: JSON.stringify({ org_id: orgId, emails, role }),
     })
       .then((response) => response.json())
       .then((data) => {
-        showNotification(
-          `${data.sent || emails.length} invitations sent`,
-          "success",
-        );
+        const sent = data.sent || 0;
+        const failed = data.failed || 0;
+        if (failed > 0) {
+          showNotification(
+            `${sent} sent, ${failed} failed`,
+            "warning",
+          );
+        } else {
+          showNotification(`${sent} invitations sent`, "success");
+        }
         closeBulkInviteModal();
+        refreshInvitations();
       })
       .catch((err) => showNotification("Error: " + err.message, "error"));
   }
 
   function resendInvitation(invitationId) {
-    fetch(`/api/admin/invitations/${invitationId}/resend`, { method: "POST" })
+    fetch(`/api/admin/invitations/resend/${invitationId}`, { method: "POST" })
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
           showNotification("Invitation resent", "success");
+          refreshInvitations();
         } else {
-          showNotification("Failed to resend: " + data.error, "error");
+          showNotification(
+            "Failed to resend: " + (data.error || "unknown error"),
+            "error",
+          );
         }
       })
       .catch((err) => showNotification("Error: " + err.message, "error"));
@@ -210,7 +247,7 @@
       .then((data) => {
         if (data.success) {
           showNotification("Invitation cancelled", "success");
-          location.reload();
+          refreshInvitations();
         }
       })
       .catch((err) => showNotification("Error: " + err.message, "error"));
@@ -221,27 +258,14 @@
   // =============================================================================
 
   function updateBillingPeriod(period) {
-    const params = new URLSearchParams({ period });
-
-    // Update dashboard stats via HTMX or fetch
+    // The metrics fragment is the real data source; re-request it on period change
     if (typeof htmx !== "undefined") {
-      htmx.ajax("GET", `/api/admin/billing/stats?${params}`, "#billing-stats");
-    } else {
-      fetch(`/api/admin/billing/stats?${params}`)
-        .then((r) => r.json())
-        .then((data) => updateBillingStats(data))
-        .catch((err) => console.error("Failed to update billing period:", err));
-    }
-  }
-
-  function updateBillingStats(data) {
-    if (data.totalRevenue) {
-      const el = document.getElementById("total-revenue");
-      if (el) el.textContent = formatCurrency(data.totalRevenue);
-    }
-    if (data.activeSubscriptions) {
-      const el = document.getElementById("active-subscriptions");
-      if (el) el.textContent = data.activeSubscriptions;
+      htmx.ajax(
+        "GET",
+        "/api/ui/billing/dashboard/metrics",
+        ".metrics-overview",
+        { swap: "innerHTML" },
+      );
     }
   }
 
@@ -249,7 +273,7 @@
     const period = document.getElementById("billingPeriod")?.value || "current";
     showNotification("Generating billing report...", "info");
 
-    fetch(`/api/admin/billing/export?period=${period}`)
+    fetch(`/api/ui/billing/invoices/export?period=${period}`)
       .then((response) => {
         if (response.ok) return response.blob();
         throw new Error("Export failed");
@@ -475,26 +499,13 @@
   // =============================================================================
 
   function updateFramework(framework) {
-    // Update dashboard for selected compliance framework
+    // The registered dashboard fragment is the real data source
     if (typeof htmx !== "undefined") {
       htmx.ajax(
         "GET",
-        `/api/compliance/dashboard?framework=${framework}`,
+        "/api/compliance/dashboard/overview",
         "#compliance-content",
       );
-    } else {
-      fetch(`/api/compliance/dashboard?framework=${framework}`)
-        .then((r) => r.json())
-        .then((data) => updateComplianceDashboard(data))
-        .catch((err) => console.error("Failed to update framework:", err));
-    }
-  }
-
-  function updateComplianceDashboard(data) {
-    // Update various dashboard elements
-    if (data.score) {
-      const el = document.getElementById("compliance-score");
-      if (el) el.textContent = data.score + "%";
     }
   }
 
@@ -583,7 +594,7 @@
     const category = document.getElementById("logCategory")?.value || "all";
     showNotification("Exporting audit log...", "info");
 
-    fetch(`/api/compliance/audit-log/export?category=${category}`)
+    fetch(`/api/compliance/export?category=${category}`)
       .then((response) => {
         if (response.ok) return response.blob();
         throw new Error("Export failed");
@@ -619,7 +630,11 @@
       panel.classList.add("open");
       // Load group details
       if (typeof htmx !== "undefined") {
-        htmx.ajax("GET", `/api/admin/groups/${groupId}`, "#panel-content");
+        htmx.ajax(
+          "GET",
+          `/api/directory/groups/${groupId}`,
+          "#panel-content",
+        );
       }
     }
   }
@@ -641,19 +656,25 @@
       return;
     }
 
-    fetch("/api/admin/groups", {
+    const params = new URLSearchParams();
+    params.append("name", name);
+    params.append("display_name", name);
+    if (description) params.append("description", description);
+
+    fetch("/api/directory/groups/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description }),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params,
     })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
+      .then((response) => {
+        if (response.ok) {
           showNotification("Group created", "success");
           closeCreateGroup();
           location.reload();
         } else {
-          showNotification("Failed to create group: " + data.error, "error");
+          return response.text().then((text) => {
+            throw new Error(text || "Failed to create group");
+          });
         }
       })
       .catch((err) => showNotification("Error: " + err.message, "error"));
@@ -662,13 +683,15 @@
   function deleteGroup(groupId) {
     if (!confirm("Delete this group? This action cannot be undone.")) return;
 
-    fetch(`/api/admin/groups/${groupId}`, { method: "DELETE" })
+    fetch(`/api/directory/groups/${groupId}/delete`, { method: "DELETE" })
       .then((response) => response.json())
       .then((data) => {
-        if (data.success) {
+        if (data.ok || data.success) {
           showNotification("Group deleted", "success");
           closeDetailPanel();
           location.reload();
+        } else {
+          showNotification("Failed to delete group", "error");
         }
       })
       .catch((err) => showNotification("Error: " + err.message, "error"));
@@ -1026,9 +1049,9 @@
   // =============================================================================
 
   function downloadInvoice(invoiceId) {
-    showNotification(`Downloading invoice ${invoiceId}...`, "info");
+    showNotification("Exporting invoices...", "info");
 
-    fetch(`/api/billing/invoices/${invoiceId}/download`)
+    fetch("/api/ui/billing/invoices/export")
       .then((response) => {
         if (response.ok) {
           return response.blob();
@@ -1039,10 +1062,10 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `${invoiceId}.pdf`;
+        link.download = "invoices-export.csv";
         link.click();
         URL.revokeObjectURL(url);
-        showNotification("Invoice downloaded", "success");
+        showNotification("Invoices exported", "success");
       })
       .catch((err) =>
         showNotification("Failed to download: " + err.message, "error"),
@@ -1061,30 +1084,19 @@
   function viewEvidence(evidenceId) {
     showNotification(`Loading evidence: ${evidenceId}...`, "info");
 
-    fetch(`/api/compliance/evidence/${evidenceId}`)
-      .then((response) => response.json())
-      .then((data) => {
-        // Show evidence in modal or new window
-        if (data.url) {
-          window.open(data.url, "_blank");
-        } else {
-          showModal("evidence-view-modal");
-          const content = document.getElementById("evidence-content");
-          if (content) {
-            content.innerHTML = `
-                            <h4>${data.name || evidenceId}</h4>
-                            <p>${data.description || "No description available"}</p>
-                            <div class="evidence-meta">
-                                <span>Type: ${data.type || "Document"}</span>
-                                <span>Uploaded: ${data.uploadedAt || "Unknown"}</span>
-                            </div>
-                        `;
-          }
-        }
-      })
-      .catch((err) =>
-        showNotification("Failed to load evidence: " + err.message, "error"),
-      );
+    // Load the real evidence list fragment into the modal
+    showModal("evidence-view-modal");
+    const content = document.getElementById("evidence-content");
+    if (content) {
+      fetch("/api/compliance/dashboard/evidence")
+        .then((response) => response.text())
+        .then((html) => {
+          content.innerHTML = html;
+        })
+        .catch((err) =>
+          showNotification("Failed to load evidence: " + err.message, "error"),
+        );
+    }
   }
 
   // =============================================================================

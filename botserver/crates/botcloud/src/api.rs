@@ -447,7 +447,7 @@ async fn handle_signup(
             last_name: None,
             display_name: Some(body.name.clone()),
             organization_id: Some(org_id.to_string()),
-            roles: vec!["user".to_string()],
+            roles: resolve_rbac_roles(&mut conn, &new_bot_id.to_string()),
             bucket: Some(format!("{}.gborg", org_slug)),
             created_at: chrono::Utc::now().timestamp(),
         };
@@ -1034,7 +1034,7 @@ async fn handle_login(
             last_name: contact_opt.as_ref().and_then(|(_, _, ln_, _, _)| ln_.clone()),
             display_name: Some(user_name.clone()),
             organization_id: org_scope.map(|o| o.to_string()),
-            roles: vec!["user".to_string()],
+            roles: resolve_rbac_roles(&mut conn, &sub),
             bucket: None,
             created_at: chrono::Utc::now().timestamp(),
         };
@@ -1108,6 +1108,35 @@ fn resolve_branch_from_user_binding(conn: &mut diesel::PgConnection, email: &str
     .ok()
     .flatten()
     .map(|r| r.id)
+}
+
+/// Resolves the effective role vector from RBAC group membership (fix #843).
+/// Maps non-UUID identity ids (Zitadel numeric) through the same stable UUID
+/// derivation used by `resolve_user_role` in the main crate. Falls back to
+/// the plain "user" role when the user has no admin group.
+fn resolve_rbac_roles(conn: &mut diesel::PgConnection, user_id: &str) -> Vec<String> {
+    let stable = match Uuid::parse_str(user_id) {
+        Ok(u) => u,
+        Err(_) => Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{user_id}").as_bytes()),
+    };
+    #[derive(diesel::QueryableByName)]
+    struct GroupName {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+    }
+    let names: Vec<GroupName> = diesel::sql_query(
+        "SELECT g.name FROM rbac_groups g \
+         JOIN rbac_user_groups ug ON ug.group_id = g.id \
+         WHERE ug.user_id = $1 AND g.is_active = true",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(stable)
+    .load(conn)
+    .unwrap_or_default();
+    if names.iter().any(|g| g.name.to_lowercase().contains("admin")) {
+        vec!["admin".to_string()]
+    } else {
+        vec!["user".to_string()]
+    }
 }
 
 /// Fallback for local dev: resolves the Zitadel user_id for the bootstrap admin

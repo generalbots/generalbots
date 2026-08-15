@@ -681,14 +681,29 @@
     localStorage.setItem(STORAGE_KEYS.TIME_FORMAT, format);
     showToast("Time format updated");
   };
+  function currentBotId() {
+    var path = window.location.pathname || "";
+    var match = path.match(/(?:\/bot\/)?([a-z0-9-]+)/i);
+    return match && match[1] ? match[1].toLowerCase() : "default";
+  }
+
   window.setTheme = function (theme, element) {
+    // Apply on <html> so the desktop shell CSS variables react, not just the
+    // settings fragment body.
+    document.documentElement.setAttribute("data-theme", theme);
     document.body.setAttribute("data-theme", theme);
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
+    // Mirror into the per-bot key the desktop theme-manager reads, so the
+    // choice survives navigation and applies to the shell.
+    localStorage.setItem("gb-theme-" + currentBotId(), theme);
     document.querySelectorAll(".theme-option").forEach(function (o) {
       o.classList.remove("active");
     });
     if (element) element.classList.add("active");
     showToast("Theme updated");
+    window.dispatchEvent(
+      new CustomEvent("gb-theme-changed", { detail: { theme: theme } }),
+    );
   };
 
   var WALLPAPERS = [
@@ -724,7 +739,13 @@
   window.setWallpaper = function (name, element) {
     localStorage.setItem(STORAGE_KEYS.WALLPAPER, name);
     applyWallpaper(name);
+    // Apply to the desktop shell too (same-tab windows don't receive the
+    // `storage` event).
+    document.body.setAttribute("data-wallpaper", name);
     showToast("Wallpaper updated");
+    window.dispatchEvent(
+      new CustomEvent("gb-wallpaper-changed", { detail: { name: name } }),
+    );
   };
 
   function initWallpapers() {

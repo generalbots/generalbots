@@ -235,5 +235,9 @@ pub fn router(
         .route("/api/autotask/tasks/:task_id/approve", post(crate::handlers::approve_task))
         .route("/api/autotask/tasks/:task_id/cancel", post(crate::handlers::cancel_task))
         .route("/api/autotask/decide", post(crate::handlers::make_decision))
+        .route("/api/app-logs/client", post(crate::app_log_routes::client_log))
+        .route("/api/app-logs", get(crate::app_log_routes::list_logs))
+        .route("/api/app-logs/stats", get(crate::app_log_routes::log_stats))
+        .route("/api/app-logs/:app", axum::routing::delete(crate::app_log_routes::clear_app_logs))
         .with_state(api)
 }

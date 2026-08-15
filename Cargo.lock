@@ -1859,6 +1859,7 @@ dependencies = [
  "r2d2",
  "rand 0.9.4",
  "regex",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "tokio",
@@ -2965,6 +2966,7 @@ dependencies = [
  "axum",
  "bigdecimal",
  "botcore",
+ "botcoredirectory",
  "botschema",
  "botsecurity",
  "chrono",
@@ -3285,6 +3287,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
+ "tokio-tungstenite",
  "uuid",
 ]
 

@@ -36,9 +36,9 @@
                 </svg>
             </div>
             <div class="stat-content">
-                <span class="stat-value" id="totalMembers">24</span>
+                <span class="stat-value" id="totalMembers">--</span>
                 <span class="stat-label">Team Members</span>
-                <span class="stat-change positive">+3 this month</span>
+                <span class="stat-change neutral">Loading…</span>
             </div>
         </div>
         <div class="stat-card bots">
@@ -52,9 +52,9 @@
                 </svg>
             </div>
             <div class="stat-content">
-                <span class="stat-value" id="activeBots">8</span>
+                <span class="stat-value" id="activeBots">--</span>
                 <span class="stat-label">Active Bots</span>
-                <span class="stat-change neutral">No change</span>
+                <span class="stat-change neutral">Loading…</span>
             </div>
         </div>
         <div class="stat-card conversations">
@@ -64,9 +64,9 @@
                 </svg>
             </div>
             <div class="stat-content">
-                <span class="stat-value" id="totalConversations">12.4K</span>
+                <span class="stat-value" id="totalConversations">--</span>
                 <span class="stat-label">Conversations</span>
-                <span class="stat-change positive">+18% this week</span>
+                <span class="stat-change neutral">Loading…</span>
             </div>
         </div>
         <div class="stat-card uptime">
@@ -76,9 +76,9 @@
                 </svg>
             </div>
             <div class="stat-content">
-                <span class="stat-value" id="systemUptime">99.9%</span>
+                <span class="stat-value" id="systemUptime">--</span>
                 <span class="stat-label">System Uptime</span>
-                <span class="stat-change positive">Last 30 days</span>
+                <span class="stat-change neutral">Loading…</span>
             </div>
         </div>
     </div>
@@ -442,80 +442,69 @@
                 </button>
             </div>
             <div class="invitation-list" hx-get="/api/admin/dashboard/invitations" hx-trigger="load" hx-swap="innerHTML">
-                <div class="invitation-item">
-                    <div class="invitation-info">
-                        <span class="invitation-email">jane.doe@example.com</span>
-                        <span class="invitation-role">Member</span>
-                    </div>
-                    <div class="invitation-meta">
-                        <span class="invitation-sent">Sent 2 days ago</span>
-                        <span class="invitation-expires">Expires in 5 days</span>
-                    </div>
-                    <div class="invitation-actions">
-                        <button class="btn-icon" title="Resend invitation" hx-post="/api/admin/invitations/resend/inv_001" hx-swap="none">
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                            </svg>
-                        </button>
-                        <button class="btn-icon danger" title="Revoke invitation" hx-delete="/api/admin/invitations/inv_001" hx-swap="none" hx-confirm="Revoke this invitation?">
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="invitation-item">
-                    <div class="invitation-info">
-                        <span class="invitation-email">bob.wilson@example.com</span>
-                        <span class="invitation-role">Developer</span>
-                    </div>
-                    <div class="invitation-meta">
-                        <span class="invitation-sent">Sent 5 days ago</span>
-                        <span class="invitation-expires warning">Expires in 2 days</span>
-                    </div>
-                    <div class="invitation-actions">
-                        <button class="btn-icon" title="Resend invitation" hx-post="/api/admin/invitations/resend/inv_002" hx-swap="none">
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                            </svg>
-                        </button>
-                        <button class="btn-icon danger" title="Revoke invitation" hx-delete="/api/admin/invitations/inv_002" hx-swap="none" hx-confirm="Revoke this invitation?">
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="invitation-item">
-                    <div class="invitation-info">
-                        <span class="invitation-email">alice.smith@example.com</span>
-                        <span class="invitation-role">Manager</span>
-                    </div>
-                    <div class="invitation-meta">
-                        <span class="invitation-sent">Sent 1 day ago</span>
-                        <span class="invitation-expires">Expires in 6 days</span>
-                    </div>
-                    <div class="invitation-actions">
-                        <button class="btn-icon" title="Resend invitation" hx-post="/api/admin/invitations/resend/inv_003" hx-swap="none">
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                            </svg>
-                        </button>
-                        <button class="btn-icon danger" title="Revoke invitation" hx-delete="/api/admin/invitations/inv_003" hx-swap="none" hx-confirm="Revoke this invitation?">
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+                <div class="invitation-empty"><p>Loading invitations…</p></div>
             </div>
         </div>
+
+        <!-- Invite Member Modal -->
+        <dialog id="invite-member-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Invite Member</h2>
+                    <button type="button" class="close-btn" onclick="closeInviteMemberModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="invite-email" placeholder="teammate@example.com" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="invite-role">
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeInviteMemberModal()">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="sendInvitation()">Send Invite</button>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- Bulk Invite Modal -->
+        <dialog id="bulk-invite-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Bulk Invite</h2>
+                    <button type="button" class="close-btn" onclick="closeBulkInviteModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Emails (one per line, comma or semicolon separated)</label>
+                        <textarea id="bulk-emails" rows="5" placeholder="a@example.com&#10;b@example.com"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="bulk-role">
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeBulkInviteModal()">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="sendBulkInvitations()">Send Invites</button>
+                </div>
+            </div>
+        </dialog>
+
+        <script src="/suite/admin/admin-functions.js"></script>
 
         <div class="card quick-actions">
             <div class="card-header">

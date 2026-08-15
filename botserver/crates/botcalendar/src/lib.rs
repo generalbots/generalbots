@@ -465,6 +465,17 @@ pub fn get_bot_context_from_secrets(secrets: &dyn SecretsProvider) -> (Uuid, Uui
     )
 }
 
+
+/// Resolves the caller's (org_id, bot_id) scope from request headers with a
+/// graceful fallback to the global nil scope when the DB is unreachable —
+/// keeps read-only calendar UI fragments working for anonymous sessions.
+fn scope_from_headers(state: &Arc<DbPool>, headers: &axum::http::HeaderMap) -> (Uuid, Uuid) {
+    match state.get() {
+        Ok(mut conn) => resolve_scope(headers, &mut conn),
+        Err(_) => (Uuid::nil(), Uuid::nil()),
+    }
+}
+
 pub async fn create_calendar(
     State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Json(input): Json<CreateCalendarRequest>,
@@ -540,10 +551,13 @@ pub async fn get_calendar(
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
         calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
             .find(id)
             .first::<CalendarRecord>(&mut conn)
             .optional()
@@ -561,11 +575,14 @@ pub async fn update_calendar(
     Json(input): Json<UpdateCalendarRequest>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
         let mut calendar = calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
             .find(id)
             .first::<CalendarRecord>(&mut conn)
             .optional()
@@ -589,10 +606,15 @@ pub async fn update_calendar(
         }
         calendar.updated_at = Utc::now();
 
-        diesel::update(calendars::table.find(id))
-            .set(&calendar)
-            .execute(&mut conn)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        diesel::update(
+            calendars::table
+                .filter(calendars::org_id.eq(org_id))
+                .filter(calendars::bot_id.eq(bot_id))
+                .find(id),
+        )
+        .set(&calendar)
+        .execute(&mut conn)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         Ok::<_, StatusCode>(calendar)
     })
@@ -607,10 +629,16 @@ pub async fn delete_calendar(
     Path(id): Path<Uuid>,
 ) -> StatusCode {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
-        let deleted = diesel::delete(calendars::table.find(id))
+        let deleted = diesel::delete(
+            calendars::table
+                .filter(calendars::org_id.eq(org_id))
+                .filter(calendars::bot_id.eq(bot_id))
+                .find(id),
+        )
             .execute(&mut conn)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -682,10 +710,13 @@ pub async fn get_event(
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
         calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .find(id)
             .first::<CalendarEventRecord>(&mut conn)
             .optional()
@@ -772,11 +803,14 @@ pub async fn update_event(
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
         let mut event = calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .find(id)
             .first::<CalendarEventRecord>(&mut conn)
             .optional()
@@ -822,10 +856,16 @@ pub async fn delete_event(
     Path(id): Path<Uuid>,
 ) -> StatusCode {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
-        let deleted = diesel::delete(calendar_events::table.find(id))
+        let deleted = diesel::delete(
+            calendar_events::table
+                .filter(calendar_events::org_id.eq(org_id))
+                .filter(calendar_events::bot_id.eq(bot_id))
+                .find(id),
+        )
             .execute(&mut conn)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -850,7 +890,25 @@ pub async fn share_calendar(
     Json(input): Json<ShareCalendarRequest>,
 ) -> Result<Json<CalendarShareRecord>, StatusCode> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
+    // The calendar being shared must belong to the caller's scope.
+    let owned = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
+            .find(id)
+            .first::<CalendarRecord>(&mut conn)
+            .optional()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if owned?.is_none() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    let pool = state.clone();
     let new_share = CalendarShareRecord {
         id: Uuid::new_v4(),
         calendar_id: id,
@@ -882,11 +940,14 @@ pub async fn export_ical(
     Path(calendar_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
 
         let calendar = calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
             .find(calendar_id)
             .first::<CalendarRecord>(&mut conn)
             .optional()
@@ -1459,6 +1520,7 @@ async fn caldav_calendar(
     Path(calendar_id_str): Path<String>,
 ) -> impl IntoResponse {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
     let id_str = calendar_id_str.clone();
     let calendar_uuid = Uuid::parse_str(&id_str).ok();
 
@@ -1466,6 +1528,8 @@ async fn caldav_calendar(
         Some(uuid) => match tokio::task::spawn_blocking(move || {
             let mut conn = pool.get().ok()?;
             calendars::table
+                .filter(calendars::org_id.eq(org_id))
+                .filter(calendars::bot_id.eq(bot_id))
                 .find(uuid)
                 .first::<CalendarRecord>(&mut conn)
                 .optional()
@@ -1517,11 +1581,14 @@ async fn caldav_event(
     Path((_calendar_id_str, event_id_str)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
     let event_uuid = Uuid::parse_str(&event_id_str).unwrap_or_else(|_| Uuid::nil());
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
         calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .find(event_uuid)
             .first::<CalendarEventRecord>(&mut conn)
             .optional()
@@ -1633,6 +1700,7 @@ pub async fn ui_events_list(
     Query(query): Query<EventsQuery>,
 ) -> Html<String> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -1642,6 +1710,8 @@ pub async fn ui_events_list(
         let end = query.end.unwrap_or(now + Duration::days(30));
 
         let mut db_query = calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .filter(calendar_events::start_time.ge(start))
             .filter(calendar_events::start_time.le(end))
             .into_boxed();
@@ -1738,11 +1808,14 @@ pub async fn ui_event_detail(
     Path(id): Path<Uuid>,
 ) -> Html<String> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
 
         calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .find(id)
             .select((
                 calendar_events::id,
@@ -2044,6 +2117,7 @@ pub async fn ui_month_view(
     Query(query): Query<MonthQuery>,
 ) -> Html<String> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
     let now = Utc::now();
     let year = query.year.unwrap_or(now.year());
     let month = query.month.unwrap_or(now.month());
@@ -2063,6 +2137,8 @@ pub async fn ui_month_view(
         let end = last_day.and_hms_opt(23, 59, 59)?;
 
         let events = calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .filter(calendar_events::start_time.ge(start))
             .filter(calendar_events::start_time.le(end))
             .select((
@@ -2162,6 +2238,7 @@ pub async fn ui_day_events(
     Query(query): Query<DayQuery>,
 ) -> Html<String> {
     let pool = state.clone();
+    let (org_id, bot_id) = scope_from_headers(&state, &headers);
     let date = query.date;
 
     let result = tokio::task::spawn_blocking(move || {
@@ -2171,6 +2248,8 @@ pub async fn ui_day_events(
         let end = date.and_hms_opt(23, 59, 59)?;
 
         calendar_events::table
+            .filter(calendar_events::org_id.eq(org_id))
+            .filter(calendar_events::bot_id.eq(bot_id))
             .filter(calendar_events::start_time.ge(start))
             .filter(calendar_events::start_time.le(end))
             .order(calendar_events::start_time.asc())

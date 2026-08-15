@@ -88,21 +88,108 @@ pub async fn handle_create_data_source(
     Ok(Json(result))
 }
 
+fn host_port_from_url(url: &str, default_port: u16) -> Option<(String, u16)> {
+    let rest = url.split("://").nth(1)?;
+    let authority = rest.split(|c| c == '/' || c == '?').next()?;
+    let authority = authority.rsplit('@').next()?;
+    match authority.rsplit_once(':') {
+        Some((host, port)) => Some((host.to_string(), port.parse().unwrap_or(default_port))),
+        None => Some((authority.to_string(), default_port)),
+    }
+}
+
+fn connection_endpoint(config: &serde_json::Value) -> Option<(String, u16)> {
+    let connection = config.get("connection").filter(|c| c.is_object()).unwrap_or(config);
+    if let Some(url) = connection.get("url").and_then(|v| v.as_str()) {
+        return host_port_from_url(url, 80);
+    }
+    let host = connection.get("host").and_then(|v| v.as_str())?;
+    let port = connection.get("port").and_then(|v| v.as_i64()).unwrap_or(80);
+    Some((host.to_string(), port as u16))
+}
+
+fn probe_connection(host: &str, port: u16) -> Result<(), String> {
+    use std::net::{TcpStream, ToSocketAddrs};
+    let addr = format!("{host}:{port}");
+    let timeout = std::time::Duration::from_secs(3);
+    let addrs = addr
+        .to_socket_addrs()
+        .map_err(|e| format!("Could not resolve {addr}: {e}"))?;
+    for a in addrs {
+        if TcpStream::connect_timeout(&a, timeout).is_ok() {
+            return Ok(());
+        }
+    }
+    Err(format!("Could not connect to {addr}"))
+}
+
 pub async fn handle_test_data_source(
-    State(_state): State<Arc<DashboardsState>>,
-    Path(_source_id): Path<Uuid>,
+    State(state): State<Arc<DashboardsState>>,
+    Path(source_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, DashboardsError> {
-    Ok(Json(serde_json::json!({ "success": true })))
+    let pool = state.pool.clone();
+
+    let config = tokio::task::spawn_blocking(move || {
+        let mut conn = pool
+            .get()
+            .map_err(|e| DashboardsError::Database(e.to_string()))?;
+
+        #[derive(diesel::QueryableByName)]
+        struct ConfigRow {
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
+            config: Option<serde_json::Value>,
+        }
+        let row: ConfigRow = diesel::sql_query(
+            "SELECT config FROM dashboard_data_sources WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(source_id)
+        .get_result(&mut conn)
+        .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
+
+        Ok::<Option<serde_json::Value>, DashboardsError>(row.config)
+    })
+    .await
+    .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
+
+    let Some(config) = config else {
+        return Ok(Json(serde_json::json!({
+            "success": false,
+            "message": "Data source not found"
+        })));
+    };
+
+    match connection_endpoint(&config) {
+        Some((host, port)) => match probe_connection(&host, port) {
+            Ok(()) => Ok(Json(serde_json::json!({
+                "success": true,
+                "message": "Connection test successful"
+            }))),
+            Err(e) => Ok(Json(serde_json::json!({ "success": false, "message": e }))),
+        },
+        None => Ok(Json(serde_json::json!({
+            "success": false,
+            "message": "No host/port/url in connection config"
+        }))),
+    }
 }
 
 pub async fn handle_test_data_source_no_id(
     State(_state): State<Arc<DashboardsState>>,
-    Json(_config): Json<serde_json::Value>,
+    Json(config): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, DashboardsError> {
-    Ok(Json(serde_json::json!({
-        "success": true,
-        "message": "Connection test successful"
-    })))
+    match connection_endpoint(&config) {
+        Some((host, port)) => match probe_connection(&host, port) {
+            Ok(()) => Ok(Json(serde_json::json!({
+                "success": true,
+                "message": "Connection test successful"
+            }))),
+            Err(e) => Ok(Json(serde_json::json!({ "success": false, "message": e }))),
+        },
+        None => Ok(Json(serde_json::json!({
+            "success": false,
+            "message": "No host/port/url in connection config"
+        }))),
+    }
 }
 
 pub async fn handle_delete_data_source(

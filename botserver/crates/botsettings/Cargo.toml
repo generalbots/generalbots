@@ -11,6 +11,7 @@ mail = ["dep:lettre"]
 [dependencies]
 botcore = { path = "../botcore" }
 botsecurity = { path = "../botsecurity" }
+botcoredirectory = { path = "../botcoredirectory" }
 botschema = { path = "../../../botschema" }
 axum = { workspace = true, features = ["ws", "macros"] }
 serde = { workspace = true, features = ["derive"] }
@@ -18,7 +19,7 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
 chrono = { workspace = true, features = ["clock", "std"] }
-uuid = { workspace = true, features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 log = { workspace = true }
 anyhow = { workspace = true }
 lettre = { workspace = true, optional = true }

@@ -1,6 +1,9 @@
 pub mod admin_dashboard;
 pub mod audit_log;
 pub mod menu_config;
+pub mod settings_billing;
+pub mod settings_credentials;
+pub mod settings_profile;
 pub mod ops;
 pub mod permission_inheritance;
 pub mod rbac;
@@ -9,10 +12,11 @@ pub mod rbac_kb;
 pub mod rbac_ui;
 pub mod security_admin;
 pub mod settings_api;
+pub mod settings_ui;
 
 use axum::{
 extract::State,
-response::{Html, Json},
+response::Json,
 routing::{get, post},
 Router,
 };
@@ -24,66 +28,29 @@ use botcore::shared::state::AppState;
 
 pub fn configure_settings_routes() -> Router<Arc<AppState>> {
 Router::new()
-.route("/api/ui/user/storage", get(get_storage_info))
-.route("/api/ui/user/storage/connections", get(get_storage_connections))
-.route("/api/ui/user/security/2fa/status", get(get_2fa_status))
-.route("/api/ui/user/security/2fa/enable", post(enable_2fa))
-.route("/api/ui/user/security/2fa/disable", post(disable_2fa))
-.route("/api/ui/user/security/sessions", get(get_active_sessions))
+.route("/api/ui/user/storage", get(settings_ui::get_storage_info))
+.route("/api/ui/user/storage/connections", get(settings_ui::get_storage_connections))
+.route("/api/ui/user/security/2fa/status", get(settings_ui::get_2fa_status))
+.route("/api/ui/user/security/2fa/enable", post(settings_ui::enable_2fa))
+.route("/api/ui/user/security/2fa/disable", post(settings_ui::disable_2fa))
+.route("/api/ui/user/security/sessions", get(settings_ui::get_active_sessions))
 .route(
 "/api/ui/user/security/sessions/revoke-all",
-post(revoke_all_sessions),
+post(settings_ui::revoke_all_sessions),
 )
-.route("/api/ui/user/security/devices", get(get_trusted_devices))
-.route("/api/settings/search", post(save_search_settings))
+.route("/api/ui/user/security/devices", get(settings_ui::get_trusted_devices))
+.route("/api/settings/search", post(settings_ui::save_search_settings))
 .route("/api/settings/smtp/test", post(test_smtp_connection))
-.route("/api/ui/settings/accounts/social", get(get_accounts_social))
-.route("/api/ui/settings/accounts/messaging", get(get_accounts_messaging))
-.route("/api/ui/settings/accounts/email", get(get_accounts_email))
-.route("/api/settings/accounts/smtp", post(save_smtp_account))
+.route("/api/ui/settings/accounts/social", get(settings_ui::get_accounts_social))
+.route("/api/ui/settings/accounts/messaging", get(settings_ui::get_accounts_messaging))
+.route("/api/ui/settings/accounts/email", get(settings_ui::get_accounts_email))
+.route("/api/settings/accounts/smtp", post(settings_ui::save_smtp_account))
 .route("/api/ops/health", get(get_ops_health))
 .merge(rbac::configure_rbac_routes())
 .merge(security_admin::configure_security_admin_routes())
 .merge(admin_dashboard::configure_admin_dashboard_routes())
 .merge(settings_api::configure_settings_api_routes())
 .merge(ops::configure_ops_routes())
-}
-
-async fn get_accounts_social(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(r##"<div class="accounts-list">
-<div class="account-item"><span class="account-icon">📷</span><span class="account-name">Instagram</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">📘</span><span class="account-name">Facebook</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">🐦</span><span class="account-name">Twitter/X</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">💼</span><span class="account-name">LinkedIn</span><span class="account-status disconnected">Not connected</span></div>
-
-</div>"##.to_string()) }
-
-async fn get_accounts_messaging(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(r##"<div class="accounts-list">
-<div class="account-item"><span class="account-icon">💬</span><span class="account-name">Discord</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">📱</span><span class="account-name">WhatsApp</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">✈️</span><span class="account-name">Telegram</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">💼</span><span class="account-name">Teams</span><span class="account-status disconnected">Not connected</span></div>
-
-</div>"##.to_string()) }
-
-async fn get_accounts_email(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(r##"<div class="accounts-list">
-<div class="account-item"><span class="account-icon">📧</span><span class="account-name">Gmail</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">📨</span><span class="account-name">Outlook</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">⚙️</span><span class="account-name">SMTP</span><span class="account-status disconnected">Not configured</span></div>
-
-</div>"##.to_string()) }
-
-async fn save_smtp_account(
-State(_state): State<Arc<AppState>>,
-Json(config): Json<serde_json::Value>,
-) -> Json<serde_json::Value> {
-Json(serde_json::json!({
-"success": true,
-"message": "SMTP configuration saved",
-"config": config
-}))
 }
 
 async fn get_ops_health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
@@ -139,80 +106,6 @@ async fn get_ops_health(State(state): State<Arc<AppState>>) -> Json<serde_json::
 }
 
 
-
-async fn get_storage_info(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
-r##"<div class="storage-info">
-<div class="storage-bar">
-<div class="storage-used" style="width: 25%"></div>
-</div>
-<div class="storage-details">
-<span class="storage-used-text">2.5 GB used</span>
-<span class="storage-total-text">of 10 GB</span>
-</div>
-<div class="storage-breakdown">
-<div class="storage-item">
-<span class="storage-icon">📄</span>
-<span class="storage-label">Documents</span>
-<span class="storage-size">1.2 GB</span>
-</div>
-<div class="storage-item">
-<span class="storage-icon">🖼️</span>
-<span class="storage-label">Images</span>
-<span class="storage-size">800 MB</span>
-</div>
-<div class="storage-item">
-<span class="storage-icon">📧</span>
-<span class="storage-label">Emails</span>
-<span class="storage-size">500 MB</span>
-</div>
-</div>
-s
-</div>"## .to_string(), ) }
-
-async fn get_storage_connections(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
-r##"<div class="connections-empty">
-<p class="text-muted">No external storage connections configured</p>
-<button class="btn-secondary" onclick="showAddConnectionModal()">
-+ Add Connection
-</button>
-
-</div>"## .to_string(), ) }
-
-#[derive(Debug, Deserialize)]
-struct SearchSettingsRequest {
-enable_fuzzy_search: Option<bool>,
-search_result_limit: Option<i32>,
-enable_ai_suggestions: Option<bool>,
-}
-
-#[derive(Debug, Serialize)]
-struct SearchSettingsResponse {
-success: bool,
-message: Option<String>,
-error: Option<String>,
-}
-
-async fn save_search_settings(
-State(_state): State<Arc<AppState>>,
-Json(settings): Json<SearchSettingsRequest>,
-) -> Json<SearchSettingsResponse> {
-// In a real implementation, save to database
-log::info!("Saving search settings: fuzzy={:?}, limit={:?}, ai={:?}",
-settings.enable_fuzzy_search,
-settings.search_result_limit,
-settings.enable_ai_suggestions
-);
-
-
-Json(SearchSettingsResponse {
-    success: true,
-    message: Some("Search settings saved successfully".to_string()),
-    error: None,
-})
-
-}
 
 #[derive(Debug, Serialize)]
 struct SmtpTestResponse {
@@ -311,66 +204,4 @@ error: Some("SMTP email feature is not enabled in this build".to_string()),
 })
 }
 
-async fn get_2fa_status(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
-r##"<div class="status-indicator">
-<span class="status-dot inactive"></span>
-<span class="status-text">Two-factor authentication is not enabled</span>
 
-</div>"## .to_string(), ) }
-
-async fn enable_2fa(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
-r##"<div class="status-indicator">
-<span class="status-dot active"></span>
-<span class="status-text">Two-factor authentication enabled</span>
-
-</div>"## .to_string(), ) }
-
-async fn disable_2fa(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
-r##"<div class="status-indicator">
-<span class="status-dot inactive"></span>
-<span class="status-text">Two-factor authentication disabled</span>
-
-</div>"## .to_string(), ) }
-
-async fn get_active_sessions(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
-r##"<div class="session-item current">
-<div class="session-info">
-<div class="session-device">
-<span class="device-icon">💻</span>
-<span class="device-name">Current Session</span>
-<span class="session-badge current">This device</span>
-</div>
-<div class="session-details">
-<span class="session-location">Current browser session</span>
-<span class="session-time">Active now</span>
-</div>
-</div>
-
-</div> <div class="sessions-empty"> <p class="text-muted">No other active sessions</p> </div>"## .to_string(), ) }
-
-async fn revoke_all_sessions(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
-r##"<div class="success-message">
-<span class="success-icon">✓</span>
-<span>All other sessions have been revoked</span>
-
-</div>"## .to_string(), ) }
-
-async fn get_trusted_devices(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
-r####"<div class="device-item current">
-<div class="device-info">
-    "##
-<span class="device-icon">💻</span>
-<div class="device-details">
-<span class="device-name">Current Device</span>
-<span class="device-last-seen">Last active: Just now</span>
-</div>
-</div>
-<span class="device-badge trusted">Trusted</span>
-
-</div> <div class="devices-empty"> <p class="text-muted">No other trusted devices</p> </div>"#### .to_string(), ) }

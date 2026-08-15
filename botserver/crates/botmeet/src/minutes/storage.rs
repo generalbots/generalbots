@@ -9,7 +9,7 @@ use crate::minutes::types::*;
 pub struct MinuteStorage;
 
 impl MinuteStorage {
-    pub async fn save_recording(conn: &mut PgConnection, recording: &MeetRecording) -> Result<()> {
+    pub fn save_recording(conn: &mut PgConnection, recording: &MeetRecording) -> Result<()> {
         sql_query(
             "INSERT INTO meet_recordings (id, bot_id, meeting_id, title, recording_path, duration_seconds, file_size, language, status, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
@@ -28,7 +28,7 @@ impl MinuteStorage {
         Ok(())
     }
 
-    pub async fn get_recording(conn: &mut PgConnection, id: Uuid) -> Result<MeetRecording> {
+    pub fn get_recording(conn: &mut PgConnection, id: Uuid) -> Result<MeetRecording> {
         #[derive(QueryableByName)]
         struct Row {
             #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -57,7 +57,7 @@ impl MinuteStorage {
         })
     }
 
-    pub async fn update_recording_status(conn: &mut PgConnection, id: Uuid, status: &RecordingStatus) -> Result<()> {
+    pub fn update_recording_status(conn: &mut PgConnection, id: Uuid, status: &RecordingStatus) -> Result<()> {
         sql_query("UPDATE meet_recordings SET status = $1 WHERE id = $2")
             .bind::<diesel::sql_types::Text, _>(&status.to_string())
             .bind::<diesel::sql_types::Uuid, _>(id)
@@ -65,7 +65,7 @@ impl MinuteStorage {
         Ok(())
     }
 
-    pub async fn list_recordings(conn: &mut PgConnection, bot_id: Uuid, limit: i64, offset: i64) -> Result<Vec<MeetRecording>> {
+    pub fn list_recordings(conn: &mut PgConnection, bot_id: Uuid, limit: i64, offset: i64) -> Result<Vec<MeetRecording>> {
         #[derive(QueryableByName)]
         struct Row {
             #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -96,7 +96,7 @@ impl MinuteStorage {
         }).collect())
     }
 
-    pub async fn save_transcription(conn: &mut PgConnection, t: &Transcription) -> Result<()> {
+    pub fn save_transcription(conn: &mut PgConnection, t: &Transcription) -> Result<()> {
         sql_query(
             "INSERT INTO meet_transcriptions (id, recording_id, full_text, segments, speakers, language, confidence, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
@@ -113,7 +113,7 @@ impl MinuteStorage {
         Ok(())
     }
 
-    pub async fn get_transcription(conn: &mut PgConnection, recording_id: Uuid) -> Result<Transcription> {
+    pub fn get_transcription(conn: &mut PgConnection, recording_id: Uuid) -> Result<Transcription> {
         #[derive(QueryableByName)]
         struct Row {
             #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -140,7 +140,7 @@ impl MinuteStorage {
         })
     }
 
-    pub async fn save_minute(conn: &mut PgConnection, m: &MeetingMinute) -> Result<()> {
+    pub fn save_minute(conn: &mut PgConnection, m: &MeetingMinute) -> Result<()> {
         sql_query(
             "INSERT INTO meet_minutes (id, bot_id, recording_id, meeting_id, title, summary, key_points, action_items, decisions, attendees, duration_minutes, status, version, created_at, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)"
@@ -164,7 +164,7 @@ impl MinuteStorage {
         Ok(())
     }
 
-    pub async fn get_minute(conn: &mut PgConnection, id: Uuid) -> Result<MeetingMinute> {
+    pub fn get_minute(conn: &mut PgConnection, id: Uuid) -> Result<MeetingMinute> {
         #[derive(QueryableByName)]
         struct Row {
             #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -201,7 +201,7 @@ impl MinuteStorage {
         })
     }
 
-    pub async fn list_minutes(conn: &mut PgConnection, bot_id: Uuid, limit: i64, offset: i64) -> Result<Vec<MeetingMinute>> {
+    pub fn list_minutes(conn: &mut PgConnection, bot_id: Uuid, limit: i64, offset: i64) -> Result<Vec<MeetingMinute>> {
         #[derive(QueryableByName)]
         struct Row {
             #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
@@ -240,7 +240,7 @@ impl MinuteStorage {
         }).collect())
     }
 
-    pub async fn update_minute(conn: &mut PgConnection, id: Uuid, req: &UpdateMinutesRequest) -> Result<()> {
+    pub fn update_minute(conn: &mut PgConnection, id: Uuid, req: &UpdateMinutesRequest) -> Result<()> {
         if let Some(ref title) = req.title {
             sql_query("UPDATE meet_minutes SET title = $1 WHERE id = $2")
                 .bind::<diesel::sql_types::Text, _>(title)
@@ -276,13 +276,18 @@ impl MinuteStorage {
         Ok(())
     }
 
-    pub async fn finalize_minute(conn: &mut PgConnection, id: Uuid) -> Result<()> {
-        sql_query("UPDATE meet_minutes SET status = 'final', updated_at = NOW() WHERE id = $1")
+    pub fn finalize_minute(conn: &mut PgConnection, id: Uuid) -> Result<()> {
+        Self::set_minute_status(conn, id, &MinuteStatus::Final)
+    }
+
+    pub fn set_minute_status(conn: &mut PgConnection, id: Uuid, status: &MinuteStatus) -> Result<()> {
+        sql_query("UPDATE meet_minutes SET status = $1, updated_at = NOW() WHERE id = $2")
+            .bind::<diesel::sql_types::Text, _>(&status.to_string())
             .bind::<diesel::sql_types::Uuid, _>(id).execute(conn)?;
         Ok(())
     }
 
-    pub async fn save_signature(conn: &mut PgConnection, sig: &MinuteSignature) -> Result<()> {
+    pub fn save_signature(conn: &mut PgConnection, sig: &MinuteSignature) -> Result<()> {
         sql_query(
             "INSERT INTO meet_minute_signatures (id, minute_id, user_id, signature_id, signed_hash, signed_at, ip_address)
              VALUES ($1, $2, $3, $4, $5, $6, $7)"
@@ -298,7 +303,7 @@ impl MinuteStorage {
         Ok(())
     }
 
-    pub async fn get_signatures(conn: &mut PgConnection, minute_id: Uuid) -> Result<Vec<MinuteSignature>> {
+    pub fn get_signatures(conn: &mut PgConnection, minute_id: Uuid) -> Result<Vec<MinuteSignature>> {
         #[derive(QueryableByName)]
         struct Row {
             #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,

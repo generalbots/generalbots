@@ -216,7 +216,7 @@ pub async fn handle_plugins_page(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Plugin Manager</title>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="/suite/js/vendor/htmx.min.js"></script>
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;color:#1a1a1a}

@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS billing_quota_settings;

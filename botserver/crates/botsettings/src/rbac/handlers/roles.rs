@@ -90,7 +90,19 @@ pub async fn create_role(State(state): State<Arc<AppState>>, Json(req): Json<Cre
     .await;
 
     match result {
-        Ok(Ok(role)) => (StatusCode::CREATED, Json(role)).into_response(),
+        Ok(Ok(role)) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "role.create",
+                Some("role"),
+                Some(role.id),
+                true,
+                Some(&format!("Created role '{}'", role.name)),
+            );
+            (StatusCode::CREATED, Json(role)).into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "create_role", None)).into_response()
         }
@@ -130,7 +142,19 @@ pub async fn update_role(
     .await;
 
     match result {
-        Ok(Ok(role)) => Json(role).into_response(),
+        Ok(Ok(role)) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "role.update",
+                Some("role"),
+                Some(role.id),
+                true,
+                Some(&format!("Updated role '{}'", role.name)),
+            );
+            Json(role).into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "update_role", None)).into_response()
         }
@@ -154,7 +178,19 @@ pub async fn delete_role(State(state): State<Arc<AppState>>, Path(role_id): Path
     .await;
 
     match result {
-        Ok(Ok(())) => StatusCode::NO_CONTENT.into_response(),
+        Ok(Ok(())) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "role.delete",
+                Some("role"),
+                Some(role_id),
+                true,
+                Some("Deactivated role"),
+            );
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "delete_role", None)).into_response()
         }

@@ -92,6 +92,16 @@ pub async fn create_group(State(state): State<Arc<AppState>>, Json(req): Json<Cr
     match result {
         Ok(Ok(group)) => {
             log::info!("Created group: {} ({})", group.display_name, group.id);
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "group.create",
+                Some("group"),
+                Some(group.id),
+                true,
+                Some(&format!("Created group '{}'", group.name)),
+            );
             (StatusCode::CREATED, Json(group)).into_response()
         }
         Ok(Err(e)) => {
@@ -215,7 +225,19 @@ pub async fn assign_role_to_group(
     .await;
 
     match result {
-        Ok(Ok(gr)) => (StatusCode::CREATED, Json(gr)).into_response(),
+        Ok(Ok(gr)) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "group.assign_role",
+                Some("group"),
+                Some(group_id),
+                true,
+                Some(&format!("Assigned role {role_id} to group {group_id}")),
+            );
+            (StatusCode::CREATED, Json(gr)).into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "assign_role_to_group", None)).into_response()
         }
@@ -245,7 +267,19 @@ pub async fn remove_role_from_group(
     .await;
 
     match result {
-        Ok(Ok(())) => StatusCode::NO_CONTENT.into_response(),
+        Ok(Ok(())) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "group.revoke_role",
+                Some("group"),
+                Some(group_id),
+                true,
+                Some(&format!("Revoked role {role_id} from group {group_id}")),
+            );
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "remove_role_from_group", None)).into_response()
         }

@@ -4,6 +4,7 @@ pub mod execution;
 pub mod drive_ops;
 pub mod llm_adapter;
 pub mod handlers;
+pub mod app_log_routes;
 pub mod app_logs;
 pub mod task_types;
 pub mod task_manifest;

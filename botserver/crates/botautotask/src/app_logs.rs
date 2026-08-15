@@ -203,6 +203,14 @@ impl AppLogStore {
             line_number: request.line_number,
             stack_trace: request.stack_trace,
         };
+        match level {
+            LogLevel::Debug => debug!("[{}] {}: {}", entry.app_name, entry.source, entry.message),
+            LogLevel::Info => info!("[{}] {}: {}", entry.app_name, entry.source, entry.message),
+            LogLevel::Warn => warn!("[{}] {}: {}", entry.app_name, entry.source, entry.message),
+            LogLevel::Error | LogLevel::Critical => {
+                error!("[{}] {}: {}", entry.app_name, entry.source, entry.message)
+            }
+        }
         self.add_entry(entry);
     }
 
