@@ -149,9 +149,12 @@ fn zero_section_renders() {
 
 #[test]
 fn accounting_zero_renders_dash() {
-    // The classic accounting zero section `_-* "-"??_-` strips to a dash.
-    let f = parse_format("_($* #,##0.00_);_($* (#,##0.00);_($* \"-\"??_);_(@_)");
+    // The accounting zero section `_-* "-"??_-` strips its `_`/`*`/`?`
+    // alignment markers to a bare dash.
+    let f = parse_format("#,##0.00;[Red](#,##0.00);_-*\"-\"??_-");
+    assert_eq!(f.zero_code.as_deref(), Some("_-*\"-\"??_-"));
     assert_eq!(render_number(0.0, &f), "-");
+    assert_eq!(render_number(5.0, &f), "5.00");
 }
 
 #[test]
