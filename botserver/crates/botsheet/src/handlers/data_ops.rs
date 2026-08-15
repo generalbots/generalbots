@@ -6,6 +6,7 @@ use crate::types::{
     FilterRequest, SaveResponse, SortRequest,
 };
 use axum::{extract::{Extension, State}, http::StatusCode, Json};
+use botsheet_core::engine::value::CellValue;
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -52,23 +53,35 @@ pub async fn handle_sort_range(
 
     let sort_col_idx = (req.sort_col - req.start_col) as usize;
     rows.sort_by(|a, b| {
-        let val_a = a
-            .get(sort_col_idx)
-            .and_then(|c| c.as_ref())
-            .and_then(|c| c.value.clone())
-            .unwrap_or_default();
-        let val_b = b
-            .get(sort_col_idx)
-            .and_then(|c| c.as_ref())
-            .and_then(|c| c.value.clone())
-            .unwrap_or_default();
+        let cell_a = a.get(sort_col_idx).and_then(|c| c.as_ref());
+        let cell_b = b.get(sort_col_idx).and_then(|c| c.as_ref());
 
-        let num_a = val_a.parse::<f64>().ok();
-        let num_b = val_b.parse::<f64>().ok();
+        // A typed Number sorts numerically; any other typed value (text, bool,
+        // error, empty) sorts by its display string so a text `0123` is not
+        // re-parsed into the number 123. Untyped cells (CSV/ODS) fall back to
+        // a numeric parse of the display value.
+        let num_a = match cell_a.and_then(|c| c.typed.as_ref()) {
+            Some(CellValue::Number(n)) => Some(*n),
+            Some(_) => None,
+            None => cell_a
+                .and_then(|c| c.value.as_deref())
+                .and_then(|v| v.parse::<f64>().ok()),
+        };
+        let num_b = match cell_b.and_then(|c| c.typed.as_ref()) {
+            Some(CellValue::Number(n)) => Some(*n),
+            Some(_) => None,
+            None => cell_b
+                .and_then(|c| c.value.as_deref())
+                .and_then(|v| v.parse::<f64>().ok()),
+        };
 
         let cmp = match (num_a, num_b) {
             (Some(na), Some(nb)) => na.partial_cmp(&nb).unwrap_or(std::cmp::Ordering::Equal),
-            _ => val_a.cmp(&val_b),
+            _ => {
+                let str_a = cell_a.and_then(|c| c.value.as_deref()).unwrap_or_default();
+                let str_b = cell_b.and_then(|c| c.value.as_deref()).unwrap_or_default();
+                str_a.cmp(str_b)
+            }
         };
 
         if req.ascending { cmp } else { cmp.reverse() }
