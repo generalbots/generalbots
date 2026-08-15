@@ -310,7 +310,9 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
             }
         });
 
-    let border = extract_border(style.get_borders());
+    let border = style.get_borders().and_then(|b| {
+        extract_border([b.get_top(), b.get_left(), b.get_bottom(), b.get_right()])
+    });
 
     if font_weight.is_some()
         || font_style.is_some()
@@ -340,16 +342,12 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
 /// Reduces a cell's borders to a single CSS border string (the model has one
 /// `border` field, not per-side). The first non-`none` side wins — most tables
 /// set all four sides identically, so the top/left representative is correct.
-pub(crate) fn extract_border(borders: Option<&umya_spreadsheet::structs::Borders>) -> Option<String> {
-    let borders = borders?;
-    let side = [
-        borders.get_top(),
-        borders.get_left(),
-        borders.get_bottom(),
-        borders.get_right(),
-    ]
-    .into_iter()
-    .find(|b| b.get_border_style() != "none")?;
+///
+/// Takes the four sides as `&Border` (public type) instead of the container
+/// `umya_spreadsheet::structs::Borders`, which is private in umya 2.3.3 and
+/// cannot be named from outside the crate.
+pub(crate) fn extract_border(sides: [&umya_spreadsheet::Border; 4]) -> Option<String> {
+    let side = sides.into_iter().find(|b| b.get_border_style() != "none")?;
     let style = border_style_to_css(side.get_border_style())?;
     let argb = side.get_color().get_argb();
     let color = if argb.len() >= 8 {

@@ -36,6 +36,7 @@ pub fn parse_binary_to_worksheets(
 
 fn push_sheets<R, RS>(worksheets: &mut Vec<crate::types::Worksheet>, wb: &mut R)
 where
+    RS: std::io::Read + std::io::Seek,
     R: calamine::Reader<RS>,
 {
     for name in wb.sheet_names() {

@@ -27,6 +27,9 @@ fn is_range(text: &str) -> bool {
 
 fn truthy(text: &str) -> bool {
     let t = text.trim();
+    if t.eq_ignore_ascii_case("FALSE") {
+        return false;
+    }
     t.eq_ignore_ascii_case("TRUE") || t.parse::<f64>().map(|n| n != 0.0).unwrap_or(!t.is_empty())
 }
 

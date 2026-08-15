@@ -54,6 +54,25 @@ impl VmLifecycle {
             .unwrap_or(false))
     }
 
+    /// Resolve the container's primary IPv4 address from `incus list` JSON
+    /// (`state.network.eth0.addresses[].address` where family=inet). The host
+    /// cannot resolve `{container}.incus` DNS names, so the health probe must
+    /// dial the real IP.
+    pub(crate) fn linux_ip(&self, name: &str) -> Result<Option<String>, String> {
+        self.skip_if_unavailable()?;
+        let list = self.linux_list()?;
+        Ok(list
+            .as_array()
+            .and_then(|arr| arr.iter().find(|i| i["name"].as_str() == Some(name)))
+            .and_then(|i| i["state"]["network"]["eth0"]["addresses"].as_array())
+            .and_then(|addrs| {
+                addrs
+                    .iter()
+                    .find(|a| a["family"].as_str() == Some("inet"))
+                    .and_then(|a| a["address"].as_str().map(str::to_string))
+            }))
+    }
+
     pub(crate) fn linux_create(&self, name: &str, tier: &str) -> Result<(), String> {
         self.skip_if_unavailable()?;
         let image = std::env::var("VIBE_VM_IMAGE").unwrap_or_else(|_| "images:ubuntu/24.04".to_string());

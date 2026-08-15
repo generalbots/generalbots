@@ -91,7 +91,7 @@ pub fn extract_conditional_formats(
                 rule_type.clone()
             };
             let style = dxf_style(rule.get_style());
-            let priority = rule.get_priority().max(1) as u32;
+            let priority = (*rule.get_priority()).max(1) as u32;
 
             for (sr, sc, er, ec) in &ranges {
                 rules.push(ConditionalFormatRule {
@@ -154,7 +154,9 @@ fn dxf_style(style: Option<&umya_spreadsheet::structs::Style>) -> CellStyle {
         }
     });
 
-    let border = super::xlsx_write::extract_border(style.get_borders());
+    let border = style.get_borders().and_then(|b| {
+        super::xlsx_write::extract_border([b.get_top(), b.get_left(), b.get_bottom(), b.get_right()])
+    });
 
     CellStyle {
         background,
