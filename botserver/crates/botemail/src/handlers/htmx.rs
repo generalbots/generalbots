@@ -173,8 +173,6 @@ pub async fn get_email_content_htmx(
 
         #[derive(diesel::QueryableByName)]
         struct MsgRow {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            account_id: Uuid,
             #[diesel(sql_type = diesel::sql_types::Text)]
             subject: String,
             #[diesel(sql_type = diesel::sql_types::Varchar)]
@@ -191,7 +189,7 @@ pub async fn get_email_content_htmx(
             is_read: bool,
         }
         let row = sql_query(
-            "SELECT m.account_id, m.subject, m.from_address, m.to_addresses, \
+            "SELECT m.subject, m.from_address, m.to_addresses, \
                     m.body_text, m.body_html, m.received_at, m.is_read \
              FROM email_messages m \
              JOIN user_email_accounts a ON a.id = m.account_id \

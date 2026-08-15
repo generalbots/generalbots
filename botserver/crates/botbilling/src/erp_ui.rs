@@ -194,7 +194,7 @@ async fn handle_procurement(State(state): State<Arc<BillingApiState>>, headers: 
 }
 
 async fn handle_procurement_orders(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
-    handle_procurement(State(state)).await
+    handle_procurement(State(state), headers).await
 }
 
 async fn handle_gl_accounts(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {

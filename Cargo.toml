@@ -357,7 +357,7 @@ qrcode = { version = "0.14", default-features = false }
 
 # ─── EMAIL ───
 imap = "3.0.0-alpha.15"
-lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "builder"] }
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "builder", "rustls", "ring", "webpki-roots"] }
 mailparse = "0.15"
 
 # ─── CONFIGURATION ───

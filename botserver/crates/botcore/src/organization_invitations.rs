@@ -113,7 +113,7 @@ pub struct ListInvitationsQuery {
     pub per_page: Option<u32>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct InvitationResponse {
     pub id: Uuid,
     pub organization_id: Uuid,
@@ -279,10 +279,6 @@ impl InvitationService {
         Self { pool }
     }
 
-    fn get_conn(&self) -> Result<diesel::PgConnection, String> {
-        self.pool.get().map_err(|e| format!("DB pool error: {e}"))
-    }
-
     pub async fn create_invitation(
         &self,
         params: CreateInvitationParams<'_>,
@@ -306,8 +302,22 @@ impl InvitationService {
         let groups_json =
             serde_json::to_string(&params.groups).unwrap_or_else(|_| "[]".to_string());
 
+        // Copy what the spawn_blocking closure needs; the invitation struct
+        // below still uses the same values, so the closure gets clones.
+        let org_id = params.organization_id;
+        let role = params.role.clone();
+        let message = params.message.clone();
+        let invited_by = params.invited_by;
+        let invited_by_name = params.invited_by_name.to_string();
+        let expires_in_days = params.expires_in_days;
+        let email_lower_for_bind = email_lower.clone();
+        let role_for_bind = role.clone();
+        let message_for_bind = message.clone();
+        let invited_by_name_for_bind = invited_by_name.clone();
+        let token_for_bind = token.clone();
+
         let pool = self.pool.clone();
-        let conn_result = tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             use diesel::sql_query;
             use diesel::RunQueryDsl;
             let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
@@ -318,16 +328,16 @@ impl InvitationService {
                  VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7, $8, $9::jsonb, $10, $10, $11)",
             )
             .bind::<diesel::sql_types::Uuid, _>(invitation_id)
-            .bind::<diesel::sql_types::Uuid, _>(params.organization_id)
-            .bind::<diesel::sql_types::Text, _>(&email_lower)
-            .bind::<diesel::sql_types::Text, _>(params.role.as_str())
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(params.message.as_deref())
-            .bind::<diesel::sql_types::Uuid, _>(params.invited_by)
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some(params.invited_by_name))
-            .bind::<diesel::sql_types::Text, _>(&token)
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .bind::<diesel::sql_types::Text, _>(&email_lower_for_bind)
+            .bind::<diesel::sql_types::Text, _>(role_for_bind.as_str())
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(message_for_bind.as_deref())
+            .bind::<diesel::sql_types::Uuid, _>(invited_by)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some(invited_by_name_for_bind.as_str()))
+            .bind::<diesel::sql_types::Text, _>(&token_for_bind)
             .bind::<diesel::sql_types::Text, _>(&groups_json)
             .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .bind::<diesel::sql_types::Timestamptz, _>(now + Duration::days(params.expires_in_days))
+            .bind::<diesel::sql_types::Timestamptz, _>(now + Duration::days(expires_in_days))
             .execute(&mut conn)
             .map_err(|e| format!("Failed to persist invitation: {e}"))?;
             Ok::<_, String>(())
@@ -335,20 +345,18 @@ impl InvitationService {
         .await
         .map_err(|e| format!("Task join error: {e}"))??;
 
-        let _ = conn_result;
-
         let invitation = OrganizationInvitation {
             id: invitation_id,
-            organization_id: params.organization_id,
+            organization_id: org_id,
             email: email_lower,
-            role: params.role,
-            groups: params.groups,
-            invited_by: params.invited_by,
-            invited_by_name: params.invited_by_name.to_string(),
+            role: role.clone(),
+            groups: params.groups.clone(),
+            invited_by,
+            invited_by_name: invited_by_name.clone(),
             status: InvitationStatus::Pending,
             token: token.clone(),
-            message: params.message,
-            expires_at: now + Duration::days(params.expires_in_days),
+            message: message.clone(),
+            expires_at: now + Duration::days(expires_in_days),
             created_at: now,
             updated_at: now,
             accepted_at: None,
@@ -416,6 +424,7 @@ impl InvitationService {
         let pool = self.pool.clone();
         let org_id = invitation.organization_id;
         let role = invitation.role.as_str().to_string();
+        let role_for_bind = role.clone();
         tokio::task::spawn_blocking(move || {
             use diesel::sql_query;
             use diesel::RunQueryDsl;
@@ -443,7 +452,7 @@ impl InvitationService {
             .bind::<diesel::sql_types::Uuid, _>(binding_id)
             .bind::<diesel::sql_types::Uuid, _>(user_id)
             .bind::<diesel::sql_types::Uuid, _>(org_id)
-            .bind::<diesel::sql_types::Text, _>(&role)
+            .bind::<diesel::sql_types::Text, _>(&role_for_bind)
             .bind::<diesel::sql_types::Timestamptz, _>(now)
             .execute(&mut conn)
             .map_err(|e| format!("Failed to bind user to organization: {e}"))?;
@@ -592,21 +601,19 @@ impl InvitationService {
             use diesel::sql_query;
             use diesel::RunQueryDsl;
             let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-            let mut sql = String::from(
+            // A conditional extra placeholder cannot extend a Diesel bind
+            // chain; build the status clause into the SQL and always bind it.
+            let status_clause = status_filter_str.clone().unwrap_or_else(|| "%".to_string());
+            let sql = format!(
                 "SELECT id, org_id, email, role, status, message, invited_by, invited_by_name, \
                         token, groups, created_at, updated_at, expires_at, accepted_at, accepted_by \
-                 FROM organization_invitations WHERE org_id = $1",
+                 FROM organization_invitations WHERE org_id = $1 AND status LIKE $2 \
+                 ORDER BY created_at DESC LIMIT 500",
             );
-            if status_filter_str.is_some() {
-                sql.push_str(" AND status = $2");
-            }
-            sql.push_str(" ORDER BY created_at DESC LIMIT 500");
-            let mut q = sql_query(&sql)
-                .bind::<diesel::sql_types::Uuid, _>(organization_id);
-            if let Some(ref s) = status_filter_str {
-                q = q.bind::<diesel::sql_types::Text, _>(s);
-            }
-            q.load::<InvitationRow>(&mut conn)
+            sql_query(&sql)
+                .bind::<diesel::sql_types::Uuid, _>(organization_id)
+                .bind::<diesel::sql_types::Text, _>(&status_clause)
+                .load::<InvitationRow>(&mut conn)
                 .map_err(|e| format!("Failed to list invitations: {e}"))
         })
         .await
@@ -833,9 +840,24 @@ impl InvitationService {
                 expires = invitation.expires_at.format("%Y-%m-%d %H:%M UTC"),
             );
 
+            let from_mailbox = match from.parse::<lettre::message::Mailbox>() {
+                Ok(m) => m,
+                Err(e) => {
+                    log::warn!("Invalid MAIL_FROM address {from}: {e}");
+                    return;
+                }
+            };
+            let to_mailbox = match invitation.email.parse::<lettre::message::Mailbox>() {
+                Ok(m) => m,
+                Err(e) => {
+                    log::warn!("Invalid recipient {}: {e}", invitation.email);
+                    return;
+                }
+            };
+
             match Message::builder()
-                .from(from.parse().map_err(|e| e.to_string()).ok())
-                .to(invitation.email.parse().map_err(|e| e.to_string()).ok())
+                .from(from_mailbox)
+                .to(to_mailbox)
                 .subject(format!("Invitation to join {org_name}"))
                 .body(body)
             {
@@ -1194,7 +1216,7 @@ mod tests {
     /// `organization_invitations` table must exist); returns `None` when the
     /// env var is absent so unit runs without a database are skipped.
     fn test_service() -> Option<InvitationService> {
-        use diesel::r2d2::ConnectionManager;
+        use diesel::r2d2::{ConnectionManager, Pool};
         let url = std::env::var("DATABASE_URL").ok()?;
         let manager = ConnectionManager::<diesel::PgConnection>::new(url);
         let pool = Pool::new(manager).ok()?;
