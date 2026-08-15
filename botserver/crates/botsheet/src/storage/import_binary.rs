@@ -1,8 +1,8 @@
 //! Legacy binary workbook import (`.xls` BIFF8 / `.xlsb`) via calamine (E9).
 //!
-//! calamine reads cell values (and formulas) but not styles, merges, charts or
+//! calamine reads cell values and formulas but not styles, merges, charts or
 //! layout, so those features are absent from the model for these formats. The
-//! loop iterates `used_cells()` — O(used cells), not the bounding box.
+//! loops iterate `used_cells()` — O(used cells), not the bounding box.
 
 use botsheet_core::engine::value::CellValue;
 use std::collections::HashMap;
@@ -59,6 +59,17 @@ where
                 );
             }
         }
+        // Formulas (E9): calamine returns formula strings without the leading
+        // `=`; merge them onto the values above.
+        if let Ok(formulas) = wb.worksheet_formula(&name) {
+            for (row, col, formula) in formulas.used_cells() {
+                if formula.is_empty() {
+                    continue;
+                }
+                let entry = data.entry(format!("{row},{col}")).or_insert_with(empty_cell);
+                entry.formula = Some(format!("={formula}"));
+            }
+        }
         worksheets.push(crate::types::Worksheet {
             name,
             data,
@@ -87,6 +98,21 @@ where
             print_areas: None,
             rich_text: None,
         });
+    }
+}
+
+/// A blank cell for formula-only entries (no cached value).
+fn empty_cell() -> crate::types::CellData {
+    crate::types::CellData {
+        value: None,
+        typed: None,
+        formula: None,
+        style: None,
+        format: None,
+        note: None,
+        locked: None,
+        has_comment: None,
+        array_formula_id: None,
     }
 }
 
