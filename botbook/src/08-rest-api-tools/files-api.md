@@ -407,6 +407,88 @@ Get files and folders shared with user.
 []
 ```
 
+### Create Public Share Link (token-based)
+
+Creates a revocable, token-based public link for a single file. The token is a random 128-bit UUID — unguessable and never derived from the file name. Only the owner can create links, and only for files they can access.
+
+**Endpoint**: `POST /api/files/share-link` (authenticated)
+
+**Request Body**:
+```json
+{
+  "bucket": "my-bucket",
+  "path": "reports/annual.pdf",
+  "scope": "user",
+  "expires_at": "2026-12-31T23:59:59Z"
+}
+```
+
+`expires_at` is optional (RFC3339). When omitted, the link never expires.
+
+**Response**:
+```json
+{
+  "token": "9f2c1b4e8d3a4b5c9e1f2a3b4c5d6e7f",
+  "url": "/api/files/public/9f2c1b4e8d3a4b5c9e1f2a3b4c5d6e7f",
+  "created_at": "2026-08-15T12:00:00Z",
+  "expires_at": null
+}
+```
+
+### List My Public Links
+
+**Endpoint**: `GET /api/files/share-links` (authenticated)
+
+**Query Parameters**:
+- `path` (optional) - Filter links for one file (so the UI can show copy vs create)
+- `bucket` (optional)
+- `scope` (optional)
+
+**Response**:
+```json
+[
+  {
+    "token": "9f2c1b4e8d3a4b5c9e1f2a3b4c5d6e7f",
+    "url": "/api/files/public/9f2c1b4e8d3a4b5c9e1f2a3b4c5d6e7f",
+    "bucket": "my-bucket",
+    "path": "reports/annual.pdf",
+    "created_at": "2026-08-15T12:00:00Z",
+    "expires_at": null,
+    "revoked": false
+  }
+]
+```
+
+### Revoke Public Share Link
+
+Revokes a link by token, or by file (`bucket` + `path`) for the caller. Revoked and expired links immediately return 404 on download — indistinguishable from unknown links, so existence is never leaked.
+
+**Endpoint**: `POST /api/files/revoke-link` (authenticated)
+
+**Request Body** (either form):
+```json
+{ "token": "9f2c1b4e8d3a4b5c9e1f2a3b4c5d6e7f" }
+```
+```json
+{ "bucket": "my-bucket", "path": "reports/annual.pdf" }
+```
+
+**Response**:
+```json
+{ "success": true }
+```
+
+### Public Download (no authentication)
+
+**Endpoint**: `GET /api/files/public/{token}`
+
+Serves the file as an attachment with `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff` and `Cache-Control: private, no-store`. No listing or enumeration is possible — only the exact token resolves. Files are never served inline, so HTML/SVG payloads cannot execute in the browser origin.
+
+| Status | Meaning |
+|--------|---------|
+| 200 | File bytes (attachment) |
+| 404 | Unknown, revoked, or expired token |
+
 ### Get Permissions
 
 Get permissions for file or folder.

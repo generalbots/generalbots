@@ -166,6 +166,144 @@ async function pasteFiles() {
     loadFiles(currentPath, currentBucket);
 }
 
+// ── Extended file operations (enterprise drive) ─────────────────────────
+
+function duplicateItem(path) {
+    const fileName = path.split("/").pop() || "file";
+    const dot = fileName.lastIndexOf(".");
+    let base, ext;
+    if (dot > 0) { base = fileName.slice(0, dot); ext = fileName.slice(dot); }
+    else { base = fileName; ext = ""; }
+    const parent = currentPath;
+    const newName = base + " (copy)" + ext;
+    const newPath = parent ? parent + "/" + newName : newName;
+    apiRequest("/copy", {
+        method: "POST",
+        body: JSON.stringify({
+            source_bucket: getEffectiveBucket(),
+            source_path: path,
+            dest_bucket: getEffectiveBucket(),
+            dest_path: newPath,
+            scope: currentScope,
+        }),
+    }).then(function() {
+        showNotification('Duplicated as "' + newName + '"', "success");
+        loadFiles(currentPath, currentBucket);
+    }).catch(function(err) {
+        showNotification("Duplicate failed: " + err.message, "error");
+    });
+}
+
+async function copyLink(path) {
+    try {
+        showNotification("Creating secure link...", "info");
+        var link = await apiRequest("/share-link", {
+            method: "POST",
+            body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
+        });
+        var fullUrl = window.location.origin + link.url;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(fullUrl);
+        } else {
+            var ta = document.createElement("textarea");
+            ta.value = fullUrl;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+        }
+        showNotification("Link copied to clipboard", "success");
+    } catch (err) {
+        showNotification("Copy link failed: " + err.message, "error");
+    }
+}
+
+async function copyPathToClipboard(path) {
+    var text = path;
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+        }
+        showNotification("Path copied", "success");
+    } catch (err) {
+        showNotification("Copy path failed: " + err.message, "error");
+    }
+}
+
+// Paste the in-app clipboard directly into a folder (right-click on folder).
+async function pasteInto(folderPath) {
+    if (clipboardFiles.length === 0) return;
+    const operation = clipboardOperation;
+    var processed = 0;
+    for (const sourcePath of clipboardFiles) {
+        const fileName = sourcePath.split("/").pop();
+        const destPath = folderPath + "/" + fileName;
+        try {
+            const endpoint = operation === "copy" ? "/copy" : "/move";
+            await apiRequest(endpoint, {
+                method: "POST",
+                body: JSON.stringify({
+                    source_bucket: getEffectiveBucket(),
+                    source_path: sourcePath,
+                    dest_bucket: getEffectiveBucket(),
+                    dest_path: destPath,
+                    scope: currentScope,
+                }),
+            });
+            processed++;
+        } catch (err) {
+            console.error("Failed to " + operation + " " + sourcePath + ":", err);
+        }
+    }
+    if (operation === "cut") { clipboardFiles = []; clipboardOperation = null; }
+    showNotification((operation === "copy" ? "Copied" : "Moved") + " " + processed + " item(s) into " + folderPath, "success");
+    loadFiles(currentPath, currentBucket);
+}
+
+// Open (or focus) the AI assistant panel with this file as context.
+function askAIOnFile(path) {
+    if (window.DriveAI && typeof window.DriveAI.openWithFile === "function") {
+        window.DriveAI.openWithFile(path);
+    } else if (window.DriveModule && typeof window.DriveModule.showAIPanel === "function") {
+        window.DriveModule.showAIPanel();
+        if (window.DriveModule.setAIFile) window.DriveModule.setAIFile(path);
+    }
+}
+
+// Upload files pasted from the OS clipboard (images/screenshots).
+function uploadClipboardFiles(fileList) {
+    const files = Array.from(fileList).filter(function(f) { return f && f.size > 0; });
+    if (files.length === 0) return;
+    showNotification("Uploading " + files.length + " pasted file(s)...", "info");
+    files.forEach(function(file) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            apiRequest("/write", {
+                method: "POST",
+                body: JSON.stringify({
+                    bucket: getEffectiveBucket(),
+                    path: currentPath ? currentPath + "/" + file.name : file.name,
+                    content: reader.result,
+                    scope: currentScope,
+                }),
+            }).then(function() {
+                showNotification("Uploaded " + file.name, "success");
+                loadFiles(currentPath, currentBucket);
+            }).catch(function(err) {
+                showNotification("Upload failed for " + file.name + ": " + err.message, "error");
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 window.DriveModule = {
     selectedFiles: selectedFiles,
     init: init,
@@ -181,6 +319,12 @@ window.DriveModule = {
     previewFile: previewFile,
     shareFile: shareFile,
     copyShareLink: copyShareLink,
+    revokeShareLink: revokeShareLink,
+    copyLink: copyLink,
+    duplicateItem: duplicateItem,
+    copyPathToClipboard: copyPathToClipboard,
+    pasteInto: pasteInto,
+    askAIOnFile: askAIOnFile,
     openFile: openFile,
     deleteItem: deleteItem,
     deleteSelected: deleteSelected,

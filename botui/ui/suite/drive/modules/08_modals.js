@@ -54,19 +54,79 @@ function showPreviewModal(fileName, ext, blob) {
     document.body.appendChild(modal);
 }
 
+// ── Public share link (real, token-based, revocable) ────────────────────
+// Creates a link via POST /api/files/share-link (or reuses the existing one
+// from GET /api/files/share-links) and shows the real URL with Copy + Revoke.
 function shareFile(path) {
     var fileName = path.split("/").pop() || "file";
-    var shareUrl = window.location.origin + "/api/files/download?bucket=" + encodeURIComponent(getEffectiveBucket()) + "&path=" + encodeURIComponent(path) + "&scope=" + currentScope;
     var modal = document.getElementById("share-modal");
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "share-modal";
     modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(8px);";
     const container = document.createElement("div");
-    container.style.cssText = "background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 90%; max-width: 500px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);";
-    container.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h3 style="margin:0; color:#f8fafc; font-size:1.25rem;">Share "' + escapeHtml(fileName) + '"</h3><button onclick="document.getElementById(\'share-modal\').remove()" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer;">\u00D7</button></div><p style="color:#94a3b8; font-size:14px; margin-bottom:16px;">Anyone with this link will be able to download the file directly.</p><div style="display:flex; gap:8px; margin-bottom:20px;"><input type="text" id="share-link-input" readonly value="' + shareUrl + '" style="flex-grow:1; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:10px 14px; font-size:14px;" /><button onclick="DriveModule.copyShareLink()" style="background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:0 16px; cursor:pointer; font-weight:500; font-size:14px;">Copy</button></div><div style="display:flex; justify-content:flex-end; gap:12px;"><button onclick="document.getElementById(\'share-modal\').remove()" style="background:#334155; border:none; border-radius:6px; color:#f8fafc; padding:10px 20px; cursor:pointer; font-weight:500; font-size:14px;">Close</button></div>';
+    container.style.cssText = "background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 90%; max-width: 520px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);";
+    container.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h3 style="margin:0; color:#f8fafc; font-size:1.25rem;">Share "' + escapeHtml(fileName) + '"</h3><button onclick="document.getElementById(\'share-modal\').remove()" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer;">\u00D7</button></div><p id="share-status" style="color:#94a3b8; font-size:14px; margin-bottom:16px;">Creating secure link...</p><div id="share-link-row" style="display:none; gap:8px; margin-bottom:16px;"><input type="text" id="share-link-input" readonly value="" style="flex-grow:1; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:10px 14px; font-size:14px;" /><button onclick="DriveModule.copyShareLink()" style="background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:0 16px; cursor:pointer; font-weight:500; font-size:14px;">Copy</button></div><div id="share-actions" style="display:flex; justify-content:flex-end; gap:12px;"><button onclick="document.getElementById(\'share-modal\').remove()" style="background:#334155; border:none; border-radius:6px; color:#f8fafc; padding:10px 20px; cursor:pointer; font-weight:500; font-size:14px;">Close</button></div>';
     modal.appendChild(container);
     document.body.appendChild(modal);
+
+    createOrGetShareLink(path)
+        .then(function(result) {
+            if (result.revoked) {
+                document.getElementById("share-status").textContent = "This link was revoked. Create a new one?";
+                document.getElementById("share-actions").innerHTML =
+                    '<button onclick="DriveModule.shareFile(\'' + escapeJs(path) + '\')" style="background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:10px 20px; cursor:pointer; font-weight:500; font-size:14px;">Create link</button>' +
+                    '<button onclick="document.getElementById(\'share-modal\').remove()" style="background:#334155; border:none; border-radius:6px; color:#f8fafc; padding:10px 20px; cursor:pointer; font-weight:500; font-size:14px;">Close</button>';
+                return;
+            }
+            var fullUrl = window.location.origin + result.url;
+            document.getElementById("share-status").textContent = "Anyone with this link can download the file. The link can be revoked at any time.";
+            document.getElementById("share-link-input").value = fullUrl;
+            document.getElementById("share-link-row").style.display = "flex";
+            document.getElementById("share-actions").innerHTML =
+                '<button onclick="DriveModule.revokeShareLink(\'' + result.token + '\', \'' + escapeJs(path) + '\')" style="background:#dc2626; border:none; border-radius:6px; color:#fff; padding:10px 20px; cursor:pointer; font-weight:500; font-size:14px;">Revoke</button>' +
+                '<button onclick="document.getElementById(\'share-modal\').remove()" style="background:#334155; border:none; border-radius:6px; color:#f8fafc; padding:10px 20px; cursor:pointer; font-weight:500; font-size:14px;">Close</button>';
+        })
+        .catch(function(err) {
+            document.getElementById("share-status").textContent = "Failed to create link: " + err.message;
+            document.getElementById("share-actions").innerHTML =
+                '<button onclick="document.getElementById(\'share-modal\').remove()" style="background:#334155; border:none; border-radius:6px; color:#f8fafc; padding:10px 20px; cursor:pointer; font-weight:500; font-size:14px;">Close</button>';
+        });
+}
+
+// Returns the existing (non-revoked) link for the file, or creates one.
+async function createOrGetShareLink(path) {
+    try {
+        var existing = await apiRequest("/share-links?path=" + encodeURIComponent(path) + "&bucket=" + encodeURIComponent(getEffectiveBucket()) + "&scope=" + currentScope);
+        var live = (existing || []).find(function(l) { return !l.revoked; });
+        if (live) return live;
+        var revoked = (existing || []).find(function(l) { return l.revoked; });
+        if (revoked) return { revoked: true };
+        return await apiRequest("/share-link", {
+            method: "POST",
+            body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
+        });
+    } catch (e) {
+        // Fallback: if listing fails (e.g. older backend), just create.
+        return apiRequest("/share-link", {
+            method: "POST",
+            body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
+        });
+    }
+}
+
+async function revokeShareLink(token, path) {
+    try {
+        await apiRequest("/revoke-link", {
+            method: "POST",
+            body: JSON.stringify({ token: token }),
+        });
+        showNotification("Link revoked — the file is no longer publicly accessible.", "success");
+        var modal = document.getElementById("share-modal");
+        if (modal) modal.remove();
+    } catch (err) {
+        showNotification("Revoke failed: " + err.message, "error");
+    }
 }
 
 function closeModal(modalId) {

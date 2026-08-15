@@ -92,6 +92,11 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             // Vibe domain forward-auth: Caddy calls this without a token;
             // it validates the domain cookie/JWT itself (public gate).
             .add_anonymous_path("/api/vibe/domain-auth")
+            // Drive public share links: token-only anonymous download. The
+            // token is a random 128-bit UUID captured at creation time; this
+            // prefix only exposes the exact-token download handler, nothing
+            // else under /api/files.
+            .add_anonymous_path("/api/files/public")
         )
     };
 

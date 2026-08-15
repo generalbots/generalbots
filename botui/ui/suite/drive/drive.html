@@ -408,8 +408,10 @@
         '/suite/drive/modules/06_render.js',
         '/suite/drive/modules/07_events.js',
         '/suite/drive/modules/08_modals.js',
+        '/suite/drive/modules/09_ai.js',
         '/suite/drive/modules/99_init.js',
     ];
+    window.DriveAI = window.DriveAI || null;
     var ts = Date.now();
     function loadNext() {
         if (modules.length === 0) return;
