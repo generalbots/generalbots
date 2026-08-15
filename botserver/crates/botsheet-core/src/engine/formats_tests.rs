@@ -114,6 +114,30 @@ fn am_pm_renders() {
 }
 
 #[test]
+fn optional_decimal_places_are_kept() {
+    // `0.##` shows up to two decimals, trimming trailing zeros — the `#`
+    // placeholders must not be dropped so the value rounds to an integer.
+    let f = parse_format("0.##");
+    assert_eq!(f.min_decimal_digits, 0);
+    assert_eq!(f.max_decimal_digits, 2);
+    assert_eq!(render_number(1.5, &f), "1.5");
+    assert_eq!(render_number(1.25, &f), "1.25");
+    assert_eq!(render_number(1.256, &f), "1.26");
+    assert_eq!(render_number(1.0, &f), "1");
+}
+
+#[test]
+fn mixed_forced_and_optional_decimals() {
+    // `0.0#` forces one decimal, allows a second: 1.0 → "1.0", 1.2 → "1.2".
+    let f = parse_format("0.0#");
+    assert_eq!(f.min_decimal_digits, 1);
+    assert_eq!(f.max_decimal_digits, 2);
+    assert_eq!(render_number(1.0, &f), "1.0");
+    assert_eq!(render_number(1.2, &f), "1.2");
+    assert_eq!(render_number(1.25, &f), "1.25");
+}
+
+#[test]
 fn text_passthrough() {
     assert_eq!(apply_format(&CellValue::Text("abc".to_string()), "#,##0"), "abc");
 }
