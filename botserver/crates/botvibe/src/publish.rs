@@ -46,7 +46,12 @@ pub fn publish_project_schema() -> ToolSchema {
 }
 
 fn api_base() -> String {
-    std::env::var("VIBE_API_URL").unwrap_or_else(|_| "http://localhost:8080".to_string())
+    let (_, vibe) = botcoresecrets::app_runtime();
+    if vibe.is_empty() {
+        std::env::var("VIBE_API_URL").unwrap_or_else(|_| "http://localhost:8080".to_string())
+    } else {
+        vibe
+    }
 }
 
 /// Collect the project's source files from its workspace (the agent's actual
@@ -142,12 +147,8 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     let vm = VmLifecycle::new(pool.clone())
         .create_project_vm(project_id, project.branch_id, &project.name, &vm_req)?;
 
-    // Self-hosted ALM (Forgejo) base URL: env → localhost default.
-    let alm_base = std::env::var("FORGEJO_URL")
-        .ok()
-        .or_else(|| std::env::var("ALM_URL").ok())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "http://localhost:4747".to_string());
+    // Self-hosted ALM (Forgejo): Vault `secret/gbo/alm` → env → localhost.
+    let (alm_base, _, _) = botcoresecrets::alm_config();
 
     let target = match &domain {
         Some(d) => serde_json::json!({

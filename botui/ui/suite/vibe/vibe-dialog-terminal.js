@@ -82,6 +82,10 @@
                 // The PTY shell prints its own prompt — no client-side prompt
                 // is needed (a fake prompt would double up with the real one).
                 term.write("\x1b[32m✓ connected — vibe workspace shell\x1b[0m\r\n");
+                // Grab focus so the user can type immediately after the
+                // dialog opens — without it, keystrokes go nowhere until
+                // the terminal is clicked once.
+                term.focus();
             };
             ws.onmessage = function (ev) {
                 try {

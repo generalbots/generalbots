@@ -13,7 +13,12 @@ use rhai::{Dynamic, Engine};
 const DEFAULT_VIBE_URL: &str = "http://localhost:8080";
 
 fn vibe_base_url() -> String {
-    std::env::var("VIBE_API_URL").unwrap_or_else(|_| DEFAULT_VIBE_URL.to_string())
+    let (_, vibe) = botcoresecrets::app_runtime();
+    if vibe.is_empty() {
+        std::env::var("VIBE_API_URL").unwrap_or_else(|_| DEFAULT_VIBE_URL.to_string())
+    } else {
+        vibe
+    }
 }
 
 fn http_json(

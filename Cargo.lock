@@ -1313,6 +1313,7 @@ dependencies = [
  "botbasic_types",
  "botcore",
  "botcorepkg",
+ "botcoresecrets",
  "botdeployment",
  "botlib",
  "botmodelsbridge",
@@ -1792,6 +1793,7 @@ name = "botdeployment"
 version = "6.3.1"
 dependencies = [
  "axum",
+ "botcoresecrets",
  "botsecurity-auth",
  "chrono",
  "diesel",
@@ -3268,6 +3270,7 @@ dependencies = [
  "base64 0.22.1",
  "botautotask",
  "botcontacts",
+ "botcoresecrets",
  "botdeployment",
  "botlib",
  "botsecurity-auth",

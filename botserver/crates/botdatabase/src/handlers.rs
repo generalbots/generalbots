@@ -602,42 +602,89 @@ fn parse_cell(opt: &Option<String>) -> serde_json::Value {
     }
 }
 
+/// Process-lifetime cache of idle per-bot postgres connections, so the SQL
+/// runner reuses a connection instead of opening a fresh TCP connection
+/// (plus auth handshake) for every query. Keyed by the resolved per-bot
+/// database URL, which is stable within a process lifetime. `postgres::Client`
+/// is `Send` but not `Sync`, so connections are moved in/out of the stash
+/// rather than shared.
+fn postgres_pool_stash() -> &'static std::sync::Mutex<
+    std::collections::HashMap<String, Vec<postgres::Client>>,
+> {
+    static STASH: std::sync::OnceLock<
+        std::sync::Mutex<std::collections::HashMap<String, Vec<postgres::Client>>>,
+    > = std::sync::OnceLock::new();
+    STASH.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn checkout_postgres_client(db_url: &str) -> Option<postgres::Client> {
+    postgres_pool_stash()
+        .lock()
+        .ok()
+        .and_then(|mut stash| stash.get_mut(db_url).and_then(|conns| conns.pop()))
+}
+
+fn checkin_postgres_client(db_url: &str, client: postgres::Client) {
+    if let Ok(mut stash) = postgres_pool_stash().lock() {
+        let conns = stash.entry(db_url.to_string()).or_default();
+        // Cap idle connections per database to avoid unbounded growth.
+        if conns.len() < 8 {
+            conns.push(client);
+        }
+    }
+}
+
 fn execute_via_postgres_sync(
     db_url: &str,
     query: &str,
 ) -> Result<(Vec<String>, Vec<serde_json::Value>), String> {
-    let mut client = postgres::Client::connect(db_url, postgres::NoTls)
-        .map_err(|e| format!("Connection failed: {e}"))?;
+    let mut client = match checkout_postgres_client(db_url) {
+        Some(c) => c,
+        None => postgres::Client::connect(db_url, postgres::NoTls)
+            .map_err(|e| format!("Connection failed: {e}"))?,
+    };
 
     // Use the simple (text) query protocol: every value arrives as a String,
     // so NUMERIC/arrays/enums and any other unmapped type degrade to text
     // instead of a binary deserialization panic. This is the only panic-free
     // path for a generic SQL runner over an arbitrary schema.
-    let messages = client
+    let result = client
         .simple_query(query)
-        .map_err(|e| format!("Query failed: {e}"))?;
-
-    let mut columns: Vec<String> = Vec::new();
-    for msg in &messages {
-        if let postgres::SimpleQueryMessage::RowDescription(cols) = msg {
-            columns = cols.iter().map(|c| c.name().to_string()).collect();
-            break;
-        }
-    }
-
-    let mut rows: Vec<serde_json::Value> = Vec::new();
-    for msg in &messages {
-        if let postgres::SimpleQueryMessage::Row(row) = msg {
-            let mut obj = serde_json::Map::new();
-            for (i, col) in columns.iter().enumerate() {
-                let value = row.try_get(i).unwrap_or(None).map(str::to_string);
-                obj.insert(col.clone(), parse_cell(&value));
+        .map_err(|e| format!("Query failed: {e}"))
+        .map(|messages| {
+            let mut columns: Vec<String> = Vec::new();
+            for msg in &messages {
+                if let postgres::SimpleQueryMessage::RowDescription(cols) = msg {
+                    columns = cols.iter().map(|c| c.name().to_string()).collect();
+                    break;
+                }
             }
-            rows.push(serde_json::Value::Object(obj));
-        }
-    }
 
-    Ok((columns, rows))
+            let mut rows: Vec<serde_json::Value> = Vec::new();
+            for msg in &messages {
+                if let postgres::SimpleQueryMessage::Row(row) = msg {
+                    let mut obj = serde_json::Map::new();
+                    for (i, col) in columns.iter().enumerate() {
+                        let value = row.try_get(i).unwrap_or(None).map(str::to_string);
+                        obj.insert(col.clone(), parse_cell(&value));
+                    }
+                    rows.push(serde_json::Value::Object(obj));
+                }
+            }
+
+            (columns, rows)
+        });
+
+    // A successful query means the connection is still healthy — return it to
+    // the idle stash for reuse. On error the connection state is unknown, so
+    // it is dropped (a fresh one is opened on the next request).
+    match result {
+        Ok(pair) => {
+            checkin_postgres_client(db_url, client);
+            Ok(pair)
+        }
+        Err(e) => Err(e),
+    }
 }
 
 async fn execute_via_postgres(

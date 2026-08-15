@@ -140,13 +140,8 @@ pub async fn deploy_project(
         _ => DeploymentEnvironment::Development,
     };
 
-    let forgejo_url = std::env::var("FORGEJO_URL")
-        .ok()
-        .or_else(|| std::env::var("ALM_URL").ok())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "http://localhost:4747".to_string());
-
-    let forgejo_token = std::env::var("FORGEJO_TOKEN").ok();
+    let (forgejo_url, alm_token, _org) = botcoresecrets::alm_config();
+    let forgejo_token = if alm_token.is_empty() { None } else { Some(alm_token) };
 
     let organization = request.organization
         .or_else(|| std::env::var("FORGEJO_DEFAULT_ORG").ok())
@@ -250,12 +245,8 @@ pub async fn stop_project(
         .unwrap_or_default()
         .to_string();
 
-    let forgejo_url = std::env::var("FORGEJO_URL")
-        .ok()
-        .or_else(|| std::env::var("ALM_URL").ok())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "http://localhost:4747".to_string());
-    let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
+    let (forgejo_url, alm_token, _org) = botcoresecrets::alm_config();
+    let router = DeploymentRouter::new(forgejo_url, if alm_token.is_empty() { None } else { Some(alm_token) });
 
     router.stop(&app_name, &org).await
         .map_err(|e| DeploymentApiError::DeploymentFailed(e.to_string()))
@@ -274,12 +265,8 @@ pub async fn start_project(
         .unwrap_or_default()
         .to_string();
 
-    let forgejo_url = std::env::var("FORGEJO_URL")
-        .ok()
-        .or_else(|| std::env::var("ALM_URL").ok())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "http://localhost:4747".to_string());
-    let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
+    let (forgejo_url, alm_token, _org) = botcoresecrets::alm_config();
+    let router = DeploymentRouter::new(forgejo_url, if alm_token.is_empty() { None } else { Some(alm_token) });
 
     router.start(&app_name, &org).await
         .map_err(|e| DeploymentApiError::DeploymentFailed(e.to_string()))
@@ -289,12 +276,8 @@ pub async fn start_project(
 pub async fn get_project_status(
     axum::extract::Path((org, app_name)): axum::extract::Path<(String, String)>,
 ) -> Result<Json<DeployGatewayResponse>, DeploymentApiError> {
-    let forgejo_url = std::env::var("FORGEJO_URL")
-        .ok()
-        .or_else(|| std::env::var("ALM_URL").ok())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "http://localhost:4747".to_string());
-    let router = DeploymentRouter::new(forgejo_url, std::env::var("FORGEJO_TOKEN").ok());
+    let (forgejo_url, alm_token, _org) = botcoresecrets::alm_config();
+    let router = DeploymentRouter::new(forgejo_url, if alm_token.is_empty() { None } else { Some(alm_token) });
 
     router.status(&app_name, &org).await
         .map_err(|e| DeploymentApiError::DeploymentFailed(e.to_string()))
