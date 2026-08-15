@@ -130,6 +130,7 @@ impl ToolRegistry {
 
         for (name, schema, handler) in [
             ("domain/bind", crate::domains_tool::domain_bind_schema(), crate::domains_tool::domain_bind_tool()),
+            ("domain/security", crate::domains_tool::domain_security_schema(), crate::domains_tool::domain_security_tool()),
             ("domain/verify", crate::domains_tool::domain_verify_schema(), crate::domains_tool::domain_verify_tool()),
             ("domain/tls", crate::domains_tool::domain_tls_schema(), crate::domains_tool::domain_tls_tool()),
         ] {

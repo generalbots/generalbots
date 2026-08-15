@@ -33,19 +33,57 @@ fn route_id(domain: &str) -> String {
     format!("gbd-{domain}")
 }
 
-fn route_payload<'a>(domain: &'a str, dial: &'a str, rid: &'a str) -> serde_json::Value {
-    serde_json::json!({
-        "@id": rid,
-        "handle": [{
-            "handler": "reverse_proxy",
-            "upstreams": [{ "dial": dial }]
-        }],
-        "match": [{ "host": [domain] }],
-        "terminal": true,
-    })
+/// Forward-auth target: the vibe domain-auth endpoint on the botserver API.
+/// The base URL comes from the app runtime secret (`vibe_api_url`), which in
+/// production must point at a botserver address reachable from the proxy
+/// container (e.g. `http://bot.incus:5858`).
+fn auth_uri(domain: &str) -> String {
+    let (_, vibe) = botcoresecrets::app_runtime();
+    format!("{vibe}/api/vibe/domain-auth?domain={domain}")
 }
 
-pub async fn upsert_route(domain: &str, container: &str) -> Result<CaddyResult, String> {
+fn route_payload(domain: &str, dial: &str, rid: &str, access: &str) -> serde_json::Value {
+    let proxy = serde_json::json!({
+        "handler": "reverse_proxy",
+        "upstreams": [{ "dial": dial }]
+    });
+    if access == "public" {
+        serde_json::json!({
+            "@id": rid,
+            "handle": [proxy],
+            "match": [{ "host": [domain] }],
+            "terminal": true,
+        })
+    } else {
+        // Access-controlled app: run the JWT check first (forward_auth), and
+        // only when it passes (2xx) proxy to the app container. Non-2xx
+        // responses (401/302/403) go straight back to the client.
+        serde_json::json!({
+            "@id": rid,
+            "handle": [{
+                "handler": "subroute",
+                "routes": [
+                    {
+                        "handle": [{
+                            "handler": "forward_auth",
+                            "uri": auth_uri(domain),
+                            "headers": {}
+                        }],
+                        "terminal": true
+                    },
+                    {
+                        "handle": [proxy],
+                        "terminal": true
+                    }
+                ]
+            }],
+            "match": [{ "host": [domain] }],
+            "terminal": true,
+        })
+    }
+}
+
+pub async fn upsert_route(domain: &str, container: &str, access: &str) -> Result<CaddyResult, String> {
     let base = caddy_api_url();
     let client = client()?;
     let rid = route_id(domain);
@@ -56,7 +94,7 @@ pub async fn upsert_route(domain: &str, container: &str) -> Result<CaddyResult, 
         .await;
 
     let dial = format!("{container}.incus:80");
-    let body = route_payload(domain, &dial, &rid);
+    let body = route_payload(domain, &dial, &rid, access);
     let resp = client
         .post(format!("{base}/config/apps/http/servers/srv0/routes"))
         .json(&body)
@@ -99,9 +137,19 @@ mod tests {
 
     #[test]
     fn route_body_targets_container_dial() {
-        let body = route_payload("app.example.com", "proj-prod.incus:80", "gbd-app.example.com");
+        let body = route_payload("app.example.com", "proj-prod.incus:80", "gbd-app.example.com", "public");
         let text = serde_json::to_string(&body).unwrap_or_default();
         assert!(text.contains("proj-prod.incus:80"));
         assert!(text.contains("app.example.com"));
+        assert!(!text.contains("forward_auth"));
+    }
+
+    #[test]
+    fn access_controlled_route_installs_forward_auth() {
+        let body = route_payload("app.example.com", "proj-prod.incus:80", "gbd-app.example.com", "rbac");
+        let text = serde_json::to_string(&body).unwrap_or_default();
+        assert!(text.contains("forward_auth"));
+        assert!(text.contains("/api/vibe/domain-auth?domain=app.example.com"));
+        assert!(text.contains("proj-prod.incus:80"));
     }
 }

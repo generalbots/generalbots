@@ -53,6 +53,7 @@ const DESTRUCTIVE_LIST: &[&str] = &[
     "deploy_app",
     "domain/bind",
     "domain/unbind",
+    "domain/security",
     "domain/tls",
     "ops/restart",
     "ops/rollback",

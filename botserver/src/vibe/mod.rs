@@ -185,6 +185,7 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
             metering.clone(),
         ))
         .merge(domains_router(domain_binds, project_rbac.clone(), metering.clone()))
+        .merge(botvibe::domain_auth::domain_auth_router(app_state.conn.clone()))
         .merge(members_router(project_rbac.clone()))
         .merge(metering_router(metering.clone(), project_rbac.clone()))
         .merge(ops_router(OpsRoutes {

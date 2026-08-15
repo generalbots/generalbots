@@ -24,9 +24,29 @@ pub fn domain_bind_schema() -> ToolSchema {
         "properties": {
             "project_id": { "type": "string", "description": "UUID of the project" },
             "domain": { "type": "string", "description": "Bare hostname to bind (e.g. shop.example.com)" },
-            "env": { "type": "string", "enum": ["development", "staging", "production"], "default": "production" }
+            "env": { "type": "string", "enum": ["development", "staging", "production"], "default": "production" },
+            "access": { "type": "string", "enum": ["public", "authenticated", "rbac"], "default": "public", "description": "Who can open the app: public (anyone), authenticated (any account), rbac (only emails in allowed_emails)" },
+            "allowed_emails": { "type": "string", "description": "Comma-separated email allowlist (only used when access=rbac)" }
         },
         "required": ["project_id", "domain"]
+    }))
+    .with_approval()
+    .with_use_cases(vec![VibeUseCase::SoftwareDevelopment])
+}
+
+pub fn domain_security_schema() -> ToolSchema {
+    ToolSchema::new(
+        "domain/security",
+        "Change the access policy of a bound domain: public (anyone), authenticated (any account), or rbac (email allowlist). Re-applies the Caddy route with a JWT gate when the domain is not public.",
+    )
+    .with_parameters(serde_json::json!({
+        "type": "object",
+        "properties": {
+            "domain": { "type": "string", "description": "Bound domain to secure" },
+            "access": { "type": "string", "enum": ["public", "authenticated", "rbac"], "description": "Access policy" },
+            "allowed_emails": { "type": "string", "description": "Comma-separated email allowlist (only used when access=rbac)" }
+        },
+        "required": ["domain", "access"]
     }))
     .with_approval()
     .with_use_cases(vec![VibeUseCase::SoftwareDevelopment])
@@ -69,6 +89,14 @@ pub fn domain_bind_tool() -> ToolHandler {
         let pool = state.db_pool().clone();
         let args = args.clone();
         Box::pin(domain_bind(args, pool))
+    })
+}
+
+pub fn domain_security_tool() -> ToolHandler {
+    Arc::new(|args: Value, state: &dyn VibeState| {
+        let pool = state.db_pool().clone();
+        let args = args.clone();
+        Box::pin(domain_security(args, pool))
     })
 }
 
@@ -115,9 +143,20 @@ async fn do_domain_bind(args: Value, pool: crate::types::DbPool) -> Result<Value
         .and_then(|v| v.as_str())
         .unwrap_or("production")
         .to_lowercase();
+    let access = args.get("access").and_then(|v| v.as_str()).map(String::from);
+    let allowed_emails = args
+        .get("allowed_emails")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(String::from);
 
     let domains = ProjectDomains::new(pool);
-    let req = BindDomainRequest { domain: domain.to_string(), env };
+    let req = BindDomainRequest {
+        domain: domain.to_string(),
+        env,
+        access,
+        allowed_emails,
+    };
     let bind = domains.bind(project_id, &req).await?;
     Ok(serde_json::json!({
         "bound": true,
@@ -130,6 +169,53 @@ async fn do_domain_bind(args: Value, pool: crate::types::DbPool) -> Result<Value
         "verify_record": ProjectDomains::verify_name(&bind.domain),
         "verify_token": bind.verify_token,
         "tls_status": bind.tls_status,
+        "access": bind.access,
+        "allowed_emails": bind.allowed_emails,
+    }))
+}
+
+async fn domain_security(args: Value, pool: crate::types::DbPool) -> VibeToolResult {
+    let started = std::time::Instant::now();
+    match do_domain_security(args, pool).await {
+        Ok(data) => VibeToolResult {
+            success: true,
+            data,
+            error: None,
+            latency_ms: started.elapsed().as_millis() as u64,
+        },
+        Err(e) => VibeToolResult {
+            success: false,
+            data: Value::Null,
+            error: Some(e),
+            latency_ms: started.elapsed().as_millis() as u64,
+        },
+    }
+}
+
+async fn do_domain_security(args: Value, pool: crate::types::DbPool) -> Result<Value, String> {
+    let domain = args
+        .get("domain")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "domain/security requires 'domain'".to_string())?;
+    let access = args
+        .get("access")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "domain/security requires 'access'".to_string())?;
+    let allowed_emails = args
+        .get("allowed_emails")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(String::from);
+    let d = ProjectDomains::validate_domain(domain)?;
+    let domains = ProjectDomains::new(pool);
+    let bind = domains.get_by_domain(&d)?;
+    let updated = domains.update_access(bind.id, access, allowed_emails).await?;
+    Ok(serde_json::json!({
+        "updated": true,
+        "id": updated.id,
+        "domain": updated.domain,
+        "access": updated.access,
+        "allowed_emails": updated.allowed_emails,
     }))
 }
 

@@ -63,6 +63,10 @@ pub fn domains_router(domains: ProjectDomainsRef, rbac: ProjectRbac, metering: V
         )
         .route("/api/vibe/domains/verify", post(verify_domain))
         .route("/api/vibe/domains/:domain/tls", post(issue_tls))
+        .route(
+            "/api/vibe/domains/:bind_id/access",
+            axum::routing::patch(update_domain_access),
+        )
         .layer(Extension(domains))
         .layer(Extension(rbac))
         .layer(Extension(metering))
@@ -124,6 +128,30 @@ async fn unbind_domain(
     }
 }
 
+async fn update_domain_access(
+    Extension(domains): Extension<ProjectDomainsRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(bind_id): Path<Uuid>,
+    Json(req): Json<UpdateDomainAccessRequest>,
+) -> ApiResult {
+    let bind = match domains.get(bind_id) {
+        Ok(b) => b,
+        Err(e) => return err(e),
+    };
+    match rbac.require_role(user.user_id, bind.project_id, ProjectRole::Admin) {
+        Ok(_) => {}
+        Err(e) => return forbidden(e),
+    }
+    match domains
+        .update_access(bind_id, &req.access, req.allowed_emails.clone())
+        .await
+    {
+        Ok(b) => ok(b),
+        Err(e) => err(e),
+    }
+}
+
 async fn verify_domain(
     Extension(domains): Extension<ProjectDomainsRef>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -172,4 +200,10 @@ async fn domain_to_bind(
 #[derive(Debug, serde::Deserialize)]
 pub struct VerifyDomainRequest {
     pub domain: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct UpdateDomainAccessRequest {
+    pub access: String,
+    pub allowed_emails: Option<String>,
 }

@@ -13,6 +13,7 @@ pub mod vms_api;
 pub mod publish;
 pub mod caddy;
 pub mod domains;
+pub mod domain_auth;
 pub mod domains_api;
 pub mod domains_tool;
 pub mod harness;
