@@ -37,13 +37,15 @@ fn patch_cols(xml: &str, ws: &Worksheet) -> String {
     }
     let mut cols = String::from("<cols>");
     for (col, (width, hidden)) in targets {
+        // Model columns are 0-based; OOXML `<col min>/<col max>` are 1-based.
+        let col1 = col + 1;
         let width_attr = match width {
             Some(w) => format!(r#" width="{w}" customWidth="1""#),
             None => String::new(),
         };
         let hidden_attr = if hidden { r#" hidden="1""# } else { "" };
         cols.push_str(&format!(
-            r#"<col min="{col}" max="{col}"{width_attr}{hidden_attr}/>"#
+            r#"<col min="{col1}" max="{col1}"{width_attr}{hidden_attr}/>"#
         ));
     }
     cols.push_str("</cols>");
@@ -84,8 +86,10 @@ fn patch_rows(xml: &str, ws: &Worksheet) -> String {
 }
 
 fn patch_row(xml: &str, row: u32, height: Option<u32>, hidden: bool) -> String {
+    // Model rows are 0-based; OOXML `<row r>` is 1-based.
+    let row1 = row + 1;
     let pattern = format!(
-        r#"<row\b[^>]*\br="{row}"[^>]*>|<row\b[^>]*\br="{row}"[^>]*/>"#
+        r#"<row\b[^>]*\br="{row1}"[^>]*>|<row\b[^>]*\br="{row1}"[^>]*/>"#
     );
     let Ok(re) = regex::Regex::new(&pattern) else {
         return xml.to_string();
@@ -218,4 +222,37 @@ fn patch_frozen(xml: &str, ws: &Worksheet) -> String {
         }
     }
     xml.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::Worksheet;
+    use std::collections::HashMap;
+
+    #[test]
+    fn cols_are_written_one_based() {
+        let ws = Worksheet {
+            column_widths: Some(HashMap::from([(0u32, 30u32)])),
+            ..Worksheet::default()
+        };
+        let xml = "<worksheet><sheetData/></worksheet>";
+        let out = patch_cols(xml, &ws);
+        assert!(
+            out.contains(r#"<col min="1" max="1" width="30""#),
+            "got: {out}"
+        );
+    }
+
+    #[test]
+    fn rows_are_written_one_based() {
+        let ws = Worksheet {
+            row_heights: Some(HashMap::from([(0u32, 25u32)])),
+            ..Worksheet::default()
+        };
+        let xml = r#"<worksheet><sheetData><row r="1"><c r="A1"/></row></sheetData></worksheet>"#;
+        let out = patch_rows(xml, &ws);
+        assert!(out.contains(r#"r="1""#), "got: {out}");
+        assert!(out.contains(r#"ht="25""#), "got: {out}");
+    }
 }

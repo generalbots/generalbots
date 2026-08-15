@@ -272,10 +272,14 @@ pub fn extract_print_setup(sheet: &umya_spreadsheet::Worksheet) -> Option<PrintS
 pub fn extract_layout(sheet: &umya_spreadsheet::Worksheet) -> ExtractedLayout {
     // Sparse dimension collections (one entry per explicit `<col>`/`<row>`), so
     // a sheet with data at row 1,000,000 does not scan a million empty rows.
+    // umya's `col_num`/`row_num` are 1-based (OOXML `<col min>`/`<row r>`); the
+    // model is 0-based everywhere else (cell keys, resize, filter, export), so
+    // subtract one at the boundary — otherwise imported geometry renders one
+    // column/row to the right of where it belongs.
     let mut column_widths = HashMap::new();
     let mut hidden_columns = Vec::new();
     for dim in sheet.get_column_dimensions() {
-        let col = *dim.get_col_num();
+        let col = dim.get_col_num().saturating_sub(1);
         let width = *dim.get_width();
         if width > 0.0 {
             column_widths.insert(col, width.round() as u32);
@@ -288,7 +292,7 @@ pub fn extract_layout(sheet: &umya_spreadsheet::Worksheet) -> ExtractedLayout {
     let mut row_heights = HashMap::new();
     let mut hidden_rows = Vec::new();
     for dim in sheet.get_row_dimensions() {
-        let row = *dim.get_row_num();
+        let row = dim.get_row_num().saturating_sub(1);
         let height = *dim.get_height();
         if height > 0.0 {
             row_heights.insert(row, height.round() as u32);
