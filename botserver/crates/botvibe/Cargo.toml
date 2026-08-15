@@ -10,6 +10,7 @@ repository = "https://github.com/GeneralBots/BotServer"
 default = []
 
 [dependencies]
+botcoresecrets = { workspace = true }
 botlib = { workspace = true }
 botautotask = { workspace = true }
 botcontacts = { workspace = true }

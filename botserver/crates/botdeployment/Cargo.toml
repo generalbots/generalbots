@@ -8,6 +8,7 @@ authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 
 [dependencies]
+botcoresecrets = { workspace = true }
 axum = { workspace = true }
 git2 = "0.20"
 log = { workspace = true }
