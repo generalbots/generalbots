@@ -9,14 +9,14 @@ use std::sync::Arc;
 use tokio::time::{timeout, Duration};
 use uuid::Uuid;
 const DEFAULT_MAX_STEPS: u32 = 50;
-const DEFAULT_TIMEOUT_SECS: u64 = 300;
+const DEFAULT_TIMEOUT_SECS: u64 = 600;
 const MAX_EMPTY_PARSE_RETRIES: u32 = 3;
 const MAX_TOOL_RESULT_CHARS: usize = 4000;
 const MAX_TOOL_RETRIES: u32 = 2;
 const MAX_VERIFY_FAILURES: u32 = 2;
 // vibe33 #813 — transient provider failures must not kill the run.
-const MAX_LLM_RETRIES: u32 = 4;
-const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 2, 4, 8];
+const MAX_LLM_RETRIES: u32 = 6;
+const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 2, 4, 8, 12, 16];
 
 pub struct AgentLoop {
     prompt_manager: Arc<VibePromptManager>,
@@ -351,7 +351,7 @@ impl AgentLoop {
         let (model, api_key, api_url) = self.resolve_llm(run);
 
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(90))
+            .timeout(Duration::from_secs(120))
             .build()
             .map_err(|e| format!("http client: {e}"))?;
         let tools = self.tool_schemas_for(run.use_case).await;
@@ -437,7 +437,7 @@ impl AgentLoop {
         tools: &[serde_json::Value],
     ) -> Result<String, String> {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(90))
+            .timeout(Duration::from_secs(120))
             .build()
             .map_err(|e| format!("http client: {e}"))?;
         let body = serde_json::json!({
@@ -533,7 +533,7 @@ impl AgentLoop {
     /// Bounded by `read_body_timeout()` so stalled provider streams fail
     /// fast instead of hanging the whole run until the run-level timeout.
     async fn read_body(&self, mut resp: reqwest::Response) -> Result<serde_json::Value, String> {
-        let read_timeout = Duration::from_secs(90);
+        let read_timeout = Duration::from_secs(120);
         let result = timeout(
             read_timeout,
             Self::read_body_inner(&mut resp),
@@ -584,7 +584,7 @@ impl AgentLoop {
         prompt: &str,
     ) -> Result<String, String> {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(90))
+            .timeout(Duration::from_secs(120))
             .build()
             .map_err(|e| format!("http client: {e}"))?;
         let body = serde_json::json!({
