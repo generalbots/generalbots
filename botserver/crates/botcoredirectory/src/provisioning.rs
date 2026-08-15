@@ -90,7 +90,7 @@ impl UserProvisioningService {
             self.create_s3_home(account, bot_access).await?;
         }
 
-        if let Err(e) = self.setup_email_account(account) {
+        if let Err(e) = self.setup_email_account(account, &user_id) {
             log::warn!("Email account creation failed: {}", e);
         }
 
@@ -155,7 +155,7 @@ impl UserProvisioningService {
     }
 
     #[cfg(feature = "mail")]
-    fn setup_email_account(&self, account: &UserAccount) -> Result<()> {
+    fn setup_email_account(&self, account: &UserAccount, user_uuid: &str) -> Result<()> {
         use schema::user_email_accounts;
         use diesel::prelude::*;
 
@@ -164,17 +164,30 @@ impl UserProvisioningService {
             .get()
             .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
 
-        let user_uuid = Uuid::new_v4();
+        // Bind to the REAL user id created by create_database_user — a random
+        // UUID here means the Mail app (which queries by user_id) never finds
+        // the account.
+        let user_uuid = uuid::Uuid::parse_str(user_uuid)
+            .map_err(|e| anyhow::anyhow!("Invalid user id: {e}"))?;
+        // Real mail server from env (Vault-backed in prod); falls back to the
+        // old localhost stub only when unconfigured.
+        let imap_server = std::env::var("MAIL_HOST")
+            .unwrap_or_else(|_| "localhost".to_string());
+        let smtp_server = imap_server.clone();
+        let imap_port: i32 = std::env::var("MAIL_IMAP_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(993);
+        let smtp_port: i32 = std::env::var("MAIL_SMTP_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(587);
+        let password = std::env::var("MAIL_PASS").unwrap_or_else(|_| "oauth".to_string());
+
         diesel::insert_into(user_email_accounts::table)
             .values((
                 user_email_accounts::user_id.eq(user_uuid),
                 user_email_accounts::email.eq(&account.email),
-                user_email_accounts::imap_server.eq("localhost"),
-                user_email_accounts::imap_port.eq(993),
-                user_email_accounts::smtp_server.eq("localhost"),
-                user_email_accounts::smtp_port.eq(465),
+                user_email_accounts::imap_server.eq(imap_server),
+                user_email_accounts::imap_port.eq(imap_port),
+                user_email_accounts::smtp_server.eq(smtp_server),
+                user_email_accounts::smtp_port.eq(smtp_port),
                 user_email_accounts::username.eq(&account.username),
-                user_email_accounts::password_encrypted.eq("oauth"),
+                user_email_accounts::password_encrypted.eq(password),
                 user_email_accounts::is_active.eq(true),
             ))
             .execute(&mut conn)?;
@@ -184,7 +197,7 @@ impl UserProvisioningService {
     }
 
     #[cfg(not(feature = "mail"))]
-    fn setup_email_account(&self, _account: &UserAccount) -> Result<()> {
+    fn setup_email_account(&self, _account: &UserAccount, _user_uuid: &str) -> Result<()> {
         log::debug!("Email feature not enabled, skipping email account setup");
         Ok(())
     }
