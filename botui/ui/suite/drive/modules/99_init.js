@@ -277,6 +277,13 @@ function askAIOnFile(path) {
     }
 }
 
+// Open the threaded comments + presence sidebar for a file.
+function openComments(path) {
+    if (window.DriveComments && typeof window.DriveComments.open === "function") {
+        window.DriveComments.open(path);
+    }
+}
+
 // Upload files pasted from the OS clipboard (images/screenshots).
 function uploadClipboardFiles(fileList) {
     const files = Array.from(fileList).filter(function(f) { return f && f.size > 0; });
@@ -325,6 +332,7 @@ window.DriveModule = {
     copyPathToClipboard: copyPathToClipboard,
     pasteInto: pasteInto,
     askAIOnFile: askAIOnFile,
+    openComments: openComments,
     openFile: openFile,
     deleteItem: deleteItem,
     deleteSelected: deleteSelected,

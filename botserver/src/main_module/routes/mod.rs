@@ -11,4 +11,5 @@ pub mod product_handlers;
 pub mod unified_search;
 pub mod security_setup;
 pub mod sub_router;
+pub mod collab_routes;
 pub use security_setup::SecurityComponents;
