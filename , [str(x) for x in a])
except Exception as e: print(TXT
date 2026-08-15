@@ -1,8 +1,0 @@
-2
-=== TXT now ===
-"00000000000000000000000000000000:calculator.pragmatismo.com.br"
-=== public checks ===
-  File "<string>", line 3
-    r=dns.resolver.Resolver(); r.nameservers=[10.0.0.2]
-                                              ^^^^^^
-SyntaxError: invalid syntax. Perhaps you forgot a comma?
