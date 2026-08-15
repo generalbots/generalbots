@@ -69,6 +69,7 @@ struct StoredMessage {
     from_address: String,
     to_addresses: Option<String>,
     body_text: Option<String>,
+    body_html: Option<String>,
     has_attachments: bool,
     is_read: bool,
     is_flagged: bool,
@@ -184,6 +185,22 @@ fn fetch_and_store(conn: &mut diesel::PgConnection, account: &SyncAccount) -> Re
             p.get_content_disposition().disposition == mailparse::DispositionType::Attachment
         });
 
+        // Extract the HTML alternative when present (multipart/alternative or
+        // a standalone text/html body) so the mail app can render rich content.
+        let body_html = parsed
+            .subparts
+            .iter()
+            .find(|p| p.ctype.mimetype.eq_ignore_ascii_case("text/html"))
+            .and_then(|p| p.get_body().ok())
+            .filter(|b| !b.is_empty())
+            .or_else(|| {
+                if parsed.ctype.mimetype.eq_ignore_ascii_case("text/html") {
+                    parsed.get_body().ok()
+                } else {
+                    None
+                }
+            });
+
         let message = StoredMessage {
             account_id: account.id,
             uid,
@@ -194,6 +211,7 @@ fn fetch_and_store(conn: &mut diesel::PgConnection, account: &SyncAccount) -> Re
             from_address,
             to_addresses,
             body_text: parsed.get_body().ok(),
+            body_html,
             has_attachments,
             is_read,
             is_flagged,
@@ -235,7 +253,7 @@ fn insert_message(conn: &mut diesel::PgConnection, message: &StoredMessage) -> R
     .bind::<Text, _>(&message.from_address)
     .bind::<Nullable<Text>, _>(message.to_addresses.as_deref())
     .bind::<Nullable<Text>, _>(message.body_text.as_deref())
-    .bind::<Nullable<Text>, _>(Option::<&str>::None)
+    .bind::<Nullable<Text>, _>(message.body_html.as_deref())
     .bind::<Bool, _>(message.has_attachments)
     .bind::<Text, _>("INBOX")
     .bind::<BigInt, _>(message.uid)
