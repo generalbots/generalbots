@@ -83,6 +83,37 @@ fn date_format() {
 }
 
 #[test]
+fn time_of_day_renders_fractional_serial() {
+    // 0.5 == 1899-12-30 12:00:00 (noon); a time-only format must not render
+    // the epoch date's midnight.
+    let f = parse_format("hh:mm:ss");
+    assert!(f.is_date);
+    assert_eq!(render_number(0.5, &f), "12:00:00");
+}
+
+#[test]
+fn date_and_time_renders_both() {
+    let f = parse_format("yyyy-mm-dd hh:mm");
+    assert_eq!(render_number(45658.5, &f), "2025-01-01 12:00");
+}
+
+#[test]
+fn minutes_disambiguated_from_month() {
+    // `mm` after an hour code is minutes, not month: noon → "12:00".
+    assert_eq!(render_number(0.5, &parse_format("h:mm")), "12:00");
+    // `mm` before seconds is clock minutes (`mm:ss`): noon → "00:00".
+    assert_eq!(render_number(0.5, &parse_format("mm:ss")), "00:00");
+    // `mm` in a date position is still a month: serial 45658 → "01/01/2025".
+    assert_eq!(render_number(45658.0, &parse_format("mm/dd/yyyy")), "01/01/2025");
+}
+
+#[test]
+fn am_pm_renders() {
+    let f = parse_format("h:mm AM/PM");
+    assert_eq!(render_number(0.5, &f), "12:00 PM");
+}
+
+#[test]
 fn text_passthrough() {
     assert_eq!(apply_format(&CellValue::Text("abc".to_string()), "#,##0"), "abc");
 }
