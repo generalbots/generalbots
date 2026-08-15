@@ -398,22 +398,49 @@ impl AppState {
     }
 }
 
-/// Seed the default VDI connection from env (`VDI_DEFAULT_CONNECTION_HOST` /
-/// `VDI_DEFAULT_CONNECTION_PORT`). Never hardcodes infrastructure addresses;
-/// the host comes from the deployment environment instead.
-pub fn seed_default_connection(pool: &DbPool) {
-    use std::env;
-    let Some(host) = env::var("VDI_DEFAULT_CONNECTION_HOST").ok().filter(|h| !h.is_empty()) else {
-        return;
-    };
-    let port = env::var("VDI_DEFAULT_CONNECTION_PORT")
-        .ok()
+/// Read the default VDI connection from Vault (`secret/gbo/vdi`).
+/// Never hardcodes infrastructure addresses in the repository; the host is
+/// provisioned at deploy time as Vault fields `default-host`/`default-port`/
+/// `default-name`.
+fn vdi_default_connection() -> Option<(String, u16, String)> {
+    let manager = botcoresecrets::SecretsManager::get_clone().ok()?;
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build();
+        let result = match rt {
+            Ok(rt) => {
+                rt.block_on(manager.get_secret(botcoresecrets::SecretPaths::VDI))
+            }
+            Err(e) => {
+                warn!("vdi: failed to create runtime: {e}");
+                return;
+            }
+        };
+        let _ = tx.send(result);
+    });
+    let secrets = rx.recv().ok()?.ok()?;
+
+    let host = secrets.get("default-host").filter(|h| !h.is_empty())?.clone();
+    let port = secrets
+        .get("default-port")
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(5900);
-    let name = env::var("VDI_DEFAULT_CONNECTION_NAME")
-        .ok()
+    let name = secrets
+        .get("default-name")
         .filter(|n| !n.is_empty())
+        .cloned()
         .unwrap_or_else(|| "Default Desktop".to_string());
+    Some((host, port, name))
+}
+
+/// Seed the default VDI connection into `desktop_connections` from Vault.
+/// Idempotent (`ON CONFLICT DO NOTHING`); no-op when the Vault path is absent.
+pub fn seed_default_connection(pool: &DbPool) {
+    let Some((host, port, name)) = vdi_default_connection() else {
+        return;
+    };
 
     let result = (|| -> Result<(), String> {
         let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
@@ -436,7 +463,7 @@ pub fn seed_default_connection(pool: &DbPool) {
     if let Err(e) = result {
         tracing::warn!("Failed to seed default VDI connection for {host}: {e}");
     } else {
-        info!("Seeded default VDI connection from env");
+        info!("Seeded default VDI connection from Vault secret/gbo/vdi");
     }
 }
 

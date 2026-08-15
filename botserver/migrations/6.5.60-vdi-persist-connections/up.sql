@@ -3,10 +3,10 @@
 -- columns the app actually persists (name/host/port/protocol/auth_type) in
 -- case an older schema variant is present.
 --
--- No default connection is hardcoded here: the host/port come from the
--- VDI_DEFAULT_CONNECTION_HOST / VDI_DEFAULT_CONNECTION_PORT environment
--- variables (read at runtime), so no internal infrastructure addresses are
--- committed to the repository.
+-- No default connection is hardcoded here: the host/port/name come from
+-- Vault at `secret/gbo/vdi` (fields default-host/default-port/default-name),
+-- read at runtime, so no internal infrastructure addresses are committed
+-- to the repository.
 
 DO $$
 BEGIN

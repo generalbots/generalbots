@@ -128,7 +128,17 @@ pub fn seed_vault_defaults(
                 ("default_org".to_string(), "none".to_string()),
             ],
         ),
+        (
+            "secret/gbo/vdi",
+            vec![
+                ("default-host".to_string(), "".to_string()),
+                ("default-port".to_string(), "".to_string()),
+                ("default-name".to_string(), "".to_string()),
+            ],
+        ),
     ];
+
+    info!("Provisioned secret/gbo/vdi path (default VDI connection configured at deploy time)");
 
     for (path, kv_pairs) in &defaults {
         let mut args = vec![

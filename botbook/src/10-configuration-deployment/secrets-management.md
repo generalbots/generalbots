@@ -209,6 +209,12 @@ vault kv put gbo/observability \
   org=pragmatismo \
   bucket=metrics \
   token=your-influx-token
+
+# VDI default connection (seeded into desktop_connections at startup)
+vault kv put gbo/vdi \
+  default-host=desktop.internal.example \
+  default-port=5900 \
+  default-name=Pragmatismo Desktop
 ```
 
 ### Automatic Management

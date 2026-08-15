@@ -1830,6 +1830,7 @@ name = "botdesktop"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "botcoresecrets",
  "chrono",
  "diesel",
  "futures-util",
