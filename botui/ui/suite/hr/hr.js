@@ -66,7 +66,9 @@ localStorage.getItem('gb-access-token') || localStorage.getItem('management_toke
 } catch (e) { tok = null; }
 if (!tok) {
 const loginUrl = window.GB_LOGIN_URL || '/login';
-window.location.href = loginUrl + '?redirect=' + encodeURIComponent(window.location.pathname);
+// Full URL — a relative redirect would resolve against the login host
+// after auth and bounce back to login (login loop).
+window.location.href = loginUrl + '?redirect=' + encodeURIComponent(window.location.href);
 throw new Error('Not authenticated');
 }
 }

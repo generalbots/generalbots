@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loginBase = window.GB_LOGIN_URL || '/login';
         banner.innerHTML = '<div class="anon-cta-content">' +
           '<span>Browse freely — <strong>create a free account</strong> to manage bots, domains and services.</span>' +
-          '<a href="' + loginBase + '?redirect=' + encodeURIComponent(location.pathname) + '" class="anon-cta-btn">Sign In</a>' +
+          '<a href="' + loginBase + '?redirect=' + encodeURIComponent(location.href) + '" class="anon-cta-btn">Sign In</a>' +
           '<a href="' + loginBase + '/signup' + '" class="anon-cta-btn" style="background:var(--accent2, #00d4aa);color:#04241c !important">Create Free Account</a>' +
           '</div>';
         main.insertBefore(banner, main.firstChild);

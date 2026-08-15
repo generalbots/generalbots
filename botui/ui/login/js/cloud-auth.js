@@ -1,5 +1,19 @@
 const API_BASE = '/api/cloud';
 
+// Resolve the post-auth destination. A relative `redirect` (e.g. "/drive")
+// must be resolved against the referring suite page, NOT the login host —
+// otherwise after login we land back on the login page with ?token= and
+// never consume it (infinite login loop).
+function resolveRedirect() {
+  const raw = (new URLSearchParams(window.location.search)).get('redirect');
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith('/') && document.referrer) {
+    try { return new URL(raw, document.referrer).href; } catch (_) { return null; }
+  }
+  return null;
+}
+
 // ── Login ──
 // When the login/signup form is embedded in another page (iframe, e.g. the
 // cloud store), notify the parent frame so it can close the modal and finish
@@ -47,7 +61,7 @@ async function handleLogin(e) {
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
     notifyParentSuccess(data.token, data.email || email, data.name || '');
-    var dest = (new URLSearchParams(window.location.search)).get('redirect') || (CLOUD_CONFIG.baseUrl + '/dashboard');
+    var dest = resolveRedirect() || (CLOUD_CONFIG.baseUrl + '/dashboard');
     window.location.href = dest + '?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
@@ -105,8 +119,7 @@ async function handleSignup(e) {
     localStorage.setItem('management_plan', data.plan || 'free');
     notifyParentSuccess(token, emailOut, data.account?.name || name);
     // Private Server: redirect to Store VPS calculator instead of Dashboard
-    var redir = (new URLSearchParams(window.location.search)).get('redirect');
-    var dest = redir || (plan === 'private-cloud' ? CLOUD_CONFIG.baseUrl + '/store' : CLOUD_CONFIG.baseUrl + '/dashboard');
+    var dest = resolveRedirect() || (plan === 'private-cloud' ? CLOUD_CONFIG.baseUrl + '/store' : CLOUD_CONFIG.baseUrl + '/dashboard');
     window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(emailOut) + '&name=' + encodeURIComponent(data.account?.name || name);
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;

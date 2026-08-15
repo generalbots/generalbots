@@ -351,11 +351,12 @@
       this.clearAuth();
       this.emit("tokenExpired");
 
-      const currentPath = window.location.pathname + window.location.hash;
+      // Full URL, not pathname: a relative redirect would resolve against
+      // the login host after auth and bounce back to login (login loop).
       if (!window.location.pathname.startsWith("/auth/")) {
         window.location.href =
           (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
-          encodeURIComponent(currentPath);
+          encodeURIComponent(window.location.href);
       }
     }
 
