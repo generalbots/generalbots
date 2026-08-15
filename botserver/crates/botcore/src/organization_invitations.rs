@@ -160,14 +160,74 @@ pub struct AcceptInvitationResponse {
 }
 
 pub struct InvitationService {
-    invitations: Arc<RwLock<HashMap<Uuid, OrganizationInvitation>>>,
-    invitations_by_token: Arc<RwLock<HashMap<String, Uuid>>>,
-    invitations_by_org: Arc<RwLock<HashMap<Uuid, Vec<Uuid>>>>,
+    pool: DbPool,
 }
 
-impl Default for InvitationService {
-    fn default() -> Self {
-        Self::new()
+/// Row shape of the persisted `organization_invitations` table (raw SQL —
+/// botcore does not own the diesel schema for this table).
+#[derive(diesel::QueryableByName, Debug, Clone)]
+struct InvitationRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    email: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    role: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    status: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    message: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    invited_by: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    invited_by_name: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    token: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Jsonb)]
+    groups: serde_json::Value,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    created_at: DateTime<Utc>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+    updated_at: Option<DateTime<Utc>>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+    expires_at: Option<DateTime<Utc>>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+    accepted_at: Option<DateTime<Utc>>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+    accepted_by: Option<Uuid>,
+}
+
+impl InvitationRow {
+    fn to_invitation(&self) -> OrganizationInvitation {
+        OrganizationInvitation {
+            id: self.id,
+            organization_id: self.org_id,
+            email: self.email.clone(),
+            role: self.role.parse().unwrap_or(InvitationRole::Member),
+            groups: self
+                .groups
+                .as_array()
+                .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default(),
+            invited_by: self.invited_by,
+            invited_by_name: self.invited_by_name.clone().unwrap_or_default(),
+            status: match self.status.as_str() {
+                "accepted" => InvitationStatus::Accepted,
+                "declined" => InvitationStatus::Declined,
+                "expired" => InvitationStatus::Expired,
+                "revoked" => InvitationStatus::Revoked,
+                _ => InvitationStatus::Pending,
+            },
+            token: self.token.clone().unwrap_or_default(),
+            message: self.message.clone(),
+            expires_at: self.expires_at.unwrap_or_else(Utc::now),
+            created_at: self.created_at,
+            updated_at: self.updated_at.unwrap_or(self.created_at),
+            accepted_at: self.accepted_at,
+            accepted_by: self.accepted_by,
+        }
     }
 }
 
@@ -212,12 +272,15 @@ pub struct BulkInviteParams<'a> {
 }
 
 impl InvitationService {
-    pub fn new() -> Self {
-        Self {
-            invitations: Arc::new(RwLock::new(HashMap::new())),
-            invitations_by_token: Arc::new(RwLock::new(HashMap::new())),
-            invitations_by_org: Arc::new(RwLock::new(HashMap::new())),
-        }
+    /// Constructs a DB-backed service. All persistence goes through the
+    /// `organization_invitations` table — invites survive restarts, and
+    /// accepting binds the user to the org (`user_organizations`).
+    pub fn new(pool: DbPool) -> Self {
+        Self { pool }
+    }
+
+    fn get_conn(&self) -> Result<diesel::PgConnection, String> {
+        self.pool.get().map_err(|e| format!("DB pool error: {e}"))
     }
 
     pub async fn create_invitation(
@@ -240,6 +303,39 @@ impl InvitationService {
         let now = Utc::now();
         let invitation_id = Uuid::new_v4();
         let token = self.generate_secure_token();
+        let groups_json =
+            serde_json::to_string(&params.groups).unwrap_or_else(|_| "[]".to_string());
+
+        let pool = self.pool.clone();
+        let conn_result = tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+            sql_query(
+                "INSERT INTO organization_invitations \
+                 (id, org_id, email, role, status, message, invited_by, invited_by_name, \
+                  token, groups, created_at, updated_at, expires_at) \
+                 VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7, $8, $9::jsonb, $10, $10, $11)",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(invitation_id)
+            .bind::<diesel::sql_types::Uuid, _>(params.organization_id)
+            .bind::<diesel::sql_types::Text, _>(&email_lower)
+            .bind::<diesel::sql_types::Text, _>(params.role.as_str())
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(params.message.as_deref())
+            .bind::<diesel::sql_types::Uuid, _>(params.invited_by)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(Some(params.invited_by_name))
+            .bind::<diesel::sql_types::Text, _>(&token)
+            .bind::<diesel::sql_types::Text, _>(&groups_json)
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .bind::<diesel::sql_types::Timestamptz, _>(now + Duration::days(params.expires_in_days))
+            .execute(&mut conn)
+            .map_err(|e| format!("Failed to persist invitation: {e}"))?;
+            Ok::<_, String>(())
+        })
+        .await
+        .map_err(|e| format!("Task join error: {e}"))??;
+
+        let _ = conn_result;
 
         let invitation = OrganizationInvitation {
             id: invitation_id,
@@ -258,24 +354,6 @@ impl InvitationService {
             accepted_at: None,
             accepted_by: None,
         };
-
-        {
-            let mut invitations = self.invitations.write().await;
-            invitations.insert(invitation_id, invitation.clone());
-        }
-
-        {
-            let mut by_token = self.invitations_by_token.write().await;
-            by_token.insert(token, invitation_id);
-        }
-
-        {
-            let mut by_org = self.invitations_by_org.write().await;
-            by_org
-                .entry(params.organization_id)
-                .or_default()
-                .push(invitation_id);
-        }
 
         self.send_invitation_email(&invitation, params.organization_name)
             .await;
@@ -319,17 +397,7 @@ impl InvitationService {
         token: &str,
         user_id: Uuid,
     ) -> Result<AcceptInvitationResponse, String> {
-        let invitation_id = {
-            let by_token = self.invitations_by_token.read().await;
-            by_token.get(token).copied()
-        };
-
-        let invitation_id = invitation_id.ok_or("Invalid invitation token")?;
-
-        let mut invitations = self.invitations.write().await;
-        let invitation = invitations
-            .get_mut(&invitation_id)
-            .ok_or("Invitation not found")?;
+        let invitation = self.get_invitation_by_token(token).await.ok_or("Invalid invitation token")?;
 
         if invitation.status != InvitationStatus::Pending {
             return Err(format!(
@@ -339,63 +407,116 @@ impl InvitationService {
         }
 
         if invitation.expires_at < Utc::now() {
-            invitation.status = InvitationStatus::Expired;
-            invitation.updated_at = Utc::now();
+            self.update_status(&invitation.id, InvitationStatus::Expired, None, None)
+                .await?;
             return Err("Invitation has expired".to_string());
         }
 
         let now = Utc::now();
-        invitation.status = InvitationStatus::Accepted;
-        invitation.accepted_at = Some(now);
-        invitation.accepted_by = Some(user_id);
-        invitation.updated_at = now;
+        let pool = self.pool.clone();
+        let org_id = invitation.organization_id;
+        let role = invitation.role.as_str().to_string();
+        tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+            sql_query(
+                "UPDATE organization_invitations \
+                 SET status = 'accepted', accepted_at = $1, accepted_by = $2, updated_at = $1 \
+                 WHERE id = $3",
+            )
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .bind::<diesel::sql_types::Uuid, _>(invitation.id)
+            .execute(&mut conn)
+            .map_err(|e| format!("Failed to update invitation: {e}"))?;
+
+            // Bind the user to the org so the suite scopes them correctly
+            // (this is the missing collaborative glue — before this, accept
+            // only flipped an in-memory flag and the user never joined).
+            let binding_id = Uuid::new_v4();
+            sql_query(
+                "INSERT INTO user_organizations (id, user_id, org_id, role, is_default, joined_at) \
+                 VALUES ($1, $2, $3, $4, false, $5) \
+                 ON CONFLICT (user_id, org_id) DO NOTHING",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(binding_id)
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .bind::<diesel::sql_types::Text, _>(&role)
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .execute(&mut conn)
+            .map_err(|e| format!("Failed to bind user to organization: {e}"))?;
+            Ok::<_, String>(())
+        })
+        .await
+        .map_err(|e| format!("Task join error: {e}"))??;
 
         Ok(AcceptInvitationResponse {
             success: true,
-            organization_id: invitation.organization_id,
+            organization_id: org_id,
             organization_name: "Organization".to_string(),
-            role: invitation.role.as_str().to_string(),
+            role,
             message: "Successfully joined the organization".to_string(),
         })
     }
 
-    pub async fn decline_invitation(&self, token: &str) -> Result<(), String> {
-        let invitation_id = {
-            let by_token = self.invitations_by_token.read().await;
-            by_token.get(token).copied()
-        };
-
-        let invitation_id = invitation_id.ok_or("Invalid invitation token")?;
-
-        let mut invitations = self.invitations.write().await;
-        let invitation = invitations
-            .get_mut(&invitation_id)
-            .ok_or("Invitation not found")?;
-
-        if invitation.status != InvitationStatus::Pending {
-            return Err("Invitation is not pending".to_string());
+    async fn update_status(
+        &self,
+        invitation_id: &Uuid,
+        status: InvitationStatus,
+        accepted_at: Option<DateTime<Utc>>,
+        accepted_by: Option<Uuid>,
+    ) -> Result<(), String> {
+        let now = Utc::now();
+        let pool = self.pool.clone();
+        let id = *invitation_id;
+        let status_str = match status {
+            InvitationStatus::Pending => "pending",
+            InvitationStatus::Accepted => "accepted",
+            InvitationStatus::Declined => "declined",
+            InvitationStatus::Expired => "expired",
+            InvitationStatus::Revoked => "revoked",
         }
+        .to_string();
+        tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+            sql_query(
+                "UPDATE organization_invitations \
+                 SET status = $1, accepted_at = $2, accepted_by = $3, updated_at = $4 \
+                 WHERE id = $5",
+            )
+            .bind::<diesel::sql_types::Text, _>(&status_str)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(accepted_at)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(accepted_by)
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .bind::<diesel::sql_types::Uuid, _>(id)
+            .execute(&mut conn)
+            .map_err(|e| format!("Failed to update invitation status: {e}"))?;
+            Ok::<_, String>(())
+        })
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+    }
 
-        invitation.status = InvitationStatus::Declined;
-        invitation.updated_at = Utc::now();
-
-        Ok(())
+    pub async fn decline_invitation(&self, token: &str) -> Result<(), String> {
+        let invitation = self.get_invitation_by_token(token).await.ok_or("Invalid invitation token")?;
+        if invitation.status != InvitationStatus::Pending {
+            return Err("Only pending invitations can be declined".to_string());
+        }
+        self.update_status(&invitation.id, InvitationStatus::Declined, None, None)
+            .await
     }
 
     pub async fn revoke_invitation(&self, invitation_id: Uuid) -> Result<(), String> {
-        let mut invitations = self.invitations.write().await;
-        let invitation = invitations
-            .get_mut(&invitation_id)
-            .ok_or("Invitation not found")?;
-
+        let invitation = self.get_invitation(invitation_id).await.ok_or("Invitation not found")?;
         if invitation.status != InvitationStatus::Pending {
             return Err("Only pending invitations can be revoked".to_string());
         }
-
-        invitation.status = InvitationStatus::Revoked;
-        invitation.updated_at = Utc::now();
-
-        Ok(())
+        self.update_status(&invitation_id, InvitationStatus::Revoked, None, None)
+            .await
     }
 
     pub async fn resend_invitation(
@@ -404,10 +525,7 @@ impl InvitationService {
         organization_name: &str,
         extend_expiry: bool,
     ) -> Result<OrganizationInvitation, String> {
-        let mut invitations = self.invitations.write().await;
-        let invitation = invitations
-            .get_mut(&invitation_id)
-            .ok_or("Invitation not found")?;
+        let mut invitation = self.get_invitation(invitation_id).await.ok_or("Invitation not found")?;
 
         if invitation.status != InvitationStatus::Pending
             && invitation.status != InvitationStatus::Expired
@@ -420,13 +538,34 @@ impl InvitationService {
         if extend_expiry || invitation.expires_at < now {
             invitation.expires_at = now + Duration::days(7);
         }
-
         invitation.status = InvitationStatus::Pending;
         invitation.updated_at = now;
 
-        let invitation_clone = invitation.clone();
-        drop(invitations);
+        // Persist the refreshed token/status/expiry.
+        let pool = self.pool.clone();
+        let id = invitation.id;
+        let status_str = "pending";
+        let expires = invitation.expires_at;
+        tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+            sql_query(
+                "UPDATE organization_invitations \
+                 SET status = $1, expires_at = $2, updated_at = $3 WHERE id = $4",
+            )
+            .bind::<diesel::sql_types::Text, _>(status_str)
+            .bind::<diesel::sql_types::Timestamptz, _>(expires)
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .bind::<diesel::sql_types::Uuid, _>(id)
+            .execute(&mut conn)
+            .map_err(|e| format!("Failed to update invitation: {e}"))?;
+            Ok::<_, String>(())
+        })
+        .await
+        .map_err(|e| format!("Task join error: {e}"))??;
 
+        let invitation_clone = invitation.clone();
         self.send_invitation_email(&invitation_clone, organization_name)
             .await;
 
@@ -440,39 +579,56 @@ impl InvitationService {
         page: u32,
         per_page: u32,
     ) -> InvitationListResponse {
-        let org_invitation_ids = {
-            let by_org = self.invitations_by_org.read().await;
-            by_org.get(&organization_id).cloned().unwrap_or_default()
+        let status_filter_str = status_filter.map(|s| match s {
+            InvitationStatus::Pending => "pending",
+            InvitationStatus::Accepted => "accepted",
+            InvitationStatus::Declined => "declined",
+            InvitationStatus::Expired => "expired",
+            InvitationStatus::Revoked => "revoked",
+        }.to_string());
+
+        let pool = self.pool.clone();
+        let result = tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+            let mut sql = String::from(
+                "SELECT id, org_id, email, role, status, message, invited_by, invited_by_name, \
+                        token, groups, created_at, updated_at, expires_at, accepted_at, accepted_by \
+                 FROM organization_invitations WHERE org_id = $1",
+            );
+            if status_filter_str.is_some() {
+                sql.push_str(" AND status = $2");
+            }
+            sql.push_str(" ORDER BY created_at DESC LIMIT 500");
+            let mut q = sql_query(&sql)
+                .bind::<diesel::sql_types::Uuid, _>(organization_id);
+            if let Some(ref s) = status_filter_str {
+                q = q.bind::<diesel::sql_types::Text, _>(s);
+            }
+            q.load::<InvitationRow>(&mut conn)
+                .map_err(|e| format!("Failed to list invitations: {e}"))
+        })
+        .await
+        .map_err(|e| format!("Task join error: {e}"));
+
+        let rows = match result {
+            Ok(Ok(rows)) => rows,
+            _ => Vec::new(),
         };
 
-        let invitations = self.invitations.read().await;
-
-        let mut filtered: Vec<_> = org_invitation_ids
+        let all: Vec<InvitationResponse> = rows
             .iter()
-            .filter_map(|id| invitations.get(id))
-            .filter(|inv| {
-                if let Some(ref status) = status_filter {
-                    &inv.status == status
-                } else {
-                    true
-                }
-            })
+            .map(|r| self.to_response(&r.to_invitation(), "Organization"))
             .collect();
 
-        filtered.sort_by_key(|b| std::cmp::Reverse(b.created_at));
-
-        let total = filtered.len() as u32;
-        let total_pages = total.div_ceil(per_page);
-        let start = ((page - 1) * per_page) as usize;
-        let end = (start + per_page as usize).min(filtered.len());
-
-        let page_items: Vec<InvitationResponse> = filtered[start..end]
-            .iter()
-            .map(|inv| self.to_response(inv, "Organization"))
-            .collect();
+        let total = all.len() as u32;
+        let total_pages = total.div_ceil(per_page.max(1));
+        let start = ((page.saturating_sub(1)) * per_page.max(1)) as usize;
+        let end = (start + per_page as usize).min(all.len());
 
         InvitationListResponse {
-            invitations: page_items,
+            invitations: all[start..end.min(all.len())].to_vec(),
             total,
             page,
             per_page,
@@ -481,34 +637,64 @@ impl InvitationService {
     }
 
     pub async fn get_invitation(&self, invitation_id: Uuid) -> Option<OrganizationInvitation> {
-        let invitations = self.invitations.read().await;
-        invitations.get(&invitation_id).cloned()
+        let pool = self.pool.clone();
+        tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().ok()?;
+            sql_query(
+                "SELECT id, org_id, email, role, status, message, invited_by, invited_by_name, \
+                        token, groups, created_at, updated_at, expires_at, accepted_at, accepted_by \
+                 FROM organization_invitations WHERE id = $1 LIMIT 1",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(invitation_id)
+            .get_result::<InvitationRow>(&mut conn)
+            .ok()
+            .map(|r| r.to_invitation())
+        })
+        .await
+        .ok()
+        .flatten()
     }
 
     pub async fn get_invitation_by_token(&self, token: &str) -> Option<OrganizationInvitation> {
-        let invitation_id = {
-            let by_token = self.invitations_by_token.read().await;
-            by_token.get(token).copied()
-        };
-
-        if let Some(id) = invitation_id {
-            let invitations = self.invitations.read().await;
-            invitations.get(&id).cloned()
-        } else {
-            None
-        }
+        let pool = self.pool.clone();
+        let token_owned = token.to_string();
+        tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().ok()?;
+            sql_query(
+                "SELECT id, org_id, email, role, status, message, invited_by, invited_by_name, \
+                        token, groups, created_at, updated_at, expires_at, accepted_at, accepted_by \
+                 FROM organization_invitations WHERE token = $1 LIMIT 1",
+            )
+            .bind::<diesel::sql_types::Text, _>(&token_owned)
+            .get_result::<InvitationRow>(&mut conn)
+            .ok()
+            .map(|r| r.to_invitation())
+        })
+        .await
+        .ok()
+        .flatten()
     }
 
     pub async fn cleanup_expired_invitations(&self) {
-        let now = Utc::now();
-        let mut invitations = self.invitations.write().await;
-
-        for invitation in invitations.values_mut() {
-            if invitation.status == InvitationStatus::Pending && invitation.expires_at < now {
-                invitation.status = InvitationStatus::Expired;
-                invitation.updated_at = now;
-            }
-        }
+        let pool = self.pool.clone();
+        let _ = tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().ok()?;
+            sql_query(
+                "UPDATE organization_invitations \
+                 SET status = 'expired', updated_at = $1 \
+                 WHERE status = 'pending' AND expires_at < $1",
+            )
+            .bind::<diesel::sql_types::Timestamptz, _>(Utc::now())
+            .execute(&mut conn)
+            .ok()
+        })
+        .await;
     }
 
     async fn find_pending_invitation(
@@ -516,22 +702,28 @@ impl InvitationService {
         organization_id: &Uuid,
         email: &str,
     ) -> Option<OrganizationInvitation> {
-        let org_invitation_ids = {
-            let by_org = self.invitations_by_org.read().await;
-            by_org.get(organization_id).cloned().unwrap_or_default()
-        };
-
-        let invitations = self.invitations.read().await;
-
-        for id in org_invitation_ids {
-            if let Some(inv) = invitations.get(&id) {
-                if inv.email == email && inv.status == InvitationStatus::Pending {
-                    return Some(inv.clone());
-                }
-            }
-        }
-
-        None
+        let pool = self.pool.clone();
+        let org = *organization_id;
+        let email_owned = email.to_string();
+        tokio::task::spawn_blocking(move || {
+            use diesel::sql_query;
+            use diesel::RunQueryDsl;
+            let mut conn = pool.get().ok()?;
+            sql_query(
+                "SELECT id, org_id, email, role, status, message, invited_by, invited_by_name, \
+                        token, groups, created_at, updated_at, expires_at, accepted_at, accepted_by \
+                 FROM organization_invitations \
+                 WHERE org_id = $1 AND email = $2 AND status = 'pending' LIMIT 1",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(org)
+            .bind::<diesel::sql_types::Text, _>(&email_owned)
+            .get_result::<InvitationRow>(&mut conn)
+            .ok()
+            .map(|r| r.to_invitation())
+        })
+        .await
+        .ok()
+        .flatten()
     }
 
     fn to_response(
@@ -611,6 +803,57 @@ impl InvitationService {
             org_name,
             &invitation.token[..16]
         );
+
+        #[cfg(feature = "mail")]
+        {
+            // Real SMTP delivery via env-configured server (MAIL_HOST/PORT/
+            // USER/PASS/FROM — secrets come from the environment/Vault, never
+            // hardcoded). Best-effort: a failure logs and never fails the
+            // invite creation.
+            use lettre::transport::smtp::authentication::Credentials;
+            use lettre::{Message, SmtpTransport, Transport};
+
+            let host = std::env::var("MAIL_HOST").unwrap_or_else(|_| "localhost".to_string());
+            let port: u16 = std::env::var("MAIL_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(587);
+            let user = std::env::var("MAIL_USER").unwrap_or_default();
+            let pass = std::env::var("MAIL_PASS").unwrap_or_default();
+            let from = std::env::var("MAIL_FROM").unwrap_or_else(|_| "notifications@pragmatismo.com.br".to_string());
+            if host == "localhost" && user.is_empty() {
+                log::warn!("MAIL_HOST not configured — invitation email not delivered");
+                return;
+            }
+
+            let invite_url = std::env::var("INVITE_BASE_URL")
+                .unwrap_or_else(|_| "http://localhost:5000/invitations/accept".to_string());
+            let body = format!(
+                "You have been invited to join {org_name}.\n\n\
+                 Accept your invitation: {invite_url}?token={token}\n\n\
+                 This invitation expires at {expires}.",
+                token = invitation.token,
+                expires = invitation.expires_at.format("%Y-%m-%d %H:%M UTC"),
+            );
+
+            match Message::builder()
+                .from(from.parse().map_err(|e| e.to_string()).ok())
+                .to(invitation.email.parse().map_err(|e| e.to_string()).ok())
+                .subject(format!("Invitation to join {org_name}"))
+                .body(body)
+            {
+                Ok(email) => {
+                    let mailer = SmtpTransport::relay(&host)
+                        .ok()
+                        .map(|m| m.port(port).credentials(Credentials::new(user, pass)).build());
+                    if let Some(mailer) = mailer {
+                        if let Err(e) = mailer.send(&email) {
+                            log::warn!("Failed to deliver invitation email: {e}");
+                        }
+                    } else {
+                        log::warn!("Failed to build SMTP transport for {host}:{port}");
+                    }
+                }
+                Err(e) => log::warn!("Failed to build invitation email: {e}"),
+            }
+        }
     }
 }
 
@@ -640,11 +883,11 @@ pub fn configure() -> Router<Arc<AppState>> {
 }
 
 async fn list_invitations(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(org_id): Path<Uuid>,
     Query(params): Query<ListInvitationsQuery>,
 ) -> Result<Json<InvitationListResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
     let status_filter = params.status.and_then(|s| match s.to_lowercase().as_str() {
         "pending" => Some(InvitationStatus::Pending),
@@ -666,11 +909,12 @@ async fn list_invitations(
 }
 
 async fn create_invitation(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(org_id): Path<Uuid>,
     Json(req): Json<CreateInvitationRequest>,
 ) -> Result<Json<InvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
     let role: InvitationRole = req.role.parse().map_err(|_| {
         (
@@ -681,7 +925,24 @@ async fn create_invitation(
 
     let expires_in_days = req.expires_in_days.unwrap_or(7).clamp(1, 30);
 
-    let invited_by = Uuid::new_v4();
+    // The inviter must be a real user (FK users(id)); resolve from headers
+    // like the accept path instead of a random UUID.
+    let invited_by = headers
+        .get("x-user-id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .or_else(|| {
+            botsecurity_core::tenant::user_id_from_claims(&headers).and_then(|sub| {
+                match Uuid::parse_str(&sub) {
+                    Ok(u) => Some(u),
+                    Err(_) => Some(Uuid::new_v5(
+                        &Uuid::NAMESPACE_DNS,
+                        format!("zitadel:{sub}").as_bytes(),
+                    )),
+                }
+            })
+        })
+        .unwrap_or(Uuid::nil());
 
     match service
         .create_invitation(CreateInvitationParams {
@@ -706,11 +967,12 @@ async fn create_invitation(
 }
 
 async fn bulk_invite(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(org_id): Path<Uuid>,
     Json(req): Json<BulkInviteRequest>,
 ) -> Result<Json<BulkInviteResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
     let role = req.role.parse::<InvitationRole>().map_err(|_| {
         (
@@ -733,7 +995,22 @@ async fn bulk_invite(
         ));
     }
 
-    let invited_by = Uuid::new_v4();
+    let invited_by = headers
+        .get("x-user-id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .or_else(|| {
+            botsecurity_core::tenant::user_id_from_claims(&headers).and_then(|sub| {
+                match Uuid::parse_str(&sub) {
+                    Ok(u) => Some(u),
+                    Err(_) => Some(Uuid::new_v5(
+                        &Uuid::NAMESPACE_DNS,
+                        format!("zitadel:{sub}").as_bytes(),
+                    )),
+                }
+            })
+        })
+        .unwrap_or(Uuid::nil());
 
     let response = service
         .bulk_invite(BulkInviteParams {
@@ -752,10 +1029,10 @@ async fn bulk_invite(
 }
 
 async fn get_invitation(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path((org_id, invitation_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<InvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
     match service.get_invitation(invitation_id).await {
         Some(invitation) if invitation.organization_id == org_id => {
@@ -773,10 +1050,10 @@ async fn get_invitation(
 }
 
 async fn revoke_invitation(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path((_org_id, invitation_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
     match service.revoke_invitation(invitation_id).await {
         Ok(()) => Ok(Json(
@@ -790,11 +1067,11 @@ async fn revoke_invitation(
 }
 
 async fn resend_invitation(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path((_org_id, invitation_id)): Path<(Uuid, Uuid)>,
     Json(req): Json<ResendInvitationRequest>,
 ) -> Result<Json<InvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
     let extend_expiry = req.extend_expiry.unwrap_or(true);
 
@@ -811,12 +1088,40 @@ async fn resend_invitation(
 }
 
 async fn accept_invitation(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<AcceptInvitationRequest>,
 ) -> Result<Json<AcceptInvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
-    let user_id = req.user_id.unwrap_or_else(Uuid::new_v4);
+    // Resolve the accepting user from the request: X-User-ID header first
+    // (loopback/chat executor), then the JWT sub claim (derived to the stable
+    // UUID the RBAC layer uses). Never a random UUID — the org binding must
+    // point at the real user or the accept is meaningless.
+    let user_id = headers
+        .get("x-user-id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .or_else(|| {
+            botsecurity_core::tenant::user_id_from_claims(&headers).and_then(|sub| {
+                match Uuid::parse_str(&sub) {
+                    Ok(u) => Some(u),
+                    Err(_) => Some(Uuid::new_v5(
+                        &Uuid::NAMESPACE_DNS,
+                        format!("zitadel:{sub}").as_bytes(),
+                    )),
+                }
+            })
+        })
+        .or(req.user_id)
+        .unwrap_or(Uuid::nil());
+
+    if user_id == Uuid::nil() {
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({"error": "Authentication required to accept an invitation"})),
+        ));
+    }
 
     match service.accept_invitation(&req.token, user_id).await {
         Ok(response) => Ok(Json(response)),
@@ -828,10 +1133,10 @@ async fn accept_invitation(
 }
 
 async fn decline_invitation(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(req): Json<AcceptInvitationRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
     match service.decline_invitation(&req.token).await {
         Ok(()) => Ok(Json(
@@ -845,10 +1150,10 @@ async fn decline_invitation(
 }
 
 async fn validate_invitation(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(token): Path<String>,
 ) -> Result<Json<InvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let service = InvitationService::new();
+    let service = InvitationService::new(state.conn.clone());
 
     match service.get_invitation_by_token(&token).await {
         Some(invitation) => {
@@ -885,9 +1190,20 @@ async fn validate_invitation(
 mod tests {
     use super::*;
 
+    /// Builds a DB-backed service for tests. Requires `DATABASE_URL` (the
+    /// `organization_invitations` table must exist); returns `None` when the
+    /// env var is absent so unit runs without a database are skipped.
+    fn test_service() -> Option<InvitationService> {
+        use diesel::r2d2::ConnectionManager;
+        let url = std::env::var("DATABASE_URL").ok()?;
+        let manager = ConnectionManager::<diesel::PgConnection>::new(url);
+        let pool = Pool::new(manager).ok()?;
+        Some(InvitationService::new(pool))
+    }
+
     #[tokio::test]
     async fn test_create_invitation() {
-        let service = InvitationService::new();
+        let Some(service) = test_service() else { return; };
         let org_id = Uuid::new_v4();
  
         let params = crate::organization_invitations::CreateInvitationParams {
@@ -909,7 +1225,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_duplicate_invitation() {
-        let service = InvitationService::new();
+        let Some(service) = test_service() else { return; };
         let org_id = Uuid::new_v4();
  
         let params = crate::organization_invitations::CreateInvitationParams {
@@ -936,7 +1252,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_accept_invitation() {
-        let service = InvitationService::new();
+        let Some(service) = test_service() else { return; };
         let org_id = Uuid::new_v4();
         let invited_by = Uuid::new_v4();
         let user_id = Uuid::new_v4();
@@ -964,8 +1280,7 @@ mod tests {
     }
 }
 
-use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use uuid::Uuid;
 use crate::shared::state::AppState;
+use crate::shared::utils::DbPool;
