@@ -63,15 +63,9 @@ These are real and will bite immediately. Each is tracked in [Sheet Parity Plan]
 
 | Limitation | Example | Result today |
 |---|---|---|
-| A formula must be a single function call | `=SUM(A1:A3)+1` | `#ERROR!` |
-| No nested calls | `=INDEX(A1:A3,MATCH(20,A1:A3,0))` | `#ERROR!` |
-| No `&` concatenation operator | `=A1&B1` | `#ERROR!` |
-| No `^` exponentiation operator | `=A1^2` | `#ERROR!` |
-| String literals are upper-cased | `=CONCATENATE("Total: ",A1)` | `TOTAL: 7` |
-| No cross-sheet references | `=Sheet2!A1` | not resolved |
-| `$` anchors are not preserved | `=$A$1` copied down | not translated correctly |
-| Values are stored as text | `=SUM()` over `1,234.50` | `0` |
-| Recalculation stops after 1000 dependent cells | a large model | downstream cells keep stale values, silently |
+| Legacy dispatcher upper-cases string literals | `=CONCATENATE("Total: ",A1)` | `TOTAL: 7` — use `="Total: "&A1`, which preserves case |
+| Cross-sheet refs not satisfied by the single-worksheet evaluator | `=Sheet2!A1` | `#REF!` (parsed and rendered, but not resolved) |
+| Recalculation capped at 1000 dependent cells | a large model | cycles logged and skipped; the cap still applies |
 
 ### Charts
 

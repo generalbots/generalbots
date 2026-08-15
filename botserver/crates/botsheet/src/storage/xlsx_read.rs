@@ -1,5 +1,13 @@
-use crate::types::{CellData, MergedCell, NamedRange, SheetProtection, Spreadsheet, Worksheet};
-use botsheet_core::engine::value::CellValue;
+//! Drive-open entry point (#788).
+//!
+//! Shares the worksheet extraction with the Drive-open handler
+//! (`import::parse_xlsx_to_worksheets`) so every path reads the same fidelity
+//! surface (cells, layout, tables, autofilter, hyperlinks, validation,
+//! conditional formats, images, print setup, page breaks, rich text, comments
+//! and charts), then layers the umya-only extras — per-sheet protection and
+//! workbook defined names — on top.
+
+use crate::types::{NamedRange, SheetProtection, Spreadsheet};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::io::Cursor;
@@ -14,6 +22,20 @@ pub fn load_xlsx_from_bytes(
     let workbook = umya_spreadsheet::reader::xlsx::read_reader(cursor, true)
         .map_err(|e| format!("Failed to parse xlsx: {e}"))?;
 
+    // Single source of truth for worksheet extraction (iterates umya's
+    // actual-cell map, not the bounding box — see `import.rs`).
+    let mut worksheets = super::import::parse_xlsx_to_worksheets(bytes, "xlsx")?;
+
+    // umya-only extras: per-sheet protection, keyed by worksheet index (both
+    // paths iterate `get_sheet_collection()` in document order).
+    for (index, sheet) in workbook.get_sheet_collection().iter().enumerate() {
+        if let Some(ws) = worksheets.get_mut(index) {
+            ws.protection = extract_protection(sheet);
+        }
+    }
+
+    let named_ranges = extract_named_ranges(&workbook);
+
     let raw_name = file_path.split('/').next_back().unwrap_or("Untitled");
     let file_name = raw_name
         .strip_suffix(".xlsx")
@@ -21,204 +43,59 @@ pub fn load_xlsx_from_bytes(
         .or_else(|| raw_name.strip_suffix(".xls"))
         .unwrap_or(raw_name);
 
-    let mut worksheets = Vec::new();
+    let spreadsheet = Spreadsheet {
+        id: Uuid::new_v4().to_string(),
+        name: file_name.to_string(),
+        owner_id: user_id.to_string(),
+        worksheets,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        named_ranges,
+        external_links: super::xlsx_external_links::extract_external_links(bytes),
+        source_bucket: None,
+        source_path: None,
+        source_bytes: None,
+        acl: HashMap::new(),
+    };
 
-    for sheet in workbook.get_sheet_collection() {
-        let mut data: HashMap<String, CellData> = HashMap::new();
-        let mut column_widths: HashMap<u32, u32> = HashMap::new();
-        let mut row_heights: HashMap<u32, u32> = HashMap::new();
+    Ok((spreadsheet, workbook))
+}
 
-        let (max_col, max_row) = sheet.get_highest_column_and_row();
-
-        for row in 1..=max_row {
-            for col in 1..=max_col {
-                if let Some(cell) = sheet.get_cell((col, row)) {
-                    let value = cell.get_value().to_string();
-                    let formula = if cell.get_formula().is_empty() {
-                        None
-                    } else {
-                        Some(format!("={}", cell.get_formula()))
-                    };
-
-                    if value.is_empty() && formula.is_none() {
-                        continue;
-                    }
-
-                    let key = format!("{},{}", row - 1, col - 1);
-                    let style = super::xlsx_write::extract_cell_style(cell);
-
-                    let note = sheet
-                        .get_comments()
-                        .iter()
-                        .find(|c| {
-                            let coord = c.get_coordinate();
-                            coord.get_col_num() == &col && coord.get_row_num() == &row
-                        })
-                        .and_then(|c| {
-                            c.get_text()
-                                .get_rich_text()
-                                .map(|rt| rt.get_text().to_string())
-                        });
-
-                    let cell_value = value.clone();
-                    // Typed value (#781/#785): numbers keep their numeric type
-                    // (date serials included) so the number-format engine can
-                    // render them; everything else falls back to string parsing.
-                    let typed = match cell.get_value_number() {
-                        Some(n) => CellValue::Number(n),
-                        None => CellValue::parse(&value),
-                    };
-                    let has_comment = note.is_some();
-                    data.insert(
-                        key,
-                        CellData {
-                            value: Some(cell_value),
-                            typed: Some(typed),
-                            formula,
-                            style,
-                            format: None,
-                            note,
-                            locked: None,
-                            has_comment: has_comment.then_some(true),
-                            array_formula_id: None,
-                        },
-                    );
-                }
-            }
-        }
-
-        for col in 1..=max_col {
-            let col_letter = super::xlsx_write::get_col_letter(col);
-            if let Some(dim) = sheet.get_column_dimension(&col_letter) {
-                let width = *dim.get_width();
-                if width > 0.0 {
-                    column_widths.insert(col, width.round() as u32);
-                }
-            }
-        }
-
-        for row in 1..=max_row {
-            if let Some(dim) = sheet.get_row_dimension(&row) {
-                let height = *dim.get_height();
-                if height > 0.0 {
-                    row_heights.insert(row, height.round() as u32);
-                }
-            }
-        }
-
-        let merged_cells: Vec<MergedCell> = sheet
-            .get_merge_cells()
-            .iter()
-            .filter_map(|mc| {
-                let range = mc.get_range().to_string();
-                parse_merge_range(&range)
-            })
-            .collect();
-
-        let frozen_rows = sheet
-            .get_sheets_views()
-            .get_sheet_view_list()
-            .first()
-            .and_then(|v| v.get_pane())
-            .map(|p| *p.get_vertical_split() as u32)
-            .filter(|&v| v > 0);
-
-        let frozen_cols = sheet
-            .get_sheets_views()
-            .get_sheet_view_list()
-            .first()
-            .and_then(|v| v.get_pane())
-            .map(|p| *p.get_horizontal_split() as u32)
-            .filter(|&v| v > 0);
-
-        let sheet_name = sheet.get_name().to_string();
-
-        // Sheet protection (#788): a protected sheet arrives with its flags,
-        // so the structured model can enforce and re-emit them.
-        let protection = sheet
-            .get_sheet_protection()
-            .filter(|p| *p.get_sheet())
-            .map(|p| SheetProtection {
-                protected: true,
-                password_hash: {
-                    #[cfg(feature = "xlsx")]
-                    {
-                        let raw = p.get_password_raw();
-                        if raw.is_empty() {
-                            None
-                        } else {
-                            Some(raw.to_string())
-                        }
-                    }
-                    #[cfg(not(feature = "xlsx"))]
-                    {
-                        let _ = p;
-                        None
-                    }
-                },
-                locked_cells: Vec::new(),
-                allow_select_locked: !*p.get_select_locked_cells(),
-                allow_select_unlocked: !*p.get_select_unlocked_cells(),
-                allow_format_cells: *p.get_format_cells(),
-                allow_format_columns: *p.get_format_columns(),
-                allow_format_rows: *p.get_format_rows(),
-                allow_insert_columns: *p.get_insert_columns(),
-                allow_insert_rows: *p.get_insert_rows(),
-                allow_insert_hyperlinks: *p.get_insert_hyperlinks(),
-                allow_delete_columns: *p.get_delete_columns(),
-                allow_delete_rows: *p.get_delete_rows(),
-                allow_sort: *p.get_sort(),
-                allow_filter: *p.get_auto_filter(),
-                allow_pivot_tables: *p.get_pivot_tables(),
-            });
-
-        worksheets.push(Worksheet {
-            name: sheet_name,
-            data,
-            column_widths: if column_widths.is_empty() {
+/// Reads a sheet's protection flags into the structured model (#788).
+fn extract_protection(sheet: &umya_spreadsheet::Worksheet) -> Option<SheetProtection> {
+    let p = sheet.get_sheet_protection().filter(|p| *p.get_sheet())?;
+    Some(SheetProtection {
+        protected: true,
+        password_hash: {
+            let raw = p.get_password_raw();
+            if raw.is_empty() {
                 None
             } else {
-                Some(column_widths)
-            },
-            row_heights: if row_heights.is_empty() {
-                None
-            } else {
-                Some(row_heights)
-            },
-            frozen_rows,
-            frozen_cols,
-            merged_cells: if merged_cells.is_empty() {
-                None
-            } else {
-                Some(merged_cells)
-            },
-            filters: None,
-            hidden_rows: None,
-            validations: None,
-            conditional_formats: None,
-            charts: None,
-            comments: None,
-            protection,
-            array_formulas: None,
-            tables: None,
-            hidden_columns: None,
-            sheet_state: None,
-            hyperlinks: None,
-            print_setup: None,
-            autofilter: None,
-            row_page_breaks: None,
-            column_page_breaks: None,
-            images: None,
-            print_areas: None,
-            rich_text: None,
-        });
-    }
+                Some(raw.to_string())
+            }
+        },
+        locked_cells: Vec::new(),
+        allow_select_locked: !*p.get_select_locked_cells(),
+        allow_select_unlocked: !*p.get_select_unlocked_cells(),
+        allow_format_cells: *p.get_format_cells(),
+        allow_format_columns: *p.get_format_columns(),
+        allow_format_rows: *p.get_format_rows(),
+        allow_insert_columns: *p.get_insert_columns(),
+        allow_insert_rows: *p.get_insert_rows(),
+        allow_insert_hyperlinks: *p.get_insert_hyperlinks(),
+        allow_delete_columns: *p.get_delete_columns(),
+        allow_delete_rows: *p.get_delete_rows(),
+        allow_sort: *p.get_sort(),
+        allow_filter: *p.get_auto_filter(),
+        allow_pivot_tables: *p.get_pivot_tables(),
+    })
+}
 
-    // Defined names (#788): workbook-scope names (e.g. `TaxRate = Sheet1!$B$2`)
-    // land in the structured model so the round-trip keeps them.
-    let mut named_ranges: Vec<NamedRange> = Vec::new();
-    let defined_names = workbook.get_defined_names();
-    for name in defined_names {
+/// Maps workbook-scope defined names (e.g. `TaxRate = Sheet1!$B$2`) into the
+/// structured model so the round-trip keeps them (#788).
+fn extract_named_ranges(workbook: &umya_spreadsheet::Spreadsheet) -> Option<Vec<NamedRange>> {
+    let mut named_ranges = Vec::new();
+    for name in workbook.get_defined_names() {
         let Some((start_row, start_col, end_row, end_col)) = parse_a1_address(&name.get_address())
         else {
             continue;
@@ -235,65 +112,11 @@ pub fn load_xlsx_from_bytes(
             comment: None,
         });
     }
-
-    #[cfg(feature = "xlsx")]
-    if let Ok(format_map) = super::format_codes::extract_cell_format_codes(bytes) {
-        super::format_codes::apply_format_codes(&mut worksheets, &format_map);
+    if named_ranges.is_empty() {
+        None
+    } else {
+        Some(named_ranges)
     }
-
-    // Charts (#xlsx): umya-spreadsheet drops chart parts on read, so extract
-    // them from the raw package (drawings + chart XML) and attach per-sheet.
-    #[cfg(feature = "xlsx")]
-    match super::chart_read::extract_charts(bytes, &worksheets) {
-        Ok(charts_by_ws) => {
-            for (ws_index, charts) in charts_by_ws.into_iter().enumerate() {
-                if !charts.is_empty() {
-                    if let Some(ws) = worksheets.get_mut(ws_index) {
-                        ws.charts = Some(charts);
-                    }
-                }
-            }
-        }
-        Err(e) => log::warn!("chart extraction skipped: {e}"),
-    }
-
-    let spreadsheet = Spreadsheet {
-        named_ranges: if named_ranges.is_empty() {
-            None
-        } else {
-            Some(named_ranges)
-        },
-        external_links: None,
-        id: Uuid::new_v4().to_string(),
-        name: file_name.to_string(),
-        owner_id: user_id.to_string(),
-        worksheets,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    source_bucket: None,
-    source_path: None,
-        source_bytes: None,
-    acl: HashMap::new(),
-    };
-
-    Ok((spreadsheet, workbook))
-}
-
-fn parse_merge_range(range: &str) -> Option<MergedCell> {
-    let parts: Vec<&str> = range.split(':').collect();
-    if parts.len() != 2 {
-        return None;
-    }
-
-    let start = parse_cell_ref(parts[0])?;
-    let end = parse_cell_ref(parts[1])?;
-
-    Some(MergedCell {
-        start_row: start.0,
-        start_col: start.1,
-        end_row: end.0,
-        end_col: end.1,
-    })
 }
 
 fn parse_cell_ref(cell_ref: &str) -> Option<(u32, u32)> {

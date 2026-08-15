@@ -31,6 +31,11 @@ pub struct NumberFormat {
     pub scientific: bool,
     /// Fraction denominator digit count (`# ?/?` → 1, `# ??/??` → 2).
     pub fraction_denominator: Option<usize>,
+    /// Accounting format (`_($* #,##0.00_)`): `_`/`*` markers are stripped and
+    /// negatives render parenthesised.
+    pub accounting: bool,
+    /// Whether a negative renders as `(1,234.50)` rather than `-1,234.50`.
+    pub neg_in_parens: bool,
 }
 
 impl Default for NumberFormat {
@@ -46,6 +51,8 @@ impl Default for NumberFormat {
             date_format: None,
             scientific: false,
             fraction_denominator: None,
+            accounting: false,
+            neg_in_parens: false,
         }
     }
 }
@@ -99,7 +106,15 @@ pub fn parse_format(code: &str) -> NumberFormat {
         }
     }
 
-    let mut rest = code.to_string();
+    // Accounting: `_`/`*` markers and parenthesised negative sections. Strip
+    // the alignment markers and parse the positive section's numeric pattern.
+    fmt.accounting = code.contains('_') || code.contains('*');
+    let sections: Vec<&str> = code.split(';').collect();
+    fmt.neg_in_parens = sections.get(1).map(|s| s.contains('(')).unwrap_or(false);
+    if fmt.accounting {
+        fmt.neg_in_parens = true;
+    }
+    let mut rest = strip_alignment(sections.first().copied().unwrap_or(code));
     // Currency prefix.
     if let Some((sym, tail)) = split_currency(&rest) {
         fmt.currency = Some(sym);
@@ -124,6 +139,24 @@ pub fn parse_format(code: &str) -> NumberFormat {
     fmt.min_integer_digits = int_part.chars().filter(|c| *c == '0').count().max(1);
 
     fmt
+}
+
+/// Strips accounting alignment markers from a format section: `_` reserves the
+/// width of the following character and `*` repeats it to fill — both are
+/// alignment hints, not value content. Parentheses are negative-section markers.
+fn strip_alignment(section: &str) -> String {
+    let chars: Vec<char> = section.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '_' | '*' => i += 1, // consume the marker and its width/fill char
+            '(' | ')' => {}
+            c => out.push(c),
+        }
+        i += 1;
+    }
+    out
 }
 
 fn split_currency(code: &str) -> Option<(String, String)> {
@@ -242,12 +275,15 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
         out.push(' ');
     }
     if neg {
-        out.push('-');
+        out.push(if fmt.neg_in_parens { '(' } else { '-' });
     }
     out.push_str(&int_str);
     if fmt.min_decimal_digits > 0 {
         out.push('.');
         out.push_str(&format!("{:0width$}", frac_part, width = fmt.min_decimal_digits));
+    }
+    if neg && fmt.neg_in_parens {
+        out.push(')');
     }
     if fmt.percent {
         out.push('%');
@@ -294,136 +330,5 @@ pub fn apply_formats_to_sheet(sheet: &mut crate::types::Spreadsheet) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn thousands_and_decimals() {
-        let f = parse_format("#,##0.00");
-        assert!(f.use_thousands);
-        assert_eq!(f.min_decimal_digits, 2);
-        assert_eq!(render_number(1234567.8, &f), "1,234,567.80");
-    }
-
-    #[test]
-    fn currency_brl() {
-        let f = parse_format("R$ #,##0.00");
-        assert_eq!(f.currency.as_deref(), Some("R$"));
-        assert_eq!(render_number(1234.5, &f), "R$ 1,234.50");
-    }
-
-    #[test]
-    fn percent_scales() {
-        let f = parse_format("0.0%");
-        assert_eq!(render_number(0.125, &f), "12.5%");
-    }
-
-    #[test]
-    fn integer_only() {
-        let f = parse_format("0");
-        assert_eq!(render_number(12.9, &f), "13");
-    }
-
-    #[test]
-    fn negative_rounds() {
-        let f = parse_format("#,##0.00");
-        assert_eq!(render_number(-1234.567, &f), "-1,234.57");
-    }
-
-    #[test]
-    fn scientific_notation() {
-        let f = parse_format("0.00E+00");
-        assert!(f.scientific);
-        assert_eq!(render_number(12345.0, &f), "1.23E+04");
-        assert_eq!(render_number(0.0012, &f), "1.20E-03");
-    }
-
-    #[test]
-    fn fractions() {
-        assert_eq!(render_number(0.5, &parse_format("# ?/?")), "1/2");
-        assert_eq!(render_number(1.5, &parse_format("# ?/?")), "1 1/2");
-        assert_eq!(render_number(1.0 / 3.0, &parse_format("# ??/??")), "1/3");
-    }
-
-    #[test]
-    fn date_format() {
-        let f = parse_format("yyyy-mm-dd");
-        assert!(f.is_date);
-        // Serial 45658 == 2025-01-01 (1900 date system, off-by-one for the
-        // fake 1900-02-29 is already folded into the 1899-12-30 base).
-        assert_eq!(render_number(45658.0, &f), "2025-01-01");
-    }
-
-    #[test]
-    fn text_passthrough() {
-        assert_eq!(apply_format(&CellValue::Text("abc".to_string()), "#,##0"), "abc");
-    }
-
-    #[test]
-    fn display_falls_back() {
-        assert_eq!(display_cell(&CellValue::Number(12.0), None), "12");
-        assert_eq!(display_cell(&CellValue::Number(12.0), Some("General")), "12");
-    }
-    #[test]
-    fn apply_formats_to_sheet_renders_but_keeps_typed() {
-        let mut sheet = crate::types::Spreadsheet {
-            id: "t".into(),
-            name: "Test".into(),
-            owner_id: "me".into(),
-            worksheets: vec![crate::types::Worksheet {
-                tables: None,
-                hidden_columns: None,
-                sheet_state: None,
-                hyperlinks: None,
-                print_setup: None,
-                autofilter: None,
-                row_page_breaks: None,
-                column_page_breaks: None,
-                images: None,
-                print_areas: None,
-                rich_text: None,
-                name: "Sheet1".into(),
-                data: std::collections::HashMap::new(),
-                column_widths: None,
-                row_heights: None,
-                frozen_rows: None,
-                frozen_cols: None,
-                merged_cells: None,
-                filters: None,
-                hidden_rows: None,
-                validations: None,
-                conditional_formats: None,
-                charts: None,
-                comments: None,
-                protection: None,
-                array_formulas: None,
-            }],
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-            named_ranges: None,
-            external_links: None,
-            source_bucket: None,
-            source_path: None,
-            source_bytes: None,
-            acl: std::collections::HashMap::new(),
-        };
-        sheet.worksheets[0].data.insert(
-            "0,0".into(),
-            crate::types::CellData {
-                value: Some("1234.5".into()),
-                typed: Some(CellValue::Number(1234.5)),
-                formula: None,
-                style: None,
-                format: Some("#,##0.00".into()),
-                note: None,
-                locked: None,
-                has_comment: None,
-                array_formula_id: None,
-            },
-        );
-        super::apply_formats_to_sheet(&mut sheet);
-        let cell = &sheet.worksheets[0].data["0,0"];
-        assert_eq!(cell.value.as_deref(), Some("1,234.50"));
-        assert_eq!(cell.typed, Some(CellValue::Number(1234.5)));
-    }
-}
+#[path = "formats_tests.rs"]
+mod tests;
