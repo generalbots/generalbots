@@ -547,6 +547,7 @@ pub async fn list_calendars_db(
 }
 
 pub async fn get_calendar(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
@@ -571,6 +572,7 @@ pub async fn get_calendar(
 }
 
 pub async fn update_calendar(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
@@ -627,6 +629,7 @@ pub async fn update_calendar(
 }
 
 pub async fn delete_calendar(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
@@ -709,6 +712,7 @@ pub async fn list_events(
 }
 
 pub async fn get_event(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
@@ -802,6 +806,7 @@ pub async fn create_event(
 }
 
 pub async fn update_event(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
@@ -857,6 +862,7 @@ pub async fn update_event(
 }
 
 pub async fn delete_event(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
@@ -891,6 +897,7 @@ pub async fn delete_event(
 }
 
 pub async fn share_calendar(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
@@ -943,6 +950,7 @@ pub async fn share_calendar(
 }
 
 pub async fn export_ical(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(calendar_id): Path<Uuid>,
@@ -1706,6 +1714,7 @@ pub struct EventsQuery {
 }
 
 pub async fn ui_events_list(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Query(query): Query<EventsQuery>,
@@ -1815,6 +1824,7 @@ Create Event
 }
 
 pub async fn ui_event_detail(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
@@ -2125,6 +2135,7 @@ pub struct MonthQuery {
 }
 
 pub async fn ui_month_view(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Query(query): Query<MonthQuery>,
@@ -2247,6 +2258,7 @@ pub struct DayQuery {
 }
 
 pub async fn ui_day_events(
+        headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
         headers: axum::http::HeaderMap,
     Query(query): Query<DayQuery>,
