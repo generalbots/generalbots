@@ -19,6 +19,9 @@ pub struct NumberFormat {
     pub min_integer_digits: usize,
     /// Number of decimal digits enforced by `0` after the point.
     pub min_decimal_digits: usize,
+    /// Maximum decimal digits (`0` + `#` + `?` after the point); trailing
+    /// digits beyond `min` are trimmed so `0.##` shows `1.5`, not `2`.
+    pub max_decimal_digits: usize,
     /// Whether a thousands separator is requested (`#,##0`).
     pub use_thousands: bool,
     /// Whether the value is rendered as a percentage (`0%`).
@@ -46,6 +49,7 @@ impl Default for NumberFormat {
             is_date: false,
             min_integer_digits: 1,
             min_decimal_digits: 0,
+            max_decimal_digits: 0,
             use_thousands: false,
             percent: false,
             currency: None,
@@ -153,10 +157,15 @@ pub fn parse_format(code: &str) -> NumberFormat {
     if rest.contains(',') {
         fmt.use_thousands = true;
     }
-    // Decimal places: count `0`s after the last '.' in the integer/decimal part.
+    // Decimal places: `0` forces a digit, `#`/`?` are optional. `min` is the
+    // forced count; `max` is the total width before trailing zeros are trimmed.
     if let Some((_, frac)) = rest.split_once('.') {
         let frac: String = frac.chars().take_while(|c| *c == '0' || *c == '#' || *c == '?').collect();
         fmt.min_decimal_digits = frac.chars().filter(|c| *c == '0').count();
+        fmt.max_decimal_digits = frac
+            .chars()
+            .filter(|c| *c == '0' || *c == '#' || *c == '?')
+            .count();
     }
     // Minimum integer digits.
     let int_part = rest.split(['.', '%', ',']).next().unwrap_or("");
@@ -231,17 +240,17 @@ fn render_number_locale(n: f64, fmt: &NumberFormat, locale: NumberLocale) -> Str
     if let Some(denom_digits) = fmt.fraction_denominator {
         return render_fraction(n, denom_digits);
     }
-// Percent scales by 100: 0.125 with "0.0%" renders as "12.5%".
+    // Percent scales by 100: 0.125 with "0.0%" renders as "12.5%".
     let scaled = n * fmt.scale;
     let neg = scaled < 0.0;
     let abs = scaled.abs();
-    let factor = 10f64.powi(fmt.min_decimal_digits as i32);
+    let factor = 10f64.powi(fmt.max_decimal_digits as i32);
     let rounded = (abs * factor).round() / factor;
 
     let mut int_part = rounded.trunc() as i64;
     let mut frac_part = (rounded.fract() * factor).round() as u64;
 
-    // Rounding carry.
+    // Rounding carry (e.g. 0.999 → 1.000 at three decimals).
     if frac_part == factor as u64 {
         int_part += 1;
         frac_part = 0;
@@ -264,9 +273,17 @@ fn render_number_locale(n: f64, fmt: &NumberFormat, locale: NumberLocale) -> Str
         out.push(if fmt.neg_in_parens { '(' } else { '-' });
     }
     out.push_str(&int_str);
-    if fmt.min_decimal_digits > 0 {
-        out.push(locale.decimal_sep);
-        out.push_str(&format!("{:0width$}", frac_part, width = fmt.min_decimal_digits));
+    // Render `max` decimals then trim trailing zeros down to the forced `min`:
+    // `0.00` always shows two, `0.##` shows up to two (`1.5`, `1`, `1.25`).
+    if fmt.max_decimal_digits > 0 {
+        let mut frac_str = format!("{:0width$}", frac_part, width = fmt.max_decimal_digits);
+        while frac_str.len() > fmt.min_decimal_digits && frac_str.ends_with('0') {
+            frac_str.pop();
+        }
+        if !frac_str.is_empty() {
+            out.push(locale.decimal_sep);
+            out.push_str(&frac_str);
+        }
     }
     if neg && fmt.neg_in_parens {
         out.push(')');
