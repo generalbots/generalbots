@@ -190,12 +190,15 @@ pub async fn upload_file_to_drive(
 
     // Accept both raw text (designer/editor send the file content verbatim)
     // and base64-encoded payloads (drive uploads). Detect: a strict base64
-    // decode that round-trips cleanly is treated as encoded; otherwise the
-    // content is used as-is so text files never fail on invalid base64.
+    // decode that round-trips cleanly (ignoring padding) is treated as
+    // encoded; otherwise the content is used as-is so text files never fail
+    // on invalid base64.
     let data = match base64::engine::general_purpose::STANDARD.decode(&req.content) {
         Ok(decoded) if !decoded.is_empty() => {
             let re_encoded = base64::engine::general_purpose::STANDARD.encode(&decoded);
-            if re_encoded == req.content.trim_end_matches('=') {
+            let normalized_input = req.content.trim_end_matches('=');
+            let normalized_encoded = re_encoded.trim_end_matches('=');
+            if normalized_encoded == normalized_input {
                 decoded
             } else {
                 req.content.as_bytes().to_vec()
