@@ -188,9 +188,21 @@ pub async fn upload_file_to_drive(
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
 
-    let data = base64::engine::general_purpose::STANDARD
-        .decode(&req.content)
-        .map_err(|e| err(StatusCode::BAD_REQUEST, &format!("Invalid base64 content: {e}")))?;
+    // Accept both raw text (designer/editor send the file content verbatim)
+    // and base64-encoded payloads (drive uploads). Detect: a strict base64
+    // decode that round-trips cleanly is treated as encoded; otherwise the
+    // content is used as-is so text files never fail on invalid base64.
+    let data = match base64::engine::general_purpose::STANDARD.decode(&req.content) {
+        Ok(decoded) if !decoded.is_empty() => {
+            let re_encoded = base64::engine::general_purpose::STANDARD.encode(&decoded);
+            if re_encoded == req.content.trim_end_matches('=') {
+                decoded
+            } else {
+                req.content.as_bytes().to_vec()
+            }
+        }
+        _ => req.content.as_bytes().to_vec(),
+    };
 
     let key = format!("{prefix}{}", normalize_path(&req.path));
     drive
@@ -200,6 +212,30 @@ pub async fn upload_file_to_drive(
 
     info!("File uploaded: {key} to bucket {bucket}");
     Ok(Json(SuccessResponse { success: true }))
+}
+
+/// `POST /api/files/read` — returns a file's content as raw text (`{content}`)
+/// for the designer/editor apps. Mirrors `download_file` but returns plain
+/// UTF-8 text instead of base64 so BASIC sources render directly.
+pub async fn read_file(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<DownloadFileBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let drive = get_drive(&state)?;
+    let scope = req.scope.unwrap_or_default();
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
+    let key = format!("{prefix}{}", normalize_path(&req.path));
+
+    let data = drive
+        .get_object(&bucket, &key)
+        .await
+        .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
+
+    let content = String::from_utf8_lossy(&data).to_string();
+    Ok(Json(serde_json::json!({ "content": content })))
 }
 
 pub async fn download_file(

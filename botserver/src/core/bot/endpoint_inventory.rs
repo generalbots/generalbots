@@ -483,6 +483,7 @@ pub const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "POST", path: "/api/files/trash/restore", summary: "registered in src/main_module/routes/api_setup.rs" },
     ApiEndpoint { method: "POST", path: "/api/files/upload-binary", summary: "registered in src/main_module/routes/api_setup.rs" },
     ApiEndpoint { method: "POST", path: "/api/files/write", summary: "registered in src/main_module/routes/api_setup.rs" },
+    ApiEndpoint { method: "POST", path: "/api/files/read", summary: "raw-text file read for designer/editor — registered in src/main_module/routes/api_setup.rs" },
     ApiEndpoint { method: "POST", path: "/api/fraud/assess", summary: "registered in crates/botfraud/src/handlers.rs" },
     ApiEndpoint { method: "GET", path: "/api/fraud/blocklist", summary: "registered in crates/botfraud/src/handlers.rs" },
     ApiEndpoint { method: "DELETE", path: "/api/fraud/blocklist/:id", summary: "registered in crates/botfraud/src/handlers.rs" },
