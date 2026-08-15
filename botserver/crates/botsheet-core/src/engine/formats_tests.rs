@@ -74,6 +74,24 @@ fn currency_negative_without_accounting() {
 }
 
 #[test]
+fn quoted_currency_symbol_renders() {
+    // Library-generated files often quote the symbol: `"R$" #,##0.00`.
+    let f = parse_format("\"R$\" #,##0.00");
+    assert_eq!(f.currency.as_deref(), Some("R$"));
+    assert_eq!(render_number(1234.5, &f), "R$ 1,234.50");
+}
+
+#[test]
+fn locale_token_is_stripped() {
+    // `[$€-407]#,##0.00` loses the token but keeps the numeric pattern.
+    let f = parse_format("[$€-407]#,##0.00");
+    assert_eq!(f.currency, None);
+    assert!(f.use_thousands);
+    assert_eq!(f.min_decimal_digits, 2);
+    assert_eq!(render_number(1234.5, &f), "1,234.50");
+}
+
+#[test]
 fn date_format() {
     let f = parse_format("yyyy-mm-dd");
     assert!(f.is_date);

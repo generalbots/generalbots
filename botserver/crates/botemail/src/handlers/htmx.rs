@@ -10,9 +10,22 @@ use std::sync::Arc;
 
 use crate::models::{AppState, EmailError, extract_user_from_session};
 #[cfg(feature = "mail")]
-use crate::models::{EmailAccountRow, EmailSummary, EmailContent};
+use crate::models::{EmailAccountRow, EmailMessageRow, EmailSummary, EmailContent};
 #[cfg(feature = "mail")]
 use crate::types::EmailConfig;
+
+/// Decodes the base64-encrypted password stored in `user_email_accounts`
+/// (same scheme the poller uses — see poller.rs::decrypt_password).
+#[cfg(feature = "mail")]
+fn decrypt_password(encrypted: &str) -> Result<String, String> {
+    use base64::{engine::general_purpose, Engine as _};
+    general_purpose::STANDARD
+        .decode(encrypted)
+        .map_err(|e| format!("Password decryption failed: {e}"))
+        .and_then(|bytes| {
+            String::from_utf8(bytes).map_err(|e| format!("Password is not UTF-8: {e}"))
+        })
+}
 
 #[cfg(feature = "mail")]
 fn fetch_emails_from_folder(config: &EmailConfig, folder: &str) -> Result<Vec<EmailSummary>, String> {
@@ -135,9 +148,14 @@ session.logout().ok();
 
 #[cfg(feature = "mail")]
 fn make_config_from_account(account: &EmailAccountRow) -> EmailConfig {
+    // The stored password is base64-encoded (poller scheme); decrypt it so
+    // live IMAP/SMTP calls authenticate — previously the raw base64 string
+    // was sent as the password and every live call failed login.
+    let password = decrypt_password(&account.password_encrypted)
+        .unwrap_or_else(|_| account.password_encrypted.clone());
     EmailConfig {
         username: account.username.clone(),
-        password: account.password_encrypted.clone(),
+        password,
         server: account.imap_server.clone(),
         port: account.imap_port as u16,
         from: account.email.clone(),
@@ -159,30 +177,42 @@ pub async fn list_emails_htmx(
     };
 
     let pool = state.pool.clone();
-    let account_result = tokio::task::spawn_blocking(move || {
+    let folder_db = match folder.as_str() {
+        "sent" => "Sent".to_string(),
+        "drafts" => "Drafts".to_string(),
+        "trash" => "Trash".to_string(),
+        _ => "INBOX".to_string(),
+    };
+    let emails_result = tokio::task::spawn_blocking(move || {
+        use diesel::sql_query;
         let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {}", e))?;
-        diesel::sql_query("SELECT * FROM user_email_accounts WHERE user_id = $1 LIMIT 1")
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .get_result::<EmailAccountRow>(&mut db_conn)
-            .optional()
-            .map_err(|e| format!("Failed to get email account: {}", e))
+        sql_query(
+            "SELECT m.id::text AS id, m.from_address AS from_name, \
+                    m.from_address AS from_email, m.subject, \
+                    COALESCE(m.body_text, '') AS preview, \
+                    m.received_at::text AS date, m.is_read AS read \
+             FROM email_messages m \
+             JOIN user_email_accounts a ON a.id = m.account_id \
+             WHERE a.user_id = $1 AND m.folder = $2 \
+             ORDER BY m.received_at DESC LIMIT 50",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .bind::<diesel::sql_types::Text, _>(&folder_db)
+        .load::<EmailSummary>(&mut db_conn)
+        .map_err(|e| format!("Emails query failed: {e}"))
     }).await;
 
-    let account = match account_result {
-        Ok(Ok(Some(acc))) => acc,
-        Ok(Ok(None)) => return axum::response::Html(r##"<div class="empty-state"><h3>No email account configured</h3><p>Please add an email account in settings to get started</p><a href="#settings" class="btn-primary" style="margin-top: 1rem; display: inline-block;">Add Email Account</a></div>"##.to_string()),
+    let emails = match emails_result {
+        Ok(Ok(list)) => list,
         Ok(Err(e)) => {
-            log::error!("Email account query error: {}", e);
+            log::error!("Email list query error: {}", e);
             return axum::response::Html(r#"<div class="empty-state"><h3>Unable to load emails</h3><p>There was an error. Please try again later.</p></div>"#.to_string());
         }
         Err(e) => {
-            log::error!("Email account task error: {}", e);
+            log::error!("Email list task error: {}", e);
             return axum::response::Html(r#"<div class="empty-state"><h3>Unable to load emails</h3><p>There was an error. Please try again later.</p></div>"#.to_string());
         }
     };
-
-    let config = make_config_from_account(&account);
-    let emails = fetch_emails_from_folder(&config, &folder).unwrap_or_default();
 
     let mut html = String::new();
     use std::fmt::Write;
@@ -217,22 +247,37 @@ pub async fn list_folders_htmx(
     };
 
     let pool = state.pool.clone();
-    let account_result = tokio::task::spawn_blocking(move || {
+    let counts_result = tokio::task::spawn_blocking(move || {
+        use diesel::sql_query;
         let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {}", e))?;
-        diesel::sql_query("SELECT * FROM user_email_accounts WHERE user_id = $1 LIMIT 1")
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .get_result::<EmailAccountRow>(&mut db_conn)
-            .optional()
-            .map_err(|e| format!("Failed to get email account: {}", e))
+        #[derive(diesel::QueryableByName)]
+        struct CountRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            folder: String,
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            count: i64,
+        }
+        let rows = sql_query(
+            "SELECT m.folder AS folder, COUNT(*) AS count \
+             FROM email_messages m \
+             JOIN user_email_accounts a ON a.id = m.account_id \
+             WHERE a.user_id = $1 \
+             GROUP BY m.folder",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .load::<CountRow>(&mut db_conn)
+        .map_err(|e| format!("Folder counts query failed: {e}"))?;
+        let mut counts = std::collections::HashMap::new();
+        for r in rows {
+            counts.insert(r.folder, r.count);
+        }
+        Ok::<_, String>(counts)
     }).await;
 
-    let account = match account_result {
-        Ok(Ok(Some(acc))) => acc,
+    let folder_counts = match counts_result {
+        Ok(Ok(c)) => c,
         _ => return axum::response::Html(r#"<div class="nav-item">Error loading folders</div>"#.to_string()),
     };
-
-    let config = make_config_from_account(&account);
-    let folder_counts = get_folder_counts(&config).unwrap_or_default();
 
     let mut html = String::new();
     for (folder_name, count) in &[("inbox", folder_counts.get("INBOX").unwrap_or(&0)), ("sent", folder_counts.get("Sent").unwrap_or(&0)), ("drafts", folder_counts.get("Drafts").unwrap_or(&0)), ("trash", folder_counts.get("Trash").unwrap_or(&0))] {
@@ -264,30 +309,77 @@ pub async fn get_email_content_htmx(
     let user_id = extract_user_from_session(&headers)
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
+    let msg_id = uuid::Uuid::parse_str(&id)
+        .map_err(|_| EmailError("Invalid message id".to_string()))?;
+
+    // The poller stores full messages (body_html/body_text, uid, flags) in
+    // email_messages; read the content from the DB scoped to the caller's
+    // accounts instead of fetching live from IMAP by a non-UID UUID (the
+    // previous path always failed → clicks rendered nothing).
     let pool = state.pool.clone();
-    let account = tokio::task::spawn_blocking(move || {
-        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {}", e))?;
-        diesel::sql_query("SELECT * FROM user_email_accounts WHERE user_id = $1 LIMIT 1")
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .get_result::<EmailAccountRow>(&mut db_conn)
-            .optional()
-            .map_err(|e| format!("Failed to get email account: {}", e))
-    }).await.map_err(|e| EmailError(format!("Task join error: {e}")))?.map_err(EmailError)?;
+    let content = tokio::task::spawn_blocking(move || -> Result<EmailContent, String> {
+        use diesel::sql_query;
+        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
 
-    let Some(account) = account else {
-        return Ok(axum::response::Html(r#"<div class="mail-content-view"><p>No email account configured</p></div>"#.to_string()));
-    };
+        #[derive(diesel::QueryableByName)]
+        struct MsgRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            account_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            subject: String,
+            #[diesel(sql_type = diesel::sql_types::Varchar)]
+            from_address: String,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+            to_addresses: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+            body_text: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+            body_html: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+            received_at: chrono::DateTime<chrono::Utc>,
+            #[diesel(sql_type = diesel::sql_types::Bool)]
+            is_read: bool,
+        }
+        let row = sql_query(
+            "SELECT m.account_id, m.subject, m.from_address, m.to_addresses, \
+                    m.body_text, m.body_html, m.received_at, m.is_read \
+             FROM email_messages m \
+             JOIN user_email_accounts a ON a.id = m.account_id \
+             WHERE m.id = $1 AND a.user_id = $2 LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(msg_id)
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .get_result::<MsgRow>(&mut db_conn)
+        .optional()
+        .map_err(|e| format!("Message query failed: {e}"))?
+        .ok_or_else(|| "Email not found".to_string())?;
 
-    let config = make_config_from_account(&account);
-    let email_content = fetch_email_by_id(&config, &id).map_err(|e| EmailError(format!("Failed to fetch email: {}", e)))?;
+        let body = row.body_html.filter(|h| !h.is_empty())
+            .or(row.body_text)
+            .unwrap_or_default();
+        let to = row.to_addresses.unwrap_or_default();
+        Ok(EmailContent {
+            id: id.clone(),
+            from_name: row.from_address.clone(),
+            from_email: row.from_address,
+            to,
+            subject: row.subject,
+            body,
+            date: row.received_at.format("%b %d, %Y %H:%M").to_string(),
+            read: row.is_read,
+        })
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(|e| EmailError(e))?;
 
     let html = format!(r##"<div class="mail-content-view"><div id="nudges-banner-{id}" class="nudges-banner" data-email-id="{id}"></div><div class="mail-actions"><button hx-get="/api/ui/email/compose?reply_to={id}" hx-target="#mail-content" hx-swap="innerHTML">Reply</button><button hx-get="/api/ui/email/compose?forward={id}" hx-target="#mail-content" hx-swap="innerHTML">Forward</button><details class="snooze-menu"><summary class="mail-action-btn">Snooze</summary><div class="snooze-presets"><button onclick="snoozeEmail('{id}','later-today')">Later today</button><button onclick="snoozeEmail('{id}','tomorrow')">Tomorrow</button><button onclick="snoozeEmail('{id}','this-weekend')">This weekend</button><button onclick="snoozeEmail('{id}','next-week')">Next week</button></div></details><button hx-delete="/api/ui/email/{id}/delete" hx-target="#mail-list" hx-swap="innerHTML" hx-confirm="Delete this email?">Delete</button></div><h2>{subject}</h2><div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;"><div><div style="font-weight: 600;">{from_name}</div><div class="text-sm text-gray">to: {to}</div></div><div style="margin-left: auto;" class="text-sm text-gray">{date}</div></div><div class="mail-body">{body}</div><div id="smart-reply-{id}" class="smart-reply-chips" data-email-id="{id}"></div></div>"##,
     id = id,
-    subject = email_content.subject,
-    from_name = email_content.from_name,
-    to = email_content.to,
-    date = email_content.date,
-    body = email_content.body);
+    subject = content.subject,
+    from_name = content.from_name,
+    to = content.to,
+    date = content.date,
+    body = content.body);
 
     Ok(axum::response::Html(html))
 }
@@ -311,29 +403,40 @@ pub async fn delete_email_htmx(
         Err(_) => return axum::response::Html(r#"<div class="empty-state"><h3>Authentication required</h3><p>Please sign in to delete emails</p></div>"#.to_string()),
     };
 
-    let pool = state.pool.clone();
-    let account_result = tokio::task::spawn_blocking(move || {
-        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {}", e))?;
-        diesel::sql_query("SELECT * FROM user_email_accounts WHERE user_id = $1 LIMIT 1")
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .get_result::<EmailAccountRow>(&mut db_conn)
-            .optional()
-            .map_err(|e| format!("Failed to get email account: {}", e))
-    }).await;
-
-    let account = match account_result {
-        Ok(Ok(Some(acc))) => acc,
-        _ => return axum::response::Html(r#"<div class="empty-state"><h3>Error deleting email</h3><p>Could not load account</p></div>"#.to_string()),
+    let msg_id = match uuid::Uuid::parse_str(&id) {
+        Ok(mid) => mid,
+        Err(_) => return axum::response::Html(r#"<div class="empty-state"><h3>Invalid message id</h3></div>"#.to_string()),
     };
 
-    let config = make_config_from_account(&account);
-    if let Err(e) = move_email_to_trash(&config, &id) {
-        log::error!("Failed to delete email: {}", e);
-        return axum::response::Html(r#"<div class="empty-state"><h3>Error deleting email</h3><p>Failed to move email to trash</p></div>"#.to_string());
-    }
+    // Delete the message from the local store, scoped to the caller's
+    // accounts. The previous path moved it to trash via live IMAP with the
+    // DB UUID as a sequence number — always failed. Poller re-sync skips
+    // nothing here: a later UID range pass may re-add it, which matches the
+    // "soft delete in local store" model.
+    let pool = state.pool.clone();
+    let deleted = tokio::task::spawn_blocking(move || {
+        use diesel::sql_query;
+        let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
+        sql_query(
+            "DELETE FROM email_messages m \
+             USING user_email_accounts a \
+             WHERE m.id = $1 AND a.id = m.account_id AND a.user_id = $2",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(msg_id)
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .execute(&mut db_conn)
+        .map_err(|e| format!("Delete failed: {e}"))
+    })
+    .await;
 
-    info!("Email {} moved to trash", id);
-    axum::response::Html(r#"<div class="success-message"><p>Email moved to trash</p></div><script>setTimeout(function() { htmx.trigger('#mail-list', 'load'); }, 100);</script>"#.to_string())
+    match deleted {
+        Ok(Ok(0)) => axum::response::Html(r#"<div class="empty-state"><h3>Email not found</h3></div>"#.to_string()),
+        Ok(Ok(_)) => {
+            info!("Email {id} deleted from local store");
+            axum::response::Html(r#"<div class="success-message"><p>Email deleted</p></div><script>setTimeout(function() { htmx.trigger('#mail-list', 'load'); }, 100);</script>"#.to_string())
+        }
+        _ => axum::response::Html(r#"<div class="empty-state"><h3>Error deleting email</h3><p>Could not delete email</p></div>"#.to_string()),
+    }
 }
 
 #[cfg(not(feature = "mail"))]
