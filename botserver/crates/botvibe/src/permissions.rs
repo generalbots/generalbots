@@ -39,6 +39,7 @@ const DESTRUCTIVE_TOOL_PREFIXES: &[&str] = &[
     "deploy_app",
     "domain/bind",
     "domain/unbind",
+    "domain/security",
     "domain/tls",
     "ops/restart",
     "ops/rollback",

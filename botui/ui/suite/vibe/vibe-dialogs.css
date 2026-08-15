@@ -177,6 +177,13 @@
     padding: 4px;
 }
 
+.vibe-card {
+    background: var(--surface, #14142a);
+    border: 1px solid var(--border, #2a2a4a);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
 .vibe-list-item {
     display: flex;
     align-items: center;

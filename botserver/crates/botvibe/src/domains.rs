@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS project_domains (
     verify_token VARCHAR(255),
     tls_status VARCHAR(20) NOT NULL DEFAULT 'pending',
     tls_error TEXT,
+    access VARCHAR(16) NOT NULL DEFAULT 'public',
+    allowed_emails TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -55,6 +57,12 @@ pub struct DomainBind {
     pub verify_token: Option<String>,
     pub tls_status: String,
     pub tls_error: Option<String>,
+    /// Access policy for the served app: `public` (no auth), `authenticated`
+    /// (any valid cloud JWT) or `rbac` (email allowlist). Enforced by the
+    /// Caddy forward_auth wrapper pointing at `/api/vibe/domain-auth`.
+    pub access: String,
+    /// Comma-separated email allowlist used when `access == "rbac"`.
+    pub allowed_emails: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -64,6 +72,10 @@ pub struct BindDomainRequest {
     pub domain: String,
     #[serde(default = "default_env")]
     pub env: String,
+    #[serde(default)]
+    pub access: Option<String>,
+    #[serde(default)]
+    pub allowed_emails: Option<String>,
 }
 
 fn default_env() -> String {
@@ -145,6 +157,18 @@ impl ProjectDomains {
         Ok(domain)
     }
 
+    /// Validates an access policy value. `public` serves the app to anyone;
+    /// `authenticated` requires a valid cloud JWT; `rbac` restricts to the
+    /// binding's email allowlist.
+    pub fn validate_access(a: &str) -> Result<String, String> {
+        match a.trim().to_lowercase().as_str() {
+            "public" | "authenticated" | "rbac" => Ok(a.trim().to_lowercase()),
+            other => Err(format!(
+                "invalid access '{other}': expected 'public', 'authenticated' or 'rbac'"
+            )),
+        }
+    }
+
     /// DNS verification name for a domain (TXT `_gb-verify.<domain>` with
     /// the token as value — #774).
     pub fn verify_name(domain: &str) -> String {
@@ -196,26 +220,33 @@ impl ProjectDomains {
         let branch = project.branch_id;
         let container = VmLifecycle::container_name(&project.name, &env, false);
         let token = format!("{}:{}", branch.simple(), domain);
+        let access = match &req.access {
+            Some(a) => Self::validate_access(a)?,
+            None => "public".to_string(),
+        };
+        let allowed = req.allowed_emails.clone().unwrap_or_default();
 
         let mut conn = self.conn()?;
         match self.select_by_domain_env(&mut conn, &domain, &env) {
             Ok(row) => {
                 let row_id = Uuid::parse_str(&row.id).map_err(|e| format!("row id uuid: {e}"))?;
                 diesel::sql_query(
-                    "UPDATE project_domains SET project_id = $2, container = $3, verify_token = $4, updated_at = NOW() WHERE id = $1",
+                    "UPDATE project_domains SET project_id = $2, container = $3, verify_token = $4, access = $5, allowed_emails = $6, updated_at = NOW() WHERE id = $1",
                 )
                 .bind::<diesel::sql_types::Uuid, _>(row_id)
                 .bind::<diesel::sql_types::Uuid, _>(project_id)
                 .bind::<diesel::sql_types::Text, _>(&container)
                 .bind::<diesel::sql_types::Text, _>(&token)
+                .bind::<diesel::sql_types::Text, _>(&access)
+                .bind::<diesel::sql_types::Text, _>(&allowed)
                 .execute(&mut conn)
                 .map_err(|e| format!("update bind: {e}"))?;
             }
             Err(_) => {
                 let org = project.org_id;
                 diesel::sql_query(
-                    "INSERT INTO project_domains (project_id, org_id, branch_id, domain, env, container, verify_token, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())",
+                    "INSERT INTO project_domains (project_id, org_id, branch_id, domain, env, container, verify_token, access, allowed_emails, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())",
                 )
                 .bind::<diesel::sql_types::Uuid, _>(project_id)
                 .bind::<diesel::sql_types::Uuid, _>(org)
@@ -224,6 +255,8 @@ impl ProjectDomains {
                 .bind::<diesel::sql_types::Text, _>(&env)
                 .bind::<diesel::sql_types::Text, _>(&container)
                 .bind::<diesel::sql_types::Text, _>(&token)
+                .bind::<diesel::sql_types::Text, _>(&access)
+                .bind::<diesel::sql_types::Text, _>(&allowed)
                 .execute(&mut conn)
                 .map_err(|e| format!("insert bind: {e}"))?;
             }
@@ -233,10 +266,82 @@ impl ProjectDomains {
         Ok(bind)
     }
 
+    /// Updates the access policy (public/authenticated/rbac + email
+    /// allowlist) of a binding and re-applies the Caddy route so the
+    /// forward_auth wrapper is installed/removed accordingly.
+    pub async fn update_access(
+        &self,
+        bind_id: Uuid,
+        access: &str,
+        allowed_emails: Option<String>,
+    ) -> Result<DomainBind, String> {
+        let access = Self::validate_access(access)?;
+        let allowed = allowed_emails.unwrap_or_default();
+        let mut conn = self.conn()?;
+        diesel::sql_query(
+            "UPDATE project_domains SET access = $2, allowed_emails = $3, updated_at = NOW() WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(bind_id)
+        .bind::<diesel::sql_types::Text, _>(&access)
+        .bind::<diesel::sql_types::Text, _>(&allowed)
+        .execute(&mut conn)
+        .map_err(|e| format!("update access: {e}"))?;
+        let bind = self.get(bind_id)?;
+        caddy::upsert_route(&bind.domain, &bind.container, &bind.access)
+            .await
+            .map_err(|e| {
+                log::warn!("Caddy route re-apply for {} failed: {e}", bind.domain);
+                e
+            })?;
+        Ok(bind)
+    }
+
+    /// Looks up the single binding for a domain (any env) — used by the
+    /// public forward-auth endpoint.
+    pub fn get_by_domain(&self, domain: &str) -> Result<DomainBind, String> {
+        let mut conn = self.conn()?;
+        diesel::sql_query(
+            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
+             FROM project_domains WHERE domain = $1 ORDER BY env LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Text, _>(domain)
+        .get_result::<DomainRow>(&mut conn)
+        .map(|r| r.into_bind())
+        .map_err(|e| format!("domain lookup: {e}"))
+    }
+
+    /// Resolves the SaaS JWT secret used to sign cloud-login tokens
+    /// (same resolution as `directory_setup::resolve_saas_jwt_secret` in the
+    /// botserver crate, replicated here because that fn is `pub(crate)`).
+    pub fn saas_jwt_secret() -> String {
+        let stack = std::env::var("BOTSERVER_STACK_PATH")
+            .ok()
+            .filter(|p| !p.trim().is_empty())
+            .or_else(|| std::env::var("GBO_STACK_PATH").ok().filter(|p| !p.trim().is_empty()))
+            .unwrap_or_else(|| "/opt/gbo".to_string());
+        let config_path = format!("{stack}/conf/system/directory_config.json");
+        if let Ok(content) = std::fs::read_to_string(&config_path) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(secret) = json
+                    .get("saas_jwt_secret")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                {
+                    return secret.to_string();
+                }
+            }
+        }
+        std::env::var("SAAS_JWT_SECRET")
+            .or_else(|_| std::env::var("JWT_SECRET"))
+            .unwrap_or_else(|_| {
+                "dev-secret-key-change-in-production-minimum-32-chars".to_string()
+            })
+    }
+
     pub fn list(&self, project_id: Uuid) -> Result<Vec<DomainBind>, String> {
         let mut conn = self.conn()?;
         let rows = diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, created_at, updated_at
+            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
              FROM project_domains WHERE project_id = $1 ORDER BY domain",
         )
         .bind::<diesel::sql_types::Uuid, _>(project_id)
@@ -249,7 +354,7 @@ impl ProjectDomains {
     pub fn list_for_domain(&self, domain: &str) -> Result<Vec<DomainBind>, String> {
         let mut conn = self.conn()?;
         let rows = diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, created_at, updated_at
+            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
              FROM project_domains WHERE domain = $1 ORDER BY env",
         )
         .bind::<diesel::sql_types::Text, _>(domain)
@@ -261,7 +366,7 @@ impl ProjectDomains {
     pub async fn unbind(&self, bind_id: Uuid) -> Result<(), String> {
         let mut conn = self.conn()?;
         let row = diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, created_at, updated_at
+            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
              FROM project_domains WHERE id = $1",
         )
         .bind::<diesel::sql_types::Uuid, _>(bind_id)
@@ -286,7 +391,7 @@ impl ProjectDomains {
         let domain = Self::validate_domain(domain)?;
         let mut conn = self.conn()?;
         let row = diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, created_at, updated_at
+            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
              FROM project_domains WHERE domain = $1",
         )
         .bind::<diesel::sql_types::Text, _>(&domain)
@@ -363,7 +468,7 @@ impl ProjectDomains {
     /// HTTPS policy issues the certificate on first request; reports the
     /// proxied configuration state.
     pub async fn issue_tls(&self, bind: &DomainBind) -> Result<serde_json::Value, String> {
-        let route_applied = caddy::upsert_route(&bind.domain, &bind.container).await;
+        let route_applied = caddy::upsert_route(&bind.domain, &bind.container, &bind.access).await;
         let route_state = match &route_applied {
             Ok(CaddyResult { route_id, .. }) => Ok(route_id.clone()),
             Err(e) => Err(e.clone()),
@@ -401,7 +506,7 @@ impl ProjectDomains {
     pub fn get(&self, bind_id: Uuid) -> Result<DomainBind, String> {
         let mut conn = self.conn()?;
         diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, created_at, updated_at
+            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
              FROM project_domains WHERE id = $1",
         )
         .bind::<diesel::sql_types::Uuid, _>(bind_id)
@@ -417,7 +522,7 @@ impl ProjectDomains {
         env: &str,
     ) -> Result<DomainRow, String> {
         diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, created_at, updated_at
+            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
              FROM project_domains WHERE domain = $1 AND env = $2",
         )
         .bind::<diesel::sql_types::Text, _>(domain)
@@ -471,6 +576,10 @@ struct DomainRow {
     tls_status: String,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     tls_error: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    access: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    allowed_emails: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
     created_at: DateTime<Utc>,
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
@@ -491,6 +600,8 @@ impl DomainRow {
             verify_token: self.verify_token,
             tls_status: self.tls_status,
             tls_error: self.tls_error,
+            access: self.access,
+            allowed_emails: self.allowed_emails,
             created_at: self.created_at,
             updated_at: self.updated_at,
         }

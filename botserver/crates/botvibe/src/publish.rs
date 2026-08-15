@@ -209,7 +209,12 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
 
     let binding = match &domain {
         Some(d) => {
-            let bind_req = BindDomainRequest { domain: d.clone(), env: env.clone() };
+            let bind_req = BindDomainRequest {
+                domain: d.clone(),
+                env: env.clone(),
+                access: None,
+                allowed_emails: None,
+            };
             match ProjectDomains::new(pool).bind(project_id, &bind_req).await {
                 Ok(b) => serde_json::json!({ "bound": true, "id": b.id, "domain": b.domain, "env": b.env, "container": b.container, "verified": b.verified, "tls_status": b.tls_status }),
                 Err(e) => serde_json::json!({ "bound": false, "error": e }),

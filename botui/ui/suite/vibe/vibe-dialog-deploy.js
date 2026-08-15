@@ -64,8 +64,24 @@
         grid.innerHTML = '<div class="vibe-empty">Pick a project. Deploy runs the intents→build→test→' +
             "publish pipeline (approval-gated stages) on the backend.</div>";
 
-        box.appendChild(toolbar);
+        // ── App Security (access policy per bound domain) ──
+        var secBox = D.el("div", "vibe-card");
+        secBox.style.margin = "12px 0 0";
+        var secHead = D.el("div", "vibe-dialog-title");
+        secHead.textContent = "🔐 APP SECURITY";
+        secHead.style.padding = "10px";
+        var secHint = D.el("div");
+        secHint.style.cssText = "font-size:11px;color:var(--text-muted);padding:0 10px 8px;";
+        secHint.textContent = "Who can open each domain. Public = anyone · Account = any signed-in user · Allowlist = only listed emails (JWT gate via Caddy).";
+        var secBody = D.el("div");
+        secBody.id = "vibeSecurityBody";
+        secBody.innerHTML = '<div class="vibe-empty">Pick a project to manage its domains.</div>';
+        secBox.appendChild(secHead);
+        secBox.appendChild(secHint);
+        secBox.appendChild(secBody);
+
         box.appendChild(grid);
+        box.appendChild(secBox);
         return box;
     }
 
@@ -99,9 +115,82 @@
                 label.className = "vibe-status ok";
             }
             if (state.projectId) loadHistory();
+            if (state.projectId) loadSecurity();
         }).catch(function () {
             var sel = document.getElementById("vibeDeployProject");
             if (sel) sel.innerHTML = "<option>projects API unavailable</option>";
+        });
+    }
+
+    function loadSecurity() {
+        if (!state.projectId) return;
+        var body = document.getElementById("vibeSecurityBody");
+        if (!body) return;
+        body.innerHTML = '<div class="vibe-empty">Loading domains...</div>';
+        D.api("/api/vibe/projects/" + encodeURIComponent(state.projectId) + "/domains").then(function (data) {
+            var binds = (data && data.binds) || [];
+            if (!binds.length) {
+                body.innerHTML = '<div class="vibe-empty">No domains bound yet. Bind one via the deploy pipeline (domain/bind).</div>';
+                return;
+            }
+            body.innerHTML = "";
+            binds.forEach(function (b) {
+                var row = D.el("div", "vibe-sec-row");
+                row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--border, #222);";
+
+                var d = D.el("span");
+                d.textContent = b.domain || "?";
+                d.style.flex = "1";
+                d.style.minWidth = "180px";
+
+                var sel = D.el("select", "vibe-select");
+                sel.style.minWidth = "130px";
+                ["public", "authenticated", "rbac"].forEach(function (v) {
+                    var o = document.createElement("option");
+                    o.value = v;
+                    o.textContent = v === "public" ? "Public" : v === "authenticated" ? "Account" : "Allowlist";
+                    sel.appendChild(o);
+                });
+                sel.value = b.access || "public";
+
+                var emails = D.el("input", "vibe-input");
+                emails.type = "text";
+                emails.placeholder = "allowed emails (comma separated)";
+                emails.value = b.allowed_emails || "";
+                emails.style.flex = "1";
+                emails.style.minWidth = "220px";
+                emails.disabled = sel.value !== "rbac";
+                sel.addEventListener("change", function () {
+                    emails.disabled = sel.value !== "rbac";
+                });
+
+                var save = D.el("button", "vibe-btn", "Save");
+                save.addEventListener("click", function () {
+                    save.textContent = "Saving…";
+                    save.disabled = true;
+                    D.api("/api/vibe/domains/" + encodeURIComponent(b.id) + "/access", {
+                        method: "PATCH",
+                        body: { access: sel.value, allowed_emails: emails.value },
+                    }).then(function (res) {
+                        save.textContent = "✓ Saved";
+                        if (res && res.error) {
+                            save.textContent = "✗ " + String(res.error).substring(0, 40);
+                        }
+                        setTimeout(function () { save.textContent = "Save"; save.disabled = false; }, 2500);
+                    }).catch(function (err) {
+                        save.textContent = "✗ error";
+                        setTimeout(function () { save.textContent = "Save"; save.disabled = false; }, 2500);
+                    });
+                });
+
+                row.appendChild(d);
+                row.appendChild(sel);
+                row.appendChild(emails);
+                row.appendChild(save);
+                body.appendChild(row);
+            });
+        }).catch(function () {
+            body.innerHTML = '<div class="vibe-empty">Domains unavailable (needs VM/Caddy runtime).</div>';
         });
     }
 
