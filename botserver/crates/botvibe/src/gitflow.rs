@@ -124,14 +124,11 @@ fn git_pr() -> ToolHandler {
                 None => return err(format!("cannot determine owner/repo from remote: {remote_out}")),
             };
 
-            let forgejo_url = std::env::var("FORGEJO_URL")
-                .ok()
-                .or_else(|| std::env::var("ALM_URL").ok())
-                .filter(|s| !s.is_empty())
-                .unwrap_or_else(|| "http://localhost:4747".to_string());
-            let token = match std::env::var("FORGEJO_TOKEN").ok() {
-                Some(t) if !t.is_empty() => t,
-                _ => return err("FORGEJO_TOKEN is not configured".into()),
+            let (forgejo_url, forgejo_token, _org) = botcoresecrets::alm_config();
+            let token = if forgejo_token.is_empty() {
+                return err("FORGEJO_TOKEN is not configured (vault secret/gbo/alm)".into());
+            } else {
+                forgejo_token
             };
 
             let endpoint = format!(

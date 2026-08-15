@@ -14,7 +14,12 @@ pub struct CaddyResult {
 }
 
 fn caddy_api_url() -> String {
-    std::env::var("CADDY_API_URL").unwrap_or_else(|_| "http://127.0.0.1:2019".to_string())
+    let (caddy, _) = botcoresecrets::app_runtime();
+    if caddy.is_empty() {
+        std::env::var("CADDY_API_URL").unwrap_or_else(|_| "http://127.0.0.1:2019".to_string())
+    } else {
+        caddy
+    }
 }
 
 fn client() -> Result<reqwest::Client, String> {

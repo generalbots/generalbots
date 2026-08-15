@@ -26,17 +26,32 @@ pub fn test_run() -> ToolHandler {
             let command = args.get("command").and_then(|v| v.as_str()).unwrap_or_default().to_string();
             let argv: Vec<String> = args.get("args")
                 .and_then(|v| v.as_array())
-                .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect())
+                .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string).map(String::from)).collect())
                 .unwrap_or_default();
             let timeout = args.get("timeout_secs").and_then(|v| v.as_u64()).unwrap_or(300);
             if command.is_empty() {
                 return err("test command is required".into());
             }
+            // Tolerant parsing: models often send `command: "npm test"` as a
+            // single string instead of `command: "npm", args: ["test"]`.
+            // Split the program from its arguments so the allowlist guard
+            // sees `npm` (allowed) instead of rejecting "npm test" outright.
+            let (program, extra): (String, Vec<String>) = if argv.is_empty()
+                && command.split_whitespace().count() > 1
+            {
+                let mut parts = command.split_whitespace();
+                (
+                    parts.next().unwrap_or_default().to_string(),
+                    parts.map(str::to_string).collect(),
+                )
+            } else {
+                (command.clone(), argv.clone())
+            };
             let cwd = match ensure_workspace(&project) {
                 Ok(p) => p,
                 Err(e) => return err(e),
             };
-            match run(&command, &argv, &cwd, timeout) {
+            match run(&program, &extra, &cwd, timeout) {
                 Ok(out) if out.exit_code == Some(0) => ok(json!({
                     "passed": true,
                     "exit_code": out.exit_code,

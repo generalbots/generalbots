@@ -16,6 +16,7 @@ llm = []
 vibe = ["dep:botdeployment"]
 
 [dependencies]
+botcoresecrets = { workspace = true }
 botbasic_types = { path = "../botbasic_types" }
 rhai = { workspace = true, features = ["sync"] }
 
