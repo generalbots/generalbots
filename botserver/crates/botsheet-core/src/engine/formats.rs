@@ -41,6 +41,12 @@ pub struct NumberFormat {
     pub accounting: bool,
     /// Whether a negative renders as `(1,234.50)` rather than `-1,234.50`.
     pub neg_in_parens: bool,
+    /// Raw zero-section code (third `;` section): how a zero renders, e.g.
+    /// `"-"` in `0.00;-0.00;"-"`.
+    pub zero_code: Option<String>,
+    /// Raw text-section code (fourth `;` section): how text renders, e.g.
+    /// `"Total: "@`.
+    pub text_code: Option<String>,
 }
 
 impl Default for NumberFormat {
@@ -59,6 +65,8 @@ impl Default for NumberFormat {
             fraction_denominator: None,
             accounting: false,
             neg_in_parens: false,
+            zero_code: None,
+            text_code: None,
         }
     }
 }
@@ -142,6 +150,9 @@ pub fn parse_format(code: &str) -> NumberFormat {
     if fmt.accounting {
         fmt.neg_in_parens = true;
     }
+    // Zero and text sections drive how `0` and text values render.
+    fmt.zero_code = sections.get(2).map(|s| s.to_string());
+    fmt.text_code = sections.get(3).map(|s| s.to_string());
     let mut rest = strip_alignment(sections.first().copied().unwrap_or(code));
     // Currency prefix.
     if let Some((sym, tail)) = split_currency(&rest) {
@@ -214,13 +225,20 @@ pub fn apply_format_locale(value: &CellValue, code: &str, locale: NumberLocale) 
     let fmt = parse_format(code);
     match value {
         CellValue::Number(n) => render_number_locale(*n, &fmt, locale),
-        CellValue::Text(t) => t.clone(),
+        CellValue::Text(t) => {
+            if let Some(text_code) = &fmt.text_code {
+                return render_text_section(text_code, t);
+            }
+            t.clone()
+        }
         CellValue::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
         CellValue::Empty => String::new(),
         CellValue::Error(e) => e.clone(),
     }
 }
 
+/// Test-only EN-locale shorthand; production callers use the locale variants.
+#[cfg(test)]
 fn render_number(n: f64, fmt: &NumberFormat) -> String {
     render_number_locale(n, fmt, NumberLocale::EN)
 }
@@ -228,6 +246,11 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
 /// Locale-aware rendering: `NumberLocale::PT` swaps the thousands/decimal
 /// separators (`1.234,50`), the remaining E7 item for pt-BR display.
 fn render_number_locale(n: f64, fmt: &NumberFormat, locale: NumberLocale) -> String {
+    if n == 0.0 {
+        if let Some(zero_code) = &fmt.zero_code {
+            return render_section_literal(zero_code);
+        }
+    }
     if fmt.is_date {
         if let (Some(df), Some(dt)) = (fmt.date_format.as_deref(), serial_to_datetime(n)) {
             return dt.format(df).to_string();
@@ -305,6 +328,45 @@ fn group_thousands(int_str: &str, sep: char) -> String {
         out.push(*b as char);
     }
     out
+}
+
+/// Renders a literal format section (the zero or text section): strips colour
+/// tokens (`[Red]`), quote delimiters, alignment markers (`_x`, `*x`) and
+/// space placeholders (`?`), leaving the displayed literal. The accounting
+/// zero section `_-* "-"??_-` therefore renders as `-`.
+fn render_section_literal(code: &str) -> String {
+    let chars: Vec<char> = code.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '"' => {}
+            '[' => {
+                // Skip a colour/condition token up to its closing bracket.
+                while i < chars.len() && chars[i] != ']' {
+                    i += 1;
+                }
+            }
+            '_' | '*' => i += 1, // alignment marker + the width/fill char
+            '?' => {}
+            c => out.push(c),
+        }
+        i += 1;
+    }
+    out.trim().to_string()
+}
+
+/// Renders the text section (fourth `;` section): substitutes `@` with the
+/// cell text (`"Total: "@` → `Total: 42`). A section without `@` is literal.
+fn render_text_section(code: &str, text: &str) -> String {
+    let literal = render_section_literal(code);
+    if literal.contains('@') {
+        literal.replace('@', text)
+    } else if literal.is_empty() || literal.eq_ignore_ascii_case("general") {
+        text.to_string()
+    } else {
+        literal
+    }
 }
 
 /// Applies a stored cell format to a cell value, falling back to the plain

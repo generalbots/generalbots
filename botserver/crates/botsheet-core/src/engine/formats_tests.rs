@@ -138,6 +138,31 @@ fn mixed_forced_and_optional_decimals() {
 }
 
 #[test]
+fn zero_section_renders() {
+    // `0.00;-0.00;"-"` → zero shows a dash, positives/negatives are numeric.
+    let f = parse_format("0.00;-0.00;\"-\"");
+    assert_eq!(f.zero_code.as_deref(), Some("\"-\""));
+    assert_eq!(render_number(0.0, &f), "-");
+    assert_eq!(render_number(5.0, &f), "5.00");
+    assert_eq!(render_number(-5.0, &f), "-5.00");
+}
+
+#[test]
+fn accounting_zero_renders_dash() {
+    // The classic accounting zero section `_-* "-"??_-` strips to a dash.
+    let f = parse_format("_($* #,##0.00_);_($* (#,##0.00);_($* \"-\"??_);_(@_)");
+    assert_eq!(render_number(0.0, &f), "-");
+}
+
+#[test]
+fn text_section_renders() {
+    assert_eq!(
+        apply_format(&CellValue::Text("42".into()), "0;0;0;\"Total: \"@"),
+        "Total: 42"
+    );
+}
+
+#[test]
 fn text_passthrough() {
     assert_eq!(apply_format(&CellValue::Text("abc".to_string()), "#,##0"), "abc");
 }
