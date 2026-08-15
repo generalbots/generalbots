@@ -57,6 +57,34 @@ impl Default for NumberFormat {
     }
 }
 
+/// Locale for numeric display: which characters separate thousands and
+/// decimals. The format code itself is locale-independent; only the rendering
+/// swaps the separators.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NumberLocale {
+    pub decimal_sep: char,
+    pub thousands_sep: char,
+}
+
+impl NumberLocale {
+    /// en-US: `1,234.50`.
+    pub const EN: NumberLocale = NumberLocale {
+        decimal_sep: '.',
+        thousands_sep: ',',
+    };
+    /// pt-BR: `1.234,50`.
+    pub const PT: NumberLocale = NumberLocale {
+        decimal_sep: ',',
+        thousands_sep: '.',
+    };
+}
+
+impl Default for NumberLocale {
+    fn default() -> Self {
+        NumberLocale::EN
+    }
+}
+
 /// Converts a number to an Excel-style date serial (days since 1899-12-30).
 fn serial_to_date(serial: f64) -> Option<chrono::NaiveDate> {
     let base = chrono::NaiveDate::from_ymd_opt(1899, 12, 30)?;
@@ -220,11 +248,16 @@ fn detect_date_format(code: &str) -> Option<String> {
     if out.is_empty() { None } else { Some(out) }
 }
 
-/// Renders a typed value with the given format code.
+/// Renders a typed value with the given format code (en-US separators).
 pub fn apply_format(value: &CellValue, code: &str) -> String {
+    apply_format_locale(value, code, NumberLocale::EN)
+}
+
+/// Locale-aware variant; see [`render_number_locale`].
+pub fn apply_format_locale(value: &CellValue, code: &str, locale: NumberLocale) -> String {
     let fmt = parse_format(code);
     match value {
-        CellValue::Number(n) => render_number(*n, &fmt),
+        CellValue::Number(n) => render_number_locale(*n, &fmt, locale),
         CellValue::Text(t) => t.clone(),
         CellValue::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
         CellValue::Empty => String::new(),
@@ -233,6 +266,12 @@ pub fn apply_format(value: &CellValue, code: &str) -> String {
 }
 
 fn render_number(n: f64, fmt: &NumberFormat) -> String {
+    render_number_locale(n, fmt, NumberLocale::EN)
+}
+
+/// Locale-aware rendering: `NumberLocale::PT` swaps the thousands/decimal
+/// separators (`1.234,50`), the remaining E7 item for pt-BR display.
+fn render_number_locale(n: f64, fmt: &NumberFormat, locale: NumberLocale) -> String {
     if fmt.is_date {
         if let (Some(df), Some(date)) = (fmt.date_format.as_deref(), serial_to_date(n)) {
             return date.format(df).to_string();
@@ -263,7 +302,7 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
 
     let mut int_str = int_part.to_string();
     if fmt.use_thousands {
-        int_str = group_thousands(&int_str);
+        int_str = group_thousands(&int_str, locale.thousands_sep);
     }
     while int_str.len() < fmt.min_integer_digits {
         int_str.insert(0, '0');
@@ -279,7 +318,7 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
     }
     out.push_str(&int_str);
     if fmt.min_decimal_digits > 0 {
-        out.push('.');
+        out.push(locale.decimal_sep);
         out.push_str(&format!("{:0width$}", frac_part, width = fmt.min_decimal_digits));
     }
     if neg && fmt.neg_in_parens {
@@ -291,13 +330,13 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
     out
 }
 
-fn group_thousands(int_str: &str) -> String {
+fn group_thousands(int_str: &str, sep: char) -> String {
     let bytes = int_str.as_bytes();
     let len = bytes.len();
     let mut out = String::new();
     for (i, b) in bytes.iter().enumerate() {
         if i > 0 && (len - i).is_multiple_of(3) {
-            out.push(',');
+            out.push(sep);
         }
         out.push(*b as char);
     }
@@ -307,9 +346,18 @@ fn group_thousands(int_str: &str) -> String {
 /// Applies a stored cell format to a cell value, falling back to the plain
 /// number display when the code is empty or General.
 pub fn display_cell(value: &CellValue, format_code: Option<&str>) -> String {
+    display_cell_locale(value, format_code, NumberLocale::EN)
+}
+
+/// Locale-aware variant; see [`render_number_locale`].
+pub fn display_cell_locale(
+    value: &CellValue,
+    format_code: Option<&str>,
+    locale: NumberLocale,
+) -> String {
     match format_code {
         Some(code) if !code.trim().is_empty() && !code.eq_ignore_ascii_case("general") => {
-            apply_format(value, code)
+            apply_format_locale(value, code, locale)
         }
         _ => value.display(),
     }
@@ -320,10 +368,15 @@ pub fn display_cell(value: &CellValue, format_code: Option<&str>) -> String {
 /// raw `typed` value untouched so arithmetic and editing stay lossless (#785).
 /// Operates on a response clone; the persisted model keeps raw values.
 pub fn apply_formats_to_sheet(sheet: &mut crate::types::Spreadsheet) {
+    apply_formats_to_sheet_locale(sheet, NumberLocale::EN);
+}
+
+/// Locale-aware variant; see [`render_number_locale`].
+pub fn apply_formats_to_sheet_locale(sheet: &mut crate::types::Spreadsheet, locale: NumberLocale) {
     for ws in &mut sheet.worksheets {
         for cell in ws.data.values_mut() {
             if let (Some(typed), Some(code)) = (cell.typed.clone(), cell.format.clone()) {
-                cell.value = Some(display_cell(&typed, Some(&code)));
+                cell.value = Some(display_cell_locale(&typed, Some(&code), locale));
             }
         }
     }

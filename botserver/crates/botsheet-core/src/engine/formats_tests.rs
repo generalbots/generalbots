@@ -60,6 +60,13 @@ fn accounting_parenthesises_negatives() {
 }
 
 #[test]
+fn locale_pt_br_swaps_separators() {
+    let f = parse_format("R$ #,##0.00");
+    assert_eq!(render_number_locale(1234.5, &f, NumberLocale::PT), "R$ 1.234,50");
+    assert_eq!(render_number_locale(1234.5, &f, NumberLocale::EN), "R$ 1,234.50");
+}
+
+#[test]
 fn currency_negative_without_accounting() {
     let f = parse_format("$#,##0.00");
     assert!(!f.neg_in_parens);
