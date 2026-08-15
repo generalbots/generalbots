@@ -43,7 +43,12 @@ impl VmLifecycle {
             .map(|arr| {
                 arr.iter()
                     .find(|i| i["name"].as_str() == Some(name))
-                    .map(|i| i["state"].as_str().unwrap_or("") == "Running")
+                    .map(|i| {
+                        // `incus list --format json` exposes the plain status
+                        // as the top-level `status` field; `state` is a nested
+                        // object (state.status), not a string.
+                        i["status"].as_str().unwrap_or("").eq_ignore_ascii_case("running")
+                    })
                     .unwrap_or(false)
             })
             .unwrap_or(false))
@@ -57,12 +62,19 @@ impl VmLifecycle {
             "large" => ("4", "4GiB"),
             _ => ("1", "1GiB"),
         };
+        // `incus launch` takes config as `--config key=value` flags; passing
+        // bare `key=value` positionals is rejected ("Invalid number of
+        // arguments"), which silently left VMs marked running without a
+        // container.
         let args = [
             "launch".to_string(),
             image,
             name.to_string(),
+            "--config".to_string(),
             format!("limits.cpu={cpu}"),
+            "--config".to_string(),
             format!("limits.memory={mem}"),
+            "--config".to_string(),
             "environment.VIBE_PROJECT=1".to_string(),
         ];
         run("incus", &args, Path::new("/tmp"), 120)
