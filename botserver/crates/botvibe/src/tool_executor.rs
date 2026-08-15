@@ -198,6 +198,7 @@ impl ToolRegistry {
                     "type": "object",
                     "properties": {
                         "project": {"type": "string", "description": "Vibe project id (name)"},
+                        "project_id": {"type": "string", "description": "Vibe project UUID (injected by the deploy pipeline)"},
                         "path": {"type": "string", "description": "Path relative to the project workspace"},
                         "content": {"type": "string", "description": "File content"},
                         "command": {"type": "string", "description": "Allowlisted command to run"},
