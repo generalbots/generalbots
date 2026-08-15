@@ -29,9 +29,49 @@ pub fn test_run() -> ToolHandler {
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string).map(String::from)).collect())
                 .unwrap_or_default();
             let timeout = args.get("timeout_secs").and_then(|v| v.as_u64()).unwrap_or(300);
-            if command.is_empty() {
-                return err("test command is required".into());
-            }
+            let cwd = match ensure_workspace(&project) {
+                Ok(p) => p,
+                Err(e) => return err(e),
+            };
+            // Auto-detect the test command when none is provided (the deploy
+            // pipeline's BuildTest stage injects only project context). If the
+            // project has no tests at all, report a clean pass so the pipeline
+            // can continue to commit/publish instead of failing on an empty
+            // command (#8xx).
+            let (command, argv) = if command.is_empty() {
+                if cwd.join("package.json").exists() {
+                    let has_test = std::fs::read_to_string(cwd.join("package.json"))
+                        .ok()
+                        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+                        .and_then(|v| {
+                            v.get("scripts")
+                                .and_then(|s| s.get("test"))
+                                .and_then(|t| t.as_str())
+                                .map(|t| !t.is_empty())
+                        })
+                        .unwrap_or(false);
+                    if !has_test {
+                        return ok(json!({
+                            "passed": true,
+                            "skipped": true,
+                            "message": "No test script in package.json — nothing to run",
+                        }));
+                    }
+                    ("npm".to_string(), vec!["test".to_string()])
+                } else if cwd.join("Cargo.toml").exists() {
+                    ("cargo".to_string(), vec!["test".to_string()])
+                } else if cwd.join("pyproject.toml").exists() {
+                    ("python".to_string(), vec!["-m".to_string(), "pytest".to_string()])
+                } else {
+                    return ok(json!({
+                        "passed": true,
+                        "skipped": true,
+                        "message": "No test framework detected — nothing to run",
+                    }));
+                }
+            } else {
+                (command.clone(), argv.clone())
+            };
             // Tolerant parsing: models often send `command: "npm test"` as a
             // single string instead of `command: "npm", args: ["test"]`.
             // Split the program from its arguments so the allowlist guard
@@ -46,10 +86,6 @@ pub fn test_run() -> ToolHandler {
                 )
             } else {
                 (command.clone(), argv.clone())
-            };
-            let cwd = match ensure_workspace(&project) {
-                Ok(p) => p,
-                Err(e) => return err(e),
             };
             match run(&program, &extra, &cwd, timeout) {
                 Ok(out) if out.exit_code == Some(0) => ok(json!({
