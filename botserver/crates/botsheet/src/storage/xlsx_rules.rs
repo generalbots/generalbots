@@ -154,6 +154,8 @@ fn dxf_style(style: Option<&umya_spreadsheet::structs::Style>) -> CellStyle {
         }
     });
 
+    let border = super::xlsx_write::extract_border(style.get_borders());
+
     CellStyle {
         background,
         color,
@@ -162,6 +164,7 @@ fn dxf_style(style: Option<&umya_spreadsheet::structs::Style>) -> CellStyle {
         font_weight,
         font_style,
         text_decoration,
+        border,
         ..CellStyle::default()
     }
 }

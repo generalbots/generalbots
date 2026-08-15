@@ -339,7 +339,7 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
 /// Reduces a cell's borders to a single CSS border string (the model has one
 /// `border` field, not per-side). The first non-`none` side wins — most tables
 /// set all four sides identically, so the top/left representative is correct.
-fn extract_border(borders: Option<&umya_spreadsheet::structs::Borders>) -> Option<String> {
+pub(crate) fn extract_border(borders: Option<&umya_spreadsheet::structs::Borders>) -> Option<String> {
     let borders = borders?;
     let side = [
         borders.get_top(),
@@ -362,7 +362,7 @@ fn extract_border(borders: Option<&umya_spreadsheet::structs::Borders>) -> Optio
 }
 
 /// Maps an OOXML border style to a CSS border width/style.
-fn border_style_to_css(style: &str) -> Option<&'static str> {
+pub(crate) fn border_style_to_css(style: &str) -> Option<&'static str> {
     match style {
         "thin" | "hair" => Some("1px solid"),
         "medium" => Some("2px solid"),
