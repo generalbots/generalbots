@@ -1,5 +1,6 @@
 use axum::{
     extract::State,
+    http::HeaderMap,
     response::{Html, IntoResponse},
     routing::get,
     Router,
@@ -21,13 +22,23 @@ fn render_empty(msg: &str) -> String {
     format!("<div class=\"empty-state\"><p>{}</p></div>", html_escape(msg))
 }
 
-/// Resolve the default bot id for the current deployment. All ERP/GL tables
-/// scope by `bot_id`, so every query must filter by it to enforce data
-/// isolation between branches/tenants.
-fn resolve_default_bot_id(pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>) -> uuid::Uuid {
+/// Resolve the bot id for the caller's workspace. The caller's branch comes
+/// from the JWT (or the user→org binding fallback); the bot is the branch's
+/// default bot. All ERP/GL tables scope by `bot_id`, so every query must
+/// filter by it to enforce data isolation between branches/tenants.
+fn resolve_bot_id(
+    pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    headers: &HeaderMap,
+    get_default_bot: &Option<crate::GetDefaultBotFn>,
+) -> uuid::Uuid {
     let Ok(mut conn) = pool.get() else {
         return uuid::Uuid::nil();
     };
+    let branch_id = crate::scope::branch_from_jwt(headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(pool, get_default_bot));
+    if branch_id == uuid::Uuid::nil() {
+        return uuid::Uuid::nil();
+    }
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
     struct BotIdRow {
@@ -35,12 +46,14 @@ fn resolve_default_bot_id(pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionMana
         id: uuid::Uuid,
     }
     diesel::sql_query(
-        "SELECT id FROM bots WHERE is_default_for_branch = TRUE ORDER BY created_at ASC LIMIT 1",
+        "SELECT id FROM bots WHERE branch_id = $1 \
+         ORDER BY is_default_for_branch DESC, created_at ASC LIMIT 1",
     )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
     .get_result::<BotIdRow>(&mut conn)
     .map(|r| r.id)
     .unwrap_or_else(|e| {
-        tracing::error!("Failed to resolve default bot id: {e}");
+        tracing::error!("Failed to resolve bot id for branch: {e}");
         uuid::Uuid::nil()
     })
 }
@@ -55,9 +68,9 @@ pub fn configure_erp_ui_routes() -> Router<Arc<BillingApiState>> {
         .route("/api/ui/billing/procurement/orders", get(handle_procurement_orders))
 }
 
-async fn handle_inventory(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_inventory(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let conn = state.pool.clone();
-    let bot_id = resolve_default_bot_id(&conn);
+    let bot_id = resolve_bot_id(&conn, &headers, &state.get_default_bot);
 
     let rows = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -119,9 +132,9 @@ async fn handle_inventory(State(state): State<Arc<BillingApiState>>) -> impl Int
     Html(html)
 }
 
-async fn handle_procurement(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_procurement(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let conn = state.pool.clone();
-    let bot_id = resolve_default_bot_id(&conn);
+    let bot_id = resolve_bot_id(&conn, &headers, &state.get_default_bot);
 
     let rows = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -180,13 +193,13 @@ async fn handle_procurement(State(state): State<Arc<BillingApiState>>) -> impl I
     Html(html)
 }
 
-async fn handle_procurement_orders(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_procurement_orders(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     handle_procurement(State(state)).await
 }
 
-async fn handle_gl_accounts(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_gl_accounts(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let conn = state.pool.clone();
-    let bot_id = resolve_default_bot_id(&conn);
+    let bot_id = resolve_bot_id(&conn, &headers, &state.get_default_bot);
 
     let rows = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -239,9 +252,9 @@ async fn handle_gl_accounts(State(state): State<Arc<BillingApiState>>) -> impl I
     Html(html)
 }
 
-async fn handle_gl_balance_sheet(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_gl_balance_sheet(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let conn = state.pool.clone();
-    let bot_id = resolve_default_bot_id(&conn);
+    let bot_id = resolve_bot_id(&conn, &headers, &state.get_default_bot);
 
     let rows = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -298,9 +311,9 @@ async fn handle_gl_balance_sheet(State(state): State<Arc<BillingApiState>>) -> i
     Html(html)
 }
 
-async fn handle_gl_income_statement(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_gl_income_statement(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let conn = state.pool.clone();
-    let bot_id = resolve_default_bot_id(&conn);
+    let bot_id = resolve_bot_id(&conn, &headers, &state.get_default_bot);
 
     let rows = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
