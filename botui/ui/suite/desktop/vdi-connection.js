@@ -14,7 +14,14 @@
 
     function connectSaved(id) {
         var conn = CONNECTIONS.find(function (c) { return c.id === id; });
-        if (conn) startSession(conn.host, conn.port);
+        if (!conn) return;
+        var host = conn.host || conn.target_host || "";
+        var port = conn.port || conn.target_port || 5900;
+        if (!host) {
+            toast("Connection has no host", "error");
+            return;
+        }
+        startSession(host, port);
     }
 
     function quickConnect() {

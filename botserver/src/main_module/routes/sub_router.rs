@@ -110,6 +110,10 @@ async fn inner_build_sub_router(
     { sub_router = sub_router.merge(botdatabase::configure().with_state(app_state.clone())); }
     #[cfg(feature = "git")]
     { sub_router = sub_router.merge(botgit::configure().with_state(app_state.clone())); }
+    #[cfg(feature = "desktop")]
+    {
+        sub_router = sub_router.merge(botdesktop::routes::configure_routes(Some(app_state.conn.clone())));
+    }
     sub_router = sub_router.merge(crate::api::system::configure_system_routes().with_state(app_state.clone()));
     #[cfg(feature = "meet")]
     {
