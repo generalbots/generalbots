@@ -40,14 +40,32 @@ macro_rules! spec {
     };
 }
 
+/// Like `spec!` but marks the entry as harness-tagged in the suite builder
+/// (#800): the live agent must invoke at least two real harness tools
+/// (file/read, test/run, git/*, shell) — a chat-only answer fails the floor.
+macro_rules! harness_spec {
+    ($en:expr, $pt:expr, $ce:expr, $cp:expr) => {
+        TaskSpec {
+            prompt_en: $en,
+            prompt_pt: $pt,
+            contains_en: $ce,
+            contains_pt: $cp,
+            forbid: &[],
+            min_tokens: None,
+            max_tokens: None,
+            requires_tool_calls: Some(2),
+        }
+    };
+}
+
 /// Twenty authored tasks per Vibe use case.
 pub(crate) fn use_case_tasks(use_case: &str) -> Vec<TaskSpec> {
     match use_case {
         "software_development" => vec![
-            spec!("Write a function that reverses a string in Python.", "Escreva uma função que inverte uma string em Python.", &["def ", "reverse"], &["def ", "inverter"]),
+            harness_spec!("Write a function that reverses a string in Python.", "Escreva uma função que inverte uma string em Python.", &["def ", "reverse"], &["def ", "inverter"]),
             spec!("Explain the difference between the stack and the heap in memory.", "Explique a diferença entre stack e heap na memória.", &["stack", "heap"], &["pilha", "stack", "heap"]),
             spec!("Here is code: for i in range(10): print(i.upper()). Find the bug and explain the fix.", "Aqui está código: for i in range(10): print(i.upper()). Encontre o erro e explique a correção.", &["bug", "fix"], &["erro", "correção"]),
-            spec!("Write SQL to select all users created in the last month.", "Escreva SQL para selecionar todos os usuários criados no último mês.", &["SELECT", "FROM"], &["SELECT", "FROM"]),
+            harness_spec!("Write SQL to select all users created in the last month.", "Escreva SQL para selecionar todos os usuários criados no último mês.", &["SELECT", "FROM"], &["SELECT", "FROM"]),
             spec!("What is a unit test and what are its three typical parts?", "O que é um teste unitário e quais são suas três partes típicas?", &["unit test"], &["teste unitário"]),
             spec!("Explain the difference between git rebase and git merge.", "Explique a diferença entre git rebase e git merge.", &["rebase", "merge"], &["rebase", "merge"]),
             spec!("Write a Python list comprehension that doubles each number in a list.", "Escreva uma compreensão de lista em Python que dobre cada número de uma lista.", &["n * 2", "for"], &["* 2", "for"]),
@@ -66,8 +84,8 @@ pub(crate) fn use_case_tasks(use_case: &str) -> Vec<TaskSpec> {
             spec!("What is a JSON Web Token and how is it used for authentication?", "O que é um JSON Web Token e como ele é usado para autenticação?", &["JWT", "token"], &["JWT", "token"]),
         ],
         "customer_support" => vec![
-            spec!("A customer wants to open a new support ticket. What information should you collect?", "Um cliente quer abrir um novo ticket de suporte. Quais informações você deve coletar?", &["ticket", "description"], &["ticket", "descrição"]),
-            spec!("Explain the standard refund policy to a customer.", "Explique a política de reembolso padrão ao cliente.", &["refund"], &["reembolso"]),
+            harness_spec!("A customer wants to open a new support ticket. What information should you collect?", "Um cliente quer abrir um novo ticket de suporte. Quais informações você deve coletar?", &["ticket", "description"], &["ticket", "descrição"]),
+            harness_spec!("Explain the standard refund policy to a customer.", "Explique a política de reembolso padrão ao cliente.", &["refund"], &["reembolso"]),
             spec!("A customer requests to speak with a human agent. How do you proceed?", "Um cliente pede para falar com um atendente humano. Como você procede?", &["transfer", "human"], &["transferir", "humano"]),
             spec!("A customer asks about the status of their order. What steps do you take?", "Um cliente pergunta sobre o status do pedido dele. Quais passos você toma?", &["order", "status"], &["pedido", "status"]),
             spec!("Explain the product return process to a customer.", "Explique o processo de devolução de produto ao cliente.", &["return"], &["devolução"]),
@@ -88,9 +106,9 @@ pub(crate) fn use_case_tasks(use_case: &str) -> Vec<TaskSpec> {
             spec!("How should a complaint about a defective product be handled end to end?", "Como uma reclamação sobre um produto defeituoso deve ser tratada de ponta a ponta?", &["replace", "record"], &["substituir", "registrar"]),
         ],
         "financial_analysis" => vec![
-            spec!("Explain the difference between net income and gross income.", "Explique a diferença entre lucro líquido e renda bruta.", &["net", "gross"], &["líquido", "bruto"]),
+            harness_spec!("Explain the difference between net income and gross income.", "Explique a diferença entre lucro líquido e renda bruta.", &["net", "gross"], &["líquido", "bruto"]),
             spec!("List the main components of an income statement.", "Liste os principais componentes de uma demonstração de resultados.", &["revenue", "expenses"], &["receitas", "despesas"]),
-            spec!("What is a balance sheet and what does it show?", "O que é um balanço patrimonial e o que ele mostra?", &["assets", "liabilities"], &["ativos", "passivos"]),
+            harness_spec!("What is a balance sheet and what does it show?", "O que é um balanço patrimonial e o que ele mostra?", &["assets", "liabilities"], &["ativos", "passivos"]),
             spec!("What is the purpose of a cash flow statement?", "Qual é o propósito de uma demonstração de fluxo de caixa?", &["cash", "flow"], &["caixa", "fluxo"]),
             spec!("Define EBITDA and explain why companies use it.", "Defina EBITDA e explique por que as empresas o usam.", &["EBITDA"], &["EBITDA"]),
             spec!("What is the difference between gross margin and net margin?", "Qual é a diferença entre margem bruta e margem líquida?", &["margin"], &["margem"]),
@@ -116,7 +134,7 @@ pub(crate) fn use_case_tasks(use_case: &str) -> Vec<TaskSpec> {
 /// Forty-five authored general capability tasks shared by every use case.
 pub(crate) fn general_tasks() -> Vec<TaskSpec> {
     vec![
-        spec!("Hello! How are you today?", "Olá! Como você está hoje?", &["glad", "help"], &["alegria", "ajudar"]),
+        harness_spec!("Hello! How are you today?", "Olá! Como você está hoje?", &["glad", "help"], &["alegria", "ajudar"]),
         spec!("What can you help me with?", "Com o que você pode me ajudar?", &["help", "questions"], &["ajudar", "perguntas"]),
         spec!("Summarize this in one sentence: The bot assists customers with orders, refunds, and technical issues.", "Resuma em uma frase: O bot ajuda clientes com pedidos, reembolsos e problemas técnicos.", &["customers"], &["clientes"]),
         spec!("List three benefits of automation for businesses.", "Liste três benefícios da automação para empresas.", &["efficiency", "cost"], &["eficiência", "custo"]),

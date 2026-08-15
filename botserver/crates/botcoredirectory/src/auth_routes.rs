@@ -34,6 +34,19 @@ pub struct SessionUserData {
 pub static SESSION_CACHE: Lazy<RwLock<HashMap<String, SessionUserData>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
+/// Session lifetime in seconds. Mirrors `expires_in` returned by login;
+/// enforced on every `get_current_user` lookup (cache + persisted store) so
+/// stale sessions cannot outlive their TTL after a restart.
+const SESSION_TTL_SECS: i64 = 3600;
+
+/// Returns `true` when the session has outlived its TTL and must be evicted.
+/// `SessionUserData.created_at` is the epoch-seconds login timestamp; sessions
+/// carry no per-session TTL, so the global constant applies uniformly.
+fn session_expired(user: &SessionUserData) -> bool {
+    let now = chrono::Utc::now().timestamp();
+    now.saturating_sub(user.created_at) > SESSION_TTL_SECS
+}
+
 /// Optional DB pool used to persist suite sessions across restarts. Wired once
 /// at bootstrap (main.rs); when present, session creation writes a row to
 /// `login_sessions` and logout deletes it, and the auth lookup rehydrates on
@@ -469,9 +482,71 @@ pub async fn get_current_user(
                   &session_token[..std::cmp::min(20, session_token.len())]);
 
             let cache = SESSION_CACHE.read().await;
-
-            if let Some(user_data) = cache.get(session_token) {
+            // Clone the entry so the read guard's borrow ends before any write
+            // lock is taken for TTL eviction (E0505: cannot drop while borrowed).
+            if let Some(user_data) = cache.get(session_token).cloned() {
+                if session_expired(&user_data) {
+                    drop(cache);
+                    info!("get_current_user: session expired (TTL exceeded) - removing {}", user_data.email);
+                    let mut cache = SESSION_CACHE.write().await;
+                    cache.remove(session_token);
+                    remove_persisted_session(session_token);
+                    return Json(CurrentUserResponse {
+                        id: None,
+                        username: None,
+                        email: None,
+                        first_name: None,
+                        last_name: None,
+                        display_name: None,
+                        roles: None,
+                        organization_id: None,
+                        bucket: None,
+                        avatar_url: None,
+                        is_anonymous: true,
+                    });
+                }
                 info!("get_current_user: found cached session for user: {}", user_data.email);
+                return Json(CurrentUserResponse {
+                    id: Some(user_data.user_id),
+                    username: Some(user_data.username),
+                    email: Some(user_data.email),
+                    first_name: user_data.first_name,
+                    last_name: user_data.last_name,
+                    display_name: user_data.display_name,
+                    roles: Some(user_data.roles),
+                    organization_id: user_data.organization_id,
+                    bucket: user_data.bucket,
+                    avatar_url: None,
+                    is_anonymous: false,
+                });
+            }
+            drop(cache);
+
+            // Cache miss: rehydrate from the persisted `login_sessions` table so
+            // sessions survive server restarts instead of silently logging users out.
+            if let Some(user_data) = session_from_persisted(session_token) {
+                if session_expired(&user_data) {
+                    info!("get_current_user: persisted session expired - removing {}", user_data.email);
+                    remove_persisted_session(session_token);
+                    return Json(CurrentUserResponse {
+                        id: None,
+                        username: None,
+                        email: None,
+                        first_name: None,
+                        last_name: None,
+                        display_name: None,
+                        roles: None,
+                        organization_id: None,
+                        bucket: None,
+                        avatar_url: None,
+                        is_anonymous: true,
+                    });
+                }
+                info!("get_current_user: rehydrated persisted session for user: {}", user_data.email);
+                {
+                    let mut cache = SESSION_CACHE.write().await;
+                    cache.insert(session_token.to_string(), user_data.clone());
+                }
                 Json(CurrentUserResponse {
                     id: Some(user_data.user_id.clone()),
                     username: Some(user_data.username.clone()),
@@ -486,7 +561,7 @@ pub async fn get_current_user(
                     is_anonymous: false,
                 })
             } else {
-                info!("get_current_user: session not found in cache - returning anonymous user");
+                info!("get_current_user: session not found in cache or persisted store - returning anonymous user");
                 Json(CurrentUserResponse {
                     id: None,
                     username: None,

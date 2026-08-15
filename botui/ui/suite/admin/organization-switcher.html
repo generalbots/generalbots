@@ -509,13 +509,24 @@
                     if (response.ok) {
                         this.organizations = await response.json();
                     } else {
-                        this.organizations = this.getMockOrganizations();
+                        this.organizations = [];
                     }
                 } catch {
-                    this.organizations = this.getMockOrganizations();
+                    this.organizations = [];
                 }
 
                 loading.style.display = 'none';
+
+                if (this.organizations.length === 0) {
+                    list.innerHTML = `
+                        <div class="org-empty">
+                            <div class="org-empty-icon">⚠️</div>
+                            <p>Unable to load organizations</p>
+                        </div>
+                    `;
+                    return;
+                }
+
                 this.renderOrganizations(this.organizations);
 
                 const storedOrgId = localStorage.getItem('currentOrganizationId');
@@ -523,51 +534,6 @@
                 if (currentOrg) {
                     this.selectOrganization(currentOrg, false);
                 }
-            },
-
-            getMockOrganizations() {
-                return [
-                    {
-                        id: 'personal',
-                        name: 'Personal',
-                        slug: 'personal',
-                        plan: 'Free',
-                        role: 'owner',
-                        avatar: null,
-                        isPersonal: true,
-                        memberCount: 1
-                    },
-                    {
-                        id: 'org-1',
-                        name: 'Acme Corporation',
-                        slug: 'acme',
-                        plan: 'Pro',
-                        role: 'owner',
-                        avatar: 'A',
-                        isPersonal: false,
-                        memberCount: 15
-                    },
-                    {
-                        id: 'org-2',
-                        name: 'Tech Startup Inc',
-                        slug: 'techstartup',
-                        plan: 'Starter',
-                        role: 'admin',
-                        avatar: 'T',
-                        isPersonal: false,
-                        memberCount: 8
-                    },
-                    {
-                        id: 'org-3',
-                        name: 'Enterprise Solutions',
-
-                        plan: 'Enterprise',
-                        role: 'member',
-                        avatar: 'E',
-                        isPersonal: false,
-                        memberCount: 250
-                    }
-                ];
             },
 
             renderOrganizations(orgs) {

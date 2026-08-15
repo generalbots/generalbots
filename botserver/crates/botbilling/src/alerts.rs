@@ -1,6 +1,9 @@
 use crate::BillingAlertNotification;
-use crate::UsageMetric;
+use crate::{DbPool, UsageMetric};
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz, Uuid as DieselUuid};
+use diesel::sql_query;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -216,6 +219,7 @@ pub struct AlertManager {
     cooldown_seconds: u64,
     max_history_per_org: usize,
     notification_handlers: Arc<RwLock<Vec<Arc<dyn NotificationHandler>>>>,
+    pool: Option<DbPool>,
 }
 
 impl AlertManager {
@@ -228,7 +232,15 @@ impl AlertManager {
             cooldown_seconds: 3600,
             max_history_per_org: 100,
             notification_handlers: Arc::new(RwLock::new(Vec::new())),
+            pool: None,
         }
+    }
+
+    /// Attach a database pool so alerts and history persist across restarts
+    /// (#829: alert history must be durable, not an in-memory map).
+    pub fn with_pool(mut self, pool: DbPool) -> Self {
+        self.pool = Some(pool);
+        self
     }
 
     pub fn with_thresholds(mut self, thresholds: AlertThresholds) -> Self {
@@ -328,6 +340,12 @@ impl AlertManager {
         org_id: Uuid,
         limit: Option<usize>,
     ) -> Vec<UsageAlert> {
+        if self.pool.is_some() {
+            let db_alerts = self.load_history_from_db(org_id, limit.unwrap_or(self.max_history_per_org)).await;
+            if !db_alerts.is_empty() {
+                return db_alerts;
+            }
+        }
         let history = self.alert_history.read().await;
         let mut alerts = history.get(&org_id).cloned().unwrap_or_default();
 
@@ -436,17 +454,180 @@ impl AlertManager {
             a.metric != alert.metric || a.severity.priority() >= alert.severity.priority()
         });
 
-        org_alerts.push(alert);
+        org_alerts.push(alert.clone());
+        drop(alerts);
+
+        self.persist_alert(&alert).await;
     }
 
     async fn add_to_history(&self, org_id: Uuid, alert: UsageAlert) {
         let mut history = self.alert_history.write().await;
         let org_history = history.entry(org_id).or_insert_with(Vec::new);
 
-        org_history.insert(0, alert);
+        org_history.insert(0, alert.clone());
 
         if org_history.len() > self.max_history_per_org {
             org_history.truncate(self.max_history_per_org);
+        }
+        drop(history);
+
+        self.persist_history(&alert).await;
+    }
+
+    /// INSERT the alert into `billing_usage_alerts` (active state) when a pool
+    /// is attached — durable across restarts.
+    async fn persist_alert(&self, alert: &UsageAlert) {
+        let Some(pool) = self.pool.clone() else { return };
+        let alert = alert.clone();
+        let metric = serde_json::to_string(&alert.metric).unwrap_or_else(|_| "unknown".into());
+        let channels = serde_json::to_string(&alert.notification_channels)
+            .unwrap_or_else(|_| "[]".into());
+        let now = Utc::now();
+        let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
+            let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+            sql_query(
+                "INSERT INTO billing_usage_alerts \
+                 (id, org_id, bot_id, metric, severity, current_usage, usage_limit, percentage, \
+                  threshold, message, notification_sent, notification_channels, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13, $13) \
+                 ON CONFLICT (id) DO UPDATE SET \
+                   current_usage = EXCLUDED.current_usage, \
+                   percentage = EXCLUDED.percentage, \
+                   message = EXCLUDED.message, \
+                   updated_at = EXCLUDED.updated_at",
+            )
+            .bind::<DieselUuid, _>(alert.id)
+            .bind::<DieselUuid, _>(alert.organization_id)
+            .bind::<DieselUuid, _>(Uuid::nil())
+            .bind::<Text, _>(&metric)
+            .bind::<Text, _>(alert.severity.as_str())
+            .bind::<BigInt, _>(alert.current_usage as i64)
+            .bind::<BigInt, _>(alert.limit as i64)
+            .bind::<Text, _>(format!("{:.2}", alert.percentage))
+            .bind::<Text, _>(format!("{:.2}", alert.threshold))
+            .bind::<Text, _>(&alert.message)
+            .bind::<Bool, _>(alert.notification_sent)
+            .bind::<Text, _>(&channels)
+            .bind::<Timestamptz, _>(now)
+            .execute(&mut conn)
+            .map_err(|e| format!("persist alert: {e}"))?;
+            Ok(())
+        })
+        .await;
+        if let Err(e) = result {
+            tracing::warn!("Failed to persist usage alert for org {}: {}", alert.organization_id, e);
+        }
+    }
+
+    /// INSERT the alert into `billing_alert_history` — the durable audit trail.
+    async fn persist_history(&self, alert: &UsageAlert) {
+        let Some(pool) = self.pool.clone() else { return };
+        let alert = alert.clone();
+        let metric = serde_json::to_string(&alert.metric).unwrap_or_else(|_| "unknown".into());
+        let now = Utc::now();
+        let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
+            let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+            sql_query(
+                "INSERT INTO billing_alert_history \
+                 (id, org_id, bot_id, alert_id, metric, severity, current_usage, usage_limit, \
+                  percentage, message, acknowledged_at, acknowledged_by, created_at) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+            )
+            .bind::<DieselUuid, _>(Uuid::new_v4())
+            .bind::<DieselUuid, _>(alert.organization_id)
+            .bind::<DieselUuid, _>(Uuid::nil())
+            .bind::<DieselUuid, _>(alert.id)
+            .bind::<Text, _>(&metric)
+            .bind::<Text, _>(alert.severity.as_str())
+            .bind::<BigInt, _>(alert.current_usage as i64)
+            .bind::<BigInt, _>(alert.limit as i64)
+            .bind::<Text, _>(format!("{:.2}", alert.percentage))
+            .bind::<Text, _>(&alert.message)
+            .bind::<Nullable<Timestamptz>, _>(alert.acknowledged_at)
+            .bind::<Nullable<DieselUuid>, _>(alert.acknowledged_by)
+            .bind::<Timestamptz, _>(now)
+            .execute(&mut conn)
+            .map_err(|e| format!("persist alert history: {e}"))?;
+            Ok(())
+        })
+        .await;
+        if let Err(e) = result {
+            tracing::warn!("Failed to persist alert history for org {}: {}", alert.organization_id, e);
+        }
+    }
+
+    /// Load recent history from the DB (falling back to memory when no pool).
+    async fn load_history_from_db(&self, org_id: Uuid, limit: usize) -> Vec<UsageAlert> {
+        let Some(pool) = self.pool.clone() else { return Vec::new() };
+        let result = tokio::task::spawn_blocking(move || -> Result<Vec<UsageAlert>, String> {
+            let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+            #[derive(diesel::QueryableByName)]
+            struct HistoryRow {
+                #[diesel(sql_type = DieselUuid)]
+                alert_id: Uuid,
+                #[diesel(sql_type = Text)]
+                metric: String,
+                #[diesel(sql_type = Text)]
+                severity: String,
+                #[diesel(sql_type = BigInt)]
+                current_usage: i64,
+                #[diesel(sql_type = BigInt)]
+                usage_limit: i64,
+                #[diesel(sql_type = Text)]
+                percentage: String,
+                #[diesel(sql_type = Text)]
+                message: String,
+                #[diesel(sql_type = Nullable<Timestamptz>)]
+                acknowledged_at: Option<DateTime<Utc>>,
+                #[diesel(sql_type = Nullable<DieselUuid>)]
+                acknowledged_by: Option<Uuid>,
+                #[diesel(sql_type = Timestamptz)]
+                created_at: DateTime<Utc>,
+            }
+            let rows = sql_query(
+                "SELECT alert_id, metric, severity, current_usage, usage_limit, percentage, \
+                        message, acknowledged_at, acknowledged_by, created_at \
+                 FROM billing_alert_history WHERE org_id = $1 ORDER BY created_at DESC LIMIT $2",
+            )
+            .bind::<DieselUuid, _>(org_id)
+            .bind::<BigInt, _>(limit as i64)
+            .load::<HistoryRow>(&mut conn)
+            .map_err(|e| format!("load alert history: {e}"))?;
+            Ok(rows
+                .into_iter()
+                .map(|r| UsageAlert {
+                    id: r.alert_id,
+                    organization_id: org_id,
+                    metric: serde_json::from_str(&r.metric).unwrap_or(UsageMetric::Messages),
+                    severity: match r.severity.as_str() {
+                        "critical" => AlertSeverity::Critical,
+                        "exceeded" => AlertSeverity::Exceeded,
+                        _ => AlertSeverity::Warning,
+                    },
+                    current_usage: r.current_usage.max(0) as u64,
+                    limit: r.usage_limit.max(0) as u64,
+                    percentage: r.percentage.parse().unwrap_or(0.0),
+                    threshold: 0.0,
+                    message: r.message,
+                    created_at: r.created_at,
+                    acknowledged_at: r.acknowledged_at,
+                    acknowledged_by: r.acknowledged_by,
+                    notification_sent: false,
+                    notification_channels: Vec::new(),
+                })
+                .collect())
+        })
+        .await;
+        match result {
+            Ok(Ok(alerts)) => alerts,
+            Ok(Err(e)) => {
+                tracing::warn!("Failed to load alert history for org {org_id}: {e}");
+                Vec::new()
+            }
+            Err(e) => {
+                tracing::warn!("Alert history load task panicked: {e}");
+                Vec::new()
+            }
         }
     }
 
@@ -884,6 +1065,7 @@ impl UsageMetric {
 pub fn create_alert_manager(
     thresholds: Option<AlertThresholds>,
     cooldown_seconds: Option<u64>,
+    pool: Option<DbPool>,
 ) -> AlertManager {
     let mut manager = AlertManager::new();
 
@@ -893,6 +1075,10 @@ pub fn create_alert_manager(
 
     if let Some(c) = cooldown_seconds {
         manager = manager.with_cooldown(c);
+    }
+
+    if let Some(p) = pool {
+        manager = manager.with_pool(p);
     }
 
     manager

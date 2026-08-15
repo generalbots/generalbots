@@ -177,6 +177,26 @@ mod tests {
     }
 
     #[test]
+    fn every_harness_task_has_a_tool_call_floor() {
+        // #800 — the harness gate is only meaningful if every harness-tagged
+        // entry demands real tool usage; a chat-only answer must fail.
+        let dataset = vibe_benchmark();
+        let harness_entries: Vec<&DatasetEntry> = dataset
+            .entries
+            .iter()
+            .filter(|e| e.tags.iter().any(|t| t == "harness"))
+            .collect();
+        assert!(!harness_entries.is_empty());
+        for entry in &harness_entries {
+            assert!(
+                entry.contract.requires_tool_calls.unwrap_or(0) >= 1,
+                "harness entry {} lacks a requires_tool_calls floor",
+                entry.id
+            );
+        }
+    }
+
+    #[test]
     fn benchmark_serializes_to_json_and_back() {
         let dataset = vibe_benchmark();
         let json = dataset.to_json().expect("serialize");

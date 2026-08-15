@@ -216,23 +216,14 @@ pub async fn handle_list_sources(
             }
         };
 
-        let mut query = String::from(
-            "SELECT id, name, source_type, file_path, url, content_hash, chunk_count, status,
-             created_at::text, updated_at::text, indexed_at::text
-             FROM knowledge_sources WHERE bot_id = '",
+        let query = format!(
+            "SELECT id, name, source_type, file_path, url, content_hash, chunk_count, status,\n             created_at::text, updated_at::text, indexed_at::text\n             FROM knowledge_sources WHERE bot_id = $1\n             AND ($2::text IS NULL OR status = $2)\n             AND ($3::text IS NULL OR source_type = $3)\n             ORDER BY created_at DESC LIMIT {per_page} OFFSET {offset}",
         );
-        let _ = write!(query, "{}'", bot_id.to_string());
-
-        if let Some(ref status) = status_filter {
-            let _ = write!(query, " AND status = '{}'", status.replace('\'', "''"));
-        }
-        if let Some(ref stype) = type_filter {
-            let _ = write!(query, " AND source_type = '{}'", stype.replace('\'', "''"));
-        }
-
-        let _ = write!(query, " ORDER BY created_at DESC LIMIT {per_page} OFFSET {offset}");
 
         diesel::sql_query(&query)
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(status_filter.as_deref())
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(type_filter.as_deref())
             .load::<KnowledgeSourceRow>(&mut db_conn)
             .unwrap_or_default()
     })
@@ -357,7 +348,6 @@ pub async fn handle_query_knowledge_base(
         };
 
         let search_pattern = format!("%{}%", query.to_lowercase());
-        let bot_id_str = bot_id.to_string();
 
         let mut sql = String::from(
             "SELECT
@@ -370,16 +360,15 @@ pub async fn handle_query_knowledge_base(
              FROM knowledge_chunks kc
              JOIN knowledge_sources ks ON kc.source_id = ks.id
              WHERE ks.status = 'indexed'
-             AND ks.bot_id = '",
+             AND ks.bot_id = $3",
         );
-        let _ = write!(sql, "{bot_id_str}'");
         sql.push_str(
             " AND (LOWER(kc.content) LIKE $2
              OR to_tsvector('english', kc.content) @@ plainto_tsquery('english', $1))",
         );
 
         if collection.is_some() {
-            sql.push_str(" AND ks.collection = $3");
+            sql.push_str(" AND ks.collection = $4");
         }
 
         let _ = write!(sql, " ORDER BY score DESC, kc.chunk_index ASC LIMIT {top_k}");
@@ -388,6 +377,7 @@ pub async fn handle_query_knowledge_base(
             diesel::sql_query(&sql)
                 .bind::<diesel::sql_types::Text, _>(&query)
                 .bind::<diesel::sql_types::Text, _>(&search_pattern)
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
                 .bind::<diesel::sql_types::Text, _>(coll)
                 .load(&mut db_conn)
                 .unwrap_or_default()
@@ -395,6 +385,7 @@ pub async fn handle_query_knowledge_base(
             diesel::sql_query(&sql)
                 .bind::<diesel::sql_types::Text, _>(&query)
                 .bind::<diesel::sql_types::Text, _>(&search_pattern)
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
                 .load(&mut db_conn)
                 .unwrap_or_default()
         };
@@ -543,22 +534,28 @@ pub async fn handle_reindex_sources(
             }
         };
 
-        let sql = if let Some(ids) = source_ids {
+        if let Some(ids) = source_ids {
             if ids.is_empty() {
                 return 0;
             }
-            let placeholders: Vec<String> = ids.iter().map(|id| format!("'{}'", id.replace('\'', "''"))).collect();
-            format!(
-                "UPDATE knowledge_sources SET status = 'reindexing', updated_at = NOW() WHERE id IN ({})",
-                placeholders.join(",")
-            )
+            let mut updated = 0usize;
+            for id in &ids {
+                let affected = diesel::sql_query(
+                    "UPDATE knowledge_sources SET status = 'reindexing', updated_at = NOW() WHERE id = $1",
+                )
+                .bind::<diesel::sql_types::Text, _>(id)
+                .execute(&mut db_conn)
+                .unwrap_or(0);
+                updated += affected;
+            }
+            updated
         } else {
-            "UPDATE knowledge_sources SET status = 'reindexing', updated_at = NOW() WHERE status = 'indexed'".to_string()
-        };
-
-        diesel::sql_query(&sql)
+            diesel::sql_query(
+                "UPDATE knowledge_sources SET status = 'reindexing', updated_at = NOW() WHERE status = 'indexed'",
+            )
             .execute(&mut db_conn)
             .unwrap_or(0)
+        }
     })
     .await
     .unwrap_or(0);
@@ -573,7 +570,6 @@ pub async fn handle_reindex_sources(
 pub async fn handle_get_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
     let bot_id = resolve_bot_id(&conn);
-    let bot_id_str = bot_id.to_string();
 
     let stats = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
@@ -597,29 +593,36 @@ pub async fn handle_get_stats(State(state): State<Arc<AppState>>) -> impl IntoRe
             count: i64,
         }
 
-        let total_sources: i64 = diesel::sql_query(&format!("SELECT COUNT(*) as count FROM knowledge_sources WHERE bot_id = '{bot_id_str}'"))
+        let total_sources: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM knowledge_sources WHERE bot_id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);
 
-        let total_chunks: i64 = diesel::sql_query(&format!(
-            "SELECT COUNT(*) as count FROM knowledge_chunks kc JOIN knowledge_sources ks ON kc.source_id = ks.id WHERE ks.bot_id = '{bot_id_str}'"
-        ))
+        let total_chunks: i64 = diesel::sql_query(
+            "SELECT COUNT(*) as count FROM knowledge_chunks kc JOIN knowledge_sources ks ON kc.source_id = ks.id WHERE ks.bot_id = $1",
+        )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);
 
-        let indexed: i64 = diesel::sql_query(&format!("SELECT COUNT(*) as count FROM knowledge_sources WHERE status = 'indexed' AND bot_id = '{bot_id_str}'"))
+        let indexed: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM knowledge_sources WHERE status = 'indexed' AND bot_id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);
 
-        let pending: i64 = diesel::sql_query(&format!("SELECT COUNT(*) as count FROM knowledge_sources WHERE status IN ('pending', 'processing', 'reindexing') AND bot_id = '{bot_id_str}'"))
+        let pending: i64 = diesel::sql_query(
+            "SELECT COUNT(*) as count FROM knowledge_sources WHERE status IN ('pending', 'processing', 'reindexing') AND bot_id = $1",
+        )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);
 
-        let failed: i64 = diesel::sql_query(&format!("SELECT COUNT(*) as count FROM knowledge_sources WHERE status = 'failed' AND bot_id = '{bot_id_str}'"))
+        let failed: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM knowledge_sources WHERE status = 'failed' AND bot_id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .load::<CountRow>(&mut db_conn)
             .map(|v| v.first().map(|r| r.count).unwrap_or(0))
             .unwrap_or(0);

@@ -465,3 +465,81 @@
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                             <polyline points="22 4 12 14.01 9 11.01"></polyline>
                         </svg>
+                    </div>
+                    <div class="alert-content">
+                        <span class="alert-title">Payment received</span>
+                        <span class="alert-time">3 days ago</span>
+                    </div>
+                    <button class="btn-icon dismiss" onclick="dismissAlert(this)">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Quota Settings Modal -->
+        <dialog id="quota-settings-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Quota Settings</h2>
+                    <button type="button" class="close-btn" onclick="closeQuotaSettings()">✕</button>
+                </div>
+                <form id="quota-form">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Invoices limit</label>
+                            <input type="number" name="invoices" min="1" placeholder="100" />
+                        </div>
+                        <div class="form-group">
+                            <label>Team Members limit</label>
+                            <input type="number" name="team" min="1" placeholder="50" />
+                        </div>
+                        <div class="form-group">
+                            <label>Bots limit</label>
+                            <input type="number" name="bots" min="1" placeholder="10" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeQuotaSettings()">Cancel</button>
+                        <button type="button" class="btn-primary" onclick="saveQuotaSettings()">Save</button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+
+        <!-- Alerts Config Modal -->
+        <dialog id="alerts-config-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Billing Alert Thresholds</h2>
+                    <button type="button" class="close-btn" onclick="closeAlertsConfig()">✕</button>
+                </div>
+                <form id="alerts-form">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Warning threshold (%)</label>
+                            <input type="number" name="warning" min="0" max="100" placeholder="80" />
+                        </div>
+                        <div class="form-group">
+                            <label>Critical threshold (%)</label>
+                            <input type="number" name="critical" min="0" max="100" placeholder="90" />
+                        </div>
+                        <div class="form-group">
+                            <label>Exceeded threshold (%)</label>
+                            <input type="number" name="exceeded" min="0" max="100" placeholder="100" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeAlertsConfig()">Cancel</button>
+                        <button type="button" class="btn-primary" onclick="saveAlertSettings()">Save</button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+
+        <script src="/suite/admin/admin-functions.js"></script>
+    </section>

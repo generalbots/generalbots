@@ -25,13 +25,15 @@ pub struct SsoResponse {
 ///
 /// Troca um JWT do Cloud por um token de sessão do Suite.
 /// Lê o segredo JWT de directory_config.json ou env var.
+/// A assinatura é SEMPRE verificada — tokens com assinatura inválida são
+/// rejeitados (fix #842: nunca aceitar payloads não assinados).
 pub async fn handle_cloud_sso(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(req): Json<SsoRequest>,
 ) -> Result<Json<SsoResponse>, (StatusCode, Json<serde_json::Value>)> {
     let jwt_secret = get_saas_jwt_secret();
 
-    // Validate JWT signature
+    // Validate JWT signature — reject on mismatch, no fallback
     let parts: Vec<&str> = req.cloud_token.split('.').collect();
     if parts.len() != 3 {
         return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid token format"}))));
@@ -45,11 +47,8 @@ pub async fn handle_cloud_sso(
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Token signing failed"})))),
     };
     if sig_b64 != expected_sig {
-        // Dev mode fallback: if running on localhost, accept the token by decoding
-        // payload without validation. This handles JWT signed with a different
-        // SAAS_JWT_SECRET from a previous botserver restart.
-        let _ = sig_b64; // suppress unused warning
-        log::warn!("cloud-sso: JWT signature mismatch — falling back to unvalidated payload (dev mode)");
+        log::warn!("cloud-sso: JWT signature mismatch — rejecting token");
+        return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid token signature"}))));
     }
 
     // Decode JWT payload
@@ -66,8 +65,9 @@ pub async fn handle_cloud_sso(
     let email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost");
     let user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown");
 
-    // Create Suite session
-    let api_token = create_suite_session(email, user_id, None).await;
+    // Create Suite session with the real per-user role (fix #843)
+    let roles = resolve_session_roles(&state, user_id);
+    let api_token = create_suite_session(email, user_id, None, roles).await;
 
     Ok(Json(SsoResponse {
         access_token: api_token,
@@ -86,7 +86,9 @@ pub struct SuiteSsoQuery {
 ///
 /// Server-side SSO hop: validates cloud JWT, stores suite token in localStorage
 /// via HTML+script, then redirects to a clean URL (no token in QS).
+/// Assinatura inválida → rejeição imediata (fix #842).
 pub async fn handle_suite_sso(
+    State(state): State<Arc<AppState>>,
     Query(query): Query<SuiteSsoQuery>,
 ) -> Result<Html<String>, StatusCode> {
     let jwt_secret = get_saas_jwt_secret();
@@ -99,7 +101,8 @@ pub async fn handle_suite_sso(
     let message = format!("{}.{}", parts[0], parts[1]);
     let sig_ok = jwt_sign_inner(&message, jwt_secret.as_bytes()).map(|s| s == parts[2]).unwrap_or(false);
     if !sig_ok {
-        log::warn!("suite-sso: JWT signature mismatch — accepting anyway (dev mode)");
+        log::warn!("suite-sso: JWT signature mismatch — rejecting token");
+        return Err(StatusCode::UNAUTHORIZED);
     }
 
     let payload_bytes = base64_url_decode(parts[1]).map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -109,7 +112,8 @@ pub async fn handle_suite_sso(
     let user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown");
     let bucket = claims.get("bucket").and_then(|v| v.as_str()).map(|s| s.to_string());
 
-    let suite_token = create_suite_session(email, user_id, bucket).await;
+    let roles = resolve_session_roles(&state, user_id);
+    let suite_token = create_suite_session(email, user_id, bucket, roles).await;
     let redirect = sanitize_redirect(&query.redirect);
 
     let html = format!(
@@ -146,7 +150,13 @@ fn sanitize_redirect(url: &str) -> String {
 }
 
 /// Cria uma sessão no SESSION_CACHE do Suite e retorna o token `gb_{uuid}_{timestamp}`.
-pub(crate) async fn create_suite_session(email: &str, user_id: &str, bucket: Option<String>) -> String {
+/// O papel da sessão é resolvido por grupo RBAC (fix #843) — nunca hardcoded.
+pub(crate) async fn create_suite_session(
+    email: &str,
+    user_id: &str,
+    bucket: Option<String>,
+    roles: Vec<String>,
+) -> String {
     let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
     let session_user = SessionUserData {
         user_id: user_id.to_string(),
@@ -156,7 +166,7 @@ pub(crate) async fn create_suite_session(email: &str, user_id: &str, bucket: Opt
         last_name: None,
         display_name: Some(email.split('@').next().unwrap_or("User").to_string()),
         organization_id: None,
-        roles: vec!["admin".to_string()],
+        roles,
         bucket,
         created_at: chrono::Utc::now().timestamp(),
     };
@@ -171,12 +181,20 @@ pub(crate) async fn create_suite_session(email: &str, user_id: &str, bucket: Opt
     api_token
 }
 
+/// Resolves the effective role vector for a user id from RBAC group membership.
+/// Falls back to the plain "user" role when the user has no admin group.
+fn resolve_session_roles(state: &Arc<AppState>, user_id: &str) -> Vec<String> {
+    let stable_uuid = crate::security::user_role::derive_stable_user_uuid(user_id);
+    let role = crate::security::user_role::resolve_user_role(&state.conn, stable_uuid);
+    vec![role]
+}
+
 /// POST /api/auth/unified-login
 ///
 /// Login unificado que retorna AMBOS os tokens: Suite (SESSION_CACHE) e Cloud (JWT).
 /// Aceita { email, password } ou { cloud_token }.
 pub async fn handle_unified_login(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let jwt_secret = get_saas_jwt_secret();
@@ -186,7 +204,7 @@ pub async fn handle_unified_login(
 
     // Support both direct login and cloud_token exchange
     if let Some(cloud_token) = body.get("cloud_token").and_then(|v| v.as_str()) {
-        // Exchange Cloud JWT for Suite session
+        // Exchange Cloud JWT for Suite session — signature MUST verify (fix #842)
         let parts: Vec<&str> = cloud_token.split('.').collect();
         if parts.len() != 3 {
             return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid cloud token format"}))));
@@ -197,9 +215,10 @@ pub async fn handle_unified_login(
             Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Token signing failed"})))),
         };
         if parts[2] != expected_sig {
-        log::warn!("unified-login (cloud_token): JWT signature mismatch — falling back to unvalidated payload (dev mode)");
-    }
-    let payload_bytes = base64_url_decode(parts[1]).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid payload"}))))?;
+            log::warn!("unified-login (cloud_token): JWT signature mismatch — rejecting token");
+            return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid token signature"}))));
+        }
+        let payload_bytes = base64_url_decode(parts[1]).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid payload"}))))?;
         let claims: serde_json::Value = serde_json::from_slice(&payload_bytes).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid JSON"}))))?;
         email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost").to_string();
         user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
@@ -207,8 +226,9 @@ pub async fn handle_unified_login(
         return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Provide cloud_token"}))));
     }
 
-    // Create Suite session token
-    let suite_token = create_suite_session(&email, &user_id, None).await;
+    // Create Suite session token with the real per-user role (fix #843)
+    let roles = resolve_session_roles(&state, &user_id);
+    let suite_token = create_suite_session(&email, &user_id, None, roles).await;
 
     // Sign Cloud JWT
     let header = serde_json::json!({"alg": "HS256", "typ": "JWT"});

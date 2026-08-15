@@ -71,7 +71,19 @@ pub async fn assign_role_to_user(
     .await;
 
     match result {
-        Ok(Ok(ur)) => (StatusCode::CREATED, Json(ur)).into_response(),
+        Ok(Ok(ur)) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "role.assign",
+                Some("user"),
+                Some(user_id),
+                true,
+                Some(&format!("Assigned role {role_id} to user {user_id}")),
+            );
+            (StatusCode::CREATED, Json(ur)).into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "assign_role_to_user", None)).into_response()
         }
@@ -101,7 +113,19 @@ pub async fn remove_role_from_user(
     .await;
 
     match result {
-        Ok(Ok(())) => StatusCode::NO_CONTENT.into_response(),
+        Ok(Ok(())) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "role.revoke",
+                Some("user"),
+                Some(user_id),
+                true,
+                Some(&format!("Revoked role {role_id} from user {user_id}")),
+            );
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "remove_role_from_user", None)).into_response()
         }
@@ -161,7 +185,19 @@ pub async fn add_user_to_group(
     .await;
 
     match result {
-        Ok(Ok(ug)) => (StatusCode::CREATED, Json(ug)).into_response(),
+        Ok(Ok(ug)) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "group.add_user",
+                Some("group"),
+                Some(group_id),
+                true,
+                Some(&format!("Added user {user_id} to group {group_id}")),
+            );
+            (StatusCode::CREATED, Json(ug)).into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "add_user_to_group", None)).into_response()
         }
@@ -191,7 +227,19 @@ pub async fn remove_user_from_group(
     .await;
 
     match result {
-        Ok(Ok(())) => StatusCode::NO_CONTENT.into_response(),
+        Ok(Ok(())) => {
+            crate::audit_log::record_audit_event(
+                &state,
+                "rbac",
+                Uuid::nil(),
+                "group.remove_user",
+                Some("group"),
+                Some(group_id),
+                true,
+                Some(&format!("Removed user {user_id} from group {group_id}")),
+            );
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(Err(e)) => {
             (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "remove_user_from_group", None)).into_response()
         }

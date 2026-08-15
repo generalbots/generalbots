@@ -502,6 +502,25 @@
                         document.body.setAttribute("data-wallpaper", e.newValue);
                     }
                 });
+
+                // React to same-tab theme/wallpaper changes from the Settings
+                // window (the `storage` event only fires across tabs).
+                window.addEventListener("gb-theme-changed", function (e) {
+                    if (e.detail && e.detail.theme) {
+                        document.documentElement.setAttribute(
+                          "data-theme",
+                          e.detail.theme,
+                        );
+                    }
+                });
+                window.addEventListener("gb-wallpaper-changed", function (e) {
+                    if (e.detail && e.detail.name) {
+                        document.body.setAttribute(
+                          "data-wallpaper",
+                          e.detail.name,
+                        );
+                    }
+                });
             })();
 
             if (typeof window.Desktop3D !== "undefined" && window.wm) {

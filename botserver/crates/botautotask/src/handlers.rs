@@ -483,25 +483,111 @@ pub async fn get_stats(
 }
 
 pub async fn approve_task(
-    State(_api): State<Arc<AutoTaskApi>>,
+    State(api): State<Arc<AutoTaskApi>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     info!("API approve task: {task_id}");
-    Json(TaskActionResponse { success: true, message: Some("Task approved".to_string()), error: None })
+    let task_uuid = match uuid::Uuid::parse_str(&task_id) {
+        Ok(u) => u,
+        Err(_) => return Json(TaskActionResponse { success: false, message: None, error: Some("Invalid task id".to_string()) }),
+    };
+    let pool = api.state().db_pool().clone();
+    let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = pool.get().map_err(|e| format!("DB connection failed: {e}"))?;
+        diesel::sql_query(
+            "UPDATE auto_tasks SET status = 'ready', updated_at = NOW() WHERE id = $1 AND status IN ('pending', 'waiting_approval')",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(task_uuid)
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to approve task: {e}"))?;
+        diesel::sql_query(
+            "UPDATE task_approvals SET status = 'approved', decision = 'approve', decided_at = NOW() WHERE task_id = $1 AND status = 'pending'",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(task_uuid)
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to approve task approvals: {e}"))?;
+        Ok(())
+    })
+    .await;
+    match result {
+        Ok(Ok(())) => Json(TaskActionResponse { success: true, message: Some("Task approved".to_string()), error: None }),
+        Ok(Err(e)) => {
+            log::error!("Failed to approve task {task_id}: {e}");
+            Json(TaskActionResponse { success: false, message: None, error: Some(e) })
+        }
+        Err(e) => {
+            log::error!("Approve task task panicked: {e}");
+            Json(TaskActionResponse { success: false, message: None, error: Some("Task execution failed".to_string()) })
+        }
+    }
 }
 
 pub async fn cancel_task(
-    State(_api): State<Arc<AutoTaskApi>>,
+    State(api): State<Arc<AutoTaskApi>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     info!("API cancel task: {task_id}");
-    Json(TaskActionResponse { success: true, message: Some("Task cancelled".to_string()), error: None })
+    let task_uuid = match uuid::Uuid::parse_str(&task_id) {
+        Ok(u) => u,
+        Err(_) => return Json(TaskActionResponse { success: false, message: None, error: Some("Invalid task id".to_string()) }),
+    };
+    let pool = api.state().db_pool().clone();
+    let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = pool.get().map_err(|e| format!("DB connection failed: {e}"))?;
+        diesel::sql_query(
+            "UPDATE auto_tasks SET status = 'cancelled', updated_at = NOW() WHERE id = $1 AND status NOT IN ('completed', 'cancelled')",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(task_uuid)
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to cancel task: {e}"))?;
+        Ok(())
+    })
+    .await;
+    match result {
+        Ok(Ok(())) => Json(TaskActionResponse { success: true, message: Some("Task cancelled".to_string()), error: None }),
+        Ok(Err(e)) => {
+            log::error!("Failed to cancel task {task_id}: {e}");
+            Json(TaskActionResponse { success: false, message: None, error: Some(e) })
+        }
+        Err(e) => {
+            log::error!("Cancel task task panicked: {e}");
+            Json(TaskActionResponse { success: false, message: None, error: Some("Task execution failed".to_string()) })
+        }
+    }
 }
 
 pub async fn make_decision(
-    State(_api): State<Arc<AutoTaskApi>>,
+    State(api): State<Arc<AutoTaskApi>>,
     Json(req): Json<DecisionRequest>,
 ) -> impl IntoResponse {
     info!("API make decision: {} -> {}", req.decision_id, req.choice);
-    Json(TaskActionResponse { success: true, message: Some("Decision recorded".to_string()), error: None })
+    let decision_uuid = match uuid::Uuid::parse_str(&req.decision_id) {
+        Ok(u) => u,
+        Err(_) => return Json(TaskActionResponse { success: false, message: None, error: Some("Invalid decision id".to_string()) }),
+    };
+    let choice = req.choice.clone();
+    let pool = api.state().db_pool().clone();
+    let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = pool.get().map_err(|e| format!("DB connection failed: {e}"))?;
+        diesel::sql_query(
+            "UPDATE task_decisions SET status = 'answered', selected_option = $1, decided_at = NOW() WHERE id = $2 AND status = 'pending'",
+        )
+        .bind::<diesel::sql_types::Text, _>(&choice)
+        .bind::<diesel::sql_types::Uuid, _>(decision_uuid)
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to record decision: {e}"))?;
+        Ok(())
+    })
+    .await;
+    match result {
+        Ok(Ok(())) => Json(TaskActionResponse { success: true, message: Some("Decision recorded".to_string()), error: None }),
+        Ok(Err(e)) => {
+            log::error!("Failed to record decision {}: {e}", req.decision_id);
+            Json(TaskActionResponse { success: false, message: None, error: Some(e) })
+        }
+        Err(e) => {
+            log::error!("Decision task panicked: {e}");
+            Json(TaskActionResponse { success: false, message: None, error: Some("Decision execution failed".to_string()) })
+        }
+    }
 }

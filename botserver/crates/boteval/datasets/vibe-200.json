@@ -23,7 +23,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "en"
+        "language": "en",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -46,7 +47,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -158,7 +160,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "en"
+        "language": "en",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -181,7 +184,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -894,7 +898,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "en"
+        "language": "en",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -917,7 +922,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -939,7 +945,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "en"
+        "language": "en",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -961,7 +968,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -1768,7 +1776,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "en"
+        "language": "en",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -1791,7 +1800,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -1858,7 +1868,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "en"
+        "language": "en",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -1881,7 +1892,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -2634,7 +2646,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "en"
+        "language": "en",
+        "requires_tool_calls": 2
       }
     },
     {
@@ -2657,7 +2670,8 @@
         "json_schema": null,
         "max_tokens": null,
         "min_tokens": null,
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "requires_tool_calls": 2
       }
     },
     {

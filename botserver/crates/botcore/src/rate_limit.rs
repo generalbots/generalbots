@@ -160,7 +160,11 @@ fn get_client_ip(req: &Request) -> String {
 }
 
 fn get_limiter_type(path: &str) -> LimiterType {
-    if path.contains("/auth") || path.contains("/login") || path.contains("/token") {
+    if path.contains("/auth")
+        || path.contains("/login")
+        || path.contains("/token")
+        || path.contains("/invitations")
+    {
         LimiterType::Auth
     } else if path.contains("/llm") || path.contains("/chat") || path.contains("/generate") {
         LimiterType::Llm
