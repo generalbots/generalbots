@@ -75,9 +75,12 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
     api_router
 }
 
-pub fn add_base_api_routes(api_router: Router<Arc<AppState>>) -> Router<Arc<AppState>> {
+pub fn add_base_api_routes(mut api_router: Router<Arc<AppState>>) -> Router<Arc<AppState>> {
     use super::org_handlers::*;
     use super::cloud_sso_handler::{handle_cloud_sso, handle_suite_sso, handle_unified_login};
+
+    // Cross-app collaboration layer (threaded comments, reactions, presence).
+    api_router = api_router.merge(super::collab_routes::configure_collab_routes());
 
     api_router
         .nest("/api/auth", crate::directory::auth_routes::configure())
