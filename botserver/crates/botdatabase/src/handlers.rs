@@ -205,46 +205,36 @@ fn get_bot_conn(
     bot_id: uuid::Uuid,
 ) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, (StatusCode, Json<serde_json::Value>)> {
     let pool = get_bot_pool(state, bot_id)?;
-    let mut conn = pool
+    let conn = pool
         .get()
         .map_err(|e| internal_error(&format!("Database connection error: {e}")))?;
 
-    // A freshly-created per-bot database starts empty. When that happens the
-    // schema browser and table explorer would show nothing useful, so fall
-    // back to the main database (where suite data actually lives) so the app
-    // stays usable out of the box.
-    let table_count: i64 = {
-        #[derive(QueryableByName)]
-        struct C {
-            #[diesel(sql_type = diesel::sql_types::BigInt)]
-            n: i64,
-        }
-        let q = sql_query(
-            "SELECT count(*) AS n FROM information_schema.tables \
-             WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
-        )
-        .get_result::<C>(&mut conn)
-        .map(|c| c.n)
-        .unwrap_or(0);
-        q
-    };
-
-    if table_count == 0 {
-        log::info!(
-            "botdatabase: bot {} database is empty, falling back to main database",
-            bot_id
-        );
-        let main_pool = db::pool()
-            .map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
-        return main_pool
-            .get()
-            .map_err(|e| internal_error(&format!("Main DB connection error: {e}")));
-    }
-
+    // Always resolve to the bot's OWN database. Previously an empty per-bot
+    // database fell back to the platform's main (botserver) database, which
+    // leaked the internal schema (bots, messages, __diesel_schema_migrations,
+    // …) into the bot-facing DB dialog. An empty bot database now shows an
+    // empty schema instead.
     Ok(conn)
 }
 
-fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
+/// Process-lifetime cache of the resolved per-bot database URL, so the
+/// `bots.database_name` lookup does not run on every schema/table/query
+/// request. The resolved name is stable within a process lifetime, so a
+/// static cache is safe here.
+fn bot_db_url_cache() -> &'static std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>> {
+    static CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>>> =
+        std::sync::OnceLock::new();
+    CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+async fn get_bot_database_url(
+    state: &AppState,
+    bot_id: uuid::Uuid,
+) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
+    if let Some(cached) = bot_db_url_cache().lock().map(|c| c.get(&bot_id).cloned()).unwrap_or(None) {
+        return Ok(cached);
+    }
+
     let db_name: String = {
         let pool = db::pool().map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
         let mut conn = pool.get().map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
@@ -263,11 +253,9 @@ fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, 
         result.and_then(|r| r.database_name).ok_or_else(|| error_response("Bot database not configured"))?
     };
 
-    // A freshly-created per-bot database is empty. The schema browser already
-    // falls back to the main database in that case, so table-data loading must
-    // use the same database — otherwise clicking a table fails because the
-    // table does not exist in the empty per-bot database.
-    let main_url = state.database_url.clone();
+    // The bot's OWN database is always used. Falling back to the platform's
+    // main database here (as was previously done for empty per-bot databases)
+    // leaked the internal botserver schema into the DB dialog.
     let base_url = state.database_url.clone();
     let base = base_url
         .rfind('/')
@@ -275,26 +263,9 @@ fn get_bot_database_url(state: &AppState, bot_id: uuid::Uuid) -> Result<String, 
         .unwrap_or(&base_url);
     let bot_db_url = format!("{base}/{db_name}");
 
-    let empty = {
-        use postgres::NoTls;
-        let mut client = match postgres::Client::connect(&bot_db_url, NoTls) {
-            Ok(c) => c,
-            Err(_) => return Ok(main_url),
-        };
-        let row = match client.query_one(
-            "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'",
-            &[],
-        ) {
-            Ok(r) => r,
-            Err(_) => return Ok(main_url),
-        };
-        let n: i64 = row.get(0);
-        n == 0
-    };
-    if empty {
-        return Ok(main_url);
+    if let Ok(mut cache) = bot_db_url_cache().lock() {
+        cache.insert(bot_id, bot_db_url.clone());
     }
-
     Ok(bot_db_url)
 }
 
@@ -638,82 +609,35 @@ fn execute_via_postgres_sync(
     let mut client = postgres::Client::connect(db_url, postgres::NoTls)
         .map_err(|e| format!("Connection failed: {e}"))?;
 
-    let rows = client
-        .query(query, &[])
+    // Use the simple (text) query protocol: every value arrives as a String,
+    // so NUMERIC/arrays/enums and any other unmapped type degrade to text
+    // instead of a binary deserialization panic. This is the only panic-free
+    // path for a generic SQL runner over an arbitrary schema.
+    let messages = client
+        .simple_query(query)
         .map_err(|e| format!("Query failed: {e}"))?;
 
-    let mut columns = Vec::new();
-    if let Some(first) = rows.first() {
-        for i in 0..first.len() {
-            let col = first.columns().get(i).ok_or("Column index out of bounds")?;
-            columns.push(col.name().to_string());
+    let mut columns: Vec<String> = Vec::new();
+    for msg in &messages {
+        if let postgres::SimpleQueryMessage::RowDescription(cols) = msg {
+            columns = cols.iter().map(|c| c.name().to_string()).collect();
+            break;
         }
     }
 
-    let result: Vec<serde_json::Value> = rows
-        .iter()
-        .map(|row| {
+    let mut rows: Vec<serde_json::Value> = Vec::new();
+    for msg in &messages {
+        if let postgres::SimpleQueryMessage::Row(row) = msg {
             let mut obj = serde_json::Map::new();
-            for i in 0..row.len() {
-                let col = &row.columns()[i];
-                obj.insert(col.name().to_string(), pg_value_to_json(row, i, col.type_().name()));
+            for (i, col) in columns.iter().enumerate() {
+                let value = row.try_get(i).unwrap_or(None).map(str::to_string);
+                obj.insert(col.clone(), parse_cell(&value));
             }
-            serde_json::Value::Object(obj)
-        })
-        .collect();
-
-    Ok((columns, result))
-}
-
-fn pg_value_to_json(row: &postgres::Row, idx: usize, type_name: &str) -> serde_json::Value {
-    match type_name {
-        "bool" => row.get::<_, Option<bool>>(idx).map(serde_json::Value::Bool).unwrap_or(serde_json::Value::Null),
-        "int2" | "smallint" => row.get::<_, Option<i16>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "int4" | "integer" => row.get::<_, Option<i32>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "int8" | "bigint" => row.get::<_, Option<i64>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "float4" | "real" => row.get::<_, Option<f32>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "float8" | "double precision" => row.get::<_, Option<f64>>(idx).map(|v| serde_json::json!(v)).unwrap_or(serde_json::Value::Null),
-        "numeric" | "decimal" => {
-            row.get::<_, Option<String>>(idx)
-                .map(serde_json::Value::String)
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "uuid" => {
-            row.get::<_, Option<uuid::Uuid>>(idx)
-                .map(|v| serde_json::json!(v.to_string()))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "timestamptz" | "timestamp with time zone" => {
-            row.get::<_, Option<chrono::DateTime<chrono::Utc>>>(idx)
-                .map(|v| serde_json::json!(v.to_rfc3339()))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "timestamp" | "timestamp without time zone" => {
-            row.get::<_, Option<chrono::NaiveDateTime>>(idx)
-                .map(|v| serde_json::json!(v.format("%Y-%m-%dT%H:%M:%S").to_string()))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "date" => {
-            row.get::<_, Option<chrono::NaiveDate>>(idx)
-                .map(|v| serde_json::json!(v.format("%Y-%m-%d").to_string()))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "json" | "jsonb" => {
-            row.get::<_, Option<serde_json::Value>>(idx)
-                .unwrap_or(serde_json::Value::Null)
-        }
-        "bytea" => {
-            row.get::<_, Option<Vec<u8>>>(idx)
-                .map(|v| serde_json::json!(base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &v)))
-                .unwrap_or(serde_json::Value::Null)
-        }
-        _ => {
-            row.try_get::<_, Option<String>>(idx)
-                .unwrap_or(None)
-                .map(serde_json::Value::String)
-                .unwrap_or(serde_json::Value::Null)
+            rows.push(serde_json::Value::Object(obj));
         }
     }
+
+    Ok((columns, rows))
 }
 
 async fn execute_via_postgres(
@@ -725,7 +649,7 @@ async fn execute_via_postgres(
     total_rows: i64,
     pk_column: Option<String>,
 ) -> Result<Json<TableDataResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let db_url = get_bot_database_url(&state, *bot_id)?;
+    let db_url = get_bot_database_url(&state, *bot_id).await?;
     let query = query.to_string();
 
     let result = tokio::task::spawn_blocking(move || execute_via_postgres_sync(&db_url, &query))
@@ -801,7 +725,7 @@ pub async fn execute_query(
         payload.query.clone()
     };
 
-    let db_url = get_bot_database_url(&state, bot_id)?;
+    let db_url = get_bot_database_url(&state, bot_id).await?;
     let query_clone = limited_query.clone();
 
     let pg_result = tokio::task::spawn_blocking(move || execute_via_postgres_sync(&db_url, &query_clone))
@@ -1298,7 +1222,7 @@ pub async fn export_table_csv(
         return Err(error_response("Invalid table name"));
     }
 
-    let db_url = get_bot_database_url(&state, bot_id)?;
+    let db_url = get_bot_database_url(&state, bot_id).await?;
     let query = format!("SELECT * FROM {safe_name}");
 
     let result = tokio::task::spawn_blocking(move || execute_via_postgres_sync(&db_url, &query))

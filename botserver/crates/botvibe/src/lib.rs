@@ -33,6 +33,7 @@ pub mod skill_loader;
 pub mod doctor;
 pub mod browser;
 pub mod canvases;
+pub mod catalog_persistence;
 pub mod issues;
 pub mod websearch;
 pub mod gitflow;

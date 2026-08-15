@@ -20,11 +20,25 @@ pub struct VibeCanvas {
 
 pub struct CanvasStore {
     canvases: RwLock<Vec<VibeCanvas>>,
+    pool: Option<crate::types::DbPool>,
 }
 
 impl CanvasStore {
     pub fn new() -> Self {
-        Self { canvases: RwLock::new(Vec::new()) }
+        Self {
+            canvases: RwLock::new(Vec::new()),
+            pool: None,
+        }
+    }
+
+    /// #816 — constructs the store with write-through persistence so canvases
+    /// survive restarts. Hydration from the database happens on demand (the
+    /// in-memory vec is the live authority, matching `run_store`).
+    pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        Self {
+            canvases: RwLock::new(Vec::new()),
+            pool: Some(pool),
+        }
     }
 
     pub async fn create(&self, title: String, project: Option<String>, content: Value) -> VibeCanvas {
@@ -39,6 +53,11 @@ impl CanvasStore {
         };
         let mut canvases = self.canvases.write().await;
         canvases.push(canvas.clone());
+        if let Some(pool) = &self.pool {
+            if let Err(e) = crate::catalog_persistence::save_canvas(pool, &canvas) {
+                log::error!("canvas persist failed for {}: {e}", canvas.canvas_id);
+            }
+        }
         canvas
     }
 
@@ -66,14 +85,28 @@ impl CanvasStore {
             canvas.content = content;
         }
         canvas.updated_at = chrono::Utc::now();
-        Some(canvas.clone())
+        let updated = canvas.clone();
+        if let Some(pool) = &self.pool {
+            if let Err(e) = crate::catalog_persistence::save_canvas(pool, &updated) {
+                log::error!("canvas persist failed for {}: {e}", updated.canvas_id);
+            }
+        }
+        Some(updated)
     }
 
     pub async fn delete(&self, canvas_id: Uuid) -> bool {
         let mut canvases = self.canvases.write().await;
         let before = canvases.len();
         canvases.retain(|c| c.canvas_id != canvas_id);
-        canvases.len() != before
+        let removed = canvases.len() != before;
+        if removed {
+            if let Some(pool) = &self.pool {
+                if let Err(e) = crate::catalog_persistence::delete_canvas(pool, canvas_id) {
+                    log::error!("canvas delete persist failed for {canvas_id}: {e}");
+                }
+            }
+        }
+        removed
     }
 
     pub async fn find_by_token(&self, token: &str) -> Option<VibeCanvas> {

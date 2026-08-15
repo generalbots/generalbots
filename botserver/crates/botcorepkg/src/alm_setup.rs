@@ -50,7 +50,7 @@ DB_TYPE = sqlite3
 PATH = {}/data/alm/gitea.db
 
 [server]
-HTTP_PORT = 3000
+HTTP_PORT = 4747
 DOMAIN = localhost
 ROOT_URL = 
 
@@ -67,7 +67,9 @@ INSTALL_LOCK = true
     // Generate credentials and attempt to configure via HTTP API
     let username = "botserver";
     let password = generate_random_string(32);
-    let alm_url = "";
+    // Self-hosted Forgejo listens locally on 4747 (same as the "alm"
+    // component in the installer); no remote host is hardcoded.
+    let alm_url = "http://localhost:4747";
 
     // Try to create admin user and get runner token via HTTP API
     // Note: Forgejo CLI binary may segfault on some systems, so we use curl

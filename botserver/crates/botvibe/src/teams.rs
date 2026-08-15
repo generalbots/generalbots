@@ -32,11 +32,23 @@ pub struct VibeTeam {
 
 pub struct TeamStore {
     teams: RwLock<Vec<VibeTeam>>,
+    pool: Option<crate::types::DbPool>,
 }
 
 impl TeamStore {
     pub fn new() -> Self {
-        Self { teams: RwLock::new(Vec::new()) }
+        Self {
+            teams: RwLock::new(Vec::new()),
+            pool: None,
+        }
+    }
+
+    /// #816 — write-through persistence so teams survive restarts.
+    pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        Self {
+            teams: RwLock::new(Vec::new()),
+            pool: Some(pool),
+        }
     }
 
     pub async fn get(&self, team_id: Uuid) -> Option<VibeTeam> {
@@ -52,22 +64,40 @@ impl TeamStore {
 
     async fn insert(&self, team: VibeTeam) {
         let mut teams = self.teams.write().await;
-        teams.push(team);
+        teams.push(team.clone());
+        drop(teams);
+        self.persist(&team).await;
     }
 
     async fn update_member(&self, team_id: Uuid, index: usize, member: TeamMember) {
         let mut teams = self.teams.write().await;
-        if let Some(team) = teams.iter_mut().find(|t| t.team_id == team_id) {
-            if let Some(m) = team.members.get_mut(index) {
-                *m = member;
+        let updated = match teams.iter_mut().find(|t| t.team_id == team_id) {
+            Some(team) => {
+                if let Some(m) = team.members.get_mut(index) {
+                    *m = member;
+                }
+                team.status = team_status(&team.members).to_string();
+                if team.members
+                    .iter()
+                    .all(|m| m.state == "completed" || m.state == "failed")
+                {
+                    team.completed_at = Some(chrono::Utc::now());
+                }
+                Some(team.clone())
             }
-            team.status = team_status(&team.members).to_string();
-            if team.members
-                .iter()
-                .all(|m| m.state == "completed" || m.state == "failed")
-            {
-                team.completed_at = Some(chrono::Utc::now());
-            }
+            None => None,
+        };
+        drop(teams);
+        if let Some(team) = updated {
+            self.persist(&team).await;
+        }
+    }
+
+    /// Persists a team snapshot (or logs on failure — never panics).
+    async fn persist(&self, team: &VibeTeam) {
+        let Some(pool) = &self.pool else { return };
+        if let Err(e) = crate::catalog_persistence::save_team(pool, team) {
+            log::error!("team persist failed for {}: {e}", team.team_id);
         }
     }
 }

@@ -13,7 +13,7 @@ function vibeSafeStatus(status) {
     if (badge) {
         badge.textContent =
             status === "connected"
-                ? "EVOLVED"
+                ? "ONLINE"
                 : status === "connecting"
                 ? "CONNECTING…"
                 : "OFFLINE";
@@ -42,8 +42,8 @@ function vibeSafeEsc(text) {
     return d.innerHTML;
 }
 
-function vibeSafeMantis(status) {
-    if (typeof updateMantis1 === "function") updateMantis1(status);
+function vibeSafeVibe(status) {
+    if (typeof updateVibe1 === "function") updateVibe1(status);
 }
 
 function vibeSafeAgentCard(agentId, status, detail) {
@@ -113,14 +113,8 @@ function connectVibeWs() {
                         return;
                     }
                     if (data.type === "step_progress") {
-                        var pct = Math.round(
-                            (data.current / data.total) * 100,
-                        );
-                        vibeSafeMantis("working");
-                        var bar = document.querySelector(
-                            '.as-agent-card[data-agent-id="1"] .as-bar-fill',
-                        );
-                        if (bar) bar.style.width = pct + "%";
+                        // Progress now lives in the Run Dock; the removed
+                        // fake agent card has no progress bar to update.
                         return;
                     }
 
@@ -217,9 +211,9 @@ function connectTaskProgressWs(taskId) {
                 data.event_type === "agent_thought" ||
                 data.step === "agent_thought"
             ) {
-                var agentLabel = (data.details || "mantis_1").replace(
-                    "mantis_",
-                    "Mantis #",
+                var agentLabel = (data.details || "vibe_1").replace(
+                    "vibe_",
+                    "Vibe #",
                 );
                 vibeSafeMsg(
                     "system",
@@ -288,20 +282,8 @@ function connectTaskProgressWs(taskId) {
                 data.event_type === "step_progress" ||
                 data.step === "step_progress"
             ) {
-                var pct = 0;
-                if (data.current_step && data.total_steps) {
-                    pct = Math.round(
-                        (data.current_step / data.total_steps) * 100,
-                    );
-                } else if (data.current && data.total) {
-                    pct = Math.round((data.current / data.total) * 100);
-                }
-                vibeSafeMantis("working");
-                var bar = document.querySelector(
-                    '.as-agent-card[data-agent-id="1"] .as-bar-fill',
-                );
-                if (bar) bar.style.width = pct + "%";
-
+                // Progress now lives in the Run Dock; the removed fake
+                // agent card has no progress bar to update.
                 var stageMap = {
                     Planning: "plan",
                     Building: "build",
@@ -311,18 +293,8 @@ function connectTaskProgressWs(taskId) {
                 };
                 var stageLabel = data.message || "";
                 var tabStage = stageMap[stageLabel];
-                if (tabStage) {
-                    var allTabs =
-                        document.querySelectorAll(".vibe-pipeline-tab");
-                    allTabs.forEach(function (t) {
-                        t.classList.remove("active");
-                    });
-                    var activeTab = document.querySelector(
-                        '.vibe-pipeline-tab[data-stage="' +
-                            tabStage +
-                            '"]',
-                    );
-                    if (activeTab) activeTab.classList.add("active");
+                if (tabStage && window.VibePipeline) {
+                    window.VibePipeline.activate(tabStage);
                 }
                 return;
             }
@@ -331,7 +303,7 @@ function connectTaskProgressWs(taskId) {
                 data.event_type === "pipeline_complete" ||
                 data.step === "pipeline_complete"
             ) {
-                vibeSafeMantis("done");
+                vibeSafeVibe("done");
                 vibeSafeMsg(
                     "system",
                     "✅ Pipeline complete — all stages finished",

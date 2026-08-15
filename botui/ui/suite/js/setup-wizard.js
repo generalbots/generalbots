@@ -40,8 +40,10 @@ function checkSetupStatus() {
   fetch("/api/setup/status")
     .then(function(response) { return response.json(); })
     .then(function(data) {
-      if (!data.setup_complete) {
+      if (data && data.setup_complete === false) {
         showSetupWizard();
+      } else {
+        hideSetupWizard();
       }
     })
     .catch(function(e) {

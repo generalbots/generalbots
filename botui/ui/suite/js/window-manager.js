@@ -257,18 +257,30 @@ if (typeof window.WindowManager === "undefined") {
         const clone = document.createElement("script");
         Array.from(s.attributes).forEach((a) => clone.setAttribute(a.name, a.value));
         clone.textContent = s.textContent;
+        // Dynamic scripts are async by default and execute in arbitrary
+        // order, which breaks modules that depend on earlier ones (e.g.
+        // vibe-dialog-*.js registering into vibe-dialogs.js). Force
+        // insertion-order execution so the fragment's script order holds.
+        if (clone.hasAttribute("src")) clone.async = false;
         s.remove();
         return clone;
       });
       // Vendor scripts define globals (Terminal, _amdLoaderGlobal, etc.).
       // Re-injecting them in a second window breaks with "already declared"
       // errors, so skip src-based scripts that were already loaded once.
+      // NOTE: dedup is scoped PER WINDOW (not page-global) — app modules
+      // (vibe-*, chat-*, etc.) bind listeners to the fresh injected DOM and
+      // MUST re-run on every window open; only vendor bundles are skipped
+      // after their first load anywhere.
       body.innerHTML = tempDiv.innerHTML;
+      const VENDOR = /(xterm|vendor\/|amd-loader|monaco|@|three\.)/;
       window.__gbLoadedScripts = window.__gbLoadedScripts || {};
       scripts.forEach((s) => {
         const src = s.getAttribute("src");
-        if (src && window.__gbLoadedScripts[src]) return;
-        if (src) window.__gbLoadedScripts[src] = true;
+        if (src && VENDOR.test(src)) {
+          if (window.__gbLoadedScripts[src]) return;
+          window.__gbLoadedScripts[src] = true;
+        }
         body.appendChild(s);
       });
       if (window.htmx) htmx.process(body);
@@ -416,11 +428,17 @@ if (typeof window.WindowManager === "undefined") {
 
       const onDown = (e) => {
         if (e.target.closest(".window-dot") || e.target.closest("button")) return;
+        // Dragging a maximized window is nonsensical (it fills the screen),
+        // so restore it to its previous size/position first — standard
+        // desktop behavior.
+        const id = el.id.replace("window-", "");
+        const wd = this.openWindows.find((w) => w.id === id);
+        if (wd && wd.isMaximized) this.toggleMaximize(id);
         isDragging = true;
         startX = e.clientX; startY = e.clientY;
         initialLeft = parseInt(el.style.left || 0, 10);
         initialTop = parseInt(el.style.top || 0, 10);
-        this.focus(el.id.replace("window-", ""));
+        this.focus(id);
         document.addEventListener("mousemove", onMove);
         document.addEventListener("mouseup", onUp);
       };

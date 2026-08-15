@@ -1,24 +1,59 @@
 <!-- Vibe Window — APP_CREATE Canvas + Agents IDE (Phase 7) -->
-<link rel="stylesheet" href="/suite/vibe/agents-sidebar.css" />
-<link rel="stylesheet" href="/suite/vibe/vibe.css" />
+<link rel="stylesheet" href="/suite/vibe/agents-sidebar.css?v=6" />
+<link rel="stylesheet" href="/suite/vibe/vibe.css?v=6" />
+<link rel="stylesheet" href="/suite/vibe/vibe-dialogs.css?v=6" />
 
 <div class="vibe-container" id="vibeWindow">
-<!-- Pipeline Tabs -->
-<div class="vibe-pipeline">
-<button class="vibe-pipeline-tab" data-stage="plan">// PLAN</button>
-<button class="vibe-pipeline-tab active" data-stage="build">
-// BUILD
-</button>
-<button class="vibe-pipeline-tab" data-stage="review">// REVIEW</button>
-<button class="vibe-pipeline-tab" data-stage="deploy">// DEPLOY</button>
-<button class="vibe-pipeline-tab" data-stage="monitor">
-// MONITOR
-</button>
+<!-- Ribbon toolbar: each stage tab exposes the big commands for that phase -->
+<div class="vibe-ribbon" id="vibeRibbon">
+<div class="vibe-ribbon-tabs">
+<button class="vibe-ribbon-tab" data-stage="plan">PLAN</button>
+<button class="vibe-ribbon-tab active" data-stage="build">BUILD</button>
+<button class="vibe-ribbon-tab" data-stage="review">REVIEW</button>
+<button class="vibe-ribbon-tab" data-stage="deploy">DEPLOY</button>
+<button class="vibe-ribbon-tab" data-stage="monitor">MONITOR</button>
+<span class="vibe-ribbon-spacer"></span>
+<span class="vibe-ribbon-status" id="vibeRibbonStatus"></span>
+</div>
+<div class="vibe-ribbon-panel">
+<div class="vibe-ribbon-group" data-group="plan">
+<button class="vibe-ribbon-cmd" onclick="window.VibeNewProject.open()"><span class="rc-icon">➕</span><span class="rc-label">New Project</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.openDeepLink('designer', {})"><span class="rc-icon">🎨</span><span class="rc-label">Designer</span></button>
+<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database Schema')"><span class="rc-icon">🗄️</span><span class="rc-label">Database</span></button>
+</div>
+<div class="vibe-ribbon-group" data-group="build">
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('code', 'Code Editor')"><span class="rc-icon">💻</span><span class="rc-label">Code Editor</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Terminal')"><span class="rc-icon">⌨️</span><span class="rc-label">Terminal</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('browser', 'Browser')"><span class="rc-icon">🌐</span><span class="rc-label">Browser</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Source Control</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database')"><span class="rc-icon">🗄️</span><span class="rc-label">Database</span></button>
+</div>
+<div class="vibe-ribbon-group" data-group="review">
+<button class="vibe-ribbon-cmd" onclick="window.VibeRun && window.VibeRun.approve()"><span class="rc-icon">✓</span><span class="rc-label">Approve &amp; Resume</span></button>
+<button class="vibe-ribbon-cmd danger" onclick="window.VibeRun && window.VibeRun.deny()"><span class="rc-icon">✕</span><span class="rc-label">Deny &amp; Cancel</span></button>
+<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Review Changes</span></button>
+</div>
+<div class="vibe-ribbon-group" data-group="deploy">
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deploy')"><span class="rc-icon">🚀</span><span class="rc-label">Deploy</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Push</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeMembers && window.VibeMembers.open()"><span class="rc-icon">👥</span><span class="rc-label">Members</span></button>
+</div>
+<div class="vibe-ribbon-group" data-group="monitor">
+<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">📊</span><span class="rc-label">Metrics</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deployments')"><span class="rc-icon">🚀</span><span class="rc-label">Deployments</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Terminal')"><span class="rc-icon">⌨️</span><span class="rc-label">Logs</span></button>
+</div>
+</div>
 </div>
 
 <!-- Main Content: Canvas + Sidebar -->
 <div class="vibe-body">
-<!-- Agents & Workspaces Sidebar -->
+<!-- Projects Sidebar — real project registry (/api/vibe/projects).
+     The former "vibe farm" simulation (fake Vibe #1-#4 agent cards,
+     EVOLVED/BRED/WILD badges, drag-and-drop workspaces) had no backend
+     and was removed 2026-08-14. -->
 <aside class="agents-sidebar" id="agentsSidebar" style="background: var(--surface)">
 <div class="as-logo-section" style="
 padding: 16px;
@@ -37,7 +72,7 @@ align-items: center;
 gap: 8px;
 ">
 <span style="font-size: 18px; color: var(--accent)">🌱</span>
-mantis farm
+Vibe Studio
 </h2>
 <div style="
 display: flex;
@@ -45,113 +80,21 @@ gap: 12px;
 color: var(--text-muted);
 font-size: 14px;
 ">
-<span style="cursor: pointer" title="Home">⌂</span>
-<span style="cursor: pointer" title="Overview">◱</span>
+<span style="cursor: pointer" title="Home" onclick="vibeGoHome()">⌂</span>
+<span style="cursor: pointer" title="Overview" onclick="VibeGraph && VibeGraph.togglePanel()">◱</span>
 </div>
 </div>
 
 <div class="as-section">
 <div class="as-section-header">
-<h3>Agents</h3>
+<h3>Projects</h3>
 <button class="as-collapse-btn" id="agentsSidebarCollapse" type="button">
 ◀
 </button>
 </div>
 
-<div class="as-agent-list" id="asAgentList">
-<div class="as-agent-card" data-agent-id="1" style="border-left: 3px solid var(--accent)">
-<div class="as-agent-header">
-<span class="as-status-dot green"></span>
-<span class="as-agent-name">Mantis #1</span>
-<span class="as-drag-handle" style="margin-left: auto">⋮</span>
-</div>
-<div class="as-agent-body">
-<span class="as-agent-icons">👀 ⚙️ ⚡</span>
-<span class="as-badge badge-evolved">EVOLVED</span>
-</div>
-</div>
-
-<div class="as-agent-card" data-agent-id="2">
-<div class="as-agent-header">
-<span class="as-status-dot yellow"></span>
-<span class="as-agent-name">Mantis #2</span>
-<span class="as-drag-handle" style="margin-left: auto">⋮</span>
-</div>
-<div class="as-agent-body">
-<span class="as-agent-icons">🥚</span>
-<span class="as-badge badge-bred">BRED</span>
-</div>
-</div>
-
-<div class="as-agent-card" style="opacity: 0.6" data-agent-id="3">
-<div class="as-agent-header">
-<span class="as-status-dot gray"></span>
-<span class="as-agent-name">Mantis #3</span>
-<span class="as-drag-handle" style="margin-left: auto">⋮</span>
-</div>
-<div class="as-agent-body">
-<span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>
-<span class="as-badge badge-wild"
-style="background: var(--surface-active, #ccc)">WILD</span>
-</div>
-</div>
-<div class="as-agent-card" style="opacity: 0.6" data-agent-id="4">
-<div class="as-agent-header">
-<span class="as-status-dot gray"></span>
-<span class="as-agent-name">Mantis #4</span>
-<span class="as-drag-handle" style="margin-left: auto">⋮</span>
-</div>
-<div class="as-agent-body">
-<span class="as-agent-icons" style="filter: grayscale(1)">🥚</span>
-<span class="as-badge badge-wild"
-style="background: var(--surface-active, #ccc)">WILD</span>
-</div>
-</div>
-</div>
-
-<div style="padding: 0 8px">
-<button class="as-create-btn" id="createAgentBtn" type="button"
-style="width: calc(100% - 16px); margin: 8px">
-+ Create a New Mantis
-</button>
-</div>
-</div>
-
-<div class="as-section">
-<div class="as-section-header">
-<h3>Workspaces</h3>
-</div>
-
-<div class="as-workspace-list" id="asWorkspaceList">
-<div class="as-workspace-item">
-<button class="as-workspace-toggle" type="button" style="
-background: var(--bg);
-border-left: 3px solid var(--accent);
-">
-<span class="as-workspace-arrow">▼</span>
-<span>E-Commerce App Development</span>
-</button>
-<div class="as-workspace-body" style="display: block">
-<div class="as-workspace-agent">Mantis #1</div>
-<div class="as-workspace-agent">Mantis #4</div>
-<div class="as-workspace-dropzone" data-workspace="ecommerce">
-Drag a Mantis to Include
-</div>
-</div>
-</div>
-
-<div class="as-workspace-item">
-<button class="as-workspace-toggle" type="button">
-<span class="as-workspace-arrow">▶</span>
-<span>Accountability App Development</span>
-</button>
-<div class="as-workspace-body" style="display: none">
-<div class="as-workspace-agent">Mantis #4</div>
-<div class="as-workspace-dropzone" data-workspace="accountability">
-Drag a Mantis to Include
-</div>
-</div>
-</div>
+<div class="as-workspace-list" id="asProjectList">
+<div class="vibe-rd-empty" style="padding: 8px 12px; font-size: 12px;">Loading projects…</div>
 </div>
 
 <div style="padding: 0 8px">
@@ -195,114 +138,6 @@ backdrop-filter: blur(4px);
 <span style="color: var(--text-secondary); margin: 0 6px">&gt;</span>
 // E-COMMERCE APP DEVELOPMENT
 <div style="float: right">
-<button class="vibe-db-btn" onclick="document.getElementById('vibeDbModal').style.display='flex'" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-🗄️ Schema
-</button>
-<button class="vibe-git-btn" onclick="document.getElementById('vibeGitModal').style.display='flex'" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-🌱 Source Control
-</button>
-<button class="vibe-members-btn" onclick="window.VibeMembers && window.VibeMembers.open()" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-👥 Members
-</button>
-<button id="vibeGraphToggle" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-⛓ Graph
-</button>
-<button class="vibe-browser-btn" onclick="document.getElementById('vibeBrowserModal').style.display='flex'" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-🌐 Base
-</button>
-<button class="vibe-terminal-btn" onclick="document.getElementById('vibeTerminalModal').style.display='flex'" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-⌨️ Shell
-</button>
-<button class="vibe-code-btn" onclick="document.getElementById('vibeEditorModal').style.display='flex'" style="
-border: 1px solid var(--accent);
-background: transparent;
-color: var(--text);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-💻 Code
-</button>
-<button class="vibe-deploy-btn" onclick="window.VibeNewProject.open()" style="
-border: 1px solid var(--accent);
-background: var(--accent);
-color: var(--bg);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-+ New
-</button>
-<button class="vibe-deploy-btn" onclick="showDeploymentModal()" style="
-border: 1px solid var(--accent);
-background: var(--accent);
-color: var(--bg);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-margin-right: 12px;
-font-weight: 600;
-">
-🚀 Deploy
-</button>
 <button data-vibe-zoom="-1" type="button" style="
 border: 1px solid var(--border);
 background: var(--bg);
@@ -368,7 +203,7 @@ color: var(--text-muted);
 max-width: 440px;
 line-height: 1.6;
 ">
-Describe what you want to build in the chat. Mantis #1 will
+Describe what you want to build in the chat. The Vibe Assistant will
 analyze your request, generate task nodes on this canvas,
 and build the entire application for you.
 </p>
@@ -450,7 +285,7 @@ align-items: center;
 <div style="display: flex; align-items: center; gap: 8px">
 <span class="as-status-dot green" id="vibeChatStatusDot"
 style="box-shadow: 0 0 8px var(--accent)"></span>
-<span style="font-size: 12px; font-weight: 600">Mantis #1</span>
+<span style="font-size: 12px; font-weight: 600">Vibe Assistant</span>
 </div>
 <span id="vibeChatStatusBadge" style="
 font-size: 10px;
@@ -530,179 +365,17 @@ border: none;
 </div>
 </div>
 
-<!-- Editor Panel -->
-<div class="vibe-editor-modal" id="vibeEditorModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/editor.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Database Panel -->
-<div class="vibe-db-modal" id="vibeDbModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/database.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Git Panel -->
-<div class="vibe-git-modal" id="vibeGitModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/git-status.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Browser Panel -->
-<div class="vibe-browser-modal" id="vibeBrowserModal" style="display: none; position: absolute; inset: 24px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 8px; right: 16px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/browser-controls.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Terminal Panel -->
-<div class="vibe-terminal-modal" id="vibeTerminalModal" style="display: none; position: absolute; bottom: 24px; left: 300px; right: 24px; height: 350px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
-<button onclick="this.parentElement.style.display='none'" style="position: absolute; top: 4px; right: 8px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 100;">&times;</button>
-<div hx-get="/suite/partials/terminal.html" hx-trigger="load" style="width: 100%; height: 100%;"></div>
-</div>
-
-<!-- Preview Panel -->
-<div class="vibe-preview" id="vibePreview" style="display: none">
-<div class="vibe-preview-header">
-<span>// PREVIEW</span>
-<input type="text" class="vibe-preview-url" id="vibePreviewUrl" value="" readonly />
-</div>
-<div class="vibe-preview-content" id="vibePreviewContent"></div>
-</div>
-
-<!-- Deployment Panel -->
-<div class="vibe-deployment-modal" id="vibeDeploymentModal" style="display: none">
-<div class="vibe-deployment-overlay" onclick="closeDeploymentModal()"></div>
-<div class="vibe-deployment-panel" style="
-position: absolute;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
-background: var(--surface);
-border-radius: 16px;
-box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
-width: 600px;
-max-width: 90%;
-max-height: 80vh;
-overflow-y: auto;
-border: 1px solid var(--border);
-z-index: 1000;
-">
-<div style="padding: 24px; border-bottom: 1px solid var(--border);">
-<h2 style="margin: 0; font-size: 20px; color: var(--text); display: flex; align-items: center; gap: 12px;">
-<span style="font-size: 24px">🚀</span>
-Deploy Your App
-</h2>
-<p style="margin: 8px 0 0; font-size: 14px; color: var(--text-muted);">
-Choose where to deploy your application
-</p>
-</div>
-
-<div style="padding: 24px">
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-<div class="deployment-option" id="deploymentInternal"
-onclick="selectDeploymentTarget('internal')" style="
-padding: 20px;
-border: 2px solid var(--border);
-border-radius: 12px;
-cursor: pointer;
-transition: all 0.2s;
-">
-<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-<span style="font-size: 32px">📱</span>
-<div>
-<h3 style="margin: 0; font-size: 16px; color: var(--text);">GB Platform</h3>
-<span style="font-size: 12px; color: var(--text-muted);">Internal</span>
-</div>
-</div>
-<ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-<li>Serve from {name}.gb.solutions</li>
-<li>Use GB API endpoints</li>
-<li>Fast iteration cycles</li>
-<li>Shared platform resources</li>
-</ul>
-</div>
-
-<div class="deployment-option" id="deploymentExternal"
-onclick="selectDeploymentTarget('external')" style="
-padding: 20px;
-border: 2px solid var(--border);
-border-radius: 12px;
-cursor: pointer;
-transition: all 0.2s;
-">
-<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-<span style="font-size: 32px">🌐</span>
-<div>
-<h3 style="margin: 0; font-size: 16px; color: var(--text);">Forgejo ALM</h3>
-<span style="font-size: 12px; color: var(--text-muted);">External</span>
-</div>
-</div>
-<ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-<li>Push to Git repository</li>
-<li>CI/CD pipeline automation</li>
-<li>Custom domain support</li>
-<li>Independent deployment</li>
-</ul>
-</div>
-</div>
-
-<div id="deploymentInternalConfig" style="margin-bottom: 24px">
-<h3 style="margin: 0 0 16px; font-size: 14px; color: var(--text);">Internal Deployment Settings</h3>
-<form id="internalDeployForm">
-<div style="margin-bottom: 16px">
-<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">App Route</label>
-<input type="text" id="deployRoute" placeholder="my-app" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
-<span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
-App will be available at: <span id="deployRoutePreview">my-app</span>.gb.solutions
-</span>
-</div>
-<div style="margin-bottom: 16px">
-<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer;">
-<input type="checkbox" id="deploySharedResources" checked style="margin: 0" />
-Use shared platform resources (database, cache, storage)
-</label>
-</div>
-</form>
-</div>
-
-<div id="deploymentExternalConfig" style="display: none; margin-bottom: 24px">
-<h3 style="margin: 0 0 16px; font-size: 14px; color: var(--text);">Forgejo Repository Settings</h3>
-<form id="externalDeployForm">
-<div style="margin-bottom: 16px">
-<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">Repository Name</label>
-<input type="text" id="deployRepoName" placeholder="my-app" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
-</div>
-<div style="margin-bottom: 16px">
-<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">Custom Domain (optional)</label>
-<input type="text" id="deployCustomDomain" placeholder="myapp.example.com" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;" />
-</div>
-<div style="margin-bottom: 16px">
-<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer;">
-<input type="checkbox" id="deployCiCd" checked style="margin: 0" />
-Enable CI/CD pipeline (automatic builds and deployments)
-</label>
-</div>
-<div style="margin-bottom: 16px">
-<label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">App Type</label>
-<select id="deployAppType" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;">
-<option value="htmx">HTMX App (Server-side rendering)</option>
-<option value="react">React App (SPA)</option>
-<option value="vue">Vue App (SPA)</option>
-</select>
-</div>
-</form>
-</div>
-
-<div style="display: flex; gap: 12px; justify-content: flex-end;">
-<button type="button" onclick="closeDeploymentModal()" style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text); font-size: 14px; cursor: pointer;">Cancel</button>
-<button type="button" id="deployButton" onclick="executeDeployment()" style="padding: 10px 20px; border: none; border-radius: 8px; background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer;">Deploy Now</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
+<!-- Vibe Professional Dialogs (#806 rewrite) — one mask, real API content per dialog -->
+<div class="vibe-dialog-mask" id="vibeDialogMask">
+    <div class="vibe-dialog">
+        <div class="vibe-dialog-head">
+            <div class="vibe-dialog-title" id="vibeDialogTitle"><span class="dot"></span>Dialog</div>
+            <div class="vibe-dialog-actions">
+                <button type="button" class="vibe-btn" onclick="window.VibeDialogs && window.VibeDialogs.close()">Close ✕</button>
+            </div>
+        </div>
+        <div class="vibe-dialog-body" id="vibeDialogBody"></div>
+    </div>
 </div>
 
 <div id="vibeNewProjectModal" style="display: none; position: absolute; inset: 0; z-index: 90;"></div>
@@ -717,7 +390,10 @@ Enable CI/CD pipeline (automatic builds and deployments)
     <div id="vibeMeterUsage" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, #999);"></div>
     <div id="vibeMembersList" style="margin-bottom: 16px;"></div>
     <div style="border-top: 1px solid var(--border, #333); padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-      <input id="vibeMemberTarget" placeholder="user UUID or group name" style="flex: 1; min-width: 160px; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
+      <div style="position: relative; flex: 1; min-width: 200px;">
+        <input id="vibeMemberTarget" placeholder="Search user by name or email…" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #999); font-size: 13px;" />
+        <div id="vibeMemberSuggest" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; max-height: 180px; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"></div>
+      </div>
       <select id="vibeMemberRole" style="padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;">
         <option value="viewer">viewer</option>
         <option value="developer">developer</option>
@@ -730,7 +406,10 @@ Enable CI/CD pipeline (automatic builds and deployments)
       <button onclick="window.VibeMembers && window.VibeMembers.add()" style="padding: 8px 14px; border: none; border-radius: 6px; background: var(--accent, #4a6cf7); color: white; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
     </div>
     <div style="margin-top: 12px; border-top: 1px solid var(--border, #333); padding-top: 12px; display: flex; gap: 8px; align-items: center;">
-      <input id="vibeTransferTarget" placeholder="new owner user UUID" style="flex: 1; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
+      <div style="position: relative; flex: 1;">
+        <input id="vibeTransferTarget" placeholder="Search new owner by name or email…" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border, #333); border-radius: 6px; background: var(--bg, #14142a); color: var(--text, #eee); font-size: 13px;" />
+        <div id="vibeTransferSuggest" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; max-height: 180px; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);"></div>
+      </div>
       <button onclick="window.VibeMembers && window.VibeMembers.transfer()" style="padding: 8px 14px; border: 1px solid #f77; background: transparent; color: #f88; border-radius: 6px; font-size: 13px; cursor: pointer;">Transfer Ownership</button>
     </div>
   </div>
@@ -751,16 +430,25 @@ Enable CI/CD pipeline (automatic builds and deployments)
   <div id="vibeCapabilities" style="max-height: 120px; overflow-y: auto; border-top: 1px solid var(--border, #333); padding: 8px 12px; font-size: 11px; color: var(--text-muted, #aaa);"></div>
 </div>
 
-<script src="/suite/vibe/vibe-state.js"></script>
-<script src="/suite/vibe/vibe-helpers.js"></script>
-<script src="/suite/vibe/vibe-canvas.js"></script>
-<script src="/suite/vibe/vibe-agents.js"></script>
-<script src="/suite/vibe/vibe-websocket.js"></script>
+<script src="/suite/vibe/vibe-state.js?v=4"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=4"></script>
+<script src="/suite/vibe/vibe-canvas.js?v=4"></script>
+<script src="/suite/vibe/vibe-agents.js?v=5"></script>
+<script src="/suite/vibe/vibe-websocket.js?v=4"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>
-<script src="/suite/vibe/vibe-deploy.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=2"></script>
-<script src="/suite/vibe/vibe-run.js"></script>
-<script src="/suite/vibe/vibe-init.js"></script>
+<script src="/suite/vibe/vibe-run.js?v=2"></script>
+<script src="/suite/vibe/vibe-init.js?v=4"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
-<script src="/suite/vibe/vibe-new-project.js"></script>
-<script src="/suite/vibe/vibe-members.js"></script>
+<script src="/suite/vibe/vibe-new-project.js?v=4"></script>
+<script src="/suite/vibe/vibe-members.js?v=3"></script>
+<script src="/suite/vibe/vibe-dialogs.js?v=2"></script>
+<script src="/suite/vibe/vibe-dialog-db.js?v=5"></script>
+<script src="/suite/vibe/vibe-dialog-git.js"></script>
+<script src="/suite/vibe/vibe-dialog-terminal.js"></script>
+<script src="/suite/vibe/vibe-dialog-browser.js?v=2"></script>
+<script src="/suite/vibe/vibe-dialog-code.js?v=2"></script>
+<script src="/suite/vibe/vibe-dialog-deploy.js?v=2"></script>
+<script src="/suite/vibe/vibe-pipeline.js?v=2"></script>
+<script src="/suite/js/vendor/xterm/xterm.js"></script>
+<script src="/suite/js/vendor/xterm/addon-fit.js"></script>

@@ -159,11 +159,11 @@ botserver vault put gbo/observability vector_url=http://{}:8686",
         "alm" => {
             format!(
                 r"Forgejo Git Server:
-Web: http://{}:3000
+Web: http://{}:4747
 SSH: {}:22
 
 Store credentials in Vault:
-botserver vault put gbo/alm url=http://{}:3000 token=<api-token>",
+botserver vault put gbo/alm url=http://{}:4747 token=<api-token>",
                 ip, ip, ip
             )
         }

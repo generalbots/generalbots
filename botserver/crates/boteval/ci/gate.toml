@@ -1,17 +1,14 @@
-min_pass_rate: 0.95
-max_failures: 0
-required_tags:
-  - greeting
-  - json
-  - software_development
-  - customer_support
-  - financial_analysis
-  - lang:en
-  - lang:pt-BR
-tag_pass_rates:
-  greeting: 0.95
-  json: 0.90
-  summary: 0.85
-  software_development: 0.90
-  customer_support: 0.90
-  financial_analysis: 0.90
+# CI gate for the vibe-200 benchmark (#800).
+# NOTE: past versions used `key: value` (JSON-ish) — that is INVALID TOML and
+# toml::from_str always rejected it, so the gate silently never ran.
+min_pass_rate = 0.95
+max_failures = 0
+required_tags = ["software_development", "customer_support", "financial_analysis", "general"]
+max_cost_per_task = 0.05
+harness_min_tool_calls = 2
+
+[tag_pass_rates]
+software_development = 0.90
+customer_support = 0.90
+financial_analysis = 0.90
+general = 0.90

@@ -140,13 +140,30 @@ impl SecretsManager {
             let _ = tx.send(result);
         });
         if let Ok(Some(secrets)) = rx.recv() {
-            return (
-                secrets.get("url").cloned().unwrap_or_default().replace("localhost", "127.0.0.1"),
-                secrets.get("token").cloned().unwrap_or_default(),
-                secrets.get("default_org").cloned().unwrap_or_default(),
-            );
+            let url = secrets
+                .get("url")
+                .cloned()
+                .unwrap_or_default()
+                .replace("localhost", "127.0.0.1");
+            let token = secrets.get("token").cloned().unwrap_or_default();
+            let default_org = secrets.get("default_org").cloned().unwrap_or_default();
+            if !url.is_empty() {
+                return (url, token, default_org);
+            }
         }
-        ("".to_string(), String::new(), String::new())
+        // No Vault secret: fall back to env, then to the local self-hosted
+        // Forgejo on port 4747 (no remote host is hardcoded).
+        let url = std::env::var("FORGEJO_URL")
+            .ok()
+            .or_else(|| std::env::var("ALM_URL").ok())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "http://localhost:4747".to_string());
+        let token = std::env::var("FORGEJO_TOKEN")
+            .ok()
+            .or_else(|| std::env::var("ALM_TOKEN").ok())
+            .unwrap_or_default();
+        let default_org = std::env::var("FORGEJO_DEFAULT_ORG").ok().unwrap_or_default();
+        (url, token, default_org)
     }
 
     pub fn get_jwt_secret_sync(&self) -> String {

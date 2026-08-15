@@ -139,6 +139,23 @@ impl ProjectRegistry {
         let mut conn = self.conn()?;
         let org_id = req.org_id.unwrap_or_else(Uuid::nil);
         let branch_id = req.branch_id.unwrap_or_else(Uuid::nil);
+
+        // #828 — idempotent create: return the existing project instead of
+        // failing on the unique (branch_id, name) constraint.
+        let existing = diesel::sql_query(
+            "SELECT id, org_id, branch_id, name, project_type, repository, framework, \
+             custom_domain, status, environment, payload, created_at, updated_at \
+             FROM vibe_projects WHERE branch_id = $1 AND name = $2",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .bind::<diesel::sql_types::Text, _>(&req.name)
+        .get_result::<ProjectRow>(&mut conn)
+        .optional()
+        .map_err(|e| format!("get project: {e}"))?;
+        if let Some(row) = existing {
+            return Ok(row.into_project());
+        }
+
         let project_type = ProjectKind::parse(req.project_type.as_deref().unwrap_or("bot"));
         let repository = req.repository.clone().unwrap_or_else(|| req.name.clone());
         let framework = req.framework.clone().unwrap_or_default();
