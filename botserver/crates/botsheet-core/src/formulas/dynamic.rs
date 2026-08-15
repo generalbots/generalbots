@@ -43,11 +43,25 @@ pub fn evaluate_lambda(expr: &str, worksheet: &Worksheet) -> Option<String> {
     if parts.len() < 2 {
         return Some("#ERROR!".to_string());
     }
-    let param_names: Vec<String> = parts[0]
-        .split(',')
+    // Params are the leading identifier parts: split_args splits every
+    // top-level comma, so `LAMBDA(a,b,a+b)` yields ["a", "b", "a+b"] —
+    // the first two parts are the params, the tail is the body. A bare
+    // definition like `LAMBDA(a,b,a+b)` without invocation must still parse.
+    let param_names: Vec<String> = parts
+        .iter()
+        .take_while(|p| {
+            let t = p.trim();
+            !t.is_empty()
+                && t.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.')
+        })
         .map(|s| s.trim().to_string())
         .collect();
-    let calc = parts[1..].join(",");
+    if param_names.is_empty() || param_names.len() >= parts.len() {
+        return Some("#ERROR!".to_string());
+    }
+    // The body is everything AFTER the parameter list.
+    let calc = parts[param_names.len()..].join(",");
     // A bare definition is a function value in the string-cell model.
     if tail.is_empty() || !tail.starts_with('(') || !tail.ends_with(')') {
         return Some(format!("λ({})", parts[0].trim()));
