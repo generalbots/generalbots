@@ -154,6 +154,9 @@ pub fn parse_format(code: &str) -> NumberFormat {
     fmt.zero_code = sections.get(2).map(|s| s.to_string());
     fmt.text_code = sections.get(3).map(|s| s.to_string());
     let mut rest = strip_alignment(sections.first().copied().unwrap_or(code));
+    // Locale/colour token `[$-409]` / `[$€-407]`: dropped, the number pattern
+    // follows the bracket.
+    rest = strip_locale_token(&rest).to_string();
     // Currency prefix.
     if let Some((sym, tail)) = split_currency(&rest) {
         fmt.currency = Some(sym);
@@ -203,7 +206,19 @@ fn strip_alignment(section: &str) -> String {
     out
 }
 
+/// Extracts a leading currency prefix from a format section: a quoted symbol
+/// (`"R$" #,##0.00`) or a bare symbol (`R$ `, `$`, `€`, `£`). Returns
+/// `(symbol, rest_of_code)`.
 fn split_currency(code: &str) -> Option<(String, String)> {
+    // Quoted symbol: `"R$" #,##0.00`, `"USD "0.00`.
+    if let Some(rest) = code.strip_prefix('"') {
+        if let Some(end) = rest.find('"') {
+            let sym = rest[..end].trim_end();
+            if !sym.is_empty() {
+                return Some((sym.to_string(), rest[end + 1..].to_string()));
+            }
+        }
+    }
     for sym in ["R$ ", "R$", "$ ", "$", "€ ", "€", "£ ", "£"] {
         if code.starts_with(sym) {
             return Some((
@@ -213,6 +228,18 @@ fn split_currency(code: &str) -> Option<(String, String)> {
         }
     }
     None
+}
+
+/// Strips a leading `[...]` token (locale code `[$-409]` / `[$€-407]` or a
+/// colour like `[Red]`), returning the rest of the section. The token carries
+/// no display content for the grid, so it is dropped.
+fn strip_locale_token(code: &str) -> &str {
+    if let Some(rest) = code.strip_prefix('[') {
+        if let Some(end) = rest.find(']') {
+            return &rest[end + 1..];
+        }
+    }
+    code
 }
 
 /// Renders a typed value with the given format code (en-US separators).
