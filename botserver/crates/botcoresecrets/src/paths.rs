@@ -18,6 +18,7 @@ impl SecretPaths {
     pub const CLOUD: &'static str = "gbo/system/cloud";
     pub const APP: &'static str = "gbo/system/app";
     pub const MODELS: &'static str = "gbo/system/models";
+    pub const VDI: &'static str = "gbo/vdi";
 
     pub fn tenant_infrastructure(tenant: &str) -> String {
         format!("gbo/tenants/{}/infrastructure", tenant)

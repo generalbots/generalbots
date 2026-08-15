@@ -101,6 +101,13 @@ pub fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
         "models" | "gbo/models" | "system/models" => {
             secrets.insert("url".into(), String::new());
         }
+        "vdi" | "gbo/vdi" | "system/vdi" => {
+            // Default VDI connection (host/port/name) — never hardcoded in the
+            // repository; provisioned at deploy time in Vault `secret/gbo/vdi`.
+            secrets.insert("default-host".into(), String::new());
+            secrets.insert("default-port".into(), String::new());
+            secrets.insert("default-name".into(), String::new());
+        }
         _ => {
             log::debug!("No default values for secret path: {}", path);
         }
