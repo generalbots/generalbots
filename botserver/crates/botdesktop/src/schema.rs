@@ -2,26 +2,31 @@ diesel::table! {
     desktop_connections (id) {
         id -> Uuid,
         user_id -> Uuid,
-        target_host -> Varchar,
-        target_port -> Int4,
-        session_token -> Varchar,
-        status -> Varchar,
+        name -> Varchar,
+        host -> Varchar,
+        port -> Int4,
+        protocol -> Varchar,
+        auth_type -> Nullable<Varchar>,
+        auto_connect -> Bool,
         created_at -> Timestamptz,
-        last_active_at -> Timestamptz,
-        disconnected_at -> Nullable<Timestamptz>,
-        bytes_sent -> Int8,
-        bytes_received -> Int8,
-        client_ip -> Varchar,
+        updated_at -> Timestamptz,
+        last_used_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
     desktop_connection_log (id) {
         id -> Uuid,
-        connection_id -> Uuid,
-        event_type -> Varchar,
-        message -> Nullable<Varchar>,
-        created_at -> Timestamptz,
+        connection_id -> Nullable<Uuid>,
+        user_id -> Uuid,
+        session_id -> Uuid,
+        host -> Varchar,
+        port -> Int4,
+        protocol -> Varchar,
+        connected_at -> Timestamptz,
+        disconnected_at -> Nullable<Timestamptz>,
+        bytes_transferred -> Nullable<Int8>,
+        disconnect_reason -> Nullable<Varchar>,
     }
 }
 

@@ -2,6 +2,7 @@ use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use diesel::prelude::*;
 use serde::Deserialize;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
@@ -9,9 +10,9 @@ use uuid::Uuid;
 use crate::models::{ConnectionConfig, DesktopSession};
 use crate::proxy::{extract_client_ip, handle_ws_connection, tcp_health_check};
 use crate::session_manager::{SessionError, SessionManager};
-use crate::types::{
-    ConnectionCreateRequest, ConnectionSummary, HealthCheckResponse, mask_ip,
-};
+use crate::types::{ConnectionCreateRequest, HealthCheckResponse, mask_ip};
+
+pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
 // ---------------------------------------------------------------------------
 // Shared application state
@@ -21,6 +22,7 @@ use crate::types::{
 pub struct AppState {
     pub session_manager: SessionManager,
     pub config: ConnectionConfig,
+    pub pool: Option<DbPool>,
 }
 
 // ---------------------------------------------------------------------------
@@ -118,7 +120,48 @@ pub async fn handle_connect(
     }
 
     let session = DesktopSession::new(user_id, req.host.clone(), req.port, client_ip);
-    let protocol = req.protocol.unwrap_or_else(|| "rdp".to_string());
+    let protocol = req.protocol.unwrap_or_else(|| "vnc".to_string());
+    let auth_type = req.auth_type.clone().unwrap_or_else(|| "password".to_string());
+    let conn_name = req.name.clone();
+    let target_host = req.host.clone();
+    let target_port = req.port;
+    let proto = protocol.clone();
+
+    // Persist the saved connection so it survives restarts (#vdi persistence).
+    if let Some(pool) = state.pool.clone() {
+        let pool_for_task = pool.clone();
+        let host_for_task = target_host.clone();
+        let name_for_task = conn_name.clone();
+        let auth_for_task = auth_type.clone();
+        let proto_for_task = proto.clone();
+        let now = chrono::Utc::now();
+        let log_name = name_for_task.clone();
+        let log_host = host_for_task.clone();
+        let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
+            let mut conn = pool_for_task.get().map_err(|e| format!("db pool: {e}"))?;
+            diesel::sql_query(
+                "INSERT INTO desktop_connections \
+                 (id, user_id, name, host, port, protocol, auth_type, auto_connect, created_at, updated_at, last_used_at) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $8, $8) \
+                 ON CONFLICT DO NOTHING",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .bind::<diesel::sql_types::Text, _>(&name_for_task)
+            .bind::<diesel::sql_types::Text, _>(&host_for_task)
+            .bind::<diesel::sql_types::Int4, _>(target_port as i32)
+            .bind::<diesel::sql_types::Text, _>(&proto_for_task)
+            .bind::<diesel::sql_types::Text, _>(&auth_for_task)
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .execute(&mut conn)
+            .map_err(|e| format!("persist vdi connection: {e}"))?;
+            Ok(())
+        })
+        .await;
+        if let Err(e) = result {
+            tracing::warn!("Failed to persist VDI connection {} -> {}: {}", log_name, log_host, e);
+        }
+    }
 
     match state.session_manager.register_session(session).await {
         Ok(session) => {
@@ -156,7 +199,52 @@ pub async fn handle_connect(
 
 pub async fn list_connections(State(state): State<AppState>) -> impl IntoResponse {
     let sessions = state.session_manager.get_all_sessions().await;
-    let summaries: Vec<ConnectionSummary> = sessions.iter().map(|s| s.to_summary()).collect();
+    let mut summaries: Vec<serde_json::Value> =
+        sessions.iter().map(|s| serde_json::json!(s.to_summary())).collect();
+
+    // Merge saved (persisted) connections so the grid shows them after restart.
+    if let Some(pool) = state.pool.clone() {
+        let result = tokio::task::spawn_blocking(move || -> Result<Vec<serde_json::Value>, String> {
+            let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+            #[derive(diesel::QueryableByName)]
+            struct SavedRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                name: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                host: String,
+                #[diesel(sql_type = diesel::sql_types::Int4)]
+                port: i32,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                protocol: String,
+            }
+            let rows: Vec<SavedRow> = diesel::sql_query(
+                "SELECT id, name, host, port, protocol FROM desktop_connections ORDER BY name ASC",
+            )
+            .load::<SavedRow>(&mut conn)
+            .map_err(|e| format!("load saved vdi connections: {e}"))?;
+            Ok(rows
+                .into_iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "id": r.id,
+                        "target_host": r.host,
+                        "target_port": r.port,
+                        "status": "saved",
+                        "name": r.name,
+                        "protocol": r.protocol,
+                        "saved": true,
+                    })
+                })
+                .collect())
+        })
+        .await;
+        if let Ok(Ok(mut saved)) = result {
+            summaries.append(&mut saved);
+        }
+    }
+
     Json(serde_json::json!({ "success": true, "data": summaries }))
 }
 
@@ -185,15 +273,33 @@ pub async fn delete_connection(
     State(state): State<AppState>,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.session_manager.remove_session(id).await {
-        Some(_) => {
-            info!("Connection deleted: {}", id);
-            (StatusCode::OK, Json(serde_json::json!({ "success": true, "data": "deleted" })))
+    let removed_session = state.session_manager.remove_session(id).await;
+
+    // Also remove the saved row if it exists.
+    let mut db_deleted = false;
+    if let Some(pool) = state.pool.clone() {
+        let result = tokio::task::spawn_blocking(move || -> Result<bool, String> {
+            let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+            let affected = diesel::sql_query("DELETE FROM desktop_connections WHERE id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(id)
+                .execute(&mut conn)
+                .map_err(|e| format!("delete saved vdi connection: {e}"))?;
+            Ok(affected > 0)
+        })
+        .await;
+        if let Ok(Ok(d)) = result {
+            db_deleted = d;
         }
-        None => (
+    }
+
+    if removed_session.is_some() || db_deleted {
+        info!("Connection deleted: {}", id);
+        (StatusCode::OK, Json(serde_json::json!({ "success": true, "data": "deleted" })))
+    } else {
+        (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "success": false, "error": format!("connection {id} not found") })),
-        ),
+        )
     }
 }
 
@@ -277,30 +383,68 @@ pub fn router(state: AppState) -> axum::Router {
 
 impl Default for AppState {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(pool: Option<DbPool>) -> Self {
         let config = ConnectionConfig::default();
         Self {
             session_manager: SessionManager::new(config.clone()),
             config,
+            pool,
         }
     }
 }
 
-pub fn configure_routes() -> axum::Router<Arc<AppState>> {
-    axum::Router::new()
-        .route(&format!("{PREFIX}/connections"), axum::routing::post(create_connection))
-        .route(&format!("{PREFIX}/connections"), axum::routing::get(list_connections))
-        .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::get(get_connection))
-        .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::delete(delete_connection))
-        .route(&format!("{PREFIX}/connect"), axum::routing::post(handle_connect))
-        .route(&format!("{PREFIX}/health"), axum::routing::get(health_check))
-        .route(&format!("{PREFIX}/health/tcp"), axum::routing::post(health_check_tcp))
-        .route(&format!("{PREFIX}/ws/proxy/{{session_id}}"), axum::routing::get(ws_proxy_handler))
+/// Seed the default VDI connection from env (`VDI_DEFAULT_CONNECTION_HOST` /
+/// `VDI_DEFAULT_CONNECTION_PORT`). Never hardcodes infrastructure addresses;
+/// the host comes from the deployment environment instead.
+pub fn seed_default_connection(pool: &DbPool) {
+    use std::env;
+    let Some(host) = env::var("VDI_DEFAULT_CONNECTION_HOST").ok().filter(|h| !h.is_empty()) else {
+        return;
+    };
+    let port = env::var("VDI_DEFAULT_CONNECTION_PORT")
+        .ok()
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(5900);
+    let name = env::var("VDI_DEFAULT_CONNECTION_NAME")
+        .ok()
+        .filter(|n| !n.is_empty())
+        .unwrap_or_else(|| "Default Desktop".to_string());
+
+    let result = (|| -> Result<(), String> {
+        let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+        diesel::sql_query(
+            "INSERT INTO desktop_connections \
+             (id, user_id, name, host, port, protocol, auth_type, auto_connect, created_at, updated_at, last_used_at) \
+             VALUES ($1, $2, $3, $4, $5, 'vnc', 'password', true, $6, $6, $6) \
+             ON CONFLICT DO NOTHING",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+        .bind::<diesel::sql_types::Uuid, _>(Uuid::nil())
+        .bind::<diesel::sql_types::Text, _>(&name)
+        .bind::<diesel::sql_types::Text, _>(&host)
+        .bind::<diesel::sql_types::Int4, _>(port as i32)
+        .bind::<diesel::sql_types::Timestamptz, _>(chrono::Utc::now())
+        .execute(&mut conn)
+        .map_err(|e| format!("seed default vdi connection: {e}"))?;
+        Ok(())
+    })();
+    if let Err(e) = result {
+        tracing::warn!("Failed to seed default VDI connection for {host}: {e}");
+    } else {
+        info!("Seeded default VDI connection from env");
+    }
+}
+
+pub fn configure_routes(pool: Option<DbPool>) -> axum::Router<()> {
+    if let Some(p) = &pool {
+        seed_default_connection(p);
+    }
+    router(AppState::new(pool))
 }
 
 use std::sync::Arc;

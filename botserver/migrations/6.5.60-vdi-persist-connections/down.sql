@@ -1,0 +1,2 @@
+-- No default connection is created by this migration (the default is seeded
+-- at runtime from VDI_DEFAULT_CONNECTION_HOST), so there is nothing to remove.

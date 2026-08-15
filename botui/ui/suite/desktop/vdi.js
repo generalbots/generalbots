@@ -1,7 +1,6 @@
 (function() {
 'use strict';
 var activeSessions = new Map();
-    var sessionCounter = 0;
     var MAX_SESSIONS = 3;
     var CONNECTIONS = [];
 
@@ -88,13 +87,16 @@ var activeSessions = new Map();
             return;
         }
         grid.innerHTML = CONNECTIONS.map(function (c) {
+            var host = c.host || c.target_host || "";
+            var port = c.port || c.target_port || 5900;
+            var name = c.name || "Desktop";
             return (
                 '<div class="vdi-connection-card" data-id="' + esc(c.id) + '">' +
                 '<div class="card-header">' +
                 '<span class="card-icon">&#128187;</span>' +
                 '<div class="card-info">' +
-                '<div class="card-name">' + esc(c.name) + "</div>" +
-                '<div class="card-host">' + esc(c.host) + ":" + c.port + "</div>" +
+                '<div class="card-name">' + esc(name) + "</div>" +
+                '<div class="card-host">' + esc(host) + ":" + port + "</div>" +
                 "</div>" +
                 "</div>" +
                 '<div class="card-footer">' +
@@ -131,13 +133,37 @@ var activeSessions = new Map();
         ctx.fillText("Place noVNC files in /suite/desktop/vendor/novnc/", w / 2, h / 2 + 80);
     }
 
-    function startSession(host, port) {
+    async function startSession(host, port) {
+        // The backend only accepts registered (UUID) sessions — quick connect
+        // must register via POST /connect first, then proxy through the returned id.
+        var sessionId;
+        try {
+            var reg = await fetch("/api/desktop/connect", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: "Desktop", host: host, port: port, protocol: "vnc", auth_type: "password" }),
+            });
+            if (!reg.ok) throw new Error("registration failed");
+            var regData = await reg.json();
+            sessionId = (regData.data && regData.data.id) || (regData.data && regData.data.connection_id) || regData.id;
+            if (!sessionId) throw new Error("no session id returned");
+        } catch (e) {
+            toast("Failed to register connection: " + e.message, "error");
+            return;
+        }
+        startSessionWithId(host, port, sessionId);
+    }
+
+    async function startSessionWithId(host, port, sessionId) {
+        if (!sessionId) {
+            toast("No session id available", "error");
+            return;
+        }
         if (activeSessions.size >= MAX_SESSIONS) {
             toast("Maximum " + MAX_SESSIONS + " concurrent sessions", "error");
             return;
         }
 
-        var sessionId = "vdi-" + ++sessionCounter;
         var wsProto = location.protocol === "https:" ? "wss:" : "ws:";
         var wsUrl = wsProto + "//" + location.host + "/api/desktop/ws/proxy/" + sessionId;
 
@@ -409,10 +435,11 @@ var activeSessions = new Map();
                 body: JSON.stringify({ name: name, host: host, port: port, protocol: protocol, auth_type: "password" }),
             });
             if (!resp.ok) throw new Error("Save failed");
+            var saved = await resp.json();
             hideModal();
             toast("Connection saved", "success");
             await loadConnections();
-            startSession(host, port);
+            startSessionWithId(host, port, saved.data && saved.data.id);
         } catch (e) {
             toast("Failed to save: " + e.message, "error");
         }
