@@ -76,12 +76,14 @@ pub fn configure_billing_routes() -> Router<Arc<BillingApiState>> {
 
 async fn handle_dashboard_metrics(
     State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
 ) -> Html<String> {
     let Ok(mut conn) = state.pool.get() else {
         return Html("Error connecting to DB".to_string());
     };
 
-    let branch_id = crate::get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(&state.pool, &state.get_default_bot));
 
     // 1. Current Period Spending (Sum of invoices total for branch_id)
     let total_spent = billing_invoices::table
@@ -166,27 +168,104 @@ async fn handle_dashboard_metrics(
 }
 
 async fn handle_spending_chart(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
 ) -> Html<String> {
-    let html = r#"<div class="chart-bars"><div class="chart-bar" style="height: 60%"><span class="bar-label">Mon</span><span class="bar-value">$95</span></div><div class="chart-bar" style="height: 80%"><span class="bar-label">Tue</span><span class="bar-value">$127</span></div><div class="chart-bar" style="height: 45%"><span class="bar-label">Wed</span><span class="bar-value">$72</span></div><div class="chart-bar" style="height: 90%"><span class="bar-label">Thu</span><span class="bar-value">$143</span></div><div class="chart-bar" style="height: 70%"><span class="bar-label">Fri</span><span class="bar-value">$112</span></div><div class="chart-bar" style="height: 30%"><span class="bar-label">Sat</span><span class="bar-value">$48</span></div><div class="chart-bar" style="height: 25%"><span class="bar-label">Sun</span><span class="bar-value">$40</span></div></div>"#;
-    Html(html.to_string())
+    let Ok(mut conn) = state.pool.get() else {
+        return Html(String::new());
+    };
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(&state.pool, &state.get_default_bot));
+
+    #[derive(diesel::QueryableByName)]
+    struct BarRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        label: String,
+        #[diesel(sql_type = diesel::sql_types::Numeric)]
+        total: BigDecimal,
+    }
+    let rows: Vec<BarRow> = diesel::sql_query(
+        "SELECT to_char(issue_date, 'Mon') AS label, COALESCE(SUM(total), 0) AS total \
+         FROM billing_invoices WHERE branch_id = $1 \
+         AND issue_date >= date_trunc('month', NOW()) - interval '6 months' \
+         GROUP BY to_char(issue_date, 'Mon') ORDER BY MIN(issue_date)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .load(&mut conn)
+    .unwrap_or_default();
+
+    if rows.is_empty() {
+        return Html(r#"<div class="chart-empty">No invoice data yet</div>"#.to_string());
+    }
+
+    let max = rows.iter().map(|r| bd_to_f64(&r.total)).fold(0.0_f64, f64::max).max(1.0);
+    let mut html = String::from(r#"<div class="chart-bars">"#);
+    for r in &rows {
+        let v = bd_to_f64(&r.total);
+        let pct = (v / max * 100.0).max(4.0) as u32;
+        html.push_str(&format!(
+            r#"<div class="chart-bar" style="height: {pct}%"><span class="bar-label">{}</span><span class="bar-value">${:.0}</span></div>"#,
+            html_escape(&r.label), v
+        ));
+    }
+    html.push_str("</div>");
+    Html(html)
 }
 
 async fn handle_cost_breakdown(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
 ) -> Html<String> {
-    let html = r#"<div class="breakdown-item"><div class="breakdown-color" style="background: #3b82f6"></div><span class="breakdown-label">Compute</span><span class="breakdown-value">$1,245.00</span><span class="breakdown-percent">44%</span></div><div class="breakdown-item"><div class="breakdown-color" style="background: #10b981"></div><span class="breakdown-label">Storage</span><span class="breakdown-value">$847.50</span><span class="breakdown-percent">30%</span></div><div class="breakdown-item"><div class="breakdown-color" style="background: #f59e0b"></div><span class="breakdown-label">API Calls</span><span class="breakdown-value">$455.00</span><span class="breakdown-percent">16%</span></div><div class="breakdown-item"><div class="breakdown-color" style="background: #8b5cf6"></div><span class="breakdown-label">Other</span><span class="breakdown-value">$300.00</span><span class="breakdown-percent">10%</span></div>"#;
-    Html(html.to_string())
+    let Ok(mut conn) = state.pool.get() else {
+        return Html(String::new());
+    };
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(&state.pool, &state.get_default_bot));
+
+    #[derive(diesel::QueryableByName)]
+    struct StatusRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        status: String,
+        #[diesel(sql_type = diesel::sql_types::Numeric)]
+        total: BigDecimal,
+    }
+    let rows: Vec<StatusRow> = diesel::sql_query(
+        "SELECT COALESCE(status, 'draft') AS status, COALESCE(SUM(total), 0) AS total \
+         FROM billing_invoices WHERE branch_id = $1 GROUP BY COALESCE(status, 'draft')",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .load(&mut conn)
+    .unwrap_or_default();
+
+    if rows.is_empty() {
+        return Html(r#"<div class="breakdown-empty">No invoice data yet</div>"#.to_string());
+    }
+
+    let grand: f64 = rows.iter().map(|r| bd_to_f64(&r.total)).sum();
+    let colors = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4", "#84cc16"];
+    let mut html = String::new();
+    for (i, r) in rows.iter().enumerate() {
+        let v = bd_to_f64(&r.total);
+        let pct = if grand > 0.0 { v / grand * 100.0 } else { 0.0 };
+        let color = colors[i % colors.len()];
+        html.push_str(&format!(
+            r#"<div class="breakdown-item"><div class="breakdown-color" style="background: {color}"></div><span class="breakdown-label">{}</span><span class="breakdown-value">${:.2}</span><span class="breakdown-percent">{:.0}%</span></div>"#,
+            html_escape(&r.status), v, pct
+        ));
+    }
+    Html(html)
 }
 
 async fn handle_dashboard_quotas(
     State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
 ) -> Html<String> {
     let Ok(mut conn) = state.pool.get() else {
         return Html("Error connecting to DB".to_string());
     };
 
-    let branch_id = crate::get_bot_context(&state.pool, &state.get_default_bot);
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| crate::get_bot_context(&state.pool, &state.get_default_bot));
 
     // Dynamic counts
     let bot_count = diesel::sql_query(
@@ -205,15 +284,25 @@ async fn handle_dashboard_quotas(
     .map(|r| r.count)
     .unwrap_or(0);
 
+    let invoice_count = diesel::sql_query(
+        "SELECT COUNT(*)::bigint AS count FROM billing_invoices WHERE branch_id = $1"
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .get_result::<CountRow>(&mut conn)
+    .map(|r| r.count)
+    .unwrap_or(0);
+
     let bot_limit = 10;
     let bot_pct = (bot_count as f64 / bot_limit as f64 * 100.0).min(100.0);
 
     let team_limit = 50;
     let team_pct = (contact_count as f64 / team_limit as f64 * 100.0).min(100.0);
 
+    let invoice_limit = 100;
+    let invoice_pct = (invoice_count as f64 / invoice_limit as f64 * 100.0).min(100.0);
+
     let html = format!(
-        r#"<div class="quota-item"><div class="quota-header"><span class="quota-name">API Requests</span><span class="quota-usage">847K / 1M</span></div><div class="quota-bar"><div class="quota-fill" style="width: 84.7%"></div></div></div>
-        <div class="quota-item"><div class="quota-header"><span class="quota-name">Storage</span><span class="quota-usage">45 GB / 100 GB</span></div><div class="quota-bar"><div class="quota-fill" style="width: 45%"></div></div></div>
+        r#"<div class="quota-item"><div class="quota-header"><span class="quota-name">Invoices</span><span class="quota-usage">{invoice_count} / {invoice_limit}</span></div><div class="quota-bar"><div class="quota-fill" style="width: {invoice_pct:.1}%"></div></div></div>
         <div class="quota-item"><div class="quota-header"><span class="quota-name">Team Members</span><span class="quota-usage">{} / {}</span></div><div class="quota-bar"><div class="quota-fill" style="width: {:.1}%"></div></div></div>
         <div class="quota-item"><div class="quota-header"><span class="quota-name">Bots</span><span class="quota-usage">{} / {}</span></div><div class="quota-bar"><div class="quota-fill" style="width: {:.1}%"></div></div></div>"#,
         contact_count, team_limit, team_pct, bot_count, bot_limit, bot_pct
@@ -222,9 +311,51 @@ async fn handle_dashboard_quotas(
 }
 
 async fn handle_invoices_export(
-    State(_state): State<Arc<BillingApiState>>,
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
-    let csv_content = "Invoice ID,Date,Amount,Status\nINV-2025-001,2025-01-15,$247.50,Paid\nINV-2024-012,2024-12-15,$198.00,Paid\n";
+    let pool = state.pool.clone();
+    let get_default_bot = state.get_default_bot;
+
+    let rows = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().ok()?;
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        #[derive(diesel::QueryableByName)]
+        struct CsvRow {
+            #[diesel(sql_type = diesel::sql_types::Varchar)]
+            invoice_number: String,
+            #[diesel(sql_type = diesel::sql_types::Date)]
+            issue_date: chrono::NaiveDate,
+            #[diesel(sql_type = diesel::sql_types::Numeric)]
+            total: BigDecimal,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Varchar>)]
+            status: Option<String>,
+        }
+        diesel::sql_query(
+            "SELECT invoice_number, issue_date, total, status FROM billing_invoices \
+             WHERE branch_id = $1 ORDER BY issue_date DESC LIMIT 1000",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .load::<CsvRow>(&mut conn)
+        .ok()
+    })
+    .await
+    .ok()
+    .flatten();
+
+    let mut csv_content = String::from("Invoice ID,Date,Amount,Status\n");
+    if let Some(rows) = rows {
+        for r in rows {
+            csv_content.push_str(&format!(
+                "{},{},${:.2},{}\n",
+                r.invoice_number,
+                r.issue_date,
+                bd_to_f64(&r.total),
+                r.status.as_deref().unwrap_or("draft")
+            ));
+        }
+    }
     (
         StatusCode::OK,
         [
@@ -293,6 +424,7 @@ async fn handle_admin_billing_alerts(
 
 async fn handle_invoices(
     State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
     Query(query): Query<StatusQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
@@ -300,14 +432,9 @@ async fn handle_invoices(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let branch_id = match get_default_bot {
-            Some(f) => {
-                let bid = f(&mut conn);
-                if bid == Uuid::nil() { return None; }
-                bid
-            }
-            None => return None,
-        };
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        if branch_id == Uuid::nil() { return None; }
 
         let mut db_query = billing_invoices::table
             .filter(billing_invoices::branch_id.eq(branch_id))
@@ -380,6 +507,7 @@ async fn handle_invoices(
 
 async fn handle_payments(
     State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
     Query(query): Query<StatusQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
@@ -387,14 +515,9 @@ async fn handle_payments(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let branch_id = match get_default_bot {
-            Some(f) => {
-                let bid = f(&mut conn);
-                if bid == Uuid::nil() { return None; }
-                bid
-            }
-            None => return None,
-        };
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        if branch_id == Uuid::nil() { return None; }
 
         let mut db_query = billing_payments::table
             .filter(billing_payments::branch_id.eq(branch_id))
@@ -463,6 +586,7 @@ async fn handle_payments(
 
 async fn handle_quotes(
     State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
     Query(query): Query<StatusQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
@@ -470,14 +594,9 @@ async fn handle_quotes(
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let branch_id = match get_default_bot {
-            Some(f) => {
-                let bid = f(&mut conn);
-                if bid == Uuid::nil() { return None; }
-                bid
-            }
-            None => return None,
-        };
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        if branch_id == Uuid::nil() { return None; }
 
         let mut db_query = billing_quotes::table
             .filter(billing_quotes::branch_id.eq(branch_id))
@@ -546,20 +665,15 @@ async fn handle_quotes(
     }
 }
 
-async fn handle_stats_pending(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_stats_pending(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let pool = state.pool.clone();
     let get_default_bot = state.get_default_bot;
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let branch_id = match get_default_bot {
-            Some(f) => {
-                let bid = f(&mut conn);
-                if bid == Uuid::nil() { return None; }
-                bid
-            }
-            None => return None,
-        };
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        if branch_id == Uuid::nil() { return None; }
 
         let totals: Vec<BigDecimal> = billing_invoices::table
             .filter(billing_invoices::branch_id.eq(branch_id))
@@ -578,20 +692,15 @@ async fn handle_stats_pending(State(state): State<Arc<BillingApiState>>) -> impl
     Html(format_currency(result.unwrap_or(0.0), "USD"))
 }
 
-async fn handle_revenue_month(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_revenue_month(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let pool = state.pool.clone();
     let get_default_bot = state.get_default_bot;
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let branch_id = match get_default_bot {
-            Some(f) => {
-                let bid = f(&mut conn);
-                if bid == Uuid::nil() { return None; }
-                bid
-            }
-            None => return None,
-        };
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        if branch_id == Uuid::nil() { return None; }
 
         let now = Utc::now();
         let month_start = now.date_naive().with_day(1)?.and_hms_opt(0, 0, 0)?;
@@ -613,20 +722,15 @@ async fn handle_revenue_month(State(state): State<Arc<BillingApiState>>) -> impl
     Html(format_currency(result.unwrap_or(0.0), "USD"))
 }
 
-async fn handle_paid_month(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_paid_month(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let pool = state.pool.clone();
     let get_default_bot = state.get_default_bot;
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let branch_id = match get_default_bot {
-            Some(f) => {
-                let bid = f(&mut conn);
-                if bid == Uuid::nil() { return None; }
-                bid
-            }
-            None => return None,
-        };
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        if branch_id == Uuid::nil() { return None; }
 
         let now = Utc::now();
         let month_start = now.date_naive().with_day(1)?.and_hms_opt(0, 0, 0)?;
@@ -649,20 +753,15 @@ async fn handle_paid_month(State(state): State<Arc<BillingApiState>>) -> impl In
     Html(format_currency(result.unwrap_or(0.0), "USD"))
 }
 
-async fn handle_overdue(State(state): State<Arc<BillingApiState>>) -> impl IntoResponse {
+async fn handle_overdue(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
     let pool = state.pool.clone();
     let get_default_bot = state.get_default_bot;
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let branch_id = match get_default_bot {
-            Some(f) => {
-                let bid = f(&mut conn);
-                if bid == Uuid::nil() { return None; }
-                bid
-            }
-            None => return None,
-        };
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        if branch_id == Uuid::nil() { return None; }
 
         let totals: Vec<BigDecimal> = billing_invoices::table
             .filter(billing_invoices::branch_id.eq(branch_id))
@@ -683,6 +782,7 @@ async fn handle_overdue(State(state): State<Arc<BillingApiState>>) -> impl IntoR
 
 async fn handle_billing_search(
     State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
     let q = query.q.clone().unwrap_or_default();
@@ -691,18 +791,14 @@ async fn handle_billing_search(
     }
 
     let pool = state.pool.clone();
+    let get_default_bot = state.get_default_bot;
     let search_term = format!("%{}%", q);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
-        let branch_id = match state.get_default_bot {
-            Some(f) => {
-                let bid = f(&mut conn);
-                if bid == Uuid::nil() { return None; }
-                bid
-            }
-            None => return None,
-        };
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
+        if branch_id == Uuid::nil() { return None; }
 
         billing_invoices::table
             .filter(billing_invoices::branch_id.eq(branch_id))
