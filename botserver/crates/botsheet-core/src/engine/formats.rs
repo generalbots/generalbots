@@ -5,7 +5,9 @@
 //! display string. The grid previously stored formats without applying them;
 //! this is the engine that makes `R$ 1.234,50` display correctly.
 
-use super::format_render::{render_fraction, render_scientific};
+use super::format_render::{
+    detect_date_format, render_fraction, render_scientific, serial_to_datetime,
+};
 use super::value::CellValue;
 
 /// The parsed structure of a number format.
@@ -83,12 +85,6 @@ impl Default for NumberLocale {
     fn default() -> Self {
         NumberLocale::EN
     }
-}
-
-/// Converts a number to an Excel-style date serial (days since 1899-12-30).
-fn serial_to_date(serial: f64) -> Option<chrono::NaiveDate> {
-    let base = chrono::NaiveDate::from_ymd_opt(1899, 12, 30)?;
-    base.checked_add_signed(chrono::Duration::days(serial.floor() as i64))
 }
 
 /// Parses a format code into its parts. Unknown formats fall back to General.
@@ -199,55 +195,6 @@ fn split_currency(code: &str) -> Option<(String, String)> {
     None
 }
 
-fn detect_date_format(code: &str) -> Option<String> {
-    let mut out = String::new();
-    let mut chars = code.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c.to_ascii_lowercase() {
-            'y' => {
-                let mut count = 1;
-                while matches!(chars.peek(), Some(&'y') | Some(&'Y')) {
-                    count += 1;
-                    chars.next();
-                }
-                out.push_str(if count >= 4 { "%Y" } else { "%y" });
-            }
-            'm' => {
-                let mut count = 1;
-                while matches!(chars.peek(), Some(&'m') | Some(&'M')) {
-                    count += 1;
-                    chars.next();
-                }
-                out.push_str(if count >= 3 { "%b" } else { "%m" });
-            }
-            'd' => {
-                while matches!(chars.peek(), Some(&'d') | Some(&'D')) {
-                    chars.next();
-                }
-                out.push_str("%d");
-            }
-            'h' => {
-                while matches!(chars.peek(), Some(&'h') | Some(&'H')) {
-                    chars.next();
-                }
-                out.push_str("%H");
-            }
-            's' => {
-                while matches!(chars.peek(), Some(&'s') | Some(&'S')) {
-                    chars.next();
-                }
-                out.push_str("%S");
-            }
-            '/' | '-' | ':' | ' ' => out.push(c),
-            _ => {
-                // Text between codes: keep as literal.
-                out.push(c);
-            }
-        }
-    }
-    if out.is_empty() { None } else { Some(out) }
-}
-
 /// Renders a typed value with the given format code (en-US separators).
 pub fn apply_format(value: &CellValue, code: &str) -> String {
     apply_format_locale(value, code, NumberLocale::EN)
@@ -273,8 +220,8 @@ fn render_number(n: f64, fmt: &NumberFormat) -> String {
 /// separators (`1.234,50`), the remaining E7 item for pt-BR display.
 fn render_number_locale(n: f64, fmt: &NumberFormat, locale: NumberLocale) -> String {
     if fmt.is_date {
-        if let (Some(df), Some(date)) = (fmt.date_format.as_deref(), serial_to_date(n)) {
-            return date.format(df).to_string();
+        if let (Some(df), Some(dt)) = (fmt.date_format.as_deref(), serial_to_datetime(n)) {
+            return dt.format(df).to_string();
         }
         return super::value::format_number(n);
     }
