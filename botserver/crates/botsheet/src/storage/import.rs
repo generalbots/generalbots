@@ -160,10 +160,28 @@ pub fn parse_xlsx_to_worksheets(
                         .map(|nf| nf.get_format_code().to_string())
                         .filter(|c| c != "General" && !c.is_empty());
 
-                    // Typed value (#781/#785): keeps the numeric type for format rendering.
-                    let typed = match cell.get_value_number() {
-                        Some(n) => CellValue::Number(n),
-                        None => CellValue::parse(&value),
+                    // Typed value (#781/#785): keeps the real cell type for
+                    // format rendering, sort and filter. A text cell whose
+                    // content is numeric-looking (`0123`, a phone number, a
+                    // zip code) must stay `Text` — parsing it back from the
+                    // display string would turn it into a number and drop a
+                    // leading zero.
+                    let typed = match cell.get_raw_value() {
+                        umya_spreadsheet::structs::CellRawValue::Numeric(n) => {
+                            CellValue::Number(*n)
+                        }
+                        umya_spreadsheet::structs::CellRawValue::Bool(b) => CellValue::Bool(*b),
+                        umya_spreadsheet::structs::CellRawValue::Error(_) => {
+                            CellValue::Error(value.clone())
+                        }
+                        umya_spreadsheet::structs::CellRawValue::String(s) => {
+                            CellValue::Text(s.to_string())
+                        }
+                        umya_spreadsheet::structs::CellRawValue::RichText(_) => {
+                            CellValue::Text(value.clone())
+                        }
+                        umya_spreadsheet::structs::CellRawValue::Empty => CellValue::Empty,
+                        umya_spreadsheet::structs::CellRawValue::Lazy(_) => CellValue::parse(&value),
                     };
 
                     data.insert(
