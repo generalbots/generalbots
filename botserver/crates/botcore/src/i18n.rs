@@ -70,7 +70,7 @@ impl std::fmt::Display for Locale {
     }
 }
 
-const AVAILABLE_LOCALES: &[&str] = &["en", "pt-BR", "es", "zh-CN"];
+const AVAILABLE_LOCALES: &[&str] = &["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
 
 pub struct RequestLocale(pub Locale);
 

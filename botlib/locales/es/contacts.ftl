@@ -1,7 +1,7 @@
 # =============================================================================
-# General Bots - Contacts Translations (Spanish)
+# General Bots - Contacts Translations (English)
 # =============================================================================
-# Traducciones de la interfaz de gestión de contactos
+# Contact management interface translations
 # =============================================================================
 
 # -----------------------------------------------------------------------------

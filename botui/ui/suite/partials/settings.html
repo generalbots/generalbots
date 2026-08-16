@@ -395,49 +395,77 @@
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </button>
-                    <button class="language-option" data-locale="es" disabled
-                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: not-allowed; position: relative; opacity: 0.5; text-align: left;">
+                    <button class="language-option" data-locale="es" onclick="selectLanguage('es', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
                         <span style="font-size: 40px; line-height: 1;">🇪🇸</span>
                         <div style="flex: 1;">
                             <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Spanish</div>
                             <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Español</div>
                         </div>
-                        <span
-                            style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; background: #334155; border-radius: 4px; color: #94a3b8;">Coming
-                            Soon</span>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
                     </button>
-                    <button class="language-option" data-locale="zh-CN" disabled
-                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: not-allowed; position: relative; opacity: 0.5; text-align: left;">
+                    <button class="language-option" data-locale="zh-CN" onclick="selectLanguage('zh-CN', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
                         <span style="font-size: 40px; line-height: 1;">🇨🇳</span>
                         <div style="flex: 1;">
                             <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Chinese (Simplified)</div>
                             <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">简体中文</div>
                         </div>
-                        <span
-                            style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; background: #334155; border-radius: 4px; color: #94a3b8;">Coming
-                            Soon</span>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
                     </button>
-                    <button class="language-option" data-locale="fr" disabled
-                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: not-allowed; position: relative; opacity: 0.5; text-align: left;">
+                    <button class="language-option" data-locale="fr" onclick="selectLanguage('fr', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
                         <span style="font-size: 40px; line-height: 1;">🇫🇷</span>
                         <div style="flex: 1;">
                             <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">French</div>
                             <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Français</div>
                         </div>
-                        <span
-                            style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; background: #334155; border-radius: 4px; color: #94a3b8;">Coming
-                            Soon</span>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
                     </button>
-                    <button class="language-option" data-locale="de" disabled
-                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: not-allowed; position: relative; opacity: 0.5; text-align: left;">
+                    <button class="language-option" data-locale="de" onclick="selectLanguage('de', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
                         <span style="font-size: 40px; line-height: 1;">🇩🇪</span>
                         <div style="flex: 1;">
                             <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">German</div>
                             <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Deutsch</div>
                         </div>
-                        <span
-                            style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; background: #334155; border-radius: 4px; color: #94a3b8;">Coming
-                            Soon</span>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="ja" onclick="selectLanguage('ja', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇯🇵</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Japanese</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">日本語</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="ko" onclick="selectLanguage('ko', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇰🇷</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Korean</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">한국어</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -684,12 +712,12 @@
                         <select id="language-select" class="form-select" onchange="changeLanguage(this.value)">
                             <option value="en">🇺🇸 English</option>
                             <option value="pt-BR">🇧🇷 Português (Brasil)</option>
-                            <option value="es" disabled>🇪🇸 Español (Coming soon)</option>
-                            <option value="zh-CN" disabled>🇨🇳 简体中文 (Coming soon)</option>
-                            <option value="fr" disabled>🇫🇷 Français (Coming soon)</option>
-                            <option value="de" disabled>🇩🇪 Deutsch (Coming soon)</option>
-                            <option value="ja" disabled>🇯🇵 日本語 (Coming soon)</option>
-                            <option value="ko" disabled>🇰🇷 한국어 (Coming soon)</option>
+                            <option value="es">🇪🇸 Español</option>
+                            <option value="zh-CN">🇨🇳 简体中文</option>
+                            <option value="fr">🇫🇷 Français</option>
+                            <option value="de">🇩🇪 Deutsch</option>
+                            <option value="ja">🇯🇵 日本語</option>
+                            <option value="ko">🇰🇷 한국어</option>
                         </select>
                     </div>
                     <div class="setting-row">

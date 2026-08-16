@@ -1,9 +1,9 @@
 # =============================================================================
-# General Bots - Traducciones de UI en Español
+# General Bots - English UI Translations
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Navegación
+# Navigation
 # -----------------------------------------------------------------------------
 nav-home = Inicio
 nav-chat = Chat
@@ -13,6 +13,7 @@ nav-mail = Correo
 nav-calendar = Calendario
 nav-meet = Reuniones
 nav-paper = Documentos
+nav-video = Video
 nav-research = Investigación
 nav-analytics = Analíticas
 nav-settings = Configuración
@@ -21,6 +22,7 @@ nav-monitoring = Monitoreo
 nav-sources = Fuentes
 nav-tools = Herramientas
 nav-attendant = Asistente
+nav-learn = Aprender
 nav-crm = CRM
 nav-billing = Facturación
 nav-products = Productos
@@ -40,11 +42,9 @@ nav-canvas = Canvas
 nav-goals = Metas
 nav-player = Reproductor
 nav-workspace = Espacio de Trabajo
-nav-video = Video
-nav-learn = Aprender
 
 # -----------------------------------------------------------------------------
-# Panel de Control
+# Dashboard
 # -----------------------------------------------------------------------------
 dashboard-title = Panel de Control
 dashboard-welcome = ¡Bienvenido de nuevo, { $name }!
@@ -54,7 +54,7 @@ dashboard-no-activity = Sin actividad reciente. ¡Comienza a explorar!
 dashboard-analytics = Analíticas
 
 # -----------------------------------------------------------------------------
-# Acciones Rápidas
+# Quick Actions
 # -----------------------------------------------------------------------------
 quick-start-chat = Iniciar Chat
 quick-upload-files = Subir Archivos
@@ -64,7 +64,7 @@ quick-start-meeting = Iniciar Reunión
 quick-new-event = Nuevo Evento
 
 # -----------------------------------------------------------------------------
-# Tarjetas de Aplicaciones
+# Application Cards
 # -----------------------------------------------------------------------------
 app-chat-name = Chat
 app-chat-desc = Conversaciones impulsadas por IA. Haz preguntas, obtén ayuda y automatiza tareas.
@@ -94,14 +94,14 @@ app-analytics-name = Analíticas
 app-analytics-desc = Paneles e informes para seguir el uso y obtener insights.
 
 # -----------------------------------------------------------------------------
-# Encabezado de Suite
+# Suite Header
 # -----------------------------------------------------------------------------
 suite-title = Suite General Bots
 suite-tagline = Tu espacio de trabajo de productividad impulsado por IA. Chatea, colabora y crea.
 suite-new-intent = Nueva Intención
 
 # -----------------------------------------------------------------------------
-# Panel de IA
+# AI Panel
 # -----------------------------------------------------------------------------
 ai-developer = Desarrollador IA
 ai-developing = Desarrollando: { $project }
@@ -136,7 +136,7 @@ chat-mention-no-results = No se encontraron resultados
 chat-mention-type-hint = Escribe : para buscar
 
 # -----------------------------------------------------------------------------
-# Drive / Archivos
+# Drive / Files
 # -----------------------------------------------------------------------------
 drive-title = Archivos
 drive-upload = Subir
@@ -150,8 +150,8 @@ drive-sort-type = Tipo
 drive-view-grid = Vista de Cuadrícula
 drive-view-list = Vista de Lista
 drive-selected = { $count ->
-    [one] { $count } elemento seleccionado
-   *[other] { $count } elementos seleccionados
+    [one] { $count } item selected
+   *[other] { $count } items selected
 }
 drive-file-size = { $size ->
     [bytes] { $value } B
@@ -163,7 +163,7 @@ drive-file-size = { $size ->
 drive-drop-files = Arrastra archivos aquí para subir
 
 # -----------------------------------------------------------------------------
-# Tareas
+# Tasks
 # -----------------------------------------------------------------------------
 tasks-title = Tareas
 tasks-new = Nueva Tarea
@@ -180,13 +180,13 @@ tasks-mark-complete = Marcar como completada
 tasks-mark-incomplete = Marcar como incompleta
 tasks-delete-confirm = ¿Estás seguro de que deseas eliminar esta tarea?
 tasks-count = { $count ->
-    [zero] Sin tareas
-    [one] { $count } tarea
-   *[other] { $count } tareas
+    [zero] No tasks
+    [one] { $count } task
+   *[other] { $count } tasks
 }
 
 # -----------------------------------------------------------------------------
-# Calendario
+# Calendar
 # -----------------------------------------------------------------------------
 calendar-title = Calendario
 calendar-today = Hoy
@@ -205,7 +205,7 @@ calendar-event-description = Descripción
 calendar-event-attendees = Asistentes
 
 # -----------------------------------------------------------------------------
-# Meet / Videoconferencias
+# Meet / Video Conferencing
 # -----------------------------------------------------------------------------
 meet-title = Reuniones
 meet-join = Unirse a Reunión
@@ -219,8 +219,8 @@ meet-stop-sharing = Dejar de Compartir
 meet-end-call = Finalizar Llamada
 meet-leave = Salir de la Reunión
 meet-participants = { $count ->
-    [one] { $count } participante
-   *[other] { $count } participantes
+    [one] { $count } participant
+   *[other] { $count } participants
 }
 meet-waiting-room = Sala de Espera
 meet-admit = Admitir
@@ -233,7 +233,7 @@ meet-start-recording = Iniciar Grabación
 meet-stop-recording = Detener Grabación
 
 # -----------------------------------------------------------------------------
-# Correo / Email
+# Mail / Email
 # -----------------------------------------------------------------------------
 mail-title = Correo
 mail-compose = Redactar
@@ -257,21 +257,21 @@ mail-discard = Descartar
 mail-save-draft = Guardar Borrador
 mail-attach = Adjuntar Archivos
 mail-unread = { $count ->
-    [one] { $count } sin leer
-   *[other] { $count } sin leer
+    [one] { $count } unread
+   *[other] { $count } unread
 }
 mail-empty-inbox = Tu bandeja de entrada está vacía
 mail-no-subject = (Sin asunto)
 
 # -----------------------------------------------------------------------------
-# Configuración
+# Settings
 # -----------------------------------------------------------------------------
 settings-title = Configuración
 settings-general = General
 settings-account = Cuenta
 settings-notifications = Notificaciones
 settings-privacy = Privacidad
-settings-security = Seguridad
+settings-security = Configuración de Seguridad
 settings-language = Idioma
 settings-theme = Tema
 settings-theme-light = Claro
@@ -284,7 +284,7 @@ settings-date-format = Formato de Fecha
 settings-time-format = Formato de Hora
 
 # -----------------------------------------------------------------------------
-# Autenticación / Login
+# Auth / Login
 # -----------------------------------------------------------------------------
 auth-login = Iniciar Sesión
 auth-logout = Cerrar Sesión
@@ -298,16 +298,16 @@ auth-remember-me = Recordarme
 auth-login-success = Sesión iniciada exitosamente
 auth-logout-success = Sesión cerrada exitosamente
 auth-invalid-credentials = Correo o contraseña inválidos
-auth-session-expired = Tu sesión ha expirado. Por favor inicia sesión nuevamente.
+auth-session-expired = Tu sesión ha expirado
 
 # -----------------------------------------------------------------------------
-# Búsqueda
+# Search
 # -----------------------------------------------------------------------------
 search-placeholder = Buscar...
 search-no-results = No se encontraron resultados
 search-results = { $count ->
-    [one] { $count } resultado
-   *[other] { $count } resultados
+    [one] { $count } result
+   *[other] { $count } results
 }
 search-in-progress = Buscando...
 search-advanced = Búsqueda Avanzada
@@ -315,7 +315,7 @@ search-filters = Filtros
 search-clear-filters = Limpiar Filtros
 
 # -----------------------------------------------------------------------------
-# Paginación
+# Pagination
 # -----------------------------------------------------------------------------
 pagination-previous = Anterior
 pagination-next = Siguiente
@@ -325,7 +325,7 @@ pagination-page = Página { $current } de { $total }
 pagination-showing = Mostrando { $from } a { $to } de { $total }
 
 # -----------------------------------------------------------------------------
-# Tablas
+# Tables
 # -----------------------------------------------------------------------------
 table-no-data = No hay datos disponibles
 table-loading = Cargando datos...
@@ -336,7 +336,7 @@ table-export = Exportar
 table-import = Importar
 
 # -----------------------------------------------------------------------------
-# Formularios
+# Forms
 # -----------------------------------------------------------------------------
 form-required = Requerido
 form-optional = Opcional
@@ -347,7 +347,7 @@ form-uploading = Subiendo...
 form-processing = Procesando...
 
 # -----------------------------------------------------------------------------
-# Modales / Diálogos
+# Modals / Dialogs
 # -----------------------------------------------------------------------------
 modal-confirm-title = Confirmar Acción
 modal-confirm-message = ¿Estás seguro de que deseas continuar?
@@ -369,7 +369,7 @@ tooltip-fullscreen = Pantalla Completa
 tooltip-exit-fullscreen = Salir de Pantalla Completa
 
 # -----------------------------------------------------------------------------
-# Configuración - Idioma y Localización
+# Settings - Language & Localization
 # -----------------------------------------------------------------------------
 settings-language = Idioma
 settings-language-desc = Elige tu idioma preferido
@@ -383,7 +383,7 @@ settings-saved = Configuración guardada exitosamente
 settings-language-changed = Idioma cambiado exitosamente
 settings-reload-required = Se requiere recargar la página para aplicar cambios
 
-# Configuración - Perfil
+# Settings - Profile
 settings-profile = Configuración de Perfil
 settings-profile-desc = Administra tu información personal y preferencias
 settings-profile-photo = Foto de Perfil
@@ -401,7 +401,7 @@ settings-phone-number = Número de Teléfono
 settings-location = Ubicación
 settings-website = Sitio Web
 
-# Configuración - Seguridad
+# Settings - Security
 settings-security = Configuración de Seguridad
 settings-security-desc = Protege tu cuenta con seguridad mejorada
 settings-change-password = Cambiar Contraseña
@@ -422,7 +422,7 @@ settings-this-device = Este dispositivo
 settings-terminate-session = Terminar
 settings-terminate-all = Terminar Todas las Otras Sesiones
 
-# Configuración - Apariencia
+# Settings - Appearance
 settings-appearance = Apariencia
 settings-appearance-desc = Personaliza cómo se ve la aplicación
 settings-theme-selection = Tema
@@ -441,7 +441,7 @@ settings-show-sidebar-desc = Siempre mostrar la barra de navegación
 settings-animations = Animaciones
 settings-animations-desc = Habilitar animaciones y transiciones de UI
 
-# Configuración - Notificaciones
+# Settings - Notifications
 settings-notifications-title = Notificaciones
 settings-notifications-desc = Controla cómo recibes notificaciones
 settings-email-notifications = Notificaciones por Correo
@@ -460,14 +460,14 @@ settings-notification-sound = Sonido
 settings-notification-sound-desc = Reproducir sonido para notificaciones
 settings-in-app-notifications = Notificaciones en la App
 
-# Configuración - Almacenamiento
+# Settings - Storage
 settings-storage = Almacenamiento
 settings-storage-desc = Administra tu uso de almacenamiento
 settings-storage-usage = Uso de Almacenamiento
 settings-storage-used = { $used } de { $total } usado
 settings-storage-upgrade = Mejorar Almacenamiento
 
-# Configuración - Privacidad
+# Settings - Privacy
 settings-privacy-title = Privacidad
 settings-privacy-desc = Controla tu configuración de privacidad
 settings-data-collection = Recolección de Datos
@@ -481,7 +481,7 @@ settings-delete-account = Eliminar Cuenta
 settings-delete-account-desc = Eliminar permanentemente tu cuenta y todos los datos
 settings-delete-account-warning = Esta acción no se puede deshacer
 
-# Configuración - Facturación
+# Settings - Billing
 settings-billing = Facturación
 settings-billing-desc = Administra tu suscripción y métodos de pago
 settings-current-plan = Plan Actual
@@ -494,7 +494,7 @@ settings-add-payment = Agregar Método de Pago
 settings-billing-history = Historial de Facturación
 
 # -----------------------------------------------------------------------------
-# Paper (Editor de Documentos)
+# Paper (Document Editor)
 # -----------------------------------------------------------------------------
 paper-title = Documentos
 paper-new-note = Nueva Nota
@@ -524,13 +524,708 @@ paper-todo-list-desc = Lista de tareas marcables
 paper-quote = Cita
 paper-quote-desc = Bloque de cita para referencias
 paper-divider = Divisor
+paper-divider-desc = línea horizontal
+paper-code-block = Bloque de código
+paper-code-block-desc = código formateado
+paper-table = mesa
+paper-table-desc = Insertar tabla
+paper-image = Imagen
+paper-image-desc = Insertar imagen desde URL
+paper-callout = Llamada
+paper-callout-desc = Cuadro de información resaltado
+paper-ai-write = Escritura IA
+paper-ai-write-desc = Generar texto con IA
+paper-ai-summarize = Resumen de IA
+paper-ai-summarize-desc = Resumir el texto seleccionado
+paper-ai-expand = IA Ampliar
+paper-ai-expand-desc = Ampliar el texto seleccionado
+paper-ai-improve = Mejora de la IA
+paper-ai-improve-desc = Mejorar la calidad de la escritura
+paper-ai-translate = Traductor AI
+paper-ai-translate-desc = Traducir a otro idioma
+paper-ai-assistant = Asistente de IA
+paper-ai-quick-actions = Acciones rápidas
+paper-ai-rewrite = Reescribir
+paper-ai-make-shorter = Hacer más corto
+paper-ai-make-longer = Hacer más largo
+paper-ai-fix-grammar = Arreglar gramática
+paper-ai-tone = tono
+paper-ai-tone-professional = Profesional
+paper-ai-tone-casual = Informal
+paper-ai-tone-friendly = amigable
+paper-ai-tone-formal = formales
+paper-ai-translate-to = Traducir a
+paper-ai-custom-prompt = Mensaje personalizado
+paper-ai-custom-placeholder = Describe lo que quieres...
+paper-ai-generate = generar
+paper-ai-response = Respuesta de la IA
+paper-ai-apply = Aplicar
+paper-ai-regenerate = regenerar
+paper-ai-copy = Copiar
+paper-word-count = { $count } palabras
+paper-char-count = { $count } caracteres
+paper-saved = Guardado
+paper-saving = Guardando...
+paper-last-edited = Última edición: { $time }
+paper-last-edited-now = Última edición: Justo ahora
+paper-export = Exportar documento
+paper-export-pdf = PDF
+paper-export-docx = Palabra (.docx)
+paper-export-markdown = Rebaja
+paper-export-html = HTML
+paper-export-txt = Texto sin formato
+
+# Additional Chat translations
+chat-voice = Entrada de voz
+chat-message-placeholder = Mensaje...
+
+# Drive translations
+drive-my-drive = mi unidad
+drive-shared = compartido conmigo
+drive-recent = Reciente
+drive-starred = Destacado
+drive-trash = basura
+drive-loading-storage = Cargando almacenamiento...
+drive-storage-used = { $used } de { $total } usados
+drive-empty-folder = Esta carpeta está vacía
+
+# Tasks translations
+tasks-active = Intenciones activas
+tasks-awaiting = En espera de decisión
+tasks-paused = En pausa
+tasks-blocked = Bloqueado/Problemas
+tasks-time-saved = Tiempo activo ahorrado:
+tasks-input-placeholder = ¿Qué te gustaría hacer? por ejemplo, "crear una aplicación CRM" o "recordarme que llame a John mañana"
+
+# Calendar additional translations
+calendar-my-calendars = Mis calendarios
+
+# Email additional translations
+email-scheduled = Programado
+email-tracking = Seguimiento
+
+# Email folder translations
+email-inbox = Bandeja de entrada
+email-starred = Destacado
+email-sent = Enviado
+email-drafts = Borradores
+email-spam = spam
+email-trash = basura
+email-compose = componer
+
+# -----------------------------------------------------------------------------
+# Research
+# -----------------------------------------------------------------------------
+research-title = Investigación
+research-search-placeholder = Pregunta cualquier cosa...
+research-collections = Colecciones
+research-new-collection = Nueva colección
+research-recent = Reciente
+research-academic = Académico
+research-code = Código
+research-internal = Interno
+research-search-all = busca todo
+research-academic-papers = Trabajos academicos
+research-code-docs = Código y documentación
+research-internal-kb = Base de conocimiento interna
+research-sources = Fuentes
+research-trending = Tendencia
+research-pro-search = Búsqueda profesional
+research-include-images = Incluir imágenes
+research-try-asking = Intenta preguntar sobre
+research-related = Preguntas relacionadas
+research-view-all-sources = Ver todas las fuentes
+research-export-citations = Exportar citas
+research-save-to-collection = Guardar en colección
+
+# -----------------------------------------------------------------------------
+# Admin Panel (additional UI keys)
+# -----------------------------------------------------------------------------
+admin-panel-title = Panel de administración
+admin-quick-actions = Acciones Rápidas
+admin-create-user = Crear Usuario
+admin-create-group = Crear Grupo
+admin-register-dns = Registrar DNS
+admin-recent-activity = Actividad Reciente
+admin-system-health = Salud del Sistema
+
+# -----------------------------------------------------------------------------
+# Meet (additional keys)
+# -----------------------------------------------------------------------------
+meet-new-meeting = Nueva reunión
+meet-join-meeting = Unirse a la reunión
+meet-active-rooms = Salas activas
+meet-room-title = Sala de Reuniones
+meet-record = Registro
+meet-camera = cámara
+meet-share = Compartir
+meet-info = Información
+meet-more = Más
+meet-share-meeting = Compartir reunión
+meet-meeting-title = Título de la reunión
+meet-meeting-code = Código de reunión
+meet-meeting-link = Enlace de reunión
+meet-send-invite = Enviar invitación
+
+# -----------------------------------------------------------------------------
+# Common Labels (additional)
+# -----------------------------------------------------------------------------
+label-username = Nombre de usuario
+label-email = Correo electrónico
+label-display-name = Nombre para mostrar
+label-password = Contraseña
+label-role = Rol
+label-group-name = Nombre del grupo
+label-hostname = Nombre de host
+label-record-type = Tipo de registro
+label-target = Objetivo
+label-your-name = Tu nombre
+
+# -----------------------------------------------------------------------------
+# Actions (additional)
+# -----------------------------------------------------------------------------
+action-register = Registrarse
+
+# -----------------------------------------------------------------------------
+# Analytics (additional UI keys)
+# -----------------------------------------------------------------------------
+analytics-dashboard-title = Panel de análisis
+analytics-last-hour = Última hora
+analytics-last-6h = Últimas 6 horas
+analytics-last-24h = Últimas 24 horas
+analytics-last-7d = Últimos 7 días
+analytics-last-30d = Últimos 30 días
+
+# -----------------------------------------------------------------------------
+# Notifications
+# -----------------------------------------------------------------------------
+notifications-title = Notificaciones
+notifications-clear = Borrar todo
+notifications-empty = Sin notificaciones
+
+# -----------------------------------------------------------------------------
+# All Applications
+# -----------------------------------------------------------------------------
+nav-all-apps = Todas las Apps
+
+# =============================================================================
+# AUTH SCREENS - Complete translations for login, register, forgot/reset password
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Login Screen
+# -----------------------------------------------------------------------------
+auth-welcome-back = ¡Bienvenido de nuevo, { $name }!
+auth-sign-in-to-account = Inicia sesión en tu cuenta de General Bots
+auth-email-address = Dirección de correo electrónico
+auth-email-placeholder = you@example.com
+auth-password-placeholder = ••••••••
+auth-sign-in = Iniciar sesión
+auth-or-continue-with = o continuar con
+auth-dont-have-account = ¿No tienes una cuenta?
+auth-create-account = Crear cuenta
+auth-google = google
+auth-microsoft = microsoft
+auth-github = GitHub
+auth-apple = manzana
+
+# -----------------------------------------------------------------------------
+# Two-Factor Authentication
+# -----------------------------------------------------------------------------
+auth-2fa-title = Autenticación de dos factores
+auth-2fa-subtitle = Ingrese el código de 6 dígitos de su aplicación de autenticación
+auth-2fa-verify = Verificar código
+auth-2fa-didnt-receive = ¿No recibiste un código?
+auth-2fa-resend = Reenviar código
+auth-2fa-back-to-login = Volver a iniciar sesión
+auth-2fa-trust-device = Confía en este dispositivo
+auth-2fa-trust-desc = No solicites 2FA en este dispositivo durante 30 días
+
+# -----------------------------------------------------------------------------
+# Register Screen
+# -----------------------------------------------------------------------------
+auth-create-your-account = Crea tu cuenta
+auth-join-general-bots = Únase a General Bots y comience a construir
+auth-first-name = Nombre
+auth-last-name = Apellido
+auth-create-password = Crear contraseña
+auth-confirm-your-password = Confirmar contraseña
+auth-password-strength = Seguridad de la contraseña
+auth-password-weak = Débil
+auth-password-fair = Feria
+auth-password-good = bueno
+auth-password-strong = fuerte
+auth-password-req-length = Al menos 8 caracteres
+auth-password-req-uppercase = Una letra mayúscula
+auth-password-req-lowercase = Una letra minúscula
+auth-password-req-number = un numero
+auth-password-req-special = Un personaje especial
+auth-passwords-match = Las contraseñas coinciden
+auth-passwords-dont-match = Las contraseñas no coinciden
+auth-agree-terms = Estoy de acuerdo con el
+auth-terms-of-service = Términos de servicio
+auth-and = y
+auth-privacy-policy = Política de privacidad
+auth-sign-up = Regístrate
+auth-already-have-account = ¿Ya tienes una cuenta?
+auth-sign-in-link = Iniciar sesión
+auth-registration-success = ¡Cuenta creada con éxito!
+auth-check-email = Por favor revise su correo electrónico para verificar su cuenta.
+auth-email-sent-to = Hemos enviado un enlace de verificación a
+auth-resend-verification = Reenviar correo electrónico de verificación
+auth-go-to-login = Ir a Iniciar sesión
+
+# -----------------------------------------------------------------------------
+# Forgot Password Screen
+# -----------------------------------------------------------------------------
+auth-forgot-password-title = ¿Olvidaste tu contraseña?
+auth-forgot-password-subtitle = ¡No hay problema! Ingresa tu correo electrónico y te enviaremos instrucciones de reinicio.
+auth-send-reset-link = Enviar enlace de reinicio
+auth-back-to-login = Volver a iniciar sesión
+auth-reset-email-sent = ¡Restablecer correo electrónico enviado!
+auth-reset-instructions = Hemos enviado instrucciones para restablecer la contraseña a
+auth-check-inbox = Revisa tu bandeja de entrada
+auth-check-spam = Revisa tu carpeta de spam si no la ves
+auth-link-expires = El enlace caduca en 1 hora.
+auth-resend-email = Reenviar correo electrónico
+auth-didnt-receive-email = ¿No recibiste el correo electrónico?
+
+# -----------------------------------------------------------------------------
+# Reset Password Screen
+# -----------------------------------------------------------------------------
+auth-reset-password-title = Restablecer contraseña
+auth-reset-password-subtitle = Crea una nueva contraseña segura para tu cuenta
+auth-new-password = Nueva contraseña
+auth-confirm-new-password = Confirmar nueva contraseña
+auth-reset-password-btn = Restablecer contraseña
+auth-password-reset-success = ¡Restablecimiento de contraseña exitoso!
+auth-password-updated = Su contraseña ha sido actualizada. Ahora puedes iniciar sesión con tu nueva contraseña.
+auth-invalid-token = Enlace no válido o caducado
+auth-invalid-token-desc = Este enlace para restablecer contraseña no es válido o ha caducado. Por favor solicite uno nuevo.
+auth-request-new-link = Solicitar nuevo enlace
+
+# =============================================================================
+# MONITORING SCREENS
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Monitoring Dashboard
+# -----------------------------------------------------------------------------
+monitoring-title = Panel de monitoreo
+monitoring-toggle-view = Alternar vista
+monitoring-last-updated = Última actualización
+monitoring-live-view = Vista en vivo
+monitoring-grid-view = Vista de cuadrícula
+
+# -----------------------------------------------------------------------------
+# Monitoring Panels
+# -----------------------------------------------------------------------------
+monitoring-sessions = Sesiones
+monitoring-messages = Mensajes
+monitoring-resources = Recursos
+monitoring-services = Servicios
+monitoring-active-bots = Bots activos
+monitoring-loading = Cargando...
+
+# -----------------------------------------------------------------------------
+# Service Status
+# -----------------------------------------------------------------------------
+monitoring-status-running = corriendo
+monitoring-status-warning = Advertencia
+monitoring-status-stopped = Detenido
+monitoring-status-healthy = saludable
+monitoring-status-degraded = degradado
+monitoring-status-down = abajo
+
+# -----------------------------------------------------------------------------
+# Resource Metrics
+# -----------------------------------------------------------------------------
+monitoring-cpu = CPU
+monitoring-memory = Memoria
+monitoring-disk = disco
+monitoring-network = Red
+monitoring-requests-per-sec = Solicitudes/seg
+monitoring-active-connections = Conexiones activas
+monitoring-uptime = tiempo de actividad
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+monitoring-logs-title = Registros del sistema
+monitoring-logs-filter = Filtrar registros
+monitoring-logs-level = Nivel de registro
+monitoring-logs-all = Todos los niveles
+monitoring-logs-debug = Depurar
+monitoring-logs-info = Información
+monitoring-logs-warning = Advertencia
+monitoring-logs-error = error
+monitoring-logs-critical = Crítico
+monitoring-logs-search = Buscar registros...
+monitoring-logs-no-results = No se encontraron registros
+
+# -----------------------------------------------------------------------------
+# Health
+# -----------------------------------------------------------------------------
+monitoring-health-title = Estado del sistema
+monitoring-health-status = Estado de salud
+monitoring-health-services = Estado del servicio
+monitoring-health-database = Base de datos
+monitoring-health-cache = caché
+monitoring-health-queue = Cola de mensajes
+monitoring-health-storage = Almacenamiento
+monitoring-health-external = Servicios externos
+
+# -----------------------------------------------------------------------------
+# Metrics
+# -----------------------------------------------------------------------------
+monitoring-metrics-title = Métricas de rendimiento
+monitoring-metrics-response-time = Tiempo de respuesta
+monitoring-metrics-throughput = Rendimiento
+monitoring-metrics-error-rate = Tasa de errores
+monitoring-metrics-latency = Latencia
+
+# -----------------------------------------------------------------------------
+# Alerts
+# -----------------------------------------------------------------------------
+monitoring-alerts-title = Alertas del sistema
+monitoring-alerts-active = Alertas activas
+monitoring-alerts-resolved = Resuelto
+monitoring-alerts-all = Todas las alertas
+monitoring-alert-severity = Gravedad
+monitoring-alert-critical = Crítico
+monitoring-alert-high = Alto
+monitoring-alert-medium = Medio
+monitoring-alert-low = Bajo
+monitoring-alert-info = Información
+monitoring-alert-acknowledge = Reconocer
+monitoring-alert-resolve = resolver
+monitoring-no-alerts = No hay alertas activas
+
+# =============================================================================
+# SOURCES SCREENS
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Sources Main
+# -----------------------------------------------------------------------------
+sources-title = Fuentes
+sources-subtitle = Repositorios, aplicaciones, avisos, plantillas y servidores MCP
+sources-search = Buscar fuentes...
+
+# -----------------------------------------------------------------------------
+# Sources Tabs
+# -----------------------------------------------------------------------------
+sources-repositories = Repositorios
+sources-apps = Aplicaciones
+sources-prompts = Indicaciones
+sources-templates = Plantillas
+sources-servers = Servidores MCP
+sources-models = Modelos de IA
+sources-news = Noticias
+
+# -----------------------------------------------------------------------------
+# Repository Cards
+# -----------------------------------------------------------------------------
+sources-repo-connect = Conectar
+sources-repo-disconnect = Desconectar
+sources-repo-browse = Navegar
+sources-repo-connected = Conectado
+sources-repo-disconnected = desconectado
+sources-repo-stars = estrellas
+sources-repo-forks = Horquillas
+sources-repo-last-updated = Última actualización
+
+# -----------------------------------------------------------------------------
+# Prompt Cards
+# -----------------------------------------------------------------------------
+sources-prompt-use = uso
+sources-prompt-copy = Copiar
+sources-prompt-edit = Editar
+sources-prompt-rating = Calificación
+sources-prompt-uses = Usos
+
+# -----------------------------------------------------------------------------
+# Server Cards
+# -----------------------------------------------------------------------------
+sources-server-active = Activo
+sources-server-inactive = Inactivo
+sources-server-connect = Conectar
+sources-server-configure = Configurar
+
+# -----------------------------------------------------------------------------
+# Model Cards
+# -----------------------------------------------------------------------------
+sources-model-active = Activo
+sources-model-coming-soon = Próximamente
+sources-model-provider = Proveedor
+sources-model-context = Contexto
+sources-model-tokens = fichas
+
+# -----------------------------------------------------------------------------
+# App Cards
+# -----------------------------------------------------------------------------
+sources-app-open = Abierto
+sources-app-edit = Editar
+sources-app-installed = Instalado
+sources-app-install = Instalar
+
+# -----------------------------------------------------------------------------
+# Template Cards
+# -----------------------------------------------------------------------------
+sources-template-preview = Vista previa
+sources-template-use = Usar plantilla
+sources-template-components = componentes
+
+# -----------------------------------------------------------------------------
+# Categories
+# -----------------------------------------------------------------------------
+sources-category-all = Todos
+sources-category-development = Desarrollo
+sources-category-productivity = Productividad
+sources-category-communication = comunicación
+sources-category-analytics = Analítica
+sources-category-security = Seguridad
+sources-category-other = Otro
+
+# -----------------------------------------------------------------------------
+# Empty States
+# -----------------------------------------------------------------------------
+sources-empty-repos = No hay repositorios conectados
+sources-empty-apps = No hay aplicaciones disponibles
+sources-empty-prompts = No se encontraron mensajes
+sources-empty-templates = No hay plantillas disponibles
+sources-empty-servers = No hay servidores MCP configurados
+sources-empty-models = No hay modelos disponibles
+sources-empty-results = No se encontraron resultados
+sources-empty-results-desc = Intente ajustar su búsqueda o filtros
+
+# =============================================================================
+# TOOLS / COMPLIANCE SCREENS
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Compliance Main
+# -----------------------------------------------------------------------------
+compliance-title = Informe de cumplimiento de API
+compliance-subtitle = Escaneo de seguridad para todos los bots: verifique contraseñas, códigos frágiles y configuraciones incorrectas
+compliance-export-report = Informe de exportación
+compliance-run-scan = Ejecutar análisis de cumplimiento
+compliance-scanning = Escaneando...
+
+# -----------------------------------------------------------------------------
+# Bot Selector
+# -----------------------------------------------------------------------------
+compliance-all-bots = Todos los robots
+compliance-select-bots = Seleccionar robots
+
+# -----------------------------------------------------------------------------
+# Stats Cards
+# -----------------------------------------------------------------------------
+compliance-critical = Crítico
+compliance-critical-desc = Requiere acción inmediata
+compliance-high = Alto
+compliance-high-desc = Riesgo de seguridad
+compliance-medium = Medio
+compliance-medium-desc = debe abordarse
+compliance-low = Bajo
+compliance-low-desc = Mejores prácticas
+compliance-info = Información
+compliance-info-desc = Informativo
+
+# -----------------------------------------------------------------------------
+# Filters
+# -----------------------------------------------------------------------------
+compliance-filter-severity = Gravedad
+compliance-filter-type = Tipo
+compliance-filter-all-severities = Todas las gravedades
+compliance-filter-all-types = Todos los tipos
+compliance-search-issues = Problemas de búsqueda...
+
+# -----------------------------------------------------------------------------
+# Issue Types
+# -----------------------------------------------------------------------------
+compliance-type-password = Contraseña en configuración
+compliance-type-hardcoded = Secretos codificados
+compliance-type-deprecated = Palabras clave obsoletas
+compliance-type-fragile = Código frágil
+compliance-type-config = Problemas de configuración
+
+# -----------------------------------------------------------------------------
+# Results Table
+# -----------------------------------------------------------------------------
+compliance-results = Resultados
+compliance-results-count = { $cuenta ->
+    [one] { $count } issue found
+   *[other] { $count } issues found
+}
+compliance-col-severity = Gravedad
+compliance-col-issue = Problema
+compliance-col-location = Ubicación
+compliance-col-details = Detalles
+compliance-col-action = acción
+compliance-view-details = Ver detalles
+compliance-fix-issue = Solucionar problema
+compliance-ignore = ignorar
+compliance-no-issues = No se encontraron problemas
+compliance-no-issues-desc = ¡Genial! Tus bots cumplen.
+
+# -----------------------------------------------------------------------------
+# Scan Progress
+# -----------------------------------------------------------------------------
+compliance-scan-in-progress = Escaneo en progreso...
+compliance-scan-checking = Comprobando { $item }...
+compliance-scan-complete = Escaneo completo
+compliance-scan-failed = Error de escaneo
+
+# =============================================================================
+# ATTENDANT / CRM SCREENS
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# CRM Disabled State
+# -----------------------------------------------------------------------------
+attendant-crm-disabled = Funciones de CRM no habilitadas
+attendant-crm-disabled-desc = La Attendant Console requiere que las funciones de CRM estén habilitadas para este bot. Esto permite a los agentes humanos recibir y responder a conversaciones transferidas desde el bot.
+attendant-crm-enable-instruction = Para habilitar las funciones de CRM, agregue esta línea a la lista de su bot
+attendant-crm-config-file = configuración.csv
+attendant-crm-create-attendant = Luego crea un
+attendant-crm-attendant-file = asistente.csv
+attendant-crm-configure-team = archivo para configurar tu equipo
+
+# -----------------------------------------------------------------------------
+# Queue Sidebar
+# -----------------------------------------------------------------------------
+attendant-title = Consola de operadora
+attendant-status-online = En línea
+attendant-status-busy = Ocupado
+attendant-status-away = lejos
+attendant-status-offline = Sin conexión
+attendant-status-ready = En línea: listo para conversaciones
+attendant-status-busy-msg = Ocupado: manejo de conversaciones
+attendant-status-away-msg = Fuera - Volveremos pronto
+attendant-status-offline-msg = Sin conexión: no disponible
+
+# -----------------------------------------------------------------------------
+# Queue Stats
+# -----------------------------------------------------------------------------
+attendant-waiting = esperando
+attendant-active = Activo
+attendant-resolved = Resuelto
+attendant-mine = mio
+
+# -----------------------------------------------------------------------------
+# Queue Filters
+# -----------------------------------------------------------------------------
+attendant-filter-all = Todos
+attendant-filter-waiting = esperando
+attendant-filter-mine = mio
+attendant-filter-priority = Prioridad
+
+# -----------------------------------------------------------------------------
+# Conversation List
+# -----------------------------------------------------------------------------
+attendant-no-conversations = No hay conversaciones en cola
+attendant-new-conversations-appear = Nuevas conversaciones aparecerán aquí.
+attendant-unread = No leído
+attendant-typing = escribiendo...
+attendant-select-conversation = Seleccione una conversación
+attendant-select-conversation-desc = Elija una conversación de la cola para comenzar a responder
+
+# -----------------------------------------------------------------------------
+# Channel Tags
+# -----------------------------------------------------------------------------
+attendant-channel-whatsapp = WhatsApp
+attendant-channel-teams = equipos
+attendant-channel-instagram = Instagram
+attendant-channel-web = Web
+attendant-channel-telegram = telegrama
+attendant-channel-email = Correo electrónico
+
+# -----------------------------------------------------------------------------
+# Priority Tags
+# -----------------------------------------------------------------------------
+attendant-priority-urgent = Urgente
+attendant-priority-high = Alto
+attendant-priority-normal = normales
+
+# -----------------------------------------------------------------------------
+# Chat Area
+# -----------------------------------------------------------------------------
+attendant-message-placeholder = Escribe tu mensaje...
+attendant-send = enviar
+attendant-attach-file = Adjuntar archivo
+attendant-insert-emoji = Insertar emojis
+attendant-quick-responses = Respuestas Rápidas
+attendant-transfer = Transferir
+attendant-resolve = resolver
+attendant-more-actions = Más acciones
+
+# -----------------------------------------------------------------------------
+# Quick Responses
+# -----------------------------------------------------------------------------
+attendant-quick-greeting = ¡Hola! ¿Cómo puedo ayudarte hoy?
+attendant-quick-thanks = Gracias por tu paciencia.
+attendant-quick-checking = Déjame comprobarlo por ti.
+attendant-quick-moment = Un momento por favor.
+
+# -----------------------------------------------------------------------------
+# Transfer Modal
+# -----------------------------------------------------------------------------
+attendant-transfer-title = Transferir conversación
+attendant-transfer-to = Transferir a
+attendant-transfer-reason = Razón (opcional)
+attendant-transfer-reason-placeholder = ¿Por qué estás transfiriendo esta conversación?
+attendant-transfer-cancel = Cancelar
+attendant-transfer-confirm = Transferir
+
+# -----------------------------------------------------------------------------
+# AI Insights Sidebar
+# -----------------------------------------------------------------------------
+attendant-ai-insights = Perspectivas de IA
+attendant-ai-summary = Resumen de la conversación
+attendant-ai-sentiment = Sentimiento del cliente
+attendant-sentiment-positive = Positivo
+attendant-sentiment-neutral = Neutro
+attendant-sentiment-negative = Negativo
+attendant-smart-replies = Respuestas inteligentes
+attendant-confidence = confianza
+attendant-source = Fuente
+
+# -----------------------------------------------------------------------------
+# Customer Details
+# -----------------------------------------------------------------------------
+attendant-customer-details = Detalles del cliente
+attendant-customer-name = Nombre
+attendant-customer-email = Correo electrónico
+attendant-customer-phone = Teléfono
+attendant-customer-location = Ubicación
+attendant-customer-tags = Etiquetas
+
+# -----------------------------------------------------------------------------
+# Conversation History
+# -----------------------------------------------------------------------------
+attendant-history = Historia
+attendant-history-resolved = Resuelto
+attendant-history-transferred = Transferido
+attendant-history-abandoned = abandonado
+attendant-view-history = Ver historial completo
+
+# -----------------------------------------------------------------------------
+# Toast Messages
+# -----------------------------------------------------------------------------
+attendant-toast-transferred = Conversación transferida exitosamente
+attendant-toast-resolved = Conversación marcada como resuelta
+attendant-toast-assigned = Conversación asignada a ti
+attendant-toast-error = Se produjo un error
+attendant-toast-connection-lost = Conexión perdida. Reconectando...
+attendant-toast-connection-restored = Conexión restaurada
 
 # =============================================================================
 # CRM
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# CRM Navegación & General
+# CRM Navigation & General
 # -----------------------------------------------------------------------------
 crm-title = CRM
 crm-pipeline = Pipeline
@@ -541,7 +1236,7 @@ crm-contacts = Contactos
 crm-activities = Actividades
 
 # -----------------------------------------------------------------------------
-# CRM Entidades
+# CRM Entities
 # -----------------------------------------------------------------------------
 crm-lead = Lead
 crm-lead-desc = Prospecto no calificado
@@ -555,7 +1250,7 @@ crm-activity = Actividad
 crm-activity-desc = Tarea, llamada o correo
 
 # -----------------------------------------------------------------------------
-# CRM Acciones
+# CRM Actions
 # -----------------------------------------------------------------------------
 crm-qualify = Calificar
 crm-convert = Convertir
@@ -567,7 +1262,7 @@ crm-new-account = Nueva Cuenta
 crm-new-contact = Nuevo Contacto
 
 # -----------------------------------------------------------------------------
-# CRM Campos
+# CRM Fields
 # -----------------------------------------------------------------------------
 crm-stage = Etapa
 crm-value = Valor
@@ -580,7 +1275,7 @@ crm-source = Origen
 crm-owner = Responsable
 
 # -----------------------------------------------------------------------------
-# CRM Etapas del Pipeline
+# CRM Pipeline Stages
 # -----------------------------------------------------------------------------
 crm-pipeline-new = Nuevo
 crm-pipeline-contacted = Contactado
@@ -591,7 +1286,7 @@ crm-pipeline-closed-won = Cerrado Ganado
 crm-pipeline-closed-lost = Cerrado Perdido
 
 # -----------------------------------------------------------------------------
-# CRM Estadísticas & Métricas
+# CRM Stats & Metrics
 # -----------------------------------------------------------------------------
 crm-subtitle = Gestionar leads, oportunidades y clientes
 crm-stage-lead = Lead
@@ -606,7 +1301,7 @@ crm-avg-deal = Valor Promedio
 crm-won-month = Ganados Este Mes
 
 # -----------------------------------------------------------------------------
-# CRM Estados Vacíos
+# CRM Empty States
 # -----------------------------------------------------------------------------
 crm-no-leads = No se encontraron leads
 crm-no-opportunities = No se encontraron oportunidades
@@ -615,11 +1310,11 @@ crm-no-contacts = No se encontraron contactos
 crm-drag-hint = Arrastra las tarjetas para cambiar la etapa
 
 # =============================================================================
-# Facturación
+# Billing
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Facturación Navegación & General
+# Billing Navigation & General
 # -----------------------------------------------------------------------------
 billing-title = Facturación
 billing-invoices = Facturas
@@ -628,7 +1323,7 @@ billing-quotes = Cotizaciones
 billing-dashboard = Panel
 
 # -----------------------------------------------------------------------------
-# Facturación Entidades
+# Billing Entities
 # -----------------------------------------------------------------------------
 billing-invoice = Factura
 billing-invoice-desc = Cobro al cliente
@@ -638,7 +1333,7 @@ billing-quote = Cotización
 billing-quote-desc = Cotización de precio
 
 # -----------------------------------------------------------------------------
-# Facturación Estado
+# Billing Status
 # -----------------------------------------------------------------------------
 billing-due-date = Fecha de Vencimiento
 billing-overdue = Vencido
@@ -650,7 +1345,7 @@ billing-partial = Parcial
 billing-cancelled = Cancelado
 
 # -----------------------------------------------------------------------------
-# Facturación Acciones
+# Billing Actions
 # -----------------------------------------------------------------------------
 billing-new-invoice = Nueva Factura
 billing-new-quote = Nueva Cotización
@@ -661,7 +1356,7 @@ billing-mark-paid = Marcar como Pagado
 billing-void = Anular
 
 # -----------------------------------------------------------------------------
-# Facturación Campos
+# Billing Fields
 # -----------------------------------------------------------------------------
 billing-amount = Monto
 billing-tax = Impuesto
@@ -679,7 +1374,7 @@ billing-invoice-number = Número de Factura
 billing-quote-number = Número de Cotización
 
 # -----------------------------------------------------------------------------
-# Facturación Reportes
+# Billing Reports
 # -----------------------------------------------------------------------------
 billing-revenue = Ingresos
 billing-outstanding = Pendiente
@@ -693,18 +1388,18 @@ billing-total-revenue = Ingresos Totales
 billing-paid-month = Pagado Este Mes
 
 # -----------------------------------------------------------------------------
-# Facturación Estados Vacíos
+# Billing Empty States
 # -----------------------------------------------------------------------------
 billing-no-invoices = No se encontraron facturas
 billing-no-payments = No se encontraron pagos
 billing-no-quotes = No se encontraron cotizaciones
 
 # =============================================================================
-# Productos
+# Products
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Productos Navegación & General
+# Products Navigation & General
 # -----------------------------------------------------------------------------
 products-title = Productos
 products-catalog = Catálogo
@@ -713,7 +1408,7 @@ products-price-lists = Listas de Precios
 products-inventory = Inventario
 
 # -----------------------------------------------------------------------------
-# Productos Entidades
+# Products Entities
 # -----------------------------------------------------------------------------
 products-product = Producto
 products-product-desc = Producto físico o digital
@@ -723,7 +1418,7 @@ products-price-list = Lista de Precios
 products-price-list-desc = Niveles de precios
 
 # -----------------------------------------------------------------------------
-# Productos Acciones
+# Products Actions
 # -----------------------------------------------------------------------------
 products-new-product = Nuevo Producto
 products-new-service = Nuevo Servicio
@@ -733,7 +1428,7 @@ products-edit-product = Editar Producto
 products-duplicate = Duplicar
 
 # -----------------------------------------------------------------------------
-# Productos Campos
+# Products Fields
 # -----------------------------------------------------------------------------
 products-sku = SKU
 products-category = Categoría
@@ -745,7 +1440,7 @@ products-margin = Margen
 products-barcode = Código de Barras
 
 # -----------------------------------------------------------------------------
-# Productos Estado
+# Products Status
 # -----------------------------------------------------------------------------
 products-in-stock = En Stock
 products-out-of-stock = Sin Stock
@@ -756,7 +1451,7 @@ products-featured = Destacado
 products-archived = Archivado
 
 # -----------------------------------------------------------------------------
-# Productos Estadísticas & Métricas
+# Products Stats & Metrics
 # -----------------------------------------------------------------------------
 products-subtitle = Gestionar productos, servicios y precios
 products-items = Productos
@@ -765,18 +1460,18 @@ products-total-products = Total de Productos
 products-total-services = Total de Servicios
 
 # -----------------------------------------------------------------------------
-# Productos Estados Vacíos
+# Products Empty States
 # -----------------------------------------------------------------------------
 products-no-products = No se encontraron productos
 products-no-services = No se encontraron servicios
 products-no-price-lists = No se encontraron listas de precios
 
 # =============================================================================
-# Tickets (Casos de Soporte)
+# Tickets (Support Cases)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Tickets Navegación & General
+# Tickets Navigation & General
 # -----------------------------------------------------------------------------
 tickets-title = Tickets
 tickets-cases = Casos
@@ -786,7 +1481,7 @@ tickets-all = Todos los Tickets
 tickets-my-tickets = Mis Tickets
 
 # -----------------------------------------------------------------------------
-# Tickets Entidades
+# Tickets Entities
 # -----------------------------------------------------------------------------
 tickets-case = Caso
 tickets-case-desc = Ticket de soporte
@@ -794,7 +1489,7 @@ tickets-resolution = Resolución
 tickets-resolution-desc = Solución sugerida por IA
 
 # -----------------------------------------------------------------------------
-# Tickets Prioridad
+# Tickets Priority
 # -----------------------------------------------------------------------------
 tickets-priority = Prioridad
 tickets-priority-low = Baja
@@ -803,7 +1498,7 @@ tickets-priority-high = Alta
 tickets-priority-urgent = Urgente
 
 # -----------------------------------------------------------------------------
-# Tickets Estado
+# Tickets Status
 # -----------------------------------------------------------------------------
 tickets-status = Estado
 tickets-status-new = Nuevo
@@ -814,7 +1509,7 @@ tickets-status-closed = Cerrado
 tickets-status-on-hold = En Espera
 
 # -----------------------------------------------------------------------------
-# Tickets Acciones
+# Tickets Actions
 # -----------------------------------------------------------------------------
 tickets-new-ticket = Nuevo Ticket
 tickets-assign = Asignar
@@ -826,7 +1521,7 @@ tickets-close = Cerrar
 tickets-merge = Fusionar
 
 # -----------------------------------------------------------------------------
-# Tickets Campos
+# Tickets Fields
 # -----------------------------------------------------------------------------
 tickets-subject = Asunto
 tickets-description = Descripción
@@ -842,7 +1537,7 @@ tickets-internal-notes = Notas Internas
 tickets-attachments = Adjuntos
 
 # -----------------------------------------------------------------------------
-# Tickets Funciones de IA
+# Tickets AI Features
 # -----------------------------------------------------------------------------
 tickets-ai-suggestion = Sugerencia de IA
 tickets-apply-suggestion = Aplicar Sugerencia
@@ -851,7 +1546,7 @@ tickets-similar-tickets = Tickets Similares
 tickets-suggested-articles = Artículos Sugeridos
 
 # -----------------------------------------------------------------------------
-# Tickets Estados Vacíos
+# Tickets Empty States
 # -----------------------------------------------------------------------------
 tickets-no-tickets = No se encontraron tickets
 tickets-no-open = No hay tickets abiertos
@@ -861,7 +1556,7 @@ tickets-no-closed = No hay tickets cerrados
 # Security Module
 # -----------------------------------------------------------------------------
 security-title = Seguridad
-security-subtitle = Herramientas de seguridad, escaneo de cumplimiento y protección del servidor
+security-subtitle = Gestiona la configuración de seguridad de tu cuenta
 security-tab-compliance = Informe de Cumplimiento API
 security-tab-protection = Protección
 security-export-report = Exportar Informe
@@ -942,6 +1637,7 @@ goals-objectives = Objetivos
 goals-alignment = Alineación
 goals-ai-suggestions = Sugerencias de IA
 
+# CRM / Mail / Campaigns integration keys
 crm-email = Correo
 crm-compose-email = Redactar Correo
 crm-send-email = Enviar Correo
@@ -955,7 +1651,7 @@ mail-add-to-list = Agregar a Lista
 campaign-send-email = Enviar Correo
 
 # -----------------------------------------------------------------------------
-# Vinculación de Cuentas OAuth (Ajustes)
+# OAuth Account Linking (Settings)
 # -----------------------------------------------------------------------------
 oauth-connected-accounts = Cuentas Conectadas
 oauth-connect = Conectar
@@ -965,7 +1661,7 @@ oauth-linked = Vinculada
 oauth-no-accounts = No hay cuentas vinculadas todavía.
 oauth-loading = Cargando cuentas vinculadas…
 
-## Tarjetas de pago (Stripe SetupIntent)
+## Payment cards (Stripe SetupIntent)
 cards-title = Pago y Tarjetas
 cards-saved = Tarjetas guardadas
 cards-hint = Las tarjetas se almacenan de forma segura en nuestro proveedor de pagos. Los números de tarjeta nunca llegan a nuestros servidores.
@@ -986,7 +1682,7 @@ cards-remove-error = No se pudo eliminar la tarjeta
 cards-default-updated = Tarjeta predeterminada actualizada
 cards-removed = Tarjeta eliminada
 
-## Marcos de cumplimiento (release enterprise)
+## Compliance frameworks (enterprise-grade release)
 compliance-frameworks = Marcos
 compliance-new-framework = Nuevo
 compliance-framework-name = Nombre
@@ -1014,7 +1710,7 @@ compliance-total-controls = Total de Controles
 compliance-coverage = Cobertura
 compliance-no-frameworks = Aún no hay marcos configurados.
 
-## Conectores de fuentes (release enterprise)
+## Sources connectors (enterprise-grade release)
 sources-connectors = Conectores
 sources-add-connector = Añadir Conector
 sources-connector-name = Nombre

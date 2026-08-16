@@ -1,8 +1,8 @@
-# General Bots - Mensajes de Error (Español)
-# Este archivo contiene todas las traducciones de mensajes de error
+# General Bots - Error Messages (English)
+# This file contains all error message translations
 
 # =============================================================================
-# Errores HTTP
+# HTTP Errors
 # =============================================================================
 
 error-http-400 = Solicitud incorrecta. Por favor verifica tu entrada.
@@ -17,7 +17,7 @@ error-http-503 = Servicio temporalmente no disponible. Por favor intenta más ta
 error-http-504 = La solicitud expiró después de { $milliseconds }ms.
 
 # =============================================================================
-# Errores de Validación
+# Validation Errors
 # =============================================================================
 
 error-validation-required = { $field } es requerido.
@@ -36,7 +36,7 @@ error-validation-date-past = { $field } debe ser en el pasado.
 error-validation-date-future = { $field } debe ser en el futuro.
 
 # =============================================================================
-# Errores de Autenticación
+# Authentication Errors
 # =============================================================================
 
 error-auth-invalid-credentials = Correo o contraseña inválidos.
@@ -51,7 +51,7 @@ error-auth-password-weak = La contraseña es muy débil. Por favor usa una contr
 error-auth-password-expired = Tu contraseña ha expirado. Por favor restablécela.
 
 # =============================================================================
-# Errores de Configuración
+# Configuration Errors
 # =============================================================================
 
 error-config = Error de configuración: { $message }
@@ -61,7 +61,7 @@ error-config-file-not-found = Archivo de configuración no encontrado: { $path }
 error-config-parse = Error al analizar configuración: { $message }
 
 # =============================================================================
-# Errores de Base de Datos
+# Database Errors
 # =============================================================================
 
 error-database = Error de base de datos: { $message }
@@ -72,7 +72,7 @@ error-database-duplicate = Ya existe un registro con este { $field }.
 error-database-migration = La migración de base de datos falló: { $message }
 
 # =============================================================================
-# Errores de Archivos y Almacenamiento
+# File & Storage Errors
 # =============================================================================
 
 error-file-not-found = Archivo no encontrado: { $filename }
@@ -85,7 +85,7 @@ error-storage-full = Cuota de almacenamiento excedida.
 error-storage-unavailable = El servicio de almacenamiento no está disponible.
 
 # =============================================================================
-# Errores de Red y Servicios Externos
+# Network & External Service Errors
 # =============================================================================
 
 error-network = Error de red: { $message }
@@ -96,7 +96,7 @@ error-external-api = Error de API externa: { $message }
 error-rate-limit = Límite de tasa alcanzado. Reintentar después de { $seconds }s.
 
 # =============================================================================
-# Errores de Bot y Diálogos
+# Bot & Dialog Errors
 # =============================================================================
 
 error-bot-not-found = Bot no encontrado: { $botId }
@@ -108,7 +108,7 @@ error-dialog-not-found = Diálogo no encontrado: { $dialogId }
 error-dialog-invalid = Configuración de diálogo inválida: { $message }
 
 # =============================================================================
-# Errores de LLM e IA
+# LLM & AI Errors
 # =============================================================================
 
 error-llm-unavailable = El servicio de IA no está disponible actualmente.
@@ -120,7 +120,7 @@ error-llm-invalid-response = Se recibió una respuesta inválida del servicio de
 error-llm-empty-response = Lo siento, no pude procesar tu mensaje ahora. Intenta de nuevo en unos segundos.
 
 # =============================================================================
-# Errores de Correo Electrónico
+# Email Errors
 # =============================================================================
 
 error-email-send-failed = Error al enviar correo: { $message }
@@ -129,7 +129,7 @@ error-email-attachment-failed = Error al adjuntar archivo: { $filename }
 error-email-template-not-found = Plantilla de correo no encontrada: { $template }
 
 # =============================================================================
-# Errores de Calendario y Programación
+# Calendar & Scheduling Errors
 # =============================================================================
 
 error-calendar-conflict = El horario conflictúa con un evento existente.
@@ -138,7 +138,7 @@ error-calendar-invalid-recurrence = Patrón de recurrencia inválido.
 error-calendar-event-not-found = Evento no encontrado: { $eventId }
 
 # =============================================================================
-# Errores de Tareas
+# Task Errors
 # =============================================================================
 
 error-task-not-found = Tarea no encontrada: { $taskId }
@@ -147,7 +147,7 @@ error-task-circular-dependency = Se detectó una dependencia circular en las tar
 error-task-invalid-status = Transición de estado de tarea inválida.
 
 # =============================================================================
-# Errores de Permisos
+# Permission Errors
 # =============================================================================
 
 error-permission-denied = No tienes permiso para realizar esta acción.
@@ -156,7 +156,7 @@ error-permission-action = No puedes { $action } este { $resource }.
 error-permission-owner-only = Solo el propietario puede realizar esta acción.
 
 # =============================================================================
-# Errores Genéricos
+# Generic Errors
 # =============================================================================
 
 error-internal = Error interno: { $message }

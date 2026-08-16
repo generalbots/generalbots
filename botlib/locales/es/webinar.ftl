@@ -1,7 +1,7 @@
 # =============================================================================
-# General Bots - Webinar Translations (Spanish)
+# General Bots - Webinar Translations (English)
 # =============================================================================
-# Traducciones de la interfaz de webinar, grabación y transcripción
+# Webinar, recording, and transcription interface translations
 # =============================================================================
 
 # -----------------------------------------------------------------------------

@@ -18,8 +18,8 @@ notification-title-info = Información
 
 notification-message-new = Tienes un nuevo mensaje de { $sender }
 notification-message-unread = Tienes { $count ->
-    [one] { $count } mensaje sin leer
-   *[other] { $count } mensajes sin leer
+    [one] { $count } unread message
+   *[other] { $count } unread messages
 }
 notification-task-due-soon = La tarea "{ $task }" vence en { $time }
 notification-task-due-today = La tarea "{ $task }" vence hoy
@@ -90,20 +90,20 @@ notification-action-decline = Rechazar
 
 notification-time-just-now = Ahora mismo
 notification-time-minutes = { $count ->
-    [one] hace { $count } minuto
-   *[other] hace { $count } minutos
+    [one] { $count } minute ago
+   *[other] { $count } minutes ago
 }
 notification-time-hours = { $count ->
-    [one] hace { $count } hora
-   *[other] hace { $count } horas
+    [one] { $count } hour ago
+   *[other] { $count } hours ago
 }
 notification-time-days = { $count ->
-    [one] hace { $count } día
-   *[other] hace { $count } días
+    [one] { $count } day ago
+   *[other] { $count } days ago
 }
 notification-time-weeks = { $count ->
-    [one] hace { $count } semana
-   *[other] hace { $count } semanas
+    [one] { $count } week ago
+   *[other] { $count } weeks ago
 }
 
 notification-preference-all = Todas las notificaciones

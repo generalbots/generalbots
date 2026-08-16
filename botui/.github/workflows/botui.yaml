@@ -41,6 +41,11 @@ jobs:
           sed -i '/"botplugin",/d' Cargo.toml
           sed -i '/"bottemplates",/d' Cargo.toml
 
+      - name: Locale parity check
+        run: |
+          # Fail the build when any locale catalog misses keys defined in en.
+          python3 workspace/scripts/check_locales.py --root workspace --locales es,zh-CN,fr,de,ja,ko
+
       - name: Cache Cargo registry
         uses: actions/cache@v4
         with:

@@ -2,6 +2,9 @@
   "use strict";
 
   const DEFAULT_LOCALE = "en";
+
+  // Languages rendered right-to-left; the document dir attribute follows.
+  const RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
   const STORAGE_KEY = "gb-locale";
   const CACHE_VERSION = "v2";
   const CACHE_TTL_MS = 3600000;
@@ -30,7 +33,7 @@
       navigator.language || navigator.userLanguage || DEFAULT_LOCALE;
     const shortLang = browserLang.split("-")[0];
 
-    const supportedLocales = ["en", "pt-BR", "es", "zh-CN"];
+    const supportedLocales = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
 
     if (supportedLocales.includes(browserLang)) {
       return browserLang;
@@ -199,7 +202,9 @@
     await loadTranslations(locale);
     translatePage();
 
-    document.documentElement.setAttribute("lang", locale.split("-")[0]);
+    const lang = locale.split("-")[0];
+    document.documentElement.setAttribute("lang", lang);
+    document.documentElement.setAttribute("dir", RTL_LANGUAGES.includes(lang) ? "rtl" : "ltr");
 
     window.dispatchEvent(
       new CustomEvent("localeChanged", {
@@ -259,6 +264,10 @@
     console.log(`i18n: Detected locale: ${locale}`);
     await loadTranslations(locale);
 
+    const lang = currentLocale.split("-")[0];
+    document.documentElement.setAttribute("lang", lang);
+    document.documentElement.setAttribute("dir", RTL_LANGUAGES.includes(lang) ? "rtl" : "ltr");
+
     isInitialized = true;
     console.log(`i18n: Initialization complete, current locale: ${currentLocale}`);
 
@@ -283,7 +292,7 @@
     } catch (e) {
       console.warn("i18n: Failed to fetch available locales", e);
     }
-    return ["en", "pt-BR", "es"];
+    return ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
   }
 
   function getCurrentLocale() {

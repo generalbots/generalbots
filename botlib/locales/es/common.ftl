@@ -1,18 +1,18 @@
 # ============================================================================
-# General Bots - Traducciones Comunes (Español)
+# General Bots - Common Translations (English)
 # ============================================================================
-# Este archivo contiene cadenas compartidas utilizadas en todos los componentes de GB.
-# Mantener los IDs de mensaje en minúsculas con guiones: categoría-subcategoría-descriptor
+# This file contains shared strings used across all GB components.
+# Keep message IDs lowercase with hyphens: category-subcategory-descriptor
 # ============================================================================
 
 # -----------------------------------------------------------------------------
-# Marca
+# Brand
 # -----------------------------------------------------------------------------
 app-name = General Bots
 app-tagline = Tu espacio de trabajo de productividad impulsado por IA
 
 # -----------------------------------------------------------------------------
-# Acciones Comunes
+# Common Actions
 # -----------------------------------------------------------------------------
 action-save = Guardar
 action-cancel = Cancelar
@@ -81,7 +81,7 @@ action-signup = Registrarse
 action-forgot-password = Olvidé mi Contraseña
 
 # -----------------------------------------------------------------------------
-# Etiquetas Comunes
+# Common Labels
 # -----------------------------------------------------------------------------
 label-loading = Cargando...
 label-saving = Guardando...
@@ -149,7 +149,7 @@ label-in = En
 label-of = De
 
 # -----------------------------------------------------------------------------
-# Mensajes de Estado
+# Status Messages
 # -----------------------------------------------------------------------------
 status-success = Éxito
 status-error = Error
@@ -175,65 +175,65 @@ status-busy = Ocupado
 status-away = Ausente
 
 # -----------------------------------------------------------------------------
-# Diálogos de Confirmación
+# Confirmation Dialogs
 # -----------------------------------------------------------------------------
 confirm-delete = ¿Estás seguro de que deseas eliminar esto?
 confirm-delete-item = ¿Estás seguro de que deseas eliminar "{ $name }"?
 confirm-delete-items = ¿Estás seguro de que deseas eliminar { $count ->
-    [one] este elemento
-   *[other] estos { $count } elementos
+    [one] this item
+   *[other] these { $count } items
 }?
 confirm-discard-changes = Tienes cambios sin guardar. ¿Estás seguro de que deseas descartarlos?
 confirm-logout = ¿Estás seguro de que deseas cerrar sesión?
 confirm-cancel = ¿Estás seguro de que deseas cancelar?
 
 # -----------------------------------------------------------------------------
-# Tiempo y Fechas
+# Time and Dates
 # -----------------------------------------------------------------------------
 time-now = Ahora mismo
 time-seconds-ago = { $count ->
-    [one] hace { $count } segundo
-   *[other] hace { $count } segundos
+    [one] { $count } second ago
+   *[other] { $count } seconds ago
 }
 time-minutes-ago = { $count ->
-    [one] hace { $count } minuto
-   *[other] hace { $count } minutos
+    [one] { $count } minute ago
+   *[other] { $count } minutes ago
 }
 time-hours-ago = { $count ->
-    [one] hace { $count } hora
-   *[other] hace { $count } horas
+    [one] { $count } hour ago
+   *[other] { $count } hours ago
 }
 time-days-ago = { $count ->
-    [one] hace { $count } día
-   *[other] hace { $count } días
+    [one] { $count } day ago
+   *[other] { $count } days ago
 }
 time-weeks-ago = { $count ->
-    [one] hace { $count } semana
-   *[other] hace { $count } semanas
+    [one] { $count } week ago
+   *[other] { $count } weeks ago
 }
 time-months-ago = { $count ->
-    [one] hace { $count } mes
-   *[other] hace { $count } meses
+    [one] { $count } month ago
+   *[other] { $count } months ago
 }
 time-years-ago = { $count ->
-    [one] hace { $count } año
-   *[other] hace { $count } años
+    [one] { $count } year ago
+   *[other] { $count } years ago
 }
 time-in-seconds = { $count ->
-    [one] en { $count } segundo
-   *[other] en { $count } segundos
+    [one] in { $count } second
+   *[other] in { $count } seconds
 }
 time-in-minutes = { $count ->
-    [one] en { $count } minuto
-   *[other] en { $count } minutos
+    [one] in { $count } minute
+   *[other] in { $count } minutes
 }
 time-in-hours = { $count ->
-    [one] en { $count } hora
-   *[other] en { $count } horas
+    [one] in { $count } hour
+   *[other] in { $count } hours
 }
 time-in-days = { $count ->
-    [one] en { $count } día
-   *[other] en { $count } días
+    [one] in { $count } day
+   *[other] in { $count } days
 }
 time-today = Hoy
 time-yesterday = Ayer
@@ -248,7 +248,7 @@ time-this-year = Este año
 time-last-year = El año pasado
 time-next-year = El próximo año
 
-# Días de la semana
+# Days of the week
 day-sunday = Domingo
 day-monday = Lunes
 day-tuesday = Martes
@@ -264,7 +264,7 @@ day-thu = Jue
 day-fri = Vie
 day-sat = Sáb
 
-# Meses
+# Months
 month-january = Enero
 month-february = Febrero
 month-march = Marzo
@@ -291,7 +291,7 @@ month-nov = Nov
 month-dec = Dic
 
 # -----------------------------------------------------------------------------
-# Tamaños de Archivo
+# File Sizes
 # -----------------------------------------------------------------------------
 size-bytes = { $value } B
 size-kilobytes = { $value } KB
@@ -300,10 +300,10 @@ size-gigabytes = { $value } GB
 size-terabytes = { $value } TB
 
 # -----------------------------------------------------------------------------
-# Paginación
+# Pagination
 # -----------------------------------------------------------------------------
 pagination-page = Página { $current } de { $total }
-pagination-showing = Mostrando { $start } a { $end } de { $total }
+pagination-showing = Mostrando { $from } a { $to } de { $total }
 pagination-items-per-page = Elementos por página
 pagination-first = Primera
 pagination-previous = Anterior
@@ -312,7 +312,7 @@ pagination-last = Última
 pagination-go-to-page = Ir a la página
 
 # -----------------------------------------------------------------------------
-# Validación de Formularios
+# Form Validation
 # -----------------------------------------------------------------------------
 validation-required = Este campo es requerido
 validation-required-field = { $field } es requerido
@@ -330,7 +330,7 @@ validation-file-too-large = El archivo es muy grande. El tamaño máximo es { $m
 validation-file-type-invalid = Tipo de archivo inválido. Tipos permitidos: { $types }
 
 # -----------------------------------------------------------------------------
-# Accesibilidad
+# Accessibility
 # -----------------------------------------------------------------------------
 a11y-skip-to-content = Saltar al contenido principal
 a11y-loading = Cargando, por favor espera
