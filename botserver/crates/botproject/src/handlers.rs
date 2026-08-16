@@ -1,28 +1,119 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Extension, Path, State},
     http::StatusCode,
     Json,
 };
+use botsecurity_auth::auth_api::types::AuthenticatedUser;
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::types::*;
 use crate::service::ProjectService;
+use crate::types::*;
+
+type ApiError = (StatusCode, Json<serde_json::Value>);
+
+fn forbidden() -> ApiError {
+    (
+        StatusCode::FORBIDDEN,
+        Json(serde_json::json!({ "error": "Forbidden" })),
+    )
+}
+
+fn not_found(what: &str) -> ApiError {
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::json!({ "error": what })),
+    )
+}
+
+/// Effective tenant scope for a user. When the auth middleware has not
+/// attached an organization (service accounts, some legacy sessions) we fall
+/// back to the user's own id so a user never sees another user's data.
+fn user_org(user: &AuthenticatedUser) -> Uuid {
+    user.organization_id.unwrap_or(user.user_id)
+}
+
+/// Projects are tenant-scoped by `organization_id`. Admins can read across
+/// tenants; everyone else is confined to their own organization.
+fn can_access_project(user: &AuthenticatedUser, project: &Project) -> bool {
+    user.is_admin() || project.organization_id == user_org(user)
+}
+
+/// Load a project and verify the caller may access it, or return 403/404.
+async fn require_project(
+    service: &ProjectService,
+    user: &AuthenticatedUser,
+    project_id: Uuid,
+) -> Result<Project, ApiError> {
+    let project = service
+        .get_project(project_id)
+        .await
+        .ok_or_else(|| not_found("Project not found"))?;
+    if !can_access_project(user, &project) {
+        return Err(forbidden());
+    }
+    Ok(project)
+}
+
+/// Load a task and verify the caller may access its owning project.
+async fn require_task(
+    service: &ProjectService,
+    user: &AuthenticatedUser,
+    task_id: Uuid,
+) -> Result<ProjectTask, ApiError> {
+    let task = service
+        .get_task(task_id)
+        .await
+        .ok_or_else(|| not_found("Task not found"))?;
+    let project = service
+        .get_project(task.project_id)
+        .await
+        .ok_or_else(|| not_found("Project not found"))?;
+    if !can_access_project(user, &project) {
+        return Err(forbidden());
+    }
+    Ok(task)
+}
+
+/// Load a resource and verify the caller may access its owning project.
+async fn require_resource(
+    service: &ProjectService,
+    user: &AuthenticatedUser,
+    resource_id: Uuid,
+) -> Result<Resource, ApiError> {
+    let resource = service
+        .get_resource(resource_id)
+        .await
+        .ok_or_else(|| not_found("Resource not found"))?;
+    let project = service
+        .get_project(resource.project_id)
+        .await
+        .ok_or_else(|| not_found("Project not found"))?;
+    if !can_access_project(user, &project) {
+        return Err(forbidden());
+    }
+    Ok(resource)
+}
 
 pub async fn create_project(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateProjectRequest>,
-) -> Result<Json<Project>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<Project>, ApiError> {
+    if user.user_id.is_nil() {
+        return Err(forbidden());
+    }
+
     let project = Project {
         id: Uuid::new_v4(),
-        organization_id: Uuid::new_v4(),
+        organization_id: user_org(&user),
         name: req.name,
         description: req.description,
         start_date: req.start_date,
         end_date: req.end_date,
         status: ProjectStatus::Planning,
-        owner_id: Uuid::new_v4(),
+        owner_id: user.user_id,
         created_at: Utc::now(),
         updated_at: Utc::now(),
         settings: ProjectSettings::default(),
@@ -34,35 +125,34 @@ pub async fn create_project(
 
 pub async fn list_projects(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Json<Vec<Project>> {
-    let projects = service.get_all_projects().await;
-    Json(projects)
+    if user.is_admin() {
+        Json(service.get_all_projects().await)
+    } else {
+        Json(service.get_projects_for_organization(user_org(&user)).await)
+    }
 }
 
 pub async fn get_project(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<Project>, (StatusCode, Json<serde_json::Value>)> {
-    match service.get_project(project_id).await {
-        Some(project) => Ok(Json(project)),
-        None => Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Project not found"})),
-        )),
-    }
+) -> Result<Json<Project>, ApiError> {
+    let project = require_project(&service, &user, project_id).await?;
+    Ok(Json(project))
 }
 
 pub async fn delete_project(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
+    require_project(&service, &user, project_id).await?;
     if service.delete_project(project_id).await {
-        Ok(Json(serde_json::json!({"success": true})))
+        Ok(Json(serde_json::json!({ "success": true })))
     } else {
-        Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Project not found"})),
-        ))
+        Err(not_found("Project not found"))
     }
 }
 
@@ -70,18 +160,11 @@ pub async fn delete_project(
 /// overlays the provided fields, refreshes `updated_at`, and persists.
 pub async fn update_project(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
     Json(req): Json<UpdateProjectRequest>,
-) -> Result<Json<Project>, (StatusCode, Json<serde_json::Value>)> {
-    let mut project = service
-        .get_project(project_id)
-        .await
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "Project not found"})),
-            )
-        })?;
+) -> Result<Json<Project>, ApiError> {
+    let mut project = require_project(&service, &user, project_id).await?;
 
     if let Some(name) = req.name {
         if !name.trim().is_empty() {
@@ -106,29 +189,17 @@ pub async fn update_project(
         .update_project(project)
         .await
         .map(Json)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "Project not found"})),
-            )
-        })
+        .ok_or_else(|| not_found("Project not found"))
 }
 
 /// Single-purpose lifecycle transition endpoint (issue #873).
 pub async fn update_project_status(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
     Json(req): Json<UpdateProjectStatusRequest>,
-) -> Result<Json<Project>, (StatusCode, Json<serde_json::Value>)> {
-    let mut project = service
-        .get_project(project_id)
-        .await
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "Project not found"})),
-            )
-        })?;
+) -> Result<Json<Project>, ApiError> {
+    let mut project = require_project(&service, &user, project_id).await?;
 
     project.status = req.status;
     project.updated_at = Utc::now();
@@ -137,19 +208,17 @@ pub async fn update_project_status(
         .update_project(project)
         .await
         .map(Json)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "Project not found"})),
-            )
-        })
+        .ok_or_else(|| not_found("Project not found"))
 }
 
 pub async fn create_task(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
     Json(req): Json<CreateTaskRequest>,
-) -> Result<Json<ProjectTask>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<ProjectTask>, ApiError> {
+    require_project(&service, &user, project_id).await?;
+
     let end_date = req.start_date + chrono::Duration::days(req.duration_days as i64);
 
     let task = ProjectTask {
@@ -186,93 +255,89 @@ pub async fn create_task(
 
 pub async fn get_tasks(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<Vec<ProjectTask>>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<Vec<ProjectTask>>, ApiError> {
+    require_project(&service, &user, project_id).await?;
     let tasks = service.get_tasks_for_project(project_id).await;
     Ok(Json(tasks))
 }
 
 pub async fn update_task_progress(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(task_id): Path<Uuid>,
     Json(req): Json<UpdateProgressRequest>,
-) -> Result<Json<ProjectTask>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<ProjectTask>, ApiError> {
+    require_task(&service, &user, task_id).await?;
     match service.update_task_progress(task_id, req.percent_complete).await {
         Some(task) => Ok(Json(task)),
-        None => Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Task not found"})),
-        )),
+        None => Err(not_found("Task not found")),
     }
 }
 
 pub async fn add_dependency(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(task_id): Path<Uuid>,
     Json(req): Json<AddDependencyRequest>,
-) -> Result<Json<ProjectTask>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<ProjectTask>, ApiError> {
+    require_task(&service, &user, task_id).await?;
     match service
         .add_dependency(task_id, req.predecessor_id, req.dependency_type, req.lag_days.unwrap_or(0))
         .await
     {
         Some(task) => Ok(Json(task)),
-        None => Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Task not found"})),
-        )),
+        None => Err(not_found("Task not found")),
     }
 }
 
 pub async fn get_gantt_chart(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<GanttChartData>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<GanttChartData>, ApiError> {
+    require_project(&service, &user, project_id).await?;
     match service.get_gantt_chart_data(project_id).await {
         Some(data) => Ok(Json(data)),
-        None => Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Project not found"})),
-        )),
+        None => Err(not_found("Project not found")),
     }
 }
 
 pub async fn get_timeline(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<TimelineView>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<TimelineView>, ApiError> {
+    require_project(&service, &user, project_id).await?;
     match service.get_timeline_view(project_id).await {
         Some(view) => Ok(Json(view)),
-        None => Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Project not found"})),
-        )),
+        None => Err(not_found("Project not found")),
     }
 }
 
 pub async fn get_critical_path(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<CriticalPathAnalysis>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<CriticalPathAnalysis>, ApiError> {
+    require_project(&service, &user, project_id).await?;
     match service.calculate_critical_path_analysis(project_id).await {
         Some(analysis) => Ok(Json(analysis)),
-        None => Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Project not found or has no tasks"})),
-        )),
+        None => Err(not_found("Project not found or has no tasks")),
     }
 }
 
 pub async fn delete_task(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(task_id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
+    require_task(&service, &user, task_id).await?;
     if service.delete_task(task_id).await {
-        Ok(Json(serde_json::json!({"success": true})))
+        Ok(Json(serde_json::json!({ "success": true })))
     } else {
-        Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Task not found"})),
-        ))
+        Err(not_found("Task not found"))
     }
 }
 
@@ -280,15 +345,11 @@ pub async fn delete_task(
 /// `start_date`/`duration_days` change and refreshes `updated_at`.
 pub async fn update_task(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(task_id): Path<Uuid>,
     Json(req): Json<UpdateTaskRequest>,
-) -> Result<Json<ProjectTask>, (StatusCode, Json<serde_json::Value>)> {
-    let mut task = service.get_task(task_id).await.ok_or_else(|| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Task not found"})),
-        )
-    })?;
+) -> Result<Json<ProjectTask>, ApiError> {
+    let mut task = require_task(&service, &user, task_id).await?;
 
     if let Some(name) = req.name {
         if !name.trim().is_empty() {
@@ -341,36 +402,31 @@ pub async fn update_task(
         .update_task(task)
         .await
         .map(Json)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "Task not found"})),
-            )
-        })
+        .ok_or_else(|| not_found("Task not found"))
 }
 
 pub async fn remove_dependency(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(task_id): Path<Uuid>,
     Json(req): Json<RemoveDependencyRequest>,
-) -> Result<Json<ProjectTask>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<ProjectTask>, ApiError> {
+    require_task(&service, &user, task_id).await?;
     service
         .remove_dependency(task_id, req.predecessor_id)
         .await
         .map(Json)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "Task not found"})),
-            )
-        })
+        .ok_or_else(|| not_found("Task not found"))
 }
 
 pub async fn create_resource(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
     Json(req): Json<CreateResourceRequest>,
-) -> Json<Resource> {
+) -> Result<Json<Resource>, ApiError> {
+    require_project(&service, &user, project_id).await?;
+
     let resource = Resource {
         id: Uuid::new_v4(),
         project_id,
@@ -385,50 +441,102 @@ pub async fn create_resource(
         calendar_id: None,
         created_at: Utc::now(),
     };
-    Json(service.create_resource(resource).await)
+    Ok(Json(service.create_resource(resource).await))
 }
 
 pub async fn list_resources(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
-) -> Json<Vec<Resource>> {
-    Json(service.get_resources_for_project(project_id).await)
+) -> Result<Json<Vec<Resource>>, ApiError> {
+    require_project(&service, &user, project_id).await?;
+    Ok(Json(service.get_resources_for_project(project_id).await))
 }
 
 pub async fn delete_resource(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(resource_id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
+    require_resource(&service, &user, resource_id).await?;
     if service.delete_resource(resource_id).await {
-        Ok(Json(serde_json::json!({"success": true})))
+        Ok(Json(serde_json::json!({ "success": true })))
     } else {
-        Err((
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Resource not found"})),
-        ))
+        Err(not_found("Resource not found"))
     }
 }
 
 pub async fn assign_resource(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(task_id): Path<Uuid>,
     Json(req): Json<AssignResourceRequest>,
-) -> Result<Json<ResourceAssignment>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<ResourceAssignment>, ApiError> {
+    require_task(&service, &user, task_id).await?;
     service
         .assign_resource(task_id, req.resource_id, req.units, req.work_hours)
         .await
         .map(Json)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "Task or resource not found"})),
-            )
-        })
+        .ok_or_else(|| not_found("Task or resource not found"))
 }
 
 pub async fn list_assignments(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(task_id): Path<Uuid>,
-) -> Json<Vec<ResourceAssignment>> {
-    Json(service.get_assignments_for_task(task_id).await)
+) -> Result<Json<Vec<ResourceAssignment>>, ApiError> {
+    require_task(&service, &user, task_id).await?;
+    Ok(Json(service.get_assignments_for_task(task_id).await))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use botsecurity_auth::auth_api::types::Role;
+
+    fn test_project(org: Uuid) -> Project {
+        Project {
+            id: Uuid::new_v4(),
+            organization_id: org,
+            name: "p".to_string(),
+            description: None,
+            start_date: chrono::NaiveDate::from_ymd_opt(2026, 8, 16).unwrap(),
+            end_date: None,
+            status: ProjectStatus::Planning,
+            owner_id: Uuid::new_v4(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            settings: ProjectSettings::default(),
+        }
+    }
+
+    #[test]
+    fn user_org_uses_organization_when_present() {
+        let org = Uuid::new_v4();
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "tester".into()).with_organization(org);
+        assert_eq!(user_org(&user), org);
+    }
+
+    #[test]
+    fn user_org_falls_back_to_user_id() {
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "tester".into());
+        assert_eq!(user_org(&user), user.user_id);
+    }
+
+    #[test]
+    fn project_access_is_scoped_to_organization() {
+        let org = Uuid::new_v4();
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "tester".into()).with_organization(org);
+
+        // Same organization -> allowed.
+        assert!(can_access_project(&user, &test_project(org)));
+        // Different organization -> denied (the IDOR / cross-tenant leak guard).
+        assert!(!can_access_project(&user, &test_project(Uuid::new_v4())));
+    }
+
+    #[test]
+    fn admin_can_access_any_organization() {
+        let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin".into()).with_role(Role::Admin);
+        assert!(can_access_project(&admin, &test_project(Uuid::new_v4())));
+    }
 }

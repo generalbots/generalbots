@@ -2497,6 +2497,7 @@ name = "botproject"
 version = "6.3.1"
 dependencies = [
  "axum",
+ "botsecurity-auth",
  "chrono",
  "diesel",
  "log",

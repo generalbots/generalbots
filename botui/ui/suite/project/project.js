@@ -72,6 +72,8 @@ async function loadProjectData(projectId) {
         renderGanttChart(tasks);
         renderListView(tasks);
         renderBoardView(tasks);
+        renderTimelineView(tasks);
+        renderResourceView();
         bindProjectCommentsBadge();
     } catch (e) {
         console.error('Failed to load project data:', e);
@@ -270,6 +272,75 @@ function renderBoardColumn(containerId, tasks) {
         `;
     }
     container.innerHTML = html;
+}
+
+function renderTimelineView(tasks) {
+    const container = document.getElementById('timeline-container');
+    if (!container) return;
+
+    if (!tasks || tasks.length === 0) {
+        container.innerHTML = '<div class="empty-state-inline">No tasks in this project</div>';
+        return;
+    }
+
+    const sorted = tasks.slice().sort((a, b) =>
+        (a.start_date || a.startDate || '').localeCompare(b.start_date || b.startDate || '')
+    );
+    let html = '<div class="timeline-list">';
+    for (const task of sorted) {
+        const pct = task.percent_complete || task.percentComplete || 0;
+        const statusLabel = pct === 100 ? 'Completed' : pct > 0 ? 'In Progress' : 'Not Started';
+        html += `
+            <div class="timeline-row" onclick="showTaskDetail('${task.id}')">
+                <span class="timeline-date">${task.start_date || task.startDate || ''}</span>
+                <span class="timeline-name">${task.name || ''}</span>
+                <span class="timeline-end">&rarr; ${task.end_date || task.endDate || ''}</span>
+                <span class="status-badge status-${statusLabel.toLowerCase().replace(' ', '-')}">${statusLabel}</span>
+            </div>
+        `;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+async function renderResourceView() {
+    const container = document.getElementById('resource-container');
+    if (!container) return;
+    if (!currentProjectId) {
+        container.innerHTML = '<div class="empty-state-inline">Select a project to view resources</div>';
+        return;
+    }
+    try {
+        const resp = await fetch(`/api/projects/${currentProjectId}/resources`);
+        if (!resp.ok) {
+            container.innerHTML = '<div class="empty-state-inline">Failed to load resources</div>';
+            return;
+        }
+        const resources = await resp.json();
+        if (!resources || resources.length === 0) {
+            container.innerHTML = '<div class="empty-state-inline">No resources assigned to this project</div>';
+            return;
+        }
+        let html = '<table class="task-list-table resource-table"><thead><tr><th>Name</th><th>Type</th><th>Email</th><th>Max Units</th><th>Rate</th></tr></thead><tbody>';
+        for (const r of resources) {
+            const type = (r.resource_type && typeof r.resource_type === 'string') ? r.resource_type : 'work';
+            const rate = r.standard_rate != null ? r.standard_rate : '-';
+            const units = r.max_units != null ? `${r.max_units}%` : '100%';
+            html += `
+                <tr>
+                    <td>${r.name || ''}</td>
+                    <td>${type}</td>
+                    <td>${r.email || '-'}</td>
+                    <td>${units}</td>
+                    <td>${rate}</td>
+                </tr>
+            `;
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="empty-state-inline">Error loading resources</div>';
+    }
 }
 
 function showTaskDetail(taskId) {

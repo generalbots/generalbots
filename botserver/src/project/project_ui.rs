@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Query, State},
+    extract::{Extension, Query, State},
     http::StatusCode,
     response::Html,
     routing::get,
@@ -10,10 +10,15 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use super::ProjectService;
+use crate::security::auth_api::types::AuthenticatedUser;
 
 #[derive(Deserialize)]
 pub struct TaskFilterParams {
     status: Option<String>,
+}
+
+fn user_org(user: &AuthenticatedUser) -> Uuid {
+    user.organization_id.unwrap_or(user.user_id)
 }
 
 pub fn configure_project_ui_routes() -> Router<Arc<ProjectService>> {
@@ -39,9 +44,10 @@ async fn task_new_form() -> Html<&'static str> {
 
 async fn project_tasks_fragment(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TaskFilterParams>,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let projects = service.get_projects_for_organization(Uuid::nil()).await;
+    let projects = service.get_projects_for_organization(user_org(&user)).await;
     if projects.is_empty() {
         return Ok(Html("<tr><td colspan='6'>No projects available</td></tr>".to_string()));
     }
@@ -73,8 +79,9 @@ async fn project_tasks_fragment(
 
 async fn project_gantt_fragment(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let projects = service.get_projects_for_organization(Uuid::nil()).await;
+    let projects = service.get_projects_for_organization(user_org(&user)).await;
     if projects.is_empty() {
         return Ok(Html("<div class='gantt-empty'>Select a project to view Gantt chart</div>".to_string()));
     }
@@ -96,8 +103,9 @@ async fn project_gantt_fragment(
 
 async fn project_timeline_fragment(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let projects = service.get_projects_for_organization(Uuid::nil()).await;
+    let projects = service.get_projects_for_organization(user_org(&user)).await;
     if projects.is_empty() {
         return Ok(Html("<div class='timeline-empty'>Select a project to view timeline</div>".to_string()));
     }
@@ -120,8 +128,9 @@ async fn project_timeline_fragment(
 
 async fn project_tasks_list_fragment(
     State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let projects = service.get_projects_for_organization(Uuid::nil()).await;
+    let projects = service.get_projects_for_organization(user_org(&user)).await;
     if projects.is_empty() {
         return Ok(Html("<div class='list-empty'>No tasks available</div>".to_string()));
     }

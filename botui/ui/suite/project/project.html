@@ -79,6 +79,9 @@
                     <button class="view-btn" data-view="board" onclick="switchView('board')">
                         <span>&#x1F4CC;</span> Board
                     </button>
+                    <button class="view-btn" data-view="resource" onclick="switchView('resource')">
+                        <span>&#x1F465;</span> Resources
+                    </button>
                 </div>
                 <button
                     class="btn-secondary"
@@ -197,6 +200,13 @@
                         <h3>Completed</h3>
                         <div id="board-tasks-completed" class="column-tasks"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Resource View -->
+            <div id="resource-view" class="view-container">
+                <div id="resource-container" class="resource-container">
+                    <div class="empty-state-inline">Select a project to view resources</div>
                 </div>
             </div>
         </div>
