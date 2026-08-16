@@ -1,4 +1,8 @@
-const vibeMcp = {
+// Guard against double-declaration: vibe-mcp-panel.html is re-injected by
+// the desktop window manager on every open, so a top-level `const` threw
+// 'Identifier vibeMcp has already been declared'. Assigning to window keeps
+// a single singleton; the init hook re-runs against the fresh DOM.
+window.vibeMcp = window.vibeMcp || {
     init: function() {
         this.refreshServers();
     },
