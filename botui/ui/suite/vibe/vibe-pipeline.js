@@ -28,7 +28,8 @@
         el.textContent = "· · ·";
         D.api("/api/vibe/runs")
             .then(function (data) {
-                var runs = (data && data.runs) || [];
+                // /api/vibe/runs returns a bare array (not {runs:[...]}).
+                var runs = Array.isArray(data) ? data : (data && data.runs) || [];
                 if (!runs.length) {
                     el.textContent = "no runs yet";
                     return;
