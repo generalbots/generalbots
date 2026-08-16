@@ -298,7 +298,7 @@ auth-remember-me = Souviens-toi de moi
 auth-login-success = Connecté avec succès
 auth-logout-success = Déconnecté avec succès
 auth-invalid-credentials = Email ou mot de passe invalide
-auth-session-expired = Votre session a expiré. Veuillez vous reconnecter.
+auth-session-expired = Votre session a expiré
 
 # -----------------------------------------------------------------------------
 # Search
@@ -715,7 +715,7 @@ nav-all-apps = Toutes les candidatures
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = Bienvenue à nouveau
+auth-welcome-back = Bon retour, { $name } !
 auth-sign-in-to-account = Connectez-vous à votre compte General Bots
 auth-email-address = Adresse e-mail
 auth-email-placeholder = you@example.com
@@ -1556,7 +1556,7 @@ tickets-no-closed = Pas de billets fermés
 # Security Module
 # -----------------------------------------------------------------------------
 security-title = Sécurité
-security-subtitle = Outils de sécurité, analyse de conformité et protection des serveurs
+security-subtitle = Gérer les paramètres de sécurité de votre compte
 security-tab-compliance = Rapport de conformité des API
 security-tab-protection = Protection
 security-export-report = Exporter le rapport
@@ -1732,3 +1732,27 @@ sources-remove-connector = Supprimer
 sources-connector-health = Santé
 sources-connector-last-sync = Dernière synchronisation
 sources-no-connectors = Aucun connecteur configuré
+
+# VDI (remote desktop)
+vdi-title = Bureau virtuel
+vdi-new-connection = Nouvelle connexion
+vdi-connection-name = Nom de la connexion
+vdi-host = Hôte
+vdi-port = Port
+vdi-protocol = Protocole
+vdi-rdp-password = Mot de passe RDP
+vdi-rdp-domain = Domaine RDP (facultatif)
+vdi-save-connect = Enregistrer et se connecter
+vdi-cancel = Annuler
+vdi-connect = Se connecter
+vdi-delete = Supprimer
+vdi-no-connections = Aucune connexion pour l'instant
+vdi-create-first = Créez une nouvelle connexion pour commencer
+vdi-connecting = Connexion...
+vdi-connected = Connecté
+vdi-disconnected = Déconnecté
+vdi-error = Erreur
+vdi-clipboard-sent = Presse-papiers envoyé
+vdi-ctrl-alt-del-sent = Ctrl+Alt+Suppr envoyé
+vdi-rdp = RDP
+vdi-vnc = VNC

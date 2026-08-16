@@ -16,12 +16,12 @@
         var conn = CONNECTIONS.find(function (c) { return c.id === id; });
         if (!conn) return;
         var host = conn.host || conn.target_host || "";
-        var port = conn.port || conn.target_port || 5900;
+        var port = conn.port || conn.target_port || (conn.protocol === "rdp" ? 3389 : 5900);
         if (!host) {
             toast("Connection has no host", "error");
             return;
         }
-        startSession(host, port);
+        startSession(host, port, conn.protocol || "vnc");
     }
 
     function quickConnect() {

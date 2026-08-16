@@ -298,7 +298,7 @@ auth-remember-me = Erinnere dich an mich
 auth-login-success = Erfolgreich angemeldet
 auth-logout-success = Erfolgreich abgemeldet
 auth-invalid-credentials = Ungültige E-Mail-Adresse oder ungültiges Passwort
-auth-session-expired = Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.
+auth-session-expired = Ihre Sitzung ist abgelaufen
 
 # -----------------------------------------------------------------------------
 # Search
@@ -715,7 +715,7 @@ nav-all-apps = Alle Anwendungen
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = Willkommen zurück
+auth-welcome-back = Willkommen zurück, { $name }!
 auth-sign-in-to-account = Melden Sie sich bei Ihrem General Bots-Konto an
 auth-email-address = E-Mail-Adresse
 auth-email-placeholder = you@example.com
@@ -1556,7 +1556,7 @@ tickets-no-closed = Keine geschlossenen Tickets
 # Security Module
 # -----------------------------------------------------------------------------
 security-title = Sicherheit
-security-subtitle = Sicherheitstools, Compliance-Scans und Serverschutz
+security-subtitle = Verwalten Sie die Sicherheitseinstellungen Ihres Kontos
 security-tab-compliance = API-Konformitätsbericht
 security-tab-protection = Schutz
 security-export-report = Bericht exportieren
@@ -1732,3 +1732,27 @@ sources-remove-connector = Entfernen
 sources-connector-health = Gesundheit
 sources-connector-last-sync = Letzte Synchronisierung
 sources-no-connectors = Keine Konnektoren konfiguriert
+
+# VDI (remote desktop)
+vdi-title = Virtueller Desktop
+vdi-new-connection = Neue Verbindung
+vdi-connection-name = Verbindungsname
+vdi-host = Gastgeber
+vdi-port = Hafen
+vdi-protocol = Protokoll
+vdi-rdp-password = RDP-Passwort
+vdi-rdp-domain = RDP-Domäne (optional)
+vdi-save-connect = Speichern und verbinden
+vdi-cancel = Abbrechen
+vdi-connect = Verbinden
+vdi-delete = Löschen
+vdi-no-connections = Noch keine Verbindungen
+vdi-create-first = Erstellen Sie eine neue Verbindung, um loszulegen
+vdi-connecting = Verbinden...
+vdi-connected = Verbunden
+vdi-disconnected = Nicht verbunden
+vdi-error = Fehler
+vdi-clipboard-sent = Zwischenablage gesendet
+vdi-ctrl-alt-del-sent = Strg+Alt+Entf gesendet
+vdi-rdp = RDP
+vdi-vnc = VNC

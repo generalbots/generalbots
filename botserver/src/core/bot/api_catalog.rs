@@ -114,6 +114,15 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "POST", path: "/api/integrations/connectors/:id/sync", summary: "Trigger an immediate sync for a data connector" },
         ApiEndpoint { method: "DELETE", path: "/api/integrations/connectors/:id/disconnect", summary: "Remove a data connector and its vaulted credentials" },
         ApiEndpoint { method: "GET", path: "/api/integrations/connectors/templates", summary: "Connector type catalog for typed configuration forms" },
+
+        // VDI / remote desktop
+        ApiEndpoint { method: "GET", path: "/api/desktop/connections", summary: "List active and saved remote desktop (VNC/RDP) connections for the user" },
+        ApiEndpoint { method: "POST", path: "/api/desktop/connect", summary: "Register a remote desktop connection (VNC or RDP, credentials vaulted)" },
+        ApiEndpoint { method: "POST", path: "/api/desktop/connections/kill", summary: "Terminate all active desktop sessions for the current user" },
+        ApiEndpoint { method: "GET", path: "/api/desktop/connections/:id", summary: "Get a single desktop connection by id" },
+        ApiEndpoint { method: "DELETE", path: "/api/desktop/connections/:id", summary: "Delete a desktop connection and terminate its session" },
+        ApiEndpoint { method: "POST", path: "/api/desktop/health/rdp", summary: "Probe an RDP endpoint (host, port) and confirm an RDP server is listening" },
+        ApiEndpoint { method: "POST", path: "/api/desktop/health/tcp", summary: "Probe TCP reachability of a host and port" },
         // Compliance
         ApiEndpoint { method: "GET", path: "/api/compliance/frameworks", summary: "List compliance frameworks with control counts" },
         ApiEndpoint { method: "POST", path: "/api/compliance/frameworks", summary: "Create a compliance framework (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS, custom)" },
