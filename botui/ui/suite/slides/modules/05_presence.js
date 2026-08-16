@@ -17,6 +17,7 @@
 (function () {
   const cursors = new Map(); // userId -> { overlay, elementId }
   const typings = new Map(); // userId -> { pill, elementId }
+  let onlineUsers = [];      // most recent presence snapshot
 
   function elById(id) {
     return id ? document.querySelector('[data-id="' + id + '"]') : null;
@@ -91,9 +92,21 @@
     clearTyping: clearTyping,
 
     sync: function (users) {
-      const active = new Set((users || []).map(function (u) { return u.user_id; }));
+      onlineUsers = users || [];
+      const active = new Set(onlineUsers.map(function (u) { return u.user_id; }));
       cursors.forEach(function (_, id) { if (!active.has(id)) removeCursor(id); });
       typings.forEach(function (_, id) { if (!active.has(id)) clearTyping(id); });
+    },
+
+    list: function () {
+      return onlineUsers.slice();
+    },
+
+    follow: function (userId) {
+      const c = cursors.get(userId);
+      if (!c) return;
+      const el = elById(c.elementId);
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" });
     },
 
     clearAll: function () {

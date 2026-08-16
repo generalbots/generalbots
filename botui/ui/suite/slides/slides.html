@@ -83,6 +83,7 @@
         </div>
         <div class="toolbar-right">
             <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
+            <button class="btn-icon" id="followBtn" title="Collaborators & follow" onclick="event.stopPropagation(); window.GBCollabFollow && window.GBCollabFollow.toggle(this, function(){ return window.SlidesPresence; })" style="font-size:14px;padding:4px 6px;">👥</button>
             <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
             <span id="gb-auth-button"></span>
             <button class="btn-icon" id="commentsBtn" onclick="openSlidesComments()" title="Comments">
@@ -122,6 +123,7 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
 <script src="/suite/js/collab-comments.js"></script>
+<script src="/suite/js/collab-follow.js"></script>
 <script src="/suite/js/auth-guard.js"></script>
 <script src="/suite/slides/modules/01_state.js"></script>
 <script src="/suite/slides/modules/02_handles.js"></script>
