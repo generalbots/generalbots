@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 axum = { workspace = true, features = ["ws", "macros"] }
 botcore = { workspace = true }
+botsecurity-core = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
