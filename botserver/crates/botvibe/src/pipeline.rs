@@ -168,6 +168,16 @@ pub struct PipelineEngine {
     telemetry: Arc<VibeTelemetry>,
 }
 
+/// Run-scoped inputs for [`PipelineEngine::run`], bundled to keep the method
+/// signature within clippy's argument-count threshold.
+pub struct PipelineRunContext<'a> {
+    pub run_id: Uuid,
+    pub use_case: VibeUseCase,
+    pub intent: &'a str,
+    pub project_id: Option<&'a str>,
+    pub project_name: Option<&'a str>,
+}
+
 impl PipelineEngine {
     pub fn new(telemetry: Arc<VibeTelemetry>) -> Self {
         Self { telemetry }
@@ -204,14 +214,17 @@ impl PipelineEngine {
     pub async fn run(
         &self,
         pipeline: &RunPipeline,
-        run_id: Uuid,
-        use_case: VibeUseCase,
         executor: &VibeToolExecutor,
         state: &dyn VibeState,
-        intent: &str,
-        project_id: Option<&str>,
-        project_name: Option<&str>,
+        ctx: &PipelineRunContext<'_>,
     ) -> PipelineRunReport {
+        let PipelineRunContext {
+            run_id,
+            use_case,
+            intent,
+            project_id,
+            project_name,
+        } = *ctx;
         let mut reports = Vec::new();
         for stage in &pipeline.stages {
             let start = std::time::Instant::now();
@@ -480,7 +493,18 @@ mod tests {
         let pipeline = RunPipeline::for_use_case(VibeUseCase::SoftwareDevelopment);
         let run_id = Uuid::new_v4();
         let report = engine
-            .run(&pipeline, run_id, VibeUseCase::SoftwareDevelopment, &executor, &MockState::new(), "x", None, None)
+            .run(
+                &pipeline,
+                &executor,
+                &MockState::new(),
+                &PipelineRunContext {
+                    run_id,
+                    use_case: VibeUseCase::SoftwareDevelopment,
+                    intent: "x",
+                    project_id: None,
+                    project_name: None,
+                },
+            )
             .await;
         assert_eq!(report.stages.len(), 3);
         assert_eq!(report.run_id, run_id);

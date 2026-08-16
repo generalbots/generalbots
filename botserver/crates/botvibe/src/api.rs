@@ -1,5 +1,5 @@
 use crate::agent_loop::AgentLoop;
-use crate::pipeline::{PipelineEngine, RunPipeline, StageStatus};
+use crate::pipeline::{PipelineEngine, PipelineRunContext, RunPipeline, StageStatus};
 use crate::prompt_manager::VibePromptManager;
 use crate::telemetry::VibeTelemetry;
 use crate::tool_executor::{ToolDescriptor, VibeToolExecutor};
@@ -325,13 +325,15 @@ async fn create_run(
                 let report = engine
                     .run(
                         &pipeline,
-                        run_id,
-                        run.use_case,
                         &api_clone.tool_executor,
                         api_clone.state.as_ref(),
-                        &run.intent,
-                        project_id.as_deref(),
-                        project_name.as_deref(),
+                        &PipelineRunContext {
+                            run_id,
+                            use_case: run.use_case,
+                            intent: &run.intent,
+                            project_id: project_id.as_deref(),
+                            project_name: project_name.as_deref(),
+                        },
                     )
                     .await;
                 let failed = report

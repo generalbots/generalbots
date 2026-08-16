@@ -26,7 +26,7 @@ pub fn test_run() -> ToolHandler {
             let command = args.get("command").and_then(|v| v.as_str()).unwrap_or_default().to_string();
             let argv: Vec<String> = args.get("args")
                 .and_then(|v| v.as_array())
-                .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string).map(String::from)).collect())
+                .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect())
                 .unwrap_or_default();
             let timeout = args.get("timeout_secs").and_then(|v| v.as_u64()).unwrap_or(300);
             let cwd = match ensure_workspace(&project) {

@@ -53,7 +53,7 @@ async fn cdp_call(tab_id: &str, method: &str, params: Value) -> Result<Value, St
     let id = 1u64;
     let command = json!({ "id": id, "method": method, "params": params });
     ws.send(tokio_tungstenite::tungstenite::Message::Text(
-        command.to_string().into(),
+        command.to_string(),
     ))
     .await
     .map_err(|e| format!("CDP send failed: {e}"))?;
