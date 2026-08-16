@@ -76,6 +76,21 @@
     });
   }
 
+  function cellRef(row, col) {
+    return colName(col) + (row + 1);
+  }
+
+  // Open threaded comments (cross-app collab API) anchored to a cell.
+  function openCellComments(row, col) {
+    if (!window.GBCollabComments) return;
+    var ref = cellRef(row, col);
+    window.GBCollabComments.open({
+      resourceType: "sheet:cell",
+      resourceId: currentSheetId() + ":" + wsIndex() + ":" + ref,
+      title: "Comments on " + ref,
+    });
+  }
+
   function openMenu(row, col, e) {
     closeMenu();
     const g = grid();
@@ -101,6 +116,7 @@
     };
     menu.appendChild(item(hasNote ? "Edit note…" : "Add note…", function () { addNote(row, col); }));
     if (hasNote) menu.appendChild(item("Clear note", function () { clearNote(row, col); }));
+    menu.appendChild(item("Comment…", function () { openCellComments(row, col); }));
     document.body.appendChild(menu);
     let left = e.clientX;
     let top = e.clientY;
