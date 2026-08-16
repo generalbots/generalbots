@@ -20,7 +20,17 @@ function scheduleSave(id, content) {
       body: JSON.stringify({ id: id || "current", content: content })
     })
       .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
-      .then(function () { setSaveStatus("All changes saved", false); })
+      .then(function () {
+        setSaveStatus("All changes saved", false);
+        if (window.GBCollabActivity) {
+          window.GBCollabActivity.record({
+            resourceType: "docs",
+            resourceId: String(id || "current"),
+            action: "edit",
+            payload: {}
+          }).catch(function () {});
+        }
+      })
       .catch(function () { setSaveStatus("Save failed", true); });
   }, SAVE_DEBOUNCE_MS);
 }

@@ -17,6 +17,7 @@ use botcore::shared::state::AppState;
 use crate::security::auth_api::types::AuthenticatedUser;
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz, Uuid as SqlUuid};
+use diesel::PgConnection;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -67,6 +68,54 @@ fn extract_mentions(body: &str) -> Vec<String> {
         }
     }
     mentions
+}
+
+/// Append an audit-trail row for a resource. This is fire-and-forget from the
+/// mutating handlers — an audit-log failure is logged but never fatal to the
+/// primary write it trails.
+fn record_activity(
+    conn: &mut PgConnection,
+    actor_id: &str,
+    actor_name: &str,
+    resource_type: &str,
+    resource_id: &str,
+    action: &str,
+    payload: &serde_json::Value,
+) {
+    let payload_json = serde_json::to_string(payload).unwrap_or_else(|_| "{}".to_string());
+    let res = diesel::sql_query(
+        "INSERT INTO collab_activity \
+         (resource_type, resource_id, actor_id, actor_name, action, payload) \
+         VALUES ($1, $2, $3, $4, $5, $6)",
+    )
+    .bind::<Text, _>(resource_type)
+    .bind::<Text, _>(resource_id)
+    .bind::<Text, _>(actor_id)
+    .bind::<Text, _>(actor_name)
+    .bind::<Text, _>(action)
+    .bind::<Text, _>(&payload_json)
+    .execute(conn);
+    if let Err(e) = res {
+        warn!("collab activity insert failed: {e}");
+    }
+}
+
+/// Resolve the (resource_type, resource_id) a comment belongs to, so mutating
+/// handlers can write an audit trail against the parent resource.
+fn comment_resource(conn: &mut PgConnection, id: uuid::Uuid) -> Option<(String, String)> {
+    #[derive(QueryableByName)]
+    struct ResRow {
+        #[diesel(sql_type = Text)]
+        resource_type: String,
+        #[diesel(sql_type = Text)]
+        resource_id: String,
+    }
+    diesel::sql_query("SELECT resource_type, resource_id FROM collab_comments WHERE id = $1")
+        .bind::<SqlUuid, _>(id)
+        .load::<ResRow>(conn)
+        .ok()
+        .and_then(|mut rows| rows.pop())
+        .map(|r| (r.resource_type, r.resource_id))
 }
 
 // ---------------------------------------------------------------------------
@@ -187,6 +236,53 @@ struct PresenceRow {
     typing: bool,
     #[diesel(sql_type = Timestamptz)]
     last_seen: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ActivityQuery {
+    pub resource_type: String,
+    pub resource_id: String,
+    /// Max rows to return (1..200, default 50).
+    #[serde(default)]
+    pub limit: Option<i64>,
+    /// Cursor: return only events strictly older than this RFC3339 timestamp.
+    #[serde(default)]
+    pub before: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RecordActivityBody {
+    pub resource_type: String,
+    pub resource_id: String,
+    pub action: String,
+    #[serde(default)]
+    pub payload: serde_json::Value,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActivityItem {
+    pub id: String,
+    pub actor_id: String,
+    pub actor_name: String,
+    pub action: String,
+    pub payload: serde_json::Value,
+    pub created_at: String,
+}
+
+#[derive(QueryableByName)]
+struct ActivityRow {
+    #[diesel(sql_type = Text)]
+    id: String,
+    #[diesel(sql_type = Text)]
+    actor_id: String,
+    #[diesel(sql_type = Text)]
+    actor_name: String,
+    #[diesel(sql_type = Text)]
+    action: String,
+    #[diesel(sql_type = Text)]
+    payload: String,
+    #[diesel(sql_type = Timestamptz)]
+    created_at: chrono::DateTime<chrono::Utc>,
 }
 
 fn sanitize_resource(ty: &str, id: &str) -> bool {
@@ -378,6 +474,16 @@ pub async fn create_comment(
         info!("collab mentions: {:?}", mentions);
     }
 
+    record_activity(
+        &mut conn,
+        &author_id,
+        &author_name,
+        &req.resource_type,
+        &req.resource_id,
+        "comment",
+        &serde_json::json!({ "body_len": body.chars().count(), "reply": req.parent_id.is_some() }),
+    );
+
     Ok(Json(CommentItem {
         id: created.id,
         resource_type: req.resource_type,
@@ -427,6 +533,19 @@ pub async fn delete_comment(
     if changed == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Comment not found"));
     }
+
+    if let Some((resource_type, resource_id)) = comment_resource(&mut conn, id) {
+        record_activity(
+            &mut conn,
+            &uid,
+            &collab_user_name(&user),
+            &resource_type,
+            &resource_id,
+            "delete",
+            &serde_json::json!({ "comment_id": id.to_string() }),
+        );
+    }
+
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
@@ -478,6 +597,18 @@ pub async fn toggle_reaction(
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
         false
     };
+
+    if let Some((resource_type, resource_id)) = comment_resource(&mut conn, id) {
+        record_activity(
+            &mut conn,
+            &uid,
+            &collab_user_name(&user),
+            &resource_type,
+            &resource_id,
+            "reaction",
+            &serde_json::json!({ "comment_id": id.to_string(), "emoji": emoji, "added": added }),
+        );
+    }
 
     Ok(Json(serde_json::json!({ "success": true, "added": added })))
 }
@@ -547,6 +678,20 @@ pub async fn resolve_comment(
         return Err(err(StatusCode::NOT_FOUND, "Comment not found or not yours to resolve"));
     }
     info!("collab comment {} set resolved={} by {uid}", id, req.resolved);
+
+    let action = if req.resolved { "resolve" } else { "reopen" };
+    if let Some((resource_type, resource_id)) = comment_resource(&mut conn, id) {
+        record_activity(
+            &mut conn,
+            &uid,
+            &collab_user_name(&user),
+            &resource_type,
+            &resource_id,
+            action,
+            &serde_json::json!({ "comment_id": id.to_string() }),
+        );
+    }
+
     Ok(Json(serde_json::json!({ "success": true, "resolved": req.resolved })))
 }
 
@@ -707,8 +852,108 @@ pub async fn list_presence(
     Ok(Json(items))
 }
 
+/// `GET /api/activity?resource_type=&resource_id=&limit=&before=` — audit
+/// timeline for a resource, newest first, cursor-paginated on `created_at`.
+pub async fn list_activity(
+    State(state): State<Arc<AppState>>,
+    Extension(_user): Extension<AuthenticatedUser>,
+    Query(params): Query<ActivityQuery>,
+) -> Result<Json<Vec<ActivityItem>>, (StatusCode, Json<serde_json::Value>)> {
+    if !sanitize_resource(&params.resource_type, &params.resource_id) {
+        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+    }
+    let limit = params.limit.unwrap_or(50).clamp(1, 200);
+    let before = params
+        .before
+        .as_deref()
+        .map(|s| {
+            chrono::DateTime::parse_from_rfc3339(s)
+                .map(|d| d.with_timezone(&chrono::Utc))
+        })
+        .transpose()
+        .map_err(|_| err(StatusCode::BAD_REQUEST, "Invalid `before` cursor"))?;
+
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+
+    // A NULL `before` means "start from the newest"; the single 4-bind query
+    // keeps both cases type-compatible with diesel.
+    let rows = diesel::sql_query(
+        "SELECT id::text, actor_id, actor_name, action, payload, created_at \
+         FROM collab_activity \
+         WHERE resource_type = $1 AND resource_id = $2 \
+           AND ($3::timestamptz IS NULL OR created_at < $3) \
+         ORDER BY created_at DESC LIMIT $4",
+    )
+    .bind::<Text, _>(&params.resource_type)
+    .bind::<Text, _>(&params.resource_id)
+    .bind::<Nullable<Timestamptz>, _>(before)
+    .bind::<BigInt, _>(limit)
+    .load::<ActivityRow>(&mut conn)
+    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+
+    let items: Vec<ActivityItem> = rows
+        .into_iter()
+        .map(|r| ActivityItem {
+            id: r.id,
+            actor_id: r.actor_id,
+            actor_name: r.actor_name,
+            action: r.action,
+            payload: serde_json::from_str(&r.payload).unwrap_or(serde_json::Value::Null),
+            created_at: r.created_at.to_rfc3339(),
+        })
+        .collect();
+
+    Ok(Json(items))
+}
+
+/// `POST /api/activity` — record an audit event from a frontend mutation
+/// (edit/share/restore/transfer). The actor is always resolved server-side;
+/// `action` is restricted to a small allow-list.
+pub async fn record_activity_event(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<RecordActivityBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    if !sanitize_resource(&req.resource_type, &req.resource_id) {
+        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+    }
+    const ALLOWED: &[&str] = &[
+        "create", "edit", "comment", "delete", "resolve", "reopen",
+        "reaction", "share", "restore", "transfer",
+    ];
+    if !ALLOWED.contains(&req.action.as_str()) {
+        return Err(err(StatusCode::BAD_REQUEST, "Invalid action"));
+    }
+
+    let actor_id = collab_user_id(&user);
+    let actor_name = collab_user_name(&user);
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+
+    record_activity(
+        &mut conn,
+        &actor_id,
+        &actor_name,
+        &req.resource_type,
+        &req.resource_id,
+        &req.action,
+        &req.payload,
+    );
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
 pub fn configure_collab_routes() -> Router<Arc<AppState>> {
     Router::new()
+        .route(
+            "/api/activity",
+            get(list_activity).post(record_activity_event),
+        )
         .route(
             "/api/collab/comments",
             get(list_comments).post(create_comment),
