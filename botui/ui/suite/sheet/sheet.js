@@ -771,6 +771,21 @@
       },
       onDisconnect: function () {
         if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "offline"; }
+        if (window.SheetPresence) window.SheetPresence.clearAll();
+      },
+      onMessage: function (msg) {
+        if (!msg || !window.SheetPresence) return;
+        if (msg.msg_type === "cursor" || msg.msg_type === "cell_select") {
+          window.SheetPresence.cursor(msg);
+        }
+      },
+      onTyping: function (msg) {
+        if (!msg || !window.SheetPresence) return;
+        if (msg.msg_type === "typing_start") window.SheetPresence.typing(msg);
+        else if (msg.msg_type === "typing_stop") window.SheetPresence.clearTyping(msg.user_id);
+      },
+      onPresence: function (users) {
+        if (window.SheetPresence) window.SheetPresence.sync(users);
       },
       onEdit: function (msg) {
         if (!msg) return;
