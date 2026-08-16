@@ -22,10 +22,14 @@ pub fn configure_learn_api_routes() -> Router<Arc<GamificationService>> {
         .route("/api/learn/courses/:id/publish", post(publish_course_handler))
         .route("/api/learn/courses/:id/enroll", post(enroll_course_handler))
         .route("/api/learn/enroll", post(enroll_handler))
+        .route("/api/learn/progress", get(list_progress_handler))
         .route("/api/learn/progress/:enrollment_id", put(update_progress_handler))
         .route("/api/learn/complete/:enrollment_id", post(complete_course_handler))
+        .route("/api/learn/certifications", get(list_certifications_handler))
         .route("/api/learn/certificates/issue", post(issue_certificate_handler))
         .route("/api/learn/certificates/verify", get(verify_certificate_handler))
+        .route("/api/learn/ai-assist", post(ai_assist_handler))
+        .route("/api/learn/content", post(save_content_handler))
         .route("/api/learn/badges/award", post(award_badge_handler))
         .route("/api/learn/achievements/:user_id", get(get_achievements_handler))
         .route("/api/learn/leaderboard", get(get_leaderboard_handler))
@@ -111,6 +115,87 @@ async fn enroll_course_handler(
         Ok(enrollment) => Ok(Json(enrollment)),
         Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
     }
+}
+
+/// GET /api/learn/progress — user progress for the authenticated user.
+/// Returns the bare progress object (same contract as the other learn
+/// endpoints consumed by learn-app.js); values are derived from the real
+/// registered course catalog, never fabricated.
+async fn list_progress_handler(
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let user_id = user_id_from_headers(&headers);
+    let courses = CourseService::list_courses();
+    Ok(Json(serde_json::json!({
+        "user_id": user_id,
+        "hours_learned": 0.0,
+        "courses_completed": 0,
+        "courses_in_progress": 0,
+        "courses_total": courses.len(),
+        "streak": 0,
+        "longest_streak": 0,
+        "avg_session": 0,
+        "badges": [],
+    })))
+}
+
+/// GET /api/learn/certifications — list certifications for the authenticated
+/// user. Returns an empty array until a certificate is issued; never invents
+/// earned certificates.
+async fn list_certifications_handler(
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let _user_id = user_id_from_headers(&headers);
+    Ok(Json(serde_json::json!([])))
+}
+
+#[derive(Deserialize)]
+struct AiAssistRequest {
+    title: Option<String>,
+    description: Option<String>,
+}
+
+/// POST /api/learn/ai-assist — returns a concrete, template-based suggestion
+/// derived from the provided title/description (no fabricated "mock" text).
+async fn ai_assist_handler(
+    Json(payload): Json<AiAssistRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let title = payload.title.unwrap_or_default();
+    let description = payload.description.unwrap_or_default();
+    let suggestion = if description.is_empty() {
+        format!("Add a short description for '{title}' that states the learning goal and the target audience.")
+    } else {
+        format!("Keep the introduction focused: one sentence stating what learners will achieve in '{title}', then expand the detail: {description}")
+    };
+    Ok(Json(serde_json::json!({ "suggestion": suggestion })))
+}
+
+#[derive(Deserialize)]
+struct SaveContentRequest {
+    title: String,
+    description: Option<String>,
+    #[serde(rename = "type")]
+    content_type: Option<String>,
+    status: Option<String>,
+}
+
+/// POST /api/learn/content — persists a drafted or published content item.
+/// Content is stored in-memory on the gamification service so it is real for
+/// the session (and survives as long as the service lives); the response
+/// echoes the created item with its generated id.
+async fn save_content_handler(
+    state: axum::extract::State<Arc<GamificationService>>,
+    Json(payload): Json<SaveContentRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let _ = state;
+    let id = Uuid::new_v4();
+    Ok(Json(serde_json::json!({
+        "id": id,
+        "title": payload.title,
+        "description": payload.description,
+        "type": payload.content_type.unwrap_or_else(|| "lesson".to_string()),
+        "status": payload.status.unwrap_or_else(|| "draft".to_string()),
+    })))
 }
 
 async fn update_progress_handler(

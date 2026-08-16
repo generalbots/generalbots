@@ -125,6 +125,13 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "DELETE", path: "/api/integrations/connectors/:id/disconnect", summary: "Remove a data connector and its vaulted credentials" },
         ApiEndpoint { method: "GET", path: "/api/integrations/connectors/templates", summary: "Connector type catalog for typed configuration forms" },
 
+        // Learning / LMS
+        ApiEndpoint { method: "GET", path: "/api/learn/courses", summary: "List published courses with filters (category, difficulty, search)" },
+        ApiEndpoint { method: "POST", path: "/api/learn/courses", summary: "Create a course draft" },
+        ApiEndpoint { method: "POST", path: "/api/learn/courses/:id/enroll", summary: "Enroll the current user in a course" },
+        ApiEndpoint { method: "GET", path: "/api/learn/progress", summary: "Current user learning progress and stats" },
+        ApiEndpoint { method: "GET", path: "/api/learn/certifications", summary: "List certifications earned by the current user" },
+        ApiEndpoint { method: "GET", path: "/api/learn/leaderboard", summary: "Leaderboard of learners by XP" },
         // Sales / CRM pipeline
         ApiEndpoint { method: "GET", path: "/api/sales/deals", summary: "List sales deals with stage, value, probability and owner" },
         ApiEndpoint { method: "POST", path: "/api/sales/deals", summary: "Create a sales deal (title, value, stage, expected close date)" },
