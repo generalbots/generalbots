@@ -1,6 +1,7 @@
 use crate::collaboration::{
-    get_mentions, get_presence, get_selections, get_slide_channels,
-    get_typing, MentionNotification, SelectionInfo, TypingIndicator, UserPresence,
+    get_mentions, get_presence, get_presenter_control, get_questions, get_selections,
+    get_slide_channels, get_typing, MentionNotification, PresenterControl, Question, SelectionInfo,
+    TypingIndicator, UserPresence,
 };
 use crate::storage::DriveOps;
 use crate::types::SlideMessage;
@@ -150,6 +151,7 @@ async fn handle_slides_connection(socket: WebSocket, presentation_id: String, au
             match msg {
                 Ok(Message::Text(text)) => {
                     if let Ok(mut slide_msg) = serde_json::from_str::<SlideMessage>(&text) {
+                        let mut suppress = false;
                         slide_msg.user_id = user_id_clone.clone();
                         slide_msg.user_name = user_name_clone.clone();
                         slide_msg.user_color = user_color_clone.clone();
@@ -241,11 +243,133 @@ async fn handle_slides_connection(socket: WebSocket, presentation_id: String, au
                                     }
                                 }
                             }
+                            "question" => {
+                                let text = slide_msg
+                                    .data
+                                    .as_ref()
+                                    .and_then(|v| v.get("text"))
+                                    .and_then(|v| v.as_str())
+                                    .map(|s| s.to_string());
+                                if let Some(text) = text {
+                                    let qid = uuid::Uuid::new_v4().to_string();
+                                    let mut questions = get_questions().write().await;
+                                    questions
+                                        .entry(presentation_id_clone.clone())
+                                        .or_default()
+                                        .push(Question {
+                                            id: qid.clone(),
+                                            presentation_id: presentation_id_clone.clone(),
+                                            author_id: user_id_clone.clone(),
+                                            author_name: user_name_clone.clone(),
+                                            author_color: user_color_clone.clone(),
+                                            text,
+                                            slide_index: slide_msg.slide_index,
+                                            upvotes: 0,
+                                            answered: false,
+                                            created_at: chrono::Utc::now(),
+                                        });
+                                    // Echo the authoritative id so peer upvotes
+                                    // resolve against the stored question.
+                                    if let Some(obj) =
+                                        slide_msg.data.as_mut().and_then(|v| v.as_object_mut())
+                                    {
+                                        obj.insert(
+                                            "question_id".to_string(),
+                                            serde_json::Value::String(qid),
+                                        );
+                                    }
+                                }
+                            }
+                            "question_upvote" | "question_answered" => {
+                                if let Some(data) = &slide_msg.data {
+                                    if let Some(qid) = data.get("question_id").and_then(|v| v.as_str()) {
+                                        let mut questions = get_questions().write().await;
+                                        if let Some(list) = questions.get_mut(&presentation_id_clone) {
+                                            for q in list.iter_mut() {
+                                                if q.id == qid {
+                                                    if slide_msg.msg_type == "question_upvote" {
+                                                        q.upvotes += 1;
+                                                    } else {
+                                                        q.answered = true;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            "presenter_take" | "presenter_assign" | "presenter_release" => {
+                                let mut controls = get_presenter_control().write().await;
+                                match slide_msg.msg_type.as_str() {
+                                    "presenter_take" => {
+                                        controls
+                                            .entry(presentation_id_clone.clone())
+                                            .or_insert_with(|| PresenterControl {
+                                                presentation_id: presentation_id_clone.clone(),
+                                                presenter_id: user_id_clone.clone(),
+                                                presenter_name: user_name_clone.clone(),
+                                                co_presenters: Vec::new(),
+                                            });
+                                    }
+                                    "presenter_assign" => {
+                                        let target = slide_msg
+                                            .data
+                                            .as_ref()
+                                            .and_then(|v| v.get("target_user_id"))
+                                            .and_then(|v| v.as_str())
+                                            .map(|s| s.to_string());
+                                        if let Some(target) = target {
+                                            let entry = controls
+                                                .entry(presentation_id_clone.clone())
+                                                .or_insert_with(|| PresenterControl {
+                                                    presentation_id: presentation_id_clone.clone(),
+                                                    presenter_id: user_id_clone.clone(),
+                                                    presenter_name: user_name_clone.clone(),
+                                                    co_presenters: Vec::new(),
+                                                });
+                                            if !entry.co_presenters.iter().any(|c| c == &target) {
+                                                entry.co_presenters.push(target);
+                                            }
+                                        }
+                                    }
+                                    "presenter_release" => {
+                                        let is_presenter = controls
+                                            .get(&presentation_id_clone)
+                                            .map(|c| c.presenter_id == user_id_clone)
+                                            .unwrap_or(false);
+                                        if is_presenter {
+                                            controls.remove(&presentation_id_clone);
+                                        } else if let Some(control) =
+                                            controls.get_mut(&presentation_id_clone)
+                                        {
+                                            control.co_presenters.retain(|c| c != &user_id_clone);
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            "remote_nav" => {
+                                let authorized = {
+                                    let controls = get_presenter_control().read().await;
+                                    match controls.get(&presentation_id_clone) {
+                                        Some(c) => {
+                                            c.presenter_id == user_id_clone
+                                                || c.co_presenters.contains(&user_id_clone)
+                                        }
+                                        None => false,
+                                    }
+                                };
+                                if !authorized {
+                                    suppress = true;
+                                }
+                            }
                             _ => {}
                         }
 
-                        if let Err(e) = broadcast_tx_clone.send(slide_msg) {
-                            log::error!("Failed to broadcast message: {}", e);
+                        if !suppress {
+                            if let Err(e) = broadcast_tx_clone.send(slide_msg) {
+                                log::error!("Failed to broadcast message: {}", e);
+                            }
                         }
                     }
                 }

@@ -106,6 +106,9 @@ pub struct PresenterSession {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SlideMessage {
     pub msg_type: String,
+    /// Filled by the server from the WS route — the browser client sends
+    /// `doc_id` instead, so this must tolerate a missing value.
+    #[serde(default)]
     pub presentation_id: String,
     pub user_id: String,
     pub user_name: String,
@@ -116,6 +119,12 @@ pub struct SlideMessage {
     pub element_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
+    /// The browser sends `Date.now()` (epoch millis); the server stamps the
+    /// authoritative time anyway, so accept millis and default when absent.
+    #[serde(
+        default = "chrono::Utc::now",
+        with = "chrono::serde::ts_milliseconds"
+    )]
     pub timestamp: DateTime<Utc>,
 }
 

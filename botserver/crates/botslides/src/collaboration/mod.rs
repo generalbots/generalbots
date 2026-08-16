@@ -32,6 +32,14 @@ pub type MentionMap = Arc<tokio::sync::RwLock<HashMap<String, Vec<MentionNotific
 
 static MENTIONS: std::sync::OnceLock<MentionMap> = std::sync::OnceLock::new();
 
+pub type QuestionMap = Arc<tokio::sync::RwLock<HashMap<String, Vec<Question>>>>;
+
+static QUESTIONS: std::sync::OnceLock<QuestionMap> = std::sync::OnceLock::new();
+
+pub type PresenterControlMap = Arc<tokio::sync::RwLock<HashMap<String, PresenterControl>>>;
+
+static PRESENTER_CONTROL: std::sync::OnceLock<PresenterControlMap> = std::sync::OnceLock::new();
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserPresence {
     pub user_id: String,
@@ -74,6 +82,31 @@ pub struct MentionNotification {
     pub read: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Question {
+    pub id: String,
+    pub presentation_id: String,
+    pub author_id: String,
+    pub author_name: String,
+    pub author_color: String,
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub slide_index: Option<usize>,
+    #[serde(default)]
+    pub upvotes: usize,
+    #[serde(default)]
+    pub answered: bool,
+    pub created_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresenterControl {
+    pub presentation_id: String,
+    pub presenter_id: String,
+    pub presenter_name: String,
+    pub co_presenters: Vec<String>,
+}
+
 pub fn get_slide_channels() -> &'static SlideChannels {
     SLIDE_CHANNELS.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
 }
@@ -92,6 +125,14 @@ pub fn get_selections() -> &'static SelectionMap {
 
 pub fn get_mentions() -> &'static MentionMap {
     MENTIONS.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
+}
+
+pub fn get_questions() -> &'static QuestionMap {
+    QUESTIONS.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
+}
+
+pub fn get_presenter_control() -> &'static PresenterControlMap {
+    PRESENTER_CONTROL.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
 }
 
 pub async fn handle_get_collaborators(Path(presentation_id): Path<String>) -> impl IntoResponse {
@@ -144,6 +185,22 @@ pub async fn handle_get_mentions(
     let mentions = get_mentions().read().await;
     let user_mentions = mentions.get(&user_id).cloned().unwrap_or_default();
     Json(serde_json::json!({ "mentions": user_mentions }))
+}
+
+pub async fn handle_get_questions(
+    Path(presentation_id): Path<String>,
+) -> impl IntoResponse {
+    let questions = get_questions().read().await;
+    let list = questions.get(&presentation_id).cloned().unwrap_or_default();
+    Json(serde_json::json!({ "questions": list }))
+}
+
+pub async fn handle_get_presenter_control(
+    Path(presentation_id): Path<String>,
+) -> impl IntoResponse {
+    let controls = get_presenter_control().read().await;
+    let control = controls.get(&presentation_id).cloned();
+    Json(serde_json::json!({ "presenter": control }))
 }
 
 pub async fn broadcast_slide_change(
