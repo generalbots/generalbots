@@ -1660,3 +1660,24 @@ oauth-not-connected = Not connected
 oauth-linked = Linked
 oauth-no-accounts = No accounts linked yet.
 oauth-loading = Loading linked accounts…
+
+## Payment cards (Stripe SetupIntent)
+cards-title = Payment & Cards
+cards-saved = Saved cards
+cards-hint = Cards are stored securely by our payment provider. Card numbers never reach our servers.
+cards-add = Add card
+cards-add-first = Add your first card
+cards-none = No cards saved yet
+cards-empty-hint = Add a card to enable automatic billing and faster checkouts. You will be redirected to our secure payment provider to enter your card details.
+cards-default = Default
+cards-set-default = Set default
+cards-default-btn = Default card
+cards-remove = Remove
+cards-remove-confirm = Remove this card?
+cards-expires = Expires
+cards-load-error = Could not load saved cards.
+cards-add-error = Could not add a card
+cards-default-error = Could not update default
+cards-remove-error = Could not remove card
+cards-default-updated = Default card updated
+cards-removed = Card removed

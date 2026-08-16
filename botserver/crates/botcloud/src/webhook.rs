@@ -54,7 +54,30 @@ async fn handle_stripe_webhook(
 
     match event_type {
         WebhookEventType::CheckoutCompleted(session) => {
-            process_checkout_completed(&service, &session).await
+            // Setup-mode checkouts collect a saved card; subscription checkouts
+            // pay an invoice. Dispatch accordingly.
+            if session.mode == "setup" {
+                crate::payment_cards::sync_checkout_setup(&service, &session)
+                    .await
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+            } else {
+                process_checkout_completed(&service, &session).await
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+            }
+        }
+        WebhookEventType::PaymentMethodAttached(pm) => {
+            crate::payment_cards::sync_payment_method(&service, &pm, false)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+        }
+        WebhookEventType::PaymentMethodUpdated(pm) => {
+            crate::payment_cards::sync_payment_method(&service, &pm, false)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+        }
+        WebhookEventType::PaymentMethodDetached(pm) => {
+            crate::payment_cards::sync_payment_method(&service, &pm, true)
+                .await
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
         }
         WebhookEventType::InvoicePaid(invoice) => {

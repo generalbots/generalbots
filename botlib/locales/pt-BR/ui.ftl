@@ -1659,3 +1659,24 @@ oauth-not-connected = Não conectada
 oauth-linked = Vinculada
 oauth-no-accounts = Nenhuma conta vinculada ainda.
 oauth-loading = Carregando contas vinculadas…
+
+## Cartões de pagamento (Stripe SetupIntent)
+cards-title = Pagamento e Cartões
+cards-saved = Cartões salvos
+cards-hint = Os cartões são armazenados com segurança pelo nosso provedor de pagamento. Os números dos cartões nunca chegam aos nossos servidores.
+cards-add = Adicionar cartão
+cards-add-first = Adicionar seu primeiro cartão
+cards-none = Nenhum cartão salvo ainda
+cards-empty-hint = Adicione um cartão para habilitar cobrança automática e checkouts mais rápidos. Você será redirecionado ao nosso provedor seguro de pagamento para inserir os dados do cartão.
+cards-default = Padrão
+cards-set-default = Definir como padrão
+cards-default-btn = Cartão padrão
+cards-remove = Remover
+cards-remove-confirm = Remover este cartão?
+cards-expires = Expira em
+cards-load-error = Não foi possível carregar os cartões salvos.
+cards-add-error = Não foi possível adicionar um cartão
+cards-default-error = Não foi possível atualizar o cartão padrão
+cards-remove-error = Não foi possível remover o cartão
+cards-default-updated = Cartão padrão atualizado
+cards-removed = Cartão removido

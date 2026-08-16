@@ -188,8 +188,12 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/vouchers", post(crate::vouchers::create_voucher).get(crate::vouchers::list_vouchers))
         .route("/api/cloud/vouchers/redeem", post(crate::vouchers::redeem_voucher))
         .route("/api/cloud/vouchers/my", get(crate::vouchers::get_my_redemptions))
-        // Payment cards (stub — real impl via Stripe SetupIntent)
-        .route("/api/cloud/payment-cards", get(list_payment_cards))
+        // Payment cards (Stripe SetupIntent / hosted Checkout setup mode)
+        .route("/api/cloud/payment-cards", get(crate::payment_cards::list_payment_cards))
+        .route("/api/cloud/payment-cards/setup", post(crate::payment_cards::create_payment_card_setup))
+        .route("/api/cloud/payment-cards/setup-intent", post(crate::payment_cards::create_payment_card_setup_intent))
+        .route("/api/cloud/payment-cards/:pm_id/default", post(crate::payment_cards::set_default_payment_card))
+        .route("/api/cloud/payment-cards/:pm_id", delete(crate::payment_cards::delete_payment_card))
         // Store items
         .route("/api/cloud/store", get(list_store_items))
         .route("/api/cloud/store/purchase", post(handle_store_purchase))
@@ -618,6 +622,16 @@ async fn handle_checkout(
         })
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Stripe customer: {e}")))?;
+
+    // Persist the Stripe Customer mapping so SetupIntent card management and
+    // webhook events can resolve the owning branch later.
+    crate::payment_cards::persist_customer_mapping(
+        &service,
+        effective_branch_id,
+        &stripe_customer.id,
+        &customer_email,
+    )
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Stripe customer mapping: {e}")))?;
 
     let plan_config = botbilling::default_product_config();
     let plan = plan_config.plans.get(&payload.plan)
@@ -2308,19 +2322,8 @@ async fn list_invoices(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Payment Cards (Stripe — lists the customer's payment methods)
+// Payment Cards (Stripe SetupIntent) — implemented in `crate::payment_cards`
 // ─────────────────────────────────────────────────────────────────────────────
-
-/// `GET /api/cloud/payment-cards`
-async fn list_payment_cards(
-    State(_service): State<Arc<SaasService>>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // Stub: in production, list Stripe Customer payment methods linked to the authenticated user
-    Ok(Json(serde_json::json!({
-        "cards": [],
-        "message": "Payment cards are managed via Stripe. Add a card during checkout."
-    })))
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Store catalogue (products available for purchase)
