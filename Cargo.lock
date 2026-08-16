@@ -1779,7 +1779,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "botcore",
- "botsecurity-core",
  "chrono",
  "diesel",
  "log",
