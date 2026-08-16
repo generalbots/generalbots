@@ -742,7 +742,10 @@ pub async fn search_records_handler(
     let table_name = sanitize_identifier(&table);
     let user_roles = user_roles_from_headers(&headers);
     let limit = payload.limit.unwrap_or(20).min(100);
-    let search_term = payload.query.replace('\'', "''");
+    // The search term is bound via $1 (not inlined), so no SQL-string escaping
+    // is needed; only LIKE wildcards are escaped below. The previous `''`
+    // single-quote escaping double-escaped bound values (e.g. "O'Brien" became
+    // "O''Brien" and never matched).
 
     let mut conn = match state.conn.get() {
         Ok(c) => c,
@@ -761,7 +764,7 @@ pub async fn search_records_handler(
             }
         };
 
-    let safe_search = search_term.replace('%', "\\%").replace('_', "\\_");
+    let safe_search = payload.query.replace('%', "\\%").replace('_', "\\_");
 
     // Discover the table's text columns so search works on any table shape
     // (previously hardcoded title/name/description, which 500s on generic tables).
