@@ -137,6 +137,7 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/js/collab-follow.js"></script>
 <script src="/suite/js/collab-activity.js"></script>
 <script src="/suite/js/collab-versions.js"></script>
+<script src="/suite/js/collab-conflict.js"></script>
 <script src="/suite/js/collab-share.js"></script>
 <script src="/suite/js/auth-guard.js"></script>
 <script src="/suite/docs/modules/01_state.js"></script>
@@ -215,12 +216,23 @@ function openDocActivity() {
         title: "Activity on " + title,
     });
 }
+/* Docs conflict watch — poll the op-log for concurrent/LLM edits. */
+function startDocConflictWatch() {
+    if (!window.GBCollabConflict) return;
+    var article = document.querySelector("article[contenteditable]");
+    var docId = (article && article.dataset && article.dataset.docId) || "current";
+    window.GBCollabConflict.start({
+        resourceType: "docs",
+        resourceId: String(docId)
+    });
+}
 document.addEventListener("htmx:afterSwap", function (e) {
     if (e.target.id === "docs-content") {
         setTimeout(bindDocsBadge, 0);
         setTimeout(function () { if (typeof checkDocDraftOnLoad === "function") checkDocDraftOnLoad(); }, 0);
+        setTimeout(startDocConflictWatch, 0);
     }
 });
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(bindDocsBadge, 50); });
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(bindDocsBadge, 50); setTimeout(startDocConflictWatch, 50); });
 else setTimeout(bindDocsBadge, 50);
 </script>

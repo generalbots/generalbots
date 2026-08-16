@@ -134,6 +134,7 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/js/collab-follow.js"></script>
 <script src="/suite/js/collab-activity.js"></script>
 <script src="/suite/js/collab-versions.js"></script>
+<script src="/suite/js/collab-conflict.js"></script>
 <script src="/suite/js/collab-share.js"></script>
 <script src="/suite/js/auth-guard.js"></script>
 <script src="/suite/slides/modules/01_state.js"></script>
@@ -275,6 +276,14 @@ function bindSlidesBadge() {
         includeChildren: true,
     });
 }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindSlidesBadge);
-else bindSlidesBadge();
+/* Slides conflict watch — poll the op-log for concurrent/LLM edits. */
+function startSlidesConflictWatch() {
+    if (!window.GBCollabConflict) return;
+    window.GBCollabConflict.start({
+        resourceType: "slides",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current"
+    });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { bindSlidesBadge(); startSlidesConflictWatch(); });
+else { bindSlidesBadge(); startSlidesConflictWatch(); }
 </script>

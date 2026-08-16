@@ -3036,6 +3036,7 @@ name = "botslides"
 version = "6.3.1"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "botlib",
  "botsecurity-auth",
  "chrono",

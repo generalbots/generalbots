@@ -28,7 +28,7 @@ fn err(status: StatusCode, msg: &str) -> (StatusCode, Json<serde_json::Value>) {
     (status, Json(serde_json::json!({ "error": msg })))
 }
 
-fn collab_user_id(user: &AuthenticatedUser) -> String {
+pub(crate) fn collab_user_id(user: &AuthenticatedUser) -> String {
     if let Some(ref email) = user.email {
         if !email.is_empty() && email != "session-user" {
             return email.clone();
@@ -41,7 +41,7 @@ fn collab_user_id(user: &AuthenticatedUser) -> String {
     }
 }
 
-fn collab_user_name(user: &AuthenticatedUser) -> String {
+pub(crate) fn collab_user_name(user: &AuthenticatedUser) -> String {
     if let Some(ref email) = user.email {
         if !email.is_empty() && email != "session-user" {
             return email.split('@').next().unwrap_or(email).to_string();
@@ -624,7 +624,7 @@ fn valid_grantee_type(t: &str) -> bool {
     matches!(t, "user" | "group" | "domain")
 }
 
-fn sanitize_resource(ty: &str, id: &str) -> bool {
+pub(crate) fn sanitize_resource(ty: &str, id: &str) -> bool {
     !ty.trim().is_empty()
         && ty.len() <= 64
         && !id.trim().is_empty()
@@ -2200,4 +2200,5 @@ pub fn configure_collab_routes() -> Router<Arc<AppState>> {
         .route("/api/collab/versions/:id", get(get_version))
         .route("/api/collab/versions/:id/restore", post(restore_version))
         .route("/api/collab/versions/:id/name", post(name_version))
+        .merge(super::collab_ops::configure_collab_ops_routes())
 }
