@@ -82,6 +82,15 @@ impl TerminalSession {
         cmd.cwd(&self.cwd);
         cmd.env("TERM", "xterm-256color");
         cmd.env("PS1", "\\u@\\h:\\w \\$ ");
+        // HOME must be explicit: the child inherits an empty HOME (the server
+        // runs without a passwd entry in the container), so interactive bash
+        // sources `/.cargo/env` (empty $HOME) and prints a spurious
+        // "No such file or directory" before the prompt.
+        if let Ok(home) = std::env::var("HOME") {
+            cmd.env("HOME", home);
+        } else {
+            cmd.env("HOME", "/root");
+        }
 
         let child = pair
             .slave

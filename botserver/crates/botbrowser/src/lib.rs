@@ -27,36 +27,53 @@ pub struct BrowserSession {
     pub current_url: Arc<Mutex<String>>,
 }
 
+/// Returns the CDP endpoint to attach to, or None when the session should
+/// launch its own chromium process. Mirrors the env contract used by the
+/// Vibe browser tools (`BROWSER_CDP_URL`) so prod can expose a shared
+/// chromium without shipping a binary into the container.
+fn cdp_connect_url() -> Option<String> {
+    std::env::var("BROWSER_CDP_URL")
+        .ok()
+        .filter(|u| !u.trim().is_empty())
+}
+
 impl BrowserSession {
     pub async fn new(headless: bool) -> Result<Self> {
         let id = uuid::Uuid::new_v4().to_string();
-        // Unique per-session Chrome profile: avoids the singleton lock that
-        // kills concurrent launches (all sessions share the default profile).
-        let profile_dir = std::env::temp_dir().join(format!("gb-browser-{id}"));
-        let mut builder = CdpBrowserConfig::builder()
-            .no_sandbox()
-            .user_data_dir(&profile_dir)
-            .viewport(chromiumoxide::handler::viewport::Viewport {
-                width: 1280,
-                height: 720,
-                device_scale_factor: None,
-                emulating_mobile: false,
-                is_landscape: false,
-                has_touch: false,
-            })
-            .window_size(1280, 720)
-            .launch_timeout(Duration::from_secs(30))
-            .request_timeout(Duration::from_secs(30));
 
-        if headless {
-            builder = builder.headless_mode(chromiumoxide::browser::HeadlessMode::New);
-        }
+        let (browser, mut handler) = if let Some(cdp_url) = cdp_connect_url() {
+            CdpBrowser::connect(&cdp_url)
+                .await
+                .context("Failed to connect to browser CDP endpoint")?
+        } else {
+            // Unique per-session Chrome profile: avoids the singleton lock that
+            // kills concurrent launches (all sessions share the default profile).
+            let profile_dir = std::env::temp_dir().join(format!("gb-browser-{id}"));
+            let mut builder = CdpBrowserConfig::builder()
+                .no_sandbox()
+                .user_data_dir(&profile_dir)
+                .viewport(chromiumoxide::handler::viewport::Viewport {
+                    width: 1280,
+                    height: 720,
+                    device_scale_factor: None,
+                    emulating_mobile: false,
+                    is_landscape: false,
+                    has_touch: false,
+                })
+                .window_size(1280, 720)
+                .launch_timeout(Duration::from_secs(30))
+                .request_timeout(Duration::from_secs(30));
 
-        let config = builder.build().map_err(|e| anyhow::anyhow!("{e}"))?;
+            if headless {
+                builder = builder.headless_mode(chromiumoxide::browser::HeadlessMode::New);
+            }
 
-        let (browser, mut handler) = CdpBrowser::launch(config)
-            .await
-            .context("Failed to launch browser")?;
+            let config = builder.build().map_err(|e| anyhow::anyhow!("{e}"))?;
+
+            CdpBrowser::launch(config)
+                .await
+                .context("Failed to launch browser")?
+        };
 
         tokio::spawn(async move {
             while let Some(event) = handler.next().await {
