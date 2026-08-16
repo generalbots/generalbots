@@ -65,7 +65,12 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_anonymous_path("/api/whatsapp/webhook")
             .add_anonymous_path("/api/facebook/webhook")
             .add_anonymous_path("/api/catalog")
-            .add_anonymous_path("/api/bots/")
+            // Only the bot access-check endpoint is anonymous: it must answer
+            // whether a bot is public before the caller has a token. The
+            // trailing-slash `/api/bots/` previously listed here was a no-op
+            // (the matcher produced the `/api/bots//` prefix), so bot config
+            // mutations stayed protected — keep it that way with an exact glob.
+            .add_anonymous_path("/api/bots/*/access")
             .add_anonymous_path("/api/cloud/auth/login")
             .add_anonymous_path("/api/cloud/auth/signup")
             .add_anonymous_path("/api/cloud/auth")
