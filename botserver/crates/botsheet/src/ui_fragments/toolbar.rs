@@ -18,9 +18,10 @@ pub async fn handle_share_form(
     let action = params.get("action").cloned().unwrap_or_else(|| "share".to_string());
     if action == "delete_named" {
         let name = params.get("name").cloned().unwrap_or_default();
+        let escaped_name = html_escape(&name);
         return Html(format!(
             r##"<div class="ss-toast" style="padding:12px;background:#7f1d1d;color:#fecaca;border-radius:6px;">{}</div>"##,
-            tf(lang, "form.share.removed", &[("name", &html_escape(name))])
+            tf(lang, "form.share.removed", &[("name", &escaped_name)])
         ));
     }
     Html(format!(
@@ -43,7 +44,7 @@ pub async fn handle_share_form(
         comment = t(lang, "form.share.comment"),
         edit = t(lang, "form.share.edit"),
         submit = t(lang, "form.share.submit"),
-        id = html_escape(sheet_id)
+        id = html_escape(&sheet_id)
     ))
 }
 
@@ -74,7 +75,7 @@ pub async fn handle_find_replace_form(
         replace = t(lang, "form.replace.label"),
         replace_ph = t(lang, "form.replace.placeholder"),
         apply = t(lang, "form.apply"),
-        id = html_escape(sheet_id)
+        id = html_escape(&sheet_id)
     ))
 }
 
@@ -123,7 +124,7 @@ pub async fn handle_conditional_format_form(
         value = t(lang, "form.value"),
         bg = t(lang, "form.cf.bg"),
         submit = t(lang, "form.cf.submit"),
-        id = html_escape(sheet_id)
+        id = html_escape(&sheet_id)
     ))
 }
 
@@ -171,7 +172,7 @@ pub async fn handle_data_validation_form(
         error_msg = t(lang, "form.dv.error_msg"),
         invalid = t(lang, "toast.invalid_value"),
         submit = t(lang, "form.dv.submit"),
-        id = html_escape(sheet_id)
+        id = html_escape(&sheet_id)
     ))
 }
 
@@ -207,7 +208,7 @@ pub async fn handle_custom_format_form(
         code = t(lang, "form.fmt.code"),
         examples = t(lang, "form.fmt.examples"),
         submit = t(lang, "form.fmt.submit"),
-        id = html_escape(sheet_id)
+        id = html_escape(&sheet_id)
     ))
 }
 
@@ -235,7 +236,7 @@ pub async fn handle_insert_image_form(
         file = t(lang, "form.img.file"),
         anchor = t(lang, "form.img.anchor"),
         submit = t(lang, "form.img.submit"),
-        id = html_escape(sheet_id)
+        id = html_escape(&sheet_id)
     ))
 }
 
@@ -274,7 +275,7 @@ pub async fn handle_print_preview_form(
         landscape = t(lang, "form.print.landscape"),
         scale = t(lang, "form.print.scale"),
         submit = t(lang, "form.print.submit"),
-        id = html_escape(sheet_id)
+        id = html_escape(&sheet_id)
     ))
 }
 
@@ -323,6 +324,6 @@ pub async fn handle_chart_form(
         title = t(lang, "form.chart.title"),
         anchor = t(lang, "form.chart.anchor"),
         submit = t(lang, "form.chart.submit"),
-        id = html_escape(sheet_id)
+        id = html_escape(&sheet_id)
     ))
 }
