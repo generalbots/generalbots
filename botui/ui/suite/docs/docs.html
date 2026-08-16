@@ -131,6 +131,7 @@ if (typeof htmx === 'undefined') {
 </script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
+<script src="/suite/js/offline-draft.js"></script>
 <script src="/suite/js/collab-a11y.js"></script>
 <script src="/suite/js/collab-comments.js"></script>
 <script src="/suite/js/collab-follow.js"></script>
@@ -215,7 +216,10 @@ function openDocActivity() {
     });
 }
 document.addEventListener("htmx:afterSwap", function (e) {
-    if (e.target.id === "docs-content") setTimeout(bindDocsBadge, 0);
+    if (e.target.id === "docs-content") {
+        setTimeout(bindDocsBadge, 0);
+        setTimeout(function () { if (typeof checkDocDraftOnLoad === "function") checkDocDraftOnLoad(); }, 0);
+    }
 });
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(bindDocsBadge, 50); });
 else setTimeout(bindDocsBadge, 50);
