@@ -1012,7 +1012,8 @@
             <div class="setting-card">
                 <div class="card-header">
                     <h2>API Keys</h2>
-                    <button class="btn-primary btn-sm" disabled title="Coming soon">
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('create-api-key-modal').showModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1033,7 +1034,8 @@
             <div class="setting-card">
                 <div class="card-header">
                     <h2>Webhooks</h2>
-                    <button class="btn-primary btn-sm" disabled title="Coming soon">
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('add-webhook-modal').showModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1224,7 +1226,8 @@
             <div class="setting-card">
                 <div class="card-header">
                     <h2>Payment Method</h2>
-                    <button class="btn-primary btn-sm" disabled title="Coming soon">
+                    <button class="btn-primary btn-sm"
+                        onclick="window.location.href=(window.GB_CLOUD_URL || window.location.origin.replace(/:\d+$/, function(_, p) { return p === '3000' ? ':4000' : ':' + p })) + '/cloud/payment-cards';">
                         Add Method
                     </button>
                 </div>
@@ -1542,6 +1545,75 @@
                 <button type="button" class="btn-secondary"
                     onclick="document.getElementById('register-dns-modal').close()">Cancel</button>
                 <button type="submit" class="btn-primary">Register</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<dialog id="create-api-key-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="settings-create-api-key">Create API Key</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('create-api-key-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/user/api-keys" hx-target="#create-api-key-result" hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/api-keys', { target: '#api-keys-list', swap: 'innerHTML' }); }">
+            <div class="form-group">
+                <label data-i18n="settings-api-key-name">Key Name</label>
+                <input type="text" name="name" required placeholder="Production key">
+            </div>
+            <div class="form-group">
+                <label data-i18n="settings-api-key-scopes">Scopes (comma-separated)</label>
+                <input type="text" name="scopes" placeholder="user, admin">
+                <p class="hint" data-i18n="settings-api-key-scopes-hint">Leave empty for the default "user" scope.</p>
+            </div>
+            <div class="form-group">
+                <label data-i18n="settings-api-key-expiry">Expires in (days)</label>
+                <input type="number" name="expires_in_days" min="1" placeholder="90">
+                <p class="hint" data-i18n="settings-api-key-expiry-hint">Leave empty for no expiration.</p>
+            </div>
+            <div id="create-api-key-result"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('create-api-key-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Create Key</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<dialog id="add-webhook-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="settings-add-webhook">Add Webhook</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('add-webhook-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/user/webhooks" hx-target="#add-webhook-result" hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/webhooks', { target: '#webhooks-list', swap: 'innerHTML' }); }">
+            <div class="form-group">
+                <label data-i18n="settings-webhook-url">Webhook URL</label>
+                <input type="url" name="url" required placeholder="https://example.com/hooks/gb">
+            </div>
+            <div class="form-group">
+                <label data-i18n="settings-webhook-events">Events (comma-separated)</label>
+                <input type="text" name="events" placeholder="user.created, order.completed">
+                <p class="hint" data-i18n="settings-webhook-events-hint">Leave empty to receive all events.</p>
+            </div>
+            <div id="add-webhook-result"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('add-webhook-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Add Webhook</button>
             </div>
         </form>
     </div>

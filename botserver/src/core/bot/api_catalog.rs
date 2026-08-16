@@ -107,6 +107,16 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "GET", path: "/api/banking/diagnosis", summary: "Cash-flow diagnosis of the branch" },
         // Billing / payroll
         ApiEndpoint { method: "GET", path: "/api/billing/payroll/months", summary: "Monthly invoice totals as a payroll basis" },
+        // Settings: API keys & webhooks
+        ApiEndpoint { method: "GET", path: "/api/user/api-keys", summary: "List API keys with scopes and last-used time" },
+        ApiEndpoint { method: "POST", path: "/api/user/api-keys", summary: "Create an API key (name, scopes, expiry days)" },
+        ApiEndpoint { method: "DELETE", path: "/api/user/api-keys/:key_id", summary: "Revoke an API key" },
+        ApiEndpoint { method: "POST", path: "/api/user/api-keys/:key_id/rotate", summary: "Rotate an API key secret" },
+        ApiEndpoint { method: "GET", path: "/api/user/webhooks", summary: "List webhook endpoints" },
+        ApiEndpoint { method: "POST", path: "/api/user/webhooks", summary: "Register a webhook endpoint (URL, events)" },
+        ApiEndpoint { method: "DELETE", path: "/api/user/webhooks/:webhook_id", summary: "Delete a webhook endpoint" },
+        ApiEndpoint { method: "POST", path: "/api/user/webhooks/:webhook_id/test", summary: "Send a signed test event to a webhook" },
+        ApiEndpoint { method: "GET", path: "/api/user/webhooks/:webhook_id/deliveries", summary: "List webhook delivery history" },
         // Sources / connectors
         ApiEndpoint { method: "GET", path: "/api/integrations/connectors", summary: "List data connectors with type, status and last sync" },
         ApiEndpoint { method: "POST", path: "/api/integrations/connectors", summary: "Create or update a data connector (database, API, SaaS)" },
