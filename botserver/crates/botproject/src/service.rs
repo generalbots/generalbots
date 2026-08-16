@@ -154,6 +154,22 @@ impl ProjectService {
             .collect()
     }
 
+    pub async fn delete_resource(&self, resource_id: Uuid) -> bool {
+        let mut resources = self.resources.write().await;
+        let mut assignments = self.assignments.write().await;
+        assignments.retain(|_, a| a.resource_id != resource_id);
+        resources.remove(&resource_id).is_some()
+    }
+
+    pub async fn get_assignments_for_task(&self, task_id: Uuid) -> Vec<ResourceAssignment> {
+        let assignments = self.assignments.read().await;
+        assignments
+            .values()
+            .filter(|a| a.task_id == task_id)
+            .cloned()
+            .collect()
+    }
+
     pub async fn assign_resource(
         &self,
         task_id: Uuid,

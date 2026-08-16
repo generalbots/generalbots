@@ -275,3 +275,160 @@ pub async fn delete_task(
         ))
     }
 }
+
+/// Applies a partial update to a task (issue #872). Recomputes `end_date` when
+/// `start_date`/`duration_days` change and refreshes `updated_at`.
+pub async fn update_task(
+    State(service): State<Arc<ProjectService>>,
+    Path(task_id): Path<Uuid>,
+    Json(req): Json<UpdateTaskRequest>,
+) -> Result<Json<ProjectTask>, (StatusCode, Json<serde_json::Value>)> {
+    let mut task = service.get_task(task_id).await.ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Task not found"})),
+        )
+    })?;
+
+    if let Some(name) = req.name {
+        if !name.trim().is_empty() {
+            task.name = name;
+        }
+    }
+    if let Some(description) = req.description {
+        task.description = description;
+    }
+    if let Some(task_type) = req.task_type {
+        task.task_type = task_type;
+    }
+    if let Some(start_date) = req.start_date {
+        task.start_date = start_date;
+    }
+    if let Some(duration_days) = req.duration_days {
+        task.duration_days = duration_days;
+        task.end_date = task.start_date + chrono::Duration::days(duration_days as i64);
+    }
+    if let Some(end_date) = req.end_date {
+        task.end_date = end_date;
+    }
+    if let Some(status) = req.status {
+        task.status = status;
+    }
+    if let Some(priority) = req.priority {
+        task.priority = priority;
+    }
+    if let Some(assigned_to) = req.assigned_to {
+        task.assigned_to = assigned_to;
+    }
+    if let Some(estimated_hours) = req.estimated_hours {
+        task.estimated_hours = estimated_hours;
+    }
+    if let Some(actual_hours) = req.actual_hours {
+        task.actual_hours = actual_hours;
+    }
+    if let Some(cost) = req.cost {
+        task.cost = cost;
+    }
+    if let Some(notes) = req.notes {
+        task.notes = notes;
+    }
+    if let Some(is_milestone) = req.is_milestone {
+        task.is_milestone = is_milestone;
+    }
+    task.updated_at = Utc::now();
+
+    service
+        .update_task(task)
+        .await
+        .map(Json)
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({"error": "Task not found"})),
+            )
+        })
+}
+
+pub async fn remove_dependency(
+    State(service): State<Arc<ProjectService>>,
+    Path(task_id): Path<Uuid>,
+    Json(req): Json<RemoveDependencyRequest>,
+) -> Result<Json<ProjectTask>, (StatusCode, Json<serde_json::Value>)> {
+    service
+        .remove_dependency(task_id, req.predecessor_id)
+        .await
+        .map(Json)
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({"error": "Task not found"})),
+            )
+        })
+}
+
+pub async fn create_resource(
+    State(service): State<Arc<ProjectService>>,
+    Path(project_id): Path<Uuid>,
+    Json(req): Json<CreateResourceRequest>,
+) -> Json<Resource> {
+    let resource = Resource {
+        id: Uuid::new_v4(),
+        project_id,
+        user_id: req.user_id,
+        name: req.name,
+        resource_type: req.resource_type.unwrap_or(ResourceType::Work),
+        email: req.email,
+        max_units: req.max_units.unwrap_or(100.0),
+        standard_rate: req.standard_rate,
+        overtime_rate: req.overtime_rate,
+        cost_per_use: req.cost_per_use,
+        calendar_id: None,
+        created_at: Utc::now(),
+    };
+    Json(service.create_resource(resource).await)
+}
+
+pub async fn list_resources(
+    State(service): State<Arc<ProjectService>>,
+    Path(project_id): Path<Uuid>,
+) -> Json<Vec<Resource>> {
+    Json(service.get_resources_for_project(project_id).await)
+}
+
+pub async fn delete_resource(
+    State(service): State<Arc<ProjectService>>,
+    Path(resource_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    if service.delete_resource(resource_id).await {
+        Ok(Json(serde_json::json!({"success": true})))
+    } else {
+        Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Resource not found"})),
+        ))
+    }
+}
+
+pub async fn assign_resource(
+    State(service): State<Arc<ProjectService>>,
+    Path(task_id): Path<Uuid>,
+    Json(req): Json<AssignResourceRequest>,
+) -> Result<Json<ResourceAssignment>, (StatusCode, Json<serde_json::Value>)> {
+    service
+        .assign_resource(task_id, req.resource_id, req.units, req.work_hours)
+        .await
+        .map(Json)
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({"error": "Task or resource not found"})),
+            )
+        })
+}
+
+pub async fn list_assignments(
+    State(service): State<Arc<ProjectService>>,
+    Path(task_id): Path<Uuid>,
+) -> Json<Vec<ResourceAssignment>> {
+    Json(service.get_assignments_for_task(task_id).await)
+}
