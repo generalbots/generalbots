@@ -37,7 +37,7 @@ pub async fn create_contact(
         org_id: branch_id,
         bot_id: state.bot_for_branch(branch_id),
         branch_id,
-        first_name: req.first_name.unwrap_or_default(),
+        first_name: req.first_name,
         last_name: req.last_name,
         email: req.email,
         phone: req.phone,

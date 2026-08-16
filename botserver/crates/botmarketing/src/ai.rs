@@ -241,7 +241,7 @@ pub async fn personalize_content(
             crm_contacts::company,
         ))
         .first::<(
-            String,
+            Option<String>,
             Option<String>,
             Option<String>,
             Option<String>,
@@ -250,7 +250,7 @@ pub async fn personalize_content(
         .map_err(|_| "Contact not found".to_string())?;
 
     let contact_info = ContactInfo {
-        first_name: Some(contact.0),
+        first_name: contact.0,
         last_name: contact.1,
         email: contact.2,
         phone: contact.3,

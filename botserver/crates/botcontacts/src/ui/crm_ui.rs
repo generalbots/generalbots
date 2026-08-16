@@ -146,7 +146,7 @@ pub async fn handle_crm_contacts(
     for contact in contacts {
         let name = format!(
             "{} {}",
-            contact.first_name.as_str(),
+            contact.first_name.as_deref().unwrap_or(""),
             contact.last_name.as_deref().unwrap_or("")
         ).trim().to_string();
         let company = contact.company.as_deref().unwrap_or("-");
@@ -399,7 +399,7 @@ pub async fn handle_crm_search(
         for contact in contacts {
             let name = format!(
                 "{} {}",
-                contact.first_name.as_str(),
+                contact.first_name.as_deref().unwrap_or(""),
                 contact.last_name.as_deref().unwrap_or("")
             )
             .trim()
