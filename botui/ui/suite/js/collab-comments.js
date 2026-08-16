@@ -255,7 +255,12 @@
     if (!body) return;
     inputEl.value = "";
     typingSent = false;
-    addComment(body, null).then(load).catch(function (e) { notify("Comment failed: " + e.message, "error"); });
+    addComment(body, null)
+      .then(function () {
+        load();
+        if (window.GBCollabA11y) window.GBCollabA11y.announce("Comment added");
+      })
+      .catch(function (e) { notify("Comment failed: " + e.message, "error"); });
   }
 
   function react(commentId, emoji) {
@@ -279,7 +284,10 @@
 
   function resolve(commentId, resolved) {
     req("/comments/" + commentId + "/resolve", { method: "POST", body: JSON.stringify({ resolved: resolved }) })
-      .then(load)
+      .then(function () {
+        load();
+        if (window.GBCollabA11y) window.GBCollabA11y.announce(resolved ? "Comment resolved" : "Comment reopened");
+      })
       .catch(function (e) { notify("Resolve failed: " + e.message, "error"); });
   }
 
@@ -396,6 +404,8 @@
     ensureCss();
     panel = document.createElement("div");
     panel.id = "gb-comments-panel";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Comments");
     panel.innerHTML =
       '<div class="gbc-header">' +
         '<span class="gbc-title" id="gbc-title">Comments</span>' +

@@ -99,6 +99,8 @@
     if (panel && panel.parentNode) return panel;
     panel = document.createElement("div");
     panel.id = "gb-versions-panel";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Version history");
     panel.innerHTML =
       '<div class="gbv-header">' +
       '<span class="gbv-title">' + esc(state.title) + '</span>' +

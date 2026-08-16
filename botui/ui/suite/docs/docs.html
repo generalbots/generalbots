@@ -20,7 +20,7 @@
                 <button class="btn-icon" id="tocBtn" hx-get="/suite/docs/fragments/toc" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" title="Table of Contents">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                 </button>
-                <button class="btn-icon" id="commentsBtn" onclick="openDocComments()" title="Comments">
+                <button class="btn-icon" id="commentsBtn" onclick="openDocComments()" title="Comments" aria-label="Comments">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                 </button>
                 <button class="btn-icon" id="trackChangesBtn" hx-get="/suite/docs/fragments/track-changes" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" title="Track Changes">
@@ -66,9 +66,9 @@
         </div>
         <div class="toolbar-right">
             <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
-            <button class="btn-icon" id="followBtn" title="Collaborators & follow" onclick="event.stopPropagation(); window.GBCollabFollow && window.GBCollabFollow.toggle(this, function(){ return window.DocsPresence; })" style="font-size:14px;padding:4px 6px;">👥</button>
-            <button class="btn-icon" id="activityBtn" title="Activity log" onclick="event.stopPropagation(); openDocActivity()" style="font-size:14px;padding:4px 6px;">🕓</button>
-            <button class="btn-icon" id="versionsBtn" title="Version history" onclick="event.stopPropagation(); openDocVersions()" style="font-size:14px;padding:4px 6px;">🕘</button>
+            <button class="btn-icon" id="followBtn" title="Collaborators & follow" aria-label="Collaborators and follow" onclick="event.stopPropagation(); window.GBCollabFollow && window.GBCollabFollow.toggle(this, function(){ return window.DocsPresence; })" style="font-size:14px;padding:4px 6px;">👥</button>
+            <button class="btn-icon" id="activityBtn" title="Activity log" aria-label="Activity log" onclick="event.stopPropagation(); openDocActivity()" style="font-size:14px;padding:4px 6px;">🕓</button>
+            <button class="btn-icon" id="versionsBtn" title="Version history" aria-label="Version history" onclick="event.stopPropagation(); openDocVersions()" style="font-size:14px;padding:4px 6px;">🕘</button>
             <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
             <span id="gb-auth-button"></span>
             <button class="btn-primary" id="shareBtn" hx-get="/suite/docs/modals/share" hx-vals='{"id":"current","name":"Documento"}' hx-target="#modal-container" hx-swap="innerHTML">
@@ -116,6 +116,7 @@ if (typeof htmx === 'undefined') {
 </script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
+<script src="/suite/js/collab-a11y.js"></script>
 <script src="/suite/js/collab-comments.js"></script>
 <script src="/suite/js/collab-follow.js"></script>
 <script src="/suite/js/collab-activity.js"></script>

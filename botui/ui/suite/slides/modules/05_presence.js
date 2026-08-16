@@ -18,6 +18,7 @@
   const cursors = new Map(); // userId -> { overlay, elementId }
   const typings = new Map(); // userId -> { pill, elementId }
   let onlineUsers = [];      // most recent presence snapshot
+  let announcedOnce = false; // skip the initial snapshot (includes self)
 
   function elById(id) {
     return id ? document.querySelector('[data-id="' + id + '"]') : null;
@@ -92,10 +93,19 @@
     clearTyping: clearTyping,
 
     sync: function (users) {
+      const prev = new Set(onlineUsers.map(function (u) { return u.user_id; }));
       onlineUsers = users || [];
       const active = new Set(onlineUsers.map(function (u) { return u.user_id; }));
       cursors.forEach(function (_, id) { if (!active.has(id)) removeCursor(id); });
       typings.forEach(function (_, id) { if (!active.has(id)) clearTyping(id); });
+      if (announcedOnce) {
+        onlineUsers.forEach(function (u) {
+          if (!prev.has(u.user_id) && window.GBCollabA11y) {
+            window.GBCollabA11y.announce((u.user_name || "A collaborator") + " joined");
+          }
+        });
+      }
+      announcedOnce = true;
     },
 
     list: function () {
