@@ -1,4 +1,5 @@
 pub mod agents;
+pub mod attachments;
 pub mod queues;
 pub mod sessions;
 
@@ -34,5 +35,6 @@ macro_rules! db_conn {
 pub(crate) use db_conn;
 
 pub use agents::*;
+pub use attachments::*;
 pub use queues::*;
 pub use sessions::*;

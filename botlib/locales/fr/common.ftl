@@ -303,7 +303,7 @@ size-terabytes = { $value } To
 # Pagination
 # -----------------------------------------------------------------------------
 pagination-page = Page { $current } de { $total }
-pagination-showing = Affichage de { $from } à { $to } sur { $total }
+pagination-showing = Affichage de { $start } à { $end } sur { $total }
 pagination-items-per-page = Articles par page
 pagination-first = D'abord
 pagination-previous = Précédent

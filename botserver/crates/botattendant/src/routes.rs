@@ -20,6 +20,8 @@ pub fn configure_attendant_routes() -> Router<Arc<AttendantConfig>> {
         .route("/api/attendant/sessions/:id/end", put(end_session))
         .route("/api/attendant/sessions/:id/rate", put(rate_session))
         .route("/api/attendant/sessions/:id/messages", post(send_message))
+        .route("/api/attendant/sessions/:id/attachments", post(upload_attachment))
+        .route("/api/attendant/attachments/:id/download", get(download_attachment))
         .route("/api/attendant/agents", get(list_agent_statuses))
         .route("/api/attendant/agents/:id/status", put(update_agent_status))
         .route("/api/attendant/canned", get(list_canned_responses).post(create_canned_response))

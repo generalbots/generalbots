@@ -162,6 +162,9 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "GET", path: "/api/autotask/stats", summary: "AutoTask statistics: runs, success rate, pending approvals" },
         ApiEndpoint { method: "POST", path: "/api/autotask/tasks/:task_id/approve", summary: "Approve a pending automated task" },
         ApiEndpoint { method: "POST", path: "/api/autotask/tasks/:task_id/cancel", summary: "Cancel a queued or running automated task" },
+        // Attendant / human handoff
+        ApiEndpoint { method: "POST", path: "/api/attendant/attachments", summary: "Upload an attachment to an attendant conversation" },
+        ApiEndpoint { method: "GET", path: "/api/attendant/attachments/:id", summary: "Download an attendant conversation attachment" },
     ]
 }
 

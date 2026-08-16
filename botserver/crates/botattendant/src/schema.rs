@@ -59,6 +59,16 @@ diesel::table! {
         is_internal -> Bool,
         created_at -> Timestamptz,
     }
+
+    attendant_attachments (id) {
+        id -> Uuid,
+        session_id -> Uuid,
+        name -> Varchar,
+        content_type -> Varchar,
+        size_bytes -> BigInt,
+        data -> Bytea,
+        created_at -> Timestamptz,
+    }
 }
 
 diesel::table! {
