@@ -1,6 +1,6 @@
 use axum::{
     response::IntoResponse,
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Json, Router,
 };
 use std::sync::Arc;
@@ -11,6 +11,7 @@ pub mod backup_verification;
 pub mod code_scanner;
 pub mod dashboard;
 pub mod evidence_collection;
+pub mod framework_handlers;
 pub mod handlers;
 pub mod incident_response;
 pub mod policy_checker;
@@ -30,7 +31,8 @@ pub use code_scanner::{
 };
 
 pub use storage::{
-    DbAccessReview, DbAuditLog, DbComplianceCheck, DbComplianceIssue, DbEvidence,
+    DbAccessReview, DbAuditLog, DbComplianceCheck, DbComplianceControl,
+    DbComplianceControlEvidence, DbComplianceFramework, DbComplianceIssue, DbEvidence,
     DbRiskAssessment, DbTrainingRecord,
 };
 
@@ -85,4 +87,14 @@ pub fn configure_compliance_routes() -> Router<AppState> {
         .route("/api/compliance/risks", get(handlers::handle_list_risks))
         .route("/api/compliance/report", get(handlers::handle_get_report))
         .route("/api/compliance/evidence", post(handlers::handle_upload_evidence))
+        // Frameworks CRUD + controls + evidence mapping
+        .route("/api/compliance/frameworks", get(framework_handlers::handle_list_frameworks).post(framework_handlers::handle_create_framework))
+        .route("/api/compliance/frameworks/:framework_id", get(framework_handlers::handle_get_framework).put(framework_handlers::handle_update_framework))
+        .route("/api/compliance/frameworks/:framework_id/archive", post(framework_handlers::handle_archive_framework))
+        .route("/api/compliance/frameworks/:framework_id/export.csv", get(framework_handlers::handle_export_framework_csv))
+        .route("/api/compliance/controls", post(framework_handlers::handle_create_control))
+        .route("/api/compliance/controls/:control_id", put(framework_handlers::handle_update_control))
+        .route("/api/compliance/evidence/attach", post(framework_handlers::handle_attach_evidence))
+        .route("/api/compliance/evidence/:evidence_id/approve", post(framework_handlers::handle_approve_evidence))
+        .route("/api/compliance/evidence/:evidence_id", delete(framework_handlers::handle_delete_evidence))
 }

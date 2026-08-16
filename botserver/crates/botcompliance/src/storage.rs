@@ -5,8 +5,9 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::schema::{
-    compliance_access_reviews, compliance_audit_log, compliance_checks, compliance_evidence,
-    compliance_issues, compliance_risk_assessments, compliance_training_records,
+    compliance_access_reviews, compliance_audit_log, compliance_checks, compliance_control_evidence,
+    compliance_controls, compliance_evidence, compliance_frameworks, compliance_issues,
+    compliance_risk_assessments, compliance_training_records,
 };
 
 use crate::types::{
@@ -195,6 +196,56 @@ pub fn db_audit_to_entry(db: DbAuditLog) -> AuditLogEntry {
         user_agent: None,
         metadata,
     }
+}
+
+#[derive(Debug, Clone, Queryable, Insertable, AsChangeset, Serialize, Deserialize)]
+#[diesel(table_name = compliance_frameworks)]
+pub struct DbComplianceFramework {
+    pub id: Uuid,
+    pub branch_id: Uuid,
+    pub name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub framework_key: String,
+    pub status: String,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Queryable, Insertable, AsChangeset, Serialize, Deserialize)]
+#[diesel(table_name = compliance_controls)]
+pub struct DbComplianceControl {
+    pub id: Uuid,
+    pub branch_id: Uuid,
+    pub framework_id: Uuid,
+    pub control_id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub is_mandatory: bool,
+    pub version: String,
+    pub status: String,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Queryable, Insertable, AsChangeset, Serialize, Deserialize)]
+#[diesel(table_name = compliance_control_evidence)]
+pub struct DbComplianceControlEvidence {
+    pub id: Uuid,
+    pub branch_id: Uuid,
+    pub control_id: Uuid,
+    pub file_path: String,
+    pub description: Option<String>,
+    pub evidence_type: String,
+    pub status: String,
+    pub owner_id: Option<Uuid>,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 pub fn db_risk_assessment_to_json(db: DbRiskAssessment) -> serde_json::Value {
