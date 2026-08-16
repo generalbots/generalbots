@@ -227,6 +227,7 @@ SlideCanvas.persistElement = function (el) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   }).catch(function () {});
+  if (window.recordSlidesEdit) window.recordSlidesEdit();
   if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
     window.GBCollab.send("slide_update", { content: JSON.stringify(payload), slide_index: parseInt(slide, 10) || 0, element_id: el.dataset.id });
   }

@@ -84,6 +84,7 @@
         <div class="toolbar-right">
             <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
             <button class="btn-icon" id="followBtn" title="Collaborators & follow" onclick="event.stopPropagation(); window.GBCollabFollow && window.GBCollabFollow.toggle(this, function(){ return window.SlidesPresence; })" style="font-size:14px;padding:4px 6px;">👥</button>
+            <button class="btn-icon" id="activityBtn" title="Activity log" onclick="event.stopPropagation(); openSlidesActivity()" style="font-size:14px;padding:4px 6px;">🕓</button>
             <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
             <span id="gb-auth-button"></span>
             <button class="btn-icon" id="commentsBtn" onclick="openSlidesComments()" title="Comments">
@@ -124,6 +125,7 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/js/collab.js"></script>
 <script src="/suite/js/collab-comments.js"></script>
 <script src="/suite/js/collab-follow.js"></script>
+<script src="/suite/js/collab-activity.js"></script>
 <script src="/suite/js/auth-guard.js"></script>
 <script src="/suite/slides/modules/01_state.js"></script>
 <script src="/suite/slides/modules/02_handles.js"></script>
@@ -143,6 +145,29 @@ function openSlidesComments() {
         title: "Comments on " + title,
         includeChildren: true,
     });
+}
+/* Slides activity log — audit timeline for the active deck. */
+function openSlidesActivity() {
+    if (!window.GBCollabActivity) return;
+    var title = (document.getElementById("presTitle") && document.getElementById("presTitle").value) || "Presentation";
+    window.GBCollabActivity.open({
+        resourceType: "slides",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+        title: "Activity on " + title,
+    });
+}
+var _slidesEditTimer = null;
+function recordSlidesEdit() {
+    if (!window.GBCollabActivity) return;
+    clearTimeout(_slidesEditTimer);
+    _slidesEditTimer = setTimeout(function () {
+        window.GBCollabActivity.record({
+            resourceType: "slides",
+            resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+            action: "edit",
+            payload: {}
+        }).catch(function () {});
+    }, 1500);
 }
 function bindSlidesBadge() {
     if (!window.GBCollabComments || !window.GBCollabComments.bindBadge) return;
