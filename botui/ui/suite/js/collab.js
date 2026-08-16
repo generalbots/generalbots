@@ -143,8 +143,11 @@
   function defaultUrl(app, docId) {
     const loc = window.location;
     const proto = loc.protocol === "https:" ? "wss:" : "ws:";
-    const host = loc.hostname + (loc.port && loc.port !== "3000" ? ":" + loc.port : ":8080");
-    return proto + "//" + host + "/ws/" + app + "/" + encodeURIComponent(docId);
+    // Same-origin: the suite server (botui, dev :3000) and Caddy (prod
+    // 80/443) both proxy /ws to botserver, so the page host + /ws is the
+    // correct address everywhere. Hardcoding botserver's :8080 breaks prod,
+    // where the port is not exposed publicly (#913).
+    return proto + "//" + loc.host + "/ws/" + app + "/" + encodeURIComponent(docId);
   }
 
   function GBCollab() {}
