@@ -225,11 +225,12 @@ impl ProjectService {
     pub async fn update_project(&self, project: Project) -> Option<Project> {
         let updated = {
             let mut projects = self.projects.write().await;
-            if projects.contains_key(&project.id) {
-                projects.insert(project.id, project.clone());
-                Some(project)
-            } else {
-                None
+            match projects.get_mut(&project.id) {
+                Some(slot) => {
+                    *slot = project.clone();
+                    Some(project)
+                }
+                None => None,
             }
         };
         self.persist_all().await;
@@ -278,11 +279,12 @@ impl ProjectService {
     pub async fn update_task(&self, task: ProjectTask) -> Option<ProjectTask> {
         let updated = {
             let mut tasks = self.tasks.write().await;
-            if tasks.contains_key(&task.id) {
-                tasks.insert(task.id, task.clone());
-                Some(task)
-            } else {
-                None
+            match tasks.get_mut(&task.id) {
+                Some(slot) => {
+                    *slot = task.clone();
+                    Some(task)
+                }
+                None => None,
             }
         };
         self.persist_all().await;
@@ -358,6 +360,11 @@ impl ProjectService {
             .filter(|r| r.project_id == project_id)
             .cloned()
             .collect()
+    }
+
+    pub async fn get_resource(&self, resource_id: Uuid) -> Option<Resource> {
+        let resources = self.resources.read().await;
+        resources.get(&resource_id).cloned()
     }
 
     pub async fn delete_resource(&self, resource_id: Uuid) -> bool {

@@ -227,6 +227,7 @@ struct MsProjectAssignment {
     cost: Option<f64>,
 }
 
+#[derive(Default)]
 pub struct ProjectImportService;
 
 fn parse_ms_date(s: &str) -> Option<chrono::NaiveDate> {
