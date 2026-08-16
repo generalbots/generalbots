@@ -998,18 +998,20 @@
             <div class="settings-section">
                 <h2>API Keys</h2>
                 <p class="hint" style="margin-bottom: 1rem;">Manage API keys for programmatic access to your organization's resources.</p>
-                <div id="api-keys-list">
+                <div id="api-keys-list" hx-get="/api/user/api-keys" hx-trigger="load" hx-swap="innerHTML">
                     <p class="hint">No API keys created yet.</p>
                 </div>
-                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="alert('API key creation coming soon')">Create API Key</button>
+                <button class="btn btn-primary" style="margin-top: 1rem;"
+                    onclick="document.getElementById('admin-create-api-key-modal').showModal()">Create API Key</button>
             </div>
             <div class="settings-section">
                 <h2>Webhooks</h2>
                 <p class="hint" style="margin-bottom: 1rem;">Configure webhook endpoints to receive real-time event notifications.</p>
-                <div id="webhooks-list">
+                <div id="webhooks-list" hx-get="/api/user/webhooks" hx-trigger="load" hx-swap="innerHTML">
                     <p class="hint">No webhooks configured yet.</p>
                 </div>
-                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="alert('Webhook configuration coming soon')">Add Webhook</button>
+                <button class="btn btn-primary" style="margin-top: 1rem;"
+                    onclick="document.getElementById('admin-add-webhook-modal').showModal()">Add Webhook</button>
             </div>
             <div class="settings-section">
                 <h2>Connected Services</h2>
@@ -1386,5 +1388,63 @@
             applyWallpaper(getWallpaper());
         });
     </script>
+
+    <dialog id="admin-create-api-key-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create API Key</h2>
+                <button type="button" class="close-btn" onclick="document.getElementById('admin-create-api-key-modal').close()">✕</button>
+            </div>
+            <form hx-post="/api/user/api-keys" hx-target="#admin-create-api-key-result" hx-swap="innerHTML"
+                hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/api-keys', { target: '#api-keys-list', swap: 'innerHTML' }); }">
+                <div class="form-group">
+                    <label>Key Name</label>
+                    <input type="text" name="name" required placeholder="Production key">
+                </div>
+                <div class="form-group">
+                    <label>Scopes (comma-separated)</label>
+                    <input type="text" name="scopes" placeholder="user, admin">
+                    <p class="hint">Leave empty for the default "user" scope.</p>
+                </div>
+                <div class="form-group">
+                    <label>Expires in (days)</label>
+                    <input type="number" name="expires_in_days" min="1" placeholder="90">
+                </div>
+                <div id="admin-create-api-key-result"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary"
+                        onclick="document.getElementById('admin-create-api-key-modal').close()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Key</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+
+    <dialog id="admin-add-webhook-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Webhook</h2>
+                <button type="button" class="close-btn" onclick="document.getElementById('admin-add-webhook-modal').close()">✕</button>
+            </div>
+            <form hx-post="/api/user/webhooks" hx-target="#admin-add-webhook-result" hx-swap="innerHTML"
+                hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/webhooks', { target: '#webhooks-list', swap: 'innerHTML' }); }">
+                <div class="form-group">
+                    <label>Webhook URL</label>
+                    <input type="url" name="url" required placeholder="https://example.com/hooks/gb">
+                </div>
+                <div class="form-group">
+                    <label>Events (comma-separated)</label>
+                    <input type="text" name="events" placeholder="user.created, order.completed">
+                    <p class="hint">Leave empty to receive all events.</p>
+                </div>
+                <div id="admin-add-webhook-result"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary"
+                        onclick="document.getElementById('admin-add-webhook-modal').close()">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Webhook</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
 </body>
 </html>

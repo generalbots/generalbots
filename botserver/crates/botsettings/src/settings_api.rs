@@ -14,6 +14,7 @@ use botcore::shared::state::AppState;
 use crate::settings_billing;
 use crate::settings_credentials;
 use crate::settings_profile;
+use crate::settings_webhooks;
 
 /// Resolves the authenticated user from the bearer session (fix #830).
 ///
@@ -114,8 +115,11 @@ pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
         .route("/api/user/password", post(settings_profile::user_password))
         .route("/api/user/api-keys", get(settings_credentials::api_keys_list).post(settings_credentials::api_keys_create))
         .route("/api/user/api-keys/:key_id", axum::routing::delete(settings_credentials::api_keys_delete))
-        .route("/api/user/webhooks", get(settings_credentials::webhooks_list).post(settings_credentials::webhooks_create))
-        .route("/api/user/webhooks/:webhook_id", axum::routing::delete(settings_credentials::webhooks_delete))
+        .route("/api/user/api-keys/:key_id/rotate", post(settings_credentials::api_keys_rotate))
+        .route("/api/user/webhooks", get(settings_webhooks::webhooks_list).post(settings_webhooks::webhooks_create))
+        .route("/api/user/webhooks/:webhook_id", axum::routing::delete(settings_webhooks::webhooks_delete))
+        .route("/api/user/webhooks/:webhook_id/test", post(settings_webhooks::webhooks_test))
+        .route("/api/user/webhooks/:webhook_id/deliveries", get(settings_webhooks::webhook_deliveries_list))
         .route("/api/user/billing/plan", get(settings_billing::billing_plan))
         .route("/api/user/billing/invoices", get(settings_billing::billing_invoices))
         .route("/api/user/billing/payment-methods", get(settings_billing::billing_payment_methods))

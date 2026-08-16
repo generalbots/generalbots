@@ -279,6 +279,18 @@ settings-theme-dark = Escuro
 settings-theme-system = Sistema
 settings-save = Salvar Alterações
 settings-saved = Configurações salvas com sucesso
+
+settings-create-api-key = Criar Chave de API
+settings-api-key-name = Nome da Chave
+settings-api-key-scopes = Escopos (separados por vírgula)
+settings-api-key-scopes-hint = Deixe vazio para o escopo padrão "user".
+settings-api-key-expiry = Expira em (dias)
+settings-api-key-expiry-hint = Deixe vazio para não expirar.
+settings-add-webhook = Adicionar Webhook
+settings-webhook-url = URL do Webhook
+settings-webhook-events = Eventos (separados por vírgula)
+settings-webhook-events-hint = Deixe vazio para receber todos os eventos.
+
 settings-timezone = Fuso Horário
 settings-date-format = Formato de Data
 settings-time-format = Formato de Hora

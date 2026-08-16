@@ -383,7 +383,32 @@ async fn main() -> std::io::Result<()> {
                     .get_result(&mut conn)
                     {
                         Ok(r) => r,
-                        Err(_) => return None,
+                        Err(_) => {
+                            // Fall back to persisted API keys (issue #889): a
+                            // `gb_` secret created via the settings UI resolves
+                            // to its owning user + scopes, so keys work against
+                            // the API without a login session.
+                            if let Some((user_id, scopes)) =
+                                botsettings::settings_credentials::resolve_api_key(&session_pool, token)
+                            {
+                                let mut roles = Vec::new();
+                                if scopes
+                                    .as_array()
+                                    .map(|a| a.iter().any(|s| s.as_str() == Some("admin")))
+                                    .unwrap_or(false)
+                                {
+                                    roles.push("admin".to_string());
+                                } else {
+                                    roles.push("user".to_string());
+                                }
+                                return Some(botsecurity::SessionCacheEntry {
+                                    user_id: user_id.to_string(),
+                                    email: String::new(),
+                                    roles,
+                                });
+                            }
+                            return None;
+                        }
                     };
                     let user: botcoredirectory::auth_routes::SessionUserData =
                         serde_json::from_str(&row.user_data).ok()?;
