@@ -107,6 +107,13 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "GET", path: "/api/banking/diagnosis", summary: "Cash-flow diagnosis of the branch" },
         // Billing / payroll
         ApiEndpoint { method: "GET", path: "/api/billing/payroll/months", summary: "Monthly invoice totals as a payroll basis" },
+        // Sources / connectors
+        ApiEndpoint { method: "GET", path: "/api/integrations/connectors", summary: "List data connectors with type, status and last sync" },
+        ApiEndpoint { method: "POST", path: "/api/integrations/connectors", summary: "Create or update a data connector (database, API, SaaS)" },
+        ApiEndpoint { method: "POST", path: "/api/integrations/connectors/:id/test", summary: "Test connectivity for a data connector" },
+        ApiEndpoint { method: "POST", path: "/api/integrations/connectors/:id/sync", summary: "Trigger an immediate sync for a data connector" },
+        ApiEndpoint { method: "DELETE", path: "/api/integrations/connectors/:id/disconnect", summary: "Remove a data connector and its vaulted credentials" },
+        ApiEndpoint { method: "GET", path: "/api/integrations/connectors/templates", summary: "Connector type catalog for typed configuration forms" },
         // Compliance
         ApiEndpoint { method: "GET", path: "/api/compliance/frameworks", summary: "List compliance frameworks with control counts" },
         ApiEndpoint { method: "POST", path: "/api/compliance/frameworks", summary: "Create a compliance framework (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS, custom)" },

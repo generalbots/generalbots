@@ -1709,3 +1709,26 @@ compliance-archive = Archive
 compliance-total-controls = Total Controls
 compliance-coverage = Coverage
 compliance-no-frameworks = No frameworks configured yet.
+
+## Sources connectors (enterprise-grade release)
+sources-connectors = Connectors
+sources-add-connector = Add Connector
+sources-connector-name = Name
+sources-connector-description = Description
+sources-connector-schedule = Sync schedule (cron)
+sources-connector-type = Type
+sources-connector-host = Host
+sources-connector-port = Port
+sources-connector-database = Database
+sources-connector-username = Username
+sources-connector-password = Password
+sources-connector-base-url = Base URL
+sources-connector-api-key = API key
+sources-connector-credentials-hint = Credentials are stored in Vault and never shown again after saving.
+sources-create-connector = Create Connector
+sources-test-connector = Test
+sources-sync-now = Sync now
+sources-remove-connector = Remove
+sources-connector-health = Health
+sources-connector-last-sync = Last sync
+sources-no-connectors = No connectors configured

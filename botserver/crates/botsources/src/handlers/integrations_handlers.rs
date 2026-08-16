@@ -3,6 +3,7 @@ use crate::types::{
     ConnectConnectorRequest, ConnectorListResponse, ConnectorResponse, CreateEtlJobRequest,
     EtlJobListResponse, EtlJobResponse,
 };
+use botcoresecrets::SecretsManager;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -27,7 +28,8 @@ pub async fn handle_list_connectors(
     let rows = if query.connected.unwrap_or(false) {
         diesel::sql_query(
             "SELECT id, name, connector_type, COALESCE(description,'') as description, \
-             is_active, last_sync_at, 0 as records_synced \
+             is_active, last_sync_at, last_test_at, COALESCE(last_test_status,'') as last_test_status, \
+             0 as records_synced \
              FROM connectors WHERE is_active = true ORDER BY name",
         )
         .load::<ConnectorDbRow>(&mut conn)
@@ -35,7 +37,8 @@ pub async fn handle_list_connectors(
     } else {
         diesel::sql_query(
             "SELECT id, name, connector_type, COALESCE(description,'') as description, \
-             is_active, last_sync_at, 0 as records_synced \
+             is_active, last_sync_at, last_test_at, COALESCE(last_test_status,'') as last_test_status, \
+             0 as records_synced \
              FROM connectors ORDER BY name",
         )
         .load::<ConnectorDbRow>(&mut conn)
@@ -52,6 +55,12 @@ pub async fn handle_list_connectors(
             connected: r.is_active,
             active: r.is_active,
             last_sync: r.last_sync_at.map(|t| t.to_rfc3339()),
+            last_test: r.last_test_at.map(|t| t.to_rfc3339()),
+            last_test_status: if r.last_test_status.is_empty() {
+                None
+            } else {
+                Some(r.last_test_status)
+            },
             records_synced: r.records_synced,
         })
         .collect();
@@ -66,13 +75,32 @@ pub async fn handle_connect_connector(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let mut conn = state.conn.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
-    let auth = payload.auth_config.unwrap_or_default();
+    let schedule = payload.schedule.clone();
+    if let Err(e) = crate::connector_ops::validate_schedule(schedule.as_deref()) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    // Secrets never touch the DB: sensitive auth fields move to Vault and the
+    // row keeps only the vault path + sanitized config.
+    let raw_auth = payload.auth_config.unwrap_or_default();
+    let (auth, secrets) = crate::connector_ops::split_sensitive_auth(&raw_auth);
     let endpoints = payload.endpoints.unwrap_or_default();
+    let vault_path = if secrets.is_empty() {
+        None
+    } else {
+        let path = crate::connector_ops::secrets_path("default", "default", &id.to_string());
+        if let Ok(manager) = SecretsManager::from_env() {
+            crate::connector_ops::store_secrets(&manager, &path, &secrets);
+        } else {
+            log::warn!("connector secrets for {path} not vaulted: Vault is not configured");
+        }
+        Some(path)
+    };
 
     diesel::sql_query(
-        "INSERT INTO connectors (id, bot_id, name, connector_type, description, auth_config, endpoints, schedule, is_active) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) \
-         ON CONFLICT (id) DO UPDATE SET name = $3, description = $5, auth_config = $6, endpoints = $7, schedule = $8, updated_at = NOW()",
+        "INSERT INTO connectors (id, bot_id, name, connector_type, description, auth_config, endpoints, schedule, is_active, secrets_vault_path) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9) \
+         ON CONFLICT (id) DO UPDATE SET name = $3, description = $5, auth_config = $6, endpoints = $7, schedule = $8, secrets_vault_path = $9, updated_at = NOW()",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
     .bind::<diesel::sql_types::Uuid, _>(&Uuid::nil())
@@ -82,10 +110,77 @@ pub async fn handle_connect_connector(
     .bind::<diesel::sql_types::Jsonb, _>(&auth)
     .bind::<diesel::sql_types::Jsonb, _>(&endpoints)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&payload.schedule)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&vault_path)
     .execute(&mut conn)
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(serde_json::json!({"success": true, "id": id})))
+    Ok(Json(serde_json::json!({"success": true, "id": id, "secrets_vaulted": !secrets.is_empty()})))
+}
+
+/// `POST /api/ui/sources/connectors/:id/test`
+///
+/// Runs a live connectivity check (HTTP GET or DB TCP connect) and records the
+/// outcome on the connector row for the list health column.
+pub async fn handle_test_connector(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let mut conn = state.conn.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct ConnectorRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        connector_type: String,
+        #[diesel(sql_type = diesel::sql_types::Jsonb)]
+        auth_config: serde_json::Value,
+        #[diesel(sql_type = diesel::sql_types::Jsonb)]
+        endpoints: serde_json::Value,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        secrets_vault_path: Option<String>,
+    }
+
+    let row = diesel::sql_query(
+        "SELECT connector_type, auth_config, endpoints, secrets_vault_path FROM connectors WHERE id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(&id)
+    .get_result::<ConnectorRow>(&mut conn)
+    .map_err(|_| StatusCode::NOT_FOUND)?;
+
+    // Merge vaulted secrets back for the live check; never returned to the UI.
+    let mut auth = row.auth_config.clone();
+    if let Some(path) = row.secrets_vault_path.as_deref() {
+        if let Ok(manager) = SecretsManager::from_env() {
+            let secrets = crate::connector_ops::load_secrets(&manager, path);
+            if let Some(obj) = auth.as_object_mut() {
+                for (k, v) in secrets {
+                    obj.insert(k, serde_json::json!(v));
+                }
+            }
+        }
+    }
+
+    let (ok, latency_ms, detail) =
+        crate::connector_ops::test_connection(&row.connector_type, &auth, &row.endpoints).await;
+    let status = if ok { "ok" } else { "failed" };
+    let now = chrono::Utc::now();
+
+    diesel::sql_query(
+        "UPDATE connectors SET last_test_at = $1, last_test_status = $2, error_log = $3, updated_at = $1 WHERE id = $4",
+    )
+    .bind::<diesel::sql_types::Timestamptz, _>(&now)
+    .bind::<diesel::sql_types::Text, _>(&status)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&Some(detail.clone()))
+    .bind::<diesel::sql_types::Uuid, _>(&id)
+    .execute(&mut conn)
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(serde_json::json!({
+        "success": ok,
+        "status": status,
+        "latency_ms": latency_ms,
+        "detail": detail,
+    })))
 }
 
 pub async fn handle_sync_connector(
@@ -118,6 +213,33 @@ pub async fn handle_disconnect_connector(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(serde_json::json!({"success": true})))
+}
+
+/// `GET /api/integrations/connectors/templates`
+///
+/// Returns the connector type catalog with per-type default endpoints and
+/// auth hints so the UI can render typed configuration forms without
+/// hardcoding connector definitions.
+pub async fn handle_list_connector_templates(
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let templates = crate::connectors::templates::get_all_templates();
+    let items: Vec<serde_json::Value> = templates
+        .into_iter()
+        .map(|t| {
+            serde_json::json!({
+                "id": t.id,
+                "name": t.name,
+                "description": t.description,
+                "connector_type": t.connector_type.to_string(),
+                "icon": t.icon,
+                "auth_type": format!("{:?}", t.auth_type).to_lowercase(),
+                "auth_help": t.auth_help,
+                "default_schedule": t.default_schedule,
+                "color": t.color,
+            })
+        })
+        .collect();
+    Ok(Json(serde_json::json!({ "templates": items })))
 }
 
 pub async fn handle_list_etl_jobs(
@@ -242,6 +364,10 @@ struct ConnectorDbRow {
     is_active: bool,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
     last_sync_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+    last_test_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    last_test_status: String,
     #[diesel(sql_type = diesel::sql_types::BigInt)]
     records_synced: i64,
 }

@@ -1013,3 +1013,26 @@ compliance-archive = Archivar
 compliance-total-controls = Total de Controles
 compliance-coverage = Cobertura
 compliance-no-frameworks = Aún no hay marcos configurados.
+
+## Conectores de fuentes (release enterprise)
+sources-connectors = Conectores
+sources-add-connector = Añadir Conector
+sources-connector-name = Nombre
+sources-connector-description = Descripción
+sources-connector-schedule = Programación de sincronización (cron)
+sources-connector-type = Tipo
+sources-connector-host = Host
+sources-connector-port = Puerto
+sources-connector-database = Base de datos
+sources-connector-username = Usuario
+sources-connector-password = Contraseña
+sources-connector-base-url = URL base
+sources-connector-api-key = Clave de API
+sources-connector-credentials-hint = Las credenciales se almacenan en Vault y nunca se vuelven a mostrar después de guardar.
+sources-create-connector = Crear Conector
+sources-test-connector = Probar
+sources-sync-now = Sincronizar ahora
+sources-remove-connector = Eliminar
+sources-connector-health = Salud
+sources-connector-last-sync = Última sincronización
+sources-no-connectors = No hay conectores configurados

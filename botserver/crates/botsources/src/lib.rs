@@ -1,3 +1,4 @@
+pub mod connector_ops;
 pub mod connector_types;
 pub mod connectors;
 pub mod handlers;
