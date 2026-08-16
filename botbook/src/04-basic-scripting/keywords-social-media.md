@@ -48,7 +48,7 @@ Schedule posts for future publishing at a specific date and time.
 
 ```basic
 POST TO INSTAGRAM AT "2025-02-01 10:00" image, caption
-POST TO FACEBOOK AT "2025-02-15 09:00" image, "Coming soon!"
+POST TO FACEBOOK AT "2025-02-15 09:00" image, "Launch day is here — meet our new dashboard!"
 ```
 
 ### Campaign Scheduling

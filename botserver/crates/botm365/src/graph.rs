@@ -56,7 +56,7 @@ pub struct GraphSite {
     pub web_url: String,
 }
 
-/// Re-export placeholder.
+/// Type alias kept for API compatibility with `GraphList`.
 pub type GraphList = SharePointList;
-/// Re-export placeholder.
+/// Type alias kept for API compatibility with `GraphDriveItem`.
 pub type GraphDriveItem = SharePointListItem;

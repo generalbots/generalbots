@@ -349,7 +349,7 @@ Configured AI models for the platform.
 |-------|-------------|
 | **Name** | Model identifier |
 | **Provider** | OpenAI, Anthropic, Local, etc. |
-| **Status** | Active, coming soon |
+| **Status** | Active (configured) or Available |
 | **Tags** | Capabilities (chat, code, vision) |
 
 ### Supported Providers

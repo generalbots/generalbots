@@ -21,7 +21,7 @@ A professional-grade Chrome extension developed by [pragmatismo.com.br](https://
 
 ### Chrome Web Store Installation
 
-(Coming soon)
+Publish the packed extension (`chrome://extensions` → "Pack extension") to the Chrome Web Store and link the listing here.
 
 ## Configuration
 

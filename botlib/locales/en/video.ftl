@@ -138,5 +138,3 @@ video-error-export = Failed to start export
 video-create-project-first = Please create a project first
 video-select-clip-to-split = Select a clip to split
 video-playhead-within-clip = Playhead must be within the selected clip
-video-tts-coming-soon = TTS generation coming soon
-video-split-coming-soon = Split feature coming soon

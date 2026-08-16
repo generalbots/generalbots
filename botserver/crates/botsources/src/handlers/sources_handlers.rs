@@ -294,25 +294,60 @@ pub async fn handle_llm_tools(
     Html(html)
 }
 
-pub async fn handle_models(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
-    let models = vec![
-        ("🧠", "GPT-4o", "OpenAI", "Latest multimodal model", "Active"),
-        ("🧠", "GPT-4o-mini", "OpenAI", "Fast and efficient", "Active"),
-        ("🦙", "Llama 3.1 70B", "Meta", "Open source LLM", "Available"),
-        ("🔷", "Claude 3.5 Sonnet", "Anthropic", "Advanced reasoning", "Available"),
+pub async fn handle_models(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    // Pull the bot's real LLM configuration instead of a hardcoded catalog.
+    let config_manager = state.config_manager.clone();
+    let default_bot_id = uuid::Uuid::nil();
+    let configured_model = config_manager
+        .get_config(&default_bot_id, "llm-model", None)
+        .unwrap_or_default();
+    let configured_provider = config_manager
+        .get_config(&default_bot_id, "llm-provider", None)
+        .unwrap_or_default();
+    let llm_url = config_manager
+        .get_config(&default_bot_id, "llm-url", None)
+        .unwrap_or_default();
+
+    // Known provider families the runtime can drive (see botllm::LLMProviderType).
+    // `match_url` is a lowercase substring tested against the configured llm-url;
+    // an empty string means the provider is never auto-detected from URL.
+    let catalog: Vec<(&str, &str, &str, &str)> = vec![
+        ("🧠", "OpenAI", "GPT, GPT-4o and compatible endpoints", "openai.com"),
+        ("🔷", "Anthropic", "Claude 3 and later family", "anthropic.com"),
+        ("🦙", "Meta Llama", "Open-weight Llama models (via OpenAI-compatible servers)", ""),
+        ("⚡", "Groq", "Fast inference on open models", "groq.com"),
+        ("⛰️", "Vertex / Gemini", "Google AI Studio and Vertex endpoints", "googleapis.com"),
+        ("☁️", "Amazon Bedrock", "Foundation models via Bedrock", "bedrock"),
     ];
+
+    let provider_lower = configured_provider.to_lowercase();
+    let url_lower = llm_url.to_lowercase();
 
     let mut html = String::new();
     html.push_str("<div class=\"models-container\">");
-    html.push_str("<div class=\"models-header\"><h3>AI Models</h3><p>Available language models for your bots</p></div>");
+    html.push_str("<div class=\"models-header\"><h3>AI Models</h3><p>Language models available to your bots</p></div>");
+
+    if !configured_model.is_empty() {
+        let _ = write!(
+            html,
+            "<div class=\"active-model-banner\"><strong>Configured model:</strong> {} <span class=\"model-status active\">Active</span></div>",
+            html_escape(&configured_model)
+        );
+    }
+
     html.push_str("<div class=\"models-grid\">");
 
-    for (icon, name, provider, description, status) in &models {
-        let status_class = if *status == "Active" { "model-active" } else { "model-available" };
+    for (icon, name, description, match_url) in &catalog {
+        // The provider actually wired up in config.csv (llm-provider or the
+        // llm-url host) is the live one; everything else is listed as available.
+        let is_configured = (!provider_lower.is_empty() && name.to_lowercase().contains(&provider_lower))
+            || (!match_url.is_empty() && !url_lower.is_empty() && url_lower.contains(match_url));
+        let status_class = if is_configured { "model-active" } else { "model-available" };
+        let status = if is_configured { "Active" } else { "Available" };
         let _ = write!(
             html,
             "<div class=\"model-card {}\"><div class=\"model-icon\">{}</div><div class=\"model-info\"><div class=\"model-header\"><h4>{}</h4><span class=\"model-provider\">{}</span></div><p>{}</p><div class=\"model-footer\"><span class=\"model-status\">{}</span></div></div></div>",
-            status_class, icon, html_escape(name), html_escape(provider), html_escape(description), status
+            status_class, icon, html_escape(name), html_escape(name), html_escape(description), status
         );
     }
 

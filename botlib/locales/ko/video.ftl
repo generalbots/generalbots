@@ -138,5 +138,3 @@ video-error-export = 내보내기를 시작하지 못했습니다.
 video-create-project-first = 먼저 프로젝트를 생성해주세요
 video-select-clip-to-split = 분할할 클립을 선택하세요
 video-playhead-within-clip = 재생 헤드는 선택한 클립 내에 있어야 합니다.
-video-tts-coming-soon = TTS 세대가 곧 출시됩니다
-video-split-coming-soon = 분할 기능이 곧 제공될 예정입니다.

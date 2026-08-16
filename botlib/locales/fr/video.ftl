@@ -138,5 +138,3 @@ video-error-export = Échec du démarrage de l'exportation
 video-create-project-first = Veuillez d'abord créer un projet
 video-select-clip-to-split = Sélectionnez un clip à diviser
 video-playhead-within-clip = La tête de lecture doit se trouver dans le clip sélectionné
-video-tts-coming-soon = La génération TTS arrive bientôt
-video-split-coming-soon = Fonctionnalité fractionnée à venir

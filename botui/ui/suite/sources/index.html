@@ -868,6 +868,27 @@
         border-color: var(--primary);
     }
 
+    .model-card.model-active {
+        border-color: rgba(76, 175, 80, 0.5);
+        background: rgba(76, 175, 80, 0.04);
+    }
+
+    .model-card.model-available {
+        border-color: var(--border);
+    }
+
+    .active-model-banner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(76, 175, 80, 0.08);
+        border: 1px solid rgba(76, 175, 80, 0.3);
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        font-size: 14px;
+    }
+
     .model-header {
         display: flex;
         align-items: center;
@@ -890,11 +911,6 @@
     .model-status.active {
         background: rgba(76, 175, 80, 0.1);
         color: #4caf50;
-    }
-
-    .model-status.coming-soon {
-        background: rgba(255, 152, 0, 0.1);
-        color: #ff9800;
     }
 
     .model-provider {

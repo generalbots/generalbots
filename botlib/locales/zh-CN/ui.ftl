@@ -966,7 +966,6 @@ sources-server-configure = 配置
 # Model Cards
 # -----------------------------------------------------------------------------
 sources-model-active = 活跃
-sources-model-coming-soon = 即将推出
 sources-model-provider = 提供商
 sources-model-context = 背景
 sources-model-tokens = 代币
