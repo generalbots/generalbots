@@ -3,6 +3,7 @@ pub mod audit_log;
 pub mod menu_config;
 pub mod settings_billing;
 pub mod settings_credentials;
+pub mod settings_oauth;
 pub mod settings_profile;
 pub mod ops;
 pub mod permission_inheritance;
@@ -41,6 +42,9 @@ post(settings_ui::revoke_all_sessions),
 .route("/api/ui/user/security/devices", get(settings_ui::get_trusted_devices))
 .route("/api/settings/search", post(settings_ui::save_search_settings))
 .route("/api/settings/smtp/test", post(test_smtp_connection))
+.route("/api/oauth/accounts", get(settings_oauth::oauth_accounts_list))
+.route("/api/oauth/:provider/unlink", post(settings_oauth::oauth_unlink))
+.route("/api/oauth/:provider/callback", get(settings_oauth::oauth_callback))
 .route("/api/ui/settings/accounts/social", get(settings_ui::get_accounts_social))
 .route("/api/ui/settings/accounts/messaging", get(settings_ui::get_accounts_messaging))
 .route("/api/ui/settings/accounts/email", get(settings_ui::get_accounts_email))

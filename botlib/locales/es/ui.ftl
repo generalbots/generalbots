@@ -953,3 +953,14 @@ mail-crm-log = Registrar en CRM
 mail-crm-create-lead = Crear Lead
 mail-add-to-list = Agregar a Lista
 campaign-send-email = Enviar Correo
+
+# -----------------------------------------------------------------------------
+# Vinculación de Cuentas OAuth (Ajustes)
+# -----------------------------------------------------------------------------
+oauth-connected-accounts = Cuentas Conectadas
+oauth-connect = Conectar
+oauth-unlink = Desvincular
+oauth-not-connected = No conectada
+oauth-linked = Vinculada
+oauth-no-accounts = No hay cuentas vinculadas todavía.
+oauth-loading = Cargando cuentas vinculadas…

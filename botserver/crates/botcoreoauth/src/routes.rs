@@ -114,12 +114,12 @@ async fn start_oauth(
         }
     };
 
-    let oauth_state = OAuthState::new(provider, params.redirect);
+    let oauth_state = OAuthState::new(provider, params.redirect).with_pkce();
     let state_encoded = oauth_state.encode();
 
     debug!("OAuth state created for provider {}", provider);
 
-    let auth_url = provider.build_auth_url(&config, &state_encoded);
+    let auth_url = provider.build_auth_url(&config, &state_encoded, oauth_state.pkce_verifier.as_deref());
 
     info!("Starting OAuth flow for {} - redirecting to provider", provider);
 
@@ -206,7 +206,10 @@ async fn oauth_callback(
     };
 
     let http_client = reqwest::Client::new();
-    let token = match provider.exchange_code(&config, code, &http_client).await {
+    let token = match provider
+        .exchange_code(&config, code, &http_client, oauth_state.pkce_verifier.as_deref())
+        .await
+    {
         Ok(t) => t,
         Err(e) => {
             log::error!("Failed to exchange OAuth code: {}", e);

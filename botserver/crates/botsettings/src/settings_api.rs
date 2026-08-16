@@ -121,9 +121,7 @@ pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
         .route("/api/user/billing/payment-methods", get(settings_billing::billing_payment_methods))
         .route("/api/user/data/export", post(settings_billing::data_export))
         .route("/api/user/notifications/preferences", get(notif_prefs_get).put(notif_prefs_put))
-        .route("/api/oauth/google/connect", post(oauth_google))
-        .route("/api/oauth/microsoft/connect", post(oauth_microsoft))
-        .route("/api/oauth/github/connect", post(oauth_github))
+        .route("/api/oauth/:provider/connect", post(oauth_connect_handler))
         .route("/api/groups/create", post(groups_create))
         .route("/api/users/create", post(users_create))
 }
@@ -260,23 +258,15 @@ pub async fn notif_prefs_put(
     (StatusCode::OK, Html("Notification preferences saved".to_string()))
 }
 
-async fn oauth_google() -> impl IntoResponse {
-    oauth_connect("Google")
-}
-async fn oauth_microsoft() -> impl IntoResponse {
-    oauth_connect("Microsoft")
-}
-async fn oauth_github() -> impl IntoResponse {
-    oauth_connect("GitHub")
-}
-
-fn oauth_connect(provider: &str) -> (StatusCode, Html<String>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Html(format!(
-            "<div class=\"oauth-error\">{provider} OAuth is not implemented yet — no authorization flow exists for this provider.</div>"
-        )),
-    )
+/// POST /api/oauth/{provider}/connect — starts the account-linking flow.
+/// Delegates to [`crate::settings_oauth::oauth_connect`], which builds a
+/// user-bound OAuth state (PKCE) and returns the provider redirect URL.
+async fn oauth_connect_handler(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+    axum::extract::Path(provider_name): axum::extract::Path<String>,
+) -> axum::response::Response {
+    crate::settings_oauth::oauth_connect(state, headers, provider_name).await
 }
 
 #[derive(Deserialize)]

@@ -1033,8 +1033,7 @@
                             <span class="oauth-name">Google</span>
                             <span class="oauth-status">Not connected</span>
                         </div>
-                        <button class="btn-secondary btn-sm" hx-post="/api/oauth/google/connect"
-                            hx-swap="none">Connect</button>
+                        <button class="btn-secondary btn-sm" data-oauth-connect="google">Connect</button>
                     </div>
                     <div class="oauth-item">
                         <div class="oauth-icon microsoft">
@@ -1049,8 +1048,7 @@
                             <span class="oauth-name">Microsoft</span>
                             <span class="oauth-status">Not connected</span>
                         </div>
-                        <button class="btn-secondary btn-sm" hx-post="/api/oauth/microsoft/connect"
-                            hx-swap="none">Connect</button>
+                        <button class="btn-secondary btn-sm" data-oauth-connect="microsoft">Connect</button>
                     </div>
                     <div class="oauth-item">
                         <div class="oauth-icon github">
@@ -1064,9 +1062,11 @@
                             <span class="oauth-name">GitHub</span>
                             <span class="oauth-status">Not connected</span>
                         </div>
-                        <button class="btn-secondary btn-sm" hx-post="/api/oauth/github/connect"
-                            hx-swap="none">Connect</button>
+                        <button class="btn-secondary btn-sm" data-oauth-connect="github">Connect</button>
                     </div>
+                </div>
+                <div class="oauth-accounts" id="oauth-accounts-fragment">
+                    <div class="empty-state"><p>Loading linked accounts…</p></div>
                 </div>
             </div>
         </section>
