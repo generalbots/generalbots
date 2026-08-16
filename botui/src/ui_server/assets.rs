@@ -57,9 +57,14 @@ pub async fn handle_embedded_asset(
 
 #[cfg(feature = "embed-ui")]
 pub async fn handle_embedded_root_asset(
-    axum::extract::Path(filename): axum::extract::Path<String>,
+    axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
 ) -> impl IntoResponse {
-    if !ROOT_FILES.contains(&filename.as_str()) {
+    // The `/suite/{file}` routes are registered as literal paths (one per
+    // ROOT_FILES entry), so the handler must not declare a `Path` extractor:
+    // axum would reject the request with "Expected 1 but got 0". The
+    // filename is derived from the request URI instead.
+    let filename = uri.path().rsplit('/').next().unwrap_or("");
+    if !ROOT_FILES.contains(&filename) {
         return StatusCode::NOT_FOUND.into_response();
     }
 
