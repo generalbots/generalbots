@@ -6,6 +6,23 @@
   <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
   <link rel="stylesheet" href="/cloud/css/cloud-components.css">
   <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
+    .card-item { background:var(--surface,#fff); border:1px solid var(--border,#e5e7eb); border-radius:12px; padding:1.25rem; display:flex; flex-direction:column; gap:.75rem; }
+    .card-brand { font-size:1.6rem; }
+    .card-number { font-family:var(--mono,monospace); font-size:1.05rem; font-weight:600; }
+    .card-exp { color:var(--muted,#6b7280); font-size:.9rem; }
+    .card-default { display:inline-block; background:#eef2ff; color:#4f46e5; border-radius:999px; padding:.15rem .6rem; font-size:.75rem; font-weight:600; }
+    .card-actions { display:flex; gap:.5rem; margin-top:auto; }
+    .card-actions .btn { flex:1; }
+    .card-actions .btn-danger { background:transparent; border:1px solid #fca5a5; color:#dc2626; }
+    .card-actions .btn-danger:hover { background:#fef2f2; }
+    .add-card-bar { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+    .hint { color:var(--muted,#6b7280); font-size:.85rem; max-width:34rem; }
+    .toast { position:fixed; bottom:1.5rem; right:1.5rem; background:#111827; color:#fff; padding:.75rem 1.25rem; border-radius:8px; font-size:.9rem; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50; }
+    .toast.show { opacity:1; }
+    .toast.error { background:#b91c1c; }
+  </style>
 </head>
 <body class="mgmt-layout">
 <div class="mgmt-shell">
@@ -17,74 +34,156 @@
     </div>
 
     <div style="padding:2rem" id="payment-page">
-      <div class="payment-cards" id="cards-grid">
+      <div class="add-card-bar">
+        <div>
+          <h2 style="margin:0 0 .35rem;font-size:1.1rem" data-i18n="cards-saved">Saved cards</h2>
+          <p class="hint" data-i18n="cards-hint">Cards are stored securely by our payment provider. Card numbers never reach our servers.</p>
+        </div>
+        <button id="add-card-btn" class="btn btn-primary" onclick="addCard()">+ <span data-i18n="cards-add">Add card</span></button>
+      </div>
+      <div class="cards-grid" id="cards-grid">
         <div class="mgmt-empty" style="grid-column:1/-1"><div class="loading-dots"><span></span><span></span><span></span></div></div>
       </div>
     </div>
   </main>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script src="/cloud/js/cloud.js"></script>
 <script>
-(async function() {
+(function() {
   const token = requireAuth();
   if (!token) return;
+  const grid = document.getElementById('cards-grid');
 
-  const container = document.getElementById('cards-grid');
-
-  try {
-    const [servicesRes, plansRes] = await Promise.all([
-      fetch('/api/cloud/services', { headers: { 'Authorization': 'Bearer ' + token } }),
-      fetch('/api/cloud/plans', { headers: { 'Authorization': 'Bearer ' + token } }),
-    ]);
-
-    let hasPaidPlan = false;
-    let planName = 'Free';
-
-    if (servicesRes.ok) {
-      const data = await servicesRes.json();
-      const active = (data.services || []).filter(s => s.status === 'active' || s.status === 'trialing');
-      hasPaidPlan = active.some(s => parseFloat(s.amount || '0') > 0);
+  async function loadCards() {
+    try {
+      const res = await fetch('/api/cloud/payment-cards', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (!res.ok) throw new Error('Failed to load cards');
+      const data = await res.json();
+      renderCards(data.cards || []);
+    } catch (e) {
+      grid.innerHTML = '<div class="mgmt-empty" style="grid-column:1/-1"><p>' + t('cards-load-error') + '</p></div>';
     }
-
-    if (plansRes.ok) {
-      const plans = await plansRes.json();
-      const orgsRes = await fetch('/api/cloud/organizations', { headers: { 'Authorization': 'Bearer ' + token } });
-      if (orgsRes.ok) {
-        const orgs = await orgsRes.json();
-        const currentPlan = (orgs.organizations || [])[0]?.plan || 'free';
-        planName = (plans.plans && plans.plans[currentPlan]?.name) || currentPlan;
-      }
-    }
-
-    if (hasPaidPlan) {
-      container.innerHTML = `
-        <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem">
-          <div style="font-size:3rem;margin-bottom:1rem">💳</div>
-          <h2 style="margin:0 0 .5rem;font-size:1.2rem">Payment Methods</h2>
-          <p style="color:var(--muted);margin:0 0 1.5rem;max-width:400px;margin-inline:auto">
-            Card management for paid plans is handled via our secure payment partner.
-            Click below to manage your payment methods.
-          </p>
-          <a href="/offers" class="btn btn-primary">Manage Payment Methods</a>
-        </div>`;
-    } else {
-      container.innerHTML = `
-        <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem">
-          <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
-          <h2 style="margin:0 0 .5rem;font-size:1.2rem">No Payment Method Needed</h2>
-          <p style="color:var(--muted);margin:0 0 .25rem;max-width:450px;margin-inline:auto">
-            You are currently on the <strong>${planName}</strong> plan — no payment card is required.
-          </p>
-          <p style="color:var(--muted);margin:0 0 1.5rem;max-width:450px;margin-inline:auto">
-            When you upgrade to a paid plan, you will be guided to set up your payment method securely.
-          </p>
-          <a href="/offers" class="btn btn-primary">View Upgrade Options</a>
-        </div>`;
-    }
-  } catch (e) {
-    container.innerHTML = '<div class="mgmt-empty" style="grid-column:1/-1"><p>Could not load payment info. <a href="/offers">View plans</a>.</p></div>';
   }
+
+  function renderCards(cards) {
+    if (!cards.length) {
+      grid.innerHTML = `
+        <div class="mgmt-empty" style="grid-column:1/-1;text-align:center;padding:3rem 1rem">
+          <div style="font-size:3rem;margin-bottom:1rem">💳</div>
+          <h2 style="margin:0 0 .5rem;font-size:1.1rem">${t('cards-none')}</h2>
+          <p class="hint" style="margin:0 auto 1.25rem">${t('cards-empty-hint')}</p>
+          <button class="btn btn-primary" onclick="addCard()">${t('cards-add-first')}</button>
+        </div>`;
+      return;
+    }
+    grid.innerHTML = cards.map(card => `
+      <div class="card-item">
+        <div class="card-brand">${brandIcon(card.brand)}</div>
+        <div class="card-number">${escapeHtml(card.brand || 'Card').replace(/^./, c => c.toUpperCase())} ···· ${escapeHtml(card.last4 || '')}</div>
+        <div class="card-exp">${t('cards-expires')} ${card.exp_month}/${card.exp_year}${card.is_default ? ' · <span class="card-default">' + t('cards-default') + '</span>' : ''}</div>
+        <div class="card-actions">
+          ${card.is_default
+            ? '<button class="btn btn-sm" disabled>' + t('cards-default-btn') + '</button>'
+            : `<button class="btn btn-sm" onclick="setDefault('${encodeURIComponent(card.stripe_pm_id)}')">${t('cards-set-default')}</button>`}
+          <button class="btn btn-sm btn-danger" onclick="deleteCard('${encodeURIComponent(card.stripe_pm_id)}')">${t('cards-remove')}</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function brandIcon(brand) {
+    const b = (brand || '').toLowerCase();
+    if (b.includes('visa')) return '💳';
+    if (b.includes('master')) return '💳';
+    if (b.includes('amex')) return '💳';
+    if (b.includes('discover')) return '💳';
+    return '💳';
+  }
+
+  window.addCard = async function() {
+    try {
+      const res = await fetch('/api/cloud/payment-cards/setup', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!res.ok) throw new Error('Failed to start card setup');
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else toast('No setup URL returned', true);
+    } catch (e) {
+      toast(e.message || t('cards-add-error'), true);
+    }
+  };
+
+  window.setDefault = async function(pmId) {
+    try {
+      const res = await fetch('/api/cloud/payment-cards/' + pmId + '/default', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!res.ok) throw new Error('Failed to set default');
+      toast(t('cards-default-updated'));
+      loadCards();
+    } catch (e) {
+      toast(e.message || t('cards-default-error'), true);
+    }
+  };
+
+  window.deleteCard = async function(pmId) {
+    if (!confirm(t('cards-remove-confirm'))) return;
+    try {
+      const res = await fetch('/api/cloud/payment-cards/' + pmId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!res.ok) throw new Error('Failed to remove card');
+      toast(t('cards-removed'));
+      loadCards();
+    } catch (e) {
+      toast(e.message || t('cards-remove-error'), true);
+    }
+  };
+
+  function toast(msg, isError) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => { el.className = 'toast'; }, 3000);
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // Minimal i18n: fetch the same /api/i18n/:locale bundle the suite uses and
+  // fall back to the hardcoded English text baked into the templates.
+  const _dict = {};
+  function t(key) {
+    return _dict[key] || key;
+  }
+  (async function loadDict() {
+    try {
+      const loc = (localStorage.getItem('gb-locale') || navigator.language || 'en');
+      const res = await fetch('/api/i18n/' + encodeURIComponent(loc), { headers: { Accept: 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      Object.assign(_dict, data.translations || {});
+      // Re-render so data-i18n placeholders are filled and the card list is localized.
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (_dict[key]) el.textContent = _dict[key];
+      });
+      loadCards();
+    } catch (e) { /* keep hardcoded English */ loadCards(); }
+  })();
+
+  loadCards();
 })();
 </script>
 </body>

@@ -17,6 +17,25 @@ pub struct StripeCustomer {
     pub name: Option<String>,
     pub metadata: HashMap<String, String>,
     pub created: i64,
+    #[serde(default)]
+    pub invoice_settings: Option<StripeCustomerInvoiceSettings>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StripeCustomerInvoiceSettings {
+    #[serde(default)]
+    pub default_payment_method: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StripeSetupIntent {
+    pub id: String,
+    pub client_secret: Option<String>,
+    pub status: String,
+    #[serde(default)]
+    pub customer: Option<String>,
+    #[serde(default)]
+    pub payment_method: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,6 +147,8 @@ pub struct StripeCheckoutSession {
     pub status: String,
     pub mode: String,
     #[serde(default)]
+    pub setup_intent: Option<String>,
+    #[serde(default)]
     pub metadata: Option<HashMap<String, String>>,
 }
 
@@ -159,6 +180,22 @@ pub struct CreateCheckoutSessionParams {
 pub struct CreatePortalSessionParams {
     pub customer_id: String,
     pub return_url: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateSetupIntentParams {
+    pub customer_id: String,
+    /// `on_session` (default) or `off_session`. Off-session is required when
+    /// the saved card is later charged without the customer present.
+    pub usage: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateSetupCheckoutSessionParams {
+    pub customer_id: String,
+    pub success_url: String,
+    pub cancel_url: String,
+    pub metadata: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -401,6 +438,163 @@ impl StripeClient {
         Ok(list.data)
     }
 
+    /// Finds the most recent Stripe Customer for an email address.
+    pub async fn find_customer_by_email(
+        &self,
+        email: &str,
+    ) -> Result<Option<StripeCustomer>, StripeError> {
+        let response = self
+            .client
+            .get(format!("{}/customers", self.base_url))
+            .basic_auth(&self.api_key, Option::<&str>::None)
+            .query(&[("email", email), ("limit", "1")])
+            .send()
+            .await
+            .map_err(|e| StripeError::NetworkError(e.to_string()))?;
+
+        #[derive(Deserialize)]
+        struct CustomerList {
+            data: Vec<StripeCustomer>,
+        }
+
+        let list: CustomerList = self.handle_response(response).await?;
+        Ok(list.data.into_iter().next())
+    }
+
+    /// Creates a SetupIntent to collect a card via Stripe hosted fields /
+    /// Elements. The returned `client_secret` is used client-side; the card
+    /// number never transits our servers.
+    pub async fn create_setup_intent(
+        &self,
+        params: CreateSetupIntentParams,
+    ) -> Result<StripeSetupIntent, StripeError> {
+        let mut form: Vec<(String, String)> = vec![
+            ("customer".to_string(), params.customer_id),
+            ("usage".to_string(), params.usage),
+            ("payment_method_types[0]".to_string(), "card".to_string()),
+        ];
+        // Preserve backwards compatibility with clients that relied on the
+        // default behavior of accepting every supported payment method.
+        form.push(("automatic_payment_methods[enabled]".to_string(), "true".to_string()));
+
+        let response = self
+            .client
+            .post(format!("{}/setup_intents", self.base_url))
+            .basic_auth(&self.api_key, Option::<&str>::None)
+            .form(&form)
+            .send()
+            .await
+            .map_err(|e| StripeError::NetworkError(e.to_string()))?;
+
+        self.handle_response(response).await
+    }
+
+    pub async fn retrieve_setup_intent(
+        &self,
+        setup_intent_id: &str,
+    ) -> Result<StripeSetupIntent, StripeError> {
+        let response = self
+            .client
+            .get(format!("{}/setup_intents/{}", self.base_url, setup_intent_id))
+            .basic_auth(&self.api_key, Option::<&str>::None)
+            .send()
+            .await
+            .map_err(|e| StripeError::NetworkError(e.to_string()))?;
+
+        self.handle_response(response).await
+    }
+
+    /// Creates a fully hosted Checkout session in `setup` mode so users can
+    /// add a card on Stripe's domain — no Elements JS or raw card fields in
+    /// our HTML (PCI SAQ-A).
+    pub async fn create_setup_checkout_session(
+        &self,
+        params: CreateSetupCheckoutSessionParams,
+    ) -> Result<StripeCheckoutSession, StripeError> {
+        let mut form: Vec<(String, String)> = vec![
+            ("customer".to_string(), params.customer_id),
+            ("mode".to_string(), "setup".to_string()),
+            ("success_url".to_string(), params.success_url),
+            ("cancel_url".to_string(), params.cancel_url),
+        ];
+
+        for (key, value) in params.metadata {
+            form.push((format!("metadata[{key}]"), value));
+        }
+
+        let response = self
+            .client
+            .post(format!("{}/checkout/sessions", self.base_url))
+            .basic_auth(&self.api_key, Option::<&str>::None)
+            .form(&form)
+            .send()
+            .await
+            .map_err(|e| StripeError::NetworkError(e.to_string()))?;
+
+        self.handle_response(response).await
+    }
+
+    /// Attaches an existing PaymentMethod (e.g. created by a SetupIntent) to
+    /// a customer.
+    pub async fn attach_payment_method(
+        &self,
+        customer_id: &str,
+        payment_method_id: &str,
+    ) -> Result<StripePaymentMethod, StripeError> {
+        let form: Vec<(String, String)> =
+            vec![("customer".to_string(), customer_id.to_string())];
+
+        let response = self
+            .client
+            .post(format!("{}/payment_methods/{}/attach", self.base_url, payment_method_id))
+            .basic_auth(&self.api_key, Option::<&str>::None)
+            .form(&form)
+            .send()
+            .await
+            .map_err(|e| StripeError::NetworkError(e.to_string()))?;
+
+        self.handle_response(response).await
+    }
+
+    /// Detaches a PaymentMethod from its customer (removes it as a saved card).
+    pub async fn detach_payment_method(
+        &self,
+        payment_method_id: &str,
+    ) -> Result<StripePaymentMethod, StripeError> {
+        let response = self
+            .client
+            .post(format!("{}/payment_methods/{}/detach", self.base_url, payment_method_id))
+            .basic_auth(&self.api_key, Option::<&str>::None)
+            .send()
+            .await
+            .map_err(|e| StripeError::NetworkError(e.to_string()))?;
+
+        self.handle_response(response).await
+    }
+
+    /// Sets the default payment method used for future invoices on a customer.
+    pub async fn set_default_payment_method(
+        &self,
+        customer_id: &str,
+        payment_method_id: &str,
+    ) -> Result<StripeCustomer, StripeError> {
+        let form: Vec<(String, String)> = vec![(
+            "invoice_settings[default_payment_method]".to_string(),
+            payment_method_id.to_string(),
+        )];
+
+        let response = self
+            .client
+            .post(format!("{}/customers/{}", self.base_url, customer_id))
+            .basic_auth(&self.api_key, Option::<&str>::None)
+            .form(&form)
+            .send()
+            .await
+            .map_err(|e| StripeError::NetworkError(e.to_string()))?;
+
+        self.handle_response(response).await
+    }
+
     pub async fn get_payment_methods(&self, customer_id: &str) -> Result<Vec<StripePaymentMethod>, StripeError> {
         let response = self
             .client
@@ -506,6 +700,21 @@ impl StripeClient {
                     .map_err(|e| StripeError::ParseError(e.to_string()))?;
                 Ok(WebhookEventType::CheckoutCompleted(session))
             }
+            "payment_method.attached" | "customer.source.created" => {
+                let pm: StripePaymentMethod = serde_json::from_value(event.data.object.clone())
+                    .map_err(|e| StripeError::ParseError(e.to_string()))?;
+                Ok(WebhookEventType::PaymentMethodAttached(pm))
+            }
+            "payment_method.updated" | "customer.source.updated" => {
+                let pm: StripePaymentMethod = serde_json::from_value(event.data.object.clone())
+                    .map_err(|e| StripeError::ParseError(e.to_string()))?;
+                Ok(WebhookEventType::PaymentMethodUpdated(pm))
+            }
+            "payment_method.detached" | "customer.source.deleted" => {
+                let pm: StripePaymentMethod = serde_json::from_value(event.data.object.clone())
+                    .map_err(|e| StripeError::ParseError(e.to_string()))?;
+                Ok(WebhookEventType::PaymentMethodDetached(pm))
+            }
             _ => Ok(WebhookEventType::Unknown(event.event_type.clone())),
         }
     }
@@ -547,6 +756,9 @@ pub enum WebhookEventType {
     InvoicePaid(StripeInvoice),
     InvoicePaymentFailed(StripeInvoice),
     CheckoutCompleted(StripeCheckoutSession),
+    PaymentMethodAttached(StripePaymentMethod),
+    PaymentMethodUpdated(StripePaymentMethod),
+    PaymentMethodDetached(StripePaymentMethod),
     Unknown(String),
 }
 
@@ -604,6 +816,24 @@ impl StripeWebhookHandler {
                     stripe_subscription_id: session.subscription,
                 })
             }
+            WebhookEventType::PaymentMethodAttached(pm) => {
+                Ok(WebhookAction::PaymentMethodSync {
+                    pm: pm.clone(),
+                    detach: false,
+                })
+            }
+            WebhookEventType::PaymentMethodUpdated(pm) => {
+                Ok(WebhookAction::PaymentMethodSync {
+                    pm: pm.clone(),
+                    detach: false,
+                })
+            }
+            WebhookEventType::PaymentMethodDetached(pm) => {
+                Ok(WebhookAction::PaymentMethodSync {
+                    pm: pm.clone(),
+                    detach: true,
+                })
+            }
             WebhookEventType::Unknown(event_type) => {
                 tracing::debug!("Unhandled Stripe webhook event: {}", event_type);
                 Ok(WebhookAction::None)
@@ -642,5 +872,72 @@ pub enum WebhookAction {
         stripe_customer_id: Option<String>,
         stripe_subscription_id: Option<String>,
     },
+    PaymentMethodSync {
+        pm: StripePaymentMethod,
+        detach: bool,
+    },
     None,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn event(payload: &str, event_type: &str) -> StripeWebhookEvent {
+        serde_json::from_str(&format!(
+            r#"{{"id":"evt_1","type":"{event_type}","created":123,"data":{{"object":{payload}}}}}"#
+        ))
+        .expect("valid webhook fixture")
+    }
+
+    #[test]
+    fn test_parse_payment_method_attached() {
+        let client = StripeClient::new("sk_test".to_string(), None);
+        let evt = event(
+            r#"{"id":"pm_123","customer":"cus_1","type":"card","card":{"brand":"visa","last4":"4242","exp_month":12,"exp_year":2030}}"#,
+            "payment_method.attached",
+        );
+        match client.parse_webhook_event(&evt).expect("parses") {
+            WebhookEventType::PaymentMethodAttached(pm) => {
+                assert_eq!(pm.id, "pm_123");
+                assert_eq!(pm.customer.as_deref(), Some("cus_1"));
+                let card = pm.card.expect("card payload");
+                assert_eq!(card.brand, "visa");
+                assert_eq!(card.last4, "4242");
+                assert_eq!(card.exp_year, 2030);
+            }
+            other => panic!("expected PaymentMethodAttached, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_parse_customer_source_deleted_maps_to_detached() {
+        let client = StripeClient::new("sk_test".to_string(), None);
+        let evt = event(
+            r#"{"id":"pm_9","customer":"cus_1","type":"card","card":{"brand":"mastercard","last4":"0005","exp_month":1,"exp_year":2028}}"#,
+            "customer.source.deleted",
+        );
+        match client.parse_webhook_event(&evt).expect("parses") {
+            WebhookEventType::PaymentMethodDetached(pm) => {
+                assert_eq!(pm.id, "pm_9");
+            }
+            other => panic!("expected PaymentMethodDetached, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_parse_setup_checkout_session() {
+        let client = StripeClient::new("sk_test".to_string(), None);
+        let evt = event(
+            r#"{"id":"cs_1","url":"https://checkout.stripe.com/x","customer":"cus_1","subscription":null,"status":"complete","mode":"setup","setup_intent":"seti_1"}"#,
+            "checkout.session.completed",
+        );
+        match client.parse_webhook_event(&evt).expect("parses") {
+            WebhookEventType::CheckoutCompleted(session) => {
+                assert_eq!(session.mode, "setup");
+                assert_eq!(session.setup_intent.as_deref(), Some("seti_1"));
+            }
+            other => panic!("expected CheckoutCompleted, got {other:?}"),
+        }
+    }
 }

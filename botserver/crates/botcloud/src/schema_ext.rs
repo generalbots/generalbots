@@ -135,3 +135,43 @@ diesel::table! {
         redeemed_at -> Timestamptz,
     }
 }
+
+diesel::table! {
+    billing_customers (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        stripe_customer_id -> Varchar,
+        email -> Varchar,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    billing_payment_methods (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        stripe_customer_id -> Varchar,
+        stripe_pm_id -> Varchar,
+        brand -> Varchar,
+        last4 -> Varchar,
+        exp_month -> Int4,
+        exp_year -> Int4,
+        is_default -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    cloud_audit_log (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        actor_email -> Nullable<Varchar>,
+        action -> Varchar,
+        entity -> Varchar,
+        entity_id -> Nullable<Varchar>,
+        details -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
