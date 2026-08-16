@@ -1785,3 +1785,14 @@ player-playlist-renamed = プレイリストの名前が変更されました
 player-playlist-item-added = プレイリストに追加されました
 player-playlist-item-removed = プレイリストから削除されました
 player-playlist-error = プレイリストのロードに失敗しました
+
+# Dashboards widget editing
+dashboards-edit-widget = ウィジェットの編集
+dashboards-widget-title = タイトル
+dashboards-widget-title-placeholder = ウィジェットのタイトル
+dashboards-widget-type = 種類
+dashboards-width = 幅
+dashboards-height = 高さ
+dashboards-data-source = データソース
+dashboards-x-axis = X軸フィールド
+dashboards-y-axis = Y軸フィールド

@@ -1785,3 +1785,14 @@ player-playlist-renamed = 재생목록 이름이 변경됨
 player-playlist-item-added = 재생목록에 추가됨
 player-playlist-item-removed = 재생목록에서 삭제됨
 player-playlist-error = 재생목록을 로드하지 못했습니다.
+
+# Dashboards widget editing
+dashboards-edit-widget = 위젯 편집
+dashboards-widget-title = 제목
+dashboards-widget-title-placeholder = 위젯 제목
+dashboards-widget-type = 유형
+dashboards-width = 폭
+dashboards-height = 신장
+dashboards-data-source = 데이터 소스
+dashboards-x-axis = X축 필드
+dashboards-y-axis = Y축 필드

@@ -199,6 +199,9 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("social", "social.feed.list", "List feed", "List social media feed.", &[], Some("app://social?post_id={post_id}"), false),
     cmd("attendant", "attendant.queue.list", "List queue", "List the human attendant queue.", &[], Some("app://attendant?queue_id={queue_id}"), false),
     cmd("analytics", "analytics.dashboard", "Get dashboard", "Get business analytics dashboard metrics.", &[], Some("app://analytics?report_id={report_id}"), false),
+    cmd("analytics", "dashboards.list", "List dashboards", "List dashboards with their widgets.", &[], Some("app://analytics"), false),
+    cmd("analytics", "dashboards.get", "Get dashboard", "Get a dashboard with its widgets and layout.", &[("dashboard_id", "dashboard uuid")], Some("app://analytics"), false),
+    cmd("analytics", "dashboards.widgets.update", "Edit widget", "Update a widget's title, size or chart configuration.", &[("dashboard_id", "dashboard uuid"), ("widget_id", "widget uuid")], Some("app://analytics"), false),
     cmd("monitoring", "monitoring.health", "Check health", "System health: services, resources and alerts.", &[], None, false),
     // ——— Dev ———
     cmd("editor", "editor.file.open", "Open file", "Open a file in the code editor.", &[("file", "file path")], Some("app://editor?file_id={file}"), false),
