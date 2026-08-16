@@ -132,7 +132,14 @@
     }, [
       el("div", { class: "plan-card-priority-bar", style: { background: prio.color } }),
       el("div", { class: "plan-card-body" }, [
-        el("div", { class: "plan-card-title" }, t.title),
+        el("div", { class: "plan-card-title" }, [
+          t.title,
+          el("button", {
+            class: "plan-card-comment-btn",
+            title: "Comments",
+            onclick: function (e) { e.stopPropagation(); openPlanTaskComments(t.id, t.title); }
+          }, "💬")
+        ]),
         el("div", { class: "plan-card-meta" }, [
           t.assignee ? el("span", { class: "plan-card-avatar", title: t.assignee }, t.assignee.charAt(0).toUpperCase()) : null,
           t.end ? el("span", { class: "plan-card-date" }, "📅 " + fmtDate(t.end)) : null,
@@ -287,6 +294,7 @@
           '<label>Tags (vírgula)<input id="f-tags" value="' + (task.tags || []).join(", ").replace(/"/g, "&quot;") + '" /></label>' +
         '</div>' +
         '<div class="plan-modal-footer">' +
+          '<button class="plan-btn plan-btn-secondary" id="plan-comment" onclick="openPlanTaskComments(\'' + task.id + '\', \'' + (task.title || "").replace(/'/g, "\\'") + '\')">💬</button>' +
           '<button class="plan-btn plan-btn-secondary" id="plan-cancel">Cancelar</button>' +
           '<button class="plan-btn plan-btn-primary" id="plan-save">Salvar</button>' +
         '</div>' +
@@ -365,6 +373,17 @@
     if (window.GBAuthGuard) GBAuthGuard.injectLoginButton($("#gb-auth-button"));
   }
 
+  function bindPlanCommentsBadge() {
+    const btn = document.getElementById("commentsBtn");
+    if (btn && window.GBCollabComments) {
+      window.GBCollabComments.bindBadge(btn, {
+        resourceType: "plan",
+        resourceId: String(Store.data.id),
+        includeChildren: true
+      });
+    }
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
     Store.load();
     Store.subscribe(render);
@@ -374,5 +393,6 @@
     render();
     window.PlanStore = Store;
     window.PlanView = View;
+    bindPlanCommentsBadge();
   });
 })();

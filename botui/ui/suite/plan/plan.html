@@ -47,13 +47,27 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/plan/plan.js"></script>
 <script>
 /* Plan collab comments — open threaded comments for the active board/plan. */
+function getPlanId() {
+    return (window.PlanStore && window.PlanStore.data && window.PlanStore.data.id) || "default";
+}
+
 function openPlanComments() {
     if (!window.GBCollabComments) return;
     var title = (document.getElementById("planTitle") && document.getElementById("planTitle").value) || "Project Plan";
     window.GBCollabComments.open({
         resourceType: "plan",
-        resourceId: "current",
+        resourceId: String(getPlanId()),
+        includeChildren: true,
         title: "Comments on " + title,
+    });
+}
+
+function openPlanTaskComments(taskId, taskTitle) {
+    if (!window.GBCollabComments) return;
+    window.GBCollabComments.open({
+        resourceType: "plan:task",
+        resourceId: String(taskId),
+        title: "Comments on " + (taskTitle || "Task"),
     });
 }
 </script>
