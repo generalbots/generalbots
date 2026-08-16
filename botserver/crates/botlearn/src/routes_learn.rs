@@ -1,10 +1,11 @@
 use axum::{
     extract::{Path, Query},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::Json,
     routing::{get, post, put},
     Router,
 };
+use base64::Engine;
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -19,6 +20,7 @@ pub fn configure_learn_api_routes() -> Router<Arc<GamificationService>> {
     Router::new()
         .route("/api/learn/courses", get(list_courses_handler).post(create_course_handler))
         .route("/api/learn/courses/:id/publish", post(publish_course_handler))
+        .route("/api/learn/courses/:id/enroll", post(enroll_course_handler))
         .route("/api/learn/enroll", post(enroll_handler))
         .route("/api/learn/progress/:enrollment_id", put(update_progress_handler))
         .route("/api/learn/complete/:enrollment_id", post(complete_course_handler))
@@ -54,6 +56,58 @@ async fn enroll_handler(
     Json(payload): Json<EnrollRequest>,
 ) -> Result<Json<Enrollment>, (StatusCode, String)> {
     match CourseService::enroll_user(payload.user_id, payload.course_id) {
+        Ok(enrollment) => Ok(Json(enrollment)),
+        Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
+    }
+}
+
+/// Resolve the current user id for an enrollment. The suite UI authenticates
+/// with opaque `gb_*` tokens, so derive a deterministic per-token UUID;
+/// JWT bearer tokens contribute their `sub` claim when present.
+fn user_id_from_headers(headers: &HeaderMap) -> Uuid {
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|auth| auth.strip_prefix("Bearer "))
+        .map(|t| t.split(',').next().unwrap_or(t).trim().to_string());
+
+    let Some(token) = token else {
+        return Uuid::nil();
+    };
+
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() == 3 {
+        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(parts[1])
+            .ok()
+            .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok());
+        if let Some(payload) = payload {
+            if let Some(sub) = payload.get("sub").and_then(|v| v.as_str()) {
+                if let Ok(uid) = Uuid::parse_str(sub) {
+                    return uid;
+                }
+            }
+        }
+    }
+
+    Uuid::new_v5(&Uuid::NAMESPACE_OID, token.as_bytes())
+}
+
+/// RESTful enroll: POST /api/learn/courses/:id/enroll. The frontend calls
+/// this path without a body, so the user id comes from the authenticated
+/// session token instead of the request payload (#911).
+async fn enroll_course_handler(
+    headers: HeaderMap,
+    Path(course_id): Path<Uuid>,
+) -> Result<Json<Enrollment>, (StatusCode, String)> {
+    let user_id = user_id_from_headers(&headers);
+    if user_id == Uuid::nil() {
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            "Authentication required".to_string(),
+        ));
+    }
+    match CourseService::enroll_user(user_id, course_id) {
         Ok(enrollment) => Ok(Json(enrollment)),
         Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
     }
