@@ -128,6 +128,7 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/slides/modules/03_canvas.js"></script>
 <script src="/suite/slides/modules/04_events.js"></script>
 <script src="/suite/slides/modules/05_presence.js"></script>
+<script src="/suite/slides/modules/06_comments.js"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
 <script>
 /* Slides collab comments — open threaded comments for the active deck. */
@@ -136,8 +137,9 @@ function openSlidesComments() {
     var title = (document.getElementById("presTitle") && document.getElementById("presTitle").value) || "Presentation";
     window.GBCollabComments.open({
         resourceType: "slides",
-        resourceId: "current",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
         title: "Comments on " + title,
+        includeChildren: true,
     });
 }
 </script>
