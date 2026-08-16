@@ -751,6 +751,170 @@ pub async fn list_comments(
 }
 
 /// `POST /api/collab/comments` — create a comment (or reply via parent_id).
+/// Deliver @mention notification emails (compiled only with the `mail`
+/// feature, which pulls in `lettre`). Runs on a blocking thread, is strictly
+/// fire-and-forget, and degrades to a warning log on any failure — never
+/// panics and never blocks the comment write.
+#[cfg(feature = "mail")]
+fn send_mention_emails(
+    pool: botcore::shared::utils::DbPool,
+    author_id: String,
+    author_name: String,
+    resource_type: String,
+    resource_id: String,
+    mentions: Vec<String>,
+    body: String,
+) {
+    use base64::{engine::general_purpose, Engine as _};
+    use lettre::transport::smtp::authentication::Credentials;
+    use lettre::{Message, SmtpTransport, Transport};
+
+    #[derive(QueryableByName)]
+    struct AccountRow {
+        #[diesel(sql_type = Text)]
+        email: String,
+        #[diesel(sql_type = Nullable<Text>)]
+        display_name: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Integer)]
+        smtp_port: i32,
+        #[diesel(sql_type = Text)]
+        smtp_server: String,
+        #[diesel(sql_type = Text)]
+        username: String,
+        #[diesel(sql_type = Text)]
+        password_encrypted: String,
+    }
+
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            warn!("mention email: db pool unavailable: {e}");
+            return;
+        }
+    };
+
+    // The comment author's active SMTP account (author_id is their email or
+    // user uuid — see collab_user_id). Prefer the primary account.
+    let account: AccountRow = match diesel::sql_query(
+        "SELECT uea.email, uea.display_name, uea.smtp_port, \
+         uea.smtp_server, uea.username, uea.password_encrypted \
+         FROM user_email_accounts uea \
+         JOIN users u ON u.id = uea.user_id \
+         WHERE (u.email = $1 OR u.id::text = $1) AND uea.is_active = true \
+         ORDER BY uea.is_primary DESC LIMIT 1",
+    )
+    .bind::<Text, _>(&author_id)
+    .get_result(&mut conn)
+    {
+        Ok(a) => a,
+        Err(e) => {
+            warn!("mention email: no active SMTP account for author: {e}");
+            return;
+        }
+    };
+
+    let password = match general_purpose::STANDARD.decode(&account.password_encrypted) {
+        Ok(bytes) => match String::from_utf8(bytes) {
+            Ok(s) => s,
+            Err(_) => {
+                warn!("mention email: invalid password encoding for account");
+                return;
+            }
+        },
+        // Legacy rows may store the password in clear text.
+        Err(_) => account.password_encrypted.clone(),
+    };
+
+    let from = match account.display_name.as_deref().filter(|n| !n.is_empty()) {
+        Some(name) => format!("{name} <{}>", account.email),
+        None => account.email.clone(),
+    };
+
+    // Resolve each mention token to a real user email, dedupe, skip the author.
+    let mut recipients: Vec<String> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for token in &mentions {
+        let token = token.trim();
+        if token.is_empty() || !seen.insert(token.to_lowercase()) {
+            continue;
+        }
+        #[derive(QueryableByName)]
+        struct EmailRow {
+            #[diesel(sql_type = Text)]
+            email: String,
+        }
+        let rows: Vec<EmailRow> = diesel::sql_query(
+            "SELECT email FROM users \
+             WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1) LIMIT 1",
+        )
+        .bind::<Text, _>(token)
+        .get_results(&mut conn)
+        .unwrap_or_default();
+        if let Some(row) = rows.into_iter().next() {
+            let email = row.email.to_lowercase();
+            if email == account.email.to_lowercase() {
+                continue; // never email the author about their own comment
+            }
+            if !recipients.iter().any(|r| r.to_lowercase() == email) {
+                recipients.push(row.email);
+            }
+        }
+    }
+
+    if recipients.is_empty() {
+        return;
+    }
+
+    let preview: String = body.chars().take(400).collect();
+    let subject = format!("{author_name} mentioned you in a comment");
+    let text = format!(
+        "{author_name} mentioned you on {resource_type} ({resource_id}).\n\n\"{preview}\"\n\nOpen the app to view and reply."
+    );
+
+    for recipient in recipients {
+        let msg = match Message::builder()
+            .from(match from.parse() {
+                Ok(m) => m,
+                Err(e) => {
+                    warn!("mention email: invalid from address: {e}");
+                    continue;
+                }
+            })
+            .to(match recipient.parse() {
+                Ok(m) => m,
+                Err(e) => {
+                    warn!("mention email: invalid recipient: {e}");
+                    continue;
+                }
+            })
+            .subject(subject.clone())
+            .body(text.clone())
+        {
+            Ok(m) => m,
+            Err(e) => {
+                warn!("mention email: build failed: {e}");
+                continue;
+            }
+        };
+
+        let mailer = match SmtpTransport::relay(&account.smtp_server) {
+            Ok(b) => b
+                .port(u16::try_from(account.smtp_port).unwrap_or(587))
+                .credentials(Credentials::new(account.username.clone(), password.clone()))
+                .build(),
+            Err(e) => {
+                warn!("mention email: SMTP relay failed: {e}");
+                continue;
+            }
+        };
+
+        match mailer.send(&msg) {
+            Ok(_) => info!("mention email sent to {recipient} (from {author_name})"),
+            Err(e) => warn!("mention email: send failed for {recipient}: {e}"),
+        }
+    }
+}
+
 /// `@mention` tokens are extracted and stored for notification/rendering.
 pub async fn create_comment(
     State(state): State<Arc<AppState>>,
@@ -822,6 +986,30 @@ pub async fn create_comment(
         "comment",
         &serde_json::json!({ "body_len": body.chars().count(), "reply": req.parent_id.is_some() }),
     );
+
+    // Fire mention emails off-thread so a slow/missing SMTP server never
+    // delays the comment write. Compiled only with the `mail` feature.
+    #[cfg(feature = "mail")]
+    if !mentions.is_empty() {
+        let pool = state.conn.clone();
+        let task_author_id = author_id.clone();
+        let task_author_name = author_name.clone();
+        let task_resource_type = req.resource_type.clone();
+        let task_resource_id = req.resource_id.clone();
+        let task_mentions = mentions.clone();
+        let task_body = body.clone();
+        tokio::task::spawn_blocking(move || {
+            send_mention_emails(
+                pool,
+                task_author_id,
+                task_author_name,
+                task_resource_type,
+                task_resource_id,
+                task_mentions,
+                task_body,
+            );
+        });
+    }
 
     Ok(Json(CommentItem {
         id: created.id,
